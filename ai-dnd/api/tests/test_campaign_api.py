@@ -138,6 +138,16 @@ class ControlledVenueOllamaClient(FakeOllamaClient):
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
+class CapturingConversationContextClient(ControlledVenueOllamaClient):
+    def __init__(self):
+        super().__init__(intent="narrative")
+        self.message_batches = []
+
+    def chat(self, *args, **kwargs):
+        self.message_batches.append(copy.deepcopy(kwargs.get("messages", [])))
+        return super().chat(*args, **kwargs)
+
+
 class ControlledSceneDetailOllamaClient(FakeOllamaClient):
     """Synthetic provider proposing one new local detail beneath a building."""
 
@@ -283,6 +293,597 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             patch.object(self.app.state.ollama_adapter, "_client", model),
         ):
             return await self.http.post(url, json=body)
+
+    async def test_unpunctuated_locked_followup_reaches_same_npc_door_context(self):
+        city_id, session_id, session, turn_url, tavern_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        marek = {
+            "id": "npc_marek",
+            "name": "Marek",
+            "role": "keeper",
+            "location": city_id,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        private_other_npc_fact = "SERA_PRIVATE_SECRET_NOT_FOR_MAREK_82c1"
+        session.world_state["npcs"].append({
+            "id": "npc_sera",
+            "name": "Sera",
+            "role": "guard",
+            "location": city_id,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [private_other_npc_fact],
+            "memory": [{
+                "speaker": "npc",
+                "text": private_other_npc_fact,
+            }],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        })
+        client = CapturingConversationContextClient()
+        trace = {
+            "api_turns": [],
+            "owner_answer": [],
+            "focus_write": [],
+            "http_response": None,
+        }
+
+        original_direct = game._direct_npc_smalltalk_response
+        original_focus_writer = game._remember_owner_locked_tavern_focus
+        original_run_player_turn = session.run_player_turn
+
+        @wraps(original_run_player_turn)
+        def traced_run_player_turn(player_input, *args, **kwargs):
+            trace["api_turns"].append({
+                "player_input": player_input,
+                "target_id": kwargs.get("target_id"),
+                "interaction_mode": kwargs.get("interaction_mode"),
+                "scene_plan": copy.deepcopy(kwargs.get("scene_plan")),
+                "session_matches_manager": (
+                    self.manager.get(session_id).game_session is session
+                ),
+            })
+            return original_run_player_turn(player_input, *args, **kwargs)
+
+        def traced_direct(player_input, npc_target):
+            result = original_direct(player_input, npc_target)
+            trace["owner_answer"].append({
+                "player_input": player_input,
+                "npc_id": (
+                    npc_target.get("id") if isinstance(npc_target, dict) else None
+                ),
+                "active_session_matches_manager": game._session() is session,
+                "response": result,
+            })
+            return result
+
+        def traced_focus_writer(player_input, npc_target, action_id):
+            focus_state = session.world_state.get("interaction_adventure_v1", {})
+            before = copy.deepcopy(focus_state.get("conversation_focus"))
+            result = original_focus_writer(player_input, npc_target, action_id)
+            focus_state = session.world_state.get("interaction_adventure_v1", {})
+            trace["focus_write"].append({
+                "called": True,
+                "player_input": player_input,
+                "npc_id": (
+                    npc_target.get("id") if isinstance(npc_target, dict) else None
+                ),
+                "action_id": action_id,
+                "active_session_matches_manager": game._session() is session,
+                "before": before,
+                "after": copy.deepcopy(focus_state.get("conversation_focus")),
+            })
+            return result
+
+        async def say(message, action_id=None):
+            return await self.post_scene_turn(
+                turn_url,
+                client,
+                {
+                    "message": message,
+                    "action_id": action_id or str(uuid.uuid4()),
+                },
+            )
+
+        greeting = await say("Merhaba Marek.")
+        self.assertEqual(greeting.status_code, 200, greeting.text)
+        with (
+            patch.object(
+                session, "run_player_turn", traced_run_player_turn, create=True
+            ),
+            patch.object(game, "_direct_npc_smalltalk_response", side_effect=traced_direct),
+            patch.object(game, "_remember_owner_locked_tavern_focus", side_effect=traced_focus_writer),
+        ):
+            tavern_action_id = str(uuid.uuid4())
+            world_before_failed_save = copy.deepcopy(session.world_state)
+            rng_before_failed_save = session.rng.getstate()
+            with patch.object(
+                self.manager,
+                "autosave_turn",
+                side_effect=CampaignStorageError("synthetic save failure"),
+            ):
+                failed_save = await say(
+                    "Buralarda han var mı Marek?", tavern_action_id
+                )
+            self.assertGreaterEqual(failed_save.status_code, 500, failed_save.text)
+            self.assertEqual(session.world_state, world_before_failed_save)
+            self.assertEqual(session.rng.getstate(), rng_before_failed_save)
+            tavern_answer = await say(
+                "Buralarda han var mı Marek?", tavern_action_id
+            )
+        self.assertEqual(tavern_answer.status_code, 200, tavern_answer.text)
+        tavern_payload = tavern_answer.json()
+        trace["http_response"] = {
+            "narration": tavern_payload.get("narration"),
+            "action_result": tavern_payload.get("action_result"),
+        }
+        self.assertTrue(
+            trace["api_turns"]
+            and trace["api_turns"][-1]["player_input"] == "Buralarda han var mı Marek?",
+            json.dumps(trace, ensure_ascii=False),
+        )
+        self.assertIn("kilitli", tavern_payload["narration"].casefold())
+        stored_focus = session.world_state.get(
+            "interaction_adventure_v1", {}
+        ).get("conversation_focus")
+        self.assertIsInstance(stored_focus, dict, json.dumps(trace, ensure_ascii=False))
+        self.assertEqual(stored_focus.get("speaker_id"), marek["id"])
+        self.assertEqual(stored_focus.get("scene_id"), city_id)
+        self.assertEqual(stored_focus.get("subject_id"), door["id"])
+        self.assertEqual(stored_focus.get("predicate"), "locked")
+        self.assertIs(stored_focus.get("value"), True)
+        self.assertEqual(stored_focus.get("epistemic"), "owner_verified")
+        campaign_id = self.manager.get(session_id).campaign_id
+        focus_before_failed_save = copy.deepcopy(stored_focus)
+        memory_before_failed_save = copy.deepcopy(marek["memory"])
+        failed_focus_action_id = str(uuid.uuid4())
+        with patch.object(
+            self.manager,
+            "autosave_turn",
+            side_effect=CampaignStorageError("synthetic focus save failure"),
+        ):
+            failed_focus_save = await say(
+                "Buralarda han var mı Marek?", failed_focus_action_id
+            )
+        self.assertGreaterEqual(
+            failed_focus_save.status_code, 500, failed_focus_save.text
+        )
+        self.assertEqual(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"],
+            focus_before_failed_save,
+        )
+        current_marek = next(
+            npc for npc in session.world_state["npcs"]
+            if npc.get("id") == marek["id"]
+        )
+        self.assertEqual(current_marek["memory"], memory_before_failed_save)
+        calls_before_replay = len(client.message_batches)
+        replay = await say("Buralarda han var mı Marek?", tavern_action_id)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), tavern_answer.json())
+        self.assertEqual(len(client.message_batches), calls_before_replay)
+
+        old_http = self.http
+        resumed_manager = SessionManager(campaign_store=self.store)
+        resumed_adapter = AuthenticatedOllamaAdapter(client)
+        self.app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=resumed_adapter,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+        await old_http.aclose()
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{campaign_id}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        session_id = resumed.json()["session_id"]
+        session = resumed_manager.get(session_id).game_session
+        turn_url = f"/api/game/sessions/{session_id}/turn"
+        resumed_focus = session.world_state.get(
+            "interaction_adventure_v1", {}
+        ).get("conversation_focus")
+        self.assertEqual(resumed_focus, stored_focus)
+        trace["focus_before_followup"] = {
+            "raw": copy.deepcopy(stored_focus),
+            "validated": game.interaction_adventure.current_conversation_focus(
+                session.world_state, marek
+            ),
+            "turn_index": session.world_state.get("flags", {}).get("turn_index"),
+            "active_npc_id": session.world_state.get("flags", {}).get("active_npc_id"),
+            "active_npc_until_turn": session.world_state.get("flags", {}).get(
+                "active_npc_until_turn"
+            ),
+        }
+
+        before_followup = {
+            "location": copy.deepcopy(session.world_state.get("location")),
+            "doors": copy.deepcopy(session.world_state.get("doors")),
+            "rng": session.rng.getstate(),
+            "campaign_time": copy.deepcopy(session.world_state.get("campaign_time")),
+            "inventory": copy.deepcopy(session.world_state.get("inventory")),
+            "quests": copy.deepcopy(session.world_state.get("quests")),
+        }
+        resolved_targets = []
+        original_resolver = game.resolve_npc_reference
+
+        def trace_resolver(text, *args, **kwargs):
+            resolution = original_resolver(text, *args, **kwargs)
+            if text == "neden kilitli":
+                resolved_targets.append(copy.deepcopy(resolution))
+            return resolution
+
+        with patch.object(game, "resolve_npc_reference", side_effect=trace_resolver):
+            followup = await say("neden kilitli")
+        self.assertEqual(followup.status_code, 200, followup.text)
+        self.assertTrue(resolved_targets)
+        self.assertEqual(resolved_targets[-1]["npc"]["id"], marek["id"])
+        self.assertTrue(client.message_batches, "The real model adapter was not reached.")
+        context_text = json.dumps(client.message_batches[-1], ensure_ascii=False)
+
+        def latest_scene_context():
+            marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+            message = next(
+                item["content"]
+                for item in client.message_batches[-1]
+                if marker in item.get("content", "")
+            )
+            payload = message.split(marker, 1)[1].split(
+                "\n\nRECENT NARRATION", 1
+            )[0]
+            return json.loads(payload)
+
+        scene_context = latest_scene_context()
+        focus_in_model_context = scene_context["conversation_focus"]
+        self.assertEqual(scene_context["active_npc_target"]["id"], marek["id"])
+        self.assertEqual(focus_in_model_context["speaker_id"], marek["id"])
+        self.assertEqual(focus_in_model_context["scene_id"], city_id)
+        self.assertEqual(focus_in_model_context["subject_id"], door["id"])
+        self.assertEqual(focus_in_model_context["evidence_id"], door["id"])
+        self.assertEqual(focus_in_model_context["predicate"], "locked")
+        self.assertIs(focus_in_model_context["value"], True)
+        self.assertEqual(focus_in_model_context["epistemic"], "owner_verified")
+        self.assertIn("kilidin nedenini kanıtlamaz", context_text)
+        self.assertNotIn("reason_for_lock", context_text)
+        self.assertNotIn(private_other_npc_fact, context_text)
+        other_venue_world = copy.deepcopy(session.world_state)
+        other_venue = copy.deepcopy(
+            other_venue_world["locations"][tavern_id]
+        )
+        other_venue["name"] = "Demirci Hanı"
+        other_venue_world["locations"]["focus-outside-location"] = other_venue
+        self.assertFalse(
+            game.interaction_adventure.is_focus_followup(
+                other_venue_world,
+                "Marek, Demirci Hanı kapısı neden kilitli?",
+            )
+        )
+
+        after_followup = {
+            "location": session.world_state.get("location"),
+            "doors": session.world_state.get("doors"),
+            "rng": session.rng.getstate(),
+            "campaign_time": session.world_state.get("campaign_time"),
+            "inventory": session.world_state.get("inventory"),
+            "quests": session.world_state.get("quests"),
+        }
+        self.assertEqual(after_followup, before_followup)
+
+        for epistemic in ("player_claim", "rumor", "belief"):
+            untrusted = copy.deepcopy(session.world_state)
+            untrusted["interaction_adventure_v1"]["conversation_focus"][
+                "epistemic"
+            ] = epistemic
+            self.assertIsNone(
+                game.interaction_adventure.current_conversation_focus(
+                    untrusted, marek
+                ),
+                epistemic,
+            )
+        stale = copy.deepcopy(session.world_state)
+        stale["flags"]["turn_index"] = stored_focus["turn"] + 7
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(stale, marek)
+        )
+        changed_speaker = copy.deepcopy(session.world_state)
+        changed_speaker["flags"]["active_npc_id"] = "npc_sera"
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                changed_speaker, marek
+            )
+        )
+        wrong_npc = copy.deepcopy(marek)
+        wrong_npc["id"] = "npc_sera"
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                session.world_state, wrong_npc
+            )
+        )
+
+        short_followup = await say("Niye?")
+        self.assertEqual(short_followup.status_code, 200, short_followup.text)
+        short_scene = latest_scene_context()
+        self.assertEqual(
+            short_scene["conversation_focus"]["subject_id"], door["id"]
+        )
+        self.assertEqual(short_scene["active_npc_target"]["id"], marek["id"])
+
+        other_topic = await say("Marek, bugün hava nasıl?")
+        self.assertEqual(other_topic.status_code, 200, other_topic.text)
+        other_topic_scene = latest_scene_context()
+        self.assertIsNone(other_topic_scene["conversation_focus"])
+
+        other_speaker = await say("Sera, bugün hava nasıl?")
+        self.assertEqual(other_speaker.status_code, 200, other_speaker.text)
+        other_speaker_scene = latest_scene_context()
+        self.assertEqual(
+            other_speaker_scene["active_npc_target"]["id"], "npc_sera"
+        )
+        self.assertIsNone(other_speaker_scene["conversation_focus"])
+
+        duplicate_marek = copy.deepcopy(marek)
+        duplicate_marek["id"] = "npc_marek_duplicate"
+        session.world_state["npcs"].append(duplicate_marek)
+        calls_before_ambiguous_address = len(client.message_batches)
+        ambiguous_address = await say("Marek, neden kilitli?")
+        self.assertEqual(ambiguous_address.status_code, 200, ambiguous_address.text)
+        self.assertEqual(
+            len(client.message_batches), calls_before_ambiguous_address
+        )
+
+    async def test_personal_profile_why_followup_reaches_same_npc_context(self):
+        city_id, session_id, session, turn_url, _, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        profile = {
+            "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+            "occupation": "Şehir arşivinde geçici kâtiplik yapıyorum.",
+            "current_activity": "Eski liman kayıtlarını tasnif ediyorum.",
+            "mood": "İyiyim.",
+            "recent_activity": "Sabah pazardan yeşil iplik aldım.",
+            "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+            "reason_for_being_here": "Arşivciye verdiğim sözü tutup kayıp yük kayıtlarını bulmaya çalışıyorum.",
+            "personal_detail": "Notlarımı mavi kapaklı bir defterde tutarım.",
+            "immediate_goal": "Bugün tasnifi bitirmek.",
+        }
+        marek = {
+            "id": "npc_marek_profile",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": profile,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        private_fact = "OTHER_NPC_PRIVATE_PROFILE_SENTINEL"
+        session.world_state.setdefault("npcs", []).extend([
+            marek,
+            {
+                "id": "npc_sera_profile",
+                "name": "Sera",
+                "role": "guard",
+                "location": city_id,
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                "personal_profile": {"private_detail": private_fact},
+                "personality": "",
+                "appearance": "",
+                "relationship": "neutral",
+                "knowledge": [private_fact],
+                "memory": [],
+                "combat_status": "active",
+                "current_hp": 12,
+                "status": "active",
+            },
+        ])
+        client = CapturingConversationContextClient()
+
+        async def say(message):
+            return await self.post_scene_turn(
+                turn_url, client, {"message": message, "action_id": str(uuid.uuid4())}
+            )
+
+        first = await say("Marek, şu an ne yapıyorsun?")
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertIn(profile["current_activity"], first.json()["narration"])
+        stored_focus = session.world_state["interaction_adventure_v1"].get(
+            "conversation_focus"
+        )
+        self.assertIsInstance(stored_focus, dict)
+        campaign_id = self.manager.get(session_id).campaign_id
+        resumed_manager = SessionManager(campaign_store=self.store)
+        self.app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(client),
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{campaign_id}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        resumed_session_id = resumed.json()["session_id"]
+        resumed_session = resumed_manager.get(resumed_session_id).game_session
+        turn_url = f"/api/game/sessions/{resumed_session_id}/turn"
+        self.assertEqual(
+            resumed_session.world_state["interaction_adventure_v1"][
+                "conversation_focus"
+            ],
+            stored_focus,
+        )
+        followup = await say("Niye?")
+        self.assertEqual(followup.status_code, 200, followup.text)
+        messages = client.message_batches[-1]
+        context_text = json.dumps(messages, ensure_ascii=False)
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        payload = next(
+            item["content"].split(marker, 1)[1].split(
+                "\n\nRECENT NARRATION", 1
+            )[0]
+            for item in messages
+            if marker in item.get("content", "")
+        )
+        scene = json.loads(payload)
+        focus = scene["conversation_focus"]
+        accepted_profile = scene["accepted_npc_profile"]
+        self.assertEqual(scene["active_npc_target"]["id"], marek["id"])
+        self.assertEqual(focus["speaker_id"], marek["id"])
+        self.assertEqual(
+            focus["subject_id"], f"npc-profile:{marek['id']}:current_activity"
+        )
+        self.assertEqual(focus["predicate"], "current_activity")
+        self.assertEqual(focus["value"], profile["current_activity"])
+        self.assertEqual(focus["epistemic"], "witnessed")
+        self.assertEqual(accepted_profile["speaker_id"], marek["id"])
+        self.assertEqual(accepted_profile["subject_id"], focus["subject_id"])
+        self.assertEqual(accepted_profile["topic"], "current_activity")
+        self.assertEqual(len(accepted_profile["evidence"]), 3)
+        activity_evidence, cause_evidence, distractor_evidence = accepted_profile[
+            "evidence"
+        ]
+        self.assertEqual(activity_evidence["evidence_id"], focus["evidence_id"])
+        self.assertEqual(activity_evidence["value"], profile["current_activity"])
+        self.assertEqual(activity_evidence["relation"], "conversation_topic")
+        self.assertEqual(
+            cause_evidence,
+            {
+                "evidence_id": (
+                    f"npc-profile:{marek['id']}:v1:reason_for_being_here"
+                ),
+                "field": "reason_for_being_here",
+                "value": profile["reason_for_being_here"],
+                "relation": "same_npc_profile",
+            },
+        )
+        self.assertEqual(
+            distractor_evidence,
+            {
+                "evidence_id": f"npc-profile:{marek['id']}:v1:recent_activity",
+                "field": "recent_activity",
+                "value": profile["recent_activity"],
+                "relation": "same_npc_profile",
+            },
+        )
+        self.assertNotIn(private_fact, context_text)
+
+    async def test_changed_door_invalidates_focus_and_legacy_focus_defaults(self):
+        city_id, session_id, session, turn_url, tavern_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        marek = {
+            "id": "npc_marek_door_lifecycle",
+            "name": "Marek",
+            "role": "keeper",
+            "location": city_id,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        client = CapturingConversationContextClient()
+        first = await self.post_scene_turn(turn_url, client, {
+            "message": "Buralarda han var mı Marek?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(first.status_code, 200, first.text)
+        focus = copy.deepcopy(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"]
+        )
+        self.assertEqual(focus["subject_id"], door["id"])
+
+        door["locked"] = False
+        opened = await self.post_scene_turn(turn_url, client, {
+            "message": "Kapıyı açıyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(opened.status_code, 200, opened.text)
+        self.assertTrue(door["open"])
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                session.world_state, marek
+            )
+        )
+        changed_state = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, kapı artık neden kilitli değil?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(changed_state.status_code, 200, changed_state.text)
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        changed_messages = client.message_batches[-1]
+        changed_payload = next(
+            item["content"].split(marker, 1)[1].split(
+                "\n\nRECENT NARRATION", 1
+            )[0]
+            for item in changed_messages
+            if marker in item.get("content", "")
+        )
+        self.assertIsNone(json.loads(changed_payload)["conversation_focus"])
+        legacy_world = copy.deepcopy(session.world_state)
+        legacy_world["interaction_adventure_v1"].pop("conversation_focus", None)
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                legacy_world, marek
+            )
+        )
+        campaign_id = self.manager.get(session_id).campaign_id
+        session.world_state["interaction_adventure_v1"].pop(
+            "conversation_focus", None
+        )
+        self.manager.save_campaign(campaign_id)
+        resumed_manager = SessionManager(campaign_store=self.store)
+        self.app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(client),
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{campaign_id}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        resumed_session = resumed_manager.get(
+            resumed.json()["session_id"]
+        ).game_session
+        self.assertNotIn(
+            "conversation_focus",
+            resumed_session.world_state["interaction_adventure_v1"],
+        )
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                resumed_session.world_state, marek
+            )
+        )
 
     async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
         legacy = await self.create_campaign()

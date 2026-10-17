@@ -5321,6 +5321,7 @@ def resolve_npc_reference(player_input, force_dialogue=False):
         force_dialogue
         or is_npc_dialogue_input(player_input)
         or re.search(r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text)
+        or interaction_adventure.is_focus_followup(world_state, player_input)
     ):
         flags = world_state.setdefault("flags", {})
         active_id = flags.get("active_npc_id") or flags.get("last_npc_id")
@@ -5395,6 +5396,93 @@ def record_npc_interaction(npc, npc_reply, player_input, npc_target=None):
     
     # Keep memory bounded (up to 16 structured entries)
     del entries[:-16]
+
+
+def _remember_owner_locked_tavern_focus(player_input, npc_target, action_id):
+    if (
+        not living_world.is_tavern_search(player_input)
+        or not isinstance(npc_target, dict)
+        or not isinstance(npc_target.get("id"), str)
+        or not isinstance(action_id, str)
+        or not action_id
+    ):
+        return
+    world = _session().world_state
+    root_location = world.get("location")
+    while _engine_location_parent(root_location):
+        root_location = _engine_location_parent(root_location)
+    tavern = next(
+        (
+            location for location in world.get("locations", {}).values()
+            if isinstance(location, dict)
+            and location.get("parent_location_id") == root_location
+            and (
+                location.get("scene_kind") == "tavern"
+                or location.get("type") in {"tavern", "inn", "meyhane", "han"}
+            )
+        ),
+        None,
+    )
+    if not isinstance(tavern, dict):
+        return
+    door = next(
+        (
+            item for item in world.get("doors", [])
+            if isinstance(item, dict)
+            and item.get("id") == f"venue-door:{tavern.get('id')}"
+            and item.get("locked") is True
+        ),
+        None,
+    )
+    if not isinstance(door, dict):
+        return
+    interaction_adventure.remember_conversation_focus(
+        world,
+        speaker_id=npc_target["id"],
+        scene_id=world.get("location"),
+        subject_id=door["id"],
+        predicate="locked",
+        value=True,
+        turn=world.get("flags", {}).get("turn_index", 0),
+        action_id=action_id,
+        evidence_id=door["id"],
+        epistemic="owner_verified",
+    )
+
+
+def _remember_accepted_profile_focus(player_input, npc_target, action_id):
+    if (
+        not isinstance(npc_target, dict)
+        or npc_target.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
+        or not isinstance(npc_target.get("id"), str)
+        or not isinstance(action_id, str)
+        or not action_id
+    ):
+        return
+    field = local_dialogue.personal_question_kind(player_input)
+    profile = npc_target.get("personal_profile")
+    if (
+        field not in {
+            "occupation", "current_activity", "recent_activity", "origin",
+            "day", "personal_context",
+        }
+        or not isinstance(profile, dict)
+        or not isinstance(profile.get(field), str)
+    ):
+        return
+    world = _session().world_state
+    interaction_adventure.remember_conversation_focus(
+        world,
+        speaker_id=npc_target["id"],
+        scene_id=world.get("location"),
+        subject_id=f"npc-profile:{npc_target['id']}:{field}",
+        predicate=field,
+        value=profile[field],
+        turn=world.get("flags", {}).get("turn_index", 0),
+        action_id=action_id,
+        evidence_id=f"npc-profile:{npc_target['id']}:v1:{field}",
+        epistemic="witnessed",
+    )
 
 
 def _claim_keywords(text):
@@ -9259,7 +9347,7 @@ def _dm_response_schema_for_turn(allow_new_shops=False, narration_only=False):
     return schema
 
 
-def _living_world_prompt_context(scene_plan=None, npc_target=None):
+def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=None):
     world_state = _session().world_state
     location_id = world_state.get("location")
     if location_id not in world_state.get("locations", {}):
@@ -9279,6 +9367,17 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None):
         if isinstance(item, dict)
         and item.get("lifecycle") == "presented"
     ]
+    conversation_focus = (
+        interaction_adventure.current_conversation_focus(
+            world_state, npc_target
+        )
+        if isinstance(npc_target, dict)
+        else None
+    )
+    if conversation_focus and not interaction_adventure.is_focus_followup(
+        world_state, player_input
+    ):
+        conversation_focus = None
     content = {
         "location_id": location_id,
         "location_name": location_display_name(location_id),
@@ -9296,6 +9395,49 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None):
                 "role": living_world.public_npc_role(npc_target),
             }
             if isinstance(npc_target, dict)
+            else None
+        ),
+        "conversation_focus": conversation_focus,
+        "accepted_npc_profile": (
+            {
+                "speaker_id": npc_target.get("id"),
+                "subject_id": conversation_focus["subject_id"],
+                "topic": conversation_focus["predicate"],
+                "evidence": [
+                    {
+                        "evidence_id": conversation_focus["evidence_id"],
+                        "field": conversation_focus["predicate"],
+                        "value": conversation_focus["value"],
+                        "relation": "conversation_topic",
+                    },
+                    {
+                        "evidence_id": (
+                            f"npc-profile:{npc_target.get('id')}:v1:"
+                            "reason_for_being_here"
+                        ),
+                        "field": "reason_for_being_here",
+                        "value": npc_target.get("personal_profile", {}).get(
+                            "reason_for_being_here"
+                        ),
+                        "relation": "same_npc_profile",
+                    },
+                    {
+                        "evidence_id": (
+                            f"npc-profile:{npc_target.get('id')}:v1:recent_activity"
+                        ),
+                        "field": "recent_activity",
+                        "value": npc_target.get("personal_profile", {}).get(
+                            "recent_activity"
+                        ),
+                        "relation": "same_npc_profile",
+                    },
+                ],
+            }
+            if (
+                conversation_focus
+                and conversation_focus["subject_id"].startswith("npc-profile:")
+                and isinstance(npc_target, dict)
+            )
             else None
         ),
         "visible_npcs": [
@@ -9434,7 +9576,9 @@ def ask_dungeon_master(
         else getattr(_session(), "lore_authority_context", None)
     )
     context = json.dumps(build_world_context(npc_target), ensure_ascii=False, separators=(",", ":"))
-    living_scene_context = _living_world_prompt_context(scene_plan, npc_target)
+    living_scene_context = _living_world_prompt_context(
+        scene_plan, npc_target, player_input
+    )
     lore_context_json = json.dumps(
         lore_context, ensure_ascii=False, separators=(",", ":")
     )
@@ -9481,7 +9625,10 @@ def ask_dungeon_master(
     elif scene_type == "conversation":
         scene_guidance = (
             " NPC'nin küçük jestleri ve gündelik, kendi işiyle ilgili yanıtları geçici konuşma "
-            "bağlamıdır; bunları doğrulanmamış büyük lore'a dönüştürme."
+            "bağlamıdır; bunları doğrulanmamış büyük lore'a dönüştürme. conversation_focus "
+            "yalnızca belirtilen konuşmacı, konu, önerme ve değeri destekler; kilitli bilgisi "
+            "kilidin nedenini kanıtlamaz. Desteklenmeyen bir nedeni gerçek gibi sunma veya "
+            "başka bir NPC'nin özel bilgisini aktarma."
         )
     elif scene_type == "skill_check":
         scene_guidance = (
@@ -11820,9 +11967,12 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         )
         or (
             (target_id is not None or explicit_local_npc_reference)
-            and re.search(
-                r"\b(?:sor\w*|konus\w*|soyle\w*|de\w*|seslen\w*|hitap\s+et\w*)\b",
-                normalized_input,
+            and (
+                is_npc_dialogue_input(player_input)
+                or re.search(
+                    r"\b(?:sor\w*|konus\w*|soyle\w*|de\w*|seslen\w*|hitap\s+et\w*)\b",
+                    normalized_input,
+                )
             )
         )
     )
@@ -12644,7 +12794,7 @@ def _dispatch_player_turn(
         if action_id is None:
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -12653,7 +12803,7 @@ def _dispatch_player_turn(
         with resolution_action_scope(action_id, session_id):
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -12719,7 +12869,7 @@ def _dispatch_player_turn(
     if action_id is None:
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -12728,7 +12878,7 @@ def _dispatch_player_turn(
     with resolution_action_scope(action_id, session_id):
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -13073,7 +13223,8 @@ def _owner_module_reply(player_input, interaction_mode):
 
 
 def _run_player_turn_internal(
-    player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None
+    player_input, messages=None, target_id=None, scene_plan=None,
+    interaction_mode=None, action_id=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     narration_model_calls = 0
@@ -14105,6 +14256,14 @@ def _run_player_turn_internal(
         record_npc_interaction(
             npc_target, smalltalk_response, player_input, npc_target
         )
+        if personal:
+            _remember_accepted_profile_focus(
+                player_input, npc_target, action_id
+            )
+        else:
+            _remember_owner_locked_tavern_focus(
+                player_input, npc_target, action_id
+            )
         if (
             personal
             or conversation_start

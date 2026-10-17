@@ -68,6 +68,18 @@ class Commitment(Contract):
     updated_turn: int = Field(ge=0)
 
 
+class ConversationFocus(Contract):
+    speaker_id: str = Field(min_length=1, max_length=128)
+    scene_id: str = Field(min_length=1, max_length=128)
+    subject_id: str = Field(min_length=1, max_length=160)
+    predicate: str = Field(min_length=1, max_length=64)
+    value: str | bool | int | float | None
+    turn: int = Field(ge=0)
+    action_id: str = Field(min_length=1, max_length=160)
+    evidence_id: str = Field(min_length=1, max_length=160)
+    epistemic: Literal["owner_verified", "witnessed", "player_claim", "rumor", "belief"]
+
+
 class PerspectiveEntry(Contract):
     entry_id: str
     kind: Literal["witnessed", "player_claim", "belief", "rumor", "lie"]
@@ -120,6 +132,7 @@ class Novelty(Contract):
 
 class State(Contract):
     version: Literal[1] = 1
+    conversation_focus: ConversationFocus | None = None
     threads: list[Thread] = Field(default_factory=list, max_length=MAX_THREADS)
     commitments: list[Commitment] = Field(default_factory=list, max_length=64)
     perspectives: dict[str, list[PerspectiveEntry]] = Field(default_factory=dict)
@@ -206,6 +219,113 @@ def normalize(text):
 def get(world):
     """Read-only defaults. Reads/resume/projection must not create events."""
     return copy.deepcopy(world.get(KEY, State().model_dump()))
+
+
+def remember_conversation_focus(world, *, speaker_id, scene_id, subject_id,
+                                predicate, value, turn, action_id, evidence_id,
+                                epistemic="owner_verified"):
+    """Store a bounded, structured proposition from an accepted owner result."""
+    if not isinstance(action_id, str) or not action_id:
+        return False
+    focus = ConversationFocus(
+        speaker_id=speaker_id, scene_id=scene_id, subject_id=subject_id,
+        predicate=predicate, value=value, turn=turn, action_id=action_id,
+        evidence_id=evidence_id, epistemic=epistemic,
+    )
+    world.setdefault(KEY, State().model_dump())["conversation_focus"] = focus.model_dump()
+    return True
+
+
+def current_conversation_focus(world, npc=None):
+    raw = get(world).get("conversation_focus")
+    if not isinstance(raw, dict):
+        return None
+    try:
+        focus = ConversationFocus.model_validate(raw)
+    except ValidationError:
+        return None
+    flags = world.get("flags", {})
+    turn = flags.get("turn_index", 0) if isinstance(flags, dict) else 0
+    active_until = flags.get("active_npc_until_turn", -1) if isinstance(flags, dict) else -1
+    if (
+        focus.scene_id != world.get("location")
+        or focus.speaker_id != flags.get("active_npc_id")
+        or type(turn) is not int or type(active_until) is not int
+        or turn > active_until or turn - focus.turn > 6 or turn < focus.turn
+        or focus.epistemic not in {"owner_verified", "witnessed"}
+        or (npc is not None and npc.get("id") != focus.speaker_id)
+    ):
+        return None
+    if focus.subject_id.startswith("venue-door:") and focus.predicate == "locked":
+        door = next(
+            (
+                item for item in world.get("doors", [])
+                if isinstance(item, dict) and item.get("id") == focus.subject_id
+            ),
+            None,
+        )
+        if not isinstance(door, dict) or door.get("locked") is not focus.value:
+            return None
+    elif focus.subject_id.startswith("npc-profile:"):
+        _, npc_id, field = focus.subject_id.split(":", 2)
+        owner = next(
+            (
+                item for item in world.get("npcs", [])
+                if isinstance(item, dict) and item.get("id") == npc_id
+            ),
+            None,
+        )
+        profile = owner.get("personal_profile") if isinstance(owner, dict) else None
+        if (
+            not isinstance(profile, dict)
+            or not field
+            or profile.get(field) != focus.value
+            or focus.speaker_id != npc_id
+        ):
+            return None
+    return focus.model_dump()
+
+
+def is_focus_followup(world, text):
+    focus = current_conversation_focus(world)
+    if not focus or not isinstance(text, str):
+        return False
+    normalized = normalize(text)
+    terms = re.findall(r"[a-z0-9]+", normalized)
+    predicate_terms = {
+        "locked": ("kilitli", "kilit"),
+    }.get(focus["predicate"], (focus["predicate"],))
+    has_reason_question = any(
+        term in terms for term in ("neden", "niye", "nicin")
+    )
+    if not has_reason_question:
+        return False
+    if focus["subject_id"].startswith("npc-profile:"):
+        return len(terms) <= 4 and all(
+            term in {"neden", "niye", "nicin", "peki", "ya", "acaba"}
+            for term in terms
+        )
+    focus_subject_location = (
+        focus["subject_id"].partition(":")[2]
+        if focus["subject_id"].startswith("venue-door:")
+        else None
+    )
+    if focus_subject_location:
+        for location_id, location in world.get("locations", {}).items():
+            if (
+                location_id != focus_subject_location
+                and isinstance(location, dict)
+                and location.get("scene_kind") == "tavern"
+                and isinstance(location.get("name"), str)
+                and normalize(location["name"]) in normalized
+            ):
+                return False
+    if any(term in terms for term in predicate_terms):
+        return True
+    return (
+        len(terms) <= 3
+        and all(term in {"neden", "niye", "nicin", "peki", "ya", "acaba"} for term in terms)
+    )
 
 
 def validate(value, world):
@@ -423,6 +543,7 @@ def context(world, npc):
             for n in present_npcs(world)
         ],
         "addressee": addressee,
+        "conversation_focus": current_conversation_focus(world, npc),
         "threads": threads,
         "commitments": [
             {key: c[key] for key in ("commitment_id", "npc_id", "quote", "kind", "thread_id")}
