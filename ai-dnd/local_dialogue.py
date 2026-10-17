@@ -329,6 +329,18 @@ def personal_question_kind(value: Any) -> str | None:
     ):
         return "origin"
     if re.search(
+        r"\b(?:neden|niye|nicin|why)\b.{0,45}"
+        r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
+        r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
+        r"\b(?:neden|niye|nicin|why)\b.{0,45}"
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
+        r"\b(?:neden|niye|nicin|why)\b.{0,65}"
+        r"\b(?:ara|ari|bul|yap|ugras|calis)\w*(?:sin|sın|sun|sün|siniz|sınız|sunuz|sünüz)\b",
+        text,
+    ):
+        return "reason_for_being_here"
+    if re.search(
         r"\b(?:bugun|gunun|keyfin|halin|isler)\b.{0,45}"
         r"\b(?:nasil|gidiyor|geciyor|durum)\b|"
         r"\b(?:nasilsin|keyfin nasil)\b",
@@ -386,6 +398,7 @@ def personal_answer(npc: Any, player_input: Any) -> tuple[str, str] | None:
         "day": profile["mood"],
         "origin": profile["origin"],
         "personal_context": profile["personal_detail"],
+        "reason_for_being_here": profile["reason_for_being_here"],
     }
     if kind in answers:
         return (
