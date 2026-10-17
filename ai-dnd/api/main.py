@@ -45,6 +45,11 @@ from api.campaign_journal import (
     update_campaign_journal,
 )
 from api.character_creation import CharacterCreationError
+from api.identity_suggestion import (
+    IdentitySuggestionJob,
+    IdentitySuggestionRequest,
+    IdentitySuggestionService,
+)
 from api.lore_authority import (
     BindingStatus,
     CampaignCanonOverride,
@@ -419,6 +424,7 @@ def create_app(
     session_manager: SessionManager | None = None,
     ollama_adapter: AuthenticatedOllamaAdapter | None | object = _UNSET,
     authenticator: object = _UNSET,
+    identity_suggestions: IdentitySuggestionService | None = None,
 ) -> FastAPI:
     manager = session_manager or SessionManager(campaign_store=StartupCampaignStore())
     adapter = (
@@ -440,6 +446,7 @@ def create_app(
         authenticator = select_authenticator(os.environ)
     application.state.authenticator = authenticator
     application.state.ollama_adapter = adapter
+    application.state.identity_suggestions = identity_suggestions or IdentitySuggestionService()
 
     @application.middleware("http")
     async def require_verified_principal(request: Any, call_next: Any) -> Any:
@@ -648,6 +655,41 @@ def create_app(
     )
     def campaign_start_options() -> dict[str, Any]:
         return PRODUCTION_START_CATALOG.to_response()
+
+    suggestions = application.state.identity_suggestions
+
+    @application.post(
+        "/api/game/character-identity-suggestions",
+        response_model=IdentitySuggestionJob,
+    )
+    @application.post(
+        "/api/character-identity-suggestions",
+        response_model=IdentitySuggestionJob,
+    )
+    def create_character_identity_suggestion(
+        body: IdentitySuggestionRequest,
+    ) -> IdentitySuggestionJob:
+        return suggestions.submit(body)
+
+    @application.get(
+        "/api/game/character-identity-suggestions/{request_id}",
+        response_model=IdentitySuggestionJob,
+    )
+    @application.get(
+        "/api/character-identity-suggestions/{request_id}",
+        response_model=IdentitySuggestionJob,
+    )
+    def read_character_identity_suggestion(request_id: str) -> IdentitySuggestionJob:
+        job = suggestions.get(request_id)
+        if job is None:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "suggestion_not_found",
+                    "message": "Öneri işi bulunamadı.",
+                },
+            )
+        return job
 
     @application.post("/api/game/sessions", response_model=SessionResponse)
     @application.post("/api/sessions", response_model=SessionResponse)

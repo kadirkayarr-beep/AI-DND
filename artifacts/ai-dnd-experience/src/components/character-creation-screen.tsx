@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,7 +24,18 @@ import type {
   CharacterCreationOptions,
   CharacterCreationCatalogResponse,
 } from '@workspace/api-client-react';
+import { CharacterIdentitySuggestion } from '@/components/character-identity-suggestion';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
+import {
+  applySuggestion,
+  buildSuggestionRequest,
+  dismissNotice,
+  submitIdentitySuggestion,
+  type IdentityField,
+  type IdentitySuggestionJob,
+  type IdentityValues,
+} from '@/lib/character-identity-suggestion';
+import { customFetch } from '@workspace/api-client-react/custom-fetch';
 import { classLabel } from '@/lib/campaign-presentation';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
@@ -241,6 +252,16 @@ export function CharacterCreationScreen({
   const [appearance, setAppearance] = useState('');
   const [personality, setPersonality] = useState('');
   const [backstory, setBackstory] = useState('');
+  const identityDraftId = useRef(crypto.randomUUID());
+  const identityRequestLock = useRef(false);
+  const [activeIdentityField, setActiveIdentityField] = useState<IdentityField>('origin');
+  const [identityRevision, setIdentityRevision] = useState({ origin: 0, appearance: 0, personality: 0, backstory: 0 });
+  const [identityLocked, setIdentityLocked] = useState({ origin: false, appearance: false, personality: false, backstory: false });
+  const [allowLockedContext, setAllowLockedContext] = useState(false);
+  const [identitySuggestion, setIdentitySuggestion] = useState<IdentitySuggestionJob | null>(null);
+  const [identitySuggestionOpen, setIdentitySuggestionOpen] = useState(false);
+  const [identitySuggestionNotice, setIdentitySuggestionNotice] = useState('');
+  const [identitySuggestionBusy, setIdentitySuggestionBusy] = useState(false);
 
   // Ability scores state
   const [abilityMethod, setAbilityMethod] = useState<'standard_array' | 'point_buy' | null>(null);
@@ -751,6 +772,103 @@ export function CharacterCreationScreen({
       if (!node.hasAttribute('role')) node.setAttribute('role', 'button');
     });
   }, [currentStep, catalog, characterClass, background, species, equipmentPackage]);
+
+  const identityValues: IdentityValues = { origin, appearance, personality, backstory };
+
+  function touchIdentity(field: IdentityField, value: string) {
+    if (field === 'origin') setOrigin(value);
+    if (field === 'appearance') setAppearance(value);
+    if (field === 'personality') setPersonality(value);
+    if (field === 'backstory') setBackstory(value);
+    setIdentityRevision((current) => ({ ...current, [field]: current[field] + 1 }));
+  }
+
+  async function askIdentitySuggestion() {
+    if (identityRequestLock.current) return;
+    const field = activeIdentityField;
+    if (identityLocked[field]) {
+      setIdentitySuggestionNotice('Kilitli alan değişmez.');
+      return;
+    }
+    identityRequestLock.current = true;
+    setIdentitySuggestionBusy(true);
+    setIdentitySuggestionOpen(true);
+    const requestId = crypto.randomUUID();
+    const baseText = identityValues[field];
+    const body = buildSuggestionRequest({
+      draftId: identityDraftId.current,
+      requestId,
+      field,
+      revision: identityRevision[field],
+      values: identityValues,
+      locked: identityLocked,
+      allowLockedContext,
+      name,
+      species,
+      characterClass,
+    });
+    setIdentitySuggestion({
+      requestId,
+      draftId: identityDraftId.current,
+      field,
+      revision: identityRevision[field],
+      baseText,
+      status: 'pending',
+      suggestion: null,
+      code: null,
+    });
+    try {
+      const job = await submitIdentitySuggestion(
+        (payload) => customFetch('/api/game/character-identity-suggestions', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }),
+        (id) => customFetch(`/api/game/character-identity-suggestions/${id}`),
+        body,
+        baseText,
+      );
+      setIdentitySuggestion((current) => (current && current.requestId !== requestId ? current : job));
+      setIdentitySuggestionNotice(job.status === 'ready' ? 'Öneri hazır.' : 'Öneri durumu alındı.');
+    } finally {
+      identityRequestLock.current = false;
+      setIdentitySuggestionBusy(false);
+    }
+  }
+
+  async function pollIdentitySuggestion() {
+    if (!identitySuggestion) return;
+    const remote = await customFetch<{
+      status: IdentitySuggestionJob['status'];
+      suggestion?: string | null;
+      code?: string | null;
+    }>(`/api/game/character-identity-suggestions/${identitySuggestion.requestId}`);
+    setIdentitySuggestion({
+      ...identitySuggestion,
+      status: remote.status,
+      suggestion: remote.suggestion ?? null,
+      code: remote.code ?? null,
+    });
+    setIdentitySuggestionNotice('Öneri durumu alındı.');
+  }
+
+  function acceptIdentitySuggestion() {
+    const result = applySuggestion(identityValues, identitySuggestion, identityRevision, identityLocked);
+    if (!result.applied || !identitySuggestion) {
+      setIdentitySuggestionNotice('Bu öneri artık uygulanamaz.');
+      return;
+    }
+    const text = result.values[identitySuggestion.field];
+    if (identitySuggestion.field === 'origin') setOrigin(text);
+    if (identitySuggestion.field === 'appearance') setAppearance(text);
+    if (identitySuggestion.field === 'personality') setPersonality(text);
+    if (identitySuggestion.field === 'backstory') setBackstory(text);
+    setIdentityRevision((current) => ({
+      ...current,
+      [identitySuggestion.field]: current[identitySuggestion.field] + 1,
+    }));
+    setIdentitySuggestionOpen(false);
+    setIdentitySuggestionNotice('Öneri bu alana yazıldı. Sayfa yenilenirse form metni kaybolur.');
+  }
 
   return (
     <main className="character-creation-screen dnd-frame dnd-creation cinematic-create gate-fade" data-testid="screen-character-creation" onClick={(event) => {
@@ -1688,13 +1806,42 @@ export function CharacterCreationScreen({
                   </div>
 
                   {/* Roleplay Identity: Origin, Appearance, Personality, Backstory */}
+                  <CharacterIdentitySuggestion
+                    values={identityValues}
+                    revisions={identityRevision}
+                    locked={identityLocked}
+                    allowLockedContext={allowLockedContext}
+                    activeField={activeIdentityField}
+                    job={identitySuggestion}
+                    open={identitySuggestionOpen}
+                    notice={identitySuggestionNotice}
+                    busy={identitySuggestionBusy}
+                    onActivate={setActiveIdentityField}
+                    onToggleLock={() => setIdentityLocked((current) => ({
+                      ...current,
+                      [activeIdentityField]: !current[activeIdentityField],
+                    }))}
+                    onAllowLockedContext={setAllowLockedContext}
+                    onAsk={() => { void askIdentitySuggestion(); }}
+                    onAccept={acceptIdentitySuggestion}
+                    onDiscard={() => {
+                      setIdentitySuggestionOpen(false);
+                      setIdentitySuggestionNotice('Öneri forma yazılmadı.');
+                    }}
+                    onDismiss={() => {
+                      setIdentitySuggestionOpen(false);
+                      setIdentitySuggestionNotice(dismissNotice());
+                    }}
+                    onPoll={() => { void pollIdentitySuggestion(); }}
+                  />
                   <label className="cc-field cc-field-full">
                     <span className="cc-label">Nerelisin / Nerede büyüdün? (Kişisel köken) - İsteğe Bağlı</span>
                     <input
                       className="cc-input cc-literary"
                       value={origin}
                       placeholder="Örn. Neverwinter, Waterdeep ya da kuzeyde küçük bir köy"
-                      onChange={(e) => setOrigin(e.target.value)}
+                      onFocus={() => setActiveIdentityField('origin')}
+                      onChange={(e) => touchIdentity('origin', e.target.value)}
                       maxLength={240}
                       data-testid="input-character-origin"
                     />
@@ -1706,7 +1853,8 @@ export function CharacterCreationScreen({
                       className="cc-textarea cc-literary"
                       value={appearance}
                       placeholder="Boy, kilo, saç/göz rengi, belirgin izler veya giyim tarzı..."
-                      onChange={(e) => setAppearance(e.target.value)}
+                      onFocus={() => setActiveIdentityField('appearance')}
+                      onChange={(e) => touchIdentity('appearance', e.target.value)}
                       maxLength={500}
                       rows={2}
                       data-testid="input-character-appearance"
@@ -1719,7 +1867,8 @@ export function CharacterCreationScreen({
                       className="cc-textarea cc-literary"
                       value={personality}
                       placeholder="Karakterinin huyları, inançları, konuşma tarzı veya korkuları..."
-                      onChange={(e) => setPersonality(e.target.value)}
+                      onFocus={() => setActiveIdentityField('personality')}
+                      onChange={(e) => touchIdentity('personality', e.target.value)}
                       maxLength={500}
                       rows={2}
                       data-testid="input-character-personality"
@@ -1732,7 +1881,8 @@ export function CharacterCreationScreen({
                       className="cc-textarea cc-literary"
                       value={backstory}
                       placeholder="Geçmişinde yaşadığı kritik bir olay, maceraya atılma nedeni..."
-                      onChange={(e) => setBackstory(e.target.value)}
+                      onFocus={() => setActiveIdentityField('backstory')}
+                      onChange={(e) => touchIdentity('backstory', e.target.value)}
                       maxLength={1000}
                       rows={3}
                       data-testid="input-character-backstory"

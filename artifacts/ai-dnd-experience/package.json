@@ -8,7 +8,7 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test tests/combat-panel.test.mjs tests/character-creation.test.mjs tests/ambient-event-actions.test.mjs tests/action-suggestions.test.mjs tests/courtyard-help.test.mjs tests/spellcasting-panel.test.mjs tests/campaign-presentation.test.mjs tests/exploration-controls.test.mjs tests/combat-ui-contract.test.mjs tests/vite-exposure.test.mjs tests/api-contract-freshness.test.mjs tests/clerk-auth-bridge.test.mjs tests/turn-reconciliation.test.mjs tests/play-viewport.test.mjs tests/character-identity-panel.test.mjs"
+    "test": "node --experimental-strip-types --test tests/combat-panel.test.mjs tests/character-creation.test.mjs tests/ambient-event-actions.test.mjs tests/action-suggestions.test.mjs tests/courtyard-help.test.mjs tests/spellcasting-panel.test.mjs tests/campaign-presentation.test.mjs tests/exploration-controls.test.mjs tests/combat-ui-contract.test.mjs tests/vite-exposure.test.mjs tests/api-contract-freshness.test.mjs tests/clerk-auth-bridge.test.mjs tests/turn-reconciliation.test.mjs tests/play-viewport.test.mjs tests/character-identity-panel.test.mjs tests/character-identity-suggestion.test.mjs"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -393,6 +393,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterCreationCatalogResponse"
+  /game/character-identity-suggestions:
+    post:
+      operationId: createCharacterIdentitySuggestion
+      tags: [game]
+      summary: Ask for one bounded character-identity draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentitySuggestionRequest"
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: The same suggestion job for this request id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentitySuggestionJob"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+  /game/character-identity-suggestions/{request_id}:
+    parameters:
+      - in: path
+        name: request_id
+        required: true
+        schema:
+          type: string
+          maxLength: 80
+    get:
+      operationId: getCharacterIdentitySuggestion
+      tags: [game]
+      summary: Read one character-identity suggestion job
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: Current suggestion job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentitySuggestionJob"
+        "404":
+          $ref: "#/components/responses/ApiError"
   /game/campaigns:
     get:
       operationId: getCampaigns
@@ -598,6 +643,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterCreationCatalogResponse"
+  /character-identity-suggestions:
+    post:
+      operationId: createLegacyCharacterIdentitySuggestion
+      tags: [game]
+      summary: Legacy character-identity suggestion alias
+      description: Compatibility alias for /game/character-identity-suggestions. Prefer the /game route family for new clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentitySuggestionRequest"
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: The same suggestion job for this request id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentitySuggestionJob"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+  /character-identity-suggestions/{request_id}:
+    parameters:
+      - in: path
+        name: request_id
+        required: true
+        schema:
+          type: string
+          maxLength: 80
+    get:
+      operationId: getLegacyCharacterIdentitySuggestion
+      tags: [game]
+      summary: Legacy character-identity suggestion status alias
+      description: Compatibility alias for /game/character-identity-suggestions/{request_id}. Prefer the /game route family for new clients.
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: Current suggestion job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentitySuggestionJob"
+        "404":
+          $ref: "#/components/responses/ApiError"
   /sessions:
     post:
       operationId: createLegacySession
@@ -844,6 +936,87 @@ components:
           type: string
         deleted:
           type: boolean
+    IdentitySuggestionRequest:
+      type: object
+      additionalProperties: false
+      required: [draft_id, field, request_id, input_revision]
+      properties:
+        draft_id:
+          type: string
+          minLength: 1
+          maxLength: 80
+        field:
+          type: string
+        request_id:
+          type: string
+          minLength: 1
+          maxLength: 80
+        input_revision:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        current_text:
+          type: string
+          maxLength: 1000
+          default: ""
+        locked:
+          type: boolean
+          default: false
+        name:
+          type: string
+          maxLength: 80
+          nullable: true
+        species:
+          type: string
+          maxLength: 40
+          nullable: true
+        character_class:
+          type: string
+          maxLength: 40
+          nullable: true
+        context_fields:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/IdentityContextField"
+    IdentityContextField:
+      type: object
+      additionalProperties: false
+      required: [field]
+      properties:
+        field:
+          type: string
+        text:
+          type: string
+          maxLength: 1000
+          default: ""
+        locked:
+          type: boolean
+          default: false
+        allow_as_context:
+          type: boolean
+          default: false
+    IdentitySuggestionJob:
+      type: object
+      additionalProperties: false
+      required: [request_id, draft_id, field, input_revision, status]
+      properties:
+        request_id:
+          type: string
+        draft_id:
+          type: string
+        field:
+          type: string
+        input_revision:
+          type: integer
+        status:
+          type: string
+        suggestion:
+          type: string
+          nullable: true
+        code:
+          type: string
+          nullable: true
     HealthResponse:
       type: object
       additionalProperties: false
