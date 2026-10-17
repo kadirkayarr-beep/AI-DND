@@ -1678,6 +1678,14 @@ def _player_state_for_save():
         "armor_class": _session().character["armor_class"],
         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
+    for field in ("origin", "appearance", "personality", "backstory"):
+        if field not in character or character[field] is None:
+            saved[field] = None
+            continue
+        value = character[field]
+        if type(value) is not str:
+            raise ValueError("Kayıt kimlik metni geçersiz.")
+        saved[field] = value
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -2242,6 +2250,14 @@ def load_game(path):
         character["species_bonus_skills"] = list(
             player.get("species_bonus_skills", [])
         )
+        for field in ("origin", "appearance", "personality", "backstory"):
+            if field not in player or player[field] is None:
+                character[field] = None
+                continue
+            value = player[field]
+            if type(value) is not str:
+                raise ValueError("Kayıt kimlik metni geçersiz.")
+            character[field] = value
         saved_trait_state = player.get("species_trait_state")
         if saved_trait_state is None:
             initialize_species_trait_state(
