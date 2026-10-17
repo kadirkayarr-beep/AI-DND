@@ -7557,7 +7557,11 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
 
     current_location = world_state.get("location")
     arrival_text = living_world._text_outside_quotes(narration)
-    arrival_sentences = re.split(r"(?<=[.!?])\s+", arrival_text)
+    arrival_sentences = re.split(
+        r"(?<=[.!?;,:])\s+|\s+\b(?:ama|ancak|fakat|oysa|ve|ya da|yoksa)\b\s+",
+        arrival_text,
+        flags=re.IGNORECASE,
+    )
     completed_player_arrival = re.compile(
         r"\b(?:vardin|variyorsun|ulastin|ulasiyorsun|geldin|geliyorsun|"
         r"girdin|giriyorsun|bulundun|bulunuyorsun|icindesin|iceridesin)\b"
