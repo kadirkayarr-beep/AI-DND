@@ -209,6 +209,14 @@ test('suggestion controls keep a 44px target and stack at 390px', async () => {
   assert.match(screen, /customFetch\('\/api\/game\/character-identity-suggestions'/);
   assert.equal(screen.includes('Öneri durumu alındı'), false);
   assert.match(screen, /applyObservedJob/);
+  const account = await readFile(new URL('../src/components/clerk-access.tsx', import.meta.url), 'utf8');
+  const layout = await readFile(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.match(account, /className="player-account"/);
+  assert.match(layout, /@media \(max-width: 390px\) \{[^}]*--player-account-lane: 72px;/);
+  assert.match(layout, /\.play-shell \{\s*height: calc\(100dvh - var\(--player-account-lane\) - var\(--keyboard-inset, 0px\)\);/);
+  assert.match(layout, /\.play-shell \.drawer-sheet \{ max-height: calc\(86dvh - var\(--player-account-lane\)\); \}/);
+  assert.match(css, /height: calc\(100dvh - var\(--player-account-lane, 72px\)\)/);
+  assert.match(css, /\.character-creation-screen\.cinematic-create \.cc-wizard-footer \{\s*bottom: 0;/);
 });
 
 test('a late status for an older request does not replace the current job', () => {

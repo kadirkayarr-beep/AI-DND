@@ -1493,4 +1493,17 @@
   .identity-suggestion-compare { grid-template-columns: 1fr; }
   .identity-suggestion-actions,
   .identity-suggestion-targets { flex-direction: column; align-items: stretch; }
+  .character-creation-screen.cinematic-create {
+    height: calc(100dvh - var(--player-account-lane, 72px));
+    min-height: 0;
+    overflow: auto;
+  }
+  .character-creation-screen.cinematic-create .cc-shell {
+    height: auto;
+    min-height: 0;
+    padding-bottom: 16px;
+  }
+  .character-creation-screen.cinematic-create .cc-wizard-footer {
+    bottom: 0;
+  }
 }
