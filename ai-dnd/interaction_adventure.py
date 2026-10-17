@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import living_world
 import equipment_economy
+import local_dialogue
 
 KEY = "interaction_adventure_v1"
 ACTIVE = {"discovered", "offered", "active", "progressing", "reframed"}
@@ -561,24 +562,6 @@ def generation_eligible(world):
             and bool(present_npcs(world)))
 
 
-def is_profile_purpose_question(text, profile=None):
-    normalized = normalize(text)
-    if not re.search(r"\b(?:neden|niye|nicin|why)\b", normalized):
-        return False
-    if re.search(
-        r"\b(?:burada|buraya|buradasin|buradayim|bu sehirde|"
-        r"bu kasabada|here)\b",
-        normalized,
-    ):
-        return True
-    reason = profile.get("reason_for_being_here") if isinstance(profile, dict) else None
-    if not isinstance(reason, str):
-        return False
-    query_terms = set(re.findall(r"[a-z0-9]{4,}", normalized))
-    reason_terms = set(re.findall(r"[a-z0-9]{4,}", normalize(reason)))
-    return len(query_terms & reason_terms) >= 2
-
-
 def context(world, npc, player_input=None):
     state = get(world)
     threads = public(world)["threads"]
@@ -604,7 +587,10 @@ def context(world, npc, player_input=None):
         and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    purpose_is_relevant = is_profile_purpose_question(player_input, profile) or bool(
+    purpose_is_relevant = (
+        local_dialogue.personal_question_kind(player_input)
+        == "reason_for_being_here"
+    ) or bool(
         focus and focus["predicate"] == "reason_for_being_here"
     )
     if isinstance(profile, dict) and purpose_is_relevant:
@@ -613,7 +599,11 @@ def context(world, npc, player_input=None):
                 "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
                 "field": field,
                 "value": profile[field],
-                "relation": "direct_question_topic",
+                "relation": (
+                    "conversation_topic"
+                    if focus and focus["predicate"] == "reason_for_being_here"
+                    else "direct_question_topic"
+                ),
             }
             for field in ("reason_for_being_here",)
             if isinstance(profile.get(field), str) and profile[field].strip()
@@ -621,6 +611,12 @@ def context(world, npc, player_input=None):
         if evidence:
             accepted_profile = {
                 "speaker_id": npc["id"],
+                "subject_id": (
+                    focus["subject_id"]
+                    if focus and focus["predicate"] == "reason_for_being_here"
+                    else f"npc-profile:{npc['id']}:reason_for_being_here"
+                ),
+                "topic": "reason_for_being_here",
                 "evidence": evidence,
             }
     return {

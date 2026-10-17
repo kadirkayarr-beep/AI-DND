@@ -5464,7 +5464,7 @@ def _remember_accepted_profile_focus(player_input, npc_target, action_id):
     if (
         field not in {
             "occupation", "current_activity", "recent_activity", "origin",
-            "day", "personal_context",
+            "day", "personal_context", "reason_for_being_here",
         }
         or not isinstance(profile, dict)
         or not isinstance(profile.get(field), str)
@@ -5482,6 +5482,19 @@ def _remember_accepted_profile_focus(player_input, npc_target, action_id):
         action_id=action_id,
         evidence_id=f"npc-profile:{npc_target['id']}:v1:{field}",
         epistemic="witnessed",
+    )
+
+
+def _accepted_profile_reason_followup(player_input):
+    focus = interaction_adventure.current_conversation_focus(
+        _session().world_state
+    )
+    return bool(
+        focus
+        and focus["predicate"] == "reason_for_being_here"
+        and interaction_adventure.is_focus_followup(
+            _session().world_state, player_input
+        )
     )
 
 
@@ -6760,12 +6773,8 @@ def _fallback_narration(player_input, npc_target=None):
                 world_state, player_input
             )
         )
-        or interaction_adventure.is_profile_purpose_question(
-            player_input,
-            target_npc.get("personal_profile")
-            if isinstance(target_npc, dict)
-            else None,
-        )
+        or local_dialogue.personal_question_kind(player_input)
+        == "reason_for_being_here"
     ):
         profile = target_npc.get("personal_profile")
         reason = profile.get("reason_for_being_here") if isinstance(profile, dict) else None
@@ -8490,6 +8499,44 @@ def _unverified_lore_response(player_input, npc_target=None):
     return _UNVERIFIED_LORE_RESPONSE
 
 
+def _is_exact_accepted_profile_reason_answer(narration, player_input, npc_target):
+    if (
+        not isinstance(npc_target, dict)
+        or npc_target.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
+        or not isinstance(npc_target.get("personal_profile"), dict)
+    ):
+        return False
+    focus = interaction_adventure.current_conversation_focus(
+        _session().world_state, npc_target
+    )
+    is_scoped_question = (
+        local_dialogue.personal_question_kind(player_input)
+        == "reason_for_being_here"
+        or bool(
+            focus
+            and focus["predicate"] == "reason_for_being_here"
+            and interaction_adventure.is_focus_followup(
+                _session().world_state, player_input
+            )
+        )
+    )
+    reason = npc_target["personal_profile"].get("reason_for_being_here")
+    if (
+        not is_scoped_question
+        or not isinstance(reason, str)
+        or not reason.strip()
+        or not isinstance(narration, str)
+    ):
+        return False
+    expected = (
+        f'{living_world.public_npc_name(npc_target)}, '
+        f'“{reason.strip()}” diye açıklar.'
+    )
+    return living_world.normalize_text(narration) == living_world.normalize_text(
+        expected
+    )
+
+
 def _narration_has_unsupported_lore_claim(
     narration, lore_claims, lore_context, world_state
 ):
@@ -9411,8 +9458,9 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
         and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    asks_about_profile_purpose = interaction_adventure.is_profile_purpose_question(
-        player_input, profile
+    asks_about_profile_purpose = (
+        local_dialogue.personal_question_kind(player_input)
+        == "reason_for_being_here"
     )
     if isinstance(profile, dict) and (
         asks_about_profile_purpose
@@ -13132,8 +13180,15 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
     claims = packet.get("lore_claims", [])
-    if not _lore_claims_are_supported(claims, lore_context) or _narration_has_unsupported_lore_claim(
-        packet.get("narration"), claims, lore_context, _session().world_state
+    exact_profile_reason_answer = _is_exact_accepted_profile_reason_answer(
+        packet.get("narration"), player_input, npc_target
+    )
+    if not _lore_claims_are_supported(claims, lore_context) or (
+        not exact_profile_reason_answer
+        and _narration_has_unsupported_lore_claim(
+            packet.get("narration"), claims, lore_context,
+            _session().world_state,
+        )
     ):
         packet["valid_response"] = False
         packet["fallback_reason_code"] = "UNVERIFIED_LORE_CLAIM"
@@ -13861,8 +13916,12 @@ def _run_player_turn_internal(
             return finish_turn(result, result["direct_response"])
         npc_target = None
         if not combat["active"] and (
-            not world_subject_question
-            or interaction_adventure.is_profile_purpose_question(player_input)
+            (
+                not world_subject_question
+                or local_dialogue.personal_question_kind(player_input)
+                == "reason_for_being_here"
+                or _accepted_profile_reason_followup(player_input)
+            )
         ):
             npc_target = next(
                 (
@@ -13912,7 +13971,12 @@ def _run_player_turn_internal(
             explicit_dialogue_resolution
             if explicit_dialogue_resolution["status"] == "found"
             else {"status": "none", "npc": None}
-            if world_subject_question or scene_exploration_question
+            if (
+                (world_subject_question or scene_exploration_question)
+                and local_dialogue.personal_question_kind(player_input)
+                != "reason_for_being_here"
+                and not _accepted_profile_reason_followup(player_input)
+            )
             else {"status": "found", "npc": npc_target}
             if npc_target is not None
             else resolve_npc_reference(
@@ -14491,9 +14555,8 @@ def _run_player_turn_internal(
         and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         and isinstance(npc_target.get("personal_profile"), dict)
         and (
-            interaction_adventure.is_profile_purpose_question(
-                player_input, npc_target.get("personal_profile")
-            )
+            local_dialogue.personal_question_kind(player_input)
+            == "reason_for_being_here"
             or (
                 profile_focus
                 and profile_focus["predicate"] == "reason_for_being_here"
