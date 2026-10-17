@@ -504,7 +504,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .story-text { font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.5rem); }
 .play-shell .player-entry { font-size: 1.1875rem; }
 .play-shell .location-ribbon strong { font-size: 1.25rem; }
-.play-shell .command-input { font-size: 1.3125rem; max-height: 8rem; overflow-y: auto; }
+.play-shell .command-input { font-size: 1.3125rem; max-height: 8rem; min-width: 0; width: auto; flex: 1 1 auto; overflow-y: auto; }
 .play-shell .command-context { max-height: 9rem; overflow-y: auto; }
 .play-shell .dnd-kicker,
 .play-shell .header-location small,
@@ -534,7 +534,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .drawer-sheet .workspace-left,
 .play-shell .drawer-sheet .world-column { display: block; position: static; }
 .play-shell .command-box { position: static; flex: 0 0 auto; margin-top: 12px; z-index: 1; background: #1b1510; }
-.play-shell .command-form { position: static; z-index: 1; display: flex; align-items: flex-end; gap: 12px; background: #1b1510; padding-top: 8px; }
+.play-shell .command-form { position: static; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; background: #1b1510; padding-top: 8px; }
+.play-shell .command-form .command-target-label { flex: 0 1 12rem; min-width: 0; max-width: 100%; }
 .play-shell .transcript-scroll { flex: 1 1 auto; min-height: 8rem; max-height: 30dvh; overflow-y: auto; }
 .play-shell .story-heading { margin-bottom: 12px; }
 @media (max-width: 1120px), (max-height: 699px) {
@@ -542,6 +543,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .play-shell .drawer-sheet { width: 100%; max-height: 86dvh; }
   .play-shell .command-context { max-height: 6.5rem; }
   .play-shell .transcript-scroll { max-height: 18dvh; }
+}
+@media (max-width: 560px) {
+  .play-shell .command-form { display: block; }
+  .play-shell .command-form .command-target-label,
+  .play-shell .command-form .command-input,
+  .play-shell .command-form .dnd-button { width: 100%; max-width: 100%; min-width: 0; }
+  .play-shell .command-form .command-target-label { margin-bottom: 12px; }
+  .play-shell .command-form .command-input { flex: none; }
+  .play-shell .command-form .dnd-button { margin-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }

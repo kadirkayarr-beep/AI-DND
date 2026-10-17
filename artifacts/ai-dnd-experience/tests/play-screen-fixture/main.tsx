@@ -1,5 +1,6 @@
 /**
  * UI fixture only. Fixed responses stay in this page.
+ * Spell lists and the active combat target are supplied display data.
  * This is not a backend, save, or resume proof, and it is not the signed-in app.
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -106,7 +107,12 @@ const state = () => ({
     spell_slots_remaining: {},
     xp: 0,
   },
-  spellcasting: null,
+  spellcasting: {
+    cantrips: ["Fire Bolt"],
+    prepared: ["Magic Missile"],
+    slots: { "1": 2 },
+    slot_turn: ["fixture-slot-marker", 2, 1],
+  },
   inventory: ["Kısa kılıç"],
   npcs: [{
     id: "npc-marek", name: "Marek", role: "Hancı", location: "courtyard",
@@ -117,15 +123,38 @@ const state = () => ({
   features: [],
   doors: [],
   combat: {
-    active: false,
-    status: "ended",
-    round: 0,
-    initiative_order: [],
+    active: true,
+    status: "active",
+    round: 1,
+    initiative_order: ["player", "npc-guard"],
     current_turn_index: 0,
-    current_actor_id: null,
-    turn_owner: null,
-    participants: [],
-    participant_records: [],
+    current_actor_id: "player",
+    turn_owner: "player",
+    participants: ["player", "npc-guard"],
+    participant_records: [
+      {
+        id: "player",
+        kind: "player",
+        name: "Riven",
+        current_hp: 12,
+        max_hp: 12,
+        armor_class: 13,
+        status: "active",
+        primary_action_available: true,
+        is_current_actor: true,
+      },
+      {
+        id: "npc-guard",
+        kind: "npc",
+        name: "Avlu muhafızı",
+        current_hp: 9,
+        max_hp: 11,
+        armor_class: 12,
+        status: "active",
+        primary_action_available: true,
+        is_current_actor: false,
+      },
+    ],
     target_id: null,
     end_reason: null,
   },

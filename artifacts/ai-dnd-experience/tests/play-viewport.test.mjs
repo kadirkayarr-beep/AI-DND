@@ -87,7 +87,10 @@ test('play shell locks desktop viewports and allows scroll for narrow, short, an
   assert.ok(play.startsWith('.play-shell {'));
   assert.match(play, /\.play-shell \.story-text \{ font-size: clamp\(1\.25rem, 1\.05rem \+ 0\.8vw, 1\.5rem\); \}/);
   assert.match(play, /\.play-shell \.player-entry \{ font-size: 1\.1875rem; \}/);
-  assert.match(play, /\.play-shell \.command-input \{ font-size: 1\.3125rem; max-height: 8rem; overflow-y: auto; \}/);
+  assert.match(play, /\.play-shell \.command-input \{ font-size: 1\.3125rem; max-height: 8rem; min-width: 0; width: auto; flex: 1 1 auto; overflow-y: auto; \}/);
+  assert.match(play, /\.play-shell \.command-form \{[^}]*flex-wrap: wrap/);
+  assert.match(play, /\.play-shell \.command-form \.command-target-label \{ flex: 0 1 12rem; min-width: 0; max-width: 100%; \}/);
+  assert.match(play, /@media \(max-width: 560px\) \{\s*\.play-shell \.command-form \{ display: block; \}/);
   assert.match(play, /\.play-shell \.transcript-scroll \{ flex: 1 1 auto; min-height: 8rem; max-height: 30dvh; overflow-y: auto; \}/);
   assert.match(play, /height: calc\(100dvh - var\(--keyboard-inset, 0px\)\)/);
   assert.doesNotMatch(play, /padding-bottom: var\(--keyboard-inset/);
