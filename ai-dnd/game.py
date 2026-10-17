@@ -3084,22 +3084,35 @@ def _has_unregistered_person_name(value, extra_names=()):
     world_state = _session().world_state
     if not isinstance(value, str):
         return False
-    allowed = {_session().character["name"].casefold(), *(name.casefold() for name in extra_names if isinstance(name, str))}
-    allowed.update(npc.get("name", "").casefold() for npc in world_state["npcs"])
+    allowed = {
+        _normalize_turkish_typos(_session().character["name"]),
+        *(
+            _normalize_turkish_typos(name)
+            for name in extra_names if isinstance(name, str)
+        ),
+    }
+    allowed.update(
+        _normalize_turkish_typos(npc.get("name", ""))
+        for npc in world_state["npcs"]
+    )
     for location_id, location in world_state.get("locations", {}).items():
-        allowed.add(str(location_id).casefold())
-        allowed.update(alias.casefold() for alias in _location_alias_values(location))
-    allowed.update(feature.get("name", "").casefold() for feature in world_state["features"])
+        allowed.add(_normalize_turkish_typos(location_id))
+        allowed.update(_location_alias_values(location))
+    allowed.update(
+        _normalize_turkish_typos(feature.get("name", ""))
+        for feature in world_state["features"]
+    )
     # Turkish possessive suffixes mark proper names clearly (for example, "Elias'ın").
     for match in re.finditer(r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})['’][a-zçğıöşü]+\b", value):
-        possessive_word = match.group(1).casefold()
-        preceding = value[:match.start()].casefold().rstrip()
-        is_registered_name_end = any(
-            entity.endswith(" " + possessive_word)
-            and preceding.endswith(entity[:-(len(possessive_word) + 1)])
-            for entity in allowed if " " in entity
+        possessive_word = _normalize_turkish_typos(match.group(1))
+        preceding_name = re.search(
+            r"(?:\b[A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}\s+)*$",
+            value[:match.start()],
         )
-        if possessive_word not in allowed and not is_registered_name_end:
+        complete_name = _normalize_turkish_typos(
+            f"{preceding_name.group(0) if preceding_name else ''}{match.group(1)}"
+        )
+        if possessive_word not in allowed and complete_name not in allowed:
             return True
     return False
 
