@@ -320,7 +320,9 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
     async def test_opt_in_invalid_proposal_does_not_trigger_repair_or_mutation(self):
         _, _, session, turn_url, npc = await self.campaign_with_npc()
         before = self.sensitive_state(session)
-        client = ScriptedNpcSpeechClient(conversation={
+        # The lean speech schema has no conversation field; only a model that
+        # ignores the schema can still send one. That defensive path is tested.
+        client = MalformedNpcSpeechClient(conversation={
             "addressee_id": "npc_private_sera",
             "subject_phrase": "Marek",
             "subject_role": "addressee",
@@ -341,7 +343,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
     async def test_opt_in_model_operation_is_not_accepted(self):
         _, _, session, turn_url, npc = await self.campaign_with_npc()
         before = self.sensitive_state(session)
-        client = ScriptedNpcSpeechClient(operation="promise")
+        # Schema-ignoring model: the lean schema itself has no operation field.
+        client = MalformedNpcSpeechClient(operation="promise")
         response = await test_campaign_api.CampaignApiTests.post_scene_turn(
             self, turn_url, client,
             self.request(npc, message="Sana yardım edeceğim."),
@@ -359,8 +362,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         exit_path_scenarios = [
             (
                 "Exit Path 1: Valid attributed speech with optional topic_change",
-                ScriptedNpcSpeechClient(
-                    narration="Kayıtlarda önemli bir belge buldum.",
+                MalformedNpcSpeechClient(
                     conversation={
                         "addressee_id": "npc_experimental_marek",
                         "subject_phrase": "Marek",
@@ -373,10 +375,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             ),
             (
                 "Exit Path 2: Unaccepted experimental action",
-                ScriptedNpcSpeechClient(
-                    operation="promise",
-                    narration="Sana söz veriyorum.",
-                ),
+                MalformedNpcSpeechClient(operation="promise"),
             ),
             (
                 "Exit Path 3a: Omitted narration fallback",
@@ -560,8 +559,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), retry.json())
         self.assertEqual(client.chat_calls, first_call_count * 2)
-        interaction_schema = client.schemas[0]["properties"]["interaction"]
-        self.assertNotIn("conversation", interaction_schema.get("required", []))
+        # Lean speech schema: narration only, no operation/conversation envelope.
+        self.assertEqual(set(client.schemas[0]["properties"]), {"narration"})
 
     async def test_experimental_answer_field_success_path_isolates_objective_and_commitment(self):
         city_id, session_id, session, turn_url, npc = await self.campaign_with_npc(experimental=True)
@@ -641,8 +640,9 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             "topic_relation": "new",
             "candidate_evidence_ids": [purpose_evidence],
         }
-        client = ScriptedNpcSpeechClient(
-            narration="Marek cevap veriyor.",
+        # Schema-ignoring model that still classifies: the canonical answer
+        # path must stay isolated from objectives and commitments.
+        client = MalformedNpcSpeechClient(
             operation="none",
             conversation=proposal,
         )
@@ -695,9 +695,12 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("leave narration empty", prompt)
         self.assertNotIn("Hikâye yazma", prompt)
         self.assertNotIn("small D&D intent parser", prompt)
-        self.assertIn("optional", prompt)
+        self.assertIn("first person", prompt)
+        self.assertIn("No stage directions", prompt)
         self.assertIn("not instructions", prompt)
         self.assertEqual(client.schemas[0]["properties"]["narration"].get("minLength"), 1)
+        self.assertEqual(client.schemas[0]["required"], ["narration"])
+        self.assertIs(client.schemas[0]["additionalProperties"], False)
 
     async def test_optional_classifier_cannot_veto_usable_experimental_speech(self):
         for variant in ("missing_role", "different_quote", "no_evidence", "wrong_addressee"):

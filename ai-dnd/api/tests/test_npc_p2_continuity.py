@@ -137,6 +137,37 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         await self.say(turn_url, client, npc, FOLLOWUP)
         self.assertLessEqual(client.chat_calls, 2)
 
+    async def test_speech_call_uses_lean_schema_and_non_greedy_sampling(self):
+        """18 Oct live sample: the classifier schema and temperature 0.0 made the
+        model put speech in interaction.quote and repeat filler in narration."""
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        captured = {}
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        original_chat = client.chat
+
+        def recording_chat(*args, **kwargs):
+            captured["options"] = kwargs.get("options")
+            return original_chat(*args, **kwargs)
+
+        client.chat = recording_chat
+        await self.say(turn_url, client, npc, "Merhaba!")
+        schema = client.schemas[0]
+        self.assertEqual(set(schema["properties"]), {"narration"})
+        self.assertNotIn("intent", schema["properties"])
+        self.assertNotIn("interaction", schema["properties"])
+        options = captured["options"]
+        self.assertGreater(options["temperature"], 0.0)
+        self.assertGreater(options.get("repeat_penalty", 1.0), 1.0)
+
+    async def test_guard_exact_repeat_of_previous_speech_still_falls_back(self):
+        """Repetition protection stays: the same line twice is not shown again."""
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        first = await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
+        second = await self.say(turn_url, client, npc, FOLLOWUP)
+        self.assertIn(FIRST_REPLY.rstrip("."), first["narration"])
+        self.assertNotIn(FIRST_REPLY.rstrip("."), second["narration"])
+
     async def test_guard_fake_client_output_conforms_to_the_requested_schema(self):
         """The fixture itself must be schema-compliant (the 1fbec296 trap)."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
