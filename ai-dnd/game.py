@@ -7556,8 +7556,11 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         return reject("UNREGISTERED_PERSISTENT_OBJECT", unregistered_object)
 
     current_location = world_state.get("location")
-    location_arrival = re.compile(
-        r"\b(?:ulaş\w*|var\w*|gel\w*|gir\w*|bulun\w*)\b"
+    arrival_text = living_world._text_outside_quotes(narration)
+    arrival_sentences = re.split(r"(?<=[.!?])\s+", arrival_text)
+    completed_player_arrival = re.compile(
+        r"\b(?:vardin|variyorsun|ulastin|ulasiyorsun|geldin|geliyorsun|"
+        r"girdin|giriyorsun|bulundun|bulunuyorsun|icindesin|iceridesin)\b"
     )
     for location_id, location in world_state.get("locations", {}).items():
         if location_id == current_location:
@@ -7565,10 +7568,20 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         aliases = _location_alias_values(location) or [location_display_name(location_id)]
         for alias in aliases:
             normalized_alias = _normalize_turkish_typos(alias.casefold())
-            if not normalized_alias or normalized_alias not in _normalize_turkish_typos(text):
+            if not normalized_alias:
                 continue
-            if location_arrival.search(text):
-                return reject("CANONICAL_LOCATION_CONTRADICTION", alias)
+            alias_pattern = re.compile(
+                rf"(?<![a-z0-9çğıöşü]){re.escape(normalized_alias)}"
+            )
+            for sentence in arrival_sentences:
+                if "?" in sentence:
+                    continue
+                normalized_sentence = _normalize_turkish_typos(sentence)
+                if (
+                    alias_pattern.search(normalized_sentence)
+                    and completed_player_arrival.search(normalized_sentence)
+                ):
+                    return reject("CANONICAL_LOCATION_CONTRADICTION", alias)
 
     # A registered NPC at another location cannot appear, speak, or approach
     # in the current scene merely because the model remembers the name.

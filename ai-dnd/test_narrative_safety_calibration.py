@@ -348,6 +348,90 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             resurrection["reason_code"], "DEFEATED_ENTITY_RESURRECTION"
         )
 
+    def test_registered_venue_entrance_description_is_not_player_arrival(self):
+        narration = (
+            "Kael Hanı'nın girişindeki taş işçiliği, dikkatini çeker. "
+            "Taşların üzerinde bir kılıç ve kılıç kılıcı simgesi örtülü. "
+            "Bu işaretler, geçmişte kentte faaliyet gösteren bir kılıç "
+            "kılıcı topluluğuyla ilişkilidir. Kılıç kılıcının eski güçleri "
+            "hâlâ kentin derinliklerinde uyuyor mu? Ya da sadece bir "
+            "tarihsel anıs mı?"
+        )
+        self.session.world_state["location"] = "fr:city:neverwinter"
+        self.session.world_state["locations"] = {
+            "fr:city:neverwinter": {
+                "id": "fr:city:neverwinter",
+                "name": "Neverwinter",
+                "aliases": ["Neverwinter"],
+            },
+            "location_001": {
+                "id": "location_001",
+                "name": "Kael Hanı",
+                "aliases": ["Kael Hanı"],
+                "parent_location_id": "fr:city:neverwinter",
+            },
+        }
+        self.session.world_state["features"] = [{
+            "id": "feature_001",
+            "name": "Taş işçiliği",
+            "location": "fr:city:neverwinter",
+            "parent_id": "location_001",
+            "kind": "detail",
+        }]
+        decision = self.decide(
+            narration,
+            action_result={"action": "investigation", "status": "resolved"},
+        )
+        self.assertNotEqual(
+            decision["reason_code"], "CANONICAL_LOCATION_CONTRADICTION",
+            decision,
+        )
+
+    def test_completed_arrival_guard_binds_actor_quote_and_location(self):
+        self.session.world_state["location"] = "fr:city:neverwinter"
+        arrived_elsewhere = self.decide(
+            "Kael Hanı'na vardın.",
+            action_result={"action": "exploration", "status": "resolved"},
+        )
+        self.assertTrue(arrived_elsewhere["unsafe"], arrived_elsewhere)
+
+        self.session.world_state["location"] = "location_001"
+        arrived_at_authoritative_target = self.decide(
+            "Kael Hanı'na vardın.",
+            action_result={"action": "exploration", "status": "resolved"},
+        )
+        self.assertNotEqual(
+            arrived_at_authoritative_target["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            arrived_at_authoritative_target,
+        )
+
+        invented_destination = self.decide(
+            "Greyhaven'a vardın.",
+            action_result={"action": "exploration", "status": "resolved"},
+        )
+        self.assertTrue(invented_destination["unsafe"], invented_destination)
+
+        quoted_arrival = self.decide(
+            "Bir yankı duyulur: “Kael Hanı'na vardın.”",
+            action_result={"action": "exploration", "status": "resolved"},
+        )
+        self.assertNotEqual(
+            quoted_arrival["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            quoted_arrival,
+        )
+
+        conditional_arrival = self.decide(
+            "Eğer Kael Hanı'na varırsan, ne görürsün?",
+            action_result={"action": "exploration", "status": "resolved"},
+        )
+        self.assertNotEqual(
+            conditional_arrival["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            conditional_arrival,
+        )
+
     def test_named_npc_skill_and_door_contradictions_remain_strict(self):
         unknown_name = self.decide(
             'Halric, "Ben Halric, muhafızım," diye konuşur.'
