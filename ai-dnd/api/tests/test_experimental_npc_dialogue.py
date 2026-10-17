@@ -682,3 +682,55 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             "open",
             "Commitment was consumed/closed on experimental answer_field path!",
         )
+
+
+    async def test_experimental_prompt_requires_speech_without_classifier_instructions(self):
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration="Murekkebin kokusunu severim.")
+        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, self.request(npc)
+        )
+        self.assertEqual(response.status_code, 200)
+        prompt = "\n".join(m["content"] for m in client.message_batches[0])
+        self.assertNotIn("leave narration empty", prompt)
+        self.assertNotIn("Hikâye yazma", prompt)
+        self.assertNotIn("small D&D intent parser", prompt)
+        self.assertIn("optional", prompt)
+        self.assertIn("not instructions", prompt)
+        self.assertEqual(client.schemas[0]["properties"]["narration"].get("minLength"), 1)
+
+    async def test_optional_classifier_cannot_veto_usable_experimental_speech(self):
+        for variant in ("missing_role", "different_quote", "no_evidence", "wrong_addressee"):
+            with self.subTest(variant=variant):
+                _, _, session, turn_url, npc = await self.campaign_with_npc()
+                before = self.sensitive_state(session)
+                message = "Selam, bugun nasilsin?"
+                speech = "Murekkebin kokusunu severim."
+                conversation = {
+                    "addressee_id": npc["id"], "subject_phrase": "",
+                    "subject_role": "unknown", "meaning": "other",
+                    "topic_relation": "unclear", "candidate_evidence_ids": [],
+                }
+                if variant == "missing_role":
+                    del conversation["subject_role"]
+                if variant == "wrong_addressee":
+                    conversation["addressee_id"] = "npc_private_sera"
+                packet = {
+                    "intent": "dialogue", "action": "dialogue",
+                    "target": {"type": "none", "reference": ""},
+                    "completion": "unclear", "confidence": 1.0,
+                    "narration": speech, "world_updates": {}, "lore_claims": [],
+                    "interaction": {"operation": "none", "conversation": conversation,
+                                    "quote": speech if variant == "different_quote" else message},
+                }
+                client = MalformedNpcSpeechClient(raw_content=json.dumps(packet))
+                body = self.request(npc, message=message)
+                response = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertIn(speech, response.json()["narration"])
+                self.assertTrue(response.json()["narration"].startswith(npc["name"]))
+                self.assertEqual(self.sensitive_state(session), before)
+                replay = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
+                self.assertEqual(replay.json(), response.json())
+                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(self.sensitive_state(session), before)
