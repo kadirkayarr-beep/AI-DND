@@ -11937,6 +11937,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "prompt_has_exact_parent_structure_id": (
                 f"Parent structure ID: {venue_id}" in prompt
             ),
+            "prompt_has_kind_allowlist_and_scope": (
+                "kind yalnızca detail veya seat olabilir" in prompt
+                and "seat yalnızca sıradan, görünür bir oturma yüzeyini adlandırır"
+                in prompt
+                and "yeni etkileşim veya mekanik açmaz" in prompt
+            ),
             "location_enum": properties["location"].get("enum"),
             "parent_id_enum": properties["parent_id"].get("enum"),
             "kind_enum": properties["kind"].get("enum"),
@@ -11944,6 +11950,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         expected = {
             "prompt_has_exact_current_scene_id": True,
             "prompt_has_exact_parent_structure_id": True,
+            "prompt_has_kind_allowlist_and_scope": True,
             "location_enum": [city_id],
             "parent_id_enum": [venue_id],
             "kind_enum": ["detail", "seat"],

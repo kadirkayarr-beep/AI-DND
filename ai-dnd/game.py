@@ -6166,11 +6166,13 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 f"Parent structure ID: {parent_id}. "
                 f"location tam olarak mevcut sahne kimliği {current_scene_id!r}; "
                 f"parent_id tam olarak bu sahnedeki doğrulanmış parent yapı kimliği "
-                f"{parent_id!r} olmalı. kind yalnızca detail olabilir. Bu yalnızca "
-                "bir öneridir: kaynak veya mekanik oluşturma, gizli geçit/kaçış/"
-                "kapı durumu iddia etme. Ad ve açıklama görünür sıradan ayrıntıyı "
-                "yaratıcı biçimde tarif edebilir; beklenen belirli bir nesneyi "
-                "zorla üretme. Python doğrulaması olmadan anlatı veya canon değildir."
+                f"{parent_id!r} olmalı. kind yalnızca detail veya seat olabilir. "
+                "seat yalnızca sıradan, görünür bir oturma yüzeyini adlandırır; "
+                "yeni etkileşim veya mekanik açmaz. Bu yalnızca bir öneridir: "
+                "kaynak veya mekanik oluşturma, gizli geçit/kaçış/kapı durumu "
+                "iddia etme. Ad ve açıklama görünür sıradan ayrıntıyı yaratıcı "
+                "biçimde tarif edebilir; beklenen belirli bir nesneyi zorla "
+                "üretme. Python doğrulaması olmadan anlatı veya canon değildir."
             )
     if operation_hint is not None and interaction_context is not None:
         schema = copy.deepcopy(schema)
