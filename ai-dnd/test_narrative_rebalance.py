@@ -102,7 +102,13 @@ class TestNarrativeRebalance(unittest.TestCase):
     @patch("game.ollama.chat")
     def test_04_narration_validation_failure_does_not_retry_model(self, mock_chat):
         mock_chat.return_value = self.mock_ollama_response(
-            '{"valid_response": true, "narration": "Kılıcını savurursun.", "lore_claims": [], "world_updates": {}}'
+            '{"valid_response": true, "narration": "Kılıcını savurursun.", '
+            '"lore_claims": [], "world_updates": {}, "interaction": {'
+            '"operation": "none", "quote": "Hancı, buralarda neler dönüyor?", '
+            '"conversation": {"addressee_id": "npc_barkeep", '
+            '"subject_phrase": "Hancı", "subject_role": "addressee", '
+            '"meaning": "other", "topic_relation": "new", '
+            '"candidate_evidence_ids": []}}}'
         )
         result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
