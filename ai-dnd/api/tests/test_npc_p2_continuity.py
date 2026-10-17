@@ -1,8 +1,7 @@
-"""NPC P2 (conversation continuity): red-first tests. No production code is changed.
+"""NPC P2 (conversation continuity) tests, written red-first.
 
-These tests describe behaviour the 17 Oct live sample showed to be missing.
-Tests marked RED are expected to FAIL on checkpoint 55ac8f7 and must pass only
-after an authorised fix. Tests marked GUARD pass today and must keep passing.
+The CONTINUITY tests failed on checkpoint 55ac8f7 (17 Oct live sample gaps) and
+pass with the P2 fix. The GUARD tests passed before and must keep passing.
 Scripted fake clients only: no real model call is made.
 """
 
@@ -21,7 +20,7 @@ FIRST_REPLY = "Kâtibim, kayıp mühür kayıtlarını aramak için buradayım."
 FOLLOWUP = "Neden?"
 
 
-class NpcP2ContinuityRedTests(unittest.IsolatedAsyncioTestCase):
+class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
     """Borrows the experimental harness helpers without re-running its tests."""
 
     async def asyncSetUp(self):
@@ -49,9 +48,9 @@ class NpcP2ContinuityRedTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
-    # ---- RED -----------------------------------------------------------
+    # ---- CONTINUITY -----------------------------------------------------------
 
-    async def test_red_followup_prompt_carries_previous_displayed_npc_reply(self):
+    async def test_continuity_followup_prompt_carries_previous_displayed_npc_reply(self):
         """T2/T5: 'Neden?' must reach the model with the NPC line the player saw."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
         client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
@@ -69,7 +68,7 @@ class NpcP2ContinuityRedTests(unittest.IsolatedAsyncioTestCase):
             "previous displayed NPC reply is absent from the follow-up prompt",
         )
 
-    async def test_red_previous_reply_is_labelled_as_attributed_speech_not_fact(self):
+    async def test_continuity_previous_reply_is_labelled_as_attributed_speech_not_fact(self):
         """The carried reply must be marked as the NPC's words, not as evidence."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
         client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
@@ -89,7 +88,7 @@ class NpcP2ContinuityRedTests(unittest.IsolatedAsyncioTestCase):
                 f"previous NPC speech must not be filed under {fact_key}",
             )
 
-    async def test_red_personal_opinion_request_reaches_the_model(self):
+    async def test_continuity_personal_opinion_request_reaches_the_model(self):
         """T3: a harmless personal-opinion question was blocked before any model call."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
         client = ScriptedNpcSpeechClient(narration="Bence nehir kıyısında yürümek iyi gelir.")
