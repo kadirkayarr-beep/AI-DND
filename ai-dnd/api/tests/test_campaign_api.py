@@ -195,6 +195,8 @@ class RecordedStoneworkOllamaClient(FakeOllamaClient):
         self.calls = 0
         self.intent_schema_has_scene_proposals = False
         self.intent_response = None
+        self.intent_messages = None
+        self.intent_schema = None
 
     def chat(self, *args, **kwargs):
         self.calls += 1
@@ -203,6 +205,8 @@ class RecordedStoneworkOllamaClient(FakeOllamaClient):
             self.intent_schema_has_scene_proposals = (
                 "scene_detail_proposals" in properties
             )
+            self.intent_messages = copy.deepcopy(kwargs.get("messages"))
+            self.intent_schema = copy.deepcopy(kwargs.get("format"))
             packet = {
                 "intent": "investigation",
                 "action": "investigate",
@@ -11898,6 +11902,60 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             item.get("name") == "Gizli taş işçiliği detayı"
             for item in persisted.payload["engine_save"]["world_state"]["features"]
         ))
+        public_response = json.dumps(response.json(), ensure_ascii=False)
+        for internal_value in (
+            "Gizli taş işçiliği detayı",
+            "gizli geçit",
+            "tarihî bilgi",
+        ):
+            self.assertNotIn(internal_value, public_response)
+
+    async def test_public_api_capture_binds_scene_detail_location_and_parent_contract(self):
+        city_id, _, _, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = RecordedStoneworkOllamaClient()
+        response = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "Han binasının girişindeki taş işçiliğini inceliyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.intent_schema_has_scene_proposals)
+        prompt = next(
+            message["content"] for message in model.intent_messages
+            if message.get("role") == "user"
+        )
+        properties = model.intent_schema["properties"]["scene_detail_proposals"]["items"]["properties"]
+        observed = {
+            "prompt_has_exact_current_scene_id": (
+                f"Current scene ID: {city_id}" in prompt
+            ),
+            "prompt_has_exact_parent_structure_id": (
+                f"Parent structure ID: {venue_id}" in prompt
+            ),
+            "prompt_has_kind_allowlist_and_scope": (
+                "kind yalnızca detail veya seat olabilir" in prompt
+                and "seat yalnızca sıradan, görünür bir oturma yüzeyini adlandırır"
+                in prompt
+                and "yeni etkileşim veya mekanik açmaz" in prompt
+            ),
+            "location_enum": properties["location"].get("enum"),
+            "parent_id_enum": properties["parent_id"].get("enum"),
+            "kind_enum": properties["kind"].get("enum"),
+        }
+        expected = {
+            "prompt_has_exact_current_scene_id": True,
+            "prompt_has_exact_parent_structure_id": True,
+            "prompt_has_kind_allowlist_and_scope": True,
+            "location_enum": [city_id],
+            "parent_id_enum": [venue_id],
+            "kind_enum": ["detail", "seat"],
+        }
+        self.assertEqual(observed, expected)
 
     async def test_ordinary_stonework_proposal_for_city_and_inn_is_accepted_and_persisted(self):
         city_id, session_id, session, turn_url, venue_id, _ = (
