@@ -13578,6 +13578,21 @@ def _run_player_turn_internal(
             )
         return None
 
+    def validate_interaction_conversation(raw, target, required):
+        interaction = (
+            raw.get("interaction") if isinstance(raw, dict) else None
+        )
+        proposal_present = (
+            isinstance(interaction, dict)
+            and interaction.get("conversation") is not None
+        )
+        if not proposal_present:
+            return None, required
+        resolution = interaction_adventure.resolve_conversation(
+            world_state, player_input, interaction, target
+        )
+        return resolution, resolution is None
+
     compound = interaction_adventure.compound_plan(player_input)
     if (compound is not None and not entry_combat["active"]
             and interaction_mode not in {"say", "ask_dm"}):
@@ -14088,26 +14103,17 @@ def _run_player_turn_internal(
                 interaction_hint == "information" and npc_target is not None
             ),
         )
-        proposal = raw.get("interaction", {}).get("conversation") if isinstance(
-            raw.get("interaction"), dict
-        ) else None
-        if proposal is not None and interaction_hint == "information":
-            conversation_resolution = interaction_adventure.resolve_conversation(
-                world_state, player_input, raw.get("interaction"), npc_target
+        conversation_resolution, conversation_rejected = (
+            validate_interaction_conversation(
+                raw,
+                npc_target,
+                required=(
+                    interaction_hint == "information" and npc_target is not None
+                ),
             )
-            if conversation_resolution is None:
-                action_result = {
-                    "action": "dialogue",
-                    "status": "proposal_rejected",
-                    "success": False,
-                    "state_changes": [],
-                }
-                return finish_turn(
-                    action_result, interaction_adventure.immersive_unknown(npc_target),
-                    safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
-                    safety_handling="python_fallback",
-                    is_final=True,
-                )
+        )
+        if conversation_rejected:
+            return finish_conversation_resolution(None, npc_target)
         action_result = interaction_adventure.resolve(
             _session(), player_input, raw.get("interaction"), npc_target,
             fallback_operation=interaction_hint,
@@ -14549,15 +14555,12 @@ def _run_player_turn_internal(
             ),
             dialogue_narration=True,
         )
-        conversation_proposal = (
-            raw_intent.get("interaction", {}).get("conversation")
-            if isinstance(raw_intent.get("interaction"), dict)
-            else None
+        conversation_resolution, conversation_rejected = (
+            validate_interaction_conversation(
+                raw_intent, npc_target, required=npc_target is not None
+            )
         )
-        conversation_resolution = interaction_adventure.resolve_conversation(
-            world_state, player_input, raw_intent.get("interaction"), npc_target
-        )
-        if conversation_resolution is None:
+        if conversation_rejected:
             return finish_conversation_resolution(None, npc_target)
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(
@@ -14635,12 +14638,13 @@ def _run_player_turn_internal(
                 ) is not None
             ),
         )
-        proposal = raw_intent.get("interaction", {}).get("conversation") if isinstance(
-            raw_intent.get("interaction"), dict
-        ) else None
-        conversation_resolution = interaction_adventure.resolve_conversation(
-            world_state, player_input, raw_intent.get("interaction"), npc_target
+        conversation_resolution, conversation_rejected = (
+            validate_interaction_conversation(
+                raw_intent, npc_target, required=npc_target is not None
+            )
         )
+        if conversation_rejected:
+            return finish_conversation_resolution(None, npc_target)
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,

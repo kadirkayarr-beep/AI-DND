@@ -168,6 +168,15 @@ class ConversationProposal(Contract):
     candidate_evidence_ids: list[str] = Field(default_factory=list, max_length=8)
 
 
+PROFILE_FIELD_BY_MEANING = {
+    "personal_purpose": "reason_for_being_here",
+    "current_activity": "current_activity",
+    "occupation": "occupation",
+    "origin": "origin",
+}
+SHAREABLE_PROFILE_FIELDS = tuple(PROFILE_FIELD_BY_MEANING.values())
+
+
 class Envelope(Contract):
     operation: Literal["none", "goal", "request", "negotiate", "refuse", "delay",
                        "agree", "conditional", "threat", "promise", "information",
@@ -245,6 +254,13 @@ def proposal_guidance():
         "ilgisi olmayan bir soruyu current_activity olarak zorla eşleme; uygun değilse "
         "meaning=other/unknown/unclear ve boş kanıt seçimi kullan. meaning ve topic_relation "
         "otorite veya gerçek değildir; Python kaynak, mahremiyet ve ilişkiyi doğrular. "
+        "Hitap edilen kişi (addressee) ile sorunun öznesi ayrı rollerdir; bilinmiyorsa unknown "
+        "kalır, oyuncu cümlesinden rol veya anlam tamamlama. personal_purpose yalnız muhatabın "
+        "kişisel amacıdır; current_activity yalnız mevcut faaliyettir; cause nedensellik sorusudur; "
+        "başka özne muhatabın kişisel profiliyle cevaplanmaz. Bilgi veya kişisel amaç sorusu "
+        "conditional taahhüt değildir; conditional yalnız oyuncu açıkça koşullu bir teklif "
+        "söylediğinde seçilir. Profilden yalnız izinli alanların value ve source değerlerini "
+        "doğrudan kullan; diğer kişisel profil alanları bu yanıta kaynak değildir. "
         "Konuşmadaki inanç/iddia dünya gerçeği değildir. JSON interaction zarfını da döndür."
     )
 
@@ -647,19 +663,16 @@ def context(world, npc, player_input=None):
         and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    # Offer opaque candidate references only. A lexical match or model choice
-    # cannot expose profile values; resolve_conversation checks the owner and
-    # supplies a value from Python after validating the whole proposal.
+    # Only profile predicates accepted by resolve_conversation are exposed.
     conversation_candidates = [
         {
             "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
             "owner_id": npc["id"],
             "field": field,
+            "value": profile[field],
+            "source": "npc_personal_profile",
         }
-        for field in (
-            "reason_for_being_here", "current_activity", "occupation",
-            "recent_activity", "origin", "personal_detail", "mood",
-        )
+        for field in SHAREABLE_PROFILE_FIELDS
         if isinstance(profile, dict)
         and isinstance(profile.get(field), str)
         and profile[field].strip()
@@ -751,12 +764,7 @@ def resolve_conversation(world, player_input, raw, npc=None):
 
     answer_field = None
     answer_value = None
-    expected_field = {
-        "personal_purpose": "reason_for_being_here",
-        "current_activity": "current_activity",
-        "occupation": "occupation",
-        "origin": "origin",
-    }.get(proposal.meaning)
+    expected_field = PROFILE_FIELD_BY_MEANING.get(proposal.meaning)
     if expected_field is not None:
         profile = npc.get("personal_profile") if isinstance(npc, dict) else None
         evidence_id = (

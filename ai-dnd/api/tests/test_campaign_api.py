@@ -226,13 +226,16 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
             reply = self.conversation_replies.pop(0) if self.conversation_replies else {}
             proposal = reply.get("conversation", proposal)
             if reply.get("include_interaction", True):
-                packet["interaction"] = {
-                    "operation": reply.get("operation", "none"),
-                    "quote": reply.get("quote", quote),
-                    "conversation": proposal,
-                }
-                if not reply.get("include_conversation", True):
-                    packet["interaction"].pop("conversation", None)
+                if isinstance(reply.get("interaction"), dict):
+                    packet["interaction"] = copy.deepcopy(reply["interaction"])
+                else:
+                    packet["interaction"] = {
+                        "operation": reply.get("operation", "none"),
+                        "quote": reply.get("quote", quote),
+                        "conversation": proposal,
+                    }
+                    if not reply.get("include_conversation", True):
+                        packet["interaction"].pop("conversation", None)
             else:
                 packet.pop("interaction", None)
             packet["narration"] = reply.get(
@@ -852,7 +855,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         first_model = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(first_model.status_code, 200, first_model.text)
         first_context = json.dumps(client.message_batches, ensure_ascii=False)
-        self.assertNotIn(profile["reason_for_being_here"], first_context)
+        self.assertIn(profile["reason_for_being_here"], first_context)
         self.assertIn(
             f"npc-profile:{marek['id']}:v1:reason_for_being_here",
             first_context,
@@ -1342,7 +1345,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             scene["conversation_focus"]["subject_id"],
             f"npc-profile:{marek['id']}:current_activity",
         )
-        self.assertNotIn(purpose, json.dumps(scene, ensure_ascii=False))
+        self.assertIn(purpose, json.dumps(scene, ensure_ascii=False))
         self.assertNotIn(
             purpose, followup.json()["narration"],
             "A profile purpose is not evidence for an unrelated activity's cause.",
@@ -1437,14 +1440,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             f"npc-profile:{marek['id']}:v1:reason_for_being_here",
             [item["evidence_id"] for item in continued_scene["conversation_candidates"]],
         )
-        self.assertNotIn(purpose, continued_context)
+        self.assertIn(purpose, continued_context)
         self.assertIn(purpose, continued.json()["narration"])
 
         door = await post("Marek, burada kapı neden kilitli?")
         self.assertEqual(door.status_code, 200, door.text)
         self.assertNotIn(purpose, door.json()["narration"])
         _, door_context = last_scene()
-        self.assertNotIn(purpose, door_context)
+        self.assertIn(purpose, door_context)
 
         batches_before_lore = len(client.message_batches)
         lore = await post(
@@ -1477,7 +1480,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             activity_scene["conversation_focus"]["predicate"], "current_activity"
         )
-        self.assertNotIn(purpose, json.dumps(activity_scene, ensure_ascii=False))
+        self.assertIn(purpose, json.dumps(activity_scene, ensure_ascii=False))
 
         for actor_question in (
             "Marek, kervan neden buraya geldi?",
@@ -1492,7 +1495,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(actor_answer.status_code, 200, actor_answer.text)
                 self.assertNotIn(purpose, actor_answer.json()["narration"])
                 _, actor_context = last_scene()
-                self.assertNotIn(purpose, actor_context)
+                self.assertIn(purpose, actor_context)
 
     async def test_model_owned_personal_purpose_phrasings_do_not_need_lexical_gate(self):
         city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
@@ -1705,7 +1708,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         current_context, _ = json.JSONDecoder().raw_decode(
             intent_prompt.split(context_marker, 1)[1]
         )
-        self.assertNotIn(
+        self.assertIn(
             purpose,
             json.dumps(
                 current_context.get("conversation_candidates", []),
@@ -2058,6 +2061,35 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("hitap edilen kişi ile sorunun öznesini ayır", prompt)
                 self.assertIn("tüm profil kanıtlarını topluca seçme", prompt)
                 self.assertIn("Hava gibi", prompt)
+                for guidance in (
+                    "personal_purpose yalnız muhatabın kişisel amacıdır",
+                    "current_activity yalnız mevcut faaliyettir",
+                    "Bilgi veya kişisel amaç sorusu conditional taahhüt değildir",
+                    "conditional yalnız oyuncu açıkça koşullu bir teklif söylediğinde",
+                ):
+                    self.assertIn(guidance, prompt)
+                marker = (
+                    "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+                )
+                context, _ = json.JSONDecoder().raw_decode(
+                    prompt.split(marker, 1)[1]
+                )
+                candidates = context["conversation_candidates"]
+                self.assertEqual(
+                    {item["field"] for item in candidates},
+                    {
+                        "reason_for_being_here", "current_activity",
+                        "occupation", "origin",
+                    },
+                )
+                for item in candidates:
+                    self.assertTrue(item.get("value"))
+                    self.assertEqual(item.get("source"), "npc_personal_profile")
+                context_text = json.dumps(candidates, ensure_ascii=False)
+                for private_field in (
+                    "recent_activity", "personal_detail", "mood", "immediate_goal",
+                ):
+                    self.assertNotIn(private_field, context_text)
 
         client.conversation_replies = [{
             "operation": "goal",
@@ -2239,6 +2271,130 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     ],
                     focus_before,
                 )
+
+    async def test_invalid_conditional_conversation_rejects_before_interaction_effects(self):
+        requests = (
+            (
+                "general",
+                "Marek, seni bu şehre getiren şeyi anlat",
+                True,
+            ),
+            (
+                "conditional_hint",
+                "Yalnızca kapı açılmış olursa sana yardım ederim.",
+                True,
+            ),
+            (
+                "required_conversation_missing",
+                "Marek, seni bu şehre getiren şeyi anlat",
+                False,
+            ),
+        )
+        for path, message, include_conversation in requests:
+            with self.subTest(path=path):
+                city_id, session_id, session, turn_url, _, _ = (
+                    await create_city_with_locked_tavern(self)
+                )
+                npc_id = "npc_marek_live_pr13"
+                evidence_id = (
+                    f"npc-profile:{npc_id}:v1:reason_for_being_here"
+                )
+                profile = {
+                    "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+                    "occupation": "Şehir arşivinde kâtiplik yapıyorum.",
+                    "current_activity": "Eski kayıtları tasnif ediyorum.",
+                    "mood": "İyiyim.",
+                    "recent_activity": "Sabah pazardan iplik aldım.",
+                    "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+                    "reason_for_being_here": "Kayıp kayıtları bulmaya geldim.",
+                    "personal_detail": "Notlarımı mavi defterde tutarım.",
+                    "immediate_goal": "Bugün tasnifi bitirmek.",
+                }
+                marek = {
+                    "id": npc_id,
+                    "name": "Marek",
+                    "role": "resident",
+                    "location": city_id,
+                    "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                    "personal_profile": profile,
+                    "personality": "",
+                    "appearance": "",
+                    "relationship": "neutral",
+                    "knowledge": [],
+                    "memory": [],
+                    "combat_status": "active",
+                    "current_hp": 12,
+                    "status": "active",
+                }
+                session.world_state.setdefault("npcs", []).append(marek)
+                profile_evidence_ids = [
+                    f"npc-profile:{npc_id}:v1:{field}"
+                    for field in (
+                        "reason_for_being_here", "current_activity", "occupation",
+                        "recent_activity", "origin", "personal_detail", "mood",
+                    )
+                ]
+                client = CapturingConversationContextClient()
+                interaction = {
+                    "operation": "conditional",
+                    "quote": message,
+                    "thread_id": None,
+                    "evidence_id": None,
+                    "requested_item": None,
+                    "steps": [],
+                    "candidates": [{
+                        "kind": "inquiry",
+                        "impact": "local",
+                        "npc_id": npc_id,
+                        "location_id": city_id,
+                        "routes": [{"kind": "talk", "target": npc_id}],
+                        "evidence_id": evidence_id,
+                    }],
+                    "conversation": {
+                        "addressee_id": npc_id,
+                        "subject_phrase": message,
+                        "subject_role": "unknown",
+                        "meaning": "unknown",
+                        "topic_relation": "unclear",
+                        "candidate_evidence_ids": profile_evidence_ids,
+                    },
+                }
+                if not include_conversation:
+                    interaction.pop("conversation")
+                client.conversation_replies = [{"interaction": interaction}]
+                action_id = str(uuid.uuid4())
+                body = {
+                    "message": message,
+                    "target_id": npc_id,
+                    "interaction_mode": "say",
+                    "action_id": action_id,
+                }
+                def snapshot():
+                    return {
+                        "interaction": copy.deepcopy(
+                            game.interaction_adventure.get(session.world_state)
+                        ),
+                        "npc": copy.deepcopy(marek),
+                    }
+
+                before = snapshot()
+                calls_before = client.chat_calls
+                first = await self.post_scene_turn(turn_url, client, body)
+                calls_after_first = client.chat_calls
+                after_first = snapshot()
+                replay = await self.post_scene_turn(turn_url, client, body)
+                calls_after_replay = client.chat_calls
+                after_replay = snapshot()
+
+                self.assertEqual(first.status_code, 200, first.text)
+                self.assertEqual(replay.status_code, 200, replay.text)
+                with self.subTest(path=path, check="one model call then replay"):
+                    self.assertEqual(calls_after_first, calls_before + 1)
+                    self.assertEqual(calls_after_replay, calls_after_first)
+                    self.assertEqual(replay.json(), first.json())
+                with self.subTest(path=path, check="no interaction or memory effects"):
+                    self.assertEqual(after_first, before)
+                    self.assertEqual(after_replay, before)
 
     async def test_npc_conversation_save_failure_rolls_back_and_receipt_replay_skips_model(self):
         city_id, session_id, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
