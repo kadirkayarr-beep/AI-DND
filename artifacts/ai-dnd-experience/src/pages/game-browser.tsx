@@ -78,6 +78,7 @@ import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
+import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { OuroborosMark } from '@/components/ouroboros-mark';
@@ -234,6 +235,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
       {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
+      <CharacterIdentityNotes character={character} />
     </section>
   );
 }
