@@ -1360,6 +1360,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             f"npc-profile:{marek['id']}:v1:reason_for_being_here",
             first_model_context,
         )
+        self.assertIn(purpose, client.generated_narrations[-1])
         self.assertEqual(
             continued.json()["narration"],
             client.generated_narrations[-1],
