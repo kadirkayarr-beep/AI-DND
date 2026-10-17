@@ -147,6 +147,7 @@ def initial_scene_state() -> dict[str, Any]:
         "active_referent_id": None,
         "player_position": {"location_id": None, "kind": "standing", "target_id": None},
         "proposal_references": [],
+        "entry_target_reference": None,
         "campaign_seed": "",
         "ambient_context": {
             "environment": "unknown",
@@ -666,6 +667,7 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
     )
     state.setdefault("ambient_event_history", [])
     state.setdefault("ambient_event_counts", {})
+    state.setdefault("entry_target_reference", None)
     if (
         not isinstance(state.get("campaign_seed"), str)
         or len(state["campaign_seed"]) > 64
@@ -736,6 +738,38 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Campaign scene references are invalid.")
     if len(state["proposal_references"]) > 24:
         raise ValueError("Campaign scene references exceed the limit.")
+    entry_reference = state["entry_target_reference"]
+    if entry_reference is not None and (
+        not isinstance(entry_reference, dict)
+        or set(entry_reference) != {
+            "source_action_id",
+            "source_kind",
+            "source_turn_index",
+            "expires_after_turn_index",
+            "source_location_id",
+            "location_id",
+            "door_id",
+        }
+        or not isinstance(entry_reference.get("source_action_id"), str)
+        or not entry_reference["source_action_id"]
+        or len(entry_reference["source_action_id"]) > 128
+        or entry_reference.get("source_kind") not in {
+            "local_search",
+            "door_skill_check",
+        }
+        or type(entry_reference.get("source_turn_index")) is not int
+        or entry_reference["source_turn_index"] < 0
+        or type(entry_reference.get("expires_after_turn_index")) is not int
+        or entry_reference["expires_after_turn_index"]
+        != entry_reference["source_turn_index"] + 1
+        or not isinstance(entry_reference.get("source_location_id"), str)
+        or not entry_reference["source_location_id"]
+        or not isinstance(entry_reference.get("location_id"), str)
+        or not entry_reference["location_id"]
+        or not isinstance(entry_reference.get("door_id"), str)
+        or not entry_reference["door_id"]
+    ):
+        raise ValueError("Campaign local-entry reference is invalid.")
     features = world_state.setdefault("features", [])
     if not isinstance(features, list) or len(features) > 1280:
         raise ValueError("Campaign feature list exceeds the limit.")
@@ -1438,6 +1472,124 @@ def add_proposal_references(
     state["proposal_references"] = (
         state["proposal_references"] + clean
     )[-24:]
+
+
+def _canonical_local_entry_door(
+    world_state: dict[str, Any],
+    source_location_id: str,
+    location_id: str,
+    door_id: str,
+) -> bool:
+    locations = world_state.get("locations")
+    target = locations.get(location_id) if isinstance(locations, dict) else None
+    doors = world_state.get("doors")
+    matching_doors = (
+        [door for door in doors if isinstance(door, dict) and door.get("id") == door_id]
+        if isinstance(doors, list)
+        else []
+    )
+    return bool(
+        isinstance(target, dict)
+        and target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and target.get("parent_location_id") == source_location_id
+        and location_id != source_location_id
+        and door_id == f"venue-door:{location_id}"
+        and len(matching_doors) == 1
+        and matching_doors[0].get("location") == source_location_id
+    )
+
+
+def record_entry_target_reference(
+    world_state: dict[str, Any],
+    *,
+    action_result: Any,
+    source_action_id: Any,
+    source_turn_index: Any,
+    source_location_id: Any,
+    source_door_id: Any = None,
+) -> None:
+    """Keep one validated local-entry target for the immediately following turn."""
+    state = ensure_scene_state(world_state)
+    state["entry_target_reference"] = None
+    if (
+        not isinstance(action_result, dict)
+        or not isinstance(source_action_id, str)
+        or not source_action_id
+        or len(source_action_id) > 128
+        or type(source_turn_index) is not int
+        or source_turn_index < 0
+        or not isinstance(source_location_id, str)
+        or not source_location_id
+    ):
+        return
+
+    location_id = None
+    door_id = None
+    source_kind = None
+    if (
+        action_result.get("action") == "local_search"
+        and action_result.get("status") == "found"
+        and action_result.get("success") is True
+        and isinstance(action_result.get("target_id"), str)
+    ):
+        location_id = action_result["target_id"]
+        door_id = f"venue-door:{location_id}"
+        source_kind = "local_search"
+    elif (
+        action_result.get("action") == "skill_check"
+        and action_result.get("status") == "resolved"
+        and action_result.get("target_type") == "door"
+        and action_result.get("skill") == "Athletics"
+        and isinstance(source_door_id, str)
+        and source_door_id.startswith("venue-door:")
+    ):
+        location_id = source_door_id.removeprefix("venue-door:")
+        door_id = source_door_id
+        source_kind = "door_skill_check"
+
+    if (
+        source_kind is None
+        or not _canonical_local_entry_door(
+            world_state, source_location_id, location_id, door_id
+        )
+    ):
+        return
+    state["entry_target_reference"] = {
+        "source_action_id": source_action_id,
+        "source_kind": source_kind,
+        "source_turn_index": source_turn_index,
+        "expires_after_turn_index": source_turn_index + 1,
+        "source_location_id": source_location_id,
+        "location_id": location_id,
+        "door_id": door_id,
+    }
+
+
+def resolve_entry_target_reference(
+    world_state: dict[str, Any],
+    *,
+    current_location_id: Any,
+    next_turn_index: Any,
+) -> dict[str, str] | None:
+    """Return a one-turn reference only while its exact canonical owner remains."""
+    state = ensure_scene_state(world_state)
+    reference = state.get("entry_target_reference")
+    if (
+        not isinstance(reference, dict)
+        or type(next_turn_index) is not int
+        or reference.get("expires_after_turn_index") != next_turn_index
+        or reference.get("source_turn_index") != next_turn_index - 1
+        or reference.get("source_location_id") != current_location_id
+    ):
+        return None
+    location_id = reference.get("location_id")
+    door_id = reference.get("door_id")
+    source_location_id = reference.get("source_location_id")
+    if not _canonical_local_entry_door(
+        world_state, source_location_id, location_id, door_id
+    ):
+        return None
+    return {"location_id": location_id, "door_id": door_id}
 
 
 def public_scene_projection(
