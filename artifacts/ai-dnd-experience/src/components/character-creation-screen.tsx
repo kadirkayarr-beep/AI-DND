@@ -27,9 +27,12 @@ import type {
 import { CharacterIdentitySuggestion } from '@/components/character-identity-suggestion';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import {
+  applyObservedJob,
   applySuggestion,
   buildSuggestionRequest,
   dismissNotice,
+  jobFromRemote,
+  noticeForJob,
   submitIdentitySuggestion,
   type IdentityField,
   type IdentitySuggestionJob,
@@ -254,6 +257,13 @@ export function CharacterCreationScreen({
   const [backstory, setBackstory] = useState('');
   const identityDraftId = useRef(crypto.randomUUID());
   const identityRequestLock = useRef(false);
+  const identityEpoch = useRef(0);
+  const identityDiscarded = useRef(false);
+  const suggestionRef = useRef<IdentitySuggestionJob | null>(null);
+  const identityLive = useRef({
+    revisions: { origin: 0, appearance: 0, personality: 0, backstory: 0 },
+    locked: { origin: false, appearance: false, personality: false, backstory: false },
+  });
   const [activeIdentityField, setActiveIdentityField] = useState<IdentityField>('origin');
   const [identityRevision, setIdentityRevision] = useState({ origin: 0, appearance: 0, personality: 0, backstory: 0 });
   const [identityLocked, setIdentityLocked] = useState({ origin: false, appearance: false, personality: false, backstory: false });
@@ -773,9 +783,18 @@ export function CharacterCreationScreen({
     });
   }, [currentStep, catalog, characterClass, background, species, equipmentPackage]);
 
+  useEffect(() => {
+    identityEpoch.current += 1;
+  }, [currentStep]);
+
   const identityValues: IdentityValues = { origin, appearance, personality, backstory };
+  identityLive.current = {
+    revisions: identityRevision,
+    locked: identityLocked,
+  };
 
   function touchIdentity(field: IdentityField, value: string) {
+    identityEpoch.current += 1;
     if (field === 'origin') setOrigin(value);
     if (field === 'appearance') setAppearance(value);
     if (field === 'personality') setPersonality(value);
@@ -791,9 +810,11 @@ export function CharacterCreationScreen({
       return;
     }
     identityRequestLock.current = true;
+    identityDiscarded.current = false;
     setIdentitySuggestionBusy(true);
     setIdentitySuggestionOpen(true);
     const requestId = crypto.randomUUID();
+    const epoch = identityEpoch.current;
     const baseText = identityValues[field];
     const body = buildSuggestionRequest({
       draftId: identityDraftId.current,
@@ -807,7 +828,7 @@ export function CharacterCreationScreen({
       species,
       characterClass,
     });
-    setIdentitySuggestion({
+    const pending: IdentitySuggestionJob = {
       requestId,
       draftId: identityDraftId.current,
       field,
@@ -816,7 +837,16 @@ export function CharacterCreationScreen({
       status: 'pending',
       suggestion: null,
       code: null,
-    });
+    };
+    suggestionRef.current = pending;
+    setIdentitySuggestion(pending);
+    const gate = {
+      requestId,
+      draftId: identityDraftId.current,
+      field,
+      revision: identityRevision[field],
+      epoch,
+    };
     try {
       const job = await submitIdentitySuggestion(
         (payload) => customFetch('/api/game/character-identity-suggestions', {
@@ -827,28 +857,71 @@ export function CharacterCreationScreen({
         body,
         baseText,
       );
-      setIdentitySuggestion((current) => (current && current.requestId !== requestId ? current : job));
-      setIdentitySuggestionNotice(job.status === 'ready' ? 'Öneri hazır.' : 'Öneri durumu alındı.');
+      commitObservedSuggestion(job, gate);
     } finally {
       identityRequestLock.current = false;
       setIdentitySuggestionBusy(false);
     }
   }
 
-  async function pollIdentitySuggestion() {
-    if (!identitySuggestion) return;
-    const remote = await customFetch<{
-      status: IdentitySuggestionJob['status'];
-      suggestion?: string | null;
-      code?: string | null;
-    }>(`/api/game/character-identity-suggestions/${identitySuggestion.requestId}`);
-    setIdentitySuggestion({
-      ...identitySuggestion,
-      status: remote.status,
-      suggestion: remote.suggestion ?? null,
-      code: remote.code ?? null,
+  function commitObservedSuggestion(
+    observed: IdentitySuggestionJob,
+    gate: { requestId: string; draftId: string; field: IdentityField; revision: number; epoch: number },
+  ) {
+    const next = applyObservedJob(suggestionRef.current, observed, {
+      ...gate,
+      currentEpoch: identityEpoch.current,
+      currentRevision: identityLive.current.revisions[gate.field],
+      locked: identityLive.current.locked[gate.field],
+      discarded: identityDiscarded.current,
     });
-    setIdentitySuggestionNotice('Öneri durumu alındı.');
+    if (!next || next === suggestionRef.current) return;
+    suggestionRef.current = next;
+    setIdentitySuggestion(next);
+    setIdentitySuggestionNotice(noticeForJob(next.status, next.code));
+  }
+
+  async function pollIdentitySuggestion() {
+    const expected = suggestionRef.current;
+    if (!expected) return;
+    const gate = {
+      requestId: expected.requestId,
+      draftId: expected.draftId,
+      field: expected.field,
+      revision: expected.revision,
+      epoch: identityEpoch.current,
+    };
+    try {
+      const remote = await Promise.race([
+        customFetch<{
+          status: IdentitySuggestionJob['status'];
+          suggestion?: string | null;
+          code?: string | null;
+        }>(`/api/game/character-identity-suggestions/${expected.requestId}`),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('status-timeout')), 8000);
+        }),
+      ]);
+      commitObservedSuggestion(jobFromRemote({
+        request_id: expected.requestId,
+        draft_id: expected.draftId,
+        field: expected.field,
+        input_revision: expected.revision,
+        status: remote.status,
+        suggestion: remote.suggestion,
+        code: remote.code,
+      }, expected.baseText), gate);
+    } catch {
+      const current = suggestionRef.current;
+      if (current?.status === 'ready' && current.suggestion) return;
+      if (
+        identityEpoch.current === gate.epoch
+        && !identityDiscarded.current
+        && current?.requestId === gate.requestId
+      ) {
+        setIdentitySuggestionNotice(noticeForJob(current.status, 'status_unavailable'));
+      }
+    }
   }
 
   function acceptIdentitySuggestion() {
@@ -940,7 +1013,7 @@ export function CharacterCreationScreen({
                   type="button"
                   disabled={!canNavigate}
                   className={`cc-step-btn ${isActive ? 'active' : ''} ${!canNavigate ? 'disabled' : ''}`}
-                  onClick={() => canNavigate && setCurrentStep(step.id)}
+                  onClick={() => { if (!canNavigate) return; identityEpoch.current += 1; setCurrentStep(step.id); }}
                 >
                   <span className="cc-step-title">{step.label}</span>
                   <small className="cc-step-desc">{step.desc}</small>
@@ -1817,18 +1890,25 @@ export function CharacterCreationScreen({
                     notice={identitySuggestionNotice}
                     busy={identitySuggestionBusy}
                     onActivate={setActiveIdentityField}
-                    onToggleLock={() => setIdentityLocked((current) => ({
-                      ...current,
-                      [activeIdentityField]: !current[activeIdentityField],
-                    }))}
+                    onToggleLock={() => {
+                      identityEpoch.current += 1;
+                      setIdentityLocked((current) => ({
+                        ...current,
+                        [activeIdentityField]: !current[activeIdentityField],
+                      }));
+                    }}
                     onAllowLockedContext={setAllowLockedContext}
                     onAsk={() => { void askIdentitySuggestion(); }}
                     onAccept={acceptIdentitySuggestion}
                     onDiscard={() => {
+                      identityEpoch.current += 1;
+                      identityDiscarded.current = true;
                       setIdentitySuggestionOpen(false);
                       setIdentitySuggestionNotice('Öneri forma yazılmadı.');
                     }}
                     onDismiss={() => {
+                      identityEpoch.current += 1;
+                      identityDiscarded.current = true;
                       setIdentitySuggestionOpen(false);
                       setIdentitySuggestionNotice(dismissNotice());
                     }}
@@ -2213,7 +2293,7 @@ export function CharacterCreationScreen({
                     className="cc-nav-btn cc-nav-prev"
                     onClick={() => {
                       const idx = STEPS.findIndex((s) => s.id === currentStep);
-                      if (idx > 0) { primeGateSound(); playGateSound('page'); setCurrentStep(STEPS[idx - 1].id); }
+                      if (idx > 0) { primeGateSound(); playGateSound('page'); identityEpoch.current += 1; setCurrentStep(STEPS[idx - 1].id); }
                     }}
                   >
                     <ArrowLeft size={14} /> Önceki Adım
@@ -2236,7 +2316,7 @@ export function CharacterCreationScreen({
                         primeGateSound();
                         if (idx < STEPS.length - 1 && isStepValid(currentStep)) {
                           playGateSound('page');
-                          setCurrentStep(STEPS[idx + 1].id);
+                          identityEpoch.current += 1; setCurrentStep(STEPS[idx + 1].id);
                         } else playGateSound('warn');
                       }}
                     >

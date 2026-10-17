@@ -25,6 +25,7 @@ from api.auth import (
     FailClosedAuthenticator,
     OidcAuthenticator,
     Principal,
+    current_principal,
     SESSION_COOKIE,
     authenticate,
     bind_principal,
@@ -669,7 +670,7 @@ def create_app(
     def create_character_identity_suggestion(
         body: IdentitySuggestionRequest,
     ) -> IdentitySuggestionJob:
-        return suggestions.submit(body)
+        return suggestions.submit(body, _suggestion_principal())
 
     @application.get(
         "/api/game/character-identity-suggestions/{request_id}",
@@ -680,7 +681,7 @@ def create_app(
         response_model=IdentitySuggestionJob,
     )
     def read_character_identity_suggestion(request_id: str) -> IdentitySuggestionJob:
-        job = suggestions.get(request_id)
+        job = suggestions.get(request_id, _suggestion_principal())
         if job is None:
             raise HTTPException(
                 status_code=404,
@@ -1931,6 +1932,19 @@ def create_app(
                 ) from None
 
     return application
+
+
+def _suggestion_principal() -> Principal:
+    principal = current_principal()
+    if type(principal) is not Principal:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "authentication_required",
+                "message": "Kimlik doğrulaması gerekli.",
+            },
+        )
+    return principal
 
 
 _PUBLIC_API_PATHS = frozenset({

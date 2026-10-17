@@ -207,4 +207,177 @@ test('suggestion controls keep a 44px target and stack at 390px', async () => {
   assert.match(screen, /<CharacterIdentitySuggestion/);
   assert.equal(screen.includes('localStorage'), false);
   assert.match(screen, /customFetch\('\/api\/game\/character-identity-suggestions'/);
+  assert.equal(screen.includes('Öneri durumu alındı'), false);
+  assert.match(screen, /applyObservedJob/);
+});
+
+test('a late status for an older request does not replace the current job', () => {
+  const current = job({ requestId: 'B', status: 'running', suggestion: null, revision: 4 });
+  const late = job({ requestId: 'A', suggestion: 'A metni', revision: 2 });
+  const gate = {
+    requestId: 'A',
+    draftId: 'draft-1',
+    field: 'personality',
+    revision: 2,
+    epoch: 1,
+    currentEpoch: 1,
+    currentRevision: 2,
+    locked: false,
+    discarded: false,
+  };
+  assert.equal(logic.applyObservedJob(current, late, gate), current);
+  const edited = logic.applyObservedJob(job(), job({ suggestion: 'Geç yazı' }), {
+    ...gate,
+    requestId: 'request-1',
+    revision: 2,
+    currentRevision: 3,
+  });
+  assert.equal(edited.suggestion, 'Sakin ve ölçülü.');
+  const lockedOut = logic.applyObservedJob(job(), job({ suggestion: 'Kilit geç' }), {
+    ...gate,
+    requestId: 'request-1',
+    locked: true,
+  });
+  assert.equal(lockedOut.suggestion, 'Sakin ve ölçülü.');
+  const discarded = logic.applyObservedJob(job(), job({ suggestion: 'Vazgeç geç' }), {
+    ...gate,
+    requestId: 'request-1',
+    discarded: true,
+  });
+  assert.equal(discarded.suggestion, 'Sakin ve ölçülü.');
+  const stepped = logic.applyObservedJob(job(), job({ suggestion: 'Adım geç' }), {
+    ...gate,
+    requestId: 'request-1',
+    epoch: 1,
+    currentEpoch: 2,
+  });
+  assert.equal(stepped.suggestion, 'Sakin ve ölçülü.');
+});
+
+test('status failures stay visible and do not start another request', async () => {
+  for (const status of ['failed', 'rejected', 'timed_out']) {
+    assert.equal(logic.noticeForJob(status).includes('Öneri durumu alındı'), false);
+  }
+  assert.match(logic.noticeForJob('failed', 'status_unavailable'), /Kabul edilen metin duruyor/);
+  let posts = 0;
+  const result = await logic.submitIdentitySuggestion(
+    async () => {
+      posts += 1;
+      return {
+        request_id: 'request-hang',
+        draft_id: 'draft-1',
+        field: 'origin',
+        input_revision: 1,
+        status: 'running',
+        suggestion: null,
+        code: null,
+      };
+    },
+    () => new Promise(() => {}),
+    {
+      draft_id: 'draft-1',
+      request_id: 'request-hang',
+      field: 'origin',
+      input_revision: 1,
+      current_text: 'Kuzey',
+      locked: false,
+      name: null,
+      species: null,
+      character_class: null,
+      context_fields: [],
+    },
+    'Kuzey',
+    { timeoutMs: 30, pollMs: 10 },
+  );
+  assert.equal(posts, 1);
+  assert.equal(result.code, 'status_unavailable');
+  assert.equal(result.baseText, 'Kuzey');
+});
+
+test('an older poll does not roll back ready text and a late get error keeps it', () => {
+  const ready = job({ status: 'ready', suggestion: 'Hazır metin' });
+  const gate = {
+    requestId: 'request-1',
+    draftId: 'draft-1',
+    field: 'personality',
+    revision: 2,
+    epoch: 1,
+    currentEpoch: 1,
+    currentRevision: 2,
+    locked: false,
+    discarded: false,
+  };
+  const stale = logic.applyObservedJob(ready, job({ status: 'running', suggestion: null }), gate);
+  assert.equal(stale.status, 'ready');
+  assert.equal(stale.suggestion, 'Hazır metin');
+  const lateError = logic.applyObservedJob(ready, job({
+    status: 'failed',
+    suggestion: null,
+    code: 'status_unavailable',
+  }), gate);
+  assert.equal(lateError.status, 'ready');
+  assert.equal(lateError.suggestion, 'Hazır metin');
+});
+
+test('a get connection error keeps the same id available to poll', async () => {
+  let posts = 0;
+  const body = {
+    draft_id: 'draft-1',
+    request_id: 'same-id',
+    field: 'origin',
+    input_revision: 1,
+    current_text: 'Kuzey',
+    locked: false,
+    name: null,
+    species: null,
+    character_class: null,
+    context_fields: [],
+  };
+  const result = await logic.submitIdentitySuggestion(
+    async () => {
+      posts += 1;
+      return {
+        request_id: 'same-id',
+        draft_id: 'draft-1',
+        field: 'origin',
+        input_revision: 1,
+        status: 'running',
+        suggestion: null,
+        code: null,
+      };
+    },
+    async () => {
+      throw new Error('connection reset');
+    },
+    body,
+    'Kuzey',
+    { timeoutMs: 40, pollMs: 10 },
+  );
+  assert.equal(posts, 1);
+  assert.equal(result.requestId, 'same-id');
+  assert.equal(result.status, 'running');
+  assert.notEqual(result.status, 'failed');
+  assert.equal(result.code, 'status_unavailable');
+  assert.equal(result.baseText, 'Kuzey');
+  const html = renderSuggestion({
+    values,
+    revisions,
+    locked,
+    allowLockedContext: false,
+    activeField: 'origin',
+    job: { ...result, field: 'origin', revision: 1, baseText: 'Kuzey' },
+    open: true,
+    notice: logic.noticeForJob(result.status, result.code),
+    busy: false,
+    onActivate: () => {},
+    onToggleLock: () => {},
+    onAllowLockedContext: () => {},
+    onAsk: () => {},
+    onAccept: () => {},
+    onDiscard: () => {},
+    onDismiss: () => {},
+    onPoll: () => {},
+  });
+  assert.match(html, /Durumu sor/);
+  assert.equal(html.includes('Öneri üretilemedi'), false);
 });

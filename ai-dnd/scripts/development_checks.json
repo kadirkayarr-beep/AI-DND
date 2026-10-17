@@ -30,7 +30,8 @@
     "test_narrative_rebalance.TestNarrativeRebalance.test_04_narration_validation_failure_does_not_retry_model",
     "api.tests.test_regression_evidence",
     "api.tests.test_development_tooling",
-    "api.tests.test_character_identity_persistence"
+    "api.tests.test_character_identity_persistence",
+    "api.tests.test_identity_suggestion"
   ],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
