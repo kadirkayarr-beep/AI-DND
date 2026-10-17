@@ -208,7 +208,7 @@ def intent_schema(base, require_conversation=False):
         conversation_schema = schema["$defs"]["ConversationProposal"]
         conversation_schema["required"] = list(dict.fromkeys([
             *conversation_schema.get("required", []),
-            "subject_phrase", "subject_role", "meaning",
+            "addressee_id", "subject_phrase", "subject_role", "meaning",
             "topic_relation", "candidate_evidence_ids",
         ]))
     return schema
@@ -239,7 +239,11 @@ def proposal_guidance():
         "conversation yalnızca geçici anlam önerisidir: addressee_id ve candidate_evidence_ids "
         "yalnızca gönderilen bağlamdaki kimlikler olabilir; subject_phrase oyuncu mesajından "
         "aynen alınmalı; hitap edilen kişi ile sorunun öznesini ayır. Belirsiz özne unknown, "
-        "bilinmeyen kişi/varlık kimlik üretmeden metin olarak kalır. meaning ve topic_relation "
+        "bilinmeyen kişi/varlık kimlik üretmeden metin olarak kalır. conversation_candidates "
+        "yalnızca olası destek kaynaklarıdır: soruyla doğrudan ilgili en az sayıdaki kanıtı "
+        "seç, tüm profil kanıtlarını topluca seçme. Hava gibi NPC'nin kişisel faaliyetiyle "
+        "ilgisi olmayan bir soruyu current_activity olarak zorla eşleme; uygun değilse "
+        "meaning=other/unknown/unclear ve boş kanıt seçimi kullan. meaning ve topic_relation "
         "otorite veya gerçek değildir; Python kaynak, mahremiyet ve ilişkiyi doğrular. "
         "Konuşmadaki inanç/iddia dünya gerçeği değildir. JSON interaction zarfını da döndür."
     )
@@ -691,6 +695,18 @@ def context(world, npc, player_input=None):
 
 def resolve_conversation(world, player_input, raw, npc=None):
     """Validate the quoted turn and its model interpretation against Python-owned sources."""
+    required_proposal_fields = {
+        "addressee_id", "subject_phrase", "subject_role", "meaning",
+        "topic_relation", "candidate_evidence_ids",
+    }
+    raw_proposal = (
+        raw.get("conversation") if isinstance(raw, dict) else None
+    )
+    if (
+        not isinstance(raw_proposal, dict)
+        or not required_proposal_fields.issubset(raw_proposal)
+    ):
+        return None
     try:
         envelope = Envelope.model_validate(raw)
     except (ValidationError, TypeError, ValueError):

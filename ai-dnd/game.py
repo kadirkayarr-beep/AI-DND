@@ -6174,7 +6174,8 @@ def _extract_json_object(raw):
 
 
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
-                        operation_hint=None, allow_scene_detail_proposals=False):
+                        operation_hint=None, require_conversation=False,
+                        allow_scene_detail_proposals=False):
     """Ask Qwen only to label the current input; it cannot read or write state."""
     world_state = _session().world_state
     locations = [
@@ -6215,6 +6216,18 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         f"Nearby NPCs: {json.dumps(nearby_npcs, ensure_ascii=False)}\n"
         f"Current player message: {player_input}"
     )
+    if require_conversation:
+        prompt += (
+            "\nBu yol conversation önerisini tüketecek. interaction.conversation nesnesini "
+            "ve addressee_id, subject_phrase, subject_role, meaning, topic_relation, "
+            "candidate_evidence_ids alanlarının her birini JSON'da açıkça döndür; alan "
+            "eksikliği null veya varsayılan anlamına gelmez. NPC hedefliyse addressee_id "
+            "yalnız bağlamdaki addressee.npc_id değeridir; hedef yoksa bu yol null'a izin "
+            "veriyorsa null yaz. subject_phrase yalnız oyuncu mesajından tam alıntıdır; "
+            "bilinmiyorsa boş dize, subject_role unknown, meaning unknown/unclear ve "
+            "topic_relation unclear kullan. Yalnız soruyla doğrudan ilgili destekleyici "
+            "candidate_evidence_ids seç; ilgisiz profilleri topluca ekleme."
+        )
     if interaction_context is not None:
         prompt += (
             "\n" + interaction_adventure.proposal_guidance()
@@ -6223,7 +6236,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         )
     schema = (interaction_adventure.intent_schema(
                   INTENT_SCHEMA,
-                  require_conversation=dialogue_narration or operation_hint is not None,
+                  require_conversation=dialogue_narration or require_conversation,
               )
               if interaction_context is not None else INTENT_SCHEMA)
     if allow_scene_detail_proposals:
@@ -6312,8 +6325,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         prompt += (
             "\ninteraction.conversation alanında tek seferlik anlam önerisi döndür: "
             "addressee_id, subject_phrase/subject_role, meaning, topic_relation ve "
-            "context'ten seçilmiş candidate_evidence_ids. Hitap edilen kişi sorunun "
-            "öznesi olmayabilir. Kaynağı olmayan olguyu üretme; Python seçimi doğrular."
+            "context'ten yalnızca soruyla ilgili candidate_evidence_ids. Hitap edilen "
+            "kişi sorunun öznesi olmayabilir; hava gibi bir konuyu NPC'nin güncel "
+            "faaliyetine zorla bağlama. Kaynağı olmayan olguyu üretme; Python seçimi doğrular."
         )
     try:
         response = ollama.chat(
@@ -14070,11 +14084,14 @@ def _run_player_turn_internal(
                 world_state, npc_target, player_input
             ),
             operation_hint=interaction_hint,
+            require_conversation=(
+                interaction_hint == "information" and npc_target is not None
+            ),
         )
         proposal = raw.get("interaction", {}).get("conversation") if isinstance(
             raw.get("interaction"), dict
         ) else None
-        if proposal is not None:
+        if proposal is not None and interaction_hint == "information":
             conversation_resolution = interaction_adventure.resolve_conversation(
                 world_state, player_input, raw.get("interaction"), npc_target
             )
@@ -14607,6 +14624,7 @@ def _run_player_turn_internal(
             interaction_context=interaction_adventure.context(
                 world_state, npc_target, player_input
             ),
+            require_conversation=npc_target is not None,
             allow_scene_detail_proposals=(
                 not is_player_world_assertion(player_input)
                 and should_generate_features(
