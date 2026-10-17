@@ -6748,6 +6748,25 @@ def _fallback_narration(player_input, npc_target=None):
         return f'{living_world.public_npc_name(target_npc)}, "Uzun süredir burada çalışıyorum; tam yıl sayısını net hatırlamıyorum," diye yanıt verir.'
     if target_npc and re.search(r"\b(?:bu kasabada|bu şehirde|doğuda ne var|güvenli bir yer|bu yerden bahset)", text):
         return f'{living_world.public_npc_name(target_npc)}, "Bu konuda bildiğim doğrulanmış ayrıntı yok; yanlış yönlendirmek istemem," diye karşılık verir.'
+    focus = interaction_adventure.current_conversation_focus(
+        world_state, target_npc
+    ) if isinstance(target_npc, dict) else None
+    if (
+        focus
+        and focus["subject_id"].startswith("npc-profile:")
+        and interaction_adventure.is_focus_followup(world_state, player_input)
+    ):
+        profile = target_npc.get("personal_profile")
+        reason = profile.get("reason_for_being_here") if isinstance(profile, dict) else None
+        if isinstance(reason, str) and reason.strip():
+            return (
+                f'{living_world.public_npc_name(target_npc)}, '
+                f'“{reason.strip()}” diye açıklar.'
+            )
+        return (
+            f'{living_world.public_npc_name(target_npc)}, '
+            '“Bunun nedenini bilmiyorum; kesin konuşamam,” diye yanıt verir.'
+        )
     if target_npc and is_npc_dialogue_input(player_input):
         return f'{living_world.public_npc_name(target_npc)}, "Bu konuda bildiğim doğrulanmış bir bilgi yok," diye yanıt verir.'
     if re.search(r"tavernaya (?:git|gidiyorum|dön|geri dön)|ormana (?:git|gidiyorum|dön|geri dön)|kaleye (?:git|gidiyorum|dön|geri dön)", text):
@@ -9378,6 +9397,62 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
         world_state, player_input
     ):
         conversation_focus = None
+    accepted_profile = None
+    profile = (
+        npc_target.get("personal_profile")
+        if isinstance(npc_target, dict)
+        and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        else None
+    )
+    asks_why = bool(
+        isinstance(player_input, str)
+        and re.search(r"\b(?:neden|niye|nicin)\b", living_world.normalize_text(player_input))
+    )
+    if isinstance(profile, dict) and (
+        asks_why
+        or (
+            conversation_focus
+            and conversation_focus["subject_id"].startswith("npc-profile:")
+        )
+    ):
+        evidence_fields = ["reason_for_being_here", "recent_activity"]
+        if (
+            conversation_focus
+            and conversation_focus["subject_id"].startswith("npc-profile:")
+        ):
+            evidence_fields.insert(0, conversation_focus["predicate"])
+        evidence = []
+        for field in dict.fromkeys(evidence_fields):
+            value = profile.get(field)
+            if isinstance(value, str) and value.strip():
+                evidence.append({
+                    "evidence_id": f"npc-profile:{npc_target['id']}:v1:{field}",
+                    "field": field,
+                    "value": value,
+                    "relation": (
+                        "conversation_topic"
+                        if conversation_focus
+                        and conversation_focus["predicate"] == field
+                        else "same_npc_profile"
+                    ),
+                })
+        if evidence:
+            accepted_profile = {
+                "speaker_id": npc_target["id"],
+                "subject_id": (
+                    conversation_focus["subject_id"]
+                    if conversation_focus
+                    and conversation_focus["subject_id"].startswith("npc-profile:")
+                    else f"npc-profile:{npc_target['id']}:reason_for_being_here"
+                ),
+                "topic": (
+                    conversation_focus["predicate"]
+                    if conversation_focus
+                    and conversation_focus["subject_id"].startswith("npc-profile:")
+                    else "reason_for_being_here"
+                ),
+                "evidence": evidence,
+            }
     content = {
         "location_id": location_id,
         "location_name": location_display_name(location_id),
@@ -9398,48 +9473,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
             else None
         ),
         "conversation_focus": conversation_focus,
-        "accepted_npc_profile": (
-            {
-                "speaker_id": npc_target.get("id"),
-                "subject_id": conversation_focus["subject_id"],
-                "topic": conversation_focus["predicate"],
-                "evidence": [
-                    {
-                        "evidence_id": conversation_focus["evidence_id"],
-                        "field": conversation_focus["predicate"],
-                        "value": conversation_focus["value"],
-                        "relation": "conversation_topic",
-                    },
-                    {
-                        "evidence_id": (
-                            f"npc-profile:{npc_target.get('id')}:v1:"
-                            "reason_for_being_here"
-                        ),
-                        "field": "reason_for_being_here",
-                        "value": npc_target.get("personal_profile", {}).get(
-                            "reason_for_being_here"
-                        ),
-                        "relation": "same_npc_profile",
-                    },
-                    {
-                        "evidence_id": (
-                            f"npc-profile:{npc_target.get('id')}:v1:recent_activity"
-                        ),
-                        "field": "recent_activity",
-                        "value": npc_target.get("personal_profile", {}).get(
-                            "recent_activity"
-                        ),
-                        "relation": "same_npc_profile",
-                    },
-                ],
-            }
-            if (
-                conversation_focus
-                and conversation_focus["subject_id"].startswith("npc-profile:")
-                and isinstance(npc_target, dict)
-            )
-            else None
-        ),
+        "accepted_npc_profile": accepted_profile,
         "visible_npcs": [
             {
                 "id": npc.get("id"),
@@ -13858,8 +13892,19 @@ def _run_player_turn_internal(
             flags["last_npc_id"] = npc_target["id"]
             flags["active_npc_id"] = npc_target["id"]
             flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+        explicit_dialogue_resolution = (
+            resolve_npc_reference(player_input, force_dialogue=True)
+            if interaction_mode == "say"
+            and (world_subject_question or scene_exploration_question)
+            else {"status": "none", "npc": None}
+        )
+        if explicit_dialogue_resolution["status"] == "found":
+            world_subject_question = False
+            scene_exploration_question = False
         npc_resolution = (
-            {"status": "none", "npc": None}
+            explicit_dialogue_resolution
+            if explicit_dialogue_resolution["status"] == "found"
+            else {"status": "none", "npc": None}
             if world_subject_question or scene_exploration_question
             else {"status": "found", "npc": npc_target}
             if npc_target is not None
@@ -14229,6 +14274,19 @@ def _run_player_turn_internal(
                     safety_handling="python_scene_response",
                 )
 
+    focus_state = interaction_adventure.get(world_state)
+    stored_focus = (
+        focus_state.get("conversation_focus")
+        if isinstance(focus_state, dict)
+        else None
+    )
+    if isinstance(stored_focus, dict) and (
+        not isinstance(npc_target, dict)
+        or npc_target.get("id") != stored_focus.get("speaker_id")
+        or not interaction_adventure.is_focus_followup(world_state, player_input)
+    ):
+        interaction_adventure.retire_conversation_focus(world_state)
+
     smalltalk_response = _direct_npc_smalltalk_response(
         player_input, npc_target
     )
@@ -14412,8 +14470,25 @@ def _run_player_turn_internal(
         }
         return finish_turn(action_result, supported_lore_response)
 
-    if world_subject_question or _player_question_has_unverified_lore_claim(
+    profile_why_dialogue = bool(
+        interaction_mode == "say"
+        and isinstance(npc_target, dict)
+        and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and isinstance(npc_target.get("personal_profile"), dict)
+        and re.search(
+            r"\b(?:neden|niye|nicin)\b",
+            living_world.normalize_text(player_input),
+        )
+        and is_npc_dialogue_input(player_input)
+    )
+    if (
+        (world_subject_question and not profile_why_dialogue)
+        or (
+            not profile_why_dialogue
+            and _player_question_has_unverified_lore_claim(
         player_input, lore_context, world_state
+            )
+        )
     ):
         action_result = {
             "action": "dialogue",

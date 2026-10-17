@@ -144,8 +144,40 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
         self.message_batches = []
 
     def chat(self, *args, **kwargs):
-        self.message_batches.append(copy.deepcopy(kwargs.get("messages", [])))
-        return super().chat(*args, **kwargs)
+        messages = copy.deepcopy(kwargs.get("messages", []))
+        self.message_batches.append(messages)
+        schema = kwargs.get("format", {})
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        if "intent" in properties:
+            return super().chat(*args, **kwargs)
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        scene = None
+        for item in messages:
+            content = item.get("content", "")
+            if marker in content:
+                raw = content.split(marker, 1)[1].split(
+                    "\n\nRECENT NARRATION", 1
+                )[0]
+                scene = json.loads(raw)
+                break
+        accepted = (scene or {}).get("accepted_npc_profile") or {}
+        cause = next(
+            (
+                item.get("value")
+                for item in accepted.get("evidence", [])
+                if item.get("field") == "reason_for_being_here"
+                and isinstance(item.get("value"), str)
+                and item.get("value").strip()
+            ),
+            None,
+        )
+        narration = (
+            f'Marek, “{cause}” diye açıklar.'
+            if cause
+            else "Bu konuda elimde doğrulanmış bir neden yok; kesin konuşamam."
+        )
+        packet = {"narration": narration, "world_updates": {}, "lore_claims": []}
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
 class ControlledSceneDetailOllamaClient(FakeOllamaClient):
@@ -703,6 +735,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 turn_url, client, {"message": message, "action_id": str(uuid.uuid4())}
             )
 
+        first_model = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
+        self.assertEqual(first_model.status_code, 200, first_model.text)
+        first_context = json.dumps(client.message_batches, ensure_ascii=False)
+        self.assertIn(profile["reason_for_being_here"], first_context)
+
         first = await say("Marek, şu an ne yapıyorsun?")
         self.assertEqual(first.status_code, 200, first.text)
         self.assertIn(profile["current_activity"], first.json()["narration"])
@@ -734,8 +771,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             ],
             stored_focus,
         )
-        followup = await say("Niye?")
+        followup = await say("Marek, neden?")
         self.assertEqual(followup.status_code, 200, followup.text)
+        self.assertIn(profile["reason_for_being_here"], followup.json()["narration"])
         messages = client.message_batches[-1]
         context_text = json.dumps(messages, ensure_ascii=False)
         marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
@@ -788,6 +826,39 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             },
         )
         self.assertNotIn(private_fact, context_text)
+        action_followup = await say("Neden bunu yapıyorsun?")
+        self.assertEqual(action_followup.status_code, 200, action_followup.text)
+        self.assertIn(profile["reason_for_being_here"], action_followup.json()["narration"])
+        self.assertEqual(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"][
+                "subject_id"
+            ],
+            f"npc-profile:{marek['id']}:current_activity",
+        )
+        rumor = "Kasaba söylentisine göre, kayıp yük kayıtlarını bir tüccar saklıyor."
+        current_marek = next(
+            npc for npc in resumed_session.world_state["npcs"]
+            if npc.get("id") == marek["id"]
+        )
+        current_marek["personal_profile"]["reason_for_being_here"] = rumor
+        attributed = await say("Marek, neden?")
+        self.assertEqual(attributed.status_code, 200, attributed.text)
+        self.assertIn("söylentisine göre", attributed.json()["narration"].casefold())
+        self.assertIn(rumor, attributed.json()["narration"])
+        current_marek["personal_profile"]["reason_for_being_here"] = ""
+        sera = next(
+            npc for npc in resumed_session.world_state["npcs"]
+            if npc.get("id") == "npc_sera_profile"
+        )
+        other_npc_only_cause = "SERA_ONLY_CAUSE_SENTINEL_03f7"
+        sera["personal_profile"]["reason_for_being_here"] = other_npc_only_cause
+        sera["knowledge"].append(other_npc_only_cause)
+        unknown = await say("Marek, neden?")
+        self.assertEqual(unknown.status_code, 200, unknown.text)
+        self.assertIn("doğrulanmış bir neden yok", unknown.json()["narration"])
+        unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
+        self.assertNotIn(other_npc_only_cause, unknown_context)
+        self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])
 
     async def test_changed_door_invalidates_focus_and_legacy_focus_defaults(self):
         city_id, session_id, session, turn_url, tavern_id, door = (
@@ -853,6 +924,60 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 legacy_world, marek
             )
         )
+        profile_world = copy.deepcopy(session.world_state)
+        profile_owner = {
+            **marek,
+            "id": "npc_malformed_focus_owner",
+            "location": city_id,
+            "personal_profile": {
+                "reason_for_being_here": "Kayıp defteri bulmak.",
+            },
+        }
+        profile_world["npcs"].append(profile_owner)
+        profile_world["flags"]["active_npc_id"] = profile_owner["id"]
+        profile_world["flags"]["active_npc_until_turn"] = (
+            profile_world["flags"]["turn_index"] + 6
+        )
+        game.interaction_adventure.remember_conversation_focus(
+            profile_world,
+            speaker_id=profile_owner["id"],
+            scene_id=city_id,
+            subject_id=f"npc-profile:{profile_owner['id']}:reason_for_being_here",
+            predicate="reason_for_being_here",
+            value="Kayıp defteri bulmak.",
+            turn=profile_world["flags"]["turn_index"],
+            action_id="profile-focus-test",
+            evidence_id=f"npc-profile:{profile_owner['id']}:v1:reason_for_being_here",
+            epistemic="witnessed",
+        )
+        self.assertIsNotNone(
+            game.interaction_adventure.current_conversation_focus(
+                profile_world, profile_owner
+            )
+        )
+        malformed_world = copy.deepcopy(profile_world)
+        malformed_world["interaction_adventure_v1"]["conversation_focus"][
+            "subject_id"
+        ] = "npc-profile:malformed"
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                malformed_world, profile_owner
+            )
+        )
+        for status, location in (("dead", city_id), ("active", "somewhere-else")):
+            stale_world = copy.deepcopy(profile_world)
+            stale_owner = next(
+                npc for npc in stale_world["npcs"]
+                if npc["id"] == profile_owner["id"]
+            )
+            stale_owner["status"] = status
+            stale_owner["location"] = location
+            self.assertIsNone(
+                game.interaction_adventure.current_conversation_focus(
+                    stale_world, stale_owner
+                ),
+                f"Stale profile focus must be ignored for {status=} {location=}.",
+            )
         campaign_id = self.manager.get(session_id).campaign_id
         session.world_state["interaction_adventure_v1"].pop(
             "conversation_focus", None
@@ -883,6 +1008,127 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             game.interaction_adventure.current_conversation_focus(
                 resumed_session.world_state, marek
             )
+        )
+
+    async def test_focus_does_not_resurrect_after_topic_or_speaker_change(self):
+        city_id, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+        marek = {
+            "id": "npc_marek_focus_lifecycle",
+            "name": "Marek",
+            "role": "keeper",
+            "location": city_id,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        sera = {
+            **marek,
+            "id": "npc_sera_focus_lifecycle",
+            "name": "Sera",
+            "role": "guard",
+        }
+        session.world_state.setdefault("npcs", []).extend([marek, sera])
+        client = CapturingConversationContextClient()
+
+        async def say(message):
+            return await self.post_scene_turn(
+                turn_url, client, {"message": message, "action_id": str(uuid.uuid4())}
+            )
+
+        async def focus_for(message):
+            response = await say(message)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertTrue(client.message_batches, "Expected the real narrative request.")
+            marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+            content = next(
+                item["content"]
+                for item in client.message_batches[-1]
+                if marker in item.get("content", "")
+            )
+            return json.loads(
+                content.split(marker, 1)[1].split("\n\nRECENT NARRATION", 1)[0]
+            )["conversation_focus"]
+
+        first = await say("Buralarda han var mı Marek?")
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"][
+                "subject_id"
+            ],
+            door["id"],
+        )
+        await say("Marek, bugün hava nasıl?")
+        reactivated_after_topic = await focus_for("Niye?")
+        self.assertIsNone(
+            reactivated_after_topic,
+            "A completed off-topic turn must retire the previous door focus.",
+        )
+        await say("Sera, bugün hava nasıl?")
+        reactivated_after_speaker = await focus_for("Marek, neden?")
+        self.assertIsNone(
+            reactivated_after_speaker,
+            "Switching away from and back to Marek must not revive retired focus.",
+        )
+
+    async def test_named_non_tavern_building_does_not_inherit_tavern_focus_over_http(self):
+        city_id, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+        marek = {
+            "id": "npc_marek_named_building",
+            "name": "Marek",
+            "role": "keeper",
+            "location": city_id,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        session.world_state["locations"]["fr:building:neverwinter_prison"] = {
+            "id": "fr:building:neverwinter_prison",
+            "name": "Hapishane",
+            "type": "building",
+            "scene_kind": "building",
+            "parent_location_id": city_id,
+        }
+        client = CapturingConversationContextClient()
+        first = await self.post_scene_turn(turn_url, client, {
+            "message": "Buralarda han var mı Marek?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"][
+                "subject_id"
+            ],
+            door["id"],
+        )
+        response = await self.post_scene_turn(turn_url, client, {
+            "message": "Hapishane kapısı neden kilitli?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(client.message_batches, "Expected the real narrative request.")
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        content = next(
+            item["content"]
+            for item in client.message_batches[-1]
+            if marker in item.get("content", "")
+        )
+        scene = json.loads(
+            content.split(marker, 1)[1].split("\n\nRECENT NARRATION", 1)[0]
+        )
+        self.assertIsNone(scene["conversation_focus"])
+        self.assertNotEqual(
+            (scene["conversation_focus"] or {}).get("subject_id"), door["id"]
         )
 
     async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):

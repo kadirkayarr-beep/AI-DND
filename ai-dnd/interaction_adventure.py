@@ -236,6 +236,12 @@ def remember_conversation_focus(world, *, speaker_id, scene_id, subject_id,
     return True
 
 
+def retire_conversation_focus(world):
+    state = world.get(KEY) if isinstance(world, dict) else None
+    if isinstance(state, dict):
+        state["conversation_focus"] = None
+
+
 def current_conversation_focus(world, npc=None):
     raw = get(world).get("conversation_focus")
     if not isinstance(raw, dict):
@@ -256,6 +262,20 @@ def current_conversation_focus(world, npc=None):
         or (npc is not None and npc.get("id") != focus.speaker_id)
     ):
         return None
+    speaker = next(
+        (
+            item for item in world.get("npcs", [])
+            if isinstance(item, dict) and item.get("id") == focus.speaker_id
+        ),
+        None,
+    )
+    if (
+        not isinstance(speaker, dict)
+        or speaker.get("status") in {"dead", "deceased", "killed"}
+        or speaker.get("is_alive") is False
+        or speaker.get("location") != focus.scene_id
+    ):
+        return None
     if focus.subject_id.startswith("venue-door:") and focus.predicate == "locked":
         door = next(
             (
@@ -267,7 +287,10 @@ def current_conversation_focus(world, npc=None):
         if not isinstance(door, dict) or door.get("locked") is not focus.value:
             return None
     elif focus.subject_id.startswith("npc-profile:"):
-        _, npc_id, field = focus.subject_id.split(":", 2)
+        parts = focus.subject_id.split(":", 2)
+        if len(parts) != 3:
+            return None
+        _, npc_id, field = parts
         owner = next(
             (
                 item for item in world.get("npcs", [])
@@ -279,6 +302,7 @@ def current_conversation_focus(world, npc=None):
         if (
             not isinstance(profile, dict)
             or not field
+            or focus.evidence_id != f"npc-profile:{npc_id}:v1:{field}"
             or profile.get(field) != focus.value
             or focus.speaker_id != npc_id
         ):
@@ -301,9 +325,29 @@ def is_focus_followup(world, text):
     if not has_reason_question:
         return False
     if focus["subject_id"].startswith("npc-profile:"):
-        return len(terms) <= 4 and all(
-            term in {"neden", "niye", "nicin", "peki", "ya", "acaba"}
-            for term in terms
+        speaker = next(
+            (
+                item for item in world.get("npcs", [])
+                if isinstance(item, dict)
+                and item.get("id") == focus["speaker_id"]
+            ),
+            None,
+        )
+        speaker_terms = (
+            re.findall(r"[a-z0-9]+", normalize(speaker.get("name", "")))
+            if isinstance(speaker, dict)
+            else []
+        )
+        remaining = list(terms)
+        for term in speaker_terms:
+            if term in remaining:
+                remaining.remove(term)
+        return len(remaining) <= 5 and all(
+            term in {
+                "neden", "niye", "nicin", "peki", "ya", "acaba",
+                "bunu", "bunun", "yapiyorsun", "yaptin", "yapti",
+            }
+            for term in remaining
         )
     focus_subject_location = (
         focus["subject_id"].partition(":")[2]
@@ -315,9 +359,11 @@ def is_focus_followup(world, text):
             if (
                 location_id != focus_subject_location
                 and isinstance(location, dict)
-                and location.get("scene_kind") == "tavern"
                 and isinstance(location.get("name"), str)
-                and normalize(location["name"]) in normalized
+                and re.search(
+                    rf"(?<!\w){re.escape(normalize(location['name']))}(?!\w)",
+                    normalized,
+                )
             ):
                 return False
     if any(term in terms for term in predicate_terms):
@@ -532,6 +578,29 @@ def context(world, npc):
         addressee = copy.deepcopy(addressee)
         addressee["name"] = living_world.public_npc_name(npc)
         addressee["role"] = living_world.public_npc_role(npc)
+    accepted_profile = None
+    profile = (
+        npc.get("personal_profile")
+        if isinstance(npc, dict)
+        and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        else None
+    )
+    if isinstance(profile, dict):
+        evidence = [
+            {
+                "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
+                "field": field,
+                "value": profile[field],
+                "relation": "same_npc_profile",
+            }
+            for field in ("reason_for_being_here", "recent_activity")
+            if isinstance(profile.get(field), str) and profile[field].strip()
+        ]
+        if evidence:
+            accepted_profile = {
+                "speaker_id": npc["id"],
+                "evidence": evidence,
+            }
     return {
         "location_id": world.get("location"),
         "actors": [
@@ -543,6 +612,7 @@ def context(world, npc):
             for n in present_npcs(world)
         ],
         "addressee": addressee,
+        "accepted_npc_profile": accepted_profile,
         "conversation_focus": current_conversation_focus(world, npc),
         "threads": threads,
         "commitments": [
