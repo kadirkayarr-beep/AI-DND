@@ -6206,13 +6206,23 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
 
 
 def _has_travel_language(player_input):
-    text = _normalize_turkish_typos(player_input)
-    if re.search(r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|donmuyorum|donme)\b", text):
+    text = _normalize_turkish_typos(
+        living_world._text_outside_quotes(str(player_input))
+    )
+    if re.search(
+        r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|donmuyorum|donme|"
+        r"girmiyorum|girmiyoruz|girmem|girme|girmek istemiyorum|"
+        r"girmeyi istemiyorum|girmeyeceg\w*|girmeyi dusunmuyor\w*)\b",
+        text,
+    ):
         return False
     if re.search(r"\b(?:ne|neler|kim|kimler)\b.{0,32}\bvar\b", text):
         return False
     return bool(re.search(
-        r"\b(?:git\w*|gid\w*|don\w*|ulas\w*|var(?:iyorum|iyorsun|iyor|iyoruz|iyorlar|dim|din|dik|diniz|dilar|acak\w*|mak|maya)|gir\w*|gec\w*|ilerl\w*|yuru\w*)\b",
+        r"\b(?:git\w*|gid\w*|don\w*|ulas\w*|"
+        r"var(?:iyorum|iyorsun|iyor|iyoruz|iyorlar|dim|din|dik|diniz|dilar|acak\w*|mak|maya)|"
+        r"gir(?:iyor\w*|di\w*|ecek\w*|eceg\w*|mek|meye|erek|ip|ince|in|elim|sin|sinler)?|"
+        r"gec\w*|ilerl\w*|yuru\w*)\b",
         text,
     ))
 
@@ -6267,6 +6277,9 @@ def normalize_intent(raw_intent, player_input):
 
     # Normalize only for matching; preserve the player's original wording.
     normalized_input = _normalize_turkish_typos(player_input)
+    unquoted_input = _normalize_turkish_typos(
+        living_world._text_outside_quotes(str(player_input))
+    )
     query_type = raw_intent.get("query_type")
     if query_type not in {"self", "location", "presence", "npc_identity"}:
         query_type = None
@@ -6282,19 +6295,23 @@ def normalize_intent(raw_intent, player_input):
     elif intent_type in ("observe", "explore"):
         intent_type, explore_type, query_type = "explore", explore_type or "observe", None
 
-    known_location = _location_reference_in_text(normalized_input)
-    travel_language = _has_travel_language(normalized_input)
+    known_location = _location_reference_in_text(unquoted_input)
+    travel_language = _has_travel_language(player_input)
     travel_location = (
-        _travel_destination_reference_in_text(normalized_input)
+        _travel_destination_reference_in_text(unquoted_input)
         if travel_language else None
     )
     pending = world_state.get("flags", {}).get("pending_destination")
     pending_followup = bool(pending and travel_language and re.search(
-        r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", normalized_input
+        r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", unquoted_input
     ))
     reference_mentioned = bool(reference and _entity_reference_in_text(reference, player_input))
     if intent_type in {"query", "explore"}:
         pass
+    elif intent_type == "travel" and not travel_language:
+        intent_type = "unknown"
+        target_type = "none"
+        reference = ""
     elif travel_language and (travel_location or known_location):
         intent_type = "travel"
         target_type = "location"

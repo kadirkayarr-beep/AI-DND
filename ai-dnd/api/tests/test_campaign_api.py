@@ -188,6 +188,58 @@ class ControlledSceneDetailOllamaClient(FakeOllamaClient):
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
+class RecordedStoneworkOllamaClient(FakeOllamaClient):
+    """Replays the captured Qwen investigation response for the stonework case."""
+
+    def __init__(self):
+        self.calls = 0
+        self.intent_schema_has_scene_proposals = False
+        self.intent_response = None
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        properties = kwargs.get("format", {}).get("properties", {})
+        if "intent" in properties:
+            self.intent_schema_has_scene_proposals = (
+                "scene_detail_proposals" in properties
+            )
+            packet = {
+                "intent": "investigation",
+                "action": "investigate",
+                "target": {
+                    "type": "location",
+                    "reference": "Han binasının girişindeki taş işçiliği",
+                },
+                "completion": "intended",
+                "confidence": 1.0,
+                "interaction": {"operation": "none"},
+                "scene_detail_proposals": [{
+                    "proposal_key": "stone_carving_details",
+                    "location": "location_001",
+                    "parent_id": "location_001",
+                    "name": "Gizli taş işçiliği detayı",
+                    "description": (
+                        "Gizli bir taş işçiliği detayı, muhtemelen bir gizli "
+                        "geçit veya bir tarihî bilgiye işaret edebilir."
+                    ),
+                    "kind": "local",
+                    "aliases": [
+                        "gizli taş işçiliği detayı",
+                        "gizli geçit",
+                        "tarihî bilgi",
+                    ],
+                }],
+            }
+            self.intent_response = copy.deepcopy(packet)
+        else:
+            packet = {
+                "narration": "Taş işçiliğini dikkatle inceliyorsun.",
+                "world_updates": {},
+                "lore_claims": [],
+            }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -11791,6 +11843,114 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             response, session, model, city_id, venue_id, outcomes,
             elapsed_before, rng_before,
         )
+
+    async def test_recorded_stonework_investigation_does_not_route_as_travel_over_http(self):
+        city_id, session_id, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = RecordedStoneworkOllamaClient()
+        outcomes = []
+        original_turn = session.run_player_turn
+
+        @wraps(original_turn)
+        def capture_turn(*args, **kwargs):
+            result = original_turn(*args, **kwargs)
+            outcomes.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(
+                turn_url,
+                model,
+                {
+                    "message": "Han binasının girişindeki taş işçiliğini inceliyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.intent_schema_has_scene_proposals)
+        self.assertEqual(model.intent_response["intent"], "investigation")
+        self.assertEqual(len(outcomes), 1)
+        action_result = outcomes[0]
+        self.assertNotEqual(
+            action_result.get("action"),
+            "travel",
+            f"Investigating the entrance must not route as travel: {action_result!r}",
+        )
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertIsNone(session.world_state["flags"].get("pending_destination"))
+        self.assertTrue(action_result.get("scene_detail_proposal_submitted"))
+        self.assertEqual(
+            action_result.get("verified_world_updates", {}).get("create_features"),
+            [],
+        )
+        self.assertFalse(any(
+            item.get("name") == "Gizli taş işçiliği detayı"
+            for item in session.world_state["features"]
+        ))
+        record = self.manager.get(session_id)
+        persisted = self.store.get_campaign(record.campaign_id)
+        self.assertEqual(
+            persisted.payload["engine_save"]["world_state"]["location"],
+            city_id,
+        )
+        self.assertFalse(any(
+            item.get("name") == "Gizli taş işçiliği detayı"
+            for item in persisted.payload["engine_save"]["world_state"]["features"]
+        ))
+
+    async def test_ordinary_stonework_proposal_for_city_and_inn_is_accepted_and_persisted(self):
+        city_id, session_id, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        name = "Düzenli keski izleri"
+        model = ControlledSceneDetailOllamaClient(
+            city_id,
+            venue_id,
+            proposals=[{
+                "proposal_key": "ordinary_stonework",
+                "location": city_id,
+                "parent_id": venue_id,
+                "name": name,
+                "description": "Giriş taşında düzenli keski izleri görünüyor.",
+                "kind": "detail",
+                "aliases": ["keski izleri"],
+            }],
+        )
+        outcomes = []
+        original_turn = session.run_player_turn
+
+        @wraps(original_turn)
+        def capture_turn(*args, **kwargs):
+            result = original_turn(*args, **kwargs)
+            outcomes.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(
+                turn_url,
+                model,
+                {
+                    "message": "Han binasının girişindeki taş işçiliğini inceliyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.last_intent_schema_has_proposals)
+        self.assertEqual(session.world_state["location"], city_id)
+        feature = next(
+            item for item in session.world_state["features"]
+            if item.get("name") == name
+        )
+        self.assertEqual(feature.get("parent_id"), venue_id)
+        self.assertTrue(outcomes[0].get("scene_detail_proposal_submitted"))
+        record = self.manager.get(session_id)
+        persisted = self.store.get_campaign(record.campaign_id)
+        saved_features = persisted.payload["engine_save"]["world_state"]["features"]
+        self.assertTrue(any(
+            item.get("name") == name and item.get("parent_id") == venue_id
+            for item in saved_features
+        ))
 
     async def test_review_denied_and_other_actor_intents_do_not_accept_details(self):
         for index, message in enumerate((
