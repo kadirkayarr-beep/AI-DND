@@ -843,7 +843,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 36)
+        self.assertEqual(len(documented_routes), 40)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -859,6 +859,8 @@ class ContractParityTests(unittest.TestCase):
             ("DELETE", "/api/game/campaigns/{campaign_id}", "/api/campaigns/{campaign_id}"),
             ("POST", "/api/game/campaigns/{campaign_id}/resume", "/api/campaigns/{campaign_id}/resume"),
             ("POST", "/api/game/campaigns/{campaign_id}/save", "/api/campaigns/{campaign_id}/save"),
+            ("POST", "/api/game/character-identity-suggestions", "/api/character-identity-suggestions"),
+            ("GET", "/api/game/character-identity-suggestions/{request_id}", "/api/character-identity-suggestions/{request_id}"),
         )
         for method, canonical, alias in alias_pairs:
             with self.subTest(method=method, canonical=canonical):

@@ -129,23 +129,7 @@ export default function ClerkAccess({ children }: { children: ReactNode }) {
         </Show>
         <Show when="signed-in">
           <ClerkApiSession>{children}</ClerkApiSession>
-          <div
-            aria-label="Oyuncu hesabı"
-            style={{
-              position: "fixed",
-              bottom: 18,
-              right: 18,
-              zIndex: 60,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              border: "1px solid #695039",
-              background: "#19130fee",
-              padding: "8px 12px",
-              color: "#d9bd8b",
-              fontSize: 12,
-            }}
-          >
+          <div aria-label="Oyuncu hesabı" className="player-account">
             <span>Hesabım</span>
             <UserButton />
           </div>
