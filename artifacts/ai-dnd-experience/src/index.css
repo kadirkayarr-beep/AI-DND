@@ -257,6 +257,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .state-column { min-width: 0; }
 .state-panel { margin-bottom: 15px; border: 1px solid rgba(77, 58, 38, .86); background: rgba(23, 18, 14, .84); padding: 18px; }
 .state-panel h2 { margin: 5px 0 0; color: #e6d7bb; font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: .08em; }
+.identity-notes { max-height: 9rem; margin-top: 16px; overflow: auto; border-top: 1px solid #4b3926; padding-top: 12px; }
+.identity-note { margin-top: 10px; }
+.identity-note-label { color: #aa9a7f; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.identity-note-text { margin: 4px 0 0; color: #e6d7bb; font-family: var(--app-font-serif); font-size: 1rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.identity-note[data-state="missing"] .identity-note-text { color: #8d7d66; }
 .character-top { display: flex; justify-content: space-between; gap: 15px; }
 .character-badge { border: 1px solid rgba(135, 109, 68, .55); padding: 5px 8px; color: #c6a36b; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .1em; white-space: nowrap; }
 .character-sub { margin-top: 5px; color: #aa9a7f; font-family: var(--app-font-serif); font-size: 17px; }
@@ -543,6 +548,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .play-shell .drawer-sheet { width: 100%; max-height: 86dvh; }
   .play-shell .command-context { max-height: 6.5rem; }
   .play-shell .transcript-scroll { max-height: 18dvh; }
+}
+.player-account {
+  position: fixed;
+  z-index: 60;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #695039;
+  background: #19130fee;
+  padding: 8px 12px;
+  color: #d9bd8b;
+  font-size: 12px;
+}
+@media (max-width: 390px) {
+  :root { --player-account-lane: 72px; }
+  .player-account { right: 8px; bottom: 8px; }
+  .play-shell {
+    height: calc(100dvh - var(--player-account-lane) - var(--keyboard-inset, 0px));
+    max-height: calc(100dvh - var(--player-account-lane) - var(--keyboard-inset, 0px));
+  }
+  .play-shell .drawer-backdrop { padding-bottom: var(--player-account-lane); box-sizing: border-box; }
+  .play-shell .drawer-sheet { max-height: calc(86dvh - var(--player-account-lane)); }
+  .opening .dnd-shell,
+  .reveal-wrap { padding-bottom: var(--player-account-lane); }
 }
 @media (max-width: 560px) {
   .play-shell .command-form { display: block; }
