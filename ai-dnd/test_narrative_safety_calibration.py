@@ -377,6 +377,69 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             failed_door["reason_code"], "DOOR_RESULT_CONTRADICTION"
         )
 
+    def test_registered_turkish_compound_possessive_is_not_an_unknown_person(self):
+        city_id = "fr:city:neverwinter"
+        venue_id = "location_001"
+        exact_narration = (
+            "Kael Hanı'nın kapısındaki taş işi, sadece bir gözlemle fark edilebilir. "
+            "Taşların üzerindeki kılıç ve kılıç kılıcı simgeleri, geçmişte bu bölgeye "
+            "ait olan bir kılıç kılıcı topluluğuyla ilişkilendirilmiştir. Ancak, bu "
+            "işaretlerin tam anlamıyla ne anlama geldikleri veya hangi tarihe ait "
+            "olduğu hakkında herhangi bir bilgi bulunmamaktadır. Sanki zamanla "
+            "unutulmuş ya da gizlenmeye çalışılmış gibi görünmektedir."
+        )
+        self.session.world_state["location"] = city_id
+        self.session.world_state["locations"] = {
+            city_id: {"id": city_id, "name": "Neverwinter", "aliases": ["Neverwinter"]},
+            venue_id: {
+                "id": venue_id,
+                "name": "Kael Hanı",
+                "aliases": ["Kael Hanı"],
+                "kind": "tavern",
+            },
+        }
+        self.session.world_state["features"] = [{
+            "id": "feature_001",
+            "name": "Görsel bir taş işi",
+            "kind": "detail",
+            "parent_id": venue_id,
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "description": (
+                "Görsel bir taş işi, kemerin üstünde, bir kılıç ve bir kılıç kılıcı "
+                "simgesiyle örtülü. Bu simgeler, bir zamanlar kentteki bir kılıç "
+                "kılıcı topluluğuyla ilişkilidir."
+            ),
+        }]
+        with patch("game._session", return_value=self.session):
+            registered_name_rejected = game._has_unregistered_person_name(
+                exact_narration
+            )
+            safety_decision = self.decide(exact_narration)
+        self.assertFalse(
+            registered_name_rejected,
+            f"Production narration-safety decision: {safety_decision!r}",
+        )
+        self.assertNotEqual(
+            safety_decision.get("reason_code"),
+            "UNREGISTERED_NAMED_ENTITY",
+            safety_decision,
+        )
+
+        unregistered_person = "Elias'ın kapısındaki taş işi."
+        self.assertTrue(game._has_unregistered_person_name(unregistered_person))
+        self.assertEqual(
+            self.decide(unregistered_person)["reason_code"],
+            "UNREGISTERED_NAMED_ENTITY",
+        )
+
+        unregistered_compound = "Elias Kael Hanı'nın kapısındaki taş işi."
+        self.assertTrue(game._has_unregistered_person_name(unregistered_compound))
+        self.assertEqual(
+            self.decide(unregistered_compound)["reason_code"],
+            "UNREGISTERED_NAMED_ENTITY",
+        )
+
     def test_combat_target_and_damage_must_match_python_rendering(self):
         result = {
             "action": "attack",
