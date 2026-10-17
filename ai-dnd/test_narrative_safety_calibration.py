@@ -59,6 +59,32 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         with patch.object(game, "_session", return_value=self.session):
             return game.finalize_narration(*args, **kwargs)
 
+    def register_neverwinter_kael_fixture(self):
+        city_id = "fr:city:neverwinter"
+        venue_id = "location_001"
+        self.session.world_state["location"] = city_id
+        self.session.world_state["locations"] = {
+            city_id: {
+                "id": city_id,
+                "name": "Neverwinter",
+                "aliases": ["Neverwinter"],
+            },
+            venue_id: {
+                "id": venue_id,
+                "name": "Kael Hanı",
+                "aliases": ["Kael Hanı"],
+                "parent_location_id": city_id,
+            },
+        }
+        self.session.world_state["features"] = [{
+            "id": "feature_001",
+            "name": "Taş işçiliği",
+            "location": city_id,
+            "parent_id": venue_id,
+            "kind": "detail",
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }]
+
     def test_temporary_texture_corpus_is_not_rejected_as_unregistered_canon(self):
         cases = (
             ("Gromm, kahve fincanını elinde sallarken başını kaldırır.", self.gromm),
@@ -346,6 +372,94 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         resurrection = self.decide("Gromm ayağa kalkıp yeniden konuşur.")
         self.assertEqual(
             resurrection["reason_code"], "DEFEATED_ENTITY_RESURRECTION"
+        )
+
+    def test_registered_venue_entrance_description_is_not_player_arrival(self):
+        narration = (
+            "Kael Hanı'nın girişindeki taş işçiliği, dikkatini çeker. "
+            "Taşların üzerinde bir kılıç ve kılıç kılıcı simgesi örtülü. "
+            "Bu işaretler, geçmişte kentte faaliyet gösteren bir kılıç "
+            "kılıcı topluluğuyla ilişkilidir. Kılıç kılıcının eski güçleri "
+            "hâlâ kentin derinliklerinde uyuyor mu? Ya da sadece bir "
+            "tarihsel anıs mı?"
+        )
+        self.register_neverwinter_kael_fixture()
+        decision = self.decide(
+            narration,
+            action_result={"action": "investigation", "status": "resolved"},
+        )
+        self.assertFalse(decision["unsafe"], decision)
+
+    def test_completed_arrival_guard_binds_actor_quote_and_location(self):
+        self.register_neverwinter_kael_fixture()
+        completed_travel = {
+            "action": "travel",
+            "status": "resolved",
+            "completion": "completed",
+            "success": True,
+            "target_id": "location_001",
+        }
+        city_arrival_with_distant_venue = self.decide(
+            "Neverwinter'a vardın; Kael Hanı uzakta görünüyor.",
+            action_result=completed_travel,
+        )
+        with self.subTest(case="destination-belongs-to-arrival-clause"):
+            self.assertFalse(city_arrival_with_distant_venue["unsafe"],
+                             city_arrival_with_distant_venue)
+
+        venue_arrival_then_city_description = self.decide(
+            "Kael Hanı'na vardın. Neverwinter'ın sokakları sessiz.",
+            action_result=completed_travel,
+        )
+        with self.subTest(case="word-internal-apostrophes-preserve-arrival"):
+            self.assertTrue(venue_arrival_then_city_description["unsafe"],
+                            venue_arrival_then_city_description)
+
+        self.session.world_state["location"] = "location_001"
+        arrived_at_registered_target = self.decide(
+            "Kael Hanı'na vardın.",
+            action_result=completed_travel,
+        )
+        self.assertFalse(arrived_at_registered_target["unsafe"],
+                         arrived_at_registered_target)
+
+        self.session.world_state["location"] = "fr:city:neverwinter"
+        invented_destination = self.decide(
+            "Greyhaven'a vardın.",
+            action_result=completed_travel,
+        )
+        self.assertTrue(invented_destination["unsafe"], invented_destination)
+
+        self.gromm.update(name="Marek", location="fr:city:neverwinter")
+        npc_arrival = self.decide(
+            "Marek, Kael Hanı'na vardı.",
+            action_result=completed_travel,
+        )
+        self.assertNotEqual(
+            npc_arrival["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            npc_arrival,
+        )
+
+        quoted_arrival = self.decide(
+            "Marek, “Kael Hanı'na vardın.” diye konuşur.",
+            action_result=completed_travel,
+            npc_target=self.gromm,
+        )
+        self.assertNotEqual(
+            quoted_arrival["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            quoted_arrival,
+        )
+
+        conditional_arrival = self.decide(
+            "Eğer Kael Hanı'na varırsan, ne görürsün?",
+            action_result=completed_travel,
+        )
+        self.assertNotEqual(
+            conditional_arrival["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            conditional_arrival,
         )
 
     def test_named_npc_skill_and_door_contradictions_remain_strict(self):

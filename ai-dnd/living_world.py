@@ -387,11 +387,41 @@ def affirmative_scene_action(value: Any, interaction_mode: str | None = None) ->
 
 def _text_outside_quotes(value: str) -> str:
     """Drop complete quoted spans. A lone apostrophe is not a quote."""
-    return re.sub(
-        r"(?:\"[^\"]*\"|“[^”]*”|‘[^’]*’|'(?:[^']*)')",
-        " ",
-        value,
-    )
+    pairs = {'"': '"', "“": "”", "‘": "’", "'": "'"}
+    output = []
+    index = 0
+    while index < len(value):
+        opening = value[index]
+        closing = pairs.get(opening)
+        if closing is None or (
+            opening in {"'", "‘"}
+            and index > 0
+            and (value[index - 1].isalnum() or value[index - 1] == "_")
+        ):
+            output.append(opening)
+            index += 1
+            continue
+
+        end = index + 1
+        while end < len(value):
+            if value[end] == closing:
+                next_char = value[end + 1] if end + 1 < len(value) else ""
+                if (
+                    closing in {"'", "’"}
+                    and next_char
+                    and (next_char.isalnum() or next_char == "_")
+                ):
+                    end += 1
+                    continue
+                break
+            end += 1
+        if end == len(value):
+            output.append(opening)
+            index += 1
+        else:
+            output.append(" ")
+            index = end + 1
+    return "".join(output)
 
 
 def affirmative_structure_inspection(value: Any, interaction_mode: str | None = None) -> bool:
