@@ -32,6 +32,47 @@ class PipelinePortTests(unittest.TestCase):
                 self.assertEqual(self.session.validate_intent(normalized, phrase)["intent"], "query")
                 self.assertFalse(self.session._has_travel_language(phrase))
 
+    def test_travel_override_requires_unquoted_positive_movement_verbs(self):
+        cases = (
+            (
+                "Han binasının girişindeki taş işçiliğini inceliyorum.",
+                {"intent": "investigation", "target": {"type": "location", "reference": "Han"}},
+                "investigation",
+                False,
+            ),
+            (
+                "İçeri girmiyorum.",
+                {"intent": "travel", "target": {"type": "location", "reference": "Han"}},
+                "unknown",
+                False,
+            ),
+            (
+                "“İçeri giriyorum.” diye alıntı yapıyorum.",
+                {"intent": "travel", "target": {"type": "location", "reference": "Han"}},
+                "unknown",
+                False,
+            ),
+            (
+                "İçeri giriyorum.",
+                {"intent": "travel", "target": {"type": "location", "reference": "Han"}},
+                "travel",
+                True,
+            ),
+            (
+                "Neverwinter'a gidiyorum.",
+                {"intent": "travel", "target": {"type": "location", "reference": "Neverwinter"}},
+                "travel",
+                True,
+            ),
+        )
+        for phrase, raw_intent, expected, has_travel in cases:
+            with self.subTest(phrase=phrase):
+                normalized = self.session.normalize_intent(raw_intent, phrase)
+                self.assertEqual(normalized["intent"], expected)
+                self.assertEqual(self.session._has_travel_language(phrase), has_travel)
+                if raw_intent["intent"] == "travel" and not has_travel:
+                    self.assertEqual(normalized["target"], {"type": "none", "reference": ""})
+
     def test_known_name_matches_suffix_but_not_similar_names(self):
         self.assertTrue(self.session._entity_reference_in_text("Gromm", "Gromm'la konuşuyorum"))
         self.assertFalse(self.session._entity_reference_in_text("Gromm", "Grommish'le konuşuyorum"))
