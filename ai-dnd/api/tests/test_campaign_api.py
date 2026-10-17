@@ -1943,6 +1943,278 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 narration,
             )
 
+    async def test_negative_and_conditional_entry_cannot_reuse_target_over_http(self):
+        for message in ("İçeri girmiyorum.", "Eğer kapı açıksa içeri giriyorum."):
+            with self.subTest(message=message), patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ):
+                city_id, _, session, turn_url, venue_id, door = (
+                    await create_city_with_locked_tavern(self)
+                )
+                venue = session.world_state["locations"][venue_id]
+                venue.update({"name": "Kuzey Atölyesi", "scene_kind": "workshop"})
+                door.update({
+                    "name": "Kuzey Atölyesi Kapısı",
+                    "open": False,
+                    "locked": True,
+                    "broken": False,
+                })
+                with (
+                    patch("game.roll_d20", return_value=8),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(intent="narrative"),
+                    ),
+                ):
+                    failed = await self.http.post(
+                        turn_url,
+                        json={
+                            "message": "Kuzey Atölyesi Kapısını omzumla zorlayarak kırmayı deniyorum.",
+                            "action_id": str(uuid.uuid4()),
+                        },
+                    )
+                    self.assertEqual(failed.status_code, 200, failed.text)
+                    self.assertEqual(
+                        session.world_state["scene_state"]["entry_target_reference"][
+                            "location_id"
+                        ],
+                        venue_id,
+                    )
+                    door.update({"open": True, "locked": False})
+                    response = await self.http.post(
+                        turn_url,
+                        json={"message": message, "action_id": str(uuid.uuid4())},
+                    )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(
+                    session.world_state["location"],
+                    city_id,
+                    f"{message!r} must not authorize movement.",
+                )
+
+    async def test_door_provenance_comes_from_exact_resolved_door_owner(self):
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            city_id, _, session, turn_url, first_id, first_door = (
+                await create_city_with_locked_tavern(self)
+            )
+            first = session.world_state["locations"][first_id]
+            first.update({"name": "Kael Hanı", "scene_kind": "workshop"})
+            first_door.update({"name": "Kael Hanı Kapısı", "open": False, "locked": True})
+            second_id = "test:local:two-door-workshop"
+            second = copy.deepcopy(first)
+            second.update({
+                "id": second_id,
+                "name": "Demirci Atölyesi",
+                "parent_location_id": city_id,
+                "scene_kind": "workshop",
+            })
+            second_door = copy.deepcopy(first_door)
+            second_door.update({
+                "id": f"venue-door:{second_id}",
+                "name": "Demirci Atölyesi Kapısı",
+                "location": city_id,
+            })
+            session.world_state["locations"][second_id] = second
+            session.world_state["doors"].append(second_door)
+            with (
+                patch("game.roll_d20", return_value=8),
+                patch.object(
+                    self.app.state.ollama_adapter,
+                    "_client",
+                    ControlledVenueOllamaClient(intent="narrative"),
+                ),
+            ):
+                response = await self.http.post(
+                    turn_url,
+                    json={
+                        "message": "Demirci Atölyesi Kapısını omzumla zorlayarak kırmayı deniyorum.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+            self.assertEqual(response.status_code, 200, response.text)
+            reference = session.world_state["scene_state"]["entry_target_reference"]
+            self.assertEqual(reference["location_id"], second_id)
+            self.assertEqual(reference["door_id"], f"venue-door:{second_id}")
+
+    async def test_non_door_athletics_near_named_venue_does_not_record_door(self):
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            _, _, session, turn_url, venue_id, _ = (
+                await create_city_with_locked_tavern(self)
+            )
+            session.world_state["locations"][venue_id]["name"] = "Workshop"
+            with (
+                patch("game.roll_d20", return_value=8),
+                patch.object(
+                    self.app.state.ollama_adapter,
+                    "_client",
+                    ControlledVenueOllamaClient(intent="narrative"),
+                ),
+            ):
+                response = await self.http.post(
+                    turn_url,
+                    json={
+                        "message": "Workshop yanında duvara tırmanıyorum.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIsNone(
+                session.world_state["scene_state"]["entry_target_reference"]
+            )
+
+    async def test_targetless_open_workshop_entry_works_over_resumed_http_session(self):
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            city_id, session_id, session, turn_url, venue_id, door = (
+                await create_city_with_locked_tavern(self)
+            )
+            session.world_state["locations"][venue_id].update({
+                "name": "Kuzey Atölyesi",
+                "scene_kind": "workshop",
+            })
+            door.update({
+                "name": "Kuzey Atölyesi Kapısı",
+                "open": False,
+                "locked": True,
+                "broken": False,
+            })
+            with patch("game.roll_d20", return_value=8):
+                failed = await self.http.post(
+                    turn_url,
+                    json={
+                        "message": "Kuzey Atölyesi Kapısını omzumla zorlayarak kırmayı deniyorum.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+            self.assertEqual(failed.status_code, 200, failed.text)
+            self.assertEqual(
+                session.world_state["scene_state"]["entry_target_reference"][
+                    "location_id"
+                ],
+                venue_id,
+            )
+            campaign_id = self.manager.get(session_id).campaign_id
+            reopened = SessionManager(
+                campaign_store=CampaignStore(
+                    self.store.path, bound_principal=TEST_PLAYER
+                )
+            )
+            reopened_app = create_app(
+                session_manager=reopened,
+                ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+                authenticator=FixedAuthenticator(TEST_PLAYER),
+            )
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=reopened_app),
+                base_url="http://testserver",
+            ) as resumed_http:
+                resumed = await resumed_http.post(
+                    f"/api/game/campaigns/{campaign_id}/resume"
+                )
+                self.assertEqual(resumed.status_code, 200, resumed.text)
+                resumed_session_id = resumed.json()["session_id"]
+                resumed_session = reopened.get(resumed_session_id).game_session
+                self.assertEqual(
+                    resumed_session.world_state["scene_state"][
+                        "entry_target_reference"
+                    ]["location_id"],
+                    venue_id,
+                )
+                resumed_door = next(
+                    item for item in resumed_session.world_state["doors"]
+                    if item.get("id") == f"venue-door:{venue_id}"
+                )
+                resumed_door.update({"open": True, "locked": False})
+                with patch.object(
+                    reopened_app.state.ollama_adapter,
+                    "_client",
+                    ControlledVenueOllamaClient(intent="narrative"),
+                ):
+                    entered = await resumed_http.post(
+                        f"/api/game/sessions/{resumed_session_id}/turn",
+                        json={
+                            "message": "İçeri giriyorum.",
+                            "action_id": str(uuid.uuid4()),
+                        },
+                    )
+                self.assertEqual(entered.status_code, 200, entered.text)
+                self.assertEqual(entered.json()["state"]["location"], venue_id)
+
+    async def test_entry_reference_expires_when_target_or_source_scene_changes(self):
+        cases = ("moved_target", "expired", "scene_changed", "old_save")
+        for case in cases:
+            with self.subTest(case=case), patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ):
+                city_id, _, session, turn_url, venue_id, door = (
+                    await create_city_with_locked_tavern(self)
+                )
+                with patch("game.roll_d20", return_value=8):
+                    failed = await self.http.post(
+                        turn_url,
+                        json={
+                            "message": "Yakındaki hanın kapısını omzumla zorlayarak kırmayı deniyorum.",
+                            "action_id": str(uuid.uuid4()),
+                        },
+                    )
+                self.assertEqual(failed.status_code, 200, failed.text)
+                self.assertIsInstance(
+                    session.world_state["scene_state"]["entry_target_reference"],
+                    dict,
+                )
+                expected_location = city_id
+                if case == "moved_target":
+                    session.world_state["locations"][venue_id][
+                        "parent_location_id"
+                    ] = "fr:region:the_north"
+                elif case == "expired":
+                    session.world_state["flags"]["turn_index"] += 1
+                elif case == "scene_changed":
+                    session.world_state["location"] = "fr:region:the_north"
+                    expected_location = "fr:region:the_north"
+                else:
+                    del session.world_state["scene_state"]["entry_target_reference"]
+                plans = []
+                real_plan = session.plan_living_world_turn
+
+                @wraps(real_plan)
+                def capture_plan(*args, **kwargs):
+                    result = real_plan(*args, **kwargs)
+                    if (args[0] if args else kwargs.get("player_input")) == "İçeri giriyorum.":
+                        plans.append(copy.deepcopy(result))
+                    return result
+
+                with (
+                    patch.object(session, "plan_living_world_turn", new=capture_plan),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(intent="narrative"),
+                    ),
+                ):
+                    response = await self.http.post(
+                        turn_url,
+                        json={
+                            "message": "İçeri giriyorum.",
+                            "action_id": str(uuid.uuid4()),
+                        },
+                    )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(session.world_state["location"], expected_location)
+                self.assertEqual(len(plans), 1)
+                self.assertIsNone(plans[0].get("direct_result"))
+
     async def test_explicit_sibling_target_overrides_recent_entry_reference(self):
         with patch(
             "socket.socket.connect",

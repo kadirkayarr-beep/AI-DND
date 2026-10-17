@@ -1506,7 +1506,6 @@ def record_entry_target_reference(
     source_action_id: Any,
     source_turn_index: Any,
     source_location_id: Any,
-    source_door_id: Any = None,
 ) -> None:
     """Keep one validated local-entry target for the immediately following turn."""
     state = ensure_scene_state(world_state)
@@ -1540,11 +1539,11 @@ def record_entry_target_reference(
         and action_result.get("status") == "resolved"
         and action_result.get("target_type") == "door"
         and action_result.get("skill") == "Athletics"
-        and isinstance(source_door_id, str)
-        and source_door_id.startswith("venue-door:")
+        and isinstance(action_result.get("target_id"), str)
+        and action_result["target_id"].startswith("venue-door:")
     ):
-        location_id = source_door_id.removeprefix("venue-door:")
-        door_id = source_door_id
+        door_id = action_result["target_id"]
+        location_id = door_id.removeprefix("venue-door:")
         source_kind = "door_skill_check"
 
     if (
