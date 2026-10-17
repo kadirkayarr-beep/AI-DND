@@ -4874,6 +4874,7 @@ def validate_world_updates(
     allow_new_features=False,
     allow_new_locations=False,
     allow_new_shops=False,
+    allowed_feature_kinds=None,
 ):
     """Whitelist narrative state updates; mechanical state is never accepted here."""
     world_state = _session().world_state
@@ -4967,7 +4968,10 @@ def validate_world_updates(
             location = normalize_location_id(proposal.get("location", world_state["location"]))
             name = _clean_world_text(proposal.get("name"), 60)
             description = _clean_world_text(proposal.get("description", ""), 200) or ""
+            kind = _clean_world_text(proposal.get("kind", "feature"), 32) or "feature"
             if location != world_state["location"] or not name or "\n" in name:
+                continue
+            if allowed_feature_kinds is not None and kind not in allowed_feature_kinds:
                 continue
             parent_id = (
                 _valid_local_feature_parent_id(proposal.get("parent_id"), location)
@@ -5004,7 +5008,7 @@ def validate_world_updates(
                 **({"parent_id": parent_id} if parent_id else {}),
                 "name": name,
                 "description": description,
-                "kind": _clean_world_text(proposal.get("kind", "feature"), 32) or "feature",
+                "kind": kind,
                 "aliases": _clean_world_text_list(proposal.get("aliases", []), 80, 8),
                 "proposal_key": proposal_key(proposal, "f", index),
             })
@@ -6024,6 +6028,7 @@ INTENT_SCHEMA = {
     "required": ["intent", "action", "target", "completion", "confidence"],
     "additionalProperties": False,
 }
+SCENE_DETAIL_KIND_ALLOWLIST = frozenset({"detail", "seat"})
 
 
 def _extract_json_object(raw):
@@ -6119,19 +6124,28 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
     schema = (interaction_adventure.intent_schema(INTENT_SCHEMA)
               if interaction_context is not None else INTENT_SCHEMA)
     if allow_scene_detail_proposals:
-        schema = copy.deepcopy(schema)
-        schema["properties"]["scene_detail_proposals"] = {
+        current_scene_id = world_state.get("location")
+        parent = _resolve_explicit_local_scene_parent(
+            current_scene_id, player_input
+        )
+        parent_id = parent.get("id") if isinstance(parent, dict) else None
+        if isinstance(current_scene_id, str) and isinstance(parent_id, str):
+            schema = copy.deepcopy(schema)
+            schema["properties"]["scene_detail_proposals"] = {
             "type": "array",
             "maxItems": 1,
             "items": {
                 "type": "object",
                 "properties": {
                     "proposal_key": {"type": "string"},
-                    "location": {"type": "string"},
-                    "parent_id": {"type": "string"},
+                    "location": {"type": "string", "enum": [current_scene_id]},
+                    "parent_id": {"type": "string", "enum": [parent_id]},
                     "name": {"type": "string", "maxLength": 60},
                     "description": {"type": "string", "maxLength": 200},
-                    "kind": {"type": "string", "maxLength": 32},
+                    "kind": {
+                        "type": "string",
+                        "enum": sorted(SCENE_DETAIL_KIND_ALLOWLIST),
+                    },
                     "aliases": {
                         "type": "array",
                         "maxItems": 8,
@@ -6144,18 +6158,20 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 ],
                 "additionalProperties": False,
             },
-        }
-        parent = _resolve_explicit_local_scene_parent(
-            world_state.get("location"), player_input
-        )
-        parent_id = parent.get("id") if isinstance(parent, dict) else None
-        prompt += (
-            "\nBu olumlu sahne incelemesinde en fazla bir sıradan ve görünür yerel "
-            "ayrıntı adayı scene_detail_proposals alanına ekle; parent_id mevcut "
-            f"doğrulanmış yapı kimliği olan {parent_id!r} olmalı. Bu yalnızca bir "
-            "öneridir: kaynak veya mekanik oluşturma, gizli geçit/kaçış/kapı durumu "
-            "iddia etme. Python doğrulaması olmadan anlatı veya canon değildir."
-        )
+            }
+            prompt += (
+                "\nBu olumlu sahne incelemesinde en fazla bir sıradan ve görünür "
+                "yerel ayrıntı adayı scene_detail_proposals alanına ekle. "
+                f"Current scene ID: {current_scene_id}. "
+                f"Parent structure ID: {parent_id}. "
+                f"location tam olarak mevcut sahne kimliği {current_scene_id!r}; "
+                f"parent_id tam olarak bu sahnedeki doğrulanmış parent yapı kimliği "
+                f"{parent_id!r} olmalı. kind yalnızca detail olabilir. Bu yalnızca "
+                "bir öneridir: kaynak veya mekanik oluşturma, gizli geçit/kaçış/"
+                "kapı durumu iddia etme. Ad ve açıklama görünür sıradan ayrıntıyı "
+                "yaratıcı biçimde tarif edebilir; beklenen belirli bir nesneyi "
+                "zorla üretme. Python doğrulaması olmadan anlatı veya canon değildir."
+            )
     if operation_hint is not None and interaction_context is not None:
         schema = copy.deepcopy(schema)
         schema["properties"]["interaction"]["properties"]["operation"] = {
@@ -14387,6 +14403,7 @@ def _run_player_turn_internal(
             action_result["verified_world_updates"] = validate_world_updates(
                 {"create_features": bound_proposals},
                 allow_new_features=allow_new_features,
+                allowed_feature_kinds=SCENE_DETAIL_KIND_ALLOWLIST,
             )
     allow_new_shops = bool(shop_request)
 
