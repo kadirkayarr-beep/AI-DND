@@ -561,7 +561,25 @@ def generation_eligible(world):
             and bool(present_npcs(world)))
 
 
-def context(world, npc):
+def is_profile_purpose_question(text, profile=None):
+    normalized = normalize(text)
+    if not re.search(r"\b(?:neden|niye|nicin|why)\b", normalized):
+        return False
+    if re.search(
+        r"\b(?:burada|buraya|buradasin|buradayim|bu sehirde|"
+        r"bu kasabada|here)\b",
+        normalized,
+    ):
+        return True
+    reason = profile.get("reason_for_being_here") if isinstance(profile, dict) else None
+    if not isinstance(reason, str):
+        return False
+    query_terms = set(re.findall(r"[a-z0-9]{4,}", normalized))
+    reason_terms = set(re.findall(r"[a-z0-9]{4,}", normalize(reason)))
+    return len(query_terms & reason_terms) >= 2
+
+
+def context(world, npc, player_input=None):
     state = get(world)
     threads = public(world)["threads"]
     if npc:
@@ -578,6 +596,7 @@ def context(world, npc):
         addressee = copy.deepcopy(addressee)
         addressee["name"] = living_world.public_npc_name(npc)
         addressee["role"] = living_world.public_npc_role(npc)
+    focus = current_conversation_focus(world, npc)
     accepted_profile = None
     profile = (
         npc.get("personal_profile")
@@ -585,15 +604,18 @@ def context(world, npc):
         and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    if isinstance(profile, dict):
+    purpose_is_relevant = is_profile_purpose_question(player_input, profile) or bool(
+        focus and focus["predicate"] == "reason_for_being_here"
+    )
+    if isinstance(profile, dict) and purpose_is_relevant:
         evidence = [
             {
                 "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
                 "field": field,
                 "value": profile[field],
-                "relation": "same_npc_profile",
+                "relation": "direct_question_topic",
             }
-            for field in ("reason_for_being_here", "recent_activity")
+            for field in ("reason_for_being_here",)
             if isinstance(profile.get(field), str) and profile[field].strip()
         ]
         if evidence:
@@ -613,7 +635,7 @@ def context(world, npc):
         ],
         "addressee": addressee,
         "accepted_npc_profile": accepted_profile,
-        "conversation_focus": current_conversation_focus(world, npc),
+        "conversation_focus": focus,
         "threads": threads,
         "commitments": [
             {key: c[key] for key in ("commitment_id", "npc_id", "quote", "kind", "thread_id")}

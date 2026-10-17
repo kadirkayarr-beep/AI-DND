@@ -6752,9 +6752,20 @@ def _fallback_narration(player_input, npc_target=None):
         world_state, target_npc
     ) if isinstance(target_npc, dict) else None
     if (
-        focus
-        and focus["subject_id"].startswith("npc-profile:")
-        and interaction_adventure.is_focus_followup(world_state, player_input)
+        (
+            focus
+            and focus["subject_id"].startswith("npc-profile:")
+            and focus["predicate"] == "reason_for_being_here"
+            and interaction_adventure.is_focus_followup(
+                world_state, player_input
+            )
+        )
+        or interaction_adventure.is_profile_purpose_question(
+            player_input,
+            target_npc.get("personal_profile")
+            if isinstance(target_npc, dict)
+            else None,
+        )
     ):
         profile = target_npc.get("personal_profile")
         reason = profile.get("reason_for_being_here") if isinstance(profile, dict) else None
@@ -6763,10 +6774,6 @@ def _fallback_narration(player_input, npc_target=None):
                 f'{living_world.public_npc_name(target_npc)}, '
                 f'“{reason.strip()}” diye açıklar.'
             )
-        return (
-            f'{living_world.public_npc_name(target_npc)}, '
-            '“Bunun nedenini bilmiyorum; kesin konuşamam,” diye yanıt verir.'
-        )
     if target_npc and is_npc_dialogue_input(player_input):
         return f'{living_world.public_npc_name(target_npc)}, "Bu konuda bildiğim doğrulanmış bir bilgi yok," diye yanıt verir.'
     if re.search(r"tavernaya (?:git|gidiyorum|dön|geri dön)|ormana (?:git|gidiyorum|dön|geri dön)|kaleye (?:git|gidiyorum|dön|geri dön)", text):
@@ -9404,25 +9411,20 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
         and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    asks_why = bool(
-        isinstance(player_input, str)
-        and re.search(r"\b(?:neden|niye|nicin)\b", living_world.normalize_text(player_input))
+    asks_about_profile_purpose = interaction_adventure.is_profile_purpose_question(
+        player_input, profile
     )
     if isinstance(profile, dict) and (
-        asks_why
+        asks_about_profile_purpose
         or (
             conversation_focus
             and conversation_focus["subject_id"].startswith("npc-profile:")
+            and conversation_focus["predicate"] == "reason_for_being_here"
         )
     ):
-        evidence_fields = ["reason_for_being_here", "recent_activity"]
-        if (
-            conversation_focus
-            and conversation_focus["subject_id"].startswith("npc-profile:")
-        ):
-            evidence_fields.insert(0, conversation_focus["predicate"])
+        evidence_fields = ["reason_for_being_here"]
         evidence = []
-        for field in dict.fromkeys(evidence_fields):
+        for field in evidence_fields:
             value = profile.get(field)
             if isinstance(value, str) and value.strip():
                 evidence.append({
@@ -9433,7 +9435,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
                         "conversation_topic"
                         if conversation_focus
                         and conversation_focus["predicate"] == field
-                        else "same_npc_profile"
+                        else "direct_question_topic"
                     ),
                 })
         if evidence:
@@ -9570,7 +9572,9 @@ def ask_dungeon_master(
         return details if return_details else details["narration"]
     if (action_result or {}).get("action") == "interaction":
         # Never include the global world/lore/legacy memory packet in NPC agency.
-        scoped = interaction_adventure.context(world_state, npc_target)
+        scoped = interaction_adventure.context(
+            world_state, npc_target, player_input
+        )
         prompt = (
             "Türkçe, kısa ve sahnenin içinden anlat. Yalnızca aşağıdaki Python sonucu "
             "gerçekleşti. Bir eşya aktarımı, yeni gerçek, ödül, sözün yerine getirilmesi, "
@@ -13856,7 +13860,10 @@ def _run_player_turn_internal(
             }
             return finish_turn(result, result["direct_response"])
         npc_target = None
-        if not combat["active"] and not world_subject_question:
+        if not combat["active"] and (
+            not world_subject_question
+            or interaction_adventure.is_profile_purpose_question(player_input)
+        ):
             npc_target = next(
                 (
                     npc
@@ -14025,7 +14032,9 @@ def _run_player_turn_internal(
         intent_source = "interaction_proposal"
         raw = parse_player_intent(
             player_input,
-            interaction_context=interaction_adventure.context(world_state, npc_target),
+            interaction_context=interaction_adventure.context(
+                world_state, npc_target, player_input
+            ),
             operation_hint=interaction_hint,
         )
         action_result = interaction_adventure.resolve(
@@ -14470,16 +14479,29 @@ def _run_player_turn_internal(
         }
         return finish_turn(action_result, supported_lore_response)
 
+    profile_focus = (
+        interaction_adventure.current_conversation_focus(
+            world_state, npc_target
+        )
+        if isinstance(npc_target, dict)
+        else None
+    )
     profile_why_dialogue = bool(
-        interaction_mode == "say"
-        and isinstance(npc_target, dict)
+        isinstance(npc_target, dict)
         and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         and isinstance(npc_target.get("personal_profile"), dict)
-        and re.search(
-            r"\b(?:neden|niye|nicin)\b",
-            living_world.normalize_text(player_input),
+        and (
+            interaction_adventure.is_profile_purpose_question(
+                player_input, npc_target.get("personal_profile")
+            )
+            or (
+                profile_focus
+                and profile_focus["predicate"] == "reason_for_being_here"
+                and interaction_adventure.is_focus_followup(
+                    world_state, player_input
+                )
+            )
         )
-        and is_npc_dialogue_input(player_input)
     )
     if (
         (world_subject_question and not profile_why_dialogue)
@@ -14510,7 +14532,9 @@ def _run_player_turn_internal(
         intent_source = "interaction_proposal"
         raw_intent = parse_player_intent(
             player_input,
-            interaction_context=interaction_adventure.context(world_state, npc_target),
+            interaction_context=interaction_adventure.context(
+                world_state, npc_target, player_input
+            ),
             dialogue_narration=True,
         )
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
@@ -14570,7 +14594,9 @@ def _run_player_turn_internal(
         intent_source = "model"
         raw_intent = parse_player_intent(
             player_input,
-            interaction_context=interaction_adventure.context(world_state, npc_target),
+            interaction_context=interaction_adventure.context(
+                world_state, npc_target, player_input
+            ),
             allow_scene_detail_proposals=(
                 not is_player_world_assertion(player_input)
                 and should_generate_features(

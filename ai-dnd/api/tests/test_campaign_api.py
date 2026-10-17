@@ -732,7 +732,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         async def say(message):
             return await self.post_scene_turn(
-                turn_url, client, {"message": message, "action_id": str(uuid.uuid4())}
+                turn_url, client, {
+                    "message": message,
+                    "interaction_mode": "say",
+                    "target_id": marek["id"],
+                    "action_id": str(uuid.uuid4()),
+                }
             )
 
         first_model = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
@@ -773,7 +778,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         followup = await say("Marek, neden?")
         self.assertEqual(followup.status_code, 200, followup.text)
-        self.assertIn(profile["reason_for_being_here"], followup.json()["narration"])
+        self.assertNotIn(profile["reason_for_being_here"], followup.json()["narration"])
         messages = client.message_batches[-1]
         context_text = json.dumps(messages, ensure_ascii=False)
         marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
@@ -795,40 +800,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(focus["predicate"], "current_activity")
         self.assertEqual(focus["value"], profile["current_activity"])
         self.assertEqual(focus["epistemic"], "witnessed")
-        self.assertEqual(accepted_profile["speaker_id"], marek["id"])
-        self.assertEqual(accepted_profile["subject_id"], focus["subject_id"])
-        self.assertEqual(accepted_profile["topic"], "current_activity")
-        self.assertEqual(len(accepted_profile["evidence"]), 3)
-        activity_evidence, cause_evidence, distractor_evidence = accepted_profile[
-            "evidence"
-        ]
-        self.assertEqual(activity_evidence["evidence_id"], focus["evidence_id"])
-        self.assertEqual(activity_evidence["value"], profile["current_activity"])
-        self.assertEqual(activity_evidence["relation"], "conversation_topic")
-        self.assertEqual(
-            cause_evidence,
-            {
-                "evidence_id": (
-                    f"npc-profile:{marek['id']}:v1:reason_for_being_here"
-                ),
-                "field": "reason_for_being_here",
-                "value": profile["reason_for_being_here"],
-                "relation": "same_npc_profile",
-            },
-        )
-        self.assertEqual(
-            distractor_evidence,
-            {
-                "evidence_id": f"npc-profile:{marek['id']}:v1:recent_activity",
-                "field": "recent_activity",
-                "value": profile["recent_activity"],
-                "relation": "same_npc_profile",
-            },
-        )
+        self.assertIsNone(accepted_profile)
         self.assertNotIn(private_fact, context_text)
         action_followup = await say("Neden bunu yapıyorsun?")
         self.assertEqual(action_followup.status_code, 200, action_followup.text)
-        self.assertIn(profile["reason_for_being_here"], action_followup.json()["narration"])
+        self.assertNotIn(
+            profile["reason_for_being_here"], action_followup.json()["narration"]
+        )
         self.assertEqual(
             session.world_state["interaction_adventure_v1"]["conversation_focus"][
                 "subject_id"
@@ -841,7 +819,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if npc.get("id") == marek["id"]
         )
         current_marek["personal_profile"]["reason_for_being_here"] = rumor
-        attributed = await say("Marek, neden?")
+        attributed = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(attributed.status_code, 200, attributed.text)
         self.assertIn("söylentisine göre", attributed.json()["narration"].casefold())
         self.assertIn(rumor, attributed.json()["narration"])
@@ -853,9 +831,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         other_npc_only_cause = "SERA_ONLY_CAUSE_SENTINEL_03f7"
         sera["personal_profile"]["reason_for_being_here"] = other_npc_only_cause
         sera["knowledge"].append(other_npc_only_cause)
-        unknown = await say("Marek, neden?")
+        unknown = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertIn("doğrulanmış bir neden yok", unknown.json()["narration"])
+        self.assertIn("doğrulanmış bir bilgi yok", unknown.json()["narration"])
         unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
         self.assertNotIn(other_npc_only_cause, unknown_context)
         self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])
@@ -1129,6 +1107,157 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(scene["conversation_focus"])
         self.assertNotEqual(
             (scene["conversation_focus"] or {}).get("subject_id"), door["id"]
+        )
+
+    async def test_profile_why_does_not_bypass_unverified_lore_safety(self):
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        marek = {
+            "id": "npc_marek_lore_safety",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {
+                "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+                "occupation": "Şehir arşivinde geçici kâtiplik yapıyorum.",
+                "current_activity": "Eski liman kayıtlarını tasnif ediyorum.",
+                "mood": "İyiyim.",
+                "recent_activity": "Sabah pazardan yeşil iplik aldım.",
+                "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+                "reason_for_being_here": "Arşivde kayıp yük kayıtlarını bulmaya geldim.",
+                "personal_detail": "Notlarımı mavi kapaklı bir defterde tutarım.",
+                "immediate_goal": "Bugün tasnifi bitirmek.",
+            },
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        client = CapturingConversationContextClient()
+        purpose = marek["personal_profile"]["reason_for_being_here"]
+        greeting = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, şu an ne yapıyorsun?",
+            "interaction_mode": "say",
+            "action_id": str(uuid.uuid4()),
+            "target_id": marek["id"],
+        })
+        self.assertEqual(greeting.status_code, 200, greeting.text)
+        self.assertIsInstance(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"],
+            dict,
+        )
+        batches_before_lore_question = len(client.message_batches)
+        response = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, Neverwinter neden gizlice bir ejderha tarafından yönetiliyor?",
+            "interaction_mode": "say",
+            "action_id": str(uuid.uuid4()),
+            "target_id": marek["id"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertNotIn(
+            purpose, response.json()["narration"],
+            "Unrelated NPC purpose must not answer an unsupported lore question.",
+        )
+        self.assertTrue(
+            any(term in response.json()["narration"].casefold() for term in (
+                "doğrulanmış", "belirsiz", "kesin konuşamam",
+            )),
+            response.json()["narration"],
+        )
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        last_messages = client.message_batches[-1]
+        scene_text = next(
+            item["content"].split(marker, 1)[1].split(
+                "\n\nRECENT NARRATION", 1
+            )[0]
+            for item in last_messages
+            if marker in item.get("content", "")
+        )
+        self.assertIsNone(json.loads(scene_text)["accepted_npc_profile"])
+
+    async def test_activity_why_does_not_inherit_unrelated_profile_purpose(self):
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        activity = "Sabah yeşil iplik aldım."
+        purpose = "Arşivde kayıp yük kayıtlarını bulmaya geldim."
+        marek = {
+            "id": "npc_marek_unrelated_profile_reason",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {
+                "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+                "occupation": "Şehir arşivinde geçici kâtiplik yapıyorum.",
+                "current_activity": activity,
+                "mood": "İyiyim.",
+                "recent_activity": "Sabah pazardan kurdele aldım.",
+                "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+                "reason_for_being_here": purpose,
+                "personal_detail": "Notlarımı mavi kapaklı bir defterde tutarım.",
+                "immediate_goal": "Bugün tasnifi bitirmek.",
+            },
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        client = CapturingConversationContextClient()
+
+        async def say(message):
+            return await self.post_scene_turn(
+                turn_url, client, {
+                    "message": message,
+                    "interaction_mode": "say",
+                    "target_id": marek["id"],
+                    "action_id": str(uuid.uuid4()),
+                }
+            )
+
+        first = await say("Marek, şu an ne yapıyorsun?")
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertIn(activity, first.json()["narration"])
+        followup = await say("Marek, neden?")
+        self.assertEqual(followup.status_code, 200, followup.text)
+        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        messages = client.message_batches[-1]
+        scene_text = next(
+            item["content"].split(marker, 1)[1].split(
+                "\n\nRECENT NARRATION", 1
+            )[0]
+            for item in messages
+            if marker in item.get("content", "")
+        )
+        scene = json.loads(scene_text)
+        self.assertEqual(
+            scene["conversation_focus"]["subject_id"],
+            f"npc-profile:{marek['id']}:current_activity",
+        )
+        self.assertNotIn(
+            purpose,
+            json.dumps(scene["accepted_npc_profile"], ensure_ascii=False),
+            "A same-NPC purpose is not evidence for an unrelated activity's cause.",
+        )
+        self.assertNotIn(
+            purpose, followup.json()["narration"],
+            "A profile purpose is not evidence for an unrelated activity's cause.",
+        )
+        self.assertTrue(
+            any(term in followup.json()["narration"].casefold()
+                for term in (
+                    "bilmiyorum", "emin değilim", "kesin konuşamam",
+                    "belirsiz", "doğrulamam yok", "bilgi yok",
+                )),
+            followup.json()["narration"],
         )
 
     async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
