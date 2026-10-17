@@ -7,6 +7,7 @@ import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract
 import { ExplorationControls } from '@/components/exploration-controls';
 import { CourtyardHelp } from '@/components/courtyard-help';
 import { explorationInputLabel } from '@/lib/exploration-input';
+import { focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
 import {
   AmbientEventActionPanel,
   createAmbientEventActionRequest,
@@ -537,6 +538,7 @@ function StoryColumn({
   notice,
   scrollRef,
   onScroll,
+  resultCue,
   locationChanged,
   combatEndNotice,
   combatTargetId,
@@ -564,6 +566,7 @@ function StoryColumn({
   notice: Notice | null;
   scrollRef: RefObject<HTMLDivElement | null>;
   onScroll: () => void;
+  resultCue: string;
   locationChanged: boolean;
   combatEndNotice: string | null;
   combatTargetId: string;
@@ -641,9 +644,10 @@ function StoryColumn({
         </div>
       )}
       <Transcript entries={entries.map((entry) => entry.kind === 'player'
-        ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} />
+        ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} resultCue={resultCue} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       <div className="command-box">
+        <div className="command-context">
         <CourtyardHelp state={state} disabled={sending} onDraft={(text) => {
           setInteractionMode('do');
           setConversationTargetId('');
@@ -742,7 +746,6 @@ function StoryColumn({
             </select>
           </label>
         )}
-        <form className="command-form" onSubmit={onSubmit}>
           {state.pending_event_decisions?.map((event, index) => <div className="data-row mb-3" data-testid="scheduled-event-decision" key={index}>
             <p>{event.summary}</p>
             <small>{event.in_combat ? 'Çatışma sonrasında sonraki kararını sen vereceksin.' : event.forced ? 'Fiziksel engel: başka bir kayıtlı konum veya rota seçebilirsin.' : 'Kararın bekleniyor; zaman kendiliğinden ilerlemiyor.'}</small>
@@ -777,6 +780,8 @@ function StoryColumn({
               }}>{label}</button>)}
             </div>
           </div>}
+        </div>
+        <form className="command-form" onSubmit={onSubmit}>
           {state.combat.active && combatTargets.length > 0 && (
             <label className="command-target-label" htmlFor="combat-target-select">
               <span>Hedef seç <small>· isteğe bağlı</small></span>
@@ -808,7 +813,7 @@ function StoryColumn({
   );
 }
 
-function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>) => void; onOpenCombat: () => void }) {
+function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>, opener: HTMLElement) => void; onOpenCombat: (opener: HTMLElement) => void }) {
   return (
     <header className="app-header">
       <div className="dnd-shell app-header-inner">
@@ -822,7 +827,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
           <span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span>
         </div>
         {state.combat.active && (
-          <button className="combat-quick-status" type="button" aria-haspopup="dialog" onClick={onOpenCombat} data-testid="button-open-active-combat">
+          <button className="combat-quick-status" type="button" aria-haspopup="dialog" onClick={(event) => onOpenCombat(event.currentTarget)} data-testid="button-open-active-combat">
             <Swords size={14} aria-hidden="true" />
             <span className="combat-quick-status-label">ÇATIŞMA</span>
             {typeof state.combat.round === 'number' && <span>Tur {state.combat.round}</span>}
@@ -830,25 +835,26 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
           </button>
         )}
         <div className="header-actions">
-          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button>
-          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button>
+          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={(event) => onDrawer('character', event.currentTarget)}><Shield size={14} /> Karakter</button>
+          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={(event) => onDrawer('world', event.currentTarget)}><Menu size={14} /> Dünya</button>
           <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span></div>
-          <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button>
-          <button className="dnd-button secondary !min-h-[35px] !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana dön</button>
+          <button className="dnd-button secondary" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span>Kaydet</span></button>
+          <button className="dnd-button secondary !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana dön</button>
         </div>
       </div>
     </header>
   );
 }
 
-function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
+function DrawerSheet({ drawer, state, onClose, returnFocus, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { drawer: Drawer; state: GameState; onClose: () => void; returnFocus: HTMLElement | null; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
+  const returnFocusRef = useRef(returnFocus);
   closeRef.current = onClose;
+  returnFocusRef.current = returnFocus;
   useEffect(() => {
     if (!drawer) return;
     const dialog = dialogRef.current;
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = () => dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [];
     focusable()[0]?.focus();
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -868,11 +874,14 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus();
+      const opener = returnFocusRef.current;
+      const target = focusReturnTarget(Boolean(opener?.isConnected));
+      if (target === 'opener') opener?.focus();
+      else document.getElementById('player-message')?.focus();
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -1024,6 +1033,8 @@ export default function GameBrowser() {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
+  const [panelOpener, setPanelOpener] = useState<HTMLElement | null>(null);
+  const [resultCue, setResultCue] = useState('');
   const [activeTab, setActiveTab] = useState<WorldTab>('world');
   const [locationChanged, setLocationChanged] = useState(false);
   const [resumingCampaignId, setResumingCampaignId] = useState<string | null>(null);
@@ -1075,6 +1086,7 @@ export default function GameBrowser() {
   const pendingAmbientActionRef = useRef<AmbientEventActionRequest | null>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
+  const seenEntryCount = useRef(0);
   const previousLocation = useRef<string>('');
   const previousCombatActive = useRef<boolean | null>(null);
 
@@ -1145,9 +1157,53 @@ export default function GameBrowser() {
   }, [sessionId, stateQuery.error, stateQuery.isError]);
 
   useEffect(() => {
-    if (!entries.length || !storyScrollRef.current || !wasAtBottom.current) return;
-    storyScrollRef.current.scrollTop = storyScrollRef.current.scrollHeight;
+    const node = storyScrollRef.current;
+    const grew = entries.length > seenEntryCount.current;
+    seenEntryCount.current = entries.length;
+    if (!entries.length || !node) return;
+    if (transcriptFollowsBottom(wasAtBottom.current)) {
+      node.scrollTop = node.scrollHeight;
+      return;
+    }
+    if (grew) setResultCue(`Yeni sonuç geldi. ${entries.length}`);
   }, [entries]);
+  useEffect(() => {
+    const node = storyScrollRef.current;
+    const content = node?.querySelector('[data-testid="transcript-local"]');
+    if (!node || !content || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (transcriptFollowsBottom(wasAtBottom.current)) node.scrollTop = node.scrollHeight;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [entries.length]);
+  useEffect(() => {
+    if (phase !== 'adventure' || !sessionId) return;
+    const shell = document.querySelector<HTMLElement>('.play-shell');
+    const viewport = window.visualViewport;
+    if (!shell || !viewport) return;
+    const apply = () => {
+      const inset = keyboardInset(window.innerHeight, viewport.height, viewport.offsetTop);
+      shell.style.setProperty('--keyboard-inset', `${inset}px`);
+      if (inset <= 0) {
+        shell.scrollTop = 0;
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        const send = shell.querySelector<HTMLElement>('[data-testid="button-send-turn"]');
+        if (!send) return;
+        const overflow = send.getBoundingClientRect().bottom - (window.innerHeight - inset);
+        if (overflow > 1) shell.scrollTop += overflow;
+      });
+    };
+    apply();
+    viewport.addEventListener('resize', apply);
+    viewport.addEventListener('scroll', apply);
+    return () => {
+      viewport.removeEventListener('resize', apply);
+      viewport.removeEventListener('scroll', apply);
+    };
+  }, [phase, sessionId]);
 
   const handleStoryScroll = () => {
     const node = storyScrollRef.current;
@@ -1524,8 +1580,8 @@ export default function GameBrowser() {
   if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
-      <div className="dnd-app" data-testid="app-session">
-        {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={setDrawer} onOpenCombat={() => { setActiveTab('combat'); setDrawer('world'); }} />}
+      <div className="dnd-app play-shell" data-testid="app-session">
+        {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={(next, opener) => { setPanelOpener(opener); setDrawer(next); }} onOpenCombat={(opener) => { setPanelOpener(opener); setActiveTab('combat'); setDrawer('world'); }} />}
         <main className="app-main workspace-grid">
           {stateQuery.isLoading ? (
             <>
@@ -1551,7 +1607,6 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
-              <LeftColumn state={state} />
               <StoryColumn
                 state={state}
                 entries={entries}
@@ -1569,6 +1624,7 @@ export default function GameBrowser() {
                 notice={notice}
                 scrollRef={storyScrollRef}
                 onScroll={handleStoryScroll}
+                resultCue={resultCue}
                 locationChanged={locationChanged}
                 combatEndNotice={combatEndNotice}
                 combatTargetId={combatTargetId}
@@ -1580,12 +1636,11 @@ export default function GameBrowser() {
                 onAmbientAction={handleAmbientAction}
                 onRetryAmbientAction={retryAmbientAction}
               />
-              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
         </main>
-        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
-        <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
+        {state && <DrawerSheet drawer={drawer} state={state} returnFocus={panelOpener} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
+        <div className="session-footnote" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}
         </div>
