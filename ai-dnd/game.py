@@ -13511,6 +13511,59 @@ def _run_player_turn_internal(
         )
         raise TurnResolved(result, resolved)
 
+    def finish_conversation_resolution(resolution, target):
+        if resolution is None:
+            action_result = {
+                "action": "dialogue",
+                "status": "proposal_rejected",
+                "success": False,
+                "state_changes": [],
+            }
+            return finish_turn(
+                action_result,
+                interaction_adventure.immersive_unknown(target),
+                safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
+                safety_handling="python_fallback",
+                is_final=True,
+            )
+        if resolution.get("answer_field"):
+            field = resolution["answer_field"]
+            value = resolution["answer_value"]
+            name = living_world.public_npc_name(target)
+            text = f'{name}, “{value.strip()}” diye yanıt verir.'
+            action_result = {
+                "action": "dialogue",
+                "status": "answered_personal_question",
+                "success": True,
+                "npc_id": target["id"],
+                "reality_category": local_dialogue.PROCEDURAL_PERSONAL_FACT,
+                "state_changes": [],
+            }
+            record_npc_interaction(target, text, player_input, target)
+            _remember_accepted_profile_focus(
+                player_input, target, action_id, field=field
+            )
+            return finish_turn(
+                action_result, text, safety_handling="python_scene_response"
+            )
+        if resolution.get("meaning") in {
+            "unknown", "unclear", "cause", "lore", "identity",
+        }:
+            action_result = {
+                "action": "dialogue",
+                "status": "conversation_unknown",
+                "success": False,
+                "state_changes": [],
+            }
+            return finish_turn(
+                action_result,
+                interaction_adventure.immersive_unknown(target),
+                safety_reason_code="UNVERIFIED_CONVERSATION_RESOLUTION",
+                safety_handling="python_fallback",
+                is_final=True,
+            )
+        return None
+
     compound = interaction_adventure.compound_plan(player_input)
     if (compound is not None and not entry_combat["active"]
             and interaction_mode not in {"say", "ask_dm"}):
@@ -14004,9 +14057,10 @@ def _run_player_turn_internal(
             is_final=True,
         )
 
-    interaction_hint = (None if interaction_mode == "ask_dm"
-                        or local_dialogue.is_local_dialogue_input(player_input)
-                        else interaction_adventure.hint(player_input, npc_target))
+    interaction_hint = (
+        None if interaction_mode == "ask_dm"
+        else interaction_adventure.hint(player_input, npc_target)
+    )
     if interaction_hint and not combat["active"]:
         intent_model_calls = 1
         intent_source = "interaction_proposal"
@@ -14020,22 +14074,23 @@ def _run_player_turn_internal(
         proposal = raw.get("interaction", {}).get("conversation") if isinstance(
             raw.get("interaction"), dict
         ) else None
-        conversation_resolution = interaction_adventure.resolve_conversation(
-            world_state, player_input, raw.get("interaction"), npc_target
-        )
-        if conversation_resolution is None:
-            action_result = {
-                "action": "dialogue",
-                "status": "proposal_rejected",
-                "success": False,
-                "state_changes": [],
-            }
-            return finish_turn(
-                action_result, interaction_adventure.immersive_unknown(npc_target),
-                safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
-                safety_handling="python_fallback",
-                is_final=True,
+        if proposal is not None:
+            conversation_resolution = interaction_adventure.resolve_conversation(
+                world_state, player_input, raw.get("interaction"), npc_target
             )
+            if conversation_resolution is None:
+                action_result = {
+                    "action": "dialogue",
+                    "status": "proposal_rejected",
+                    "success": False,
+                    "state_changes": [],
+                }
+                return finish_turn(
+                    action_result, interaction_adventure.immersive_unknown(npc_target),
+                    safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
+                    safety_handling="python_fallback",
+                    is_final=True,
+                )
         action_result = interaction_adventure.resolve(
             _session(), player_input, raw.get("interaction"), npc_target,
             fallback_operation=interaction_hint,
@@ -14486,18 +14541,7 @@ def _run_player_turn_internal(
             world_state, player_input, raw_intent.get("interaction"), npc_target
         )
         if conversation_resolution is None:
-            action_result = {
-                "action": "dialogue",
-                "status": "proposal_rejected",
-                "success": False,
-                "state_changes": [],
-            }
-            return finish_turn(
-                action_result, interaction_adventure.immersive_unknown(npc_target),
-                safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
-                safety_handling="python_fallback",
-                is_final=True,
-            )
+            return finish_conversation_resolution(None, npc_target)
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
@@ -14506,42 +14550,11 @@ def _run_player_turn_internal(
                 action_result, action_result["direct_response"],
                 is_final=action_result["status"] in {"proposal_rejected", "no_effect", "answered", "blocked"},
             )
-        if conversation_resolution and conversation_resolution.get("answer_field"):
-            field = conversation_resolution["answer_field"]
-            value = conversation_resolution["answer_value"]
-            name = living_world.public_npc_name(npc_target)
-            text = f'{name}, “{value.strip()}” diye yanıt verir.'
-            action_result = {
-                "action": "dialogue",
-                "status": "answered_personal_question",
-                "success": True,
-                "npc_id": npc_target["id"],
-                "reality_category": local_dialogue.PROCEDURAL_PERSONAL_FACT,
-                "state_changes": [],
-            }
-            record_npc_interaction(npc_target, text, player_input, npc_target)
-            _remember_accepted_profile_focus(
-                player_input, npc_target, action_id, field=field
-            )
-            return finish_turn(
-                action_result, text, safety_handling="python_scene_response"
-            )
-        if conversation_resolution.get("meaning") in {
-            "unknown", "unclear", "cause", "lore", "identity",
-        }:
-            action_result = {
-                "action": "dialogue",
-                "status": "conversation_unknown",
-                "success": False,
-                "state_changes": [],
-            }
-            return finish_turn(
-                action_result,
-                interaction_adventure.immersive_unknown(npc_target),
-                safety_reason_code="UNVERIFIED_CONVERSATION_RESOLUTION",
-                safety_handling="python_fallback",
-                is_final=True,
-            )
+        conversation_outcome = finish_conversation_resolution(
+            conversation_resolution, npc_target
+        )
+        if conversation_outcome is not None:
+            return conversation_outcome
         # A conversation-only response already used the single allowed narrator
         # call. Validate it as dialogue, without a retry or accepting its updates.
         if isinstance(raw_intent.get("narration"), str):
@@ -14618,6 +14631,12 @@ def _run_player_turn_internal(
                 action_result, action_result["direct_response"],
                 is_final=action_result["status"] in {"proposal_rejected", "no_effect", "answered", "blocked"},
             )
+        if npc_target is not None:
+            conversation_outcome = finish_conversation_resolution(
+                conversation_resolution, npc_target
+            )
+            if conversation_outcome is not None:
+                return conversation_outcome
         normalized_intent = normalize_intent(raw_intent, player_input)
         validated_intent = validate_intent(normalized_intent, player_input)
     if DEBUG_MODE:

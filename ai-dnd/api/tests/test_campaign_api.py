@@ -164,9 +164,8 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
             )
             quote = prompt.split("Current player message: ", 1)[-1].splitlines()[0]
             marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
-            context = json.loads(
-                prompt.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
-            )
+            context_text = prompt.split(marker, 1)[1]
+            context, _ = json.JSONDecoder().raw_decode(context_text)
             addressee = context.get("addressee") or {}
             focus = context.get("conversation_focus") or {}
             name = addressee.get("name", "")
@@ -1568,6 +1567,151 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(purpose, response.json()["narration"])
         self.assertEqual(len(client.intent_schemas), 2)
         self.assertEqual(client.conversation_replies, [])
+
+    async def test_free_npc_profile_statement_uses_shared_resolution_without_forced_target(self):
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        purpose = "Arşivde kayıp yük kayıtlarını bulmaya geldim."
+        marek = {
+            "id": "npc_marek_free_message",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {
+                "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+                "occupation": "Şehir arşivinde geçici kâtiplik yapıyorum.",
+                "current_activity": "Eski liman kayıtlarını tasnif ediyorum.",
+                "mood": "İyiyim.",
+                "recent_activity": "Sabah pazardan yeşil iplik aldım.",
+                "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+                "reason_for_being_here": purpose,
+                "personal_detail": "Notlarımı mavi kapaklı bir defterde tutarım.",
+                "immediate_goal": "Bugün tasnifi bitirmek.",
+            },
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        client = CapturingConversationContextClient()
+        client.conversation_replies = [{
+            "conversation": {
+                "addressee_id": marek["id"],
+                "subject_phrase": "Marek",
+                "subject_role": "addressee",
+                "meaning": "personal_purpose",
+                "topic_relation": "new",
+                "candidate_evidence_ids": [
+                    f"npc-profile:{marek['id']}:v1:reason_for_being_here"
+                ],
+            }
+        }]
+
+        response = await self.post_scene_turn(
+            turn_url,
+            client,
+            {
+                "message": "Marek, seni bu şehre getiren şeyi anlat",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn(purpose, response.json()["narration"])
+        focus = session.world_state["interaction_adventure_v1"]["conversation_focus"]
+        self.assertEqual(focus["speaker_id"], marek["id"])
+        self.assertEqual(focus["predicate"], "reason_for_being_here")
+
+        accepted_focus = copy.deepcopy(focus)
+        invalid_replies = [
+            {
+                "conversation": {
+                    "addressee_id": marek["id"],
+                    "subject_phrase": "kervan",
+                    "subject_role": "other_actor",
+                    "meaning": "cause",
+                    "topic_relation": "topic_change",
+                    "candidate_evidence_ids": [
+                        f"npc-profile:{marek['id']}:v1:reason_for_being_here"
+                    ],
+                },
+                "include_narration": True,
+                "narration": f"Marek, “{purpose}” diye yanıt verir.",
+            },
+            {
+                "include_conversation": False,
+                "include_narration": False,
+            },
+        ]
+        for index, reply in enumerate(invalid_replies):
+            with self.subTest(invalid_proposal=index):
+                client.conversation_replies = [reply]
+                calls_before = client.chat_calls
+                rejected = await self.post_scene_turn(
+                    turn_url,
+                    client,
+                    {
+                        "message": "Marek, kervanla ilgili ne biliyorsun",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+                self.assertEqual(rejected.status_code, 200, rejected.text)
+                self.assertEqual(client.chat_calls, calls_before + 1)
+                self.assertNotIn(purpose, rejected.json()["narration"])
+                self.assertEqual(
+                    session.world_state["interaction_adventure_v1"][
+                        "conversation_focus"
+                    ],
+                    accepted_focus,
+                )
+
+        client.conversation_replies = [{
+            "conversation": {
+                "addressee_id": marek["id"],
+                "subject_phrase": "Marek",
+                "subject_role": "addressee",
+                "meaning": "other",
+                "topic_relation": "topic_change",
+                "candidate_evidence_ids": [],
+            }
+        }]
+        weather = await self.post_scene_turn(
+            turn_url,
+            client,
+            {
+                "message": "Marek, bugün hava nasıl",
+                "target_id": marek["id"],
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(weather.status_code, 200, weather.text)
+        self.assertNotIn(purpose, weather.json()["narration"])
+        self.assertIsNone(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"]
+        )
+        context_marker = (
+            "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        )
+        intent_prompt = next(
+            item["content"]
+            for item in reversed(client.message_batches[-1])
+            if context_marker in item.get("content", "")
+        )
+        current_context, _ = json.JSONDecoder().raw_decode(
+            intent_prompt.split(context_marker, 1)[1]
+        )
+        self.assertNotIn(
+            purpose,
+            json.dumps(
+                current_context.get("conversation_candidates", []),
+                ensure_ascii=False,
+            ),
+        )
 
     async def test_short_followup_uses_previous_focus_with_ui_selected_addressee(self):
         city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
