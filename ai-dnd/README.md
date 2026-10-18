@@ -12,8 +12,9 @@ The campaign UI talks to the FastAPI adapter, not the Node `artifacts/api-server
 ```
 
 Default local ports: FastAPI `:8008`, Ollama `:11434`, experience Vite (see the script).
-Set `OLLAMA_HOST` (and `OLLAMA_PROXY_TOKEN` if the proxy requires it). Optional
-`AI_DND_CAMPAIGN_DB` points at a sqlite file. Required model: `qwen3:8b`.
+Set `OLLAMA_HOST` (and `OLLAMA_PROXY_TOKEN` if the proxy requires it). `start_local.ps1` sets `AI_DND_CAMPAIGN_DB` to `ai-dnd/saves/campaigns.sqlite3` in the checkout unless
+you set it yourself (the API answers 503 to every campaign request without it). Sign-in settings come from
+`.env.local` (see `.env.example`). Required model: `qwen3:8b`.
 Check `GET http://127.0.0.1:11434/api/tags` and `GET http://127.0.0.1:8008/api/game/health`.
 Do not use interactive `ollama run` for this path.
 

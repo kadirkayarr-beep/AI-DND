@@ -3,7 +3,10 @@
 param(
     [int]$ApiPort = 8008,
     [int]$UiPort = 22785,
-    [int]$WaitSeconds = 30
+    [int]$WaitSeconds = 30,
+    # By default an API/UI already listening on these ports is stopped and started
+    # again, because a running process keeps the settings it started with.
+    [switch]$KeepRunning
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,6 +30,25 @@ $apiOut = Join-Path $logDir "api.out.log"
 $apiErr = Join-Path $logDir "api.err.log"
 $uiOut = Join-Path $logDir "ui.out.log"
 $uiErr = Join-Path $logDir "ui.err.log"
+
+function Stop-PortListener([int]$Port) {
+    try {
+        $owners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop |
+            Select-Object -ExpandProperty OwningProcess -Unique
+    } catch {
+        return
+    }
+    foreach ($ownerId in $owners) {
+        if ($ownerId -gt 4) {
+            try {
+                Stop-Process -Id $ownerId -Force -ErrorAction Stop
+                Write-Host "Stopped old process $ownerId listening on :$Port"
+            } catch {
+                Write-Host "Could not stop process $ownerId on :$Port (close it by hand, then retry)"
+            }
+        }
+    }
+}
 
 function Test-PythonModules {
     $previous = $ErrorActionPreference
@@ -73,6 +95,23 @@ if (-not $env:VITE_CLERK_PUBLISHABLE_KEY -or -not $env:AI_DND_AUTH_MODE) {
     Write-Host "NOT READY: sign-in is not configured. The game shows 'Giris su anda kullanilamiyor' without it."
     Write-Host "Create $envFile with the Clerk settings listed in .env.example, then run this script again."
     exit 1
+}
+
+# The API refuses to open any campaign storage unless AI_DND_CAMPAIGN_DB is set
+# (without it every campaign request answers 503 and the game cannot start a
+# campaign or open the saves list). Default: a database inside THIS checkout.
+# To play your existing campaigns, set AI_DND_CAMPAIGN_DB in .env.local to that file.
+if (-not $env:AI_DND_CAMPAIGN_DB) {
+    $savesDir = Join-Path $root "ai-dnd\saves"
+    New-Item -ItemType Directory -Force -Path $savesDir | Out-Null
+    $env:AI_DND_CAMPAIGN_DB = Join-Path $savesDir "campaigns.sqlite3"
+}
+Write-Host "Campaign database: $env:AI_DND_CAMPAIGN_DB"
+
+if (-not $KeepRunning) {
+    Stop-PortListener $ApiPort
+    Stop-PortListener $UiPort
+    Start-Sleep -Seconds 1
 }
 
 Write-Host "Checking Ollama http://127.0.0.1:11434/api/tags (do not use 'ollama run')"
