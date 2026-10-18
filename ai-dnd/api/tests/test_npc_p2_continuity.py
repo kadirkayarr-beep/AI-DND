@@ -406,6 +406,91 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
             again = await self.say(turn_url, client, npc, "Nasılsın?")
         self.assertTrue(again["narration"].startswith("Marek"))
 
+    # ---- 18 Oct play session 2: the role the player SEES must resolve the NPC --------
+
+    async def test_play2_public_role_word_resolves_the_npc(self):
+        """Play: "Dükkâncıya selam veriyorum: ..." answered "Kiminle konuşmak
+        istiyorsun?" with exactly one shopkeeper next to the player. The NPC's
+        internal role is English ("shopkeeper"); the screen shows "dükkâncı"."""
+        import game as engine
+
+        _, _, session, _, npc = await self.campaign_with_npc()
+        city = npc["location"]
+        for other in list(session.world_state.get("npcs", [])):
+            if other.get("id") != npc["id"]:
+                session.world_state["npcs"].remove(other)
+        npc["role"] = "shopkeeper"
+        npc["name_known_to_player"] = False
+        npc["role_known_to_player"] = True
+        session.world_state.setdefault("flags", {})["active_npc_until_turn"] = -1
+        for text in (
+            "Dükkâncıya selam veriyorum: Günaydın, kolay gelsin.",
+            "dükkâncı ile konuşmak istiyorum",
+            "Dükkancıya selam veriyorum",
+        ):
+            with self.subTest(text=text):
+                found = engine.resolve_npc_reference(text, session=session)
+                self.assertEqual(found.get("status"), "found", text)
+                self.assertEqual(found["npc"]["id"], npc["id"])
+        # A role the player has not been shown must not become target authority.
+        npc["role_known_to_player"] = False
+        hidden = engine.resolve_npc_reference("Dükkâncıya selam veriyorum", session=session)
+        self.assertNotEqual(hidden.get("status"), "found", hidden)
+        self.assertEqual(city, npc["location"])
+
+    async def test_play2_rejected_speech_gets_an_in_character_clarification(self):
+        """Play: after "Ben Darius. ... sandık taşımana yardım edebilirim." (a statement,
+        not a question) "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha
+        belirgin anlatabilirsin." came out of the shopkeeper's mouth. When Python rejects
+        an NPC's reply the NPC asks again in character; no scene sentence is put in
+        their mouth."""
+        _, _, session, _, npc = await self.campaign_with_npc()
+        speech = {"action": "dialogue", "status": "experimental_attributed_speech",
+                  "success": True, "state_changes": [], "npc_id": npc["id"]}
+        statement = "Ben Darius. İşlerin ağırsa bir sandık taşımana yardım edebilirim."
+        # The gold hand-over is an unsupported transfer: Python rejects the reply.
+        shown = game.finalize_narration(
+            "Bu altın senin, eline veriyorum, sandığı taşı.",
+            statement, npc_target=npc, action_result=speech, session=session,
+        )
+        self.assertNotIn("eline veriyorum", shown)
+        for scene_phrase in ("Sahnedeki", "hareketlilik", "belirgin anlat"):
+            self.assertNotIn(scene_phrase, shown)
+        for robotic in self.ROBOTIC_FALLBACK:
+            self.assertNotIn(robotic, shown.casefold())
+        self.assertTrue(
+            any(mark in shown for mark in ("?", "”")),
+            f"expected the NPC to speak or ask again, got: {shown}",
+        )
+        # Not speech: the narrator keeps its own fallback.
+        narrator = game.finalize_narration(
+            "Bu altın senin, eline veriyorum.",
+            statement, npc_target=None,
+            action_result={"action": "observe", "status": "completed"}, session=session,
+        )
+        self.assertNotIn("eline veriyorum", narrator)
+
+    async def test_play2_scene_level_fallback_never_reaches_an_npcs_mouth(self):
+        """Whatever path produces a scene-level fallback sentence during an NPC speech
+        turn, the NPC says it in their own voice instead."""
+        from unittest.mock import patch
+
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        scene_lines = (
+            "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin.",
+            "Çevrende bu düşünceyi destekleyen bir iz göremiyorsun; biraz daha bakınmak ya da birine sormak yeni bir kapı açabilir.",
+        )
+        for scene_line in scene_lines:
+            with self.subTest(scene_line=scene_line[:30]):
+                client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+                with patch.object(game, "finalize_narration", return_value=scene_line):
+                    reply = await self.say(turn_url, client, npc, "Yardım edeyim mi?")
+                text = reply["narration"]
+                self.assertTrue(text.startswith("Marek"), text)
+                for phrase in ("Sahnedeki", "hareketlilik", "Çevrende", "bir iz göremiyorsun"):
+                    self.assertNotIn(phrase, text)
+                self.assertIn("“", text, "the NPC should speak, in quotes")
+
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
     async def test_guard_previous_reply_does_not_become_world_state(self):

@@ -5301,9 +5301,16 @@ def resolve_npc_reference(player_input, force_dialogue=False):
             living_world.npc_name_known_to_player(npc)
             and _entity_reference_in_text(npc.get("name", ""), text)
         )
+        # The player reads the public role ("dükkâncı"), not the internal one
+        # ("shopkeeper"): both name the same NPC, only when the role is shown.
         role_match = (
             living_world.npc_role_known_to_player(npc)
-            and _entity_reference_in_text(npc.get("role", ""), text)
+            and (
+                _entity_reference_in_text(npc.get("role", ""), text)
+                or _entity_reference_in_text(
+                    living_world.public_npc_role(npc) or "", text
+                )
+            )
         )
         if name_match or role_match:
             matches.append(npc)
@@ -5657,6 +5664,39 @@ _SPEECH_REPEAT_LINES = (
     "{n} omuz silkiyor. “Aynı cevabı ikinci kez dinlemek sana ne katar ki? "
     "Sor bakalım, başka ne var?”",
 )
+
+
+_SPEECH_CLARIFY_LINES = (
+    "{n} kaşlarını çatıp başını yana eğiyor. “Tam anlayamadım; ne demek "
+    "istediğini biraz daha açık söyler misin?”",
+    "{n} sana dikkatle bakıyor. “Hmm… bunu bir daha, biraz daha yavaş söyle "
+    "bakalım.”",
+    "{n} dinlemeye çalışıyor ama yüzünde bir şaşkınlık var. “Ne istediğini "
+    "tam kavrayamadım, yabancı. Başka türlü anlatır mısın?”",
+    "{n} omuz silkip hafifçe gülümsüyor. “Sözün nereye varacağını "
+    "kestiremedim. Biraz açar mısın?”",
+)
+# Sentences written for the narrator or the engine, never for a person's mouth.
+_SCENE_LEVEL_FALLBACK_RE = re.compile(
+    r"sahnedeki hareketlilik|çevrende bu düşünceyi destekleyen|"
+    r"belirttiğin eylem dışında|girişimin (?:başarıya ulaşır|ters gider)|"
+    r"karşındaki kişi sözünü dinliyor, ancak",
+    re.IGNORECASE,
+)
+
+
+def speech_clarification_line(npc, player_input=""):
+    """The NPC asks the player to say it again, in their own voice.
+
+    Deterministic per NPC and message. Used when a reply that was written for the
+    narrator or the engine would otherwise be put in an NPC's mouth.
+    """
+    name = living_world.public_npc_name(npc) if npc else "Bu kişi"
+    seed = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{player_input}|clarify"
+    index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(
+        _SPEECH_CLARIFY_LINES
+    )
+    return _SPEECH_CLARIFY_LINES[index].format(n=name)
 
 
 def speech_repeat_line(npc, player_input="", salt=0):
@@ -6821,6 +6861,9 @@ def _normalize_turkish_typos(text):
     """Accent-fold for matching only; retain the original wording for Qwen."""
     text = str(text).replace("İ", "i").replace("I", "ı").casefold().translate(str.maketrans({
         "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
+        # Circumflex vowels (dükkâncı, kâtip, hâlâ) fold too: typed with or
+        # without the hat they must match the same word.
+        "â": "a", "î": "i", "û": "u",
     }))
     text = re.sub(r"[’'`]+", " ", text)
     text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
@@ -15260,6 +15303,8 @@ def _run_player_turn_internal(
                     if unverified_history_echo else None
                 ),
             )
+            if experimental_npc_dialogue and _SCENE_LEVEL_FALLBACK_RE.search(text):
+                text = speech_clarification_line(npc_target, player_input)
             if experimental_npc_dialogue:
                 _speech_debug_trail({
                     "player": player_input,
