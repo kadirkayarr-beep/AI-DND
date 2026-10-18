@@ -198,5 +198,37 @@ class TwoPlayerIsolationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await other.get(f"/api/game/campaigns/{self.b_campaign}")).status_code, 200)
 
 
+    async def test_a_saved_but_inactive_campaign_is_409_for_its_owner_and_404_for_everyone_else(self):
+        """409 "no active session" is the owner's answer only. After a restart (new
+        manager, same database) nothing is active: the owner is told to resume, a
+        stranger gets exactly what an unknown id gets."""
+        restarted = SessionManager(campaign_store=self.store)
+        apps = {
+            who: create_app(
+                session_manager=restarted, ollama_adapter=None,
+                authenticator=FixedAuthenticator(principal),
+            )
+            for who, principal in (("a", PLAYER_A), ("b", PLAYER_B), ("same_subject", SAME_SUBJECT))
+        }
+
+        def client(who):
+            return httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=apps[who]),
+                base_url="http://isolated-testserver",
+            )
+
+        path = f"/api/game/campaigns/{self.a_campaign}/save"
+        unknown = f"/api/game/campaigns/{uuid.uuid4()}/save"
+        async with client("a") as owner:
+            mine = await owner.post(path)
+            self.assertEqual(mine.status_code, 409, mine.text)
+        for stranger in ("b", "same_subject"):
+            async with client(stranger) as other:
+                got = await other.post(path)
+                nothing = await other.post(unknown)
+                self.assertEqual(got.status_code, 404, f"{stranger}: {got.text}")
+                self.assertEqual(got.json(), nothing.json(), stranger)
+
+
 if __name__ == "__main__":
     unittest.main()

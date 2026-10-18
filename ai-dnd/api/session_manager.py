@@ -540,11 +540,13 @@ class SessionManager:
             session_id = self._campaign_sessions.get(campaign_id)
             record = self._sessions.get(session_id) if session_id else None
         if record is not None and not self._owned_by(record, owner):
-            # Someone else's active campaign must answer exactly like a campaign
-            # that has no active session for this caller. A different error here
-            # would tell a stranger which campaign ids are real and in play.
-            record = None
+            raise CampaignNotFoundError("Campaign not found.")
         if record is None:
+            # "No active session" (409) is only for the caller's own campaign. An id
+            # that is not theirs, or does not exist, is "not found" (404), so a
+            # stranger cannot tell a real campaign from an unknown id.
+            if not store.campaign_exists(campaign_id, principal=owner):
+                raise CampaignNotFoundError("Campaign not found.")
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
             if not record.usable:
