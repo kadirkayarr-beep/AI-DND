@@ -6,6 +6,7 @@ Untrusted envelopes describe intentions, not successful outcomes.
 from __future__ import annotations
 
 import copy
+import hashlib
 import re
 from typing import Literal
 from uuid import uuid4
@@ -902,13 +903,26 @@ def hint(text, npc=None):
     return None
 
 
-def immersive_unknown(npc=None):
+_UNKNOWN_LINES = (
+    "{n} omuz silkiyor. “Bunu gerçekten bilmiyorum; ağzıma gelen her şey "
+    "tahminden öteye geçmez.”",
+    "{n} başını yana eğiyor. “Emin değilim. Yanlış bir şey söyleyip seni "
+    "yoldan çıkarmak istemem.”",
+    "{n} kaşlarını kaldırıyor. “Bu konuda bir şey bilmiyorum, yabancı. Başka "
+    "birine sorsan daha iyi edersin.”",
+    "{n} bir an düşünüp iç çekiyor. “Doğrusu emin değilim; duyduklarımın "
+    "hangisi doğru, hangisi söylenti, ayıramıyorum.”",
+)
+
+
+def immersive_unknown(npc=None, seed=""):
+    """In-character 'I do not know'. Deterministic for a given NPC and seed."""
     if npc:
-        return (
-            f'{living_world.public_npc_name(npc)} başını hafifçe sallıyor. '
-            '“Bunu kendi gözlerimle görmedim; bu konuda doğrulanmış bir '
-            'bilgim yok, kesin konuşamam.”'
+        key = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{seed}"
+        index = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % len(
+            _UNKNOWN_LINES
         )
+        return _UNKNOWN_LINES[index].format(n=living_world.public_npc_name(npc))
     return "Şu ana kadar gördüklerin bu düşünceyi doğrulamıyor. Nasıl ilerlemek istediğin sana kalmış."
 
 

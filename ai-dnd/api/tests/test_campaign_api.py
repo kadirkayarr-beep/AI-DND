@@ -946,7 +946,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         sera["knowledge"].append(other_npc_only_cause)
         unknown = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertIn("görmedim", unknown.json()["narration"])
+        # In-character "I do not know" (wording varies by NPC and input).
+        self.assertTrue(
+            any(marker in unknown.json()["narration"]
+                for marker in ("bilmiyorum", "emin değilim")),
+            unknown.json()["narration"],
+        )
         unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
         self.assertNotIn(other_npc_only_cause, unknown_context)
         self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])

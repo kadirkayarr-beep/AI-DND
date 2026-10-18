@@ -5,6 +5,7 @@ import re
 import copy
 import equipment_economy
 from pathlib import Path
+import hashlib
 import os
 import tempfile
 import contextvars
@@ -5633,9 +5634,25 @@ def _format_npc_memory(memory_entries):
     return formatted
 
 
-def historical_claim_denial(npc):
+_CLAIM_DENIAL_LINES = (
+    "{n} bir an sana bakıp kaşlarını çatıyor. “Öyle bir şey konuştuğumuzu "
+    "anımsamıyorum. Beni başka biriyle karıştırmış olmalısın.”",
+    "{n} başını iki yana sallıyor. “Hayır, öyle bir sözüm yok. Kimden duyduysan "
+    "iyi düşün, yanılıyorsun.”",
+    "{n} omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey "
+    "söylemedim.”",
+    "{n} sesini alçaltıyor. “Söz verdiysem hatırlardım; sözümü tutmayan biri "
+    "olarak anılmak istemem. Ama bu benim ağzımdan çıkmadı.”",
+)
+
+
+def historical_claim_denial(npc, player_input=""):
     name = living_world.public_npc_name(npc) if npc else "Bu kişi"
-    return f'{name}, "Böyle bir şey söylediğimi hatırlamıyorum; belleğimde buna dair bir kayıt yok," diye yanıt verir.'
+    seed = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{player_input}"
+    index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(
+        _CLAIM_DENIAL_LINES
+    )
+    return _CLAIM_DENIAL_LINES[index].format(n=name)
 
 
 def build_world_context(npc_target=None):
@@ -6208,31 +6225,82 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     "repeat_penalty": 1.15,
     "num_predict": 400,
 }
-_EXPERIMENTAL_NPC_SPEECH_ATTR = "_experimental_recent_npc_speech"
-_EXPERIMENTAL_NPC_SPEECH_KEEP = 3
+_NPC_SPEECH_LOG_KEY = "npc_speech_log"
+_NPC_SPEECH_KEEP = 4
 
 
-def _experimental_recent_npc_speech(npc_id):
-    """Session-local, ephemeral lines this NPC showed the player (never saved)."""
-    store = getattr(_session(), _EXPERIMENTAL_NPC_SPEECH_ATTR, None)
-    lines = store.get(npc_id) if isinstance(store, dict) else None
-    return list(lines) if isinstance(lines, list) else []
+def _npc_speech_enabled():
+    """First-person NPC speech trial: per-session switch or AI_DND_NPC_SPEECH=1."""
+    if getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True:
+        return True
+    return os.environ.get("AI_DND_NPC_SPEECH", "").strip() == "1"
 
 
-def _remember_experimental_npc_speech(npc_id, text):
-    """Remember one accepted displayed line. Not world state, memory or evidence."""
-    if not isinstance(npc_id, str) or not isinstance(text, str) or not text.strip():
+def _experimental_recent_exchanges(npc_id):
+    """Last exchanges (player line -> shown NPC line) with this NPC.
+
+    Stored inside the campaign world_state, so they survive save/resume and
+    roll back with a failed turn. Conversation history only: never evidence,
+    never memory, never a world fact.
+    """
+    log = _session().world_state.get(_NPC_SPEECH_LOG_KEY)
+    entries = log.get(npc_id) if isinstance(log, dict) else None
+    result = []
+    for item in entries if isinstance(entries, list) else []:
+        if (
+            isinstance(item, dict)
+            and isinstance(item.get("player"), str)
+            and isinstance(item.get("npc"), str)
+        ):
+            result.append({"player": item["player"], "npc": item["npc"]})
+    return result[-_NPC_SPEECH_KEEP:]
+
+
+def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
+    """Remember one exchange the player actually saw. Not state, not evidence."""
+    if (
+        not isinstance(npc_id, str)
+        or not isinstance(npc_text, str)
+        or not npc_text.strip()
+    ):
         return
-    session = _session()
-    store = getattr(session, _EXPERIMENTAL_NPC_SPEECH_ATTR, None)
-    if not isinstance(store, dict):
-        store = {}
-        setattr(session, _EXPERIMENTAL_NPC_SPEECH_ATTR, store)
-    lines = [*store.get(npc_id, []), text.strip()[:240]]
-    store[npc_id] = lines[-_EXPERIMENTAL_NPC_SPEECH_KEEP:]
+    world = _session().world_state
+    log = world.get(_NPC_SPEECH_LOG_KEY)
+    if not isinstance(log, dict):
+        log = {}
+        world[_NPC_SPEECH_LOG_KEY] = log
+    entries = [
+        *_experimental_recent_exchanges(npc_id),
+        {
+            "player": str(player_text or "").strip()[:240],
+            "npc": npc_text.strip()[:400],
+        },
+    ]
+    log[npc_id] = entries[-_NPC_SPEECH_KEEP:]
+    for stale in list(log)[:-24]:
+        del log[stale]
 
 
-def _experimental_npc_dialogue_context(world, npc):
+_CLAIM_REJECTION_RE = re.compile(
+    r"\b(?:hatirlamiyorum|hatirlamam|animsamiyorum|soylemedim|vermedim|"
+    r"yanlis|yanilgi|karistir\w*|sanmiyorum|hayir|bilmiyorum|anlamadim|"
+    r"olmadi|olmaz|degil|hic)\b"
+)
+_CLAIM_ACCEPTANCE_RE = re.compile(
+    r"\b(?:buyur\w*|iste|veriyorum|verecegim|verelim|tamam|elbette|tabii|"
+    r"evet|dogru|soyledim|hatirliyorum|al|alin)\b"
+)
+
+
+def _npc_speech_rejects_claim(text):
+    """True when the NPC's line clearly refuses an unverified past-promise claim."""
+    folded = local_dialogue.normalize_text(text)
+    if _CLAIM_ACCEPTANCE_RE.search(folded):
+        return False
+    return bool(_CLAIM_REJECTION_RE.search(folded))
+
+
+def _experimental_npc_dialogue_context(world, npc, *, unverified_claim=False):
     """Small, target-bound context for the internal attributed-speech trial."""
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
@@ -6261,6 +6329,7 @@ def _experimental_npc_dialogue_context(world, npc):
         and isinstance(value, str)
         and value.strip()
     } if isinstance(profile, dict) else set()
+    exchanges = _experimental_recent_exchanges(npc["id"])
     recent_player_utterances = []
     for entry in npc.get("memory", []) if isinstance(npc.get("memory"), list) else []:
         if (
@@ -6282,14 +6351,23 @@ def _experimental_npc_dialogue_context(world, npc):
         },
         "shareable_profile_facts": source.get("conversation_candidates", []),
         "perspective": perspective,
-        # Prior NPC prose is never evidence. Only lines this NPC actually showed
-        # the player in this session are carried, labelled as attributed speech,
-        # so short follow-ups ("Neden?") have something to refer to.
-        "previous_npc_replies": [
-            {"text": line, "status": "attributed_speech_not_fact"}
-            for line in _experimental_recent_npc_speech(npc["id"])
+        # Prior NPC prose is never evidence. Only exchanges the player actually
+        # saw are carried (player line -> NPC line), newest last, so short
+        # follow-ups ("Neden?", "onu") resolve against last_exchange.
+        "conversation_status": "attributed_speech_not_fact",
+        "conversation_so_far": [
+            {"player": item["player"], "npc_reply": item["npc"]}
+            for item in exchanges
         ],
+        "last_exchange": (
+            {"player": exchanges[-1]["player"], "npc_reply": exchanges[-1]["npc"]}
+            if exchanges else None
+        ),
         "recent_player_utterances": recent_player_utterances[-4:],
+        **(
+            {"player_claims_unrecorded_past_event": True}
+            if unverified_claim else {}
+        ),
     }
 
 
@@ -6362,10 +6440,20 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "INTERNAL NPC SPEECH EXPERIMENT: Return JSON with one field, narration. "
             "narration is ONLY the addressed NPC's spoken words in Turkish: first "
             "person, direct speech, one to three short sentences, answering the "
-            "player's current message in character. No stage directions, no gestures, "
-            "no third-person description, never begin with the NPC's name. Do not "
-            "repeat wording from previous_npc_replies; use them only to understand what "
-            "a short follow-up such as 'Neden?' or 'onu' refers to, and answer it. "
+            "player's current message in character, with a voice and attitude that fit "
+            "the NPC. No stage directions, no gestures, no third-person description, "
+            "never begin with the NPC's name. Never say you are an AI, a model, a "
+            "system or that you lack records or data; stay inside the fiction. "
+            "conversation_so_far lists what was actually said, oldest first; "
+            "last_exchange is the most recent pair. A short follow-up such as "
+            "'Neden?', 'Nasıl yani?' or 'Neden onu?' refers to the NPC's reply in "
+            "last_exchange: answer THAT reply, giving a concrete in-character reason, "
+            "and do not repeat its wording. If you do not know something, say so the "
+            "way this person would (shrug, guess aloud, point to someone else). If "
+            "player_claims_unrecorded_past_event is true the player says something "
+            "was promised or happened earlier that you have no memory of: react as "
+            "this character would (puzzled, amused, irritated, wary), do not agree "
+            "to it, do not hand over or promise anything, and do not mention records. "
             "Speak the addressee's shareable_profile_facts and perspective naturally in "
             "the first person when relevant. Local creative details, opinions and "
             "uncertainty may be expressed as NPC speech; they do not establish campaign "
@@ -14613,6 +14701,7 @@ def _run_player_turn_internal(
             safety_handling="python_scene_response",
         )
 
+    experimental_unverified_claim = False
     if interaction_mode != "ask_dm" and is_npc_historical_claim(player_input):
         claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
         supported_entry = (
@@ -14621,7 +14710,20 @@ def _run_player_turn_internal(
         )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
-        if supported_entry and claimed_npc:
+        if (
+            not supported_entry
+            and claimed_npc
+            and interaction_mode == "say"
+            and isinstance(npc_target, dict)
+            and claimed_npc.get("id") == npc_target.get("id")
+            and claimed_npc.get("location") == world_state.get("location")
+            and _npc_speech_enabled()
+        ):
+            # In first-person speech sessions the NPC answers in character. The
+            # claim still cannot become a promise, payment or memory: the speech
+            # schema carries no operation and the reply is checked below.
+            experimental_unverified_claim = True
+        elif supported_entry and claimed_npc:
             quote = re.search(r'["\u201c](.*?)["\u201d]', str(supported_entry))
             if quote:
                 response = f'{living_world.public_npc_name(claimed_npc)}, "Evet, bunu söylemiştim: {quote.group(1)}" diye yanıt verir.'
@@ -14644,7 +14746,7 @@ def _run_player_turn_internal(
             )
         else:
             if claimed_npc and claimed_npc.get("location") == world_state.get("location"):
-                response = historical_claim_denial(claimed_npc)
+                response = historical_claim_denial(claimed_npc, player_input)
             elif claimed_npc:
                 response = f"{living_world.public_npc_name(claimed_npc)} şu anda burada bulunmuyor; ayrıca geçmişte böyle bir şey söylediğine dair bir kayıt yok."
             else:
@@ -14691,7 +14793,7 @@ def _run_player_turn_internal(
     experimental_say_session = (
         interaction_mode == "say"
         and npc_target is not None
-        and getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True
+        and _npc_speech_enabled()
     )
     if (
         (
@@ -14725,7 +14827,7 @@ def _run_player_turn_internal(
         and isinstance(npc_target, dict)
         and (
             interaction_mode != "say"
-            or getattr(_session(), "_experimental_npc_dialogue_enabled", False) is not True
+            or not _npc_speech_enabled()
         )
     ):
         personal = (
@@ -14775,14 +14877,17 @@ def _run_player_turn_internal(
     elif npc_target and (interaction_mode == "say" or is_npc_dialogue_input(player_input)):
         experimental_npc_dialogue = (
             interaction_mode == "say"
-            and getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True
+            and _npc_speech_enabled()
         )
         intent_model_calls = 1
         intent_source = "interaction_proposal"
         raw_intent = parse_player_intent(
             player_input,
             interaction_context=(
-                _experimental_npc_dialogue_context(world_state, npc_target)
+                _experimental_npc_dialogue_context(
+                    world_state, npc_target,
+                    unverified_claim=experimental_unverified_claim,
+                )
                 if experimental_npc_dialogue
                 else interaction_adventure.context(
                     world_state, npc_target, player_input
@@ -14873,22 +14978,37 @@ def _run_player_turn_internal(
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
             if invalid_or_empty:
-                text = interaction_adventure.immersive_unknown(npc_target)
+                text = interaction_adventure.immersive_unknown(
+                    npc_target, player_input
+                )
             else:
                 text = raw_narration
 
-            unverified_history_echo = (
-                not invalid_or_empty
-                and _unverified_past_event_assertion(player_input)
-                and bool(_claim_keywords(text) & _claim_keywords(player_input))
-            )
+            if experimental_unverified_claim:
+                # The reply must refuse the unrecorded claim; agreeing to it, or
+                # a reply that neither refuses nor questions it, is replaced.
+                unverified_history_echo = (
+                    not invalid_or_empty and not _npc_speech_rejects_claim(text)
+                )
+            else:
+                unverified_history_echo = (
+                    not invalid_or_empty
+                    and _unverified_past_event_assertion(player_input)
+                    and bool(_claim_keywords(text) & _claim_keywords(player_input))
+                )
             if not invalid_or_empty and (
                 unverified_history_echo
                 or raw_intent.get("world_updates")
                 or raw_intent.get("lore_claims")
                 or not interaction_adventure.safe_narration(text)
             ):
-                text = interaction_adventure.immersive_unknown(npc_target)
+                text = (
+                    historical_claim_denial(npc_target, player_input)
+                    if experimental_unverified_claim
+                    else interaction_adventure.immersive_unknown(
+                        npc_target, player_input
+                    )
+                )
 
             text = finalize_narration(
                 text, player_input, npc_target, action_result,
@@ -14910,6 +15030,10 @@ def _run_player_turn_internal(
 
             if empty_model_narration or unverified_history_echo or (experimental_npc_dialogue and invalid_or_empty):
                 narration_source = "deterministic_fallback"
+                if experimental_npc_dialogue:
+                    _remember_experimental_npc_speech(
+                        npc_target["id"], player_input, text
+                    )
                 return finish_turn(
                     action_result, text, is_final=True,
                     safety_reason_code=(
@@ -14919,8 +15043,11 @@ def _run_player_turn_internal(
                     ),
                     safety_handling="python_fallback",
                 )
-            if accepted_model_speech:
-                _remember_experimental_npc_speech(npc_target["id"], raw_narration)
+            if experimental_npc_dialogue:
+                _remember_experimental_npc_speech(
+                    npc_target["id"], player_input,
+                    raw_narration if accepted_model_speech else text,
+                )
             return finish_turn(action_result, text, is_final=True)
         validated_intent = {"intent": "dialogue"}
     else:
