@@ -5317,20 +5317,24 @@ def resolve_npc_reference(player_input, force_dialogue=False):
     text = _normalize_turkish_typos(player_input)
     available = _conversation_npcs() if force_dialogue else active_npcs()
     matches = []
+    # In "say" (force_dialogue) the player is speaking to someone, so every
+    # mention counts. In an action, a possessive mention is not an address.
+    if force_dialogue:
+        mentioned, source = _entity_reference_in_text, text
+    else:
+        mentioned, source = _entity_addressed_in_text, str(player_input)
     for npc in available:
         name_match = (
             living_world.npc_name_known_to_player(npc)
-            and _entity_reference_in_text(npc.get("name", ""), text)
+            and mentioned(npc.get("name", ""), source)
         )
         # The player reads the public role ("dükkâncı"), not the internal one
         # ("shopkeeper"): both name the same NPC, only when the role is shown.
         role_match = (
             living_world.npc_role_known_to_player(npc)
             and (
-                _entity_reference_in_text(npc.get("role", ""), text)
-                or _entity_reference_in_text(
-                    living_world.public_npc_role(npc) or "", text
-                )
+                mentioned(npc.get("role", ""), source)
+                or mentioned(living_world.public_npc_role(npc) or "", source)
             )
         )
         if name_match or role_match:
@@ -5907,6 +5911,42 @@ def _reference_token_matches(reference_token, input_token):
     )
     return any(input_token.endswith(suffix) and input_token[:-len(suffix)] == reference_token
                for suffix in case_endings)
+
+
+def _fold_keep_apostrophes(text):
+    """Accent-fold like _normalize_turkish_typos but keep apostrophes (case suffix marker)."""
+    return str(text).replace("İ", "i").replace("I", "ı").casefold().translate(str.maketrans({
+        "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
+        "â": "a", "î": "i", "û": "u",
+    }))
+
+
+def _genitive_reference_pattern(reference):
+    words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(reference))
+    if not words:
+        return None
+    return re.compile(
+        r"(?<![a-z0-9])" + r"\s+".join(re.escape(word) for word in words)
+        + r"['’`]?n?(?:in|un)(?![a-z0-9])"
+    )
+
+
+def _entity_addressed_in_text(reference, text):
+    """True when `reference` is named somewhere other than in the genitive.
+
+    "Samira'nın gösterdiği yönde yürüyorum" and "Muhafızın yanına gidiyorum" name
+    a person only as the owner of something; that is a mention, not an address,
+    and must not start (or reopen) a conversation. Datives and plain forms
+    ("Samira'ya selam veriyorum", "Muhafıza yaklaşıp...") are still addresses.
+    Pass the player's original text: the apostrophe marks the case suffix.
+    """
+    if not _entity_reference_in_text(reference, text):
+        return False
+    pattern = _genitive_reference_pattern(reference)
+    if pattern is None:
+        return True
+    remainder = pattern.sub(" ", _fold_keep_apostrophes(text))
+    return _entity_reference_in_text(reference, remainder)
 
 
 def _entity_reference_in_text(reference, text):
@@ -7647,6 +7687,44 @@ def _unverified_player_mental_state_trigger(player_action_text, second_person_ve
     return None
 
 
+_EXPLORE_SKILLS = frozenset({"Investigation", "Perception", "Survival"})
+# A second-person claim that the player found/saw/noticed something specific.
+_DISCOVERY_CLAIM_RE = re.compile(
+    r"\b(?:goruyorsun|gorursun|buluyorsun|bulursun|fark ediyorsun|fark edersin|"
+    r"seciyorsun|secersin|kesfediyorsun|kesfedersin|rastliyorsun|rastlarsin|"
+    r"ayirt ediyorsun|ayirt edersin|duyuyorsun|duyarsin|tespit ediyorsun|"
+    r"tespit edersin|ortaya cikiyor|ortaya cikar)\b"
+)
+# Story-shaping finds that would change the game if they were true. Without a
+# sealed record they are never created by the narrator of an ordinary search.
+_SIGNIFICANT_FINDING_RE = re.compile(
+    r"\b(?:ejderha\w*|dragon\w*|hazine\w*|define\w*|ceset\w*|cenaze\w*|"
+    r"gizli\s+(?:gecit|kapi|oda|bolme|mahzen)\w*|tilsim\w*|artefakt\w*|"
+    r"lanet\w*|buyulu\s+\w+|sihirli\s+\w+|kan\s+lekesi\w*|katil\w*|"
+    r"sirli\s+(?:harita|mektup|mesaj)\w*)\b"
+)
+
+
+def _unsealed_finding_claim(narration, *, success, grounded_text=""):
+    """Return the first sentence that claims a finding the receipt does not back.
+
+    A failed check reveals nothing: any discovery claim contradicts it. A
+    successful ordinary search may add texture, but never a story-shaping find
+    (dragon tracks, treasure, a secret door) that no sealed record supports.
+    """
+    grounded = _normalize_turkish_typos(grounded_text)
+    for sentence in re.split(r"(?<=[.!?…])\s+", str(narration).strip()):
+        folded = _normalize_turkish_typos(sentence)
+        if not folded:
+            continue
+        if not success and _DISCOVERY_CLAIM_RE.search(folded):
+            return sentence
+        for match in _SIGNIFICANT_FINDING_RE.finditer(folded):
+            if match.group(0) not in grounded:
+                return sentence
+    return None
+
+
 def _trigger_sentence_is_question(text, trigger):
     """True when the first sentence containing `trigger` ends with a question mark."""
     needle = str(trigger or "").casefold()
@@ -8376,6 +8454,20 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     )):
         return reject("CANONICAL_STATE_CONTRADICTION")
     outcome = action_outcome or _mechanical_outcome(player_input)
+    if (
+        action_result.get("action") == "skill_check"
+        and action_result.get("status") == "resolved"
+        and action_result.get("skill") in _EXPLORE_SKILLS
+        and action_result.get("target_type") != "door"
+        and outcome in ("success", "critical_success", "failure", "critical_failure")
+    ):
+        unsealed = _unsealed_finding_claim(
+            narration,
+            success=outcome in ("success", "critical_success"),
+            grounded_text=_scene_grounding_text(world_state.get("location")),
+        )
+        if unsealed:
+            return reject("SKILL_RESULT_CONTRADICTION", unsealed)
     if outcome in ("failure", "critical_failure"):
         contradicted_success = re.search(
             r"başarılı olur|başarıya ulaşır|başarır|kazanırsın|"
@@ -10438,6 +10530,48 @@ def ask_dungeon_master(
     )
 
 
+def _scene_grounding_text(location_id):
+    """Everything the registry says is in plain sight here (for claim checks and results)."""
+    if location_id not in _session().world_state.get("locations", {}):
+        return ""
+    try:
+        return _scene_look_text(location_id, readonly=True)
+    except Exception:
+        return ""
+
+
+def _scene_overview_sentences(location_id):
+    """The scene look text without its "... çevresine göz gezdiriyorsun." header."""
+    text = _scene_grounding_text(location_id)
+    parts = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)
+    return parts[1].strip() if len(parts) == 2 else ""
+
+
+def _explore_check_result_text(result):
+    """Concrete result of an ordinary search/inspection check, owned by Python.
+
+    Success: what is actually in plain sight plus a measured statement that the
+    search turns up nothing further (no sealed find exists, so none is invented).
+    Failure: the same plain-sight overview and no new detail. Either way the
+    player learns what happened without a roll being repeated or a finding made up.
+    """
+    success = result.get("outcome") in ("success", "critical_success")
+    overview = _scene_overview_sentences(_session().world_state.get("location"))
+    if success:
+        head = "İncelemen başarılı olur; dikkatle bakınıyorsun."
+        tail = (
+            "Ne var ki bakışın aradığına dair belirgin bir ipucu göstermiyor; "
+            "gizli ya da yeni bir ayrıntı çıkmıyor."
+        )
+    else:
+        head = "İncelemen başarısız olur; aceleyle göz atıyorsun."
+        tail = (
+            "Bu kez yeterince dikkatli bakamıyorsun; bir ayrıntıyı gözden "
+            "kaçırmış olabilirsin."
+        )
+    return " ".join(part for part in (head, overview, tail) if part)
+
+
 def _resolved_skill_result_narration(result):
     """Describe only the already resolved Python check, with no added consequences."""
     if not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved":
@@ -10445,6 +10579,8 @@ def _resolved_skill_result_narration(result):
     outcome = result.get("outcome")
     if outcome not in ("success", "failure"):
         return None
+    if result.get("skill") in _EXPLORE_SKILLS and result.get("target_type") != "door":
+        return _explore_check_result_text(result)
     if result.get("skill") == "Stealth":
         if outcome == "success":
             return "Gizlenme girişimin tutar."
@@ -12361,7 +12497,12 @@ def _scene_presence_text(location_id):
     return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
 
 
-def _scene_look_text(location_id):
+def _scene_look_text(location_id, *, readonly=False):
+    """What the player sees here. `readonly=True` never creates or expires scene state.
+
+    Result and fallback texts are built from this view; producing a sentence must
+    not change the world, so they use the read-only form.
+    """
     world_state = _session().world_state
     location_name = location_display_name(location_id)
     people = _scene_names(location_id)
@@ -12370,15 +12511,20 @@ def _scene_look_text(location_id):
         if isinstance(item, dict)
     ]
     turn_index = world_state.get("flags", {}).get("turn_index", 0)
-    scene = living_world.ensure_scene_record(
-        world_state,
-        location_id,
-        turn_index,
-    )
-    if isinstance(location_id, str):
-        living_world.expire_referents(
-            world_state, turn_index, location_id=location_id
+    if readonly:
+        scenes = world_state.get("scene_state", {}).get("scenes", {})
+        scene = scenes.get(location_id) if isinstance(scenes, dict) else None
+        scene = scene if isinstance(scene, dict) else {}
+    else:
+        scene = living_world.ensure_scene_record(
+            world_state,
+            location_id,
+            turn_index,
         )
+        if isinstance(location_id, str):
+            living_world.expire_referents(
+                world_state, turn_index, location_id=location_id
+            )
     parts = [f"{location_name} çevresine göz gezdiriyorsun."]
     if people:
         parts.append(
