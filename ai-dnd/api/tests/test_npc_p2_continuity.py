@@ -11,6 +11,8 @@ import json
 import unittest
 import uuid
 
+import game
+
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as harness
 
@@ -162,6 +164,81 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(client.chat_calls, 1, "request never reached the model")
         self.assertNotIn("güvenilir bir doğrulamam yok", reply["narration"])
+
+    # ---- 18 Oct live sample (b6768c0): T3/T5/T2-loop findings -------------------
+
+    ROBOTIC_FALLBACK = ("doğrulanmış", "bilgi yok", "ayrıntı yok", "kayıt yok")
+
+    async def test_live_t3_npc_offer_with_istersen_is_not_replaced(self):
+        """Live T3: qwen wrote a good line containing 'istersen'; the narrator
+        player-agency rule rejected it and a robotic fallback was shown."""
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        before = self.sensitive_state(session)
+        line = (
+            "Öğleden sonra yürüyüş yapabilirsin. Gece ışığına bakmak istersen, "
+            "sana bir yol gösteririm."
+        )
+        client = ScriptedNpcSpeechClient(narration=line)
+        reply = await self.say(
+            turn_url, client, npc,
+            "Sence bir yolcu bu şehirde boş bir öğleden sonrayı nasıl geçirebilir?",
+        )
+        self.assertIn("istersen", reply["narration"])
+        for phrase in self.ROBOTIC_FALLBACK:
+            self.assertNotIn(phrase, reply["narration"].casefold())
+        self.assertEqual(self.sensitive_state(session), before)
+
+    async def test_live_t3_guard_narrator_conditional_is_still_rejected(self):
+        """The player-agency rule stays on for narrator (non-NPC-speech) text."""
+        _, _, session, _, npc = await self.campaign_with_npc()
+        result = game.finalize_narration(
+            "Kapıyı açmak istersen içeri girersin.",
+            "Etrafa bakıyorum.",
+            npc_target=None,
+            action_result={"action": "observe", "status": "completed"},
+            session=session,
+        )
+        self.assertNotIn("istersen", result)
+
+    async def test_live_t5_repeated_speech_gets_in_character_line_not_robotic(self):
+        """Live T5: the model repeated its previous line, the repeat guard fired
+        and the robotic 'doğrulanmış bir bilgi yok' fallback was shown."""
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
+        second = await self.say(turn_url, client, npc, "Neden onu?")
+        text = second["narration"]
+        self.assertTrue(text.startswith("Marek"), text)
+        self.assertNotIn(FIRST_REPLY.rstrip("."), text)
+        for phrase in self.ROBOTIC_FALLBACK:
+            self.assertNotIn(phrase, text.casefold())
+
+    async def test_live_fallback_for_npc_dialogue_is_in_character(self):
+        _, _, session, _, npc = await self.campaign_with_npc()
+        for question in ("Bu şehirde ne yapılır?", "Neden onu?"):
+            text = session._fallback_for_action_result(
+                question, {"action": "dialogue", "status": "answered"}, npc,
+            )
+            self.assertTrue(text.startswith("Marek"), text)
+            for phrase in self.ROBOTIC_FALLBACK:
+                self.assertNotIn(phrase, text.casefold())
+
+    async def test_live_prompt_puts_current_message_last_and_limits_rumor_use(self):
+        """Live T2/T5/T6: the model copied the one rumor line into every answer.
+        The current player message must be the last thing the model reads, the
+        previous exchange must be stated in plain words, and the rumor must be
+        marked optional."""
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
+        client.narration = "Çünkü arşiv bana emanet."
+        await self.say(turn_url, client, npc, FOLLOWUP)
+        prompt = self.user_prompt(client, 1)
+        tail = prompt.rstrip().splitlines()[-1]
+        self.assertIn(FOLLOWUP, tail, tail)
+        self.assertIn("rumor", prompt.casefold())
+        self.assertRegex(prompt, r"(?i)only if|yalnızca .*sorarsa|unless the player asks")
+        self.assertIn("Kendini tanıtır mısın?", prompt)
 
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
