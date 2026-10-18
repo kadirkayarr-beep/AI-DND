@@ -96,7 +96,9 @@ class NarrationIntentTests(unittest.TestCase):
         before = copy.deepcopy(session.world_state["inventory"])
         with patch("game.ollama.chat", side_effect=AssertionError("no model")):
             economy = session.run_player_turn("What stock and prices does the shop have? Can I buy a sword?")
-        self.assertIn("alışveriş yapamıyorsun", economy["narration"])
+        # The player tried to buy: told plainly that nothing can be bought (a mere
+        # look at the counter gets an observation instead; see the continuity tests).
+        self.assertIn("satın alamıyorsun", economy["narration"])
         self.assertEqual(session.world_state["inventory"], before)
         for reply in (refusal, economy):
             for word in ("kampanya durumu", "ekonomisi uygulanmıyor", "sistem", "envanter ve para"):

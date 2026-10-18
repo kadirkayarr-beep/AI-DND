@@ -558,6 +558,48 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
             local_dialogue.unresolved_named_address("Zorlo, bana yardım eder misin?", npcs), "Zorlo"
         )
 
+    async def test_play3_a_shopkeeper_knows_the_shop_has_nothing_listed(self):
+        """Report 2, turn 15: asked "Eski kitaplar satıyor musunuz?" the shopkeeper said
+        "Bunu gerçekten bilmiyorum". Python owns the truth (shops carry no catalog);
+        the model gets that fact and must not invent wares, prices or sales."""
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        npc["role"] = "shopkeeper"
+        npc["tags"] = ["shopkeeper"]
+        client = ScriptedNpcSpeechClient(narration="Şu an tezgâhımda satışa çıkardığım bir şey yok.")
+        reply = await self.say(turn_url, client, npc, "Marek, kitap satıyor musun?")
+        self.assertIn("satışa çıkardığım bir şey yok", reply["narration"])
+        prompt = self.user_prompt(client, 0)
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
+        self.assertEqual(
+            context["shop"], {"runs_a_shop": True, "listed_goods": [], "prices_known": False}
+        )
+        self.assertRegex(prompt, r"(?i)never invent (?:wares|goods)")
+
+    async def test_play3_a_non_shopkeeper_context_has_no_shop_block(self):
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        await self.say(turn_url, client, npc, "Merhaba!")
+        prompt = self.user_prompt(client, 0)
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
+        self.assertNotIn("shop", context)
+
+    def test_play3_looking_at_a_counter_is_not_a_purchase_attempt(self):
+        """Report 2, turn 16: "...tezgâhında sergilenen mallara ... bakıyorum" was
+        answered "bu yüzden alışveriş yapamıyorsun" though nothing was bought."""
+        import game as engine
+
+        look = engine._shop_economy_message(
+            "Dükkânın tezgâhında sergilenen mallara, özellikle kitapların kapaklarına ve fiyat etiketlerine bakıyorum."
+        )
+        self.assertNotIn("alışveriş yapamıyorsun", look)
+        self.assertNotIn("satın alamıyorsun", look)
+        self.assertIn("göz gezdiriyorsun", look)
+        buy = engine._shop_economy_message("Şu kitabı satın alıyorum, parasını ödüyorum.")
+        self.assertIn("satın alamıyorsun", buy)
+        self.assertNotIn("göz gezdiriyorsun", buy)
+
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
     async def test_guard_previous_reply_does_not_become_world_state(self):

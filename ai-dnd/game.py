@@ -3457,6 +3457,27 @@ def _explicit_campaign_shop_request(player_input):
     )
 
 
+_SHOP_BUY_WORDS_RE = re.compile(
+    r"\b(?:satın|satin|al(?:ıyorum|iyorum|acağım|acagim|mak|alım)|öde\w*|ode\w*|"
+    r"buy|purchase|pay)\b",
+    re.IGNORECASE,
+)
+
+
+def _shop_economy_message(player_input):
+    """Answer a shop request when the shop lists nothing for sale.
+
+    Looking at the counter is observation, not a purchase attempt; only a request
+    that actually tries to buy or pay is told that nothing can be bought.
+    """
+    if _SHOP_BUY_WORDS_RE.search(player_input or ""):
+        return "Şu an satışa sunulmuş bir mal ya da fiyat yok; bu yüzden bir şey satın alamıyorsun."
+    return (
+        "Tezgâha göz gezdiriyorsun; satışa çıkarılmış bir mal ya da fiyat etiketi "
+        "seçemiyorsun. Burada henüz alışveriş yapabileceğin bir şey yok."
+    )
+
+
 def _shop_economy_request(player_input):
     return isinstance(player_input, str) and bool(
         _SHOP_TRANSACTION_REQUEST_PATTERN.search(player_input)
@@ -6461,6 +6482,19 @@ def _npc_speech_is_claim_refusal(text, npc=None):
     )
 
 
+def _npc_runs_a_shop(npc):
+    if not isinstance(npc, dict):
+        return False
+    tags = npc.get("tags", [])
+    return bool(
+        npc.get("shop_id")
+        or (isinstance(tags, list) and any(
+            isinstance(tag, str) and tag.casefold() == "shopkeeper" for tag in tags
+        ))
+        or _is_shopkeeper_role(npc.get("role"))
+    )
+
+
 def _experimental_npc_dialogue_context(
     world, npc, *, unverified_claim=False, followup=False
 ):
@@ -6530,6 +6564,12 @@ def _experimental_npc_dialogue_context(
             if exchanges else None
         ),
         "recent_player_utterances": [] if followup else recent_player_utterances[-4:],
+        # Python owns what a shop sells. Shops carry no catalog: the person who runs
+        # one must say so in character instead of inventing wares, prices or sales.
+        **(
+            {"shop": {"runs_a_shop": True, "listed_goods": [], "prices_known": False}}
+            if _npc_runs_a_shop(npc) else {}
+        ),
         **(
             {"player_claims_unrecorded_past_event": True}
             if unverified_claim else {}
@@ -6686,6 +6726,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "optional background: mention one ONLY IF the player's current message "
             "asks about it or it truly answers the question; never answer a different "
             "question with a rumor, and never answer by copying an earlier reply. "
+            "If the context has a shop block you run a shop with nothing listed for "
+            "sale: say so in your own voice (nothing on the counter today, come back "
+            "later, you could ask around); never invent wares, prices, stock or a "
+            "completed sale. "
             "Local creative details, opinions and "
             "uncertainty may be expressed as NPC speech; they do not establish campaign "
             "facts, accepted memory, events, rewards, ownership, consent, quest "
@@ -14770,9 +14814,7 @@ def _run_player_turn_internal(
             "success": False,
             "state_changes": [],
         }
-        message = (
-            "Dükkânda sana sunulmuş bir ürün ya da fiyat yok; bu yüzden alışveriş yapamıyorsun."
-        )
+        message = _shop_economy_message(player_input)
         return finish_turn(
             action_result,
             message,
