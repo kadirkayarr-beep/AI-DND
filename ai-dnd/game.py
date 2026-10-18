@@ -2,6 +2,7 @@ import ollama
 import random
 import json
 import re
+import unicodedata
 import copy
 import equipment_economy
 from pathlib import Path
@@ -6249,8 +6250,14 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     "temperature": 0.7,
     "top_p": 0.8,
     "top_k": 20,
-    "repeat_penalty": 1.15,
-    "num_predict": 400,
+    # 18 Oct live sample: 1.15 made qwen3:8b avoid the closing quote/brace it had
+    # already seen in the prompt, so it wrote past the end of the JSON string
+    # (emoji, "</think>", prompt sentences) until the token budget ran out. A mild
+    # penalty over a short window still discourages echoing the last reply, and
+    # a speech of one to three sentences never needs more than ~220 tokens.
+    "repeat_penalty": 1.05,
+    "repeat_last_n": 64,
+    "num_predict": 220,
 }
 _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
@@ -6317,6 +6324,56 @@ _CLAIM_ACCEPTANCE_RE = re.compile(
     r"\b(?:buyur\w*|iste|veriyorum|verecegim|verelim|tamam|elbette|tabii|"
     r"evet|dogru|soyledim|hatirliyorum|al|alin)\b"
 )
+
+
+_SPEECH_CUT_RE = re.compile(r"[{}<>\[\]\\]|</?think|\bthe player message\b", re.IGNORECASE)
+_SPEECH_META_RE = re.compile(
+    r"\b(?:json|narration field|player message|context are data|instructions?|"
+    r"the npc|returned is|as requested|this output|adheres)\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_pictographs(text):
+    """Drop emoji and other symbol characters a small model sprays when it derails."""
+    kept = []
+    for char in text:
+        category = unicodedata.category(char)
+        if category in ("So", "Sk", "Cs", "Co", "Cn") or char in "\u200d\ufe0f\u20e3":
+            continue
+        kept.append(char)
+    return "".join(kept)
+
+
+def _clean_npc_speech(raw):
+    """Return the NPC's own words from a model string, or "" when none survive.
+
+    Small models sometimes write past the end of the JSON string: a stray
+    closing brace, emoji, "</think>" or sentences copied from the prompt. Cut
+    everything from the first structural character on, drop pictographs, and
+    refuse text that talks about the prompt itself (English meta commentary).
+    """
+    if not isinstance(raw, str):
+        return ""
+    cut = _SPEECH_CUT_RE.search(raw)
+    text = raw[:cut.start()] if cut else raw
+    text = _strip_pictographs(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text or _SPEECH_META_RE.search(text):
+        return ""
+    # A cut or the token limit can leave a half sentence: keep the whole
+    # sentences before it; with none, end the fragment openly instead.
+    if text[-1] not in ".!?…\"”’'":
+        last_end = max(text.rfind(mark) for mark in ".!?…")
+        if last_end >= 0:
+            text = text[: last_end + 1]
+            if text.count("“") > text.count("”"):
+                text += "”"
+        else:
+            text += "…"
+            if text.count("“") > text.count("”"):
+                text += "”"
+    return text if len(re.sub(r"[^\w]", "", text)) >= 3 else ""
 
 
 def _npc_speech_rejects_claim(text):
@@ -15094,6 +15151,10 @@ def _run_player_turn_internal(
                 action_result["status"] = "experimental_attributed_speech"
 
             raw_narration = raw_intent.get("narration") if isinstance(raw_intent, dict) else None
+            if experimental_npc_dialogue and isinstance(raw_narration, str) and raw_narration.strip():
+                # Keep only the NPC's own words; a derailed model tail never
+                # reaches the player. Nothing left means the reply was unusable.
+                raw_narration = _clean_npc_speech(raw_narration)
             invalid_or_empty = not isinstance(raw_narration, str) or not raw_narration.strip()
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
