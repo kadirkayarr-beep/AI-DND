@@ -6263,6 +6263,25 @@ _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
 
 
+def _speech_debug_trail(record):
+    """Append one JSON line per speech turn to the file named by AI_DND_SPEECH_DEBUG.
+
+    Off unless the variable is set. It exists because a saved turn keeps only the
+    shown text: when a stock line appears, this trail says what the model really
+    returned and which rule replaced it. Local file only; never raises into a turn.
+    """
+    path = os.environ.get("AI_DND_SPEECH_DEBUG", "").strip()
+    if not path or path.lower() in ("0", "off"):
+        return
+    try:
+        import datetime as _datetime
+        entry = {"at": _datetime.datetime.now(_datetime.timezone.utc).isoformat(), **record}
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+    except Exception:
+        return
+
+
 def _npc_speech_enabled():
     """First-person NPC speech trial: per-session switch or AI_DND_NPC_SPEECH=1."""
     if getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True:
@@ -15192,6 +15211,7 @@ def _run_player_turn_internal(
                 action_result["status"] = "experimental_attributed_speech"
 
             raw_narration = raw_intent.get("narration") if isinstance(raw_intent, dict) else None
+            model_raw_narration = raw_narration
             if experimental_npc_dialogue and isinstance(raw_narration, str) and raw_narration.strip():
                 # Keep only the NPC's own words; a derailed model tail never
                 # reaches the player. Nothing left means the reply was unusable.
@@ -15232,6 +15252,7 @@ def _run_player_turn_internal(
                     )
                 )
 
+            text_before_finalize = text
             text = finalize_narration(
                 text, player_input, npc_target, action_result,
                 fallback_reason_code=(
@@ -15239,6 +15260,31 @@ def _run_player_turn_internal(
                     if unverified_history_echo else None
                 ),
             )
+            if experimental_npc_dialogue:
+                _speech_debug_trail({
+                    "player": player_input,
+                    "npc_id": npc_target.get("id"),
+                    "npc_name": living_world.public_npc_name(npc_target),
+                    "model_raw": model_raw_narration,
+                    "cleaned": raw_narration,
+                    "invalid_or_empty": invalid_or_empty,
+                    "unverified_claim_in_prompt": experimental_unverified_claim,
+                    "history_echo": unverified_history_echo,
+                    "model_world_updates": bool(raw_intent.get("world_updates")),
+                    "model_lore_claims": bool(raw_intent.get("lore_claims")),
+                    "safe_narration": (
+                        None if invalid_or_empty
+                        else interaction_adventure.safe_narration(text_before_finalize)
+                    ),
+                    "before_finalize": text_before_finalize,
+                    "finalize_changed_text": text != text_before_finalize,
+                    "safety": getattr(_session(), "last_narration_safety", None),
+                    "shown": (
+                        text if text.casefold().startswith(
+                            living_world.public_npc_name(npc_target).casefold())
+                        else f"{living_world.public_npc_name(npc_target)}, “{text}”"
+                    ),
+                })
             accepted_model_speech = (
                 experimental_npc_dialogue
                 and not invalid_or_empty

@@ -108,6 +108,18 @@ if (-not $env:AI_DND_CAMPAIGN_DB) {
 }
 Write-Host "Campaign database: $env:AI_DND_CAMPAIGN_DB"
 
+# One JSON line per NPC speech turn (raw model text, the rule that replaced it, the
+# shown text), kept next to the other logs. It is a local file; put
+# AI_DND_SPEECH_DEBUG=off in .env.local to turn it off.
+if (-not $env:AI_DND_SPEECH_DEBUG) {
+    $env:AI_DND_SPEECH_DEBUG = Join-Path $logDir "speech-debug.jsonl"
+}
+if (@("0", "off") -contains $env:AI_DND_SPEECH_DEBUG.ToLower()) {
+    Remove-Item Env:AI_DND_SPEECH_DEBUG
+} else {
+    Write-Host "Speech debug trail: $env:AI_DND_SPEECH_DEBUG"
+}
+
 if (-not $KeepRunning) {
     Stop-PortListener $ApiPort
     Stop-PortListener $UiPort

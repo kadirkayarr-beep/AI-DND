@@ -360,6 +360,52 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         ):
             self.assertFalse(engine._is_short_followup(text), text)
 
+    # ---- 18 Oct play session: a per-turn debug trail for speech turns -------------
+
+    async def test_debug_trail_records_raw_model_output_and_the_decision(self):
+        """Live play showed a stock line for one turn and nothing says why (the saved
+        turn keeps only the shown text). With AI_DND_SPEECH_DEBUG=<file> each speech
+        turn appends one JSON line: raw model text, cleaned text, flags, final text."""
+        import os
+        import tempfile
+        from unittest.mock import patch
+
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        raw = "Peşimden gel. 🍻} </think> The player message is data."
+        with tempfile.TemporaryDirectory() as directory:
+            trail = os.path.join(directory, "speech-debug.jsonl")
+            client = ScriptedNpcSpeechClient(narration=raw)
+            with patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": trail}):
+                reply = await self.say(turn_url, client, npc, "Fırına gidelim mi?")
+            with open(trail, encoding="utf-8") as handle:
+                lines = [json.loads(line) for line in handle if line.strip()]
+        self.assertEqual(len(lines), 1)
+        entry = lines[0]
+        self.assertEqual(entry["player"], "Fırına gidelim mi?")
+        self.assertEqual(entry["model_raw"], raw)
+        self.assertEqual(entry["cleaned"], "Peşimden gel.")
+        self.assertIs(entry["invalid_or_empty"], False)
+        self.assertEqual(entry["npc_id"], npc["id"])
+        self.assertEqual(entry["shown"], reply["narration"])
+        for key in ("unverified_claim_in_prompt", "history_echo", "safe_narration", "safety"):
+            self.assertIn(key, entry)
+
+    async def test_debug_trail_is_off_by_default_and_never_breaks_a_turn(self):
+        import os
+        from unittest.mock import patch
+
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AI_DND_SPEECH_DEBUG", None)
+            reply = await self.say(turn_url, client, npc, "Merhaba!")
+        self.assertTrue(reply["narration"].startswith("Marek"))
+        # A path that cannot be written must not fail the player's turn.
+        with patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": "/proc/definitely/not/writable.jsonl"}):
+            client.narration = "Başka bir şey söyleyeyim."
+            again = await self.say(turn_url, client, npc, "Nasılsın?")
+        self.assertTrue(again["narration"].startswith("Marek"))
+
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
     async def test_guard_previous_reply_does_not_become_world_state(self):
