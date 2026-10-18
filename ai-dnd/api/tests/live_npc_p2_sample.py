@@ -145,7 +145,12 @@ class LiveNpcP2Sample(unittest.IsolatedAsyncioTestCase):
             prompt = entry["messages"][-1].get("content", "") if entry["messages"] else ""
             carried.append({
                 "call": entry["call"],
-                "previous_npc_replies_in_prompt": '"previous_npc_replies":[{' in prompt,
+                # Field names follow the real context: conversation_so_far lists
+                # the (player -> npc_reply) pairs actually shown to the player.
+                "previous_npc_replies_in_prompt": (
+                    '"conversation_so_far":[{' in prompt
+                    and '"npc_reply":"' in prompt
+                ),
             })
 
         summary = {

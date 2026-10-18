@@ -42,6 +42,15 @@ if (-not $env:OLLAMA_HOST) {
 }
 $env:AI_DND_API_ORIGIN = "http://127.0.0.1:$ApiPort"
 
+# First-person NPC speech for "Say" turns is on by default for the player path.
+# To turn it off, set AI_DND_NPC_SPEECH=0 in this PowerShell window before
+# running this script. It only reaches a FastAPI process started by this script:
+# if the API is already running, stop it first so it restarts with this setting.
+if (-not $env:AI_DND_NPC_SPEECH) {
+    $env:AI_DND_NPC_SPEECH = "1"
+}
+Write-Host "NPC speech (AI_DND_NPC_SPEECH): $env:AI_DND_NPC_SPEECH"
+
 $health = "http://127.0.0.1:$ApiPort/api/game/health"
 if (-not (Test-HttpOk $health)) {
     Write-Host "Starting FastAPI on :$ApiPort"
