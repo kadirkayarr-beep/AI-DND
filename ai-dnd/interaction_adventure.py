@@ -923,7 +923,12 @@ def immersive_unknown(npc=None, seed=""):
             _UNKNOWN_LINES
         )
         return _UNKNOWN_LINES[index].format(n=living_world.public_npc_name(npc))
-    return "Şu ana kadar gördüklerin bu düşünceyi doğrulamıyor. Nasıl ilerlemek istediğin sana kalmış."
+    # Narrator voice: the world simply gives no sign yet; the player is not told
+    # that anything was checked or refused.
+    return (
+        "Çevrende bu düşünceyi destekleyen bir iz göremiyorsun; biraz daha "
+        "bakınmak ya da birine sormak yeni bir kapı açabilir."
+    )
 
 
 def safe_narration(text):

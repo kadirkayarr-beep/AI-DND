@@ -6300,6 +6300,24 @@ def _npc_speech_rejects_claim(text):
     return bool(_CLAIM_REJECTION_RE.search(folded))
 
 
+def _npc_speech_is_claim_refusal(text, npc=None):
+    """True for an NPC line that refuses an unrecorded claim in character.
+
+    Either the model's own refusal (checked by _npc_speech_rejects_claim, which
+    already turns down any accepting line) or one of the in-character stock
+    denial lines used when the model's reply had to be replaced.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return False
+    if _npc_speech_rejects_claim(text):
+        return True
+    name = living_world.public_npc_name(npc) if isinstance(npc, dict) else ""
+    return any(
+        text.strip() == line.format(n=name)
+        for line in _CLAIM_DENIAL_LINES
+    )
+
+
 def _experimental_npc_dialogue_context(world, npc, *, unverified_claim=False):
     """Small, target-bound context for the internal attributed-speech trial."""
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
@@ -7292,7 +7310,12 @@ def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, p
             denial_pattern = (
                 r"\b(?:hatırlam\w*|hatirlam\w*|kayıt\s+yok|kayit\s+yok|bilmi\w*|"
                 r"bahsetme\w*|söyleme\w*|soyleme\w*|anlatma\w*|demedi\w*|"
-                r"doğrulanm\w*|dogrulanm\w*|belirsiz|bulunmuyor|böyle\s+bir\s+şey\b)"
+                r"doğrulanm\w*|dogrulanm\w*|belirsiz|bulunmuyor|böyle\s+bir\s+şey\b|"
+                # In-character refusals: a person rejecting a claim does not need
+                # to talk about records ("söz vermedim", "beni karıştırıyorsun").
+                r"vermedim|vermem\b|vermedik|karıştır\w*|karistir\w*|"
+                r"yanıl\w*|yanil\w*|yanlış|yanlis|hayır|hayir|anımsam\w*|animsam\w*|"
+                r"(?:öyle|oyle)\s+bir\s+(?:söz|soz|şey|sey)|sözüm\s+yok|sozum\s+yok)"
             )
             if not re.search(denial_pattern, text):
                 return ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", player_input[:160])
@@ -8693,37 +8716,48 @@ _LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
     r"ne kadar uzak|arasi)\b",
     re.IGNORECASE,
 )
+# Unverified lore is answered inside the fiction. With a present NPC the person
+# says, in their own voice, that they do not know; without one the narrator
+# describes how unsettled the talk around the player is. Nothing here names
+# records, data, memory or verification, and nothing here asserts a fact.
 _UNVERIFIED_LORE_RESPONSE = (
-    "Bu konuda güvenilir bir doğrulamam yok; kesin yanıt belirsiz."
+    "Bu konuda duyduğun hiçbir söz sağlam görünmüyor; doğrusunu öğrenmek için "
+    "biraz daha dinlemen gerekecek."
+)
+_UNVERIFIED_DISTANCE_RESPONSE = (
+    "Yolun uzunluğu hakkında duyduklarının hiçbiri birbirini tutmuyor; kimi bir "
+    "günlük yürüyüş diyor, kimi iki. Kesin bir ölçü henüz elinde değil."
+)
+_UNVERIFIED_RULER_RESPONSE = (
+    "Bu yerin yöneticisinin kim olduğu hakkında herkes başka bir şey fısıldıyor; "
+    "hangisinin doğru olduğunu henüz seçemiyorsun."
 )
 
 
 def _unverified_lore_response(player_input, npc_target=None):
     text = local_dialogue.normalize_text(player_input)
+    speaking_npc = npc_target if isinstance(npc_target, dict) else None
     if re.search(r"\b(?:mesafe|uzaklik|kac mil|kac kilometre|ne kadar uzak)\b", text):
-        return (
-            "İki yer arasındaki mesafe için güvenilir bir ölçüm kaydı yok; "
-            "kesin uzaklık doğrulanamıyor."
-        )
+        if speaking_npc:
+            return interaction_adventure.immersive_unknown(speaking_npc, player_input)
+        return _UNVERIFIED_DISTANCE_RESPONSE
     if re.search(
         r"\b(?:kralice|kral|hukumdar|yonetici|lord|king|queen|ruler)\w*\b",
         text,
     ):
-        if (
-            isinstance(npc_target, dict)
-            and (
-                _entity_reference_in_text(npc_target.get("name", ""), player_input)
-                or _entity_reference_in_text(npc_target.get("role", ""), player_input)
-            )
+        if speaking_npc and (
+            _entity_reference_in_text(speaking_npc.get("name", ""), player_input)
+            or _entity_reference_in_text(speaking_npc.get("role", ""), player_input)
         ):
             return (
-                f'{living_world.public_npc_name(npc_target)}, “Bu konuda kesin bir şey '
+                f'{living_world.public_npc_name(speaking_npc)}, “Bu konuda kesin bir şey '
                 'söyleyemem; yanlış yönlendirmek istemem,” der.'
             )
-        return (
-            "Bu yerin yöneticisinin kim olduğu konusunda güvenilir bir "
-            "doğrulamam yok."
-        )
+        if speaking_npc:
+            return interaction_adventure.immersive_unknown(speaking_npc, player_input)
+        return _UNVERIFIED_RULER_RESPONSE
+    if speaking_npc:
+        return interaction_adventure.immersive_unknown(speaking_npc, player_input)
     return _UNVERIFIED_LORE_RESPONSE
 
 
@@ -10468,8 +10502,8 @@ def finalize_narration(
         )
     ):
         narration = (
-            "Bu konuşmayı kiminle yaptığını güvenilir biçimde çıkaramıyorum; "
-            "yanlış kişiye ait bir anıyı aktarmayacağım."
+            "Çevrendeki yüzler arasında bu sözü kimin verdiğini seçemiyorsun; "
+            "kimse bunu üstlenmiyor."
         )
         decision = {
             "reason_code": "NPC_MEMORY_UNVERIFIED_NO_STABLE_ID",
@@ -10510,16 +10544,25 @@ def finalize_narration(
             }
             handling = "python_memory_response"
         elif not npc_memory_supports_claim(history_target, player_input):
-            if history_target.get("location") == _session().world_state.get("location"):
-                narration = historical_claim_denial(history_target)
-            else:
-                narration = f"{history_target['name']} şu anda burada bulunmuyor; ayrıca geçmişte böyle bir şey söylediğine dair bir kayıt yok."
-            decision = {
-                "reason_code": "NPC_MEMORY_UNSUPPORTED_CLAIM",
-                "trigger_span": None,
-                "scene_type": _narration_scene_type(action_result),
-            }
-            handling = "python_memory_response"
+            # The first-person speech path already verified that this line
+            # refuses the unrecorded claim (an accepting line is replaced before
+            # it gets here). Keep the NPC's own in-character words instead of
+            # overwriting them with a stock denial.
+            keep_in_character_refusal = (
+                (action_result or {}).get("status") == "experimental_attributed_speech"
+                and _npc_speech_is_claim_refusal(narration, history_target)
+            )
+            if not keep_in_character_refusal:
+                if history_target.get("location") == _session().world_state.get("location"):
+                    narration = historical_claim_denial(history_target)
+                else:
+                    narration = f"{history_target['name']} şu anda burada değil; ne dediğini ona sormadan öğrenemezsin."
+                decision = {
+                    "reason_code": "NPC_MEMORY_UNSUPPORTED_CLAIM",
+                    "trigger_span": None,
+                    "scene_type": _narration_scene_type(action_result),
+                }
+                handling = "python_memory_response"
         else:
             contradiction = _narration_contradicts_supported_name_memory(
                 history_target, player_input, narration
@@ -14748,9 +14791,9 @@ def _run_player_turn_internal(
             if claimed_npc and claimed_npc.get("location") == world_state.get("location"):
                 response = historical_claim_denial(claimed_npc, player_input)
             elif claimed_npc:
-                response = f"{living_world.public_npc_name(claimed_npc)} şu anda burada bulunmuyor; ayrıca geçmişte böyle bir şey söylediğine dair bir kayıt yok."
+                response = f"{living_world.public_npc_name(claimed_npc)} şu anda burada değil; ne dediğini ona sormadan öğrenemezsin."
             else:
-                response = "Geçmişte böyle bir konuşma geçtiğine dair doğrulanmış bir kampanya kaydı yok."
+                response = "Böyle bir konuşmayı kimin yaptığını kestiremiyorsun; yanındakilerden hiçbiri bunu üstlenmiyor."
             action_result = {
                 "action": "dialogue",
                 "status": "unverified",
