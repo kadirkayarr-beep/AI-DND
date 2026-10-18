@@ -19,6 +19,37 @@ function Test-HttpOk([string]$Url) {
     }
 }
 
+# Logs of the background processes: they run hidden, so without these a failure
+# would be invisible. Shown automatically when something is NOT READY.
+$logDir = Join-Path $env:TEMP "ai-dnd-logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$apiOut = Join-Path $logDir "api.out.log"
+$apiErr = Join-Path $logDir "api.err.log"
+$uiOut = Join-Path $logDir "ui.out.log"
+$uiErr = Join-Path $logDir "ui.err.log"
+
+function Test-PythonModules {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & python -c "import uvicorn, fastapi, httpx, ollama" 2>&1 | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Show-Logs {
+    foreach ($log in @($apiOut, $apiErr, $uiOut, $uiErr)) {
+        if ((Test-Path $log) -and ((Get-Item $log).Length -gt 0)) {
+            Write-Host "--- $log (last lines)"
+            Get-Content $log -Tail 15
+        }
+    }
+}
+
 Write-Host "Checking Ollama http://127.0.0.1:11434/api/tags (do not use 'ollama run')"
 if (-not (Test-HttpOk "http://127.0.0.1:11434/api/tags")) {
     Write-Host "NOT READY: Ollama is not answering /api/tags. Start the Ollama service, then retry."
@@ -53,13 +84,18 @@ Write-Host "NPC speech (AI_DND_NPC_SPEECH): $env:AI_DND_NPC_SPEECH"
 
 $health = "http://127.0.0.1:$ApiPort/api/game/health"
 if (-not (Test-HttpOk $health)) {
-    Write-Host "Starting FastAPI on :$ApiPort"
+    if (-not (Test-PythonModules)) {
+        Write-Host "NOT READY: Python (python) is missing or lacks uvicorn/fastapi/httpx/ollama."
+        Write-Host "Try: python -m pip install fastapi uvicorn httpx ollama pyjwt pyyaml cryptography"
+        exit 1
+    }
+    Write-Host "Starting FastAPI on :$ApiPort (logs: $logDir)"
     $apiArgs = @(
         "-m", "uvicorn", "api.main:app",
         "--host", "127.0.0.1",
         "--port", "$ApiPort"
     )
-    Start-Process -FilePath "python" -ArgumentList $apiArgs -WorkingDirectory (Join-Path $root "ai-dnd") -WindowStyle Minimized
+    Start-Process -FilePath "python" -ArgumentList $apiArgs -WorkingDirectory (Join-Path $root "ai-dnd") -WindowStyle Hidden -RedirectStandardOutput $apiOut -RedirectStandardError $apiErr
 }
 
 $uiUrl = "http://127.0.0.1:$UiPort/ai-dnd-experience/"
@@ -68,9 +104,25 @@ if (-not $uiListening) {
     Write-Host "Starting experience UI on :$UiPort"
     $env:PORT = "$UiPort"
     $env:BASE_PATH = "/ai-dnd-experience/"
-    Start-Process -FilePath "corepack" -ArgumentList @(
-        "pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "dev"
-    ) -WorkingDirectory $root -WindowStyle Minimized
+    $pnpmLauncher = $null
+    if (Get-Command corepack -ErrorAction SilentlyContinue) {
+        $pnpmLauncher = @("corepack", "pnpm")
+    } elseif (Get-Command pnpm -ErrorAction SilentlyContinue) {
+        $pnpmLauncher = @("pnpm")
+    }
+    if (-not $pnpmLauncher) {
+        Write-Host "NOT READY: neither corepack nor pnpm was found. Install pnpm, then run 'pnpm install' once in $root."
+        exit 1
+    }
+    if (-not (Test-Path (Join-Path $root "node_modules"))) {
+        Write-Host "NOT READY: node_modules is missing. Run 'pnpm install' once in $root, then retry."
+        exit 1
+    }
+    # cmd.exe /c: pnpm and corepack are .cmd shims that Start-Process cannot run directly.
+    $uiArgs = @("/c") + $pnpmLauncher + @(
+        "--filter", "@workspace/ai-dnd-experience", "run", "dev"
+    )
+    Start-Process -FilePath "cmd.exe" -ArgumentList $uiArgs -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $uiOut -RedirectStandardError $uiErr
 }
 
 $deadline = (Get-Date).AddSeconds($WaitSeconds)
@@ -90,4 +142,5 @@ if ($apiOk -and $uiOk) {
     exit 0
 }
 Write-Host "NOT READY within $WaitSeconds s."
+Show-Logs
 exit 1
