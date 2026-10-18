@@ -315,6 +315,51 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(options["repeat_penalty"], 1.0)
         self.assertLessEqual(options["repeat_penalty"], 1.08)
 
+    # ---- 18 Oct live sample 3 (4675dcd): short follow-up still pulled to the rumor ----
+
+    async def test_live3_short_followup_drops_rumor_and_names_the_referent(self):
+        """Live T5: 'Neden onu?' was answered with the rumor, not the coffee reply,
+        although the previous exchange was in the prompt. For a short follow-up
+        the rumor and old player lines are withheld and the last line says what
+        the follow-up refers to."""
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        await self.say(turn_url, client, npc, "Yağmurda ne içersin?")
+        client.narration = "Kahve, çünkü sıcak tutuyor."
+        await self.say(turn_url, client, npc, "Neden onu?")
+        prompt = self.user_prompt(client, 1)
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
+        self.assertEqual(context["perspective"], [], "rumor must be withheld on a follow-up")
+        self.assertEqual(context["recent_player_utterances"], [])
+        self.assertEqual(context["last_exchange"]["player"], "Yağmurda ne içersin?")
+        tail = prompt.rstrip().splitlines()[-1]
+        self.assertIn("Neden onu?", tail)
+        self.assertIn(FIRST_REPLY.rstrip("."), tail, "last line must restate the referent")
+
+    async def test_live3_a_fresh_topic_question_keeps_the_rumor_available(self):
+        _, _, _, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
+        await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
+        client.narration = "Işıktan bahsedeyim."
+        await self.say(turn_url, client, npc, "Arşivde garip bir şey duydun mu?")
+        prompt = self.user_prompt(client, 1)
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
+        self.assertTrue(context["perspective"], "a real question keeps its context")
+
+    def test_live3_followup_detector_is_conservative(self):
+        import game as engine
+        for text in ("Neden?", "Neden onu?", "Nasıl yani?", "Niye?", "Peki ya sen?", "Ne demek bu?"):
+            self.assertTrue(engine._is_short_followup(text), text)
+        for text in (
+            "Neden bu şehirde kimse akşamları dışarı çıkmıyor?",
+            "Arşivde garip bir şey duydun mu?",
+            "Merhaba!",
+            "",
+        ):
+            self.assertFalse(engine._is_short_followup(text), text)
+
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
     async def test_guard_previous_reply_does_not_become_world_state(self):

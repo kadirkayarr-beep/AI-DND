@@ -6402,7 +6402,9 @@ def _npc_speech_is_claim_refusal(text, npc=None):
     )
 
 
-def _experimental_npc_dialogue_context(world, npc, *, unverified_claim=False):
+def _experimental_npc_dialogue_context(
+    world, npc, *, unverified_claim=False, followup=False
+):
     """Small, target-bound context for the internal attributed-speech trial."""
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
@@ -6452,7 +6454,10 @@ def _experimental_npc_dialogue_context(world, npc, *, unverified_claim=False):
             "role": living_world.public_npc_role(npc),
         },
         "shareable_profile_facts": source.get("conversation_candidates", []),
-        "perspective": perspective,
+        # A bare follow-up ("Neden onu?") is about the last exchange. Rumors and
+        # old player lines pulled a small model away from it (18 Oct live T5),
+        # so they are withheld for that turn only.
+        "perspective": [] if followup else perspective,
         # Prior NPC prose is never evidence. Only exchanges the player actually
         # saw are carried (player line -> NPC line), newest last, so short
         # follow-ups ("Neden?", "onu") resolve against last_exchange.
@@ -6465,12 +6470,47 @@ def _experimental_npc_dialogue_context(world, npc, *, unverified_claim=False):
             {"player": exchanges[-1]["player"], "npc_reply": exchanges[-1]["npc"]}
             if exchanges else None
         ),
-        "recent_player_utterances": recent_player_utterances[-4:],
+        "recent_player_utterances": [] if followup else recent_player_utterances[-4:],
         **(
             {"player_claims_unrecorded_past_event": True}
             if unverified_claim else {}
         ),
     }
+
+
+_FOLLOWUP_WORDS = frozenset({
+    "neden", "niye", "nicin", "nasil", "yani", "peki", "onu", "bunu", "sunu",
+    "hangisi", "demek",
+})
+
+
+def _is_short_followup(player_input):
+    """True for a short reply-referring turn: "Neden?", "Neden onu?", "Nasıl yani?".
+
+    Deliberately conservative (at most three words, one of a closed set): a real
+    new question keeps all of its context, only a bare follow-up is narrowed.
+    """
+    if not isinstance(player_input, str) or not player_input.strip():
+        return False
+    words = local_dialogue.normalize_text(player_input).split()
+    return 0 < len(words) <= 3 and any(word in _FOLLOWUP_WORDS for word in words)
+
+
+def _experimental_speech_final_line(player_input, interaction_context):
+    """Last prompt line: the player's message, and for a bare follow-up what it refers to."""
+    line = f"Current player message: {player_input}"
+    last = (
+        interaction_context.get("last_exchange")
+        if isinstance(interaction_context, dict) else None
+    )
+    if _is_short_followup(player_input) and isinstance(last, dict):
+        npc_line = str(last.get("npc_reply", "")).strip()[:300]
+        if npc_line:
+            line += (
+                " (a short follow-up to YOUR previous reply, which was: "
+                f"“{npc_line}”. Answer about that reply.)"
+            )
+    return line
 
 
 def _experimental_speech_recap(interaction_context):
@@ -6598,7 +6638,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + json.dumps(interaction_context, ensure_ascii=False, separators=(",", ":"))
             + "\n"
             + _experimental_speech_recap(interaction_context)
-            + f"Current player message: {player_input}"
+            + _experimental_speech_final_line(player_input, interaction_context)
         )
     schema = (interaction_adventure.intent_schema(
                   INTENT_SCHEMA,
@@ -15064,6 +15104,7 @@ def _run_player_turn_internal(
                 _experimental_npc_dialogue_context(
                     world_state, npc_target,
                     unverified_claim=experimental_unverified_claim,
+                    followup=_is_short_followup(player_input),
                 )
                 if experimental_npc_dialogue
                 else interaction_adventure.context(
