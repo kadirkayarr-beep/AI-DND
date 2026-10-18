@@ -50,6 +50,31 @@ function Show-Logs {
     }
 }
 
+# Local settings that must not be committed (Clerk sign-in) live in .env.local at
+# the repository root: one NAME=value per line, # for comments. A value already
+# set in this window wins. See .env.example.
+$envFile = Join-Path $root ".env.local"
+if (Test-Path $envFile) {
+    foreach ($line in Get-Content $envFile) {
+        # Trim also drops a UTF-8 byte-order mark that some editors put on line 1.
+        $text = $line.Trim().TrimStart([char]0xFEFF)
+        if ($text -eq "" -or $text.StartsWith("#")) { continue }
+        $index = $text.IndexOf("=")
+        if ($index -lt 1) { continue }
+        $name = $text.Substring(0, $index).Trim()
+        $value = $text.Substring($index + 1).Trim().Trim('"')
+        if (-not (Test-Path "Env:$name")) {
+            Set-Item -Path "Env:$name" -Value $value
+        }
+    }
+    Write-Host "Loaded local settings from $envFile"
+}
+if (-not $env:VITE_CLERK_PUBLISHABLE_KEY -or -not $env:AI_DND_AUTH_MODE) {
+    Write-Host "NOT READY: sign-in is not configured. The game shows 'Giris su anda kullanilamiyor' without it."
+    Write-Host "Create $envFile with the Clerk settings listed in .env.example, then run this script again."
+    exit 1
+}
+
 Write-Host "Checking Ollama http://127.0.0.1:11434/api/tags (do not use 'ollama run')"
 if (-not (Test-HttpOk "http://127.0.0.1:11434/api/tags")) {
     Write-Host "NOT READY: Ollama is not answering /api/tags. Start the Ollama service, then retry."
