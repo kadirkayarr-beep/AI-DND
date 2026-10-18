@@ -449,6 +449,20 @@ def unaddressed_work_answer(player_input: Any) -> tuple[str, str] | None:
         )
     return None
 
+# Capitalized only because they start the sentence: "Olur, birlikte gidelim." is
+# not an address to someone called Olur. Normalized (accent-folded) forms.
+_NOT_A_NAME_BEFORE_COMMA = frozenset({
+    "evet", "hayir", "peki", "tamam", "tamamdir", "selam", "merhaba", "lutfen", "ben",
+    "olur", "olsun", "tabii", "tabi", "elbette", "belki", "hadi", "haydi", "gunaydin",
+    "iyi", "tesekkurler", "tesekkur", "sagol", "pardon", "affedersin", "affedersiniz",
+    "kusura", "bence", "sence", "yani", "aynen", "dogru", "yanlis", "kesinlikle", "aslinda",
+    "simdi", "sonra", "once", "bugun", "yarin", "dun", "burada", "orada", "ama", "fakat",
+    "cunku", "ayrica", "ancak", "belkide", "hmm", "hii", "ah", "oh", "off", "bak", "dinle",
+    "bakar", "bakin", "dur", "bekle", "sakin", "neyse", "tamamdir", "anladim", "anliyorum",
+    "gercekten", "sahi", "gule", "hosca", "hoscakal", "iyiki", "ne", "nasil", "neden",
+})
+
+
 def unresolved_named_address(player_input: Any, available: list) -> str | None:
     """An explicit unknown vocative cannot inherit the active conversation."""
     if not isinstance(player_input, str):
@@ -458,7 +472,7 @@ def unresolved_named_address(player_input: Any, available: list) -> str | None:
         return None
     name = match.group(1)
     normalized = normalize_text(name)
-    if normalized in {"evet", "hayir", "peki", "tamam", "selam", "merhaba", "lutfen", "ben"}:
+    if normalized in _NOT_A_NAME_BEFORE_COMMA:
         return None
     for npc in available:
         if not isinstance(npc, dict):

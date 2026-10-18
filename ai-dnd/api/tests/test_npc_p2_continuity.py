@@ -491,6 +491,73 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn(phrase, text)
                 self.assertIn("“", text, "the NPC should speak, in quotes")
 
+    # ---- 18 Oct play session 3: narrator rules cutting NPC speech (speech-debug.jsonl) ----
+
+    async def test_play3_an_npc_may_ask_the_player_what_they_want(self):
+        """Trail #1: model said "...dinleniyorum. Ne istiyorsun?"; the narrator rule
+        INVENTED_PLAYER_MENTAL_STATE cut the question ("istiyorsun")."""
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(
+            narration="Selam, işlerimi bitirip biraz dinleniyorum. Ne istiyorsun?"
+        )
+        reply = await self.say(turn_url, client, npc, "Yakındaki kişi ile konuşmak istiyorum.")
+        self.assertIn("Ne istiyorsun?", reply["narration"])
+
+    async def test_play3_an_npc_may_invent_a_street_and_it_stays_only_speech(self):
+        """Trail #4: model named "Gümüş Çarşı" and "Tercüman Sokağı"; the rule
+        UNREGISTERED_NAMED_ENTITY (triggered by the sentence-initial "Orada eski")
+        replaced the answer with "Emin değilim". Invented local names are the NPC's
+        words: shown, attributed, never registered as places by themselves."""
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        locations_before = sorted(session.world_state.get("locations", {}))
+        line = (
+            "Yalnızca Gümüş Çarşı'nın sonundaki Tercüman Sokağı'na gitmelisin. "
+            "Orada eski dostlarla tanışabilirsin. Burada sana yardım ederim."
+        )
+        client = ScriptedNpcSpeechClient(narration=line)
+        reply = await self.say(
+            turn_url, client, npc,
+            "Kütüphaneye ulaşmak için hangi sokağa gitmeliyim?",
+        )
+        self.assertIn("Tercüman Sokağı", reply["narration"])
+        self.assertIn("Orada eski dostlarla", reply["narration"])
+        self.assertNotIn("Emin değilim", reply["narration"])
+        self.assertEqual(sorted(session.world_state.get("locations", {})), locations_before)
+
+    async def test_play3_guard_narrator_invented_names_are_still_rejected(self):
+        _, _, session, _, npc = await self.campaign_with_npc()
+        shown = game.finalize_narration(
+            "Garrick sana yaklaşır ve yanıt verir.",
+            "Etrafıma bakıyorum.", npc_target=None,
+            action_result={"action": "observe", "status": "completed"}, session=session,
+        )
+        self.assertNotIn("Garrick", shown)
+
+    async def test_play3_guard_an_npc_still_may_not_read_the_players_mind_in_a_statement(self):
+        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        client = ScriptedNpcSpeechClient(
+            narration="Korkuyorsun, belli. İçten içe pişmansın ve kaçmak istiyorsun."
+        )
+        reply = await self.say(turn_url, client, npc, "Merhaba!")
+        self.assertNotIn("pişmansın", reply["narration"])
+
+    def test_play3_common_words_before_a_comma_are_not_names(self):
+        """Transcript: "Olur, birlikte gidelim." -> "Burada Olur adıyla tanıdığın biri
+        görünmüyor. Kiminle konuşmak istiyorsun?" """
+        import local_dialogue
+
+        npcs = [{"id": "npc_1", "name": "Rowan", "role": "Kent sakini"}]
+        for word in ("Olur", "Tabii", "Tamam", "Elbette", "Belki", "Günaydın", "Hadi", "Teşekkürler",
+                     "Aynen", "Pardon", "Bence", "Yani", "Tamamdır", "Hayır", "Şimdi", "Sonra"):
+            with self.subTest(word=word):
+                self.assertIsNone(
+                    local_dialogue.unresolved_named_address(f"{word}, birlikte gidelim.", npcs), word
+                )
+        # A real unknown name still is an unresolved address.
+        self.assertEqual(
+            local_dialogue.unresolved_named_address("Zorlo, bana yardım eder misin?", npcs), "Zorlo"
+        )
+
     # ---- GUARD (pass today; the fix must not break them) ----------------
 
     async def test_guard_previous_reply_does_not_become_world_state(self):

@@ -7603,6 +7603,18 @@ def _unverified_player_mental_state_trigger(player_action_text, second_person_ve
     return None
 
 
+def _trigger_sentence_is_question(text, trigger):
+    """True when the first sentence containing `trigger` ends with a question mark."""
+    needle = str(trigger or "").casefold()
+    if not needle:
+        return False
+    for paragraph in str(text).split("\n\n"):
+        for sentence in re.split(r"(?<=[.!?])\s+", paragraph.strip()):
+            if needle in sentence.casefold():
+                return sentence.rstrip("”\"' ").endswith("?")
+    return False
+
+
 def _narration_safety_decision(narration, player_input, npc_target=None, action_result=None):
     """Return a reason-coded safety decision without changing canonical state."""
     world_state = _session().world_state
@@ -8022,6 +8034,12 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     mental_state_trigger = _unverified_player_mental_state_trigger(
         player_action_text, second_person_verb
     )
+    if mental_state_trigger and npc_speech and _trigger_sentence_is_question(
+        narration, mental_state_trigger
+    ):
+        # A person asking "Ne istiyorsun?" does not assert the player's mind;
+        # statements about it ("Korkuyorsun.") stay rejected.
+        mental_state_trigger = None
     if mental_state_trigger:
         return reject("INVENTED_PLAYER_MENTAL_STATE", mental_state_trigger)
 
@@ -8134,7 +8152,13 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı))",
         r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
     )
-    for pattern in name_patterns:
+    # These patterns read "<Capitalized word> sana/eski/yaşlı/..." as a narrator
+    # inventing a person ("Marek sana yaklaşır"). In first-person NPC speech they
+    # hit ordinary sentences ("Orada eski dostlarla tanışırsın", "Burada sana
+    # yardım ederim") and cut useful answers, and an NPC naming a street or a
+    # person is the NPC's own attributed speech, not a registered fact: it only
+    # becomes a place or person when the player engages and Python accepts it.
+    for pattern in (() if npc_speech else name_patterns):
         for match in re.finditer(pattern, narration):
             quote_prefix = narration[:match.start()].rstrip()
             if match.group(1).casefold() == "bir" and quote_prefix.endswith(
@@ -8147,7 +8171,7 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
                 registered_names | registered_name_tokens | known_places
             ) and normalized_candidate not in known_place_forms:
                 return reject("UNREGISTERED_NAMED_ENTITY", match.group(1))
-    if _has_unregistered_person_name(narration):
+    if not npc_speech and _has_unregistered_person_name(narration):
         return reject("UNREGISTERED_NAMED_ENTITY")
 
     unregistered_object = _unregistered_persistent_object_claim(
@@ -11220,12 +11244,37 @@ def _commit_travel_action(action_result):
     return True
 
 
-_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapla|bicakla|yumrukla)"
+# Verb forms, not bare prefixes: a prefix match read "keşfediyorum", "kesinlikle"
+# (kes-), "vurgu" (vur-) and "dövme" (döv-) as attacks, so ordinary exploration
+# turns ended in a combat target error. Vowel harmony drops the stem's last vowel
+# (bıçaklıyorum, saplıyorum, yumrukluyorum), so those stems stop one letter early.
+_ATTACK_VERB_PATTERN = (
+    r"(?:saldir|vur(?!gu)|dov(?:mek|us|uyor|du|ul)|"
+    r"kes(?:mek|iyor|ti|er|eyim|elim|sem|ecek|erim|erek)|"
+    r"sapl(?:a|iyor|ar|ad|ay|ak)|bicakl(?:a|iyor|ar|ad|ay|ak)|"
+    r"yumrukl(?:a|uyor|ar|ad|ay|ak))"
+)
+_KNOCKING_AT_RE = re.compile(
+    r"\b(?:kapi|pencere|duvar|masa|tezgah|sandik|tabela|levha|kilit)\w*\s+"
+    r"(?:(?:uc|iki|bir|birkac|kez|defa|kere|nazikce|hafifce|sertce|yavasca|usulca|"
+    r"tekrar|hizla|\w+(?:ip|up))\s+)*$"
+)
 
 
 def _has_explicit_attack_verb(player_input):
     text = _normalize_turkish_typos(player_input)
-    return bool(re.search(rf"\b{_ATTACK_VERB_PATTERN}\w*\b", text))
+    matches = list(re.finditer(rf"\b{_ATTACK_VERB_PATTERN}\w*\b", text))
+    if not matches:
+        return False
+    # "Kapıya (üç kez nazikçe) vuruyorum" is knocking, not an attack: the thing
+    # being struck is the door/window/table right before the verb.
+    if all(
+        match.group(0).startswith("vur")
+        and _KNOCKING_AT_RE.search(text[:match.start()])
+        for match in matches
+    ):
+        return False
+    return True
 
 
 def _is_explicitly_negated_attack(player_input):
