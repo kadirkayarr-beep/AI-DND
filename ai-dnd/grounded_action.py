@@ -2169,6 +2169,13 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True
     if step.get("via_pronoun") and kind in {"place", "door", "feature"}:
         return True  # "oraya gidiyorum": the place in play, not a fresh search
+    if (
+        verb == "read"
+        and kind == "feature"
+        and isinstance(step["target"].get("record", {}).get("text"), str)
+        and step["target"]["record"]["text"].strip()
+    ):
+        return True  # only explicitly validated readable text is spoken aloud
     if verb in {"inspect", "read", "touch"} and step.get("detail") and kind is None and (
             step["detail"] != "pencere" or conditional_seen or step.get("condition")):
         # An unregistered crate, sign or well; a registered feature and the

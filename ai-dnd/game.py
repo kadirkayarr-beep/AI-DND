@@ -3356,6 +3356,8 @@ def create_local_feature(proposal):
         "name": name,
         "description": description,
         "kind": _clean_world_text(proposal.get("kind", "feature"), 32) or "feature",
+        **({"text": _clean_world_text(proposal.get("text"), 200)}
+           if _clean_world_text(proposal.get("text"), 200) else {}),
         "aliases": _clean_world_text_list(proposal.get("aliases", []), 80, 8),
         "tags": ["campaign_local", "interactable_prop"],
         "reality_layer": "PROCEDURAL_LOCAL_FICTION",
@@ -5094,6 +5096,7 @@ def validate_world_updates(
             location = normalize_location_id(proposal.get("location", world_state["location"]))
             name = _clean_world_text(proposal.get("name"), 60)
             description = _clean_world_text(proposal.get("description", ""), 200) or ""
+            readable_text = _clean_world_text(proposal.get("text"), 200)
             kind = _clean_world_text(proposal.get("kind", "feature"), 32) or "feature"
             if location != world_state["location"] or not name or "\n" in name:
                 continue
@@ -5117,7 +5120,7 @@ def validate_world_updates(
             shop_terms = (
                 "shop", "store", "market", "stall", "merchant", "shopkeeper",
                 "trading post", "dükkan", "dukkan", "mağaza", "magaza",
-                "tezgah", "tüccar", "satıcı", "satici", "esnaf",
+                "tüccar", "satıcı", "satici", "esnaf",
             )
             combined_text = f"{name} {description}".casefold()
             if (
@@ -5134,6 +5137,7 @@ def validate_world_updates(
                 **({"parent_id": parent_id} if parent_id else {}),
                 "name": name,
                 "description": description,
+                **({"text": readable_text} if readable_text else {}),
                 "kind": kind,
                 "aliases": _clean_world_text_list(proposal.get("aliases", []), 80, 8),
                 "proposal_key": proposal_key(proposal, "f", index),
@@ -6279,6 +6283,9 @@ def _travel_destination_reference_in_text(text):
 
 
 def normalize_location_id(value):
+    locations = _session().world_state.get("locations", {})
+    if isinstance(value, str) and value in locations:
+        return value
     return resolve_location_reference(value)
 
 
@@ -6568,9 +6575,23 @@ def _scene_detail_proposals_allowed(player_input, world_state, interaction_mode)
     return (
         not is_player_world_assertion(player_input)
         and should_generate_features(player_input, interaction_mode=interaction_mode)
-        and _resolve_explicit_local_scene_parent(
+        and _scene_detail_parent(
             world_state.get("location"), player_input
         ) is not None
+    )
+
+
+def _scene_observation_proposal_turn(player_input, world_state, interaction_mode):
+    return (
+        living_world.classify_scene_action(player_input) in {"look", "inspect"}
+        and bool(re.search(
+            r"\b(?:oda\w*|salon\w*|hol\w*|room\w*)\b",
+            living_world.normalize_text(player_input),
+        ))
+        and not living_world.is_anchored_structure_inquiry(player_input)
+        and _scene_detail_proposals_allowed(
+            player_input, world_state, interaction_mode
+        )
     )
 
 
@@ -7111,7 +7132,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         )
     if allow_scene_detail_proposals:
         current_scene_id = world_state.get("location")
-        parent = _resolve_explicit_local_scene_parent(
+        parent = _scene_detail_parent(
             current_scene_id, player_input
         )
         parent_id = parent.get("id") if isinstance(parent, dict) else None
@@ -7128,6 +7149,11 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                     "parent_id": {"type": "string", "enum": [parent_id]},
                     "name": {"type": "string", "maxLength": 60},
                     "description": {"type": "string", "maxLength": 200},
+                    "text": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "description": "Optional exact readable text, only for visible writing.",
+                    },
                     "kind": {
                         "type": "string",
                         "enum": sorted(SCENE_DETAIL_KIND_ALLOWLIST),
@@ -7153,6 +7179,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 f"location tam olarak mevcut sahne kimliği {current_scene_id!r}; "
                 f"parent_id tam olarak bu sahnedeki doğrulanmış parent yapı kimliği "
                 f"{parent_id!r} olmalı. kind yalnızca detail veya seat olabilir. "
+                "Yalnız görünür yazı varsa text alanına okunacak tam satırı "
+                "yaz; aksi hâlde text alanını atla. "
                 "seat yalnızca sıradan, görünür bir oturma yüzeyini adlandırır; "
                 "yeni etkileşim veya mekanik açmaz. Bu yalnızca bir öneridir: "
                 "kaynak veya mekanik oluşturma, gizli geçit/kaçış/kapı durumu "
@@ -8841,6 +8869,12 @@ def should_generate_features(player_input, location_changed=False, interaction_m
         return False
     if living_world.is_exploratory_structure_question(
         player_input, interaction_mode
+    ):
+        return True
+    current_scene_id = _session().world_state.get("location")
+    if (
+        living_world.affirmative_structure_inspection(player_input, interaction_mode)
+        and _scene_detail_parent(current_scene_id, player_input) is not None
     ):
         return True
     if living_world.is_anchored_structure_inquiry(player_input):
@@ -12390,7 +12424,9 @@ def _existing_local_tavern(parent_location_id):
     )
 
 
-def _resolve_explicit_local_scene_parent(parent_location_id, player_input):
+def _resolve_explicit_local_scene_parent(
+    parent_location_id, player_input, *, fallback_single=True
+):
     locations = _session().world_state.get("locations", {})
     if not isinstance(locations, dict):
         return None
@@ -12418,7 +12454,31 @@ def _resolve_explicit_local_scene_parent(parent_location_id, player_input):
         target_text,
     ):
         return None
-    return candidates[0] if len(candidates) == 1 else None
+    return candidates[0] if fallback_single and len(candidates) == 1 else None
+
+
+def _scene_detail_parent(scene_id, player_input):
+    """Bind a proposed detail to a named local structure or the current scene."""
+    if not isinstance(scene_id, str):
+        return None
+    explicitly_named = _resolve_explicit_local_scene_parent(
+        scene_id, player_input, fallback_single=False
+    )
+    if explicitly_named:
+        return explicitly_named
+    if (
+        living_world.affirmative_structure_inspection(player_input)
+        and not living_world.is_anchored_structure_inquiry(player_input)
+    ):
+        return {"id": scene_id, "name": location_display_name()}
+    if (
+        living_world.is_anchored_structure_inquiry(player_input)
+        or living_world.is_exploratory_structure_question(player_input)
+    ):
+        return _resolve_explicit_local_scene_parent(scene_id, player_input)
+    if living_world.affirmative_structure_inspection(player_input):
+        return {"id": scene_id, "name": location_display_name()}
+    return None
 
 
 def _anchored_structure_features(player_input, location_id, parent_id):
@@ -14135,12 +14195,15 @@ def _dispatch_player_turn(
         # LR00 fix: read a local physical action once, bind it to a real target
         # and let its owner resolve it (grounded_action). None = older owners.
         import grounded_action
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            grounded = grounded_action.resolve_turn(
-                _session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
-            )
-        if grounded is not None:
-            return grounded
+        if not _scene_observation_proposal_turn(
+            player_input, _session().world_state, interaction_mode
+        ):
+            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+                grounded = grounded_action.resolve_turn(
+                    _session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
+                )
+            if grounded is not None:
+                return grounded
         local_place = _local_place_turn(player_input)
         if local_place is not None:
             return local_place
@@ -14203,13 +14266,16 @@ def _dispatch_player_turn(
         # target the words alone could not bind gets one bounded model call that
         # may only pick listed candidate IDs; otherwise the full pipeline runs.
         import grounded_action
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            grounded = grounded_action.resolve_turn(
-                _session(), player_input, interaction_mode=interaction_mode,
-                target_id=target_id, phase="fallback",
-            )
-        if grounded is not None:
-            return grounded
+        if not _scene_observation_proposal_turn(
+            player_input, _session().world_state, interaction_mode
+        ):
+            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+                grounded = grounded_action.resolve_turn(
+                    _session(), player_input, interaction_mode=interaction_mode,
+                    target_id=target_id, phase="fallback",
+                )
+            if grounded is not None:
+                return grounded
     combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
         try:
@@ -14635,6 +14701,16 @@ def _run_player_turn_internal(
             interaction_mode=interaction_mode,
         )
     )
+    planned_direct = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
+    if (
+        isinstance(planned_direct, dict)
+        and planned_direct.get("action") == "explore"
+        and planned_direct.get("status") == "observed"
+        and _scene_observation_proposal_turn(
+            player_input, world_state, interaction_mode
+        )
+    ):
+        scene_plan = {**scene_plan, "direct_result": None}
     injected_lore_context = getattr(_session(), "lore_authority_context", None)
     lore_context = _prepare_lore_authority_context(injected_lore_context)
     quest_world_before = copy.deepcopy(world_state)
@@ -16540,7 +16616,7 @@ def _run_player_turn_internal(
         and should_generate_features(player_input, expected_location_change)
         and not is_player_world_assertion(player_input)
     )
-    scene_parent = _resolve_explicit_local_scene_parent(
+    scene_parent = _scene_detail_parent(
         world_state.get("location"), player_input
     )
     if (

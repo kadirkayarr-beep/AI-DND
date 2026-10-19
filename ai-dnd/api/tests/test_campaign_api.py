@@ -26,6 +26,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+import grounded_action
 import campaign_time
 import living_world
 import timed_gameplay
@@ -279,19 +280,23 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
 class ControlledSceneDetailOllamaClient(FakeOllamaClient):
     """Synthetic provider proposing one new local detail beneath a building."""
 
-    def __init__(self, location_id, parent_id, proposals=None, narration=None):
+    def __init__(self, location_id, parent_id, proposals=None, narration=None,
+                 explore_type="inspect"):
         self.location_id = location_id
         self.parent_id = parent_id
         self.proposals = proposals
         self.narration = narration or "Girişte taş bir kartal kabartması göze çarpıyor."
+        self.explore_type = explore_type
         self.calls = 0
         self.last_intent_schema_has_proposals = False
+        self.last_intent_schema = None
         self.last_intent_proposals = None
 
     def chat(self, *args, **kwargs):
         self.calls += 1
         properties = kwargs.get("format", {}).get("properties", {})
         if "intent" in properties:
+            self.last_intent_schema = copy.deepcopy(kwargs.get("format"))
             self.last_intent_schema_has_proposals = (
                 "scene_detail_proposals" in properties
             )
@@ -299,7 +304,7 @@ class ControlledSceneDetailOllamaClient(FakeOllamaClient):
                 "intent": "explore",
                 "action": "narrative",
                 "target": {"type": "location", "reference": ""},
-                "explore_type": "inspect",
+                "explore_type": self.explore_type,
                 "completion": "completed",
                 "confidence": 1.0,
             }
@@ -14178,6 +14183,169 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "kind_enum": ["detail", "seat"],
         }
         self.assertEqual(observed, expected)
+
+    async def test_scene_detail_with_workbench_name_is_not_rejected_as_shop(self):
+        response, session, model, city_id, venue_id, outcomes, *_ = (
+            await self.run_review_scene_turn(
+                "Han binasının içindeki çalışma tezgâhını inceliyorum.",
+                lambda _session, city, venue: [{
+                    "proposal_key": "ordinary_workbench",
+                    "location": city,
+                    "parent_id": venue,
+                    "name": "Çalışma Tezgahı",
+                    "description": "Atölyenin köşesinde duran çiziklerle dolu sıradan bir çalışma yüzeyi.",
+                    "kind": "detail",
+                    "aliases": ["çalışma tezgahı", "tezgah"],
+                }],
+            )
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.last_intent_schema_has_proposals)
+        feature = next(
+            (
+                row for row in session.world_state["features"]
+                if row.get("name") == "Çalışma Tezgahı"
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            feature,
+            f"Ordinary local detail was rejected: {outcomes[0]!r}",
+        )
+        self.assertEqual(feature.get("location"), city_id)
+        self.assertEqual(feature.get("parent_id"), venue_id)
+        self.assertEqual(feature.get("reality_layer"), "PROCEDURAL_LOCAL_FICTION")
+        self.assertNotEqual(outcomes[0].get("action"), "shop_setup")
+        self.assertLessEqual(model.calls, 2)
+
+    async def test_current_scene_observation_can_create_and_read_a_local_detail(self):
+        city_id, session_id, session, turn_url, _, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        session.world_state["locations"][city_id].update(
+            name="Kıyı Atölyesi", aliases=["Kıyı Atölyesi"]
+        )
+        detail_name = "Yıpranmış Defter"
+        readable_line = "Yağ lambasını doldur."
+        model = ControlledSceneDetailOllamaClient(
+            city_id,
+            city_id,
+            proposals=[{
+                "proposal_key": "ordinary_notebook",
+                "location": city_id,
+                "parent_id": city_id,
+                "name": detail_name,
+                "description": f'Açık sayfada okunabilen tek satır: “{readable_line}”',
+                "text": readable_line,
+                "kind": "detail",
+                "aliases": ["defter", "defter sayfası"],
+            }],
+            narration="Atölyenin köşesinde yıpranmış bir defter duruyor.",
+            explore_type="observe",
+        )
+        outcomes = []
+        original_turn = session.run_player_turn
+
+        @wraps(original_turn)
+        def capture_turn(*args, **kwargs):
+            result = original_turn(*args, **kwargs)
+            outcomes.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        body = {
+            "message": "Odanın köşelerini dikkatle inceliyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.last_intent_schema_has_proposals)
+        self.assertEqual(len(outcomes), 1)
+        self.assertNotEqual(outcomes[0].get("action"), "shop_setup")
+        calls_after_first_turn = model.calls
+        replay = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), response.json())
+        self.assertEqual(model.calls, calls_after_first_turn)
+        feature = next(
+            (
+                row for row in session.world_state["features"]
+                if row.get("name") == detail_name
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            feature,
+            f"Scene detail missing: {outcomes!r}",
+        )
+        self.assertEqual(feature.get("parent_id"), city_id)
+        self.assertLessEqual(model.calls, 2)
+
+        read = grounded_action.resolve_turn(
+            session, "Yıpranmış Defteri okuyorum.", allow_model=False
+        )
+        self.assertIsNotNone(
+            read,
+            f"Local read did not bind: {grounded_action.plan(session, 'Yıpranmış Defteri okuyorum.')!r}",
+        )
+        self.assertEqual(read["action_result"]["steps"][0]["verb"], "read")
+        self.assertIn(readable_line, read["narration"])
+
+        campaign_id = self.manager.get(session_id).campaign_id
+        persisted = self.store.get_campaign(campaign_id)
+        self.assertTrue(any(
+            row.get("id") == feature["id"]
+            for row in persisted.payload["engine_save"]["world_state"]["features"]
+        ))
+
+        old_http = self.http
+        resumed_manager = SessionManager(campaign_store=self.store)
+        self.manager = resumed_manager
+        self.app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(model),
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+        await old_http.aclose()
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{campaign_id}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        resumed_session = resumed_manager.get(
+            resumed.json()["session_id"]
+        ).game_session
+        resumed_feature = next(
+            row for row in resumed_session.world_state["features"]
+            if row.get("id") == feature["id"]
+        )
+        self.assertEqual(resumed_feature.get("text"), readable_line)
+        resumed_read = grounded_action.resolve_turn(
+            resumed_session, "Yıpranmış Defteri okuyorum.", allow_model=False
+        )
+        self.assertIsNotNone(resumed_read)
+        self.assertIn(readable_line, resumed_read["narration"])
+
+        isolated = await self.http.post(
+            "/api/game/campaigns",
+            json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": city_id,
+            }},
+        )
+        self.assertEqual(isolated.status_code, 200, isolated.text)
+        isolated_session = resumed_manager.get(
+            isolated.json()["session_id"]
+        ).game_session
+        self.assertFalse(any(
+            row.get("name") == detail_name
+            for row in isolated_session.world_state["features"]
+        ))
 
     async def test_ordinary_stonework_proposal_for_city_and_inn_is_accepted_and_persisted(self):
         city_id, session_id, session, turn_url, venue_id, _ = (
