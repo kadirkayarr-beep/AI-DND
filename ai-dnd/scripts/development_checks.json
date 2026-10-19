@@ -64,9 +64,13 @@
     "api.tests.test_narration_claims.NarrationClaimTests.test_negated_death_is_not_a_death_claim_but_alive_claim_conflicts",
     "api.tests.test_narration_claims.NarrationClaimTests.test_true_miss_and_nonfatal_hit_narration_remain_valid",
     "test_combat_v2_authoritative.CombatV2.test_W_fatal_enemy_hit_player_death_narration",
-    "test_combat_v2_authoritative.CombatV2.test_W_valid_free_fatal_exchange_narration_is_preserved_without_mechanical_change"
+    "test_combat_v2_authoritative.CombatV2.test_W_valid_free_fatal_exchange_narration_is_preserved_without_mechanical_change",
+    "api.tests.test_narration_claims.NarrationClaimTests.test_player_miss_after_enemy_hit_keeps_subject_change",
+    "api.tests.test_exploration_package.ExplorationPackageTests.test_undiscovered_catalog_door_is_not_grounded_or_suggested",
+    "test_playable_living_world.PlayableLivingWorldTests.test_compound_move_preserves_explicit_smithy_door_target",
+    "test_playable_living_world.PlayableLivingWorldTests.test_named_smithy_door_wins_over_separate_workshop_kind"
   ],
-  "regression_group_sizes": [31, 14],
+  "regression_group_sizes": [31, 18],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
