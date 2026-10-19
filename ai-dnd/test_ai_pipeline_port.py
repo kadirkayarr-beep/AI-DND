@@ -78,6 +78,145 @@ class PipelinePortTests(unittest.TestCase):
         self.assertFalse(self.session._entity_reference_in_text("Gromm", "Grommish'le konuşuyorum"))
         self.assertEqual(self.session.resolve_npc_reference("Gromm'la konuşuyorum")["status"], "found")
 
+    def test_negated_speech_act_does_not_open_dialogue(self):
+        for phrase in ("Gromm'la konuşmuyorum.", "Gromm'a soru sormayacağım."):
+            with self.subTest(phrase=phrase):
+                self.assertFalse(self.session.is_npc_dialogue_input(phrase))
+
+    def test_intent_parser_gets_bounded_public_scene_candidates_for_descriptive_address(self):
+        self.npc.update({
+            "appearance": "Kırmızı atkılı, kısa boylu cüce; tezgâhın arkasında duruyor.",
+            "personal_profile": {"private_secret": "GİZLİ_SIR_721"},
+        })
+        hidden = {
+            "id": "hidden_001", "name": "Veil", "role": "spy",
+            "location": "tavern", "appearance": "Görünmez gölge",
+            "name_known_to_player": False, "role_known_to_player": False,
+            "hidden": True, "personal_profile": {"password": "HIDDEN_PASS_41"},
+        }
+        self.session.world_state["npcs"].append(hidden)
+        captured = {}
+
+        def fake_chat(**kwargs):
+            captured.update(kwargs)
+            return {"message": {"content": json.dumps({
+                "intent": "dialogue", "action": "ask", "target": {
+                    "type": "npc", "reference": "kırmızı atkılı kişi",
+                }, "completion": "unclear", "confidence": 1.0,
+            }, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat):
+            self.session.parse_player_intent(
+                "Kırmızı atkılı kısa cüceye söylüyorum, limanı soracağım."
+            )
+
+        schema = captured["format"]
+        target = schema["properties"]["target"]["properties"]
+        self.assertEqual(target["npc_id"]["enum"], ["npc_001"])
+        prompt = captured["messages"][-1]["content"]
+        self.assertIn("Kırmızı atkılı", prompt)
+        self.assertNotIn("GİZLİ_SIR_721", prompt)
+        self.assertNotIn("HIDDEN_PASS_41", prompt)
+        self.assertNotIn("Veil", prompt)
+
+    def test_scene_candidate_resolution_requires_an_exact_player_quote(self):
+        self.npc["appearance"] = "Kırmızı atkılı, kısa boylu cüce."
+        raw = {"target": {
+            "npc_id": "npc_001",
+            "evidence_quote": "kısa boylu cüceye",
+        }}
+        self.assertEqual(
+            self.session._validated_scene_npc_id(
+                raw, "Kısa boylu cüceye limanın durumunu soruyorum."
+            )["id"],
+            "npc_001",
+        )
+        self.assertIsNone(self.session._validated_scene_npc_id(
+            raw, "Limanın durumu hakkında konuşmak istiyorum."
+        ))
+        forged = {"target": {
+            "npc_id": "hidden_001",
+            "evidence_quote": "kısa boylu cüceye",
+        }}
+        self.assertIsNone(self.session._validated_scene_npc_id(
+            forged, "Kısa boylu cüceye limanı soruyorum."
+        ))
+
+    def test_local_person_proposal_is_bounded_and_not_world_state(self):
+        before = copy.deepcopy(self.session.world_state)
+        proposal = {
+            "local_person_proposal": {
+                "role": "kıyı balıkçısı",
+                "appearance": "Yosun lekeli pelerinli yaşlı biri",
+                "reason": "Liman söylentileri hakkında konuşabilir.",
+            }
+        }
+        self.assertEqual(
+            self.session._validated_local_person_proposal(proposal),
+            proposal["local_person_proposal"],
+        )
+        self.assertIsNone(self.session._validated_local_person_proposal({
+            "local_person_proposal": {
+                "role": "x" * 61, "appearance": "kişi", "reason": "öneri",
+            }
+        }))
+        self.assertEqual(before, self.session.world_state)
+
+    def test_descriptive_address_routes_only_to_a_present_scene_person(self):
+        self.npc["appearance"] = "Kırmızı atkılı, kısa boylu cüce."
+
+        def fake_chat(**kwargs):
+            packet = {
+                "intent": "dialogue",
+                "action": "dialogue",
+                "target": {
+                    "type": "npc",
+                    "reference": "kırmızı atkılı kişi",
+                    "npc_id": "npc_001",
+                    "evidence_quote": "kırmızı atkılı kişiye",
+                },
+                "completion": "unclear",
+                "confidence": 1.0,
+            }
+            if "narration" in kwargs["format"]["properties"]:
+                packet["narration"] = "Gromm selamını alıyor."
+            return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat) as model:
+            result = self.session.run_player_turn(
+                "Kırmızı atkılı kişiye selam veriyorum.", interaction_mode="do"
+            )
+        self.assertEqual(result["action_result"]["npc_id"], "npc_001")
+        self.assertLessEqual(model.call_count, 2)
+        self.assertEqual([npc["id"] for npc in self.session.world_state["npcs"]], ["npc_001"])
+
+    def test_absent_local_person_is_suggested_without_becoming_canonical(self):
+        before = copy.deepcopy(self.session.world_state)
+
+        def fake_chat(**kwargs):
+            packet = {
+                "intent": "dialogue", "action": "dialogue",
+                "target": {"type": "none", "reference": ""},
+                "completion": "unclear", "confidence": 1.0,
+            }
+            if "local_person_proposal" in kwargs["format"]["properties"]:
+                packet["local_person_proposal"] = {
+                    "role": "kıyı balıkçısı",
+                    "appearance": "Yosun lekeli pelerin giyen yaşlı biri",
+                    "reason": "Liman söylentilerini duymuş olabilir.",
+                }
+            return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat):
+            result = self.session.run_player_turn(
+                "Sahnede olmayan bir balıkçıya liman söylentilerini sormak istiyorum.",
+                interaction_mode="say",
+            )
+        self.assertEqual(result["action_result"]["status"], "noncanonical_suggestion")
+        self.assertEqual([npc["id"] for npc in self.session.world_state["npcs"]], ["npc_001"])
+        self.assertEqual(self.session.world_state["locations"], before["locations"])
+        self.assertIn("öneri", result["narration"])
+
     def test_observation_is_not_a_skill_check_or_world_mutation(self):
         before = copy.deepcopy(self.session.world_state)
         phrase = "Etrafıma bakıyorum"
