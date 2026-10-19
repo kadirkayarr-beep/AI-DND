@@ -1,13 +1,22 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { access, mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 
-const chromiumPath = process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium";
+const chromiumPath = process.env.CHROMIUM_PATH;
+if (!chromiumPath || !path.isAbsolute(chromiumPath)) {
+  throw new Error("CHROMIUM_PATH must be set to an absolute executable browser path");
+}
+const chromiumStat = await stat(chromiumPath);
+if (!chromiumStat.isFile() || (chromiumStat.mode & 0o111) === 0) {
+  throw new Error(`CHROMIUM_PATH is not an executable file: ${chromiumPath}`);
+}
+await access(chromiumPath, fsConstants.X_OK);
 const outputDir = process.env.UI_TEST_OUTPUT || path.join(os.tmpdir(), "ai-dnd-ui-verification");
 const fixturePath = "/tests/play-screen-fixture/";
 
