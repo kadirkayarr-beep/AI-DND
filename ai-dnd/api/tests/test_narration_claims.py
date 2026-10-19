@@ -61,6 +61,11 @@ class NarrationClaimTests(unittest.TestCase):
         )
         self.assertFalse(narration_claims.assess(text, facts)["reject"])
 
+    def test_player_miss_after_enemy_hit_keeps_subject_change(self):
+        facts = self.combat_packet("miss", "hit", "active", enemy_damage=3)
+        text = "Rakibin sana isabet eder; saldırın ıskalar."
+        self.assertFalse(narration_claims.assess(text, facts)["reject"])
+
     def test_enemy_miss_is_bound_to_enemy_not_to_a_blow_keyword(self):
         hit_facts = self.combat_packet("miss", "hit", "active", enemy_damage=3)
         text = "Rakibin bir darbe savurur ama ıskalar; sapasağlamsın."

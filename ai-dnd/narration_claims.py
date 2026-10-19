@@ -290,7 +290,7 @@ def _reject(reason: str, span: str) -> dict[str, Any]:
 
 
 def _clauses(narration: str) -> list[str]:
-    return [part.strip() for part in re.split(r"[.!?]+", str(narration)) if part.strip()]
+    return [part.strip() for part in re.split(r"[.!?;]+", str(narration)) if part.strip()]
 
 
 def _landed(exchange: dict) -> bool:
