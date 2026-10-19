@@ -719,7 +719,7 @@ def plan(session, player_input: str) -> dict[str, Any]:
                 candidate for candidate in cands
                 if candidate.get("kind") == "place" and candidate.get("place_kind") in place_kinds
             ]
-            if len(matching_places) == 1:
+            if len(matching_places) == 1 and not step["named"]:
                 step["target"] = matching_places[0]
         target = step.get("target")
         implicit_followup_door = (target is None and not step["place_noun"]) or (
