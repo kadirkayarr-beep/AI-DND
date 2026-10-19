@@ -1377,6 +1377,47 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(steps[0]["target_id"], "inn_blue")
         self.assertEqual(steps[1]["target_id"], "venue-door:inn_blue")
         self.assertEqual(steps[1]["target_name"], "Mavi Fener Kapısı")
+
+    def test_compound_move_preserves_explicit_smithy_door_target(self):
+        self.world["location"] = "neverwinter"
+        self.world["locations"]["neverwinter"] = {
+            "id": "neverwinter", "name": "Neverwinter", "type": "city",
+        }
+        for identity, name, scene_kind, kind in (
+            ("inn_ash", "Kuzgun Hanı", "tavern", "inn"),
+            ("inn_blue", "Mavi Fener", "tavern", "inn"),
+            ("smithy", "Ali'nin Demirhanesi", "smithy", "smithy"),
+        ):
+            self.world["locations"][identity] = {
+                "id": identity, "name": name,
+                "parent_location_id": "neverwinter",
+                "scene_kind": scene_kind, "type": kind,
+            }
+        self.world["doors"] = [
+            {
+                "id": f"venue-door:{identity}",
+                "name": "Atölye Kapısı" if identity == "smithy" else f"{name} Kapısı",
+                "location": "neverwinter",
+                "open": False, "locked": False, "broken": False,
+            }
+            for identity, name in (
+                ("inn_ash", "Kuzgun Hanı"),
+                ("inn_blue", "Mavi Fener"),
+                ("smithy", "Atölye"),
+            )
+        ]
+        grounded_action.note_near(self.world, "venue-door:inn_ash")
+
+        result = grounded_action.resolve_turn(
+            self.session,
+            "Mavi Fener'e gidip demirhanenin kapısını açıyorum.",
+            allow_model=False,
+        )
+
+        self.assertEqual(result["action_result"]["status"], "completed")
+        steps = result["action_result"]["steps"]
+        self.assertEqual(steps[0]["target_id"], "inn_blue")
+        self.assertEqual(steps[1]["target_id"], "venue-door:smithy")
         self.assertNotIn("venue-door:inn_ash|0:0", self.world[grounded_action.KEY]["answers"])
 
     def test_guard_smalltalk_does_not_recommend_locked_known_tavern_as_unblocked(self):

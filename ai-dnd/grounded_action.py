@@ -713,7 +713,22 @@ def plan(session, player_input: str) -> dict[str, Any]:
             "place_noun": _place_noun_in(goal_tokens),
             "not_now": info.get("not_now", False),
         }
-        if steps and verb in {"knock", "open", "unlock", "force", "close"} and not step["named"]:
+        if step["place_noun"]:
+            place_kinds = set(step["place_noun"])
+            matching_places = [
+                candidate for candidate in cands
+                if candidate.get("kind") == "place" and candidate.get("place_kind") in place_kinds
+            ]
+            if len(matching_places) == 1:
+                step["target"] = matching_places[0]
+        target = step.get("target")
+        implicit_followup_door = (target is None and not step["place_noun"]) or (
+            isinstance(target, dict)
+            and target.get("kind") in {"door", "reference"}
+            and not step["named"]
+            and not step["place_noun"]
+        )
+        if steps and verb in {"knock", "open", "unlock", "force", "close"} and implicit_followup_door:
             previous = steps[-1]
             previous_target = previous.get("target")
             if (
