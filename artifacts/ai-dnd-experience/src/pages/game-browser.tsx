@@ -68,7 +68,7 @@ import {
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
-import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import type { TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
@@ -1073,7 +1073,12 @@ export default function GameBrowser() {
   lastTurnRef.current = lastTurn;
   const [undoPendingSessions, setUndoPendingSessions] = useState<Set<string>>(new Set());
   const undoPendingRef = useRef(new Set<string>());
-  const undoRequestsRef = useRef(new globalThis.Map<string, { generation: number; scope: string; actionId: string }>());
+  const undoRequestsRef = useRef(new globalThis.Map<string, {
+    generation: number;
+    scope: string;
+    actionId: string;
+    targetActionId: string;
+  }>());
   const undoGenerationRef = useRef(0);
   const undoScope = `${campaignId ?? ''}:${sessionId}`;
   const undoScopeRef = useRef(undoScope);
@@ -1085,15 +1090,20 @@ export default function GameBrowser() {
   const visibleLastTurn = lastTurn && lastTurn.sessionId === sessionId ? lastTurn : null;
   const undoLastTurn = () => {
     if (!sessionId || !visibleLastTurn || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
-    const request = {
-      generation: undoGenerationRef.current,
-      scope: undoScope,
-      actionId: visibleLastTurn.actionId,
-    };
+    const target = visibleLastTurn.actionId;
+    const pendingRequest = undoRequestsRef.current.get(sessionId);
+    if (pendingRequest && pendingRequest.targetActionId !== target) return;
+    const request = pendingRequest
+      ? { ...pendingRequest, generation: undoGenerationRef.current, scope: undoScope }
+      : {
+        generation: undoGenerationRef.current,
+        scope: undoScope,
+        actionId: crypto.randomUUID(),
+        targetActionId: target,
+      };
     undoRequestsRef.current.set(sessionId, request);
     undoPendingRef.current.add(sessionId);
     setUndoPendingSessions(new Set(undoPendingRef.current));
-    const target = visibleLastTurn.actionId;
     const isCurrent = () => activeSessionRef.current === sessionId
       && undoScopeRef.current === request.scope
       && undoGenerationRef.current === request.generation
@@ -1102,7 +1112,8 @@ export default function GameBrowser() {
       && lastTurnRef.current.actionId === target;
     const stateKey = getGetGameSessionStateQueryKey(sessionId);
     const initialUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
-    void undoGameTurn(sessionId, { action_id: crypto.randomUUID(), target_action_id: target })
+    let retainRequest = false;
+    void undoGameTurn(sessionId, { action_id: request.actionId, target_action_id: target })
       .then((result) => {
         if (!isCurrent()) return;
         if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== initialUpdateCount) {
@@ -1119,14 +1130,49 @@ export default function GameBrowser() {
         setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
-      .catch((error) => {
-        if (isCurrent()) {
+      .catch(async (error) => {
+        if (!isCurrent()) return;
+        const status = statusCode(error);
+        const definitiveRejection = error instanceof ApiError && status !== undefined && status >= 400 && status < 500;
+        if (definitiveRejection) {
+          if (undoRequestsRef.current.get(sessionId) === request) undoRequestsRef.current.delete(sessionId);
           setNotice({ tone: 'error', title: 'Geri alınamadı', detail: friendlyError(error, 'Bu tur artık geri alınamıyor.') });
+          return;
+        }
+        retainRequest = true;
+        setNotice({
+          tone: 'warning',
+          title: 'Geri alma sonucu belirsiz',
+          detail: 'Sunucu durumu yeniden okunuyor. Sonuç doğrulanana kadar yeni hamle gönderilemez.',
+        });
+        try {
+          const statusReadUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
+          const canonicalState = await getGameSessionState(sessionId);
+          if (!isCurrent()) return;
+          if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== statusReadUpdateCount) {
+            void queryClient.invalidateQueries({ queryKey: stateKey });
+            setNotice({
+              tone: 'warning',
+              title: 'Geri alma sonucu doğrulanamadı',
+              detail: 'Durum sorgusu sırasında daha yeni bilgi geldi. Aynı geri alma isteğini yeniden deneyin.',
+            });
+            return;
+          }
+          queryClient.setQueryData(stateKey, canonicalState);
+        } catch {
+          if (!isCurrent()) return;
+          void queryClient.invalidateQueries({ queryKey: stateKey });
+          setNotice({
+            tone: 'warning',
+            title: 'Geri alma sonucu doğrulanamadı',
+            detail: 'Aynı geri alma isteğini yeniden deneyin; yeni hamle gönderilemez.',
+          });
         }
       })
       .finally(() => {
-        if (undoRequestsRef.current.get(sessionId) !== request) return;
-        undoRequestsRef.current.delete(sessionId);
+        if (!retainRequest && undoRequestsRef.current.get(sessionId) === request) {
+          undoRequestsRef.current.delete(sessionId);
+        }
         undoPendingRef.current.delete(sessionId);
         setUndoPendingSessions(new Set(undoPendingRef.current));
       });
@@ -1473,7 +1519,7 @@ export default function GameBrowser() {
     mode: InteractionMode = interactionMode,
   ) => {
     const trimmed = text.trim();
-    if (!sessionId || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
+    if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     const operation = turnLifetime.begin();
     if (!operation) return;
     setNotice(null);

@@ -28,11 +28,21 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+class ApiError extends Error {
+  constructor(status) {
+    super(`HTTP ${status}`);
+    this.status = status;
+  }
+}
+
 function harness() {
   const undoResponse = deferred();
+  const retryUndoResponse = deferred();
   const turnResponse = deferred();
   const undoRequests = [];
   const turnRequests = [];
+  let uuidCounter = 0;
+  let statusReadCount = 0;
   const state = { revision: 'before-undo', combat: { active: false }, quests: [] };
   const env = {
     sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do',
@@ -47,7 +57,10 @@ function harness() {
     pendingTurnRef: { current: null },
     turnLifetime: { begin: () => ({ signal: new AbortController().signal, isCurrent: () => true, close() {} }) },
     state, entries: [{ kind: 'narration', text: 'Before' }], message: 'draft before',
-    undoGameTurn: (...args) => { undoRequests.push(args); return undoResponse.promise; },
+    undoGameTurn: (...args) => {
+      undoRequests.push(args);
+      return (undoRequests.length === 1 ? undoResponse : retryUndoResponse).promise;
+    },
     playGameTurn: (...args) => { turnRequests.push(args); return turnResponse.promise; },
     queryClient: {
       cache: new Map(),
@@ -82,7 +95,10 @@ function harness() {
     statusCode: error => error?.status,
     friendlyError: () => 'Synthetic error',
     mergeCombatHistory: history => history,
-    getGameSessionState: async () => ({ ...state, revision: 'after-turn' }),
+    getGameSessionState: async () => {
+      statusReadCount += 1;
+      return { ...state, revision: 'canonical-after-undo' };
+    },
     getCampaign: async () => ({ state, history: [], combat_history: [] }),
     TRANSCRIPT_KEY: 'transcript-',
     window: {
@@ -90,12 +106,13 @@ function harness() {
       localStorage: { setItem() {}, getItem: () => null, removeItem() {} },
       crypto: { randomUUID: () => 'new-action' },
     },
-    crypto: { randomUUID: () => 'undo-action' },
+    crypto: { randomUUID: () => `undo-action-${++uuidCounter}` },
+    ApiError,
     setTimeout, clearTimeout, AbortController, Promise, JSON,
   };
   vm.runInNewContext(executable, env);
   env.queryClient.setQueryData(['state', 'session-a'], state);
-  return { env, undoResponse, turnResponse, undoRequests, turnRequests };
+  return { env, undoResponse, retryUndoResponse, turnResponse, undoRequests, turnRequests, statusReadCount: () => statusReadCount };
 }
 
 test('undo serializes against new turns and ignores a late response after switching away and back', async () => {
@@ -147,4 +164,113 @@ test('failed undo releases its lock and retains the target so the user can retry
   assert.equal(h.env.visibleLastTurn?.actionId, 'old-action');
   h.env.undo();
   assert.equal(h.undoRequests.length, 2);
+});
+
+test('lost undo response keeps its action ID and reconciles the canonical state before retry', async () => {
+  const h = harness();
+  h.env.undo();
+  const firstActionId = h.undoRequests[0][1].action_id;
+  h.undoResponse.reject(new TypeError('fetch failed after server commit'));
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  const canonicalRevision = h.env.queryClient.getQueryData(['state', 'session-a'])?.revision;
+  h.env.undo();
+  const retryActionId = h.undoRequests[1]?.[1].action_id;
+  assert.equal(h.statusReadCount(), 1, 'transport ambiguity must trigger an authoritative state read');
+  assert.equal(canonicalRevision, 'canonical-after-undo');
+  assert.equal(retryActionId, firstActionId, 'retry must reuse the logical undo action ID');
+  h.retryUndoResponse.resolve({
+    state: { revision: 'undo-replayed', combat: { active: false }, quests: [] },
+    narration: 'Undo receipt replay',
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'undo-replayed');
+  assert.equal(h.env.lastTurnRef.current, null);
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), false);
+});
+
+test('ambiguous undo with a failed state read still blocks turns and preserves the draft', async () => {
+  const h = harness();
+  h.env.getGameSessionState = async () => { throw new TypeError('state endpoint unavailable'); };
+  h.env.undo();
+  h.undoResponse.reject(new TypeError('fetch failed after server commit'));
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  h.env.submit('Do not race the unresolved undo');
+  assert.equal(h.turnRequests.length, 0);
+  assert.equal(h.env.message, 'draft before');
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), true);
+  h.env.undo();
+  assert.equal(h.undoRequests[1][1].action_id, h.undoRequests[0][1].action_id);
+  h.retryUndoResponse.resolve({
+    state: { revision: 'recovered-after-retry', combat: { active: false }, quests: [] },
+    narration: 'Undo recovered',
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), false);
+  assert.equal(h.env.lastTurnRef.current, null);
+});
+
+test('definitive HTTP rejection releases the uncertain action so a later attempt is new', async () => {
+  const h = harness();
+  h.env.undo();
+  h.undoResponse.reject(new ApiError(409));
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  h.env.undo();
+  assert.notEqual(h.undoRequests[1]?.[1].action_id, h.undoRequests[0][1].action_id);
+});
+
+test('a delayed canonical status read from the old campaign cannot overwrite the new session', async () => {
+  const h = harness();
+  const statusResponse = deferred();
+  h.env.getGameSessionState = () => statusResponse.promise;
+  h.env.undo();
+  h.undoResponse.reject(new TypeError('transport lost after commit'));
+  await new Promise(resolve => setImmediate(resolve));
+
+  const newSessionState = { revision: 'session-b-state', combat: { active: false }, quests: [] };
+  h.env.sessionId = 'session-b';
+  h.env.campaignId = 'campaign-b';
+  h.env.undoScope = 'campaign-b:session-b';
+  h.env.undoScopeRef.current = h.env.undoScope;
+  h.env.undoGenerationRef.current += 1;
+  h.env.activeSessionRef.current = 'session-b';
+  h.env.queryClient.setQueryData(['state', 'session-b'], newSessionState);
+  h.env.entries = [{ kind: 'narration', text: 'Session B transcript' }];
+  h.env.message = 'Session B draft';
+  h.env.submit('Session B turn');
+  assert.equal(h.turnRequests.length, 1, 'an unresolved undo for A must not block campaign B');
+
+  statusResponse.resolve({ revision: 'stale-session-a-status', combat: { active: false }, quests: [] });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.queryClient.getQueryData(['state', 'session-b']).revision, 'session-b-state');
+  assert.deepEqual(h.env.entries, [{ kind: 'narration', text: 'Session B transcript' }]);
+  assert.equal(h.env.message, 'Session B draft');
+});
+
+test('a delayed status read cannot overwrite a newer same-session state or draft', async () => {
+  const h = harness();
+  const statusResponse = deferred();
+  h.env.getGameSessionState = () => statusResponse.promise;
+  h.env.undo();
+  h.undoResponse.reject(new TypeError('transport lost after commit'));
+  await new Promise(resolve => setImmediate(resolve));
+
+  h.env.queryClient.setQueryData(['state', 'session-a'], {
+    revision: 'newer-session-state', combat: { active: false }, quests: [],
+  });
+  h.env.entries = [{ kind: 'narration', text: 'Newer transcript' }];
+  h.env.message = 'newer draft';
+  statusResponse.resolve({ revision: 'stale-status', combat: { active: false }, quests: [] });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'newer-session-state');
+  assert.deepEqual(h.env.entries, [{ kind: 'narration', text: 'Newer transcript' }]);
+  assert.equal(h.env.message, 'newer draft');
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), true);
 });
