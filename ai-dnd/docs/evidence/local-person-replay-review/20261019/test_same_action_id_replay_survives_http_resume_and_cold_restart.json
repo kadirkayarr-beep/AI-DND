@@ -1,0 +1,47 @@
+[
+  {
+    "step": "first accepted turn",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "replay after HTTP save+resume (same process)",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "replay after cold restart + HTTP resume",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  }
+]
