@@ -8,20 +8,28 @@ import { RotateCcw } from 'lucide-react';
 export function LastTurnBar({
   summary,
   canUndo,
+  recoveringUndo,
   busy,
   onUndo,
 }: {
   summary: string | null;
   canUndo: boolean;
+  recoveringUndo: boolean;
   busy: boolean;
   onUndo: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
-  if (!summary && !canUndo) return null;
+  if (!summary && !canUndo && !recoveringUndo) return null;
   return (
     <div className="last-turn-bar mt-2 flex flex-wrap items-center gap-2 text-sm" data-testid="last-turn-bar">
       {summary && <span className="text-[#a99a80]" data-testid="text-turn-outcome">Sonuç: {summary}</span>}
-      {canUndo && !confirming && (
+      {recoveringUndo && (
+        <button type="button" className="dnd-button secondary" disabled={busy}
+          onClick={onUndo} data-testid="button-retry-undo">
+          Geri almayı yeniden dene
+        </button>
+      )}
+      {canUndo && !confirming && !recoveringUndo && (
         <button
           type="button"
           className="dnd-button secondary"

@@ -1089,10 +1089,11 @@ export default function GameBrowser() {
   const undoBusy = undoPendingSessions.has(sessionId);
   const visibleLastTurn = lastTurn && lastTurn.sessionId === sessionId ? lastTurn : null;
   const undoLastTurn = () => {
-    if (!sessionId || !visibleLastTurn || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
-    const target = visibleLastTurn.actionId;
     const pendingRequest = undoRequestsRef.current.get(sessionId);
-    if (pendingRequest && pendingRequest.targetActionId !== target) return;
+    if (!sessionId || (!visibleLastTurn && !pendingRequest) || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
+    const target = pendingRequest?.targetActionId ?? visibleLastTurn!.actionId;
+    if (pendingRequest && visibleLastTurn && pendingRequest.targetActionId !== target) return;
+    const recoveringRequest = Boolean(pendingRequest);
     const request = pendingRequest
       ? { ...pendingRequest, generation: undoGenerationRef.current, scope: undoScope }
       : {
@@ -1108,8 +1109,10 @@ export default function GameBrowser() {
       && undoScopeRef.current === request.scope
       && undoGenerationRef.current === request.generation
       && undoRequestsRef.current.get(sessionId) === request
-      && lastTurnRef.current?.sessionId === sessionId
-      && lastTurnRef.current.actionId === target;
+      && (recoveringRequest || (
+        lastTurnRef.current?.sessionId === sessionId
+        && lastTurnRef.current.actionId === target
+      ));
     const stateKey = getGetGameSessionStateQueryKey(sessionId);
     const initialUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
     let retainRequest = false;
@@ -1126,7 +1129,7 @@ export default function GameBrowser() {
           { kind: 'player' as const, text: '↶ Son turu geri al' },
           { kind: 'narration' as const, text: result.narration },
         ]);
-        setLastTurn(null);
+        if (lastTurnRef.current?.sessionId === sessionId) setLastTurn(null);
         setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
@@ -1743,6 +1746,7 @@ export default function GameBrowser() {
               <LastTurnBar
                 summary={summarizeTurnOutcome(visibleLastTurn?.outcome)}
                 canUndo={Boolean(visibleLastTurn) && !state.combat.active}
+                recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}
               />

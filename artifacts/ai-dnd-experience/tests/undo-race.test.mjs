@@ -100,6 +100,7 @@ function harness() {
       return { ...state, revision: 'canonical-after-undo' };
     },
     getCampaign: async () => ({ state, history: [], combat_history: [] }),
+    reconcileState: async (_client, _key, _operation, fetcher) => fetcher(),
     TRANSCRIPT_KEY: 'transcript-',
     window: {
       sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
@@ -188,6 +189,55 @@ test('lost undo response keeps its action ID and reconciles the canonical state 
   assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'undo-replayed');
   assert.equal(h.env.lastTurnRef.current, null);
   assert.equal(h.env.undoRequestsRef.current.has('session-a'), false);
+});
+
+test('A undo can be recovered after B completes a move without changing B state', async () => {
+  const h = harness();
+  h.env.undo();
+  const firstId = h.undoRequests[0][1].action_id;
+  h.undoResponse.reject(new TypeError('lost A undo response'));
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), true);
+
+  const bState = { revision: 'b-before', combat: { active: false }, quests: [] };
+  h.env.sessionId = 'session-b';
+  h.env.campaignId = '';
+  h.env.undoScope = ':session-b';
+  h.env.undoScopeRef.current = h.env.undoScope;
+  h.env.undoGenerationRef.current += 1;
+  h.env.activeSessionRef.current = 'session-b';
+  h.env.visibleLastTurn = null;
+  h.env.state = bState;
+  h.env.getGameSessionState = async () => bState;
+  h.env.queryClient.setQueryData(['state', 'session-b'], bState);
+  h.env.submit('B completed move');
+  h.turnResponse.resolve({ state: bState, narration: 'B move completed' });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.lastTurnRef.current.sessionId, 'session-b');
+
+  h.env.sessionId = 'session-a';
+  h.env.campaignId = 'campaign-a';
+  h.env.undoScope = 'campaign-a:session-a';
+  h.env.undoScopeRef.current = h.env.undoScope;
+  h.env.undoGenerationRef.current += 1;
+  h.env.activeSessionRef.current = 'session-a';
+  h.env.visibleLastTurn = null;
+  h.env.submit('A must remain locked');
+  assert.equal(h.turnRequests.length, 1);
+  h.env.undo();
+  assert.equal(h.undoRequests.length, 2);
+  assert.equal(h.undoRequests[1][1].action_id, firstId);
+  h.retryUndoResponse.resolve({
+    state: { revision: 'a-recovered', combat: { active: false }, quests: [] },
+    narration: 'A recovered',
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.queryClient.getQueryData(['state', 'session-b']).revision, 'b-before');
+  assert.equal(h.env.lastTurnRef.current.sessionId, 'session-b');
 });
 
 test('ambiguous undo with a failed state read still blocks turns and preserves the draft', async () => {
