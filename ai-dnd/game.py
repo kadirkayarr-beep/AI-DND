@@ -15334,31 +15334,39 @@ def _run_player_turn_internal(
         if explicit_dialogue_resolution["status"] == "found":
             world_subject_question = False
             scene_exploration_question = False
-        npc_resolution = (
-            explicit_dialogue_resolution
-            if explicit_dialogue_resolution["status"] == "found"
-            else {"status": "none", "npc": None}
-            if (
-                (world_subject_question or scene_exploration_question)
-                and not local_dialogue.is_local_dialogue_input(player_input)
+        # "none" has three meanings here: a world/scene question deliberately
+        # kept away from NPC routing, a non-dialogue action, or dialogue whose
+        # sole-NPC fallback was postponed so the model may resolve a described
+        # person. Only the last one may consult the model or apply the fallback.
+        dialogue_fallback_deferred = False
+        if explicit_dialogue_resolution["status"] == "found":
+            npc_resolution = explicit_dialogue_resolution
+        elif (
+            (world_subject_question or scene_exploration_question)
+            and not local_dialogue.is_local_dialogue_input(player_input)
+        ):
+            npc_resolution = {"status": "none", "npc": None}
+        elif npc_target is not None:
+            npc_resolution = {"status": "found", "npc": npc_target}
+        else:
+            dialogue_fallback_deferred = (
+                interaction_mode == "say" or is_npc_dialogue_input(player_input)
             )
-            else {"status": "found", "npc": npc_target}
-            if npc_target is not None
-            else resolve_npc_reference(
+            npc_resolution = resolve_npc_reference(
                 player_input,
                 **(
                     {
                         "force_dialogue": True,
                         "allow_active_fallback": False,
                     }
-                    if interaction_mode == "say" or is_npc_dialogue_input(player_input)
+                    if dialogue_fallback_deferred
                     else {}
                 )
             )
-        )
         preparsed_scene_intent = None
         if (
-            npc_resolution.get("status") == "none"
+            dialogue_fallback_deferred
+            and npc_resolution.get("status") == "none"
             and not combat["active"]
             and not _detect_query_type(player_input)
             and not known_character_answer(player_input)
@@ -15395,7 +15403,8 @@ def _run_player_turn_internal(
                 flags["active_npc_id"] = selected_npc["id"]
                 flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
         if (
-            npc_resolution.get("status") == "none"
+            dialogue_fallback_deferred
+            and npc_resolution.get("status") == "none"
             and interaction_mode != "ask_dm"
             and not _is_negated_dialogue_action(player_input)
             and not _validated_local_person_proposal(preparsed_scene_intent or {})
