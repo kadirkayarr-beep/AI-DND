@@ -72,6 +72,9 @@ class ManagedSession:
     owner_subject: str = ""
     revoked: bool = False
     usable: bool = True
+    # LR00-P7: the pre-turn capture of the last completed turn, kept in memory
+    # only. After a restart there is no trusted pre-turn state, so no undo.
+    undo_checkpoint: dict[str, Any] | None = None
 
 
 class SessionManager:
@@ -542,6 +545,11 @@ class SessionManager:
         if record is not None and not self._owned_by(record, owner):
             raise CampaignNotFoundError("Campaign not found.")
         if record is None:
+            # "No active session" (409) is only for the caller's own campaign. An id
+            # that is not theirs, or does not exist, is "not found" (404), so a
+            # stranger cannot tell a real campaign from an unknown id.
+            if not store.campaign_exists(campaign_id, principal=owner):
+                raise CampaignNotFoundError("Campaign not found.")
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
             if not record.usable:

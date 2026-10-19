@@ -565,15 +565,31 @@ def test_false_memory_claim():
     game.world_state["npcs"].append(npc)
 
     # Player claims NPC said something (second person)
+    # Behavior under test: the unrecorded claim is denied and never becomes a
+    # remembered fact. The denial is spoken in character (a stock in-character
+    # line); the old robotic "belleğimde kayıt yok" wording is no longer required.
+    def denies_in_character_or_legacy(text):
+        folded = text.lower()
+        stock = any(
+            folded == line.format(n="TestNPC").lower()
+            for line in engine._CLAIM_DENIAL_LINES
+        )
+        legacy = (
+            "hatırlam" in folded or "kayıt yok" in folded or "bulunmuyor" in folded
+        )
+        return (stock or legacy) and "evet, bunu söylemiştim" not in folded
+
     result = run_turn("daha önce bana bir hikaye anlatmıştın")
     narration = result.get("narration", "")
-    assert "hatırlamıyorum" in narration.lower() or "buna dair bir kayıt yok" in narration.lower(), \
+    assert denies_in_character_or_legacy(narration), \
         f"FAIL: Should deny false memory claim, got: {narration}"
+    assert result["action_result"].get("status") == "unverified", \
+        f"FAIL: Denied claim must stay unverified, got {result['action_result']}"
 
     # Player claims NPC said something (third person with named entity)
     result2 = run_turn("TestNPC bana ejderha hazinesinden bahsetmişti.")
     narration2 = result2.get("narration", "")
-    assert "hatırlam" in narration2.lower() or "kayıt yok" in narration2.lower() or "bulunmuyor" in narration2.lower(), \
+    assert denies_in_character_or_legacy(narration2), \
         f"FAIL: Should deny third-person false memory claim, got: {narration2}"
     print("PASS: test_false_memory_claim")
 

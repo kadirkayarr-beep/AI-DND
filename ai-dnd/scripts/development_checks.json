@@ -33,6 +33,7 @@
     "api.tests.test_character_identity_persistence",
     "api.tests.test_identity_suggestion",
     "api.tests.test_experimental_npc_dialogue.ExperimentalNpcDialogueTests",
+    "api.tests.test_npc_p2_continuity",
     "api.tests.test_campaign_api.CampaignApiTests.test_unpunctuated_locked_followup_reaches_same_npc_door_context",
     "api.tests.test_campaign_api.CampaignApiTests.test_personal_profile_why_followup_reaches_same_npc_context",
     "api.tests.test_campaign_api.CampaignApiTests.test_changed_door_invalidates_focus_and_legacy_focus_defaults",

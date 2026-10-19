@@ -62,12 +62,16 @@ import {
   useAcceptGameQuest,
   useCancelGameQuest,
   playGameTurn,
+  undoGameTurn,
   getCampaign,
   useResolveAmbientEventAction,
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import type { TurnOutcome } from '@workspace/api-client-react';
+import { summarizeTurnOutcome } from '@/lib/turn-outcome';
+import { LastTurnBar } from '@/components/last-turn-bar';
 import { accountWriteAllowed } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
@@ -1076,6 +1080,33 @@ export default function GameBrowser() {
   const [inFlightSessions, setInFlightSessions] = useState<Set<string>>(new Set());
   useEffect(() => { setInFlightSessions(new Set(inFlightSessionsRef.current)); }, [sessionId]);
   const turnSending = inFlightSessions.has(sessionId);
+  // LR00-P5/P7: the last completed turn's receipt summary and undo target.
+  const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
+  const visibleLastTurn = lastTurn && lastTurn.sessionId === sessionId ? lastTurn : null;
+  const undoLastTurn = () => {
+    if (!sessionId || !visibleLastTurn || undoBusy || inFlightSessionsRef.current.has(sessionId)) return;
+    const target = visibleLastTurn.actionId;
+    setUndoBusy(true);
+    void undoGameTurn(sessionId, { action_id: crypto.randomUUID(), target_action_id: target })
+      .then((result) => {
+        if (activeSessionRef.current !== sessionId) return;
+        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        setEntries((current) => [
+          ...current,
+          { kind: 'player' as const, text: '↶ Son turu geri al' },
+          { kind: 'narration' as const, text: result.narration },
+        ]);
+        setLastTurn(null);
+        setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      })
+      .catch((error) => {
+        setLastTurn(null);
+        setNotice({ tone: 'error', title: 'Geri alınamadı', detail: friendlyError(error, 'Bu tur artık geri alınamıyor.') });
+      })
+      .finally(() => setUndoBusy(false));
+  };
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
@@ -1532,6 +1563,7 @@ export default function GameBrowser() {
           });
         }
         if (stillVisible) setMessage('');
+        if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
         if (!operation.isCurrent()) return;
@@ -1637,6 +1669,12 @@ export default function GameBrowser() {
                 ambientActionError={ambientActionError}
                 onAmbientAction={handleAmbientAction}
                 onRetryAmbientAction={retryAmbientAction}
+              />
+              <LastTurnBar
+                summary={summarizeTurnOutcome(visibleLastTurn?.outcome)}
+                canUndo={Boolean(visibleLastTurn) && !state.combat.active}
+                busy={undoBusy || turnSending}
+                onUndo={undoLastTurn}
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}

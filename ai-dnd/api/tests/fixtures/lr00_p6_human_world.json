@@ -1,0 +1,200 @@
+{
+  "source": "SYNTHETIC v1. New mocked CampaignApiTests world; no owner snapshot or transcript read. Names/IDs required by assertions; invented guard utterance.",
+  "world_state": {
+    "campaign_id": "synthetic-lr00-fixture-v1",
+    "location": "fr:city:neverwinter",
+    "locations": {
+      "fr:city:neverwinter": {
+        "id": "fr:city:neverwinter",
+        "name": "Neverwinter",
+        "type": "city",
+        "aliases": [
+          "City of Skilled Hands"
+        ],
+        "description": ""
+      },
+      "location_001": {
+        "id": "location_001",
+        "name": "Garrick Hanı",
+        "type": "building",
+        "aliases": [
+          "taverna",
+          "tavern",
+          "inn",
+          "han",
+          "meyhane",
+          "Garrick Hanı"
+        ],
+        "description": "Sokağa açılan, sade ve sıcak bir han.",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "parent_location_id": "fr:city:neverwinter",
+        "exit_location_id": "fr:city:neverwinter",
+        "scene_kind": "tavern",
+        "tags": [
+          "campaign_local",
+          "public_house"
+        ]
+      }
+    },
+    "next_location_number": 2,
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Quarion",
+        "role": "guide",
+        "location": "fr:city:neverwinter",
+        "personality": "Sakin",
+        "appearance": "Sentetik test kişisi",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "combat_status": "active",
+        "current_hp": 12,
+        "status": "active",
+        "name_known_to_player": true
+      },
+      {
+        "id": "npc_002",
+        "name": "Test Nöbetçisi",
+        "role": "guard",
+        "location": "fr:city:neverwinter",
+        "personality": "Sakin",
+        "appearance": "Sentetik test kişisi",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "combat_status": "active",
+        "current_hp": 12,
+        "status": "active",
+        "name_known_to_player": true
+      }
+    ],
+    "shops": [],
+    "next_shop_number": 1,
+    "inventory": [],
+    "equipment": {
+      "main_hand": null,
+      "off_hand": null
+    },
+    "ground_items_by_location": {},
+    "ground_items": [],
+    "doors": [
+      {
+        "id": "venue-door:location_001",
+        "name": "Garrick Hanı Kapısı",
+        "location": "fr:city:neverwinter",
+        "description": "Sentetik test hanının kapalı ve kilitli kapısı.",
+        "open": false,
+        "locked": true,
+        "broken": false
+      }
+    ],
+    "containers": [],
+    "features": [],
+    "scene_state": {
+      "schema_version": 1,
+      "next_referent_number": 1,
+      "next_feature_number": 1,
+      "scenes": {
+        "fr:city:neverwinter": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "materialized": false,
+          "visit_revision": 0,
+          "activity_revision": 0,
+          "first_seen_turn": 0,
+          "last_visit_turn": null,
+          "last_activity_turn": null,
+          "last_beat": null,
+          "referents": []
+        }
+      },
+      "active_referent_id": null,
+      "player_position": {
+        "location_id": null,
+        "kind": "standing",
+        "target_id": null
+      },
+      "proposal_references": [],
+      "entry_target_reference": {
+        "source_action_id": "synthetic-discovery-v1",
+        "source_kind": "local_search",
+        "source_turn_index": 1,
+        "expires_after_turn_index": 2,
+        "source_location_id": "fr:city:neverwinter",
+        "location_id": "location_001",
+        "door_id": "venue-door:location_001"
+      },
+      "campaign_seed": "synthetic-lr00-seed-v1",
+      "ambient_context": {
+        "environment": "city",
+        "time_of_day": "day",
+        "weather": "clear",
+        "background": "",
+        "origin": ""
+      },
+      "ambient_event_history": [],
+      "ambient_event_counts": {}
+    },
+    "events": [],
+    "flags": {},
+    "next_npc_number": 3,
+    "combat": {
+      "schema_version": 3,
+      "active": false,
+      "status": "ended",
+      "combat_id": null,
+      "round": 0,
+      "initiative_order": [],
+      "current_turn_index": 0,
+      "current_actor_id": null,
+      "participants": [],
+      "participant_records": [],
+      "actions_used": [],
+      "target_id": null,
+      "end_reason": null
+    },
+    "player_combat_status": "active",
+    "death_state": {
+      "mode": "NORMAL",
+      "successes": 0,
+      "failures": 0,
+      "stable": false,
+      "dead": false,
+      "terminal": false,
+      "prone": false,
+      "last_death_save_turn_key": null,
+      "last_death_save_result": null,
+      "last_resolution": null,
+      "combat_checkpoint": null,
+      "recovery": null,
+      "noncombat_next_save_at": null,
+      "noncombat_episode_id": null
+    },
+    "player_knowledge": [],
+    "quests": [],
+    "quest_processed_event_ids": [],
+    "campaign_time": {
+      "calendar": "Harptos",
+      "local_convention": "Neverwinter local",
+      "start_date": {
+        "year": 1501,
+        "month": "Mirtul",
+        "day": 1
+      },
+      "start_second": 32400,
+      "elapsed_seconds": 0
+    },
+    "scheduled_events": [],
+    "npc_speech_log": {
+      "npc_002": [
+        {
+          "player": "Bir han ismi söyler misin?",
+          "npc": "Kızılhan açık bir han, diye duydum."
+        }
+      ]
+    }
+  }
+}

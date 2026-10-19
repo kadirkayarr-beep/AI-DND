@@ -691,7 +691,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             action_result={"action": "dialogue", "status": "resolved"},
         )
 
-        self.assertIn("Bu konuşmayı kiminle yaptığını", output)
+        self.assertIn("kiminle konuştuğunu çıkaramıyorsun", output)
         self.assertNotIn("Mira", output)
         self.assertEqual(
             self.session.last_narration_safety["reason_code"],

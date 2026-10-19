@@ -613,8 +613,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(
             guard,
-            "Duru, “Yol ve güvenlik hakkında doğrulanmış bilgim yok; "
-            "kesin bir şey söyleyemem,” diye yanıt verir.",
+            "Duru, “Yolların ne durumda olduğunu bilemem; kesin bir şey "
+            "söylersem seni yanıltırım,” diye yanıt verir.",
         )
         greeting = game._direct_npc_smalltalk_response(
             "Onunla kısa bir selamlaşıyorum.", npc
@@ -1739,7 +1739,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         response = game._unverified_lore_response(
             "Bu iki yer arası kaç mil?"
         )
-        self.assertIn("ölçüm kaydı yok", response)
+        self.assertIn("Kesin bir ölçü henüz elinde değil", response)
         self.assertNotIn("vermiyorsun", response)
         self.assertNotIn("ölçün yok", response)
 
@@ -1774,7 +1774,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
 
         ask.assert_not_called()
         self.assertEqual(result["action_result"]["status"], "unverified")
-        self.assertIn("ölçüm kaydı yok", result["narration"])
+        self.assertIn("Kesin bir ölçü henüz elinde değil", result["narration"])
         for key, value in before.items():
             self.assertEqual(self.world.get(key), value, key)
 
