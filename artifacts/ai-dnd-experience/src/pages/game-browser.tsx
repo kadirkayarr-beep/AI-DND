@@ -90,7 +90,6 @@ import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGate
 import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
-import citadelArtwork from '@assets/generated_images/ai-dnd-citadel-gate.jpg';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
@@ -167,20 +166,6 @@ function NoticeBanner({ notice }: { notice: Notice }) {
   );
 }
 
-function TavernArtwork() {
-  return (
-    <div className="gate-scene" data-testid="artwork-tavern" role="img" aria-label="Sislerin ardındaki uzak kale ve ona uzanan taş köprü" style={{ backgroundImage: `url("${citadelArtwork}")` }}>
-      <div className="gate-mist gate-mist-near" />
-      <div className="gate-mist gate-mist-far" />
-      <div className="gate-seal" aria-hidden="true">
-        <span className="gate-seal-caption">Yol çağırıyor</span>
-        <OuroborosMark awaken />
-      </div>
-      <span className="gate-art-caption" aria-hidden="true">UNUTULMUŞ DİYARLAR · FAERÛN</span>
-    </div>
-  );
-}
-
 function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
@@ -219,7 +204,9 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
             {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
             <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
           </section>
-          <section className="opening-art" aria-label="Macera kapısı"><TavernArtwork /></section>
+          <section className="opening-art opening-emblem" aria-label="Ouroboros simgesi">
+            <div className="opening-emblem-frame" aria-hidden="true"><OuroborosMark awaken /></div>
+          </section>
         </div>
         <EngineHealth />
       </div>
@@ -807,13 +794,13 @@ function StoryColumn({
             </label>
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
           </button>
         </form>
-        <div className="command-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
+        <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
       </div>
     </section>
   );

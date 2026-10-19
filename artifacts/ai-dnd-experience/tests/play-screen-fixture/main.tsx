@@ -305,4 +305,6 @@ async function openPlayScreen() {
   await clickWhen(`[data-testid="button-resume-${CAMPAIGN_ID}"]`);
 }
 
-void openPlayScreen();
+if (new URLSearchParams(window.location.search).get("screen") !== "opening") {
+  void openPlayScreen();
+}
