@@ -873,6 +873,16 @@ def is_npc_dialogue_input(player_input):
     if is_ordinary_environment_look(player_input) or living_world.classify_scene_action(player_input) == "look":
         return False
     text = player_input.casefold().strip()
+    normalized = _normalize_turkish_typos(player_input)
+    # A reported NPC utterance can qualify an explicit first-person move; it
+    # must not turn that move into a new conversation addressed to the speaker.
+    # Keep this narrow so questions and ordinary historical claims stay dialogue.
+    if (
+        "?" not in text
+        and is_npc_historical_claim(player_input)
+        and re.search(r"\b(?:gid\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", normalized)
+    ):
+        return False
     if (
         local_dialogue.is_local_dialogue_input(player_input)
         or local_dialogue.explicit_player_name_disclosure(player_input)

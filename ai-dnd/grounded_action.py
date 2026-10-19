@@ -250,6 +250,10 @@ def _read_clause(clause: dict[str, Any]) -> dict[str, Any]:
     if not actions:
         return info
     position, verb, negated, infinitive = actions[-1]
+    # Keep a current first-person movement when a reported NPC utterance is
+    # only the source of its destination ("Marek'in söylediği ... yere gidiyorum").
+    if info["reported"] and verb == "go" and _FIRST_PERSON_ACT.search(text):
+        info["reported"] = False
     # "açmaya çalışıyorum", "açmayı denemiyorum", "girmek istiyorum": the
     # infinitive names the act, the helper verb only says try / want / not.
     helper = tokens[position + 1] if position + 1 < len(tokens) else ""

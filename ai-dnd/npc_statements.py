@@ -231,6 +231,26 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
                     head = tokens[index + 1].split("'")[0]
                     display = " ".join([*words, head])
                     found.append((display, noun, kind))
+    # NPC speech is evidence for an attributed named-place reference even when
+    # its head noun is not in PLACE_NOUNS. Keep the complete, spoken proper-name
+    # span and treat its type as generic; do not promote the quote to world fact.
+    for index, token in enumerate(tokens):
+        bare = token.split("'")[0]
+        if not bare or not bare[0].isupper():
+            continue
+        words = [bare]
+        following = index + 1
+        while (
+            following < len(tokens)
+            and tokens[following]
+            and tokens[following][0].isupper()
+        ):
+            words.append(tokens[following].split("'")[0])
+            following += 1
+        if len(words) < 3:
+            continue
+        display = " ".join(words)
+        found.append((display, fold(words[-1]), "generic"))
     # Sentence-initial ordinary words ("Bu", "Hanın") never survive the 3-char rule.
     unique = []
     for item in found:

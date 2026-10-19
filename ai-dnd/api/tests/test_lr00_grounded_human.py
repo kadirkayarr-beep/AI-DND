@@ -202,6 +202,150 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Kızılhan", knock_text)
         self.assertNotIn("Garrick", knock_text)
 
+    def record_npc_place_statement(self, npc_id, name, quote):
+        npc = {
+            "id": npc_id,
+            "name": npc_id.removeprefix("npc_test_").title(),
+            "name_known_to_player": True,
+            "role": "guide",
+            "location": CITY,
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        self.world["npcs"].append(npc)
+        statement = npc_statements.record(
+            self.world,
+            npc,
+            "Şehirde başka hangi yere gidebilirim?",
+            f'{npc["name"]}, “{quote}” diye yanıtlıyor.',
+            turn=42,
+        )
+        self.assertIsNotNone(statement)
+        self.assertEqual(statement["text"], quote)
+        return npc, statement
+
+    async def test_marek_said_named_camhouse_can_be_reached_by_natural_go_phrase(self):
+        name = "Mavi Fener Camhanesi"
+        _, statement = self.record_npc_place_statement(
+            "npc_test_marek",
+            name,
+            "Mavi Fener Camhanesi doğu kapısının yanındadır.",
+        )
+        self.assertEqual(statement["player"], "Şehirde başka hangi yere gidebilirim?")
+
+        action_id = str(uuid.uuid4())
+        message = "Marek'in söylediği Mavi Fener Camhanesi'ne gidiyorum"
+        text, receipt = await self.turn(message, action_id=action_id)
+
+        self.assertEqual(receipt.get("action"), "grounded_action", (text, receipt))
+        place_id = receipt.get("target_id")
+        place = self.world["locations"].get(place_id)
+        self.assertEqual(receipt.get("status"), "completed", (text, receipt))
+        self.assertIsInstance(place, dict, (text, receipt))
+        self.assertEqual(place.get("name"), name, (text, receipt, place))
+        self.assertEqual(
+            place.get("provenance", {}).get("said_by"),
+            "npc_test_marek",
+            (text, receipt, place),
+        )
+        locations_after_first_visit = copy.deepcopy(self.world["locations"])
+        replay_text, replay_receipt = await self.turn(message, action_id=action_id)
+        self.assertEqual(replay_text, text)
+        self.assertEqual(self.world["locations"], locations_after_first_visit)
+        _, repeat_receipt = await self.turn(message, action_id=str(uuid.uuid4()))
+        # The fixture door is locked, so the second approach can be blocked at
+        # the door; it must still reuse the already materialized place.
+        self.assertIn(repeat_receipt.get("status"), {"completed", "blocked"}, repeat_receipt)
+        self.assertEqual(
+            sum(location.get("name") == name for location in self.world["locations"].values()),
+            1,
+            self.world["locations"],
+        )
+        self.assertEqual(self.world["locations"], locations_after_first_visit)
+
+    async def test_unspoken_player_claim_does_not_create_a_named_npc_place(self):
+        before_locations = copy.deepcopy(self.world["locations"])
+        text, receipt = await self.turn(
+            "Marek'in söylediği Mavi Fener Camhanesi'ne gidiyorum"
+        )
+        self.assertEqual(self.world["locations"], before_locations)
+        self.assertFalse(any(
+            ref.get("name") == "Mavi Fener Camhanesi"
+            for ref in npc_statements.place_references(self.world, settlement_id=CITY)
+        ))
+
+    async def test_negative_travel_to_a_spoken_place_does_not_materialize_or_move(self):
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            "Mavi Fener Camhanesi",
+            "Mavi Fener Camhanesi doğu kapısının yanındadır.",
+        )
+        before_location = self.world["location"]
+        before_locations = copy.deepcopy(self.world["locations"])
+        text, receipt = await self.turn("Mavi Fener Camhanesi'ne gitmiyorum")
+        self.assertNotEqual(receipt.get("status"), "completed", (text, receipt))
+        self.assertEqual(self.world["location"], before_location)
+        self.assertEqual(self.world["locations"], before_locations)
+
+    async def test_two_spoken_camhouse_names_materialize_as_distinct_city_places(self):
+        names = ("Mavi Fener Camhanesi", "Kızıl Lale Camhanesi")
+        speakers = ("npc_test_marek", "npc_test_lale")
+        for speaker, name in zip(speakers, names):
+            _, statement = self.record_npc_place_statement(
+                speaker,
+                name,
+                f"{name} şehirde bilinen bir yerdir.",
+            )
+            self.assertTrue(statement["text"].startswith(name))
+
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        named_refs = [ref for ref in refs if ref.get("name") in names]
+        self.assertEqual(
+            {ref.get("name") for ref in named_refs},
+            set(names),
+            {"npc_statements": refs},
+        )
+        self.assertEqual(
+            {ref.get("said_by") for ref in named_refs},
+            set(speakers),
+            {"npc_statements": refs},
+        )
+        self.assertEqual(
+            len({ref.get("id") for ref in named_refs}),
+            2,
+            {"npc_statements": named_refs},
+        )
+
+        resolved_ids = []
+        for name in names:
+            text, receipt = await self.turn(f"{name}'ne gidiyorum")
+            place_id = receipt.get("target_id")
+            place = self.world["locations"].get(place_id)
+            self.assertEqual(receipt.get("status"), "completed", (text, receipt))
+            self.assertIsInstance(place, dict, (text, receipt))
+            self.assertEqual(place.get("name"), name, (text, receipt, place))
+            self.assertEqual(place.get("parent_location_id"), CITY, place)
+            resolved_ids.append(place_id)
+
+        self.assertEqual(len(set(resolved_ids)), 2, resolved_ids)
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        self.assertEqual(
+            {ref.get("name") for ref in refs if ref.get("name") in names},
+            set(names),
+            refs,
+        )
+        self.assertEqual(
+            {ref.get("said_by") for ref in named_refs},
+            set(speakers),
+            refs,
+        )
+
     async def test_another_inn_is_not_garrick_again(self):
         text, receipt = await self.turn("Açık olan başka han varmı diye şehirde geziyorum")
         self.assertNotEqual(receipt.get("target_id"), GARRICK, (text, receipt))
