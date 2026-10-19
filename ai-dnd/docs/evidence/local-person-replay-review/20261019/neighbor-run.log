@@ -1,0 +1,80 @@
+python : INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+At C:\Users\Kadir\AppData\Local\Temp\ps-script-4dc5263b-b637-4f6b-abbc-659d3e46b2a9.ps1:93 char:79
++ ... ONUTF8='1'; python -m unittest api.tests.test_local_person_persistenc ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO: Lore retr...ted_fact_ids=[]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=clarification, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=reused_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=reused_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=2, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=2, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=clarification, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+.Executing <Task finished name='Task-49' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\Des
+ktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C:
+\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.147 seconds
+.Executing <Task finished name='Task-57' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\Des
+ktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C:
+\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.143 seconds
+.Executing <Task finished name='Task-62' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\Des
+ktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C:
+\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.147 seconds
+Executing <Task pending name='Task-63' coro=<TwoPlayerIsolationTests.test_a_saved_but_inactive_campaign_is_409_for_its_
+owner_and_404_for_everyone_else() running at C:\Users\Kadir\Desktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\
+test_http_two_player_isolation.py:226> cb=[_run_until_complete_cb() at C:\Users\Kadir\AppData\Local\Python\pythoncore-3
+.14-64\Lib\asyncio\base_events.py:181] created at C:\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\ru
+nners.py:109> took 0.152 seconds
+.Executing <Task finished name='Task-67' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\Des
+ktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C:
+\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.145 seconds
+.Executing <Task finished name='Task-120' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\De
+sktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C
+:\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.175 seconds
+.Executing <Task finished name='Task-125' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\De
+sktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C
+:\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.161 seconds
+.Executing <Task finished name='Task-142' coro=<TwoPlayerIsolationTests.asyncSetUp() done, defined at C:\Users\Kadir\De
+sktop\AI-DND-local-person-replay-review\ai-dnd\api\tests\test_http_two_player_isolation.py:42> result=None created at C
+:\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.148 seconds
+.
+----------------------------------------------------------------------
+Ran 10 tests in 5.084s
+
+OK
