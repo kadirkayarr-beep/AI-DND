@@ -146,6 +146,7 @@ class PipelinePortTests(unittest.TestCase):
         before = copy.deepcopy(self.session.world_state)
         proposal = {
             "local_person_proposal": {
+                "name": "Neris",
                 "role": "kıyı balıkçısı",
                 "appearance": "Yosun lekeli pelerinli yaşlı biri",
                 "reason": "Liman söylentileri hakkında konuşabilir.",
@@ -157,6 +158,7 @@ class PipelinePortTests(unittest.TestCase):
         )
         self.assertIsNone(self.session._validated_local_person_proposal({
             "local_person_proposal": {
+                "name": "Neris",
                 "role": "x" * 61, "appearance": "kişi", "reason": "öneri",
             }
         }))
@@ -201,6 +203,7 @@ class PipelinePortTests(unittest.TestCase):
             }
             if "local_person_proposal" in kwargs["format"]["properties"]:
                 packet["local_person_proposal"] = {
+                    "name": "Neris",
                     "role": "kıyı balıkçısı",
                     "appearance": "Yosun lekeli pelerin giyen yaşlı biri",
                     "reason": "Liman söylentilerini duymuş olabilir.",
@@ -212,10 +215,13 @@ class PipelinePortTests(unittest.TestCase):
                 "Sahnede olmayan bir balıkçıya liman söylentilerini sormak istiyorum.",
                 interaction_mode="say",
             )
-        self.assertEqual(result["action_result"]["status"], "noncanonical_suggestion")
-        self.assertEqual([npc["id"] for npc in self.session.world_state["npcs"]], ["npc_001"])
+        self.assertEqual(result["action_result"]["status"], "created_local_person")
+        self.assertEqual(result["action_result"]["npc_id"], self.session.world_state["npcs"][-1]["id"])
+        self.assertEqual(len(self.session.world_state["npcs"]), 2)
+        self.assertEqual(self.session.world_state["npcs"][-1]["name"], "Neris")
         self.assertEqual(self.session.world_state["locations"], before["locations"])
-        self.assertIn("öneri", result["narration"])
+        self.assertEqual(self.session.world_state["npcs"][-1]["knowledge"], [])
+        self.assertEqual(self.session.world_state["npcs"][-1]["backstory"], "")
 
     def test_observation_is_not_a_skill_check_or_world_mutation(self):
         before = copy.deepcopy(self.session.world_state)
