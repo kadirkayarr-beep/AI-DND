@@ -795,7 +795,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_personal_profile_why_followup_reaches_same_npc_context(self):
-        city_id, session_id, session, turn_url, _, _ = (
+        city_id, session_id, session, turn_url, venue_id, _ = (
             await create_city_with_locked_tavern(self)
         )
         profile = {
@@ -14185,48 +14185,102 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(observed, expected)
 
     async def test_scene_detail_with_workbench_name_is_not_rejected_as_shop(self):
-        response, session, model, city_id, venue_id, outcomes, *_ = (
-            await self.run_review_scene_turn(
-                "Han binasının içindeki çalışma tezgâhını inceliyorum.",
-                lambda _session, city, venue: [{
-                    "proposal_key": "ordinary_workbench",
-                    "location": city,
-                    "parent_id": venue,
-                    "name": "Çalışma Tezgahı",
-                    "description": "Atölyenin köşesinde duran çiziklerle dolu sıradan bir çalışma yüzeyi.",
-                    "kind": "detail",
-                    "aliases": ["çalışma tezgahı", "tezgah"],
-                }],
-            )
+        city_id, _, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
         )
+        unlock_venue_door(session.world_state, venue_id)
+        entered = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(entered.status_code, 200, entered.text)
+        self.assertEqual(entered.json()["state"]["location"], venue_id)
+        readable_line = "Aletleri yerlerine bırak."
+        model = ControlledSceneDetailOllamaClient(
+            venue_id, venue_id,
+            proposals=[{
+                "proposal_key": "ordinary_workbench",
+                "location": venue_id,
+                "parent_id": venue_id,
+                "name": "Çalışma Tezgâhı",
+                "description": "Tezgâha iliştirilmiş okunaklı bir not var.",
+                "text": readable_line,
+                "kind": "detail",
+                "aliases": ["çalışma tezgâhı", "tezgah", "tezgâh"],
+            }],
+            narration="Tezgâhın kenarına iliştirilmiş bir not görüyorsun.",
+            explore_type="observe",
+        )
+        response = await self.post_scene_turn(turn_url, model, {
+            "message": "Odanın köşelerini dikkatle inceliyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(model.last_intent_schema_has_proposals)
+        workbench_name = "Çalışma Tezgâhı"
         feature = next(
             (
                 row for row in session.world_state["features"]
-                if row.get("name") == "Çalışma Tezgahı"
+                if row.get("name") == workbench_name
             ),
             None,
         )
-        self.assertIsNotNone(
-            feature,
-            f"Ordinary local detail was rejected: {outcomes[0]!r}",
-        )
-        self.assertEqual(feature.get("location"), city_id)
+        self.assertIsNotNone(feature, "Ordinary workbench detail was rejected.")
+        self.assertEqual(feature.get("location"), venue_id)
         self.assertEqual(feature.get("parent_id"), venue_id)
         self.assertEqual(feature.get("reality_layer"), "PROCEDURAL_LOCAL_FICTION")
-        self.assertNotEqual(outcomes[0].get("action"), "shop_setup")
+        self.assertEqual(feature.get("text"), readable_line)
         self.assertLessEqual(model.calls, 2)
+        read_body = {
+            "message": "Çalışma Tezgâhı okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        read = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read.status_code, 200, read.text)
+        self.assertIn(
+            f"{workbench_name} üzerinde yazan: “{readable_line}”",
+            read.json()["narration"],
+        )
+        replay = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), read.json())
+        exited = await self.http.post(turn_url, json={
+            "message": "Tavernadan dışarı çıkıyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(exited.status_code, 200, exited.text)
+        self.assertEqual(exited.json()["state"]["location"], city_id)
+        self.assertIsNone(grounded_action.resolve_turn(
+            session, "Çalışma Tezgâhı okuyorum.", allow_model=False
+        ))
+        returned = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned.status_code, 200, returned.text)
+        self.assertEqual(returned.json()["state"]["location"], venue_id)
+        returned_feature = next(
+            row for row in session.world_state["features"]
+            if row.get("id") == feature["id"]
+        )
+        self.assertEqual(returned_feature.get("text"), readable_line)
+        returned_read = await self.http.post(turn_url, json={
+            "message": "Çalışma Tezgâhı okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned_read.status_code, 200, returned_read.text)
+        self.assertIn(
+            f"{workbench_name} üzerinde yazan: “{readable_line}”",
+            returned_read.json()["narration"],
+        )
 
     async def test_current_scene_observation_can_create_and_read_a_local_detail(self):
-        city_id, session_id, session, turn_url, _, _ = (
+        city_id, session_id, session, turn_url, venue_id, _ = (
             await create_city_with_locked_tavern(self)
         )
         session.world_state["locations"][city_id].update(
             name="Kıyı Atölyesi", aliases=["Kıyı Atölyesi"]
         )
         detail_name = "Yıpranmış Defter"
-        readable_line = "Yağ lambasını doldur."
+        readable_line = "Kapı kilitsiz."
         model = ControlledSceneDetailOllamaClient(
             city_id,
             city_id,
@@ -14281,15 +14335,74 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(feature.get("parent_id"), city_id)
         self.assertLessEqual(model.calls, 2)
 
-        read = grounded_action.resolve_turn(
-            session, "Yıpranmış Defteri okuyorum.", allow_model=False
+        read_body = {
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        untouched_keys = ("doors", "inventory", "item_rewards", "rewards", "events")
+        tavern_door = next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == f"venue-door:{venue_id}"
         )
-        self.assertIsNotNone(
-            read,
-            f"Local read did not bind: {grounded_action.plan(session, 'Yıpranmış Defteri okuyorum.')!r}",
+        self.assertTrue(tavern_door.get("locked"))
+        self.assertFalse(tavern_door.get("open"))
+        before_read = {
+            key: copy.deepcopy(session.world_state.get(key))
+            for key in untouched_keys
+        }
+        read_results = []
+        original_read_turn = session.run_player_turn
+
+        @wraps(original_read_turn)
+        def capture_read_turn(*args, **kwargs):
+            result = original_read_turn(*args, **kwargs)
+            read_results.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        model_calls_before_read = model.calls
+        with patch.object(session, "run_player_turn", new=capture_read_turn):
+            read = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read.status_code, 200, read.text)
+        self.assertEqual(read_results[0]["steps"][0]["verb"], "read")
+        self.assertEqual(read_results[0]["steps"][0]["target_id"], feature["id"])
+        self.assertIn(f"{detail_name} üzerinde yazan: “{readable_line}”", read.json()["narration"])
+        self.assertEqual(
+            {key: session.world_state.get(key) for key in untouched_keys},
+            before_read,
         )
-        self.assertEqual(read["action_result"]["steps"][0]["verb"], "read")
-        self.assertIn(readable_line, read["narration"])
+        read_replay = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read_replay.status_code, 200, read_replay.text)
+        self.assertEqual(read_replay.json(), read.json())
+        self.assertEqual(model.calls, model_calls_before_read)
+
+        tavern_id = venue_id
+        unlock_venue_door(session.world_state, tavern_id)
+        entered = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(entered.status_code, 200, entered.text)
+        self.assertEqual(entered.json()["state"]["location"], tavern_id)
+        unavailable = await self.http.post(turn_url, json={
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(unavailable.status_code, 200, unavailable.text)
+        self.assertNotIn(readable_line, unavailable.json()["narration"])
+        exited = await self.http.post(turn_url, json={
+            "message": "Tavernadan dışarı çıkıyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(exited.status_code, 200, exited.text)
+        self.assertEqual(exited.json()["state"]["location"], city_id)
+        returned_read = await self.http.post(turn_url, json={
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned_read.status_code, 200, returned_read.text)
+        self.assertIn(
+            f"{detail_name} üzerinde yazan: “{readable_line}”",
+            returned_read.json()["narration"],
+        )
 
         campaign_id = self.manager.get(session_id).campaign_id
         persisted = self.store.get_campaign(campaign_id)
@@ -14299,7 +14412,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ))
 
         old_http = self.http
-        resumed_manager = SessionManager(campaign_store=self.store)
+        reloaded_store = CampaignStore(
+            self.store.path, bound_principal=TEST_PLAYER
+        )
+        self.store = reloaded_store
+        resumed_manager = SessionManager(campaign_store=reloaded_store)
         self.manager = resumed_manager
         self.app = create_app(
             session_manager=resumed_manager,
@@ -14323,11 +14440,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if row.get("id") == feature["id"]
         )
         self.assertEqual(resumed_feature.get("text"), readable_line)
-        resumed_read = grounded_action.resolve_turn(
-            resumed_session, "Yıpranmış Defteri okuyorum.", allow_model=False
+        resumed_read = await self.http.post(
+            f"/api/game/sessions/{resumed.json()['session_id']}/turn",
+            json={
+                "message": "Yıpranmış Defteri okuyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
         )
-        self.assertIsNotNone(resumed_read)
-        self.assertIn(readable_line, resumed_read["narration"])
+        self.assertEqual(resumed_read.status_code, 200, resumed_read.text)
+        self.assertIn(
+            f"{detail_name} üzerinde yazan: “{readable_line}”",
+            resumed_read.json()["narration"],
+        )
 
         isolated = await self.http.post(
             "/api/game/campaigns",

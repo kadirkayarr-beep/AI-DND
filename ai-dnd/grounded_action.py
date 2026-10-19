@@ -1640,8 +1640,12 @@ def _do_read(run: _Run, step) -> dict[str, Any]:
             return _receipt("read", "completed", place, text=f"Kapının üstündeki tabelada “{place['label']}” yazıyor.")
     if target and target["kind"] == "feature":
         feature = target["record"]
-        return _receipt("read", "completed", target, text=feature.get("text") or feature.get("description")
-                        or f"{feature.get('name')} üzerinde okunacak bir yazı yok.")
+        quoted_text = feature.get("text")
+        if quoted_text:
+            text = f"{feature.get('name')} üzerinde yazan: “{quoted_text}”"
+        else:
+            text = feature.get("description") or f"{feature.get('name')} üzerinde okunacak bir yazı yok."
+        return _receipt("read", "completed", target, text=text)
     return None
 
 
