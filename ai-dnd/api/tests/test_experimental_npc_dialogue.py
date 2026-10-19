@@ -609,11 +609,49 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         resumed_refs = npc_statements.place_references(
             resumed_session.world_state, settlement_id=city_id
         )
-        self.assertTrue(any(
+        resumed_place_ref = next((ref for ref in resumed_refs if
             ref.get("name") == spoken_place and ref.get("said_by") == npc["id"]
-            and quote in ref.get("quotes", [])
-            for ref in resumed_refs
-        ), resumed_refs)
+            and quote in ref.get("quotes", [])), None)
+        self.assertIsNotNone(resumed_place_ref, resumed_refs)
+        resumed_location_id = resumed_place_ref.get("location_id")
+        self.assertEqual(
+            resumed_session.world_state["locations"][resumed_location_id].get("name"),
+            spoken_place,
+        )
+        resumed_session_id = resumed.json()["session_id"]
+        async with test_campaign_api.httpx.AsyncClient(
+            transport=test_campaign_api.httpx.ASGITransport(app=resumed_app),
+            base_url="http://test",
+        ) as resumed_turn_http:
+            for _ in range(2):
+                repeat_after_resume = await resumed_turn_http.post(
+                    f"/api/game/sessions/{resumed_session_id}/turn",
+                    json={
+                        "message": f"Marek'in söylediği {spoken_place}'ne gidiyorum",
+                        "interaction_mode": "do",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+                self.assertEqual(
+                    repeat_after_resume.status_code, 200, repeat_after_resume.text
+                )
+                current_refs = npc_statements.place_references(
+                    resumed_session.world_state, settlement_id=city_id
+                )
+                current_ref = next(
+                    ref for ref in current_refs if ref.get("name") == spoken_place
+                )
+                self.assertEqual(
+                    current_ref.get("location_id"), resumed_location_id, current_refs
+                )
+                self.assertEqual(
+                    sum(
+                        location.get("name") == spoken_place
+                        for location in resumed_session.world_state["locations"].values()
+                    ),
+                    1,
+                    resumed_session.world_state["locations"],
+                )
 
         second_city_id, _, second_session, _, _, _ = (
             await create_city_with_locked_tavern(self)
@@ -624,6 +662,31 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(
             ref.get("name") == spoken_place for ref in second_refs
         ), second_refs)
+
+    async def test_default_player_path_does_not_claim_experimental_npc_place_speech(self):
+        city_id, _, session, turn_url, npc = await self.campaign_with_npc(experimental=False)
+        self.assertFalse(
+            getattr(session, "_experimental_npc_dialogue_enabled", False)
+        )
+        quote = "Mavi Fener Camhanesi doğu kapısının yanındadır."
+        client = ScriptedNpcSpeechClient(narration=quote)
+        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self,
+            turn_url,
+            client,
+            self.request(
+                npc,
+                message="Bana şehirde başka bir yer öner.",
+                action_id=str(uuid.uuid4()),
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(any(
+            ref.get("name") == "Mavi Fener Camhanesi"
+            for ref in npc_statements.place_references(
+                session.world_state, settlement_id=city_id
+            )
+        ))
 
     async def test_opt_in_save_failure_rolls_back_and_retry_receipt_replays(self):
         _, session_id, session, turn_url, npc = await self.campaign_with_npc()

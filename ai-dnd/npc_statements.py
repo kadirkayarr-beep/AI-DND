@@ -54,6 +54,15 @@ _EXISTENCE = re.compile(
 )
 _ADJECTIVES = ("acik", "kapali", "ucuz", "pahali", "guvenli", "kalabalik", "sakin",
                "yakin", "uzak", "eski", "yeni", "temiz", "kirli", "iyi", "kotu")
+_PLACE_RELATION = re.compile(
+    r"\b(?:yamac\w*|bulun\w*|konumlan\w*|yer(?:idir|dir|i)\b|"
+    r"(?:kap\w*|sokak\w*|yol\w*|meydan\w*).{0,40}"
+    r"\b(?:yan\w*|yakin\w*|karsi\w*))"
+)
+_DENIED_PLACE = re.compile(
+    r"^\s*(?:diye\s+bir\s+yer\s+yok(?:tur)?|"
+    r"(?:bir\s+yer\s+)?yok(?:tur)?|değil(?:dir)?|degil(?:dir)?|bulunmuyor)\b"
+)
 
 _REFUSAL = re.compile(
     r"\b(?:hayir|olmaz|yapamam|gidemem|goturemem|veremem|gosteremem|istemem|"
@@ -200,6 +209,14 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
     """Proper place names in an NPC line -> [(display name, noun, kind)]."""
     found = []
     tokens = re.findall(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû']+", text)
+
+    def denied(name: str) -> bool:
+        folded_text = fold(text)
+        position = folded_text.find(fold(name))
+        if position < 0:
+            return False
+        return bool(_DENIED_PLACE.search(folded_text[position + len(fold(name)):]))
+
     for index, token in enumerate(tokens):
         bare = token.split("'")[0]
         if not bare or not bare[0].isupper():
@@ -214,7 +231,8 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
             if _CASE_TAIL.match(tail):
                 # Map the folded cut back onto the original spelling.
                 display = bare[: position + len(noun)]
-                found.append((display, noun, kind))
+                if not denied(display):
+                    found.append((display, noun, kind))
                 break
         else:
             # Multi-word: capitalised words followed by a place noun word.
@@ -230,7 +248,8 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
                         back -= 1
                     head = tokens[index + 1].split("'")[0]
                     display = " ".join([*words, head])
-                    found.append((display, noun, kind))
+                    if not denied(display):
+                        found.append((display, noun, kind))
     # NPC speech is evidence for an attributed named-place reference even when
     # its head noun is not in PLACE_NOUNS. Keep the complete, spoken proper-name
     # span and treat its type as generic; do not promote the quote to world fact.
@@ -238,6 +257,8 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
         bare = token.split("'")[0]
         if not bare or not bare[0].isupper():
             continue
+        if index > 0 and tokens[index - 1][:1].isupper():
+            continue  # keep the maximal proper-name span, not its suffixes
         words = [bare]
         following = index + 1
         while (
@@ -247,9 +268,12 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
         ):
             words.append(tokens[following].split("'")[0])
             following += 1
-        if len(words) < 3:
+        if len(words) < 2:
             continue
         display = " ".join(words)
+        tail = fold(" ".join(tokens[following:]))
+        if not _PLACE_RELATION.search(tail) or denied(display):
+            continue
         found.append((display, fold(words[-1]), "generic"))
     # Sentence-initial ordinary words ("Bu", "Hanın") never survive the 3-char rule.
     unique = []

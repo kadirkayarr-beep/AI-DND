@@ -927,6 +927,22 @@ def _receipt(verb, status, target=None, **extra):
     return data
 
 
+def _reported_first_person_move(player_input: str) -> bool:
+    """A first-person move before a reporting verb belongs to reported speech."""
+    import game
+
+    if not game.is_npc_historical_claim(player_input):
+        return False
+    text = fold(player_input)
+    report = re.search(r"\b(?:dedi|soyledi|anlatti|bahsetti|konustu)\b", text)
+    if report is None:
+        return False
+    moves = list(re.finditer(r"\b(?:gid\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", text))
+    return any(move.start() < report.start() for move in moves) and not any(
+        move.start() > report.end() for move in moves
+    )
+
+
 def _place_target(run: _Run, target: dict[str, Any] | None) -> dict[str, Any] | None:
     """A place candidate for a place, its door, or a followed reference."""
     if target is None:
@@ -983,7 +999,7 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
     if len(locations) >= 80:
         return None
     if kind in local_places.PLACE_KINDS:
-        record = local_places.create_local_place(world, settlement, kind)
+        record = local_places.create_local_place(world, settlement, kind, name=name)
         if record is None:
             return None
         if name and fold(record.get("name")) != fold(name):
@@ -2212,6 +2228,22 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     world = session.world_state
     if not isinstance(world, dict):
         return None
+    if isinstance(player_input, str) and _reported_first_person_move(player_input):
+        if dry_run:
+            return True
+        narration = "Aktarılan NPC sözü oyuncunun hareketi sayılmaz."
+        return {
+            "messages": session.messages,
+            "narration": narration,
+            "model_calls": 0,
+            "action_result": {
+                "action": "narrative",
+                "status": "no_effect",
+                "success": False,
+                "state_changes": [],
+                "direct_response": narration,
+            },
+        }
     snapshot = copy.deepcopy(world)
     try:
         decision, payload = _decide(session, player_input, interaction_mode=interaction_mode,

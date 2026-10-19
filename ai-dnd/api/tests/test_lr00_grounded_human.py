@@ -346,6 +346,119 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
             refs,
         )
 
+    async def test_two_word_library_names_keep_distinct_place_identities(self):
+        names = ("Mavi Kütüphanesi", "Kızıl Kütüphanesi")
+        speakers = ("npc_test_marek", "npc_test_lale")
+        for speaker, name in zip(speakers, names):
+            self.record_npc_place_statement(
+                speaker,
+                name,
+                f"{name} şehrin eski bir yapısıdır.",
+            )
+
+        resolved_ids = []
+        for name in names:
+            text, receipt = await self.turn(f"{name}'ne gidiyorum")
+            place = self.world["locations"].get(receipt.get("target_id"))
+            self.assertEqual(receipt.get("status"), "completed", (text, receipt))
+            self.assertIsInstance(place, dict, (text, receipt))
+            self.assertEqual(place.get("name"), name, (text, receipt, place))
+            resolved_ids.append(place["id"])
+
+        self.assertNotEqual(
+            resolved_ids[0],
+            resolved_ids[1],
+            {
+                "ids": resolved_ids,
+                "refs": npc_statements.place_references(self.world, settlement_id=CITY),
+                "locations": self.world["locations"],
+            },
+        )
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        for name, speaker, location_id in zip(names, speakers, resolved_ids):
+            ref = next((r for r in refs if r.get("name") == name), None)
+            self.assertIsNotNone(ref, refs)
+            self.assertEqual(ref.get("said_by"), speaker, ref)
+            self.assertEqual(ref.get("location_id"), location_id, ref)
+        self.assertEqual(
+            sum(location.get("name") in names for location in self.world["locations"].values()),
+            2,
+            self.world["locations"],
+        )
+
+    def test_two_word_observatory_name_is_preserved_as_a_place_reference(self):
+        _, statement = self.record_npc_place_statement(
+            "npc_test_marek",
+            "Ayışığı Rasathanesi",
+            "Ayışığı Rasathanesi kuzey yamacındadır.",
+        )
+        self.assertEqual(statement["text"], "Ayışığı Rasathanesi kuzey yamacındadır.")
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        self.assertEqual(
+            [ref.get("name") for ref in refs if ref.get("said_by") == "npc_test_marek"],
+            ["Ayışığı Rasathanesi"],
+            refs,
+        )
+
+    def test_four_word_place_reference_is_complete_without_a_suffix_duplicate(self):
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            "Eski Mavi Fener Camhanesi",
+            "Eski Mavi Fener Camhanesi doğu kapısının yanındadır.",
+        )
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        self.assertEqual(
+            [ref.get("name") for ref in refs if ref.get("said_by") == "npc_test_marek"],
+            ["Eski Mavi Fener Camhanesi"],
+            refs,
+        )
+
+    def test_denied_place_and_reported_person_are_not_place_references(self):
+        for speaker, quote in (
+            ("npc_test_marek", "Mavi Fener Camhanesi diye bir yer yok."),
+            ("npc_test_lale", "Kral Aras Demirpençe öldü."),
+            ("npc_test_tan", "Mavi Kütüphanesi diye bir yer yok."),
+        ):
+            self.record_npc_place_statement(speaker, "Tanık", quote)
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        self.assertFalse(
+            any(
+                ref.get("said_by") in {"npc_test_marek", "npc_test_lale", "npc_test_tan"}
+                for ref in refs
+            ),
+            refs,
+        )
+
+    def test_named_place_reference_distinguishes_rumor_from_known_location(self):
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            "Garrick Hanı",
+            "Garrick Hanı şehrin merkezindedir.",
+        )
+        self.record_npc_place_statement(
+            "npc_test_lale",
+            "Ayışığı Rasathanesi",
+            "Ayışığı Rasathanesi kuzey yamacındadır.",
+        )
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        known = next(ref for ref in refs if ref.get("name") == "Garrick Hanı")
+        rumor = next(ref for ref in refs if ref.get("name") == "Ayışığı Rasathanesi")
+        self.assertEqual((known.get("status"), known.get("location_id")), ("resolved", GARRICK))
+        self.assertEqual((rumor.get("status"), rumor.get("location_id")), ("rumor", None))
+
+    async def test_reported_npc_first_person_travel_is_not_the_players_move(self):
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            "Mavi Fener Camhanesi",
+            "Mavi Fener Camhanesi şehirde bilinen bir yerdir.",
+        )
+        before_location = self.world["location"]
+        before_locations = copy.deepcopy(self.world["locations"])
+        _, receipt = await self.turn("Marek Mavi Fener Camhanesi’ne gidiyorum dedi")
+        self.assertEqual(receipt.get("status"), "no_effect", receipt)
+        self.assertEqual(self.world["location"], before_location)
+        self.assertEqual(self.world["locations"], before_locations)
+
     async def test_another_inn_is_not_garrick_again(self):
         text, receipt = await self.turn("Açık olan başka han varmı diye şehirde geziyorum")
         self.assertNotEqual(receipt.get("target_id"), GARRICK, (text, receipt))
