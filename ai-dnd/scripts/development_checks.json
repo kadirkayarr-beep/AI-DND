@@ -68,9 +68,11 @@
     "api.tests.test_narration_claims.NarrationClaimTests.test_player_miss_after_enemy_hit_keeps_subject_change",
     "api.tests.test_exploration_package.ExplorationPackageTests.test_undiscovered_catalog_door_is_not_grounded_or_suggested",
     "test_playable_living_world.PlayableLivingWorldTests.test_compound_move_preserves_explicit_smithy_door_target",
-    "test_playable_living_world.PlayableLivingWorldTests.test_named_smithy_door_wins_over_separate_workshop_kind"
+    "test_playable_living_world.PlayableLivingWorldTests.test_named_smithy_door_wins_over_separate_workshop_kind",
+    "api.tests.test_ai_freedom_resolution_boundary",
+    "api.tests.test_local_person_replay_review.LocalPersonReplayReviewTests"
   ],
-  "regression_group_sizes": [31, 18],
+  "regression_group_sizes": [31, 18, 1, 1],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
