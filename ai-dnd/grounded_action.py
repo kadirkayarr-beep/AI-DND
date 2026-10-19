@@ -712,6 +712,20 @@ def plan(session, player_input: str) -> dict[str, Any]:
             "place_noun": _place_noun_in(goal_tokens),
             "not_now": info.get("not_now", False),
         }
+        if steps and verb in {"knock", "open", "unlock", "force", "close"} and not step["named"]:
+            previous = steps[-1]
+            previous_target = previous.get("target")
+            if (
+                previous.get("verb") in {"go", "approach", "enter"}
+                and isinstance(previous_target, dict)
+                and previous_target.get("kind") == "place"
+                and previous_target.get("door_id")
+            ):
+                # Bind an implicit follow-up door action at execution time, after
+                # the movement step has actually placed the player at its target.
+                step["target"] = None
+                step["ambiguous"] = []
+                step["door_by_default"] = True
         pending_condition = None
         # "Şu kapalı dükkânın kapısına": the kind of place named wins over a door
         # that only matched the word "kapı" (a different building's door).
