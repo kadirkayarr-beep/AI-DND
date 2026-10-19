@@ -15698,7 +15698,8 @@ def _run_player_turn_internal(
             fallback_operation=interaction_hint,
         )
         narrated_without_model = (
-            interaction_hint in {"promise", "goal"}
+            scene_preparse_model_calls > 0
+            and interaction_hint in {"promise", "goal"}
             and action_result.get("status") == "recorded"
         )
         return finish_turn(

@@ -91,7 +91,7 @@ Claude AI-freedom test modülüne iki dar sağlayıcı-sınırı testi eklendi. 
 | Akış | İlk gözlem | Düzenleme ve beklenen kanıt |
 |---|---|---|
 | Tarifle seçilen kişiyle sıradan konuşma | 2 gerçek `chat` çağrısı, telemetride toplam 1 | Ön ayrıştırma intent çağrısı olarak korunur; anlatı çağrısıyla toplam 2. |
-| Tarifle seçilen kişiye geçerli söz | Söz kaydedildi, fakat sonuç anlatımı üçüncü `chat` çağrısını başlatıyordu | Kaydedilmiş `promise`/`goal` doğrudan yanıtı kullanılır; eylem korunur, toplam çağrı sayısı 2'de kalır. |
+| Tarifle seçilen kişiye geçerli söz/amaç | Etkileşim kaydediliyor, fakat sonuç anlatımı üçüncü `chat` çağrısını başlatıyordu | Yalnız sahne ön ayrıştırmasının zaten bir çağrı tükettiği ve `promise`/`goal` kaydının başarılı olduğu durumda Python'un doğrudan yanıtı kullanılır; eylem korunur, toplam 2'de kalır. Ön ayrıştırmasız amaç/anlatı akışı değişmez. |
 
 Verilen birleşik cümlenin `ve` ile yazılan biçimi deterministik yönlendiricide `plan` olarak sınıflanıyor. Bu çağrı bütçesi incelemesinde yönlendirici değiştirilmedi; geçerli `promise` akışını aynı tarif ve selamı koruyan noktalı biçimle doğruladık: “Omzunda halat taşıyan kişiye selam veriyorum. Sana söz veriyorum.”
 
