@@ -15372,7 +15372,7 @@ def _run_player_turn_internal(
                 interaction_context=interaction_adventure.context(
                     world_state, None, player_input
                 ),
-                allow_local_person_proposal=True,
+                allow_local_person_proposal=should_generate_npcs(player_input),
             )
             selected_npc = _validated_scene_npc_id(
                 preparsed_scene_intent, player_input
@@ -15447,7 +15447,7 @@ def _run_player_turn_internal(
             interaction_context=interaction_adventure.context(
                 world_state, None, player_input
             ),
-            allow_local_person_proposal=True,
+                allow_local_person_proposal=should_generate_npcs(player_input),
         )
 
     if (
@@ -15463,7 +15463,7 @@ def _run_player_turn_internal(
         local_proposal = _validated_local_person_proposal(
             preparsed_scene_intent
         )
-        if local_proposal:
+        if local_proposal and should_generate_npcs(player_input):
             npc_target = None
             request_key = _local_person_request_key(player_input)
             existing_ids = {

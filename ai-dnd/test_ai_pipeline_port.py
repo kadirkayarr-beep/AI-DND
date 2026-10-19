@@ -212,7 +212,7 @@ class PipelinePortTests(unittest.TestCase):
 
         with patch("game.ollama.chat", side_effect=fake_chat):
             result = self.session.run_player_turn(
-                "Sahnede olmayan bir balıkçıya liman söylentilerini sormak istiyorum.",
+                "Sahnede olmayan bir balıkçıyı bulup liman söylentilerini sormak istiyorum.",
                 interaction_mode="say",
             )
         self.assertEqual(result["action_result"]["status"], "created_local_person")

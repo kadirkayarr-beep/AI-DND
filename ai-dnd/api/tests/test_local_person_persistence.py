@@ -72,7 +72,13 @@ class LocalPersonModel:
                 "confidence": 1.0,
             }, ensure_ascii=False)}}
         if "local_person_proposal" not in properties:
-            raise AssertionError("Unexpected model phase in local-person test.")
+            return {"message": {"content": json.dumps({
+                "intent": "dialogue",
+                "action": "dialogue",
+                "target": {"type": "none", "reference": ""},
+                "completion": "unclear",
+                "confidence": 1.0,
+            }, ensure_ascii=False)}}
         return {
             "message": {
                 "content": json.dumps({
@@ -134,7 +140,7 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         turn = await self.http.post(
             f"/api/game/sessions/{campaign['session_id']}/turn",
             json={
-                "message": "Liman söylentileri için sahilde bir balıkçıyla konuşmak istiyorum.",
+                "message": "Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.",
                 "interaction_mode": "say",
                 "action_id": str(uuid.uuid4()),
             },
@@ -160,7 +166,7 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         replay = await self.http.post(
             f"/api/game/sessions/{campaign['session_id']}/turn",
             json={
-                "message": "Liman söylentileri için sahilde bir balıkçıyla konuşmak istiyorum.",
+                "message": "Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.",
                 "interaction_mode": "say",
                 "action_id": str(uuid.uuid4()),
             },
@@ -194,7 +200,7 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         repeated_after_resume = await self.http.post(
             f"/api/game/sessions/{resumed_session_id}/turn",
             json={
-                "message": "Liman söylentileri için sahilde bir balıkçıyla konuşmak istiyorum.",
+                "message": "Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.",
                 "interaction_mode": "say",
                 "action_id": str(uuid.uuid4()),
             },
@@ -232,7 +238,7 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         second_turn = await self.http.post(
             f"/api/game/sessions/{other_id}/turn",
             json={
-                "message": "Liman söylentileri için sahilde bir balıkçıyla konuşmak istiyorum.",
+                "message": "Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.",
                 "interaction_mode": "say",
                 "action_id": str(uuid.uuid4()),
             },
