@@ -1,0 +1,56 @@
+[
+  {
+    "step": "turn with injected save failure",
+    "http_status": 503,
+    "turn_status": null,
+    "model_calls_total": 1,
+    "history_rows": 0,
+    "receipt_rows": 0,
+    "stored_local_people": []
+  },
+  {
+    "step": "retry with same action_id after failure",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 2,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "same action_id replay after successful retry",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 2,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "same message with new action_id",
+    "http_status": 200,
+    "turn_status": "reused_local_person",
+    "model_calls_total": 3,
+    "history_rows": 2,
+    "receipt_rows": 2,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  }
+]
