@@ -1069,16 +1069,47 @@ export default function GameBrowser() {
   const turnSending = inFlightSessions.has(sessionId);
   // LR00-P5/P7: the last completed turn's receipt summary and undo target.
   const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
-  const [undoBusy, setUndoBusy] = useState(false);
+  const lastTurnRef = useRef(lastTurn);
+  lastTurnRef.current = lastTurn;
+  const [undoPendingSessions, setUndoPendingSessions] = useState<Set<string>>(new Set());
+  const undoPendingRef = useRef(new Set<string>());
+  const undoRequestsRef = useRef(new globalThis.Map<string, { generation: number; scope: string; actionId: string }>());
+  const undoGenerationRef = useRef(0);
+  const undoScope = `${campaignId ?? ''}:${sessionId}`;
+  const undoScopeRef = useRef(undoScope);
+  if (undoScopeRef.current !== undoScope) {
+    undoScopeRef.current = undoScope;
+    undoGenerationRef.current += 1;
+  }
+  const undoBusy = undoPendingSessions.has(sessionId);
   const visibleLastTurn = lastTurn && lastTurn.sessionId === sessionId ? lastTurn : null;
   const undoLastTurn = () => {
-    if (!sessionId || !visibleLastTurn || undoBusy || inFlightSessionsRef.current.has(sessionId)) return;
+    if (!sessionId || !visibleLastTurn || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
+    const request = {
+      generation: undoGenerationRef.current,
+      scope: undoScope,
+      actionId: visibleLastTurn.actionId,
+    };
+    undoRequestsRef.current.set(sessionId, request);
+    undoPendingRef.current.add(sessionId);
+    setUndoPendingSessions(new Set(undoPendingRef.current));
     const target = visibleLastTurn.actionId;
-    setUndoBusy(true);
+    const isCurrent = () => activeSessionRef.current === sessionId
+      && undoScopeRef.current === request.scope
+      && undoGenerationRef.current === request.generation
+      && undoRequestsRef.current.get(sessionId) === request
+      && lastTurnRef.current?.sessionId === sessionId
+      && lastTurnRef.current.actionId === target;
+    const stateKey = getGetGameSessionStateQueryKey(sessionId);
+    const initialUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
     void undoGameTurn(sessionId, { action_id: crypto.randomUUID(), target_action_id: target })
       .then((result) => {
-        if (activeSessionRef.current !== sessionId) return;
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        if (!isCurrent()) return;
+        if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== initialUpdateCount) {
+          void queryClient.invalidateQueries({ queryKey: stateKey });
+          return;
+        }
+        queryClient.setQueryData(stateKey, result.state);
         setEntries((current) => [
           ...current,
           { kind: 'player' as const, text: '↶ Son turu geri al' },
@@ -1089,10 +1120,16 @@ export default function GameBrowser() {
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
       .catch((error) => {
-        setLastTurn(null);
-        setNotice({ tone: 'error', title: 'Geri alınamadı', detail: friendlyError(error, 'Bu tur artık geri alınamıyor.') });
+        if (isCurrent()) {
+          setNotice({ tone: 'error', title: 'Geri alınamadı', detail: friendlyError(error, 'Bu tur artık geri alınamıyor.') });
+        }
       })
-      .finally(() => setUndoBusy(false));
+      .finally(() => {
+        if (undoRequestsRef.current.get(sessionId) !== request) return;
+        undoRequestsRef.current.delete(sessionId);
+        undoPendingRef.current.delete(sessionId);
+        setUndoPendingSessions(new Set(undoPendingRef.current));
+      });
   };
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const activeSessionRef = useRef(sessionId);
@@ -1436,7 +1473,7 @@ export default function GameBrowser() {
     mode: InteractionMode = interactionMode,
   ) => {
     const trimmed = text.trim();
-    if (!sessionId || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
+    if (!sessionId || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     const operation = turnLifetime.begin();
     if (!operation) return;
     setNotice(null);

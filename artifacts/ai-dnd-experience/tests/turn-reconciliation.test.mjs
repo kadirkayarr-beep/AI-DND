@@ -28,7 +28,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   turnLifetime: life,
   window: { sessionStorage, localStorage: storage(), crypto: { randomUUID: () => crypto.randomUUID() } },
   sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: current,
-  inFlightSessionsRef: { current: new Set() }, pendingTurnRef: { current: null }, activeSessionRef: { current: 'session-a' },
+  inFlightSessionsRef: { current: new Set() }, undoPendingRef: { current: new Set() }, pendingTurnRef: { current: null }, activeSessionRef: { current: 'session-a' },
   setInFlightSessions() {}, setNotice: value => { if (value) errors.push(value); }, getTurnInteractionMetadata: () => ({ interaction_mode: 'do' }),
   epoch: 1, currentAuthEpoch: () => 1, accountWriteAllowed: () => env.epoch === 1,
   playGameTurn: async (sessionId, data) => { const request = { sessionId, data }; requests.push(request); return transport ? transport(request) : { state: old, narration: 'Synthetic receipt' }; },
