@@ -1,0 +1,105 @@
+{
+  "source_base": "e4a4a92dad2f1ba35ab24016502b317422b1cfc5",
+  "turns": 10,
+  "real_model_calls": 10,
+  "max_calls_per_turn": 2,
+  "wall_seconds": 52.08,
+  "per_turn": [
+    {
+      "turn": 1,
+      "seconds": 1.38,
+      "model_calls": 0,
+      "action": "dialogue",
+      "status": "unverified",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 2,
+      "seconds": 0.31,
+      "model_calls": 0,
+      "action": "local_inquiry",
+      "status": "answered_without_offer",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 3,
+      "seconds": 16.13,
+      "model_calls": 2,
+      "action": "narrative",
+      "status": "resolved",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 4,
+      "seconds": 8.46,
+      "model_calls": 2,
+      "action": "narrative",
+      "status": "resolved",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 5,
+      "seconds": 8.24,
+      "model_calls": 2,
+      "action": "narrative",
+      "status": "resolved",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 6,
+      "seconds": 8.39,
+      "model_calls": 2,
+      "action": "explore",
+      "status": "resolved",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 7,
+      "seconds": 0.27,
+      "model_calls": 0,
+      "action": "grounded_action",
+      "status": "blocked",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 8,
+      "seconds": 0.29,
+      "model_calls": 0,
+      "action": "grounded_action",
+      "status": "blocked",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 9,
+      "seconds": 8.34,
+      "model_calls": 2,
+      "action": "skill_check",
+      "status": "resolved",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 10,
+      "seconds": 0.27,
+      "model_calls": 0,
+      "action": "local_search",
+      "status": "found",
+      "where": "Neverwinter"
+    }
+  ],
+  "temporary_campaign": true,
+  "owner_state_or_personal_data": false,
+  "experimental_npc_dialogue": false,
+  "no_model_download": true,
+  "transcript": "report.json",
+  "raw_model_calls": "raw-calls.json",
+  "phase": "after fixes; default player path; unseen rephrasings; AI_DND_NPC_SPEECH unset",
+  "first_blocker": {
+    "turn": 1,
+    "observation": "The fresh NPC-directed dialogue was still unverified; default conversation/place attribution remains unsupported."
+  },
+  "other_findings": [
+    "Reported-movement-plus-inspection inputs at turns 7–8 no longer returned no_effect, but both were blocked by unresolved targets in a scene without a usable door target.",
+    "The player-asserted place/person/denial sentences did not establish canonical NPC references, as expected for untrusted player claims.",
+    "Turn 10 found Quarion Hanı; no following revisit was attempted in this run."
+  ]
+}

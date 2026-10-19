@@ -413,6 +413,66 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
             refs,
         )
 
+    def test_reviewed_turkish_claims_use_subject_polarity_and_place_head(self):
+        cases = (
+            ("npc_test_marek", "Ayışığı Rasathanesi şehrin kuzeyindedir."),
+            ("npc_test_lale", "Kral Aras Demirpençe kuzey yamacındadır."),
+            ("npc_test_tan", "Mavi Fener Camhanesi burada bulunmuyor."),
+            ("npc_test_ada", "Eski Mavi Fener Kütüphanesi kuzey yamacındadır."),
+            ("npc_test_elif", "Mavi Fener Camhanesi'ne gidiyorum."),
+        )
+        for speaker, quote in cases:
+            self.record_npc_place_statement(speaker, "Tanık", quote)
+
+        speakers = {
+            "npc_test_marek", "npc_test_lale", "npc_test_tan",
+            "npc_test_ada", "npc_test_elif",
+        }
+        refs = [
+            ref for ref in npc_statements.place_references(self.world, settlement_id=CITY)
+            if ref.get("said_by") in speakers
+        ]
+        names = [ref.get("name") for ref in refs]
+        self.assertCountEqual(
+            names,
+            ["Ayışığı Rasathanesi", "Eski Mavi Fener Kütüphanesi", "Mavi Fener Camhanesi"],
+            refs,
+        )
+        self.assertEqual(
+            len([name for name in names if name == "Eski Mavi Fener Kütüphanesi"]),
+            1,
+            refs,
+        )
+        person_refs = [ref for ref in refs if ref.get("said_by") == "npc_test_lale"]
+        denied_refs = [ref for ref in refs if ref.get("said_by") == "npc_test_tan"]
+        self.assertEqual(person_refs, [])
+        self.assertEqual(denied_refs, [])
+
+    async def test_npc_first_person_destination_is_travelable_once_by_exact_place_name(self):
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            "Mavi Fener Camhanesi",
+            "Mavi Fener Camhanesi'ne gidiyorum.",
+        )
+        text, receipt = await self.turn("Mavi Fener Camhanesi'ne gidiyorum")
+        self.assertEqual(receipt.get("action"), "grounded_action", (text, receipt))
+        self.assertEqual(receipt.get("status"), "completed", (text, receipt))
+        self.assertIn("Mavi Fener Camhanesi", text)
+        place_id, place = next(
+            (key, value) for key, value in self.world["locations"].items()
+            if value.get("name") == "Mavi Fener Camhanesi"
+        )
+        self.assertEqual(place.get("name"), "Mavi Fener Camhanesi", (text, receipt, place))
+        count = len(self.world["locations"])
+
+        _, again = await self.turn("Mavi Fener Camhanesi'ne yeniden gidiyorum")
+        place_id_again = next(
+            key for key, value in self.world["locations"].items()
+            if value.get("name") == "Mavi Fener Camhanesi"
+        )
+        self.assertEqual(place_id_again, place_id, again)
+        self.assertEqual(len(self.world["locations"]), count, self.world["locations"])
+
     def test_denied_place_and_reported_person_are_not_place_references(self):
         for speaker, quote in (
             ("npc_test_marek", "Mavi Fener Camhanesi diye bir yer yok."),
@@ -458,6 +518,16 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt.get("status"), "no_effect", receipt)
         self.assertEqual(self.world["location"], before_location)
         self.assertEqual(self.world["locations"], before_locations)
+
+    async def test_reported_npc_move_preserves_following_player_door_inspection(self):
+        before_location = self.world["location"]
+        text, receipt = await self.turn(
+            "Marek oraya gidiyorum dedi, ben kapıyı inceliyorum."
+        )
+        self.assertNotEqual(receipt.get("status"), "no_effect", (text, receipt))
+        self.assertIn(receipt.get("action"), {"grounded_action", "skill_check"}, (text, receipt))
+        self.assertIn("kapı", text.casefold(), (text, receipt))
+        self.assertEqual(self.world["location"], before_location)
 
     async def test_another_inn_is_not_garrick_again(self):
         text, receipt = await self.turn("Açık olan başka han varmı diye şehirde geziyorum")

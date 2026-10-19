@@ -33,6 +33,7 @@ MAX_REFERENCES = 60
 PLACE_NOUNS: tuple[tuple[str, str], ...] = (
     ("meyhane", "tavern"), ("birahane", "tavern"), ("taverna", "tavern"),
     ("lokanta", "tavern"), ("han", "tavern"),
+    ("camhane", "generic"), ("rasathane", "generic"),
     ("arsiv", "archive"), ("demirhane", "smithy"), ("demirci", "smithy"),
     ("tapinak", "temple"), ("tapinag", "temple"), ("mabet", "temple"), ("mabed", "temple"),
     ("liman", "harbor"), ("iskele", "harbor"), ("rihtim", "harbor"),
@@ -56,13 +57,20 @@ _ADJECTIVES = ("acik", "kapali", "ucuz", "pahali", "guvenli", "kalabalik", "saki
                "yakin", "uzak", "eski", "yeni", "temiz", "kirli", "iyi", "kotu")
 _PLACE_RELATION = re.compile(
     r"\b(?:yamac\w*|bulun\w*|konumlan\w*|yer(?:idir|dir|i)\b|"
+    r"(?:git|gid)\w*|"
     r"(?:kap\w*|sokak\w*|yol\w*|meydan\w*).{0,40}"
     r"\b(?:yan\w*|yakin\w*|karsi\w*))"
 )
+_PERSON_TITLES = frozenset({
+    "amir", "baron", "barones", "bey", "beyefendi", "kont", "kontes",
+    "kraliçe", "kralice", "kral", "lady", "lord", "paşa", "pasa",
+    "prens", "prenses", "sör", "sor", "şövalye", "sovalye",
+})
 _DENIED_PLACE = re.compile(
     r"^\s*(?:diye\s+bir\s+yer\s+yok(?:tur)?|"
     r"(?:bir\s+yer\s+)?yok(?:tur)?|değil(?:dir)?|degil(?:dir)?|bulunmuyor)\b"
 )
+_DENIED_PLACE_PREDICATE = re.compile(r"\b(?:yok(?:tur)?|değil(?:dir)?|degil(?:dir)?|bulunmuyor)\b")
 
 _REFUSAL = re.compile(
     r"\b(?:hayir|olmaz|yapamam|gidemem|goturemem|veremem|gosteremem|istemem|"
@@ -215,12 +223,15 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
         position = folded_text.find(fold(name))
         if position < 0:
             return False
-        return bool(_DENIED_PLACE.search(folded_text[position + len(fold(name)):]))
+        tail = folded_text[position + len(fold(name)):]
+        return bool(_DENIED_PLACE.search(tail) or _DENIED_PLACE_PREDICATE.search(tail))
 
     for index, token in enumerate(tokens):
         bare = token.split("'")[0]
         if not bare or not bare[0].isupper():
             continue
+        if index > 0 and tokens[index - 1][:1].isupper():
+            continue  # a place head belongs to the full proper-name span
         folded = fold(bare)
         # Single word: "Kızılhan", "Kızılhanda" -> name before the case ending.
         for noun, kind in PLACE_NOUNS:
@@ -269,6 +280,8 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
             words.append(tokens[following].split("'")[0])
             following += 1
         if len(words) < 2:
+            continue
+        if fold(words[0]) in _PERSON_TITLES:
             continue
         display = " ".join(words)
         tail = fold(" ".join(tokens[following:]))

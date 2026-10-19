@@ -927,20 +927,28 @@ def _receipt(verb, status, target=None, **extra):
     return data
 
 
-def _reported_first_person_move(player_input: str) -> bool:
-    """A first-person move before a reporting verb belongs to reported speech."""
-    import game
+def _reported_move_player_clause(player_input: str) -> str | None:
+    """Separate reported NPC travel from an explicit first-person action clause.
 
-    if not game.is_npc_historical_claim(player_input):
-        return False
+    None means this is not a reported move; an empty string means the utterance
+    contains only the NPC's reported move; otherwise return the player's clause.
+    """
+    if not isinstance(player_input, str):
+        return None
     text = fold(player_input)
-    report = re.search(r"\b(?:dedi|soyledi|anlatti|bahsetti|konustu)\b", text)
-    if report is None:
-        return False
-    moves = list(re.finditer(r"\b(?:gid\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", text))
-    return any(move.start() < report.start() for move in moves) and not any(
-        move.start() > report.end() for move in moves
+    report = re.search(
+        r"\b(?:dedi|diyor|demis|soyledi|soyliyor|anlatti|anlatiyor|"
+        r"bahsetti|bahsediyor|konustu|konusuyor)\b",
+        text,
     )
+    if report is None:
+        return None
+    moves = list(re.finditer(r"\b(?:gid\w*|git\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", text))
+    if not any(move.start() < report.start() for move in moves):
+        return None
+    tail = player_input[report.end():]
+    player_clause = re.search(r"(?:^|[,;])\s*(ben\b.+)$", tail, re.IGNORECASE)
+    return player_clause.group(1).strip() if player_clause else ""
 
 
 def _place_target(run: _Run, target: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -2228,22 +2236,27 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     world = session.world_state
     if not isinstance(world, dict):
         return None
-    if isinstance(player_input, str) and _reported_first_person_move(player_input):
-        if dry_run:
-            return True
-        narration = "Aktarılan NPC sözü oyuncunun hareketi sayılmaz."
-        return {
-            "messages": session.messages,
-            "narration": narration,
-            "model_calls": 0,
-            "action_result": {
-                "action": "narrative",
-                "status": "no_effect",
-                "success": False,
-                "state_changes": [],
-                "direct_response": narration,
-            },
-        }
+    if isinstance(player_input, str):
+        player_clause = _reported_move_player_clause(player_input)
+        if player_clause is not None:
+            if player_clause:
+                player_input = player_clause
+            else:
+                if dry_run:
+                    return True
+                narration = "Aktarılan NPC sözü oyuncunun hareketi sayılmaz."
+                return {
+                    "messages": session.messages,
+                    "narration": narration,
+                    "model_calls": 0,
+                    "action_result": {
+                        "action": "narrative",
+                        "status": "no_effect",
+                        "success": False,
+                        "state_changes": [],
+                        "direct_response": narration,
+                    },
+                }
     snapshot = copy.deepcopy(world)
     try:
         decision, payload = _decide(session, player_input, interaction_mode=interaction_mode,

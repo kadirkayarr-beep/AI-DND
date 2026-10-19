@@ -1,0 +1,428 @@
+[
+  {
+    "script": "pr22_default_review2",
+    "theme": "Varsayılan akış; NPC bağlamı, altı ifade, mekân devamlılığı",
+    "opening": ""
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 1,
+    "player": "Etrafıma bakınıyorum; burada kimler var?",
+    "expect_written_blind": "NPC kimliklerinin gerçek scene state ile eşleşmesi.",
+    "http_status": 200,
+    "shown": "Neverwinter çevresine göz gezdiriyorsun. Yakında bir kişi ve bir muhafız var. Bir muhafız pazar girişinde arabaları sırayla kontrol eder.",
+    "error": null,
+    "seconds": 1.04,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "explore",
+      "status": "observed",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {
+      "new_npcs": {
+        "npc_001": {
+          "name": "Marek",
+          "location": "fr:city:neverwinter"
+        },
+        "npc_002": {
+          "name": "Perrin",
+          "location": "fr:city:neverwinter"
+        }
+      }
+    },
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 2,
+    "player": "Az önce tarif ettiğin kişiye selam veriyorum: Merhaba, burada ne yapıyorsun?",
+    "expect_written_blind": "NPC hedefi ve diyalog bağlamının bağlanması.",
+    "http_status": 200,
+    "shown": "Bu konuda duyduğun hiçbir söz sağlam görünmüyor; doğrusunu öğrenmek için biraz daha dinlemen gerekecek.",
+    "error": null,
+    "seconds": 2.94,
+    "model_calls": 1,
+    "model_call_seconds": [
+      2.633
+    ],
+    "receipt": {
+      "action": "dialogue",
+      "status": "unverified",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 3,
+    "player": "Buralarda önereceğin bir yer var mı?",
+    "expect_written_blind": "NPC'den kaynak ve kimliği bağlı yer ifadesi.",
+    "http_status": 200,
+    "shown": "Bu tanıma uyan birden fazla kişi var: Yakındaki kişi, Bir muhafız. Hangisini kastettiğini belirt.",
+    "error": null,
+    "seconds": 0.27,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "dialogue",
+      "status": "clarification",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 4,
+    "player": "Sözünü ettiğin yere doğru gidiyorum.",
+    "expect_written_blind": "NPC'nin söz ettiği yerin doğrulanmış takibi.",
+    "http_status": 200,
+    "shown": "Kime ya da neye yöneldiğini seçemedim (yakınındakiler: Yakındaki kişi, Bir muhafız). Hangisini kastediyorsun?",
+    "error": null,
+    "seconds": 0.28,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "approach",
+      "status": "clarification",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 5,
+    "player": "Ayışığı Rasathanesi şehrin kuzeyindedir.",
+    "expect_written_blind": "Ayışığı Rasathanesi tam mekân adı ve kuzey yönü; kişi değil.",
+    "http_status": 200,
+    "shown": "Bulunduğun yer: Neverwinter.",
+    "error": null,
+    "seconds": 2.81,
+    "model_calls": 1,
+    "model_call_seconds": [
+      2.499
+    ],
+    "receipt": {
+      "action": "query",
+      "status": "resolved",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 6,
+    "player": "Kral Aras Demirpençe kuzey yamacındadır.",
+    "expect_written_blind": "Kişi öznesini mekân diye kaydetmemek.",
+    "http_status": 200,
+    "shown": "Bulunduğun yer: Neverwinter.",
+    "error": null,
+    "seconds": 2.94,
+    "model_calls": 1,
+    "model_call_seconds": [
+      2.638
+    ],
+    "receipt": {
+      "action": "query",
+      "status": "resolved",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 7,
+    "player": "Mavi Fener Camhanesi burada bulunmuyor.",
+    "expect_written_blind": "İnkârı olumlu yer varlığına çevirmemek.",
+    "http_status": 200,
+    "shown": "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki hamleni bekliyor.",
+    "error": null,
+    "seconds": 6.58,
+    "model_calls": 2,
+    "model_call_seconds": [
+      2.772,
+      3.478
+    ],
+    "receipt": {
+      "action": "query",
+      "status": "resolved",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 8,
+    "player": "Eski Mavi Fener Kütüphanesi kuzey yamacındadır.",
+    "expect_written_blind": "Tam yer adını tek kayıt olarak korumak.",
+    "http_status": 200,
+    "shown": "Bulunduğun yer: Neverwinter.",
+    "error": null,
+    "seconds": 3.2,
+    "model_calls": 1,
+    "model_call_seconds": [
+      2.9
+    ],
+    "receipt": {
+      "action": "query",
+      "status": "resolved",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 9,
+    "player": "Marek Mavi Fener Camhanesi'ne gidiyorum diyor.",
+    "expect_written_blind": "Marek'e atfedilen birinci şahıs hareketini oyuncuya yüklememek.",
+    "http_status": 200,
+    "shown": "Bulunduğun yer: Neverwinter.",
+    "error": null,
+    "seconds": 3.29,
+    "model_calls": 1,
+    "model_call_seconds": [
+      2.948
+    ],
+    "receipt": {
+      "action": "query",
+      "status": "resolved",
+      "success": true,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 10,
+    "player": "Marek oraya gidiyorum dedi, ben kapıyı inceliyorum.",
+    "expect_written_blind": "NPC hareketini ayırıp gerçek oyuncu kapı incelemesini yürütmek.",
+    "http_status": 200,
+    "shown": "Aktarılan NPC sözü oyuncunun hareketi sayılmaz.",
+    "error": null,
+    "seconds": 0.28,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "narrative",
+      "status": "no_effect",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 11,
+    "player": "Hana gidip etrafıma bakıyorum.",
+    "expect_written_blind": "Bileşik hareket ve inceleme adımlarını kanonik sonuçlarla çözmek.",
+    "http_status": 200,
+    "shown": "Birkaç sokak ötede daha önce görmediğin bir yer çıkıyor karşına. Hadrik Hanı önüne geliyorsun. Hadrik Hanı Kapısı kapalı ve kilitli.",
+    "error": null,
+    "seconds": 0.28,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "grounded_action",
+      "status": "completed",
+      "success": true,
+      "reason": null,
+      "target_name": "Hadrik Hanı",
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [
+      {
+        "verb": "go",
+        "status": "completed",
+        "reason": null,
+        "target_name": "Hadrik Hanı"
+      },
+      {
+        "verb": "inspect",
+        "status": "completed",
+        "reason": null,
+        "target_name": "Hadrik Hanı Kapısı"
+      }
+    ],
+    "grounding": {
+      "source": "deterministic",
+      "model_calls": 0,
+      "model_ms": [],
+      "clauses": [
+        {
+          "verb": "go",
+          "target_id": null,
+          "negated": false,
+          "condition": false
+        },
+        {
+          "verb": "inspect",
+          "target_id": null,
+          "negated": false,
+          "condition": false
+        }
+      ]
+    },
+    "changes": {
+      "doors": {
+        "venue-door:location_001": [
+          null,
+          {
+            "name": "Hadrik Hanı Kapısı",
+            "open": false,
+            "locked": true,
+            "broken": false
+          }
+        ]
+      },
+      "new_locations": {
+        "location_001": "Hadrik Hanı"
+      },
+      "minutes_passed": 10.0
+    },
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_default_review2",
+    "turn": 12,
+    "player": "Az önce gittiğim hanı yeniden bulup kapısına dönüyorum.",
+    "expect_written_blind": "Aynı yer kaydı/kimliğiyle dönüşü doğrulamak.",
+    "http_status": 200,
+    "shown": "Yakınlarda Hadrik Hanı adlı küçük bir han buluyorsun. Sokağa açılan kapısı kapalı ve kilitli.",
+    "error": null,
+    "seconds": 0.29,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "local_search",
+      "status": "found",
+      "success": true,
+      "reason": null,
+      "target_name": "Hadrik Hanı",
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {
+      "quests_changed": true
+    },
+    "where": "Neverwinter"
+  }
+]

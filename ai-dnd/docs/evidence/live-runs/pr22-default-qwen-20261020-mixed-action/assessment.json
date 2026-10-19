@@ -1,0 +1,39 @@
+{
+  "source_base": "e4a4a92dad2f1ba35ab24016502b317422b1cfc5",
+  "turns": 2,
+  "real_model_calls": 0,
+  "max_calls_per_turn": 0,
+  "wall_seconds": 1.16,
+  "per_turn": [
+    {
+      "turn": 1,
+      "seconds": 0.87,
+      "model_calls": 0,
+      "action": "grounded_action",
+      "status": "clarification",
+      "where": "Neverwinter"
+    },
+    {
+      "turn": 2,
+      "seconds": 0.29,
+      "model_calls": 0,
+      "action": "approach",
+      "status": "clarification",
+      "where": "Neverwinter"
+    }
+  ],
+  "temporary_campaign": true,
+  "owner_state_or_personal_data": false,
+  "experimental_npc_dialogue": false,
+  "no_model_download": true,
+  "transcript": "report.json",
+  "raw_model_calls": "raw-calls.json",
+  "phase": "post-fix default API; temporary scene; AI_DND_NPC_SPEECH unset",
+  "first_blocker": {
+    "turn": 2,
+    "observation": "Turn 1 created Carrion Hanı and its door but returned a clarification. Turn 2 still returned approach/clarification for the mixed sentence instead of a resolved inspection; no state mutation occurred."
+  },
+  "other_findings": [
+    "This live run did not prove successful inspection in a scene with a clear target. The isolated product regression with a canonical door target passes; keep the remaining live target-resolution gap explicit."
+  ]
+}
