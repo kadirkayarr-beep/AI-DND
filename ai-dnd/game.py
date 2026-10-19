@@ -15697,9 +15697,13 @@ def _run_player_turn_internal(
             _session(), player_input, raw.get("interaction"), npc_target,
             fallback_operation=interaction_hint,
         )
+        narrated_without_model = (
+            interaction_hint in {"promise", "goal"}
+            and action_result.get("status") == "recorded"
+        )
         return finish_turn(
             action_result, action_result["direct_response"],
-            is_final=action_result["status"] in {
+            is_final=narrated_without_model or action_result["status"] in {
                 "proposal_rejected", "no_effect", "answered", "blocked",
             },
         )
@@ -16282,8 +16286,13 @@ def _run_player_turn_internal(
         # A conversation-only response already used the single allowed narrator
         # call. Validate it as dialogue, without a retry or accepting its updates.
         if experimental_npc_dialogue or isinstance(raw_intent.get("narration"), str):
-            intent_model_calls = 0
-            intent_source = "deterministic_dialogue"
+            # When a scene pre-parse selected the addressee, its provider call
+            # remains an intent call; this response is an additional narration
+            # call, not a replacement for the first one.
+            intent_model_calls = scene_preparse_model_calls
+            intent_source = (
+                "model" if scene_preparse_model_calls else "deterministic_dialogue"
+            )
             narration_model_calls = 1
             narration_source = "qwen"
             action_result = execute_intent(

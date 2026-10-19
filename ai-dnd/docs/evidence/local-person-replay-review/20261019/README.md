@@ -83,3 +83,16 @@ Dosya değiştirmeden, yalnız bellek içinde iki ürün davranışı bozuldu:
 - Undo ile yerel kişi oluşturmanın geri alınması sınanmadı.
 - Farklı konumdaki aynı cümle (istek anahtarı konuma bağlı) ve 6 kişi / 60 NPC sınırları sınanmadı.
 - Yeni dosya günlük seçicide (`scripts/development_checks.json`) yok; yalnız `.\dev.ps1 -ApiDiscover` ile çalışır. Seçici yapılandırması bilerek değiştirilmedi.
+
+## Birleşik dalda çağrı bütçesi takibi
+
+Claude AI-freedom test modülüne iki dar sağlayıcı-sınırı testi eklendi. Testlerde `game.ollama.chat` gerçek çağrı sınırında sayıldı; canlı Qwen çağrısı yapılmadı.
+
+| Akış | İlk gözlem | Düzenleme ve beklenen kanıt |
+|---|---|---|
+| Tarifle seçilen kişiyle sıradan konuşma | 2 gerçek `chat` çağrısı, telemetride toplam 1 | Ön ayrıştırma intent çağrısı olarak korunur; anlatı çağrısıyla toplam 2. |
+| Tarifle seçilen kişiye geçerli söz | Söz kaydedildi, fakat sonuç anlatımı üçüncü `chat` çağrısını başlatıyordu | Kaydedilmiş `promise`/`goal` doğrudan yanıtı kullanılır; eylem korunur, toplam çağrı sayısı 2'de kalır. |
+
+Verilen birleşik cümlenin `ve` ile yazılan biçimi deterministik yönlendiricide `plan` olarak sınıflanıyor. Bu çağrı bütçesi incelemesinde yönlendirici değiştirilmedi; geçerli `promise` akışını aynı tarif ve selamı koruyan noktalı biçimle doğruladık: “Omzunda halat taşıyan kişiye selam veriyorum. Sana söz veriyorum.”
+
+Bu iki test mevcut `test_ai_freedom_resolution_boundary` selector'ü içindedir; önceki selector ve replay kapsamı korunur. Canlı Qwen, insan kabulü ve GitHub Actions bu dar doğrulamada çalıştırılmaz.

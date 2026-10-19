@@ -82,6 +82,70 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
         self.assertEqual(result["action_result"].get("npc_id"), other["id"])
         self.assertEqual(len(self.session.world_state["npcs"]), 2)
 
+    def test_described_person_dialogue_counts_intent_and_narration_calls(self):
+        other = dict(self.person, id="npc_kord_call_count", name="Kord", role="hamal",
+                     appearance="Omzunda halat taşıyan iri biri")
+        self.session.world_state["npcs"].append(other)
+
+        def fake_chat(**kwargs):
+            body = json.loads(_intent_packet(
+                intent="dialogue", action="dialogue",
+                target={"type": "npc", "reference": "halatlı kişi",
+                        "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
+            )["message"]["content"])
+            if "narration" in kwargs["format"]["properties"]:
+                body["narration"] = "Hamal yükünü indirip sana dönüyor."
+            return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat) as model:
+            result = self.session.run_player_turn(
+                "Omzunda halat taşıyan kişiye selam veriyorum.", interaction_mode="do"
+            )
+        self.assertEqual(result["action_result"].get("npc_id"), other["id"])
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(model.call_count, 2)
+        self.assertEqual(telemetry["total_model_calls"], model.call_count, telemetry)
+        self.assertEqual(telemetry["intent_model_calls"], 1, telemetry)
+        self.assertEqual(telemetry["narration_model_calls"], 1, telemetry)
+        self.assertIn("sana dönüyor", result["narration"])
+
+    def test_described_person_promise_commits_and_narrates_within_budget(self):
+        other = dict(self.person, id="npc_kord_promise", name="Kord", role="hamal",
+                     appearance="Omzunda halat taşıyan iri biri")
+        self.session.world_state["npcs"].append(other)
+        message = "Omzunda halat taşıyan kişiye selam veriyorum. Sana söz veriyorum."
+
+        def fake_chat(**kwargs):
+            properties = kwargs["format"]["properties"]
+            body = json.loads(_intent_packet(
+                intent="dialogue", action="dialogue",
+                target={"type": "npc", "reference": "halatlı kişi",
+                        "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
+            )["message"]["content"])
+            if "interaction" in properties:
+                body["interaction"] = {
+                    "operation": "promise", "quote": "Sana söz veriyorum.",
+                    "privacy": "addressed",
+                }
+            if "narration" in properties:
+                body["narration"] = "Kord sözünü duyunca dikkatle sana dönüyor."
+            return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat) as model:
+            result = self.session.run_player_turn(message, interaction_mode="do")
+        action = result["action_result"]
+        self.assertEqual(action.get("operation"), "promise", action)
+        self.assertEqual(action.get("status"), "recorded", action)
+        self.assertEqual(action.get("npc_id"), other["id"], action)
+        commitments = self.session.world_state[game.interaction_adventure.KEY]["commitments"]
+        self.assertEqual(len(commitments), 1)
+        self.assertEqual(commitments[0]["npc_id"], other["id"])
+        self.assertEqual(commitments[0]["quote"], "Sana söz veriyorum.")
+        self.assertTrue(result["narration"].strip())
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertLessEqual(model.call_count, 2)
+        self.assertEqual(telemetry["total_model_calls"], model.call_count, telemetry)
+
 
 class ClaimAndBudgetBoundaryTests(unittest.TestCase):
     """Unverified past claims and the documented two-call turn budget."""
