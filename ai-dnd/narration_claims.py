@@ -145,6 +145,11 @@ def packet_from_result(
             packet["required"].append("critical")
         if packet["dead"]:
             packet["required"].append("death")
+        player_dead = (
+            isinstance(result.get("combat"), dict)
+            and result["combat"].get("player_combat_status") == "dead"
+        )
+        packet["player_dead"] = player_dead
         if dodge:
             packet["required"].append("dodge")
     if exchanges:
@@ -160,7 +165,6 @@ _CLOSED = re.compile(
     r"\b(?:kapi|kapisi|giris|kilit)\b.{0,40}\b(?:kilitli kal\w*|kapali kal\w*|acilmaz\w*|acilmadi\w*)\b|"
     r"\bkilitli\b"
 )
-_HIT = re.compile(r"\b(?:darbe|vurus|isabet eder\w*|isabet etti\w*)\b")
 _POSITIVE_HIT = re.compile(
     r"\b(?:darbe|vurus)\s+alir\w*\b|\b(?:darbe|vurus)\s+aldi\w*\b|"
     r"\bisabet eder\w*\b|\bisabet etti\w*\b"
@@ -169,8 +173,13 @@ _NEGATED_HIT = re.compile(
     r"\b(?:darbe|vurus)\s+almaz\w*\b|\b(?:darbe|vurus)\s+almadi\w*\b"
 )
 _MISS = re.compile(r"\b(?:iskala\w*|isabet etmez)\b")
+_OPPONENT_MISS = re.compile(
+    r"\brakib(?:in|inin)\b.{0,48}\b(?:iskala\w*|isabet etmez\w*)\b"
+)
 _CRITICAL = re.compile(r"\bkritik\b")
 _DEATH = re.compile(r"\b(?:ölür|öldü|öldür\w*|yere düşer)\b")
+_PLAYER_DEATH_DENIAL = re.compile(r"\bdenemez\b")
+_PLAYER_ALIVE = re.compile(r"\b(?:hayattasin|sapasaglamsin)\b")
 _NAMED_BLOW = re.compile(
     r"\b([a-z0-9]+)\s+(?:(kritik)\s+)?(?:agir\s+)?(?:bir\s+)?(?:darbe|vurus)\s+"
     r"al(maz\w*|madi\w*|ir\w*|di\w*)?"
@@ -244,9 +253,9 @@ def _door_polarity(folded: str) -> tuple[str | None, str]:
 
 
 def _hit_present(folded: str) -> bool:
-    if _POSITIVE_HIT.search(folded):
-        return True
-    return _HIT.search(folded) is not None and _NEGATED_HIT.search(folded) is None
+    # Mentioning a blow is not proof that it landed ("darbe savurur ama
+    # ıskalar"). Require an impact verb rather than the noun alone.
+    return _POSITIVE_HIT.search(folded) is not None
 
 
 def _miss_present(folded: str) -> bool:
@@ -452,7 +461,12 @@ def _bind_clause(clause: str, exchanges: list) -> dict | None:
         if not any(item.get("damage") == number for item in received):
             return _reject("MECHANICAL_NUMBER", match.group(0))
 
-    miss = _NAMED_MISS.search(clause)
+    opponent_miss = _OPPONENT_MISS.search(clause)
+    if opponent_miss and not any(
+        item.get("outcome") == "miss" for item in _player_received(exchanges)
+    ):
+        return _reject("COMBAT_RESULT_CONTRADICTION", opponent_miss.group(0))
+    miss = _NAMED_MISS.search(clause) if not opponent_miss else None
     if miss:
         name = miss.group(1)
         if name == "seni" or (name in _STOP and re.search(r"\bseni\b", clause)):
@@ -494,6 +508,9 @@ def _bind_death(narration: str, exchanges: list, facts: dict) -> dict | None:
         folded = death_fold(clause)
         previous = 0
         for death in _DEATH.finditer(folded):
+            if _PLAYER_DEATH_DENIAL.search(folded[death.end():death.end() + 24]):
+                previous = death.end()
+                continue
             tokens = [
                 token for token in folded[previous:death.start()].split()
                 if not token.isdigit()
@@ -609,6 +626,9 @@ def assess(narration: str, packet: dict | None) -> dict[str, Any]:
             return death_bound
     elif _DEATH.search(death_text) and not facts.get("dead"):
         return _reject("COMBAT_RESULT_CONTRADICTION", "olum")
+
+    if facts.get("player_dead") and _PLAYER_ALIVE.search(death_text):
+        return _reject("COMBAT_RESULT_CONTRADICTION", "player_alive")
 
     for family in facts.get("required") or []:
         if not _family_present(family, folded, death_text):

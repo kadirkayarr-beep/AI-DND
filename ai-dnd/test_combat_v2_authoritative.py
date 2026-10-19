@@ -478,6 +478,30 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(self.w['player_combat_status'], 'dead')
         self.assert_player_outcome_narration(result, 'dead')
 
+    def test_W_valid_free_fatal_exchange_narration_is_preserved_without_mechanical_change(self):
+        self.session.character.update(species='Orc', race='Orc',
+                                      current_hp=3, max_hp=19)
+        self.session.initialize_species_trait_state()
+        self.session.ensure_death_state()['mode'] = 'PERMADEATH'
+        self.npc.update(damage_die=12, damage_dice=1, damage_modifier=10)
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (12, 12)):
+            result = self.attack()
+        self.assertEqual(result['outcome'], 'miss')
+        self.assertEqual(result['enemy_action']['outcome'], 'hit')
+        self.assertEqual(self.w['player_combat_status'], 'dead')
+        before = copy.deepcopy((self.w, self.session.character, result))
+        rng_before = self.session.rng.getstate()
+        wording = (
+            'Saldırın ıskalar. Rakibinin saldırısı sana isabet eder; '
+            'hayatını kaybedersin.'
+        )
+        narration = game.finalize_narration(
+            wording, 'saldırıyorum', self.npc, result, session=self.session,
+        )
+        self.assertEqual(narration, wording)
+        self.assertEqual((self.w, self.session.character, result), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
     def test_W_enemy_knockout_is_not_narrated_as_death(self):
         self.session.character['current_hp'] = 2
         with self.rolls(

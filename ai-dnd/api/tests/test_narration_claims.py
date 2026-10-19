@@ -28,6 +28,76 @@ def packet(**overrides):
 
 
 class NarrationClaimTests(unittest.TestCase):
+    @staticmethod
+    def combat_packet(player_outcome, enemy_outcome, player_status="active",
+                      enemy_damage=0):
+        result = {
+            "action": "attack",
+            "outcome": player_outcome,
+            "target_name": "Sentinel",
+            "damage": 0 if player_outcome == "miss" else 4,
+            "target_status": "active",
+            "enemy_action": {
+                "actor_name": "Sentinel",
+                "outcome": enemy_outcome,
+                "damage": enemy_damage,
+            },
+            "combat": {"player_combat_status": player_status},
+        }
+        return narration_claims.packet_from_result(result)
+
+    def test_fatal_exchange_rejects_enemy_miss_and_unharmed_reversal(self):
+        facts = self.combat_packet("miss", "hit", "dead", enemy_damage=30)
+        verdict = narration_claims.assess(
+            "Rakibin ıskalar; sapasağlamsın.", facts
+        )
+        self.assertTrue(verdict["reject"], verdict)
+
+    def test_explicit_player_miss_enemy_hit_and_death_remains_valid(self):
+        facts = self.combat_packet("miss", "hit", "dead", enemy_damage=30)
+        text = (
+            "Saldırın ıskalar. Rakibinin saldırısı sana isabet eder; "
+            "hayatını kaybedersin."
+        )
+        self.assertFalse(narration_claims.assess(text, facts)["reject"])
+
+    def test_enemy_miss_is_bound_to_enemy_not_to_a_blow_keyword(self):
+        hit_facts = self.combat_packet("miss", "hit", "active", enemy_damage=3)
+        text = "Rakibin bir darbe savurur ama ıskalar; sapasağlamsın."
+        self.assertTrue(narration_claims.assess(text, hit_facts)["reject"])
+
+        miss_facts = self.combat_packet("miss", "miss")
+        true_miss = "Saldırın ıskalar. Rakibin bir darbe savurur ama ıskalar."
+        self.assertFalse(narration_claims.assess(true_miss, miss_facts)["reject"])
+
+    def test_negated_death_is_not_a_death_claim_but_alive_claim_conflicts(self):
+        wording = "Saldırın ıskalar. Ölürsün denemez; hayattasın."
+        active_facts = self.combat_packet("miss", "hit", "active", enemy_damage=3)
+        dead_facts = self.combat_packet("miss", "hit", "dead", enemy_damage=30)
+        self.assertFalse(narration_claims.assess(wording, active_facts)["reject"])
+        denied = narration_claims.assess(wording, dead_facts)
+        self.assertTrue(denied["reject"], denied)
+        self.assertEqual(denied["reason"], "COMBAT_RESULT_CONTRADICTION")
+
+        actual = narration_claims.assess(
+            "Saldırın ıskalar. Rakibinin saldırısı sana isabet eder; "
+            "hayatını kaybedersin.",
+            dead_facts,
+        )
+        self.assertFalse(actual["reject"], actual)
+
+    def test_true_miss_and_nonfatal_hit_narration_remain_valid(self):
+        miss_facts = self.combat_packet("miss", "miss")
+        self.assertFalse(narration_claims.assess(
+            "Saldırın ıskalar; rakibinin saldırısı da ıskalar.", miss_facts
+        )["reject"])
+
+        hit_facts = self.combat_packet("hit", "hit", enemy_damage=3)
+        self.assertFalse(narration_claims.assess(
+            "Saldırın isabet eder. Rakibin sana isabet eder; 3 hasar alırsın.",
+            hit_facts,
+        )["reject"])
+
     def test_open_door_accepts_two_wordings_and_rejects_the_locked_wording(self):
         facts = packet(door_open=True, door_locked=False, required=["door_open"])
         for sentence in ("Kapı gıcırdayarak açılır.", "Kilit çözülür ve kapı aralanır."):
