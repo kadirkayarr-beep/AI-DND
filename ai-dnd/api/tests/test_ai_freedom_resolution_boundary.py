@@ -19,6 +19,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import game
+import npc_statements
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.tests import test_campaign_api as campaign_api
 from api.tests import test_campaign_time as v1
@@ -80,6 +81,115 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
             )
         self.assertEqual(result["action_result"].get("npc_id"), other["id"])
         self.assertEqual(len(self.session.world_state["npcs"]), 2)
+
+
+class ClaimAndBudgetBoundaryTests(unittest.TestCase):
+    """Unverified past claims and the documented two-call turn budget."""
+
+    def setUp(self):
+        self.session = game.create_session(seed=17)
+        self.session.world_state["location"] = "tavern"
+        self.session.world_state["npcs"] = []
+        self.session.world_state["flags"] = {
+            "last_npc_id": None, "active_npc_id": None,
+            "active_npc_until_turn": -1, "turn_index": 0,
+        }
+
+    def _person(self, **fields):
+        person = {"relationship": "neutral", "memory": [], "knowledge": [],
+                  "personality": "", "appearance": ""}
+        person.update(fields)
+        self.session.world_state["npcs"].append(person)
+        return person
+
+    def test_claim_about_named_absent_person_is_answered_by_python_without_model(self):
+        # Alone, and with a visible bystander the model could otherwise pick.
+        for bystander in (False, True):
+            with self.subTest(bystander=bystander):
+                self.setUp()
+                if bystander:
+                    self._person(id="npc_bystander_claim", name="Oswin", role="hamal",
+                                 location="tavern", appearance="İri biri")
+                self._assert_absent_claim_is_python_owned()
+
+    def _assert_absent_claim_is_python_owned(self):
+        tamsin = self._person(id="npc_tamsin_claim", name="Tamsin", role="kayıkçı",
+                              location="forest")
+        before = copy.deepcopy(self.session.world_state)
+        with patch("game.ollama.chat", side_effect=AssertionError("no model call")) as model:
+            result = self.session.run_player_turn("Tamsin bana gümüş pusuladan bahsetmişti.")
+        action = result["action_result"]
+        self.assertEqual(model.call_count, 0)
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        self.assertEqual(action.get("status"), "unverified")
+        self.assertFalse(action.get("success"))
+        self.assertEqual(action.get("state_changes"), [])
+        self.assertEqual(tamsin["memory"], [])
+        self.assertEqual(tamsin["knowledge"], [])
+        self.assertEqual(self.session.world_state["location"], before["location"])
+        self.assertEqual([n["id"] for n in self.session.world_state["npcs"]],
+                         [n["id"] for n in before["npcs"]])
+        self.assertNotIn("pusula", result["narration"].casefold())
+
+    def test_claim_about_described_present_person_still_lets_model_find_them(self):
+        dwarf = self._person(id="npc_scarf_claim", name="Bruna", role="cüce tüccar",
+                             location="tavern", appearance="Kırmızı atkılı kısa boylu cüce")
+        self._person(id="npc_other_claim", name="Oswin", role="hamal",
+                     location="tavern", appearance="Omzunda halat taşıyan iri biri")
+        before_npcs = copy.deepcopy(self.session.world_state["npcs"])
+        calls = []
+
+        claim = "Kırmızı atkılıyla dün nehir hakkında konuşmuştuk, bana nehri anlatmıştı."
+
+        def fake_chat(**kwargs):
+            calls.append(sorted(kwargs["format"]["properties"]))
+            body = json.loads(_intent_packet(
+                intent="dialogue", action="dialogue",
+                target={"type": "npc", "reference": "kırmızı atkılı",
+                        "npc_id": dwarf["id"], "evidence_quote": "Kırmızı atkılı"},
+            )["message"]["content"])
+            if "narration" in kwargs["format"]["properties"]:
+                body["narration"] = "Cüce kaşlarını çatıyor."
+            return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat):
+            result = self.session.run_player_turn(claim)
+        action = result["action_result"]
+        self.assertTrue(calls, "A described claimant may still be interpreted by the model.")
+        self.assertEqual(action.get("npc_id"), dwarf["id"], action)
+        self.assertEqual(action.get("status"), "unverified", action)
+        self.assertFalse(action.get("success"))
+        after = {n["id"]: n for n in self.session.world_state["npcs"]}
+        self.assertEqual(len(after), len(before_npcs))
+        for npc in before_npcs:
+            self.assertEqual(after[npc["id"]]["knowledge"], npc["knowledge"])
+        # The player's claim must not become the NPC's own recorded words.
+        self.assertNotEqual(
+            npc_statements.claim_support(
+                self.session.world_state, after[dwarf["id"]], claim)["status"],
+            "supported",
+        )
+
+    def test_unresolved_description_keeps_the_two_call_budget_and_reports_it(self):
+        self._person(id="npc_budget_a", name="Bruna", role="cüce tüccar",
+                     location="tavern", appearance="Kısa boylu cüce")
+        self._person(id="npc_budget_b", name="Oswin", role="hamal",
+                     location="tavern", appearance="İri biri")
+
+        def fake_chat(**kwargs):
+            body = json.loads(_intent_packet(intent="dialogue", action="dialogue")
+                              ["message"]["content"])
+            if "narration" in kwargs["format"]["properties"]:
+                body.update(valid_response=True, narration="Kimse karşılık vermiyor.",
+                            lore_claims=[], world_updates={})
+            return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat) as model:
+            result = self.session.run_player_turn(
+                "Mavi pelerinli kişiye selam veriyorum.", interaction_mode="do")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertLessEqual(model.call_count, 2)
+        self.assertEqual(telemetry["total_model_calls"], model.call_count, telemetry)
 
 
 def _scene_person(city_id):

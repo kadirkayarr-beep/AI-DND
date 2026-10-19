@@ -6563,6 +6563,17 @@ def _validated_local_person_proposal(raw_intent):
     return values
 
 
+def _scene_detail_proposals_allowed(player_input, world_state, interaction_mode):
+    """Single source for the intent call's scene-detail proposal permission."""
+    return (
+        not is_player_world_assertion(player_input)
+        and should_generate_features(player_input, interaction_mode=interaction_mode)
+        and _resolve_explicit_local_scene_parent(
+            world_state.get("location"), player_input
+        ) is not None
+    )
+
+
 def _local_person_request_key(player_input):
     world = _session().world_state
     phrase = living_world.normalize_text(str(player_input or ""))
@@ -14569,6 +14580,10 @@ def _run_player_turn_internal(
     """Intent → rules → validated updates → committed state → narration."""
     intent_model_calls = 0
     intent_source = "deterministic"
+    # A scene pre-parse is a real intent call: it counts toward the two-call
+    # turn budget and is reused instead of asking the same question twice.
+    scene_preparse_model_calls = 0
+    preparsed_scene_intent = None
     world_state = _session().world_state
     entry_death_state = ensure_death_state()
     entry_combat = ensure_combat_state()
@@ -15374,14 +15389,26 @@ def _run_player_turn_internal(
             and not local_dialogue.personal_question_kind(player_input)
             and interaction_mode != "ask_dm"
             and is_npc_dialogue_input(player_input)
+            # The pre-parse can only pick a visible person or propose a local
+            # one; with neither possible it cannot change this turn.
+            and (
+                _intent_scene_npc_candidates()
+                or should_generate_npcs(player_input)
+            )
         ):
             preparsed_scene_intent = parse_player_intent(
                 player_input,
                 interaction_context=interaction_adventure.context(
                     world_state, None, player_input
                 ),
+                allow_scene_detail_proposals=_scene_detail_proposals_allowed(
+                    player_input, world_state, interaction_mode
+                ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
             )
+            scene_preparse_model_calls = 1
+            intent_model_calls = scene_preparse_model_calls
+            intent_source = "model"
             selected_npc = _validated_scene_npc_id(
                 preparsed_scene_intent, player_input
             )
@@ -15456,8 +15483,14 @@ def _run_player_turn_internal(
             interaction_context=interaction_adventure.context(
                 world_state, None, player_input
             ),
+            allow_scene_detail_proposals=_scene_detail_proposals_allowed(
+                player_input, world_state, interaction_mode
+            ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
         )
+        scene_preparse_model_calls = 1
+        intent_model_calls = scene_preparse_model_calls
+        intent_source = "model"
 
     if (
         target_id is None
@@ -15637,7 +15670,7 @@ def _run_player_turn_internal(
         else interaction_adventure.hint(player_input, npc_target)
     )
     if interaction_hint and not combat["active"]:
-        intent_model_calls = 1
+        intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
         raw = parse_player_intent(
             player_input,
@@ -16166,7 +16199,7 @@ def _run_player_turn_internal(
             interaction_mode != "ask_dm"
             and _npc_speech_enabled()
         )
-        intent_model_calls = 1
+        intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
         raw_intent = parse_player_intent(
             player_input,
@@ -16376,24 +16409,25 @@ def _run_player_turn_internal(
             # "Merak etme Sera, sadece kilide bakacağım": the act is looking at
             # the lock; a name in passing must not demand a conversation.
             npc_target = None
-        intent_model_calls = 1
         intent_source = "model"
-        raw_intent = parse_player_intent(
-            player_input,
-            interaction_context=interaction_adventure.context(
-                world_state, npc_target, player_input
-            ),
-            require_conversation=npc_target is not None,
-            allow_scene_detail_proposals=(
-                not is_player_world_assertion(player_input)
-                and should_generate_features(
-                    player_input, interaction_mode=interaction_mode
-                )
-                and _resolve_explicit_local_scene_parent(
-                    world_state.get("location"), player_input
-                ) is not None
-            ),
-        )
+        if npc_target is None and isinstance(preparsed_scene_intent, dict):
+            # The scene pre-parse already asked this exact question (no
+            # addressee, same context and proposal permissions); asking again
+            # would exceed the two-call turn budget without new information.
+            raw_intent = preparsed_scene_intent
+            intent_model_calls = scene_preparse_model_calls
+        else:
+            intent_model_calls = scene_preparse_model_calls + 1
+            raw_intent = parse_player_intent(
+                player_input,
+                interaction_context=interaction_adventure.context(
+                    world_state, npc_target, player_input
+                ),
+                require_conversation=npc_target is not None,
+                allow_scene_detail_proposals=_scene_detail_proposals_allowed(
+                    player_input, world_state, interaction_mode
+                ),
+            )
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
                 raw_intent, npc_target, required=npc_target is not None
