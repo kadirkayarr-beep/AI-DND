@@ -1640,8 +1640,12 @@ def _do_read(run: _Run, step) -> dict[str, Any]:
             return _receipt("read", "completed", place, text=f"Kapının üstündeki tabelada “{place['label']}” yazıyor.")
     if target and target["kind"] == "feature":
         feature = target["record"]
-        return _receipt("read", "completed", target, text=feature.get("text") or feature.get("description")
-                        or f"{feature.get('name')} üzerinde okunacak bir yazı yok.")
+        quoted_text = feature.get("text")
+        if quoted_text:
+            text = f"{feature.get('name')} üzerinde yazan: “{quoted_text}”"
+        else:
+            text = feature.get("description") or f"{feature.get('name')} üzerinde okunacak bir yazı yok."
+        return _receipt("read", "completed", target, text=text)
     return None
 
 
@@ -2169,6 +2173,13 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True
     if step.get("via_pronoun") and kind in {"place", "door", "feature"}:
         return True  # "oraya gidiyorum": the place in play, not a fresh search
+    if (
+        verb == "read"
+        and kind == "feature"
+        and isinstance(step["target"].get("record", {}).get("text"), str)
+        and step["target"]["record"]["text"].strip()
+    ):
+        return True  # only explicitly validated readable text is spoken aloud
     if verb in {"inspect", "read", "touch"} and step.get("detail") and kind is None and (
             step["detail"] != "pencere" or conditional_seen or step.get("condition")):
         # An unregistered crate, sign or well; a registered feature and the
