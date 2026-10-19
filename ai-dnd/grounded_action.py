@@ -339,6 +339,7 @@ def _settlement(world: dict[str, Any]) -> str | None:
 
 def candidates(session) -> list[dict[str, Any]]:
     import game
+    import exploration
 
     world = session.world_state
     here = world.get("location")
@@ -357,7 +358,7 @@ def candidates(session) -> list[dict[str, Any]]:
         nouns.extend(w for w in fold(living_world.public_npc_descriptor(npc)).split() if len(w) > 3)
         found.append({"id": npc["id"], "kind": "npc", "names": names, "nouns": nouns,
                       "label": living_world.public_npc_name(npc), "record": npc})
-    for door in world.get("doors", []):
+    for door in exploration.visible_doors(world):
         if not isinstance(door, dict) or door.get("location") != here or door.get("hidden"):
             continue
         place_id = door["id"].split(":", 1)[1] if str(door.get("id", "")).startswith("venue-door:") else None
