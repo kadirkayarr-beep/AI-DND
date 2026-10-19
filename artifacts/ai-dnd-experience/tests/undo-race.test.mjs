@@ -143,16 +143,23 @@ test('undo serializes against new turns and ignores a late response after switch
 test('a late undo result does not replace a newer same-session state, transcript, or draft', async () => {
   const h = harness();
   h.env.undo();
-  h.env.queryClient.setQueryData(['state', 'session-a'], {
-    revision: 'newer-turn', combat: { active: false }, quests: [],
-  });
-  h.env.entries = [{ kind: 'narration', text: 'Newer turn transcript' }];
+  const newerState = { revision: 'newer-turn', combat: { active: false }, quests: [] };
+  const newerHistory = [{ player_message: 'Newer turn', narration: 'Newer turn transcript' }];
+  h.env.queryClient.setQueryData(['state', 'session-a'], newerState);
+  h.env.getCampaign = async () => ({ state: newerState, history: newerHistory, combat_history: [] });
+  h.env.entries = [
+    { kind: 'player', text: 'Newer turn' },
+    { kind: 'narration', text: 'Newer turn transcript' },
+  ];
   h.env.message = 'draft after the new turn';
   h.undoResponse.resolve({ state: { revision: 'stale-undo' }, narration: 'Stale undo' });
   await new Promise(resolve => setImmediate(resolve));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'newer-turn');
-  assert.deepEqual(h.env.entries, [{ kind: 'narration', text: 'Newer turn transcript' }]);
+  assert.equal(JSON.stringify(h.env.entries), JSON.stringify([
+    { kind: 'player', text: 'Newer turn' },
+    { kind: 'narration', text: 'Newer turn transcript' },
+  ]));
   assert.equal(h.env.message, 'draft after the new turn');
 });
 
@@ -167,7 +174,7 @@ test('failed undo releases its lock and retains the target so the user can retry
   assert.equal(h.undoRequests.length, 2);
 });
 
-test('lost undo response keeps its action ID and reconciles the canonical state before retry', async () => {
+test('lost undo response keeps its action ID and reconciles current campaign state and history on replay', async () => {
   const h = harness();
   h.env.undo();
   const firstActionId = h.undoRequests[0][1].action_id;
@@ -175,18 +182,29 @@ test('lost undo response keeps its action ID and reconciles the canonical state 
   await new Promise(resolve => setImmediate(resolve));
   await new Promise(resolve => setImmediate(resolve));
   const canonicalRevision = h.env.queryClient.getQueryData(['state', 'session-a'])?.revision;
+  const currentState = { revision: 'other-tab-new-turn', combat: { active: false }, quests: [] };
+  const currentHistory = [{
+    player_message: 'Other tab: yeni hamle',
+    narration: 'Güncel kampanya geçmişi',
+    skill_check_result: null,
+  }];
+  h.env.queryClient.setQueryData(['state', 'session-a'], currentState);
+  h.env.message = 'Keep this unsent draft';
   h.env.undo();
   const retryActionId = h.undoRequests[1]?.[1].action_id;
   assert.equal(h.statusReadCount(), 1, 'transport ambiguity must trigger an authoritative state read');
   assert.equal(canonicalRevision, 'canonical-after-undo');
   assert.equal(retryActionId, firstActionId, 'retry must reuse the logical undo action ID');
+  h.env.getCampaign = async () => ({ state: currentState, history: currentHistory, combat_history: [] });
   h.retryUndoResponse.resolve({
-    state: { revision: 'undo-replayed', combat: { active: false }, quests: [] },
-    narration: 'Undo receipt replay',
+    state: { revision: 'historical-undo-receipt', combat: { active: false }, quests: [] },
+    narration: 'Historical receipt narration',
   });
   await new Promise(resolve => setImmediate(resolve));
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'undo-replayed');
+  assert.equal(h.env.queryClient.getQueryData(['state', 'session-a']).revision, 'other-tab-new-turn');
+  assert.equal(Array.from(h.env.entries, entry => entry.text).join('|'), 'Other tab: yeni hamle|Güncel kampanya geçmişi');
+  assert.equal(h.env.message, 'Keep this unsent draft');
   assert.equal(h.env.lastTurnRef.current, null);
   assert.equal(h.env.undoRequestsRef.current.has('session-a'), false);
 });

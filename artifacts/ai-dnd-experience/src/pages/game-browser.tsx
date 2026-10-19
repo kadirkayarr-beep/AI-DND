@@ -1093,6 +1093,8 @@ export default function GameBrowser() {
     if (!sessionId || (!visibleLastTurn && !pendingRequest) || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
     const target = pendingRequest?.targetActionId ?? visibleLastTurn!.actionId;
     if (pendingRequest && visibleLastTurn && pendingRequest.targetActionId !== target) return;
+    const operation = turnLifetime.begin();
+    if (!operation) return;
     const recoveringRequest = Boolean(pendingRequest);
     const request = pendingRequest
       ? { ...pendingRequest, generation: undoGenerationRef.current, scope: undoScope }
@@ -1109,27 +1111,54 @@ export default function GameBrowser() {
       && undoScopeRef.current === request.scope
       && undoGenerationRef.current === request.generation
       && undoRequestsRef.current.get(sessionId) === request
+      && operation.isCurrent()
       && (recoveringRequest || (
         lastTurnRef.current?.sessionId === sessionId
         && lastTurnRef.current.actionId === target
       ));
     const stateKey = getGetGameSessionStateQueryKey(sessionId);
-    const initialUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
     let retainRequest = false;
     void undoGameTurn(sessionId, { action_id: request.actionId, target_action_id: target })
-      .then((result) => {
+      .then(async (result) => {
         if (!isCurrent()) return;
-        if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== initialUpdateCount) {
+        let snapshot: {
+          state: GameState;
+          history: CampaignDetail['history'] | null;
+          combat_history: CampaignDetail['combat_history'] | null;
+        };
+        try {
+          snapshot = await reconcileState(queryClient, stateKey, operation, (signal) =>
+            campaignId
+              ? getCampaign(campaignId, { signal })
+              : getGameSessionState(sessionId, { signal }).then((state) => ({
+                state, history: null, combat_history: null,
+              })),
+          );
+        } catch {
+          if (!isCurrent()) return;
+          retainRequest = true;
           void queryClient.invalidateQueries({ queryKey: stateKey });
+          setNotice({
+            tone: 'warning',
+            title: 'Geri alma kaydı güncel durumla uzlaştırılamadı',
+            detail: 'Aynı geri alma isteği korunuyor; güncel durum doğrulanana kadar yeni hamle gönderilemez.',
+          });
           return;
         }
-        queryClient.setQueryData(stateKey, result.state);
-        setEntries((current) => [
-          ...current,
-          { kind: 'player' as const, text: '↶ Son turu geri al' },
-          { kind: 'narration' as const, text: result.narration },
-        ]);
-        if (lastTurnRef.current?.sessionId === sessionId) setLastTurn(null);
+        if (!isCurrent()) return;
+        queryClient.setQueryData(stateKey, snapshot.state);
+        if (snapshot.history) {
+          setEntries([
+            ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
+            ...snapshot.history.flatMap((entry) => [
+              { kind: 'player' as const, text: entry.player_message },
+              { kind: 'narration' as const, text: entry.narration,
+                skillCheckResult: entry.skill_check_result ?? undefined },
+            ]),
+          ]);
+        }
+        if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+        if (lastTurnRef.current?.sessionId === sessionId && lastTurnRef.current.actionId === target) setLastTurn(null);
         setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
@@ -1178,6 +1207,7 @@ export default function GameBrowser() {
         }
         undoPendingRef.current.delete(sessionId);
         setUndoPendingSessions(new Set(undoPendingRef.current));
+        operation.close();
       });
   };
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
