@@ -808,12 +808,16 @@ def describe(world):
 
 
 def visible_doors(world):
+    doors = [
+        door for door in world.get("doors", [])
+        if isinstance(door, dict) and not door.get("hidden", False)
+    ]
     if not active(world):
-        return world.get("doors", [])
+        return doors
     local = {e.get("door_id") for e in catalog.EXITS.values()
              if e["from"] == world["location"] and visible_exit(world, e)}
-    return [d for d in world.get("doors", []) if not d.get("hidden", False)
-            and (d.get("id") not in catalog.DOORS or d.get("id") in local)]
+    return [door for door in doors
+            if door.get("id") not in catalog.DOORS or door.get("id") in local]
 
 
 def public_projection(world):
