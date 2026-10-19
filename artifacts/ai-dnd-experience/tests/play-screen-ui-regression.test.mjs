@@ -209,7 +209,13 @@ async function waitForSelector(page, selector) {
     if (await page.evaluate(`!!document.querySelector(${encoded})`)) return;
     await delay(100);
   }
-  throw new Error(`Timed out waiting for selector ${selector}`);
+  const state = await page.evaluate(`(() => ({
+    url: location.href,
+    title: document.title,
+    body: document.body?.innerText?.slice(0, 1200) ?? "",
+    root: document.querySelector("#root")?.innerHTML?.slice(0, 1200) ?? "",
+  }))()`);
+  throw new Error(`Timed out waiting for selector ${selector}; state=${JSON.stringify(state)}; exceptions=${JSON.stringify(page.exceptions)}`);
 }
 
 async function waitForValue(page, expression) {

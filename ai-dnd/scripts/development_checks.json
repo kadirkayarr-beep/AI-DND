@@ -50,13 +50,22 @@
     "api.tests.test_campaign_api.CampaignApiTests.test_conversation_contract_is_required_at_model_adapter_boundary",
     "api.tests.test_campaign_api.CampaignApiTests.test_missing_conversation_fields_reject_without_retry_or_focus_change",
     "api.tests.test_campaign_api.CampaignApiTests.test_invalid_conditional_conversation_rejects_before_interaction_effects",
-    "api.tests.test_campaign_api.CampaignApiTests.test_npc_conversation_save_failure_rolls_back_and_receipt_replay_skips_model"
+    "api.tests.test_campaign_api.CampaignApiTests.test_npc_conversation_save_failure_rolls_back_and_receipt_replay_skips_model",
+    "api.tests.test_lr00_grounded_human",
+    "api.tests.test_lr00_human_regression_map",
+    "test_local_exploration.LocalExplorationTests.test_hidden_world_door_stays_unknown_until_discovery",
+    "test_playable_living_world.PlayableLivingWorldTests.test_compound_move_and_knock_follow_the_actual_building_result",
+    "api.tests.test_lr00_p7_undo",
+    "api.tests.test_http_two_player_isolation",
+    "api.tests.test_http_auth_gate"
   ],
+  "regression_group_sizes": [31, 7],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
     {"name": "frontend_typecheck", "argv": ["pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "typecheck"]},
     {"name": "frontend_test", "argv": ["pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "test"]},
+    {"name": "frontend_browser_ui_mocked_auth", "argv": ["pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "test:ui"]},
     {"name": "frontend_build", "argv": ["pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "build"]}
   ],
   "command_timeout_seconds": 300

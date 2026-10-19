@@ -115,6 +115,9 @@ class TwoPlayerIsolationTests(unittest.IsolatedAsyncioTestCase):
                 ("POST", f"/api/game/campaigns/{campaign_id}/resume", None),
                 ("GET", f"/api/game/sessions/{session_id}/state", None),
                 ("POST", f"/api/game/sessions/{session_id}/turn", {"message": "Bekle."}),
+                ("POST", f"/api/game/sessions/{session_id}/undo", {
+                    "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
+                }),
                 ("POST", f"/api/game/sessions/{session_id}/quests/{quest}/accept", None),
                 ("POST", f"/api/game/sessions/{session_id}/quests/{quest}/cancel", None),
                 ("POST", f"/api/game/sessions/{session_id}/species-actions", {"action": "short_rest"}),
