@@ -368,7 +368,9 @@ def _door_action(session, message, identity, operation):
             state = "açık"
         else:
             state = "kapalı"
-        text = f"{gate['name']}: kapıya vurdun. Kapı {state}."
+        text = (f"{gate['name']} üzerine vuruyorsun. Bir süre bekliyorsun; "
+                f"içeriden yanıt gelmiyor. Kapı {state}." if gate["locked"] or not gate.get("open")
+                else f"{gate['name']} zaten açık; vurmana gerek kalmadan içerisi görünüyor.")
         return _reply(session, message, text, "door_knock")
     if operation == "open" and gate["locked"]:
         fail("exploration_door_locked", "Kapı kilitli; önce kilidi açmalı veya kapıyı kırmalısın.")
@@ -806,12 +808,16 @@ def describe(world):
 
 
 def visible_doors(world):
+    doors = [
+        door for door in world.get("doors", [])
+        if isinstance(door, dict) and not door.get("hidden", False)
+    ]
     if not active(world):
-        return world.get("doors", [])
+        return doors
     local = {e.get("door_id") for e in catalog.EXITS.values()
              if e["from"] == world["location"] and visible_exit(world, e)}
-    return [d for d in world.get("doors", []) if not d.get("hidden", False)
-            and (d.get("id") not in catalog.DOORS or d.get("id") in local)]
+    return [door for door in doors
+            if door.get("id") not in catalog.DOORS or door.get("id") in local]
 
 
 def public_projection(world):

@@ -946,7 +946,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         sera["knowledge"].append(other_npc_only_cause)
         unknown = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertIn("görmedim", unknown.json()["narration"])
+        # In-character "I do not know" (wording varies by NPC and input).
+        self.assertTrue(
+            any(marker in unknown.json()["narration"]
+                for marker in ("bilmiyorum", "emin değilim")),
+            unknown.json()["narration"],
+        )
         unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
         self.assertNotIn(other_npc_only_cause, unknown_context)
         self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])
@@ -1276,9 +1281,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertTrue(
             any(term in response.json()["narration"].casefold() for term in (
-                "doğrulanmış", "belirsiz", "kesin konuşamam",
-            )),
+    # Unverified lore is answered as uncertainty inside the fiction (the NPC
+    # does not know / will not guess, or the talk around the player is unsettled).
+    # Legacy record-style wording is still tolerated; it is no longer required.
+    "doğrulanmış", "belirsiz", "kesin konuşamam", "bilmiyorum", "emin değilim",
+    "kesin bir şey söyleyemem", "sağlam görünmüyor", "tahminden öteye",
+    "ayıramıyorum", "yanlış bir şey söyleyip", "başka birine sorsan",
+)),
             response.json()["narration"],
+        )
+        self.assertNotIn(
+            "ejderha", response.json()["narration"].casefold(),
+            "The unverified dragon rumour must not be repeated as fact.",
         )
         self.assertEqual(
             len(client.message_batches), batches_before_lore_question,
@@ -1458,10 +1472,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(
                 marker in lore.json()["narration"].casefold()
-                for marker in ("doğrulanmış", "belirsiz", "kesin konuşamam")
+                for marker in (
+    # Unverified lore is answered as uncertainty inside the fiction (the NPC
+    # does not know / will not guess, or the talk around the player is unsettled).
+    # Legacy record-style wording is still tolerated; it is no longer required.
+    "doğrulanmış", "belirsiz", "kesin konuşamam", "bilmiyorum", "emin değilim",
+    "kesin bir şey söyleyemem", "sağlam görünmüyor", "tahminden öteye",
+    "ayıramıyorum", "yanlış bir şey söyleyip", "başka birine sorsan",
+)
             ),
             lore.json()["narration"],
         )
+        self.assertNotIn("ejderha", lore.json()["narration"].casefold())
         self.assertEqual(len(client.message_batches), batches_before_lore)
 
         other_actor = await post(
@@ -3748,7 +3770,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(action.get("action") == "local_search" and action.get("success"))
             self.assertEqual(action["status"], "unverified")
             narration = results[0]["narration"]
-            self.assertIn("ölçüm kaydı yok", narration)
+            self.assertIn("Kesin bir ölçü henüz elinde değil", narration)
             self.assertEqual(question.json()["narration"], narration)
             self.assertNotEqual(narration, discovered.json()["narration"])
 
@@ -7156,7 +7178,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(action["state_changes"], [])
                         self.assertNotIn("npc_id", action)
                         narration = results[-1]["narration"]
-                        self.assertIn("güvenilir bir doğrulamam yok", narration)
+                        self.assertIn("yöneticisinin kim olduğu", narration)
+                        self.assertNotIn("doğrulama", narration.lower())
                         for npc in local_npcs:
                             self.assertNotIn(npc["name"], narration)
                         self.assertEqual(turn["narration"], narration)

@@ -843,7 +843,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 40)
+        self.assertEqual(len(documented_routes), 42)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -852,6 +852,7 @@ class ContractParityTests(unittest.TestCase):
             ("POST", "/api/game/sessions", "/api/sessions"),
             ("GET", "/api/game/sessions/{session_id}/state", "/api/sessions/{session_id}/state"),
             ("POST", "/api/game/sessions/{session_id}/turn", "/api/sessions/{session_id}/turn"),
+            ("POST", "/api/game/sessions/{session_id}/undo", "/api/sessions/{session_id}/undo"),
             ("POST", "/api/game/sessions/{session_id}/species-actions", "/api/sessions/{session_id}/species-actions"),
             ("GET", "/api/game/campaigns", "/api/campaigns"),
             ("POST", "/api/game/campaigns", "/api/campaigns"),

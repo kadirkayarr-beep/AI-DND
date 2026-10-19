@@ -22,6 +22,7 @@ STATUSES = {"PASS", "FAIL", "NOT RUN", "UNVERIFIED"}
 def load_config(path):
     config = json.loads(Path(path).read_text(encoding="utf-8"))
     keys = {"schema_version", "required_paths", "regression_selectors",
+            "regression_group_sizes",
             "frontend_package", "frontend_commands", "command_timeout_seconds"}
     if (not isinstance(config, dict) or set(config) != keys
             or type(config["schema_version"]) is not int or config["schema_version"] != 1):
@@ -31,6 +32,13 @@ def load_config(path):
         if not isinstance(values, list) or not values or any(
                 not isinstance(value, str) or not value.strip() for value in values):
             raise ValueError(f"{key} must be a nonempty list of nonempty strings")
+    if len(config["regression_selectors"]) != len(set(config["regression_selectors"])):
+        raise ValueError("regression_selectors must not contain duplicate selectors")
+    sizes = config["regression_group_sizes"]
+    if (not isinstance(sizes, list) or not sizes
+            or any(type(size) is not int or size < 1 for size in sizes)
+            or sum(sizes) != len(config["regression_selectors"])):
+        raise ValueError("regression_group_sizes must partition every selector exactly once")
     for path in [*config["required_paths"], config["frontend_package"]]:
         if not isinstance(path, str) or Path(path).is_absolute() or ".." in Path(path).parts:
             raise ValueError("Project paths must be repository-relative without '..'")
@@ -51,8 +59,9 @@ def load_config(path):
                 not isinstance(item, str) or not item.strip() for item in argv):
             raise ValueError("Command argv must be a nonempty string array; no shell commands")
         names.append(command["name"])
-    if set(names) != {"frontend_libraries", "frontend_typecheck", "frontend_test", "frontend_build"}:
-        raise ValueError("All four established frontend commands are required")
+    if set(names) != {"frontend_libraries", "frontend_typecheck", "frontend_test",
+                      "frontend_browser_ui_mocked_auth", "frontend_build"}:
+        raise ValueError("All five established frontend commands are required")
     if len(names) != len(set(names)):
         raise ValueError("Duplicate command names")
     return config
@@ -281,10 +290,15 @@ def main(kind, argv=None):
                 rows = structural_checks(config, state, REPO, args.baseline, ci)
                 archive.data["checks"] = rows
                 archive.persist()
-                commands = [("Python regression", [
-                    sys.executable, str(evidence.ROOT / "scripts/run_regression_evidence.py"),
-                    "--archive-root", str(args.archive_root.resolve()),
-                    *config["regression_selectors"]])]
+                commands = []
+                start = 0
+                for index, size in enumerate(config["regression_group_sizes"], 1):
+                    selectors = config["regression_selectors"][start:start + size]
+                    start += size
+                    commands.append((("Python regression" if index == 1
+                                      else f"Python regression group {index}"), [
+                        sys.executable, str(evidence.ROOT / "scripts/run_regression_evidence.py"),
+                        "--archive-root", str(args.archive_root.resolve()), *selectors]))
                 commands += [(item["name"], item["argv"]) for item in config["frontend_commands"]]
                 execute = kind == "final_gate" and not args.static_only
                 for name, child_argv in commands:
@@ -299,7 +313,7 @@ def main(kind, argv=None):
                         offset = log.tell()
                         rows[-1] = run_command(name, child_argv, REPO,
                                                config["command_timeout_seconds"], log)
-                        if name == "Python regression":
+                        if name.startswith("Python regression"):
                             try:
                                 validate_suite(rows[-1], log, offset, args.archive_root)
                             except (OSError, ValueError, KeyError) as exc:

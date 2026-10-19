@@ -62,12 +62,16 @@ import {
   useAcceptGameQuest,
   useCancelGameQuest,
   playGameTurn,
+  undoGameTurn,
   getCampaign,
   useResolveAmbientEventAction,
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
-import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import type { TurnOutcome } from '@workspace/api-client-react';
+import { summarizeTurnOutcome } from '@/lib/turn-outcome';
+import { LastTurnBar } from '@/components/last-turn-bar';
 import { accountWriteAllowed } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
@@ -86,7 +90,6 @@ import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGate
 import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
-import citadelArtwork from '@assets/generated_images/ai-dnd-citadel-gate.jpg';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
@@ -163,20 +166,6 @@ function NoticeBanner({ notice }: { notice: Notice }) {
   );
 }
 
-function TavernArtwork() {
-  return (
-    <div className="gate-scene" data-testid="artwork-tavern" role="img" aria-label="Sislerin ardındaki uzak kale ve ona uzanan taş köprü" style={{ backgroundImage: `url("${citadelArtwork}")` }}>
-      <div className="gate-mist gate-mist-near" />
-      <div className="gate-mist gate-mist-far" />
-      <div className="gate-seal" aria-hidden="true">
-        <span className="gate-seal-caption">Yol çağırıyor</span>
-        <OuroborosMark awaken />
-      </div>
-      <span className="gate-art-caption" aria-hidden="true">UNUTULMUŞ DİYARLAR · FAERÛN</span>
-    </div>
-  );
-}
-
 function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
@@ -215,7 +204,9 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
             {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
             <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
           </section>
-          <section className="opening-art" aria-label="Macera kapısı"><TavernArtwork /></section>
+          <section className="opening-art opening-emblem" aria-label="Ouroboros simgesi">
+            <div className="opening-emblem-frame" aria-hidden="true"><OuroborosMark awaken /></div>
+          </section>
         </div>
         <EngineHealth />
       </div>
@@ -803,13 +794,13 @@ function StoryColumn({
             </label>
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
           </button>
         </form>
-        <div className="command-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
+        <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
       </div>
     </section>
   );
@@ -1076,6 +1067,149 @@ export default function GameBrowser() {
   const [inFlightSessions, setInFlightSessions] = useState<Set<string>>(new Set());
   useEffect(() => { setInFlightSessions(new Set(inFlightSessionsRef.current)); }, [sessionId]);
   const turnSending = inFlightSessions.has(sessionId);
+  // LR00-P5/P7: the last completed turn's receipt summary and undo target.
+  const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
+  const lastTurnRef = useRef(lastTurn);
+  lastTurnRef.current = lastTurn;
+  const [undoPendingSessions, setUndoPendingSessions] = useState<Set<string>>(new Set());
+  const undoPendingRef = useRef(new Set<string>());
+  const undoRequestsRef = useRef(new globalThis.Map<string, {
+    generation: number;
+    scope: string;
+    actionId: string;
+    targetActionId: string;
+  }>());
+  const undoGenerationRef = useRef(0);
+  const undoScope = `${campaignId ?? ''}:${sessionId}`;
+  const undoScopeRef = useRef(undoScope);
+  if (undoScopeRef.current !== undoScope) {
+    undoScopeRef.current = undoScope;
+    undoGenerationRef.current += 1;
+  }
+  const undoBusy = undoPendingSessions.has(sessionId);
+  const visibleLastTurn = lastTurn && lastTurn.sessionId === sessionId ? lastTurn : null;
+  const undoLastTurn = () => {
+    const pendingRequest = undoRequestsRef.current.get(sessionId);
+    if (!sessionId || (!visibleLastTurn && !pendingRequest) || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
+    const target = pendingRequest?.targetActionId ?? visibleLastTurn!.actionId;
+    if (pendingRequest && visibleLastTurn && pendingRequest.targetActionId !== target) return;
+    const operation = turnLifetime.begin();
+    if (!operation) return;
+    const recoveringRequest = Boolean(pendingRequest);
+    const request = pendingRequest
+      ? { ...pendingRequest, generation: undoGenerationRef.current, scope: undoScope }
+      : {
+        generation: undoGenerationRef.current,
+        scope: undoScope,
+        actionId: crypto.randomUUID(),
+        targetActionId: target,
+      };
+    undoRequestsRef.current.set(sessionId, request);
+    undoPendingRef.current.add(sessionId);
+    setUndoPendingSessions(new Set(undoPendingRef.current));
+    const isCurrent = () => activeSessionRef.current === sessionId
+      && undoScopeRef.current === request.scope
+      && undoGenerationRef.current === request.generation
+      && undoRequestsRef.current.get(sessionId) === request
+      && operation.isCurrent()
+      && (recoveringRequest || (
+        lastTurnRef.current?.sessionId === sessionId
+        && lastTurnRef.current.actionId === target
+      ));
+    const stateKey = getGetGameSessionStateQueryKey(sessionId);
+    let retainRequest = false;
+    void undoGameTurn(sessionId, { action_id: request.actionId, target_action_id: target })
+      .then(async (result) => {
+        if (!isCurrent()) return;
+        let snapshot: {
+          state: GameState;
+          history: CampaignDetail['history'] | null;
+          combat_history: CampaignDetail['combat_history'] | null;
+        };
+        try {
+          snapshot = await reconcileState(queryClient, stateKey, operation, (signal) =>
+            campaignId
+              ? getCampaign(campaignId, { signal })
+              : getGameSessionState(sessionId, { signal }).then((state) => ({
+                state, history: null, combat_history: null,
+              })),
+          );
+        } catch {
+          if (!isCurrent()) return;
+          retainRequest = true;
+          void queryClient.invalidateQueries({ queryKey: stateKey });
+          setNotice({
+            tone: 'warning',
+            title: 'Geri alma kaydı güncel durumla uzlaştırılamadı',
+            detail: 'Aynı geri alma isteği korunuyor; güncel durum doğrulanana kadar yeni hamle gönderilemez.',
+          });
+          return;
+        }
+        if (!isCurrent()) return;
+        queryClient.setQueryData(stateKey, snapshot.state);
+        if (snapshot.history) {
+          setEntries([
+            ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
+            ...snapshot.history.flatMap((entry) => [
+              { kind: 'player' as const, text: entry.player_message },
+              { kind: 'narration' as const, text: entry.narration,
+                skillCheckResult: entry.skill_check_result ?? undefined },
+            ]),
+          ]);
+        }
+        if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+        if (lastTurnRef.current?.sessionId === sessionId && lastTurnRef.current.actionId === target) setLastTurn(null);
+        setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      })
+      .catch(async (error) => {
+        if (!isCurrent()) return;
+        const status = statusCode(error);
+        const definitiveRejection = error instanceof ApiError && status !== undefined && status >= 400 && status < 500;
+        if (definitiveRejection) {
+          if (undoRequestsRef.current.get(sessionId) === request) undoRequestsRef.current.delete(sessionId);
+          setNotice({ tone: 'error', title: 'Geri alınamadı', detail: friendlyError(error, 'Bu tur artık geri alınamıyor.') });
+          return;
+        }
+        retainRequest = true;
+        setNotice({
+          tone: 'warning',
+          title: 'Geri alma sonucu belirsiz',
+          detail: 'Sunucu durumu yeniden okunuyor. Sonuç doğrulanana kadar yeni hamle gönderilemez.',
+        });
+        try {
+          const statusReadUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
+          const canonicalState = await getGameSessionState(sessionId);
+          if (!isCurrent()) return;
+          if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== statusReadUpdateCount) {
+            void queryClient.invalidateQueries({ queryKey: stateKey });
+            setNotice({
+              tone: 'warning',
+              title: 'Geri alma sonucu doğrulanamadı',
+              detail: 'Durum sorgusu sırasında daha yeni bilgi geldi. Aynı geri alma isteğini yeniden deneyin.',
+            });
+            return;
+          }
+          queryClient.setQueryData(stateKey, canonicalState);
+        } catch {
+          if (!isCurrent()) return;
+          void queryClient.invalidateQueries({ queryKey: stateKey });
+          setNotice({
+            tone: 'warning',
+            title: 'Geri alma sonucu doğrulanamadı',
+            detail: 'Aynı geri alma isteğini yeniden deneyin; yeni hamle gönderilemez.',
+          });
+        }
+      })
+      .finally(() => {
+        if (!retainRequest && undoRequestsRef.current.get(sessionId) === request) {
+          undoRequestsRef.current.delete(sessionId);
+        }
+        undoPendingRef.current.delete(sessionId);
+        setUndoPendingSessions(new Set(undoPendingRef.current));
+        operation.close();
+      });
+  };
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
@@ -1418,7 +1552,7 @@ export default function GameBrowser() {
     mode: InteractionMode = interactionMode,
   ) => {
     const trimmed = text.trim();
-    if (!sessionId || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
+    if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     const operation = turnLifetime.begin();
     if (!operation) return;
     setNotice(null);
@@ -1532,6 +1666,7 @@ export default function GameBrowser() {
           });
         }
         if (stillVisible) setMessage('');
+        if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
         if (!operation.isCurrent()) return;
@@ -1637,6 +1772,13 @@ export default function GameBrowser() {
                 ambientActionError={ambientActionError}
                 onAmbientAction={handleAmbientAction}
                 onRetryAmbientAction={retryAmbientAction}
+              />
+              <LastTurnBar
+                summary={summarizeTurnOutcome(visibleLastTurn?.outcome)}
+                canUndo={Boolean(visibleLastTurn) && !state.combat.active}
+                recoveringUndo={undoRequestsRef.current.has(sessionId)}
+                busy={undoBusy || turnSending}
+                onUndo={undoLastTurn}
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}

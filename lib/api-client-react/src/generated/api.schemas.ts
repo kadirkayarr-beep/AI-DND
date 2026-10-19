@@ -10,6 +10,54 @@ export interface CampaignDeleteResult {
   deleted: boolean;
 }
 
+export interface IdentityContextField {
+  field: string;
+  /** @maxLength 1000 */
+  text?: string;
+  locked?: boolean;
+  allow_as_context?: boolean;
+}
+
+export interface IdentitySuggestionRequest {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  draft_id: string;
+  field: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  request_id: string;
+  /**
+     * @minimum 0
+     * @maximum 100000
+     */
+  input_revision: number;
+  /** @maxLength 1000 */
+  current_text?: string;
+  locked?: boolean;
+  /** @maxLength 80 */
+  name?: string | null;
+  /** @maxLength 40 */
+  species?: string | null;
+  /** @maxLength 40 */
+  character_class?: string | null;
+  /** @maxItems 4 */
+  context_fields?: IdentityContextField[];
+}
+
+export interface IdentitySuggestionJob {
+  request_id: string;
+  draft_id: string;
+  field: string;
+  input_revision: number;
+  status: string;
+  suggestion?: string | null;
+  code?: string | null;
+}
+
 export type HealthResponseStatus = typeof HealthResponseStatus[keyof typeof HealthResponseStatus];
 
 
@@ -1845,6 +1893,15 @@ export interface LevelUpResult {
   hit_points_gained: number;
 }
 
+export interface TurnOutcome {
+  action?: string | null;
+  status?: string | null;
+  kind?: string | null;
+  target_name?: string | null;
+  found?: boolean | null;
+  place_created?: boolean | null;
+}
+
 export interface GameTurnResult {
   session_id: string;
   action_id: string;
@@ -1859,6 +1916,21 @@ export interface GameTurnResult {
   quest_outcomes: QuestOutcome[];
   /** Server-owned experience award for this turn. Null when the turn granted no experience. */
   level_up: LevelUpResult | null;
+  /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
+  turn_outcome?: TurnOutcome | null;
+}
+
+export interface GameTurnUndoInput {
+  action_id: string;
+  target_action_id: string;
+}
+
+export interface GameTurnUndoResult {
+  session_id: string;
+  action_id: string;
+  undone_action_id: string;
+  narration: string;
+  state: GameState;
 }
 
 export interface QuestCommandResult {

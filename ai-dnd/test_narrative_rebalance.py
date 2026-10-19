@@ -15,6 +15,23 @@ import interaction_adventure
 import campaign_time
 
 
+
+# Unrecorded NPC claims are denied in character (the NPC shrugs, says the claim is
+# wrong, or - for an absent NPC - the narrator says the speaker is not here).
+# Legacy record-style wording is still accepted but no longer required.
+CLAIM_DENIAL_MARKERS = (
+    "hatırlam", "anımsam", "kayıt yok", "bulunmuyor", "burada değil",
+    "söylemedim", "yanlış kapıyı", "böyle bir şey", "sözüm yok", "karıştır",
+    "yanılıyorsun", "ağzımdan çıkmadı", "üstlenmiyor", "ne dediğini ona sormadan",
+    "doğrulanmış bir bilgi yok", "kesin yanıt belirsiz",
+)
+
+
+def denies_claim(text):
+    folded = text.lower()
+    return any(marker in folded for marker in CLAIM_DENIAL_MARKERS)
+
+
 class TestNarrativeRebalance(unittest.TestCase):
     def setUp(self):
         # Individual model fixtures override this guard; all other paths stay
@@ -213,11 +230,7 @@ class TestNarrativeRebalance(unittest.TestCase):
         result = self.session.run_player_turn("Hancı, bana borcun vardı, hatırladın mı?")
         narration_lower = result["narration"].lower()
         self.assertNotIn("sana borcum vardı", narration_lower)
-        self.assertTrue(
-            "hatırlamıyorum" in narration_lower
-            or "kayıt yok" in narration_lower
-            or "doğrulanmış bir bilgi yok" in narration_lower
-        )
+        self.assertTrue(denies_claim(narration_lower), narration_lower)
 
     # 12. active addressee remains stable
     @patch("game.ollama.chat")
@@ -708,7 +721,7 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(self.session.world_state["location"], "forest")
         narration = result["narration"]
         self.assertTrue(
-            "kayıt yok" in narration or "bulunmuyor" in narration or "hatırlam" in narration,
+            denies_claim(narration),
             f"Expected denial/unverified indication, got: {narration}"
         )
         self.assertNotIn("çınlıyor", narration)
@@ -726,7 +739,8 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(action.get("status"), "unverified")
         self.assertFalse(action.get("success"))
         self.assertEqual(telemetry["total_model_calls"], 0)
-        self.assertIn("hatırlamıyorum", result["narration"])
+        self.assertTrue(denies_claim(result["narration"]), result["narration"])
+        self.assertNotIn("ejderha hazinesi", result["narration"].lower())
 
     # 31. narration safety validator rejects model narration affirming unverified historical premise
     def test_31_narration_safety_rejects_unverified_claim_affirmation(self):
@@ -750,10 +764,7 @@ class TestNarrativeRebalance(unittest.TestCase):
             f"Expected safety reason code, got: {self.session.last_narration_safety}"
         )
         self.assertNotIn("çınlıyor", output)
-        self.assertTrue(
-            "kayıt yok" in output or "bulunmuyor" in output or "hatırlam" in output or "kesin yanıt belirsiz" in output,
-            f"Expected fallback denial, got: {output}"
-        )
+        self.assertTrue(denies_claim(output), f"Expected fallback denial, got: {output}")
 
     # 32. canonical city ID resolves deterministically with 0 model calls
     def test_32_canonical_city_id_look_is_deterministic_zero_model_calls(self):

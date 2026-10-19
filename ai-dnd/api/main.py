@@ -101,8 +101,11 @@ from api.schemas import (
     HealthResponse,
     LevelUpResult,
     SessionResponse,
+    TurnOutcome,
     TurnRequest,
     TurnResponse,
+    TurnUndoRequest,
+    TurnUndoResponse,
     QuestCommandResult,
     QuestState,
     SpeciesTraitActionRequest,
@@ -163,6 +166,32 @@ def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> No
                 "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
             },
         ) from None
+
+
+def _turn_outcome(action_result: Any) -> TurnOutcome | None:
+    """Player-safe receipt projection for the result card (LR00-P5)."""
+    if not isinstance(action_result, dict):
+        return None
+    inspection = action_result.get("inspection") if isinstance(action_result.get("inspection"), dict) else {}
+    place = action_result.get("local_place") if isinstance(action_result.get("local_place"), dict) else {}
+
+    def short(value: Any, limit: int) -> str | None:
+        return str(value)[:limit] if isinstance(value, str) and value.strip() else None
+
+    return TurnOutcome(
+        action=short(action_result.get("action"), 48),
+        status=short(action_result.get("status"), 48),
+        kind=short(action_result.get("kind") or place.get("kind") or inspection.get("target_kind"), 48),
+        target_name=short(inspection.get("target_name") or action_result.get("target_name"), 120),
+        found=inspection.get("found") if isinstance(inspection.get("found"), bool) else None,
+        place_created=place.get("created") if isinstance(place.get("created"), bool) else None,
+    )
+
+
+def _state_fingerprint(session: Any) -> str:
+    return hashlib.sha256(json.dumps(
+        session.serialize_game_state(), sort_keys=True, ensure_ascii=False, default=str,
+    ).encode("utf-8")).hexdigest()
 
 
 def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
@@ -1431,6 +1460,7 @@ def create_app(
                     if isinstance(action_result, dict) and action_result.get("level_up") is not None
                     else None
                 ),
+                turn_outcome=_turn_outcome(action_result),
             )
             response_payload = redact_sensitive_values(
                 response.model_dump(mode="json")
@@ -1527,7 +1557,124 @@ def create_app(
                 narrative_frame.diagnostics.get("selected_counts", {}),
                 len(narrative_frame.diagnostics.get("ambiguities", [])),
             )
+            if isinstance(session, game.GameSession):
+                # LR00-P7: remember exactly how the world looked before this
+                # turn, and how it looks now, so one explicit undo can restore
+                # it only if nothing else has changed since.
+                record.undo_checkpoint = {
+                    "action_id": action_id,
+                    "player_message": request.message,
+                    "snapshot": snapshot,
+                    "journal": journal_snapshot,
+                    "narrative_memory": narrative_memory_snapshot,
+                    "lore_authority": lore_authority_snapshot,
+                    "world_metadata": metadata_snapshot,
+                    "post_turn_fingerprint": _state_fingerprint(session),
+                }
             return response_payload
+
+    @application.post(
+        "/api/game/sessions/{session_id}/undo",
+        response_model=TurnUndoResponse,
+    )
+    @application.post(
+        "/api/sessions/{session_id}/undo",
+        response_model=TurnUndoResponse,
+    )
+    def undo_last_turn(session_id: str, request: TurnUndoRequest) -> dict[str, Any]:
+        """Undo the last completed turn and its effects; keep it as history evidence."""
+        record = get_record(session_id)
+        action_id = str(request.action_id)
+        target_action_id = str(request.target_action_id)
+        request_hash = hashlib.sha256(json.dumps(
+            {"undo": target_action_id}, sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+        with record.turn_lock:
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            try:
+                previous = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if previous is not None:
+                if previous["request_hash"] != request_hash:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                return replay_action_response(previous["response"], TurnUndoResponse, session_id)
+            require_current(record)
+            session = record.game_session
+            checkpoint = getattr(record, "undo_checkpoint", None)
+            if not isinstance(checkpoint, dict) or checkpoint.get("action_id") != target_action_id:
+                raise HTTPException(status_code=409, detail={
+                    "code": "undo_unavailable",
+                    "message": "Geri alınabilecek bir son tur yok.",
+                })
+            if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
+                record.undo_checkpoint = None
+                raise HTTPException(status_code=409, detail={
+                    "code": "undo_stale",
+                    "message": "Son turdan sonra başka bir değişiklik oldu; o tur artık geri alınamaz.",
+                })
+            current = _capture_session(session)
+            current_metadata = copy.deepcopy(getattr(session, "world_metadata", None))
+            current_journal = copy.deepcopy(record.journal)
+            current_memory = copy.deepcopy(record.narrative_memory)
+            current_lore = record.lore_authority
+            try:
+                _restore_session(session, checkpoint["snapshot"])
+                session.world_metadata = copy.deepcopy(checkpoint["world_metadata"])
+                record.journal = copy.deepcopy(checkpoint["journal"])
+                record.narrative_memory = copy.deepcopy(checkpoint["narrative_memory"])
+                record.lore_authority = checkpoint["lore_authority"]
+                session.campaign_lore_state = checkpoint["lore_authority"]
+                quoted = str(checkpoint.get("player_message") or "").strip()
+                if len(quoted) > 120:
+                    quoted = quoted[:117] + "..."
+                narration = (
+                    f"Son tur geri alındı: “{quoted}” ve sonuçları yaşanmamış sayılıyor. "
+                    "Dünya o turdan önceki hâline döndü; sıradaki hamle senin."
+                )
+                state = serialize_session_state(session, record.journal, record.lore_authority)
+                response = TurnUndoResponse(
+                    session_id=session_id,
+                    action_id=action_id,
+                    undone_action_id=target_action_id,
+                    narration=narration,
+                    state=state,
+                )
+                payload = redact_sensitive_values(response.model_dump(mode="json"))
+                manager.autosave_turn(
+                    record,
+                    "↶ Son turu geri al",
+                    narration,
+                    narrative_memory=record.narrative_memory,
+                    turn_action_receipt={
+                        "action_id": action_id,
+                        "request_hash": request_hash,
+                        "response": payload,
+                    },
+                )
+            except CampaignError as error:
+                _rollback_session(record, session, current)
+                session.world_metadata = current_metadata
+                record.journal = current_journal
+                record.narrative_memory = current_memory
+                record.lore_authority = current_lore
+                session.campaign_lore_state = current_lore
+                raise campaign_http_exception(error) from None
+            except Exception:
+                _rollback_session(record, session, current)
+                session.world_metadata = current_metadata
+                record.journal = current_journal
+                record.narrative_memory = current_memory
+                record.lore_authority = current_lore
+                session.campaign_lore_state = current_lore
+                raise
+            # One step only: a second undo needs a new completed turn first.
+            record.undo_checkpoint = None
+            return payload
 
     def _quest_command(session_id: str, quest_id: str, command: str) -> dict[str, Any]:
         record = get_record(session_id)

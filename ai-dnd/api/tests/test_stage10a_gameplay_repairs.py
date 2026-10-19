@@ -340,7 +340,7 @@ class QuestAvailabilityTests(unittest.TestCase):
             with patch("game.ollama.chat", side_effect=AssertionError("model")):
                 result = session.run_player_turn(QUEST_QUESTION)
             self.assertFalse(session._unsupported_available_quest_claim(
-                "Sana sunulmuş kayıtlı görev şunlar: Kayıtlı Not."
+                "Üstlenebileceğin işler şunlar: Kayıtlı Not."
             ))
         finally:
             quest_catalog.CATALOG = original

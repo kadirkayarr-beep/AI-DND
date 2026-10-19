@@ -512,7 +512,7 @@ test('Half-Elf uses its own portrait while other species keep atlas and unknown 
   function portraitPrefix(label) {
     const index = html.indexOf(label);
     assert.ok(index >= 0, label);
-    const start = html.lastIndexOf('<div class="cc-choice-card', index);
+    const start = html.lastIndexOf('class="cc-choice-card', index);
     assert.ok(start >= 0);
     return html.slice(start, index);
   }
