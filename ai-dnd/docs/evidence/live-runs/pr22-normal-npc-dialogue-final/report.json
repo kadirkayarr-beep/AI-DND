@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "model": "qwen3:8b",
+  "opt_in_env_present": false,
+  "max_turns": 8,
+  "max_model_calls": 16,
+  "campaign_isolated": true,
+  "city_id": "fr:city:neverwinter",
+  "npc_id": "npc_live_normal_marek",
+  "known_place_name": "Carrion Hanı",
+  "fixture_setup_turns": 1,
+  "fixture_door_open": true,
+  "turn_model_calls": {
+    "greeting": 1,
+    "recommendation": 2,
+    "travel": 0,
+    "inspect": 2
+  },
+  "turn_statuses": {
+    "greeting": "resolved",
+    "recommendation": "resolved",
+    "travel": "completed",
+    "inspect": "resolved"
+  },
+  "greeting_target_matches": true,
+  "experimental_session_flag": false,
+  "recommendation_prompt_had_grounded_options": true,
+  "recommendation_attributed_to_npc": true,
+  "recommendation_canonical": true,
+  "place_reference_count": 1,
+  "travel_committed": true,
+  "travel_location_id": "location_001",
+  "inspection_completed": true,
+  "inspection_status": "resolved",
+  "resumed_new_session": true,
+  "resumed_same_npc_id": true,
+  "resumed_same_attribution": true,
+  "turn_count": 5,
+  "model_calls": 5,
+  "no_experimental_flag": true,
+  "tested_commit": "55a76886878610bc7738b249a1684034adaef191",
+  "game_sha256": "52a781b94d0c12221ff91d3b5d2abbb809ae74578b1df69b5d3a707546b517a0"
+}
