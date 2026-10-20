@@ -8594,8 +8594,33 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     travel_prefixes = (
         "ulas", "var", "gir", "git", "yuru", "gec", "ilerle", "don", "yaklas"
     )
+    input_verb_suffixes = tuple(sorted((
+        "iyorum", "ıyorum", "uyorum", "üyorum",
+        "ıyorsun", "iyorsun", "uyorsun", "üyorsun",
+        "ıyor", "iyor", "uyor", "üyor",
+        "ıyordum", "iyordum", "uyordum", "üyordum",
+        "dım", "dim", "dum", "düm", "tım", "tim", "tum", "tüm",
+        "dın", "din", "dun", "dün", "tın", "tin", "tun", "tün",
+        "di", "dı", "du", "dü", "ti", "tı", "tu", "tü",
+        "yorum",
+        "erim", "arım", "irim", "ırım", "ürüm", "urum",
+        "eceğim", "acağım", "eceksin", "acaksın",
+        "ayip", "eyip", "yip", "yup",
+        "mak", "mek",
+    ), key=len, reverse=True))
+    input_verb_stems = set()
+    for word in re.findall(
+        r"[a-zçğıöşü]+", _normalize_turkish_typos(input_text)
+    ):
+        if word in agency_prefixes:
+            input_verb_stems.add(word)
+            continue
+        for suffix in input_verb_suffixes:
+            if word.endswith(suffix) and len(word) - len(suffix) >= 2:
+                input_verb_stems.add(word[:-len(suffix)])
+                break
     for match in second_person_verb.finditer(player_action_text):
-        if match.group(1) in input_text:
+        if _normalize_turkish_typos(match.group(1)) in input_verb_stems:
             continue
         normalized_verb = _normalize_turkish_typos(match.group(0))
         if normalized_verb.endswith(
@@ -8623,6 +8648,12 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
             r"sec\w*|tercih|inan\w*|guven\w*)\b",
             nearby_decision,
         ))
+        if normalized_verb.startswith("et") and re.search(
+            r"\bkabul\b", nearby_decision
+        ):
+            # The calibration corpus classifies unverified consent as a
+            # mental-state claim; keep the claim rejected under that reason.
+            continue
         if not is_clear_agency:
             continue
         committed_step = normalized_verb.startswith("at") and re.search(
