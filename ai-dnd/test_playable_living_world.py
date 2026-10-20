@@ -27,6 +27,19 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.world["location"] = "forest"
         self.root_location = self.world["location"]
 
+    def _seed_local_shop(self):
+        created = self.session.create_shop_from_proposal({
+            "name": f"{game._turkish_genitive_form('Test Merchant')} Tezgâhı",
+            "description": "Küçük ve sade bir yerel tezgâh.",
+            "shopkeeper": {
+                "name": "Test Merchant",
+                "personality": "Sakin ve dikkatli.",
+                "appearance": "Sade giysili bir dükkâncı.",
+            },
+        })
+        self.assertIsNotNone(created)
+        return created["shop"], created["shopkeeper"]
+
     def _set_npc_conversation_deadline(self, turn_index, *, active=True):
         npcs = [
             {
@@ -628,18 +641,18 @@ class PlayableLivingWorldTests(unittest.TestCase):
             game._direct_npc_smalltalk_response("Doğu'da ne var?", npc)
         )
 
-    def test_merchant_search_creates_local_person_and_shop_without_trade(self):
+    def test_merchant_search_finds_existing_local_person_and_shop_without_trade(self):
+        shop, merchant = self._seed_local_shop()
+        inventory_before = copy.deepcopy(self.world["inventory"])
+        shops_before = copy.deepcopy(self.world["shops"])
+        merchant_before = copy.deepcopy(merchant)
         plan = self.session.plan_living_world_turn(
             "Bir tüccar arıyorum."
         )
         self.assertEqual(plan["direct_result"]["action"], "local_search")
         self.assertEqual(plan["direct_result"]["status"], "found")
-        self.assertEqual(len(self.world["shops"]), 1)
-        shop = self.world["shops"][0]
-        merchant = next(
-            item for item in self.world["npcs"]
-            if item["id"] == shop["shopkeeper_id"]
-        )
+        self.assertEqual(plan["direct_result"]["shop_id"], shop["id"])
+        self.assertEqual(plan["direct_result"]["target_id"], merchant["id"])
         self.assertEqual(shop["location"], self.root_location)
         self.assertEqual(merchant["location"], self.root_location)
         self.assertIn("campaign_local", shop["tags"])
@@ -653,12 +666,15 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(game._turkish_genitive_form("Veyra"), "Veyra'nın")
         self.assertEqual(game._turkish_genitive_form("Marek"), "Marek'in")
+        self.assertEqual(self.world["inventory"], inventory_before)
+        self.assertEqual(self.world["shops"], shops_before)
+        self.assertEqual(merchant, merchant_before)
 
         negative = self.session.plan_living_world_turn(
             "Bir tüccar aramıyorum."
         )
         self.assertIsNone(negative["direct_result"])
-        self.assertEqual(len(self.world["shops"]), 1)
+        self.assertEqual(self.world["shops"], shops_before)
 
     def test_addressed_npc_tavern_question_does_not_create_a_world_search_result(self):
         npc = self.session.create_npc_from_ai({
@@ -1192,7 +1208,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertFalse(living_world.is_tavern_search("Kael Hanı kapısını gözlemliyorum."))
         self.assertEqual(living_world.classify_scene_action("Etrafıma bakıyorum."), "look")
 
-    def test_building_detail_inquiry_does_not_start_a_new_tavern_search(self):
+    def test_building_inspection_of_known_tavern_does_not_start_a_new_search(self):
         sentence = "hanın olduğu binayı araştırıyorum açık pencere varmı bakıyorum"
         self.assertFalse(living_world.is_tavern_search(sentence))
         self.assertTrue(living_world.is_anchored_structure_inquiry(sentence))
@@ -1990,7 +2006,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         ))
 
     @patch("game.ollama.chat", side_effect=AssertionError("City observation is deterministic"))
-    def test_v11_semantic_city_observation_and_local_discovery(self, model_chat):
+    def test_v11_semantic_city_observation_and_existing_shop_discovery(self, model_chat):
         city_id = "city_observation_fixture"
         self.world["locations"][city_id] = {
             "id": city_id,
@@ -2031,6 +2047,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(tavern["parent_location_id"], city_id)
         self.assertEqual(tavern["exit_location_id"], city_id)
 
+        seeded_shop, seeded_shopkeeper = self._seed_local_shop()
         merchant = self.session.plan_living_world_turn(
             "Buralarda bir tücaar var mı?"
         )
@@ -2041,12 +2058,14 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertTrue(merchant["direct_result"]["direct_response"].strip())
         self.assertEqual(len(self.world["shops"]), 1)
         shop = self.world["shops"][0]
+        self.assertEqual(shop["id"], seeded_shop["id"])
         self.assertEqual(shop["id"], merchant["direct_result"]["shop_id"])
         self.assertEqual(shop["location"], city_id)
         self.assertEqual(shop["shopkeeper_id"], merchant["direct_result"]["target_id"])
         shopkeeper = next(
             npc for npc in self.world["npcs"] if npc["id"] == shop["shopkeeper_id"]
         )
+        self.assertEqual(shopkeeper["id"], seeded_shopkeeper["id"])
         self.assertEqual(shopkeeper["location"], city_id)
         self.assertEqual(self.world["location"], city_id)
         self.assertEqual(scene, scene_before_discovery)

@@ -1236,12 +1236,19 @@ def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
         place = _place_target(run, target)
         if place and place.get("door_id"):
             door = run.door(place["door_id"])
-            if door and door.get("location") == run.here:
+            entry_door = _inside_entry_door(run)
+            if door and (
+                door.get("location") == run.here
+                or (entry_door and door.get("id") == entry_door["id"])
+            ):
                 return {"id": door["id"], "kind": "door", "label": door.get("name"), "record": door,
                         "place_id": place["id"]}
         return None
     doors = [d for d in run.world.get("doors", []) if isinstance(d, dict)
              and d.get("location") == run.here and not d.get("hidden")]
+    entry_door = _inside_entry_door(run)
+    if entry_door and not any(d.get("id") == entry_door["id"] for d in doors):
+        doors.append(entry_door)
     near = run.memory.get("near_target_id")
     chosen = next((d for d in doors if d["id"] == near or d["id"] == f"venue-door:{near}"), None)
     if chosen is None and len(doors) == 1:
@@ -1250,6 +1257,20 @@ def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
         return None
     place_id = chosen["id"].split(":", 1)[1] if chosen["id"].startswith("venue-door:") else None
     return {"id": chosen["id"], "kind": "door", "label": chosen.get("name"), "record": chosen, "place_id": place_id}
+
+
+def _inside_entry_door(run: _Run) -> dict[str, Any] | None:
+    """Expose only this venue's canonical street-side entry while inside it."""
+    place = run.location(run.here)
+    if not isinstance(place, dict):
+        return None
+    parent = place.get("parent_location_id")
+    if not isinstance(parent, str) or not parent or run.location(parent) is None:
+        return None
+    door = run.door(f"venue-door:{run.here}")
+    if not isinstance(door, dict) or door.get("location") != parent or door.get("hidden"):
+        return None
+    return door
 
 
 def _lock_policy(door):

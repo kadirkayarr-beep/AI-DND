@@ -139,6 +139,18 @@ class ControlledVenueOllamaClient(FakeOllamaClient):
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
+class ControlledShopSetupOllamaClient(FakeOllamaClient):
+    """Offline narration for the Python-owned explicit shop-setup HTTP action."""
+
+    def chat(self, *args, **kwargs):
+        packet = {
+            "narration": "Küçük yerel dükkân kuruldu.",
+            "world_updates": {},
+            "lore_claims": [],
+        }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
 class CapturingConversationContextClient(ControlledVenueOllamaClient):
     def __init__(self):
         super().__init__(intent="narrative")
@@ -416,6 +428,52 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    async def create_local_shop_via_api(self, session_id, city_id):
+        record = self.manager.get(session_id)
+        session = record.game_session
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(session.world_state["shops"], [])
+        results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_setup(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        # Shop ownership stays in Python. Only the follow-up narration is
+        # scripted at the API's model boundary, with external sockets disabled.
+        setup_body = {
+            "message": "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_setup):
+            response = await self.post_scene_turn(
+                f"/api/game/sessions/{session_id}/turn",
+                ControlledShopSetupOllamaClient(),
+                setup_body,
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["action"], "shop_setup")
+        self.assertEqual(results[0]["status"], "created")
+        self.assertTrue(results[0]["success"])
+        world = self.store.get_campaign(record.campaign_id).payload[
+            "engine_save"
+        ]["world_state"]
+        self.assertEqual(len(world["shops"]), 1)
+        shop = copy.deepcopy(world["shops"][0])
+        self.assertEqual(shop["id"], results[0]["shop_id"])
+        self.assertEqual(shop["location"], city_id)
+        keepers = [
+            npc for npc in world["npcs"] if npc.get("shop_id") == shop["id"]
+        ]
+        self.assertEqual(len(keepers), 1)
+        self.assertEqual(keepers[0]["id"], shop["shopkeeper_id"])
+        self.assertEqual(shop["shopkeeper_id"], results[0]["shopkeeper_id"])
+        return shop
 
     async def post_scene_turn(self, url, model, body):
         with (
@@ -1302,6 +1360,56 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             len(client.message_batches), batches_before_lore_question,
             "Unsupported lore remains on the deterministic safety path.",
+        )
+
+        entities_before_recommendation = {
+            "locations": copy.deepcopy(session.world_state["locations"]),
+            "npc_ids": [
+                npc.get("id") for npc in session.world_state["npcs"]
+            ],
+            "shop_ids": [
+                shop.get("id") for shop in session.world_state["shops"]
+            ],
+        }
+        batches_before_recommendation = len(client.message_batches)
+        client.conversation_replies = [{
+            "conversation": {
+                "addressee_id": marek["id"],
+                "subject_phrase": "Marek",
+                "subject_role": "addressee",
+                "meaning": "other",
+                "topic_relation": "new",
+                "candidate_evidence_ids": [],
+            },
+            "narration": "Marek, “Cael Hanı'na uğramanı öneririm,” der.",
+        }]
+        recommendation = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, yakınlarda gitmemi önereceğin bir yer var mı?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(
+            recommendation.status_code, 200, recommendation.text
+        )
+        self.assertGreater(
+            len(client.message_batches), batches_before_recommendation,
+            "A grounded local recommendation should reach the model.",
+        )
+        self.assertNotEqual(
+            recommendation.json()["turn_outcome"]["status"], "unverified"
+        )
+        self.assertTrue(recommendation.json()["narration"].strip())
+        self.assertEqual(
+            entities_before_recommendation,
+            {
+                "locations": session.world_state["locations"],
+                "npc_ids": [
+                    npc.get("id") for npc in session.world_state["npcs"]
+                ],
+                "shop_ids": [
+                    shop.get("id") for shop in session.world_state["shops"]
+                ],
+            },
+            "An NPC recommendation is attributed speech, not a world-state mutation.",
         )
 
     async def test_activity_why_does_not_inherit_unrelated_profile_purpose(self):
@@ -2478,6 +2586,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_state = copy.deepcopy(session.serialize_game_state())
         before_rng = session.rng.getstate()
         before_memory = copy.deepcopy(record.narrative_memory)
+        before_lore_authority = copy.deepcopy(record.lore_authority.to_dict())
+        before_persisted_payload = copy.deepcopy(
+            self.store.get_campaign(campaign_id).payload
+        )
         original_save = self.store.save_campaign
         save_calls = 0
 
@@ -2495,6 +2607,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.serialize_game_state(), before_state)
         self.assertEqual(session.rng.getstate(), before_rng)
         self.assertEqual(record.narrative_memory, before_memory)
+        self.assertEqual(record.lore_authority.to_dict(), before_lore_authority)
+        self.assertEqual(
+            self.store.get_campaign(campaign_id).payload,
+            before_persisted_payload,
+        )
         self.assertIsNone(
             self.store.get_turn_action(
                 campaign_id, action_id, principal=TEST_PLAYER
@@ -2873,6 +2990,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             expected_status,
             expected_success=True,
             assert_read_only=False,
+            allow_entry_reference_expiry=False,
         ):
             # Observe the real engine boundary: TurnResponse deliberately exposes
             # narration/state rather than the living-world action_result.
@@ -2902,8 +3020,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(result["direct_response"].strip())
                 if assert_read_only:
                     self.assertEqual(result["state_changes"], [])
+                    expected_state = copy.deepcopy(state_before)
+                    if allow_entry_reference_expiry:
+                        entry_reference = expected_state["scene_state"].get(
+                            "entry_target_reference"
+                        )
+                        self.assertEqual(
+                            entry_reference["source_action_id"],
+                            requests[1]["action_id"],
+                        )
+                        expected_state["scene_state"]["entry_target_reference"] = None
                     self.assertEqual(
-                        merchant_state_snapshot(game_session), state_before
+                        merchant_state_snapshot(game_session), expected_state
                     )
                 before_replay = copy.deepcopy(game_session.serialize_game_state())
                 replay = await http.post(url, json=body)
@@ -2966,6 +3094,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 expected_status="unavailable",
                 expected_success=False,
                 assert_read_only=True,
+                allow_entry_reference_expiry=True,
             )
             await execute_and_replay(
                 http, session_id, loaded, requests[3], 3,
@@ -10109,6 +10238,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         campaign_id = created_response.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created_response.json()["session_id"], city_id,
+        )
         active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
@@ -10131,7 +10263,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 base_url="http://testserver",
             ) as stale_http,
         ):
-            # Load both independent sessions before any merchant is discovered.
+            # Load both independent sessions before either searches for the merchant.
             active_resume = await active_http.post(
                 f"/api/game/campaigns/{campaign_id}/resume"
             )
@@ -10152,7 +10284,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             stale_journal = copy.deepcopy(stale_record.journal)
             before = active_store.get_campaign(campaign_id)
             self.assertEqual(stale_save, before.payload["engine_save"])
-            self.assertEqual(stale_save["world_state"]["shops"], [])
+            self.assertEqual(stale_save["world_state"]["shops"], [setup_shop])
 
             body = {
                 "message": "Bir tüccar arıyorum.",
@@ -10208,9 +10340,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
                     "ORDER BY action_id", (campaign_id,),
                 ).fetchall()
-            self.assertEqual(len(receipts_before), 1)
+            self.assertEqual(len(receipts_before), 2)
 
-            # No second resume: this session still has the merchant-free city.
+            # No second resume: this session still has its pre-search city state.
             self.assertEqual(stale_session.serialize_game_state(), stale_save)
             stale_body = {
                 "message": "Yakınlarda bir satıcı bulunuyor mu?",
@@ -10320,7 +10452,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 return result
 
             # Recovery has loaded an already committed merchant. A storage
-            # failure here must restore that state, not the old merchant-free
+            # failure here must restore that state, not the old pre-search
             # snapshot, and must leave the rejected action ID available to retry.
             recovered_save = copy.deepcopy(stale_session.serialize_game_state())
             recovered_journal = copy.deepcopy(stale_record.journal)
@@ -10612,7 +10744,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     await self._assert_first_merchant_search_save_race(shared_action=False)
                 self.assertTrue(timed_out)
                 self.assertTrue(worker_finished.is_set())
-                self.assertEqual(len(turn_saves), 2)
+                self.assertEqual(len(turn_saves), 3)
                 self.assertEqual(len(request_tasks), 2)
                 self.assertEqual(len(exited_clients), 2)
                 self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
@@ -10621,7 +10753,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 with closing(sqlite3.connect(self.store.path)) as connection:
                     self.assertEqual(connection.execute(
                         "SELECT COUNT(*) FROM campaign_turn_actions",
-                    ).fetchone()[0], 1)
+                    ).fetchone()[0], 2)
         finally:
             release_worker.set()
 
@@ -10660,6 +10792,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created.json()["session_id"], city_id,
+        )
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
         winner_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         loser_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
@@ -10723,10 +10858,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             before_receipts = copy.deepcopy(loser_record.turn_action_receipts)
             before_version = loser_session._campaign_persistence_version
             before_rows = receipt_rows()
-            self.assertEqual(before_engine["world_state"]["shops"], [])
-            self.assertFalse(any(
-                npc.get("shop_id") for npc in before_engine["world_state"]["npcs"]
-            ))
+            self.assertEqual(before_engine["world_state"]["shops"], [setup_shop])
+            self.assertEqual(
+                [npc["id"] for npc in before_engine["world_state"]["npcs"]
+                 if npc.get("shop_id") == setup_shop["id"]],
+                [setup_shop["shopkeeper_id"]],
+            )
             self.assertEqual(winner_session.serialize_game_state(), before_engine)
             self.assertEqual(before_campaign.payload["engine_save"], before_engine)
             self.assertEqual(before_version, (campaign_id, before_campaign.metadata["revision"]))
@@ -10801,8 +10938,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     stale_save_rejected.set()
                     raise
 
-            # Both requests enter against the merchant-free revision. Pause only
-            # after the loser's real engine has materialized its first shop.
+            # Both searches enter against the same explicitly prepared revision.
+            # Pause only after the loser's real engine resolves that shop.
             with (
                 patch.object(
                     loser_session, "run_player_turn", new=observe_turn(loser_session, "loser"),
@@ -10924,7 +11061,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 shopkeepers = [npc for npc in world["npcs"] if npc.get("shop_id") == shop["id"]]
                 self.assertEqual(len(shopkeepers), 1)
                 self.assertEqual(shopkeepers[0]["id"], shop["shopkeeper_id"])
-                self.assertNotIn(shop["shopkeeper_id"], before_npc_ids)
+                self.assertIn(shop["shopkeeper_id"], before_npc_ids)
                 self.assertEqual(result["shop_id"], shop["id"])
                 self.assertEqual(result["target_id"], shop["shopkeeper_id"])
                 self.assertEqual(
@@ -10970,7 +11107,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if shared_action:
                 self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
                 # Replay must work while the loser still holds its rolled-back,
-                # merchant-free revision, without recovering the winning state.
+                # pre-search revision, without recovering the winning state.
                 replay_messages = copy.deepcopy(loser_session.messages)
                 replay_rng = loser_session.rng.getstate()
                 with (
@@ -11441,9 +11578,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if kwargs.get("turn_action_receipt") is not None:
                 turn_saves.append(store)
                 is_recovered = callable(getattr(store.save_campaign, "side_effect", None))
-                # Ignore the initial discovery. Delay either the competing
-                # winner or the recovered save after its instance barrier opens.
-                if (timeout_winner and len(turn_saves) == 2) or (
+                # The explicit setup and initial search precede this race.
+                # Delay either its competing winner or the recovered save.
+                if (timeout_winner and len(turn_saves) == 3) or (
                     not timeout_winner and is_recovered
                 ):
                     worker_entered.set()
@@ -11492,7 +11629,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(client.is_closed)
             self.assertTrue(worker_finished.is_set())
             self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
-            self.assertEqual(len(turn_saves), 3)
+            self.assertEqual(len(turn_saves), 4)
             exited_clients.append(client)
             return await real_exit(client, *args)
 
@@ -11517,7 +11654,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 with closing(sqlite3.connect(self.store.path)) as connection:
                     self.assertEqual(connection.execute(
                         "SELECT COUNT(*) FROM campaign_turn_actions",
-                    ).fetchone()[0], 2)
+                    ).fetchone()[0], 3)
         finally:
             release_worker.set()
 
@@ -11536,6 +11673,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created.json()["session_id"], city_id,
+        )
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
         active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         recovered_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
@@ -11581,7 +11721,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(active_id, recovered_id)
             self.assertIsNot(active_session, session)
             self.assertIsNot(active_session.world_state, session.world_state)
-            self.assertEqual(session.world_state["shops"], [])
+            self.assertEqual(session.world_state["shops"], [setup_shop])
             active_url = f"/api/game/sessions/{active_id}/turn"
             recovered_url = f"/api/game/sessions/{recovered_id}/turn"
             discovery_body = {
@@ -12185,6 +12325,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
+        create_message = "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur."
+        created_shop_response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": create_message, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(
+            created_shop_response.status_code, 200, created_shop_response.text
+        )
+        setup_world = self.manager.get(
+            created["session_id"]
+        ).game_session.world_state
+        self.assertEqual(len(setup_world["shops"]), 1)
+        setup_shop = copy.deepcopy(setup_world["shops"][0])
         requests = [
             {"message": message, "action_id": str(uuid.uuid4())}
             for message in (
@@ -12319,7 +12472,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_campaign.history, committed.history)
         self.assertEqual(
             [entry["player_message"] for entry in final_campaign.history],
-            [body["message"] for body in requests],
+            [create_message, *(body["message"] for body in requests)],
+        )
+        self.assertEqual(
+            final_campaign.payload["engine_save"]["world_state"]["shops"],
+            [setup_shop],
         )
         for action_id, receipt in receipts.items():
             self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
@@ -12368,6 +12525,20 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.store.get_campaign(campaign_id).payload["engine_save"]["world_state"]["shops"],
             [],
         )
+        create_message = "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur."
+        shop_created = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={
+                "message": create_message,
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(shop_created.status_code, 200, shop_created.text)
+        setup_world = self.store.get_campaign(campaign_id).payload[
+            "engine_save"
+        ]["world_state"]
+        self.assertEqual(len(setup_world["shops"]), 1)
+        setup_shop = copy.deepcopy(setup_world["shops"][0])
         discovery_body = {
             "message": "Bir tüccar arıyorum.",
             "action_id": str(uuid.uuid4()),
@@ -12381,6 +12552,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         saved_world = committed.payload["engine_save"]["world_state"]
         self.assertEqual(len(saved_world["shops"]), 1)
         shop = saved_world["shops"][0]
+        self.assertEqual(shop, setup_shop)
         self.assertEqual(shop["location"], city_id)
         self.assertEqual(saved_world["flags"]["active_npc_id"], shop["shopkeeper_id"])
         discovery_receipt = self.store.get_turn_action(
@@ -12548,6 +12720,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(created["session_id"])
         session = record.game_session
         url = f"/api/game/sessions/{created['session_id']}/turn"
+        setup_shop = await self.create_local_shop_via_api(
+            created["session_id"], city_id,
+        )
         observation_body = {
             "message": "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "action_id": str(uuid.uuid4()),
@@ -12594,9 +12769,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_campaign = self.store.get_campaign(campaign_id)
         before_world = before_save["world_state"]
         self.assertEqual(before_world["location"], city_id)
-        self.assertEqual(before_world["shops"], [])
+        self.assertEqual(before_world["shops"], [setup_shop])
         self.assertTrue(before_world["scene_state"]["scenes"][city_id]["materialized"])
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(before_campaign.payload["engine_save"], before_save)
         self.assertEqual(before_campaign.payload["journal"], before_journal)
         results = []
@@ -12610,8 +12785,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             return result
 
         def fail_save(*args, **kwargs):
-            # Fail at the actual persistence boundary, after the real engine
-            # has created both related records, not before discovery executes.
+            # Fail at the real persistence boundary after the real engine
+            # resolves the already-authorized shop search.
             attempted_saves.append(copy.deepcopy(session.serialize_game_state()))
             raise CampaignStorageError("database unavailable")
 
@@ -12630,20 +12805,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[0]["action"], "local_search")
         self.assertEqual(results[0]["status"], "found")
         self.assertTrue(results[0]["success"])
-        uncommitted_shop_id = results[0]["shop_id"]
-        uncommitted_npc_id = results[0]["target_id"]
+        searched_shop_id = results[0]["shop_id"]
+        searched_npc_id = results[0]["target_id"]
         attempted_world = attempted_saves[0]["world_state"]
         self.assertEqual(len(attempted_world["shops"]), 1)
         attempted_shop = attempted_world["shops"][0]
-        self.assertEqual(attempted_shop["id"], uncommitted_shop_id)
-        self.assertEqual(attempted_shop["shopkeeper_id"], uncommitted_npc_id)
+        self.assertEqual(attempted_shop, setup_shop)
+        self.assertEqual(attempted_shop["id"], searched_shop_id)
+        self.assertEqual(attempted_shop["shopkeeper_id"], searched_npc_id)
         self.assertEqual(attempted_shop["location"], city_id)
         new_shopkeepers = [
             npc for npc in attempted_world["npcs"]
-            if npc.get("shop_id") == uncommitted_shop_id
+            if npc.get("shop_id") == searched_shop_id
         ]
         self.assertEqual(len(new_shopkeepers), 1)
-        self.assertEqual(new_shopkeepers[0]["id"], uncommitted_npc_id)
+        self.assertEqual(new_shopkeepers[0]["id"], searched_npc_id)
         self.assertEqual(new_shopkeepers[0]["location"], city_id)
 
         # Rollback covers the entire engine and the API-owned side effects.
@@ -12698,11 +12874,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reopened_campaign.history, before_campaign.history)
         self.assertEqual(reopened_campaign.combat_history, before_campaign.combat_history)
         reopened_world = reopened_record.game_session.world_state
-        self.assertNotIn(
-            uncommitted_shop_id, [shop["id"] for shop in reopened_world["shops"]]
-        )
-        self.assertNotIn(
-            uncommitted_npc_id, [npc["id"] for npc in reopened_world["npcs"]]
+        self.assertEqual(reopened_world["shops"], [setup_shop])
+        self.assertEqual(
+            [npc["id"] for npc in reopened_world["npcs"]
+             if npc.get("shop_id") == setup_shop["id"]],
+            [setup_shop["shopkeeper_id"]],
         )
         self.assertEqual(
             reopened_store.get_turn_action(campaign_id, observation_body["action_id"]),
@@ -12908,6 +13084,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             results.append(copy.deepcopy(result["action_result"]))
             return result
 
+        setup_shop = await self.create_local_shop_via_api(
+            created["session_id"], city_id,
+        )
         # Establish real committed city progress, rather than injecting state.
         with patch.object(session, "run_player_turn", new=capture_turn):
             observed = await self.http.post(turn_url, json=observation_body)
@@ -12926,13 +13105,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_receipts = copy.deepcopy(record.turn_action_receipts)
         before_campaign = self.store.get_campaign(campaign_id)
         self.assertEqual(before_save["world_state"]["location"], city_id)
-        self.assertEqual(before_save["world_state"]["shops"], [])
+        self.assertEqual(before_save["world_state"]["shops"], [setup_shop])
         self.assertTrue(
             before_save["world_state"]["scene_state"]["scenes"][city_id]["materialized"]
         )
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(
-            before_campaign.history[0]["player_message"], observation_body["message"]
+            before_campaign.history[-1]["player_message"], observation_body["message"]
         )
         discovery_body = {
             "message": "Buralarda bir tücaar var mı?",
@@ -12941,7 +13120,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         attempted_saves = []
 
         def fail_save(*args, **kwargs):
-            # Fail after discovery really creates the shop and linked keeper.
+            # Fail after the real search resolves the existing shop.
             attempted_saves.append(copy.deepcopy(session.serialize_game_state()))
             raise CampaignStorageError("database unavailable")
 
@@ -12962,6 +13141,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         attempted_world = attempted_saves[0]["world_state"]
         self.assertEqual(len(attempted_world["shops"]), 1)
         attempted_shop = attempted_world["shops"][0]
+        self.assertEqual(attempted_shop, setup_shop)
         self.assertEqual(attempted_shop["id"], results[-1]["shop_id"])
         self.assertEqual(attempted_shop["shopkeeper_id"], results[-1]["target_id"])
         self.assertEqual(
