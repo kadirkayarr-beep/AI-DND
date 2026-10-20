@@ -526,7 +526,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(travel.json()["turn_outcome"]["status"], "blocked")
             self.assertEqual(
                 resumed_session.world_state["location"],
-                expected_location_after_second_visit,
+                city_id,
             )
             self.assertTrue(next(
                 item for item in resumed_session.world_state["doors"]
@@ -785,7 +785,6 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(bool(entry_door["locked"]), entry_door_was_locked)
         self.assertFalse(entry_door["open"])
-        expected_location_after_second_visit = city_id
         self.assertTrue(protected_door["locked"])
         self.assertFalse(protected_door["open"])
 
@@ -953,7 +952,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_session.world_state["location"],
-                expected_location_after_second_visit,
+                city_id,
             )
             self.assertTrue(next(
                 door for door in resumed_session.world_state["doors"]
