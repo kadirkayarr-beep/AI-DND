@@ -10,6 +10,10 @@ Bu dizin, **mimari ve geliştirme** belgeleri içindir. Oyuncu arayüzü veya oy
 - `recovery/a1-freeze-288f5de` ile önceki Phase 8 worktree'leri (`AI-DND-phase8`, `AI-DND-phase8-expansion`) tarihseldir; aktif geliştirme tabanı değildir.
 - Değişim aynı doğrulanmış `dev/ai-dnd` commit'inden yapılır. GitHub eşitlemesi kontrollüdür; zorlayıcı veya yıkıcı eşitleme yapılmaz. Cursor ve Replit birbirinin kaydedilmemiş işinin üzerine yazmaz.
 
+## Araştırma ve aşamalı planlama
+
+- [Yedi depo incelemesi ve fırsat haritası — 20 Ekim 2026](research/2026-10-20/README.md): tam raporlar, sabit kaynak commit'leri ve ajan okuma sınırları. Kayıt/planlama onayıdır; uygulama, merge veya yayın izni değildir.
+
 ## Aktif başvuru noktaları
 
 | Konu | Belge |
