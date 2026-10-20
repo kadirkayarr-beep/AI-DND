@@ -230,6 +230,33 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(statement["text"], quote)
         return npc, statement
 
+    async def test_status_negation_does_not_deny_the_named_place(self):
+        name = "Mavi Kütüphanesi"
+        self.record_npc_place_statement(
+            "npc_test_marek",
+            name,
+            "Mavi Kütüphanesi kuzeyde, bugün kapalı değil.",
+        )
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        matches = [ref for ref in refs if ref.get("name") == name]
+        self.assertEqual(len(matches), 1, refs)
+        self.assertEqual(matches[0].get("status"), "rumor", matches[0])
+
+        denied_name = "Mavi Fener Camhanesi"
+        self.record_npc_place_statement(
+            "npc_test_lale",
+            denied_name,
+            "Mavi Fener Camhanesi diye bir yer yok.",
+        )
+        refs = npc_statements.place_references(self.world, settlement_id=CITY)
+        self.assertNotIn(denied_name, {ref.get("name") for ref in refs}, refs)
+
+        _, receipt = await self.turn("Mavi Kütüphanesi'ne gidiyorum")
+        destination = self.world["locations"].get(receipt.get("target_id"))
+        self.assertEqual(receipt.get("status"), "completed", receipt)
+        self.assertIsInstance(destination, dict, receipt)
+        self.assertEqual(destination.get("name"), name, destination)
+
     async def test_marek_said_named_camhouse_can_be_reached_by_natural_go_phrase(self):
         name = "Mavi Fener Camhanesi"
         _, statement = self.record_npc_place_statement(
@@ -522,11 +549,43 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
     async def test_reported_npc_move_preserves_following_player_door_inspection(self):
         before_location = self.world["location"]
         text, receipt = await self.turn(
-            "Marek oraya gidiyorum dedi, ben kapıyı inceliyorum."
+            "Marek oraya gidiyorum dedi; kapıyı inceliyorum.",
+            mode="do",
+            target=GARRICK_DOOR,
         )
-        self.assertNotEqual(receipt.get("status"), "no_effect", (text, receipt))
-        self.assertIn(receipt.get("action"), {"grounded_action", "skill_check"}, (text, receipt))
+        self.assertEqual(receipt.get("action"), "grounded_action", (text, receipt))
+        self.assertEqual(receipt.get("status"), "completed", (text, receipt))
+        inspect_steps = [
+            step for step in receipt.get("steps", [])
+            if step.get("verb") == "inspect"
+        ]
+        self.assertEqual(len(inspect_steps), 1, (text, receipt))
+        self.assertEqual(inspect_steps[0].get("status"), "completed", (text, receipt))
+        self.assertEqual(
+            inspect_steps[0].get("target_id"), GARRICK_DOOR, (text, receipt)
+        )
         self.assertIn("kapı", text.casefold(), (text, receipt))
+        self.assertEqual(self.world["location"], before_location)
+
+    async def test_uncommitted_city_departure_in_narration_is_rejected(self):
+        before_location = self.world["location"]
+        bad_narration = "Şehrin dışına çıkarken kuzeye doğru ilerliyorsun."
+        with patch.object(game, "_session", return_value=self.session):
+            decision = game._narration_safety_decision(
+                bad_narration,
+                "Kuzeyde Ayışığı Rasathanesi bulunduğunu duydum.",
+                action_result={
+                    "action": "narrative",
+                    "status": "resolved",
+                    "success": True,
+                },
+            )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(
+            decision["reason_code"],
+            "CANONICAL_LOCATION_CONTRADICTION",
+            decision,
+        )
         self.assertEqual(self.world["location"], before_location)
 
     async def test_another_inn_is_not_garrick_again(self):

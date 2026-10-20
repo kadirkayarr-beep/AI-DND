@@ -928,7 +928,7 @@ def _receipt(verb, status, target=None, **extra):
 
 
 def _reported_move_player_clause(player_input: str) -> str | None:
-    """Separate reported NPC travel from an explicit first-person action clause.
+    """Separate reported NPC travel from a subsequent player action clause.
 
     None means this is not a reported move; an empty string means the utterance
     contains only the NPC's reported move; otherwise return the player's clause.
@@ -947,8 +947,22 @@ def _reported_move_player_clause(player_input: str) -> str | None:
     if not any(move.start() < report.start() for move in moves):
         return None
     tail = player_input[report.end():]
-    player_clause = re.search(r"(?:^|[,;])\s*(ben\b.+)$", tail, re.IGNORECASE)
-    return player_clause.group(1).strip() if player_clause else ""
+    player_clause = re.search(
+        r"(?:^|[,;])\s*(?:ben\s+)?(?P<clause>.+)$", tail, re.IGNORECASE
+    )
+    if not player_clause:
+        return ""
+    clause_text = player_clause.group("clause").strip()
+    clauses, _ = split_clauses(clause_text)
+    if any(
+        (info := _read_clause(clause))["verb"]
+        and not info["reported"]
+        and not info["question"]
+        and not info["conditional"]
+        for clause in clauses
+    ):
+        return clause_text
+    return ""
 
 
 def _place_target(run: _Run, target: dict[str, Any] | None) -> dict[str, Any] | None:

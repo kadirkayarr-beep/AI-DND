@@ -68,9 +68,11 @@ _PERSON_TITLES = frozenset({
 })
 _DENIED_PLACE = re.compile(
     r"^\s*(?:diye\s+bir\s+yer\s+yok(?:tur)?|"
-    r"(?:bir\s+yer\s+)?yok(?:tur)?|değil(?:dir)?|degil(?:dir)?|bulunmuyor)\b"
+    r"(?:bir\s+yer\s+)?yok(?:tur)?|bulunmuyor|mevcut\s+degil)\b"
 )
-_DENIED_PLACE_PREDICATE = re.compile(r"\b(?:yok(?:tur)?|değil(?:dir)?|degil(?:dir)?|bulunmuyor)\b")
+_DENIED_PLACE_PREDICATE = re.compile(
+    r"\b(?:yok(?:tur)?|bulunmuyor|mevcut\s+degil)\b"
+)
 
 _REFUSAL = re.compile(
     r"\b(?:hayir|olmaz|yapamam|gidemem|goturemem|veremem|gosteremem|istemem|"
@@ -224,7 +226,15 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
         if position < 0:
             return False
         tail = folded_text[position + len(fold(name)):]
-        return bool(_DENIED_PLACE.search(tail) or _DENIED_PLACE_PREDICATE.search(tail))
+        clause = re.split(
+            r"[,;.!?]|\b(?:ama|ancak|fakat|oysa)\b",
+            tail,
+            maxsplit=1,
+        )[0]
+        return bool(
+            _DENIED_PLACE.search(clause)
+            or _DENIED_PLACE_PREDICATE.search(clause)
+        )
 
     for index, token in enumerate(tokens):
         bare = token.split("'")[0]
