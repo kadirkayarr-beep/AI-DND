@@ -514,6 +514,11 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(resumed_proposal.get("said_by"), npc["id"])
             self.assertIsNone(resumed_proposal.get("location_id"))
+            calls_before_blocked_travel = client.chat_calls
+            doors_before_blocked_travel = {
+                item.get("id"): (item.get("open"), item.get("locked"))
+                for item in resumed_session.world_state["doors"]
+            }
             travel = await resumed_http.post(
                 f"/api/game/sessions/{resumed.json()['session_id']}/turn",
                 json={
@@ -524,6 +529,17 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(travel.status_code, 200, travel.text)
             self.assertEqual(travel.json()["turn_outcome"]["status"], "blocked")
+            self.assertLessEqual(client.chat_calls - calls_before_blocked_travel, 2)
+            self.assertIn("kapalı", travel.json()["narration"].casefold())
+            self.assertNotIn("kilitli", travel.json()["narration"].casefold())
+            self.assertIn("geçemezsin", travel.json()["narration"].casefold())
+            self.assertEqual(
+                {
+                    item.get("id"): (item.get("open"), item.get("locked"))
+                    for item in resumed_session.world_state["doors"]
+                },
+                doors_before_blocked_travel,
+            )
             self.assertEqual(
                 resumed_session.world_state["location"],
                 city_id,

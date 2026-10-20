@@ -10742,6 +10742,19 @@ def ask_dungeon_master(
             " Gözlem sahnesinde geçici ışık, koku, ses, hava, isimsiz kalabalık ve beden dili "
             "anlatılabilir; bunları kalıcı dünya olgusu veya oyuncu eylemi gibi sunma."
         )
+        if (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "explore"
+            and action_result.get("explore_type") == "inspect"
+        ):
+            scene_guidance += (
+                " İncelemede, Python action result veya mevcut sahne bağlamıyla desteklenen "
+                "en az bir somut, izlenebilir gözlemi hedefe bağla ve tek tutarlı bulgu olarak "
+                "anlat; birbirinden kopuk ipuçları ya da soyut duygu yoğunluğuyla yetinme. "
+                "Atmosferik yaratıcılık serbesttir; her sıfatı kayda bağlama. NPC'nin önceki "
+                "tavsiyesini inceleme yanıtı diye tekrarlama; oyuncuya duygu, karar veya "
+                "henüz yapmadığı hareket yükleme."
+            )
     elif scene_type == "travel":
         scene_guidance = (
             " Tamamlanan varışı ve duyusal çevreyi anlat; oyuncuya seçmediği hedef, arama "
@@ -10812,6 +10825,10 @@ def ask_dungeon_master(
             f" Bu tur doğrudan {living_world.public_npc_name(npc_target)} adlı {living_world.public_npc_role(npc_target) or 'kişi'} (ID: {npc_target.get('id')}) ile devam eden konuşmadır. "
             f"Konuşan ve replik veren kişi kesinlikle yalnızca {living_world.public_npc_name(npc_target)} olmalıdır. Başka hiçbir NPC adına konuşma veya replik yazma. "
             "İkinci tekil kişiyle sorulan sorular bu NPC'ye yöneliktir; oyuncuya aynı soruyu geri sorma. "
+            "Yanıtı NPC'nin kendi ağzından, kimin konuştuğu açık olan kısa ve doğal bir replik olarak yaz; "
+            "NPC'yi üçüncü kişiyle tarif edip onun yerine konuşma. Tavsiye veriyorsan bunu bu NPC'nin "
+            "kendi görüşü veya bildiği kadarıyla açıkça ona bağla; nesnel kesinlik gibi sunma. "
+            "Kişiliğe uygun farklı ifadeler seç, sabit cevap kalıbı kullanma. "
             "Context'teki PROCEDURAL PERSONAL PROFILE bu NPC'ye ait, kampanya içi gündelik bilgidir; "
             "yalnızca kişisel soruları yanıtlarken kullan ve bunu setting/campaign lore'a yükseltme. "
             "Adı sorulursa NPC kendi adını söylesin; çalışma süresi sorulursa buna doğrudan cevap versin "
@@ -16773,6 +16790,18 @@ def _run_player_turn_internal(
         return finish_turn(
             action_result,
             action_result.get("direct_response") or _natural_unresolved_action_response(player_input, action_result),
+            is_final=True,
+            safety_handling="python_scene_response",
+        )
+
+    if (
+        action_result.get("action") == "travel"
+        and action_result.get("status") == "blocked"
+    ):
+        return finish_turn(
+            action_result,
+            action_result.get("direct_response")
+            or _fallback_for_action_result(player_input, action_result),
             is_final=True,
             safety_handling="python_scene_response",
         )

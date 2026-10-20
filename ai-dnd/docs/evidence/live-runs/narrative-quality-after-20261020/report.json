@@ -1,0 +1,116 @@
+{
+  "status": "API_OK_QUALITY_NOT_VERIFIED",
+  "quality_comparable": false,
+  "quality_findings": [
+    "Greeting remained narrator-style third person; no direct NPC speech improvement was shown.",
+    "The recommendation explicitly named Marek as speaker, but still used third-person framing; this is a limited attribution improvement, not the requested voice change.",
+    "The inspection request resolved as investigation/skill_check, not the explore-inspect path. The API returned a Python fallback, so this run does not verify the new inspection prompt.",
+    "The live fixture's canonical location remained 'Henüz belirlenmedi', so it is not the same established fictional location as the baseline. Do not treat the sample as an apples-to-apples quality comparison."
+  ],
+  "model": "qwen3:8b",
+  "unflagged_default_path": true,
+  "base_sha": "edb3389301cd3017c1c3dd11c3299679729d65ab",
+  "baseline_turns": 5,
+  "baseline_calls": 5,
+  "after_turns": 3,
+  "after_calls": 4,
+  "combined_turns": 8,
+  "combined_calls": 9,
+  "caps": {
+    "turns": 8,
+    "calls": 16,
+    "after_call_cap": 11
+  },
+  "campaign_id": "df8fab67-2509-444f-8919-04565b3d4116",
+  "resumed_in_new_manager_and_http_client": true,
+  "turns": [
+    {
+      "label": "greeting",
+      "player": "Pazar girişindeki Marek’e selam veriyorum.",
+      "http_status": 200,
+      "action": "dialogue",
+      "target_id": null,
+      "outcome": "resolved",
+      "narration": "Marek, selamı alır ve sadece başını sallar.",
+      "calls": 1,
+      "canonical": {
+        "location": "Henüz belirlenmedi",
+        "door_states": [
+          [
+            "venue-door:location_001",
+            true,
+            false
+          ]
+        ]
+      },
+      "final_response_source": "qwen-accepted"
+    },
+    {
+      "label": "recommendation",
+      "player": "Marek, şehirde gezmeye değer sakin bir yer önerir misin?",
+      "http_status": 200,
+      "action": "dialogue",
+      "target_id": null,
+      "outcome": "resolved",
+      "narration": "Marek, \"Carrion Hanı, şehir merkezindeki küçük han. Sakin ve rahat bir ortam sunar.\" diye cevap verdi.",
+      "calls": 1,
+      "canonical": {
+        "location": "Henüz belirlenmedi",
+        "door_states": [
+          [
+            "venue-door:location_001",
+            true,
+            false
+          ]
+        ]
+      },
+      "final_response_source": "qwen-accepted"
+    },
+    {
+      "label": "inspect",
+      "player": "Bulunduğum yeri dikkatlice inceliyorum.",
+      "http_status": 200,
+      "action": "skill_check",
+      "target_id": null,
+      "outcome": "resolved",
+      "narration": "İncelemen sonuç vermedi; bu bakışla yeni bir ayrıntı seçilmiyor.",
+      "calls": 2,
+      "canonical": {
+        "location": "Henüz belirlenmedi",
+        "door_states": [
+          [
+            "venue-door:location_001",
+            true,
+            false
+          ]
+        ]
+      },
+      "final_response_source": "python-validation-or-fallback"
+    }
+  ],
+  "raw_model_responses": [
+    {
+      "call": 1,
+      "response": "{\"intent\":\"dialogue\",\"action\":\"dialogue\",\"target\":{\"type\":\"npc\",\"reference\":\"npc_quality_marek\"},\"completion\":\"unclear\",\"confidence\":1.0,\"interaction\":{\"operation\":\"none\",\"quote\":\"Pazar girişindeki Marek’e selam veriyorum.\",\"conversation\":{\"addressee_id\":\"npc_quality_marek\",\"subject_phrase\":\"Pazar girişindeki Marek’e selam veriyorum.\",\"subject_role\":\"other_actor\",\"meaning\":\"other\",\"topic_relation\":\"new\",\"candidate_evidence_ids\":[]},\"privacy\":\"public\",\"steps\":[],\"candidates\":[{ \"kind\": \"inquiry\", \"impact\": \"local\", \"npc_id\": \"npc_quality_marek\", \"location_id\": \"Henüz belirlenmedi\", \"routes\": [{\"kind\": \"visit\", \"target\": \"Henüz belirlenmedi\"}]}]},\"narration\":\"Marek, selamı alır ve sadece başını sallar.\"}",
+      "error_type": null
+    },
+    {
+      "call": 2,
+      "response": "{\"intent\":\"query\",\"action\":\"query\",\"target\":{\"type\":\"none\",\"reference\":\"\"},\"completion\":\"unclear\",\"confidence\":1.0,\"interaction\":{\"operation\":\"none\",\"quote\":\"Marek, şehirde gezmeye değer sakin bir yer önerir misin?\",\"conversation\":{\"addressee_id\":\"npc_quality_marek\",\"subject_phrase\":\"şehirde gezmeye değer sakin bir yer önerir misin?\",\"subject_role\":\"world_entity\",\"meaning\":\"other\",\"topic_relation\":\"new\",\"candidate_evidence_ids\":[]},\"thread_id\":null,\"evidence_id\":null,\"steps\":[],\"candidates\":[{\"kind\":\"meeting\",\"impact\": \"local\",\"npc_id\":\"npc_quality_marek\",\"location_id\":\"Carrion Hanı\",\"routes\":[{\"kind\":\"visit\",\"target\":\"Carrion Hanı\"}]}]},\"narration\":\"Marek, \\\"Carrion Hanı, şehir merkezindeki küçük han. Sakin ve rahat bir ortam sunar.\\\" diye cevap verdi.\"}",
+      "error_type": null
+    },
+    {
+      "call": 3,
+      "response": "{\"intent\":\"investigation\",\"action\":\"investigation\",\"target\":{\"type\":\"none\",\"reference\":\"\"},\"completion\":\"unclear\",\"confidence\":1.0,\"interaction\":{\"operation\":\"none\",\"quote\":\"Bulunduğum yeri dikkatlice inceliyorum.\",\"thread_id\":null,\"evidence_id\":null,\"requested_item\":null,\"steps\":[],\"candidates\":[],\"conversation\":{\"addressee_id\":null,\"candidate_evidence_ids\":[ \"Pazar basamağı\" ]}},\"query_type\":\"self\"}",
+      "error_type": null
+    },
+    {
+      "call": 4,
+      "response": "{\n  \"world_updates\": {\n    \"create_locations\": [],\n    \"create_npcs\": [],\n    \"update_npcs\": [],\n    \"create_features\": [],\n    \"events\": []\n  },\n  \"narration\": \"Duygusal ve fiziksel olarak yoğun bir şekilde çevrenin içine giriyorsun. Pazar basamağındaki üç paralel teker izinin hâlâ yerinde olduğunu fark edersin, ama bu kez onlar sadece zemindeki izler değil, senin gözlerinin altına kadar uzanmış gibi hissediliyor. Marek’in söylediği 'Carrion Hanı' adlı hanın kapısının açık olduğu, ancak içinde ne tür bir atmosfer barındığına dair hiçbir işaret bulunmuyor. Hâlâ kilitli değilmiş gibi görünüyor, ama senin gözünde o da bir çeşit gizem olmaktan çıkmıyor. Başarılı bir inceleme yapabilmek için daha fazla bilgiye ihtiyaç var; bu yüzden hareket etmeye devam edeceksin.\",\n  \"lore_claims\": []\n}",
+      "error_type": null
+    }
+  ],
+  "baseline_review_sha256": "61622f875561371cd059d9fd91760d9ad6aa945a19ac53c6580334d718192879",
+  "baseline_raw_provenance_available": false,
+  "note": "No prompts, credentials, or personal data stored; no retry or alternate provider. API/model provenance is recorded, but the live sample does not prove an overall quality improvement."
+}

@@ -75,6 +75,50 @@ class TestNarrativeRebalance(unittest.TestCase):
         mock.message.content = content
         return mock
 
+    @patch("game.ollama.chat")
+    def test_default_npc_dialogue_prompt_uses_direct_speech_and_attributes_advice(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Ben olsam Han’a uğrardım.", '
+            '"lore_claims": [], "world_updates": {}}'
+        )
+        npc = self.session.world_state["npcs"][0]
+        game.ask_dungeon_master(
+            [],
+            "Hancı, nereye gitmemi önerirsin?",
+            npc_target=npc,
+            action_result={"action": "dialogue", "status": "resolved", "npc_id": npc["id"]},
+            return_details=True,
+            session=self.session,
+        )
+        prompt = mock_chat.call_args.kwargs["messages"][1]["content"]
+        self.assertIn("kimin konuştuğu açık olan kısa ve doğal bir replik", prompt)
+        self.assertIn("kendi görüşü veya bildiği kadarıyla", prompt)
+        self.assertIn("sabit cevap kalıbı kullanma", prompt)
+
+    @patch("game.ollama.chat")
+    def test_inspection_prompt_grounds_one_coherent_observation_without_forcing_atmosphere(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Masadaki çizik kapıya bakıyor.", '
+            '"lore_claims": [], "world_updates": {}}'
+        )
+        game.ask_dungeon_master(
+            [],
+            "Masayı dikkatlice inceliyorum.",
+            action_result={
+                "action": "explore",
+                "explore_type": "inspect",
+                "status": "resolved",
+            },
+            return_details=True,
+            session=self.session,
+        )
+        prompt = mock_chat.call_args.kwargs["messages"][1]["content"]
+        self.assertIn("en az bir somut, izlenebilir gözlemi hedefe bağla", prompt)
+        self.assertIn("tek tutarlı bulgu olarak anlat", prompt)
+        self.assertIn("Atmosferik yaratıcılık serbesttir", prompt)
+        self.assertIn("NPC'nin önceki tavsiyesini", prompt)
+        self.assertNotIn("exact answer", prompt)
+
     # 1. known deterministic gameplay intent reaches Qwen narration when eligible
     @patch("game.ollama.chat")
     def test_01_known_deterministic_gameplay_reaches_narration_model(self, mock_chat):

@@ -20,3 +20,9 @@ Canonical character-sheet questions must not depend on resolving an NPC, includi
 **Why:** Scene planning can emit an NPC clarification before the later canonical-query handler runs. Fixing only the later handler leaves that earlier diversion intact.
 
 **How to apply:** Preserve query priority across both planning and execution, while keeping death, combat, explicit-target validation and genuine NPC-memory questions on their existing owner paths.
+
+When asserting Turkish API text in tests, do not assume `casefold()` makes dotted capital `İ` equivalent to plain `i`; it can leave a combining dot in the result.
+
+**Why:** A real blocked-door response containing `İçeri` failed a lower-case substring assertion after Python case folding, even though the Turkish sentence was correct.
+
+**How to apply:** Normalize Unicode combining marks for Turkish text comparisons, or assert on a stable substring that avoids the dotted-I boundary.
