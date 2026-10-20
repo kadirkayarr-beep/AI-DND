@@ -72,9 +72,10 @@
     "api.tests.test_ai_freedom_resolution_boundary",
     "api.tests.test_local_person_replay_review.LocalPersonReplayReviewTests",
     "api.tests.test_campaign_api.CampaignApiTests.test_scene_detail_with_workbench_name_is_not_rejected_as_shop",
-    "api.tests.test_campaign_api.CampaignApiTests.test_current_scene_observation_can_create_and_read_a_local_detail"
+    "api.tests.test_campaign_api.CampaignApiTests.test_current_scene_observation_can_create_and_read_a_local_detail",
+    "api.tests.test_default_npc_targeting.DefaultNpcTargetingTests"
   ],
-  "regression_group_sizes": [31, 18, 1, 3],
+  "regression_group_sizes": [31, 18, 1, 3, 1],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
