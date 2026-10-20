@@ -181,6 +181,45 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         self.assertEqual(telemetry["narration_validation_result"], "accepted")
         self.assertEqual(result["narration"], narrator)
 
+    def test_turkish_noun_substring_does_not_authorize_invented_movement(self):
+        decision = game._narration_safety_decision(
+            "Sonra hana girersin.",
+            "Han girişindeki taş işçiliğini dikkatlice inceliyorum.",
+            action_result={},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "INVENTED_PLAYER_ACTION")
+
+    def test_genuinely_reported_player_movement_remains_valid(self):
+        decision = game._narration_safety_decision(
+            "içeri girersin.",
+            "içeri giriyorum.",
+            action_result={},
+        )
+        self.assertFalse(decision["unsafe"], decision)
+
+    def test_repaired_npc_answer_keeps_safe_text_after_invented_feeling(self):
+        narration = (
+            "Neris gülümser. Korkmuş hissedersin. "
+            "'Gün iyi geçsin,' diye yanıt verir."
+        )
+        result, _ = self.turn("Başımı sallayıp merhaba diyorum.", narration)
+        self.assertIn("Gün iyi geçsin", result["narration"])
+        self.assertNotIn("Korkmuş hissedersin", result["narration"])
+
+    def test_repair_rejects_a_second_invented_claim_in_the_remainder(self):
+        narration = (
+            "Neris gülümser. Sonra hana girersin. "
+            "Ardından dışarı çıkarsın. 'Kuzeyden geldim,' diye yanıt verir."
+        )
+        result, telemetry = self.turn("Başımı sallayıp merhaba diyorum.", narration)
+        self.assertNotIn("hana girersin", result["narration"])
+        self.assertNotIn("dışarı çıkarsın", result["narration"])
+        self.assertNotEqual(
+            telemetry["narration_validation_result"], "accepted",
+            telemetry,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

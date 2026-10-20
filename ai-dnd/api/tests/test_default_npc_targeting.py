@@ -159,6 +159,47 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             for prompt in client.prompts
         ), client.prompts)
 
+    async def test_entry_door_can_be_inspected_from_its_venue_interior(self):
+        city_id, _, session, turn_url, tavern_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        unlock_venue_door(session.world_state, tavern_id)
+        enter = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self,
+            turn_url,
+            test_campaign_api.FakeOllamaClient(),
+            {
+                "message": f"{session.world_state['locations'][tavern_id]['name']} içine giriyorum.",
+                "interaction_mode": "do",
+                "target_id": tavern_id,
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(enter.status_code, 200, enter.text)
+        self.assertEqual(enter.json()["state"]["location"], tavern_id)
+        self.assertEqual(door["location"], city_id)
+        self.assertIsNone(
+            session.world_state.get("grounded_actions", {}).get("near_target_id")
+        )
+
+        inspect = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self,
+            turn_url,
+            test_campaign_api.FakeOllamaClient(),
+            {
+                "message": f"{door['name']} kilidini dikkatlice inceliyorum.",
+                "interaction_mode": "do",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+        outcome = inspect.json()["turn_outcome"]
+        self.assertEqual(outcome.get("action"), "grounded_action", inspect.json())
+        self.assertEqual(outcome.get("status"), "completed", inspect.json())
+        self.assertEqual(outcome.get("kind"), "door", inspect.json())
+        self.assertEqual(outcome.get("target_name"), door["name"], inspect.json())
+        self.assertEqual(inspect.json()["state"]["location"], tavern_id)
+
     async def test_failed_investigation_http_keeps_result_and_rejects_player_agency_claims(self):
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
