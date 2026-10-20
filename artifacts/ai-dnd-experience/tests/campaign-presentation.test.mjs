@@ -87,6 +87,26 @@ test('valid scene membership takes priority over same-location global candidates
   assert.deepEqual(result.features.map(p => p.id), ['table']);
   assert.deepEqual(result.doors.map(p => p.id), ['local-door']);
 });
+test('street-side arrival shows the parent city and its local venue entry door', () => {
+  const data = state();
+  data.location = 'city';
+  data.locations.city = { id: 'city', name: 'Neverwinter', type: 'city' };
+  data.locations.venue = {
+    id: 'venue', name: 'Mavi Fener Camhanesi', parent_location_id: 'city',
+  };
+  data.scene = { id: 'city-scene', location_id: 'city', npcs: [], features: [] };
+  data.doors = [{
+    id: 'venue-door:venue', name: 'Mavi Fener Camhanesi Kapısı',
+    location: 'city', locked: true, open: false,
+  }];
+
+  const context = helpers.currentSceneContext(data);
+  assert.equal(context.location.name, 'Neverwinter');
+  assert.deepEqual(context.doors.map((door) => door.id), ['venue-door:venue']);
+  const html = renderContext(data);
+  assert.match(html, /Neverwinter/);
+  assert.doesNotMatch(html, /Mavi Fener Camhanesi/);
+});
 test('absent or stale scene falls back only to exact canonical location membership', () => {
   const data = state(); data.scene.location_id = 'remote';
   const result = helpers.currentSceneContext(data);

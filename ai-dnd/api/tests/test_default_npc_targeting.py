@@ -524,7 +524,10 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(travel.status_code, 200, travel.text)
             self.assertEqual(travel.json()["turn_outcome"]["status"], "blocked")
-            self.assertEqual(resumed_session.world_state["location"], city_id)
+            self.assertEqual(
+                resumed_session.world_state["location"],
+                expected_location_after_second_visit,
+            )
             self.assertTrue(next(
                 item for item in resumed_session.world_state["doors"]
                 if item.get("id") == door["id"]
@@ -554,7 +557,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             self.assertLessEqual(client.chat_calls, 3)
 
     async def test_default_new_place_is_campaign_scoped_replayable_and_cold_loadable(self):
-        city_id, session_id, session, turn_url, _, _ = (
+        city_id, session_id, session, turn_url, tavern_id, protected_door = (
             await create_city_with_locked_tavern(self)
         )
         npc = {
@@ -640,6 +643,167 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             suggestion_state,
         )
 
+        travel_action_id = str(uuid.uuid4())
+        travel_body = {
+            "message": f"Marek'in söylediği {spoken_place}'ne gidiyorum.",
+            "interaction_mode": "do",
+            "action_id": travel_action_id,
+        }
+        engine_receipts = []
+        original_dispatch = test_campaign_api.game._dispatch_player_turn
+
+        def capture_dispatch(*args, **kwargs):
+            result = original_dispatch(*args, **kwargs)
+            engine_receipts.append(
+                result.get("action_result") if isinstance(result, dict) else None
+            )
+            return result
+
+        with patch.object(
+            test_campaign_api.game, "_dispatch_player_turn", capture_dispatch
+        ):
+            travel = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self, turn_url, client, travel_body
+            )
+        self.assertEqual(travel.status_code, 200, travel.text)
+        travel_payload = travel.json()
+        travel_outcome = travel_payload["turn_outcome"]
+        self.assertEqual(travel_payload["action_id"], travel_action_id)
+        self.assertEqual(travel_outcome.get("action"), "grounded_action")
+        self.assertEqual(travel_outcome.get("status"), "completed")
+        self.assertEqual(travel_outcome.get("target_name"), spoken_place)
+        travel_engine_result = engine_receipts[-1]
+        self.assertEqual(
+            travel_engine_result["steps"][0].get("position"), "at_door"
+        )
+
+        materialized_ref = next(
+            ref for ref in npc_statements.place_references(
+                session.world_state, settlement_id=city_id
+            ) if ref.get("name") == spoken_place
+        )
+        place_id = materialized_ref.get("location_id")
+        self.assertIsInstance(place_id, str)
+        self.assertEqual(
+            travel_engine_result["steps"][0].get("target_id"), place_id
+        )
+        self.assertNotEqual(place_id, tavern_id)
+        self.assertEqual(materialized_ref.get("said_by"), npc["id"])
+        self.assertEqual(
+            session.world_state["locations"][place_id]["parent_location_id"],
+            city_id,
+        )
+        self.assertEqual(session.world_state["location"], city_id)
+        # The player reached the locked venue's street-side entry, not its
+        # interior: city is the scene container; the local venue has its own ID.
+        self.assertEqual(travel_payload["state"]["location"], city_id)
+        self.assertEqual(
+            travel_payload["state"]["locations"][city_id]["name"],
+            session.world_state["locations"][city_id]["name"],
+        )
+        entry_door_id = f"venue-door:{place_id}"
+        entry_door = next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == entry_door_id
+        )
+        self.assertEqual(entry_door.get("location"), city_id)
+        self.assertFalse(entry_door.get("open"))
+        entry_door_was_locked = bool(entry_door.get("locked"))
+        self.assertEqual(
+            session.world_state["grounded_actions"]["near_target_id"],
+            entry_door_id,
+        )
+        response_door = next(
+            door for door in travel_payload["state"]["doors"]
+            if door.get("id") == entry_door_id
+        )
+        self.assertEqual(response_door.get("location"), city_id)
+        self.assertEqual(response_door.get("locked"), entry_door_was_locked)
+        self.assertFalse(response_door.get("open"))
+
+        inspect_action_id = str(uuid.uuid4())
+        inspect_body = {
+            "message": "Kapıyı dikkatlice inceliyorum.",
+            "interaction_mode": "do",
+            "target_id": entry_door_id,
+            "action_id": inspect_action_id,
+        }
+        inspect = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, inspect_body
+        )
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+        inspect_payload = inspect.json()
+        inspect_outcome = inspect_payload["turn_outcome"]
+        self.assertEqual(inspect_payload["action_id"], inspect_action_id)
+        self.assertEqual(inspect_outcome.get("action"), "grounded_action")
+        self.assertEqual(inspect_outcome.get("status"), "completed")
+        self.assertEqual(inspect_outcome.get("kind"), "door")
+        self.assertEqual(inspect_outcome.get("target_name"), entry_door["name"])
+        self.assertEqual(inspect_payload["state"]["location"], city_id)
+        self.assertEqual(bool(next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == entry_door_id
+        )["locked"]), entry_door_was_locked)
+        self.assertFalse(next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == entry_door_id
+        )["open"])
+
+        self.assertTrue(protected_door["locked"])
+        self.assertTrue(next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == protected_door["id"]
+        )["locked"])
+        self.assertFalse(next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == protected_door["id"]
+        )["open"])
+
+        second_visit = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, {
+                **travel_body,
+                "action_id": str(uuid.uuid4()),
+            }
+        )
+        self.assertEqual(second_visit.status_code, 200, second_visit.text)
+        self.assertEqual(
+            second_visit.json()["turn_outcome"].get("status"), "blocked",
+            second_visit.json(),
+        )
+        self.assertIn(entry_door["name"], second_visit.json()["narration"])
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(
+            session.world_state["grounded_actions"]["near_target_id"],
+            entry_door_id,
+        )
+        self.assertEqual(
+            len([
+                location for location in session.world_state["locations"].values()
+                if location.get("name") == spoken_place
+            ]),
+            1,
+        )
+        self.assertEqual(bool(entry_door["locked"]), entry_door_was_locked)
+        self.assertFalse(entry_door["open"])
+        expected_location_after_second_visit = city_id
+        self.assertTrue(protected_door["locked"])
+        self.assertFalse(protected_door["open"])
+
+        state_before_travel_replay = json.dumps(
+            session.world_state, sort_keys=True, ensure_ascii=False
+        )
+        calls_before_travel_replay = client.chat_calls
+        travel_replay = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, travel_body
+        )
+        self.assertEqual(travel_replay.status_code, 200, travel_replay.text)
+        self.assertEqual(travel_replay.json(), travel_payload)
+        self.assertEqual(client.chat_calls, calls_before_travel_replay)
+        self.assertEqual(
+            json.dumps(session.world_state, sort_keys=True, ensure_ascii=False),
+            state_before_travel_replay,
+        )
+
         self.assertFalse(any(
             npc_item.get("id") == npc["id"]
             for npc_item in other_session.world_state.get("npcs", [])
@@ -701,11 +865,23 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(cold_ref.get("said_by"), npc["id"])
             self.assertIn(quote, cold_ref.get("quotes", []))
-            self.assertIsNone(cold_ref.get("location_id"))
-            self.assertFalse(any(
-                location.get("name") == spoken_place
-                for location in resumed_session.world_state["locations"].values()
-            ))
+            self.assertEqual(cold_ref.get("location_id"), place_id)
+            self.assertEqual(
+                resumed_session.world_state["locations"][place_id]["name"],
+                spoken_place,
+            )
+            self.assertEqual(
+                resumed_session.world_state["grounded_actions"]["near_target_id"],
+                entry_door_id,
+            )
+            self.assertEqual(bool(next(
+                door for door in resumed_session.world_state["doors"]
+                if door.get("id") == entry_door_id
+            )["locked"]), entry_door_was_locked)
+            self.assertFalse(next(
+                door for door in resumed_session.world_state["doors"]
+                if door.get("id") == entry_door_id
+            )["open"])
 
             resumed_turn_url = (
                 f"/api/game/sessions/{resumed_session_id}/turn"
@@ -719,7 +895,15 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             cold_suggestion_replay = await cold_http.post(
                 resumed_turn_url, json=suggestion_body
             )
+            cold_travel_replay = await cold_http.post(
+                resumed_turn_url, json=travel_body
+            )
+            cold_inspect_replay = await cold_http.post(
+                resumed_turn_url, json=inspect_body
+            )
             self.assertEqual(cold_suggestion_replay.status_code, 200)
+            self.assertEqual(cold_travel_replay.status_code, 200)
+            self.assertEqual(cold_inspect_replay.status_code, 200)
             self.assertEqual(
                 cold_suggestion_replay.json()["action_id"],
                 suggestion_action_id,
@@ -732,6 +916,14 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 cold_suggestion_replay.json()["narration"],
                 suggestion_payload["narration"],
             )
+            self.assertEqual(
+                cold_travel_replay.json()["turn_outcome"],
+                travel_payload["turn_outcome"],
+            )
+            self.assertEqual(
+                cold_inspect_replay.json()["turn_outcome"],
+                inspect_payload["turn_outcome"],
+            )
             self.assertEqual(client.chat_calls, calls_before_cold_replays)
             self.assertEqual(
                 json.dumps(
@@ -741,6 +933,32 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 ),
                 cold_state_before_replay,
             )
+            cold_second_visit = await cold_http.post(
+                resumed_turn_url,
+                json={**travel_body, "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(cold_second_visit.status_code, 200)
+            self.assertEqual(
+                cold_second_visit.json()["turn_outcome"].get("status"),
+                "blocked",
+                cold_second_visit.json(),
+            )
+            self.assertEqual(
+                len([
+                    location for location in resumed_session.world_state[
+                        "locations"
+                    ].values() if location.get("name") == spoken_place
+                ]),
+                1,
+            )
+            self.assertEqual(
+                resumed_session.world_state["location"],
+                expected_location_after_second_visit,
+            )
+            self.assertTrue(next(
+                door for door in resumed_session.world_state["doors"]
+                if door.get("id") == protected_door["id"]
+            )["locked"])
 
             other_resumed = await cold_http.post(
                 f"/api/game/campaigns/{other_campaign_id}/resume"
