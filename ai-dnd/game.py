@@ -11438,8 +11438,6 @@ def finalize_narration(
         if safety.get("reason_code") in (
             "WRONG_NPC_SPEAKER_ATTRIBUTION",
             "NPC_MEMORY_DISCLOSURE_LEAK",
-            "INVENTED_PLAYER_ACTION",
-            "INVENTED_PLAYER_MENTAL_STATE",
         ):
             narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
