@@ -1199,6 +1199,19 @@ def create_app(
                 if isinstance(result, dict)
                 else None
             )
+            if isinstance(engine_evidence, dict):
+                # The API's rollback snapshot is the commit boundary. Derive
+                # entity additions from those exact before/after states so
+                # pre-planner materialization is included in the receipt.
+                engine_evidence = {
+                    **engine_evidence,
+                    "procedural_entity_ids": sorted(
+                        _procedural_entity_refs(session.world_state)
+                        - _procedural_entity_refs(
+                            snapshot["save"].get("world_state", {})
+                        )
+                    ),
+                }
 
             from api.model_phase import only_resolved_narration_failures
 

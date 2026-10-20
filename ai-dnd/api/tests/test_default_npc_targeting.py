@@ -100,6 +100,177 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await test_campaign_api.CampaignApiTests.asyncTearDown(self)
 
+    async def test_default_npc_reply_uses_direct_speaker_prompt_over_http(self):
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        npc = {
+            "id": "npc_dialogue_prompt_regression",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {},
+            "knowledge": [],
+            "status": "active",
+            "combat_status": "active",
+            "current_hp": 12,
+            "memory": [],
+        }
+        session.world_state["npcs"].append(npc)
+        flags = session.world_state["flags"]
+        flags["last_npc_id"] = npc["id"]
+        flags["active_npc_id"] = npc["id"]
+        flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 5
+
+        client = AttributedPlaceClient(
+            npc["id"], "Marek: “Bunu tam bilmiyorum; bugün burası bana da sakin geliyor.”"
+        )
+        captured = {}
+        run_player_turn = session.run_player_turn
+
+        def capture_turn(*args, **kwargs):
+            result = run_player_turn(*args, **kwargs)
+            captured["telemetry"] = result["_engine_event_evidence"]["telemetry"]
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self,
+                turn_url,
+                client,
+                {
+                    "message": "Marek, bu yer neden sessiz?",
+                    "interaction_mode": "do",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["narration"], client.narration)
+        self.assertEqual(captured["telemetry"]["narration_source"], "qwen")
+        self.assertEqual(
+            captured["telemetry"]["narration_validation_result"], "accepted"
+        )
+        self.assertTrue(any(
+            "NPC dialogue mode" in prompt
+            and "natural, direct speech" in prompt
+            and "Answer the player's actual question" in prompt
+            and "Marek" in prompt
+            for prompt in client.prompts
+        ), client.prompts)
+
+    async def test_failed_investigation_http_keeps_result_and_rejects_player_agency_claims(self):
+        city_id = "fr:city:neverwinter"
+        created = await self.http.post(
+            "/api/game/campaigns",
+            json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": city_id,
+            }},
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        session_id = created.json()["session_id"]
+        session = self.manager.get(session_id).game_session
+        turn_url = f"/api/game/sessions/{session_id}/turn"
+
+        class FailedInvestigationClient(test_campaign_api.FakeOllamaClient):
+            def __init__(self):
+                self.prompts = []
+
+            def chat(self, *args, **kwargs):
+                messages = kwargs.get("messages", [])
+                prompt = next(
+                    item.get("content", "")
+                    for item in reversed(messages)
+                    if item.get("role") == "user"
+                )
+                self.prompts.append(prompt)
+                properties = kwargs.get("format", {}).get("properties", {})
+                if "intent" in properties:
+                    packet = {
+                        "intent": "investigation",
+                        "action": "investigate",
+                        "target": {
+                            "type": "location",
+                            "reference": "Han binasının girişindeki taş işçiliği",
+                            "npc_id": "",
+                            "evidence_quote": "",
+                        },
+                        "completion": "intended",
+                        "confidence": 1.0,
+                        "interaction": {"operation": "none"},
+                    }
+                else:
+                    packet = {
+                        "narration": (
+                            "Taş işçiliğine dair net bir ayrıntı seçemiyorsun. "
+                            "Korkmuş hissedersin. Sonra hana girersin."
+                        ),
+                        "world_updates": {},
+                        "lore_claims": [],
+                    }
+                return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+        client = FailedInvestigationClient()
+        captured = {}
+        run_player_turn = session.run_player_turn
+
+        def capture_turn(*args, **kwargs):
+            result = run_player_turn(*args, **kwargs)
+            captured["action_result"] = dict(result.get("action_result", {}))
+            captured["telemetry"] = result["_engine_event_evidence"]["telemetry"]
+            return result
+
+        with patch("game.roll_d20", return_value=1):
+            with patch.object(session, "run_player_turn", new=capture_turn):
+                response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                    self,
+                    turn_url,
+                    client,
+                    {
+                        "message": (
+                            "Han binasının girişindeki taş işçiliğini "
+                            "sistemli biçimde inceliyorum."
+                        ),
+                        "interaction_mode": "do",
+                        "target_id": city_id,
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200, (response.text, captured))
+        action_result = captured["action_result"]
+        self.assertEqual(action_result["action"], "skill_check", action_result)
+        self.assertEqual(action_result["skill"], "Investigation", action_result)
+        self.assertEqual(action_result["dc"], 15, action_result)
+        self.assertEqual(action_result["resolution"]["raw_rolls"], [1], action_result)
+        self.assertEqual(action_result["resolution"]["selected_roll"], 1, action_result)
+        self.assertFalse(action_result["success"], action_result)
+        self.assertEqual(action_result["outcome"], "failure", action_result)
+        public_check = response.json()["skill_check_result"]
+        self.assertEqual(public_check["d20"], 1)
+        self.assertEqual(public_check["dc"], 15)
+        self.assertEqual(public_check["outcome"], "failure")
+        self.assertEqual(response.json()["turn_outcome"]["status"], "resolved")
+        self.assertEqual(session.world_state["location"], city_id)
+        final_text = response.json()["narration"]
+        self.assertNotIn("korkmuş hissedersin", final_text.casefold())
+        self.assertNotIn("hana girersin", final_text.casefold())
+        telemetry = captured["telemetry"]
+        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+        self.assertEqual(telemetry["fallback_reason"], "INVENTED_PLAYER_ACTION")
+        self.assertEqual(
+            telemetry["narration_validation_result"], "python_fallback"
+        )
+        self.assertEqual(
+            session.last_narration_safety["reason_code"],
+            telemetry["fallback_reason"],
+        )
+        self.assertEqual(
+            session.last_narration_safety["handling"], "python_fallback"
+        )
+
     async def test_default_greeting_binds_visible_scene_description_to_one_npc(self):
         _, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
         city_id = session.world_state["location"]

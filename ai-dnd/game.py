@@ -7344,7 +7344,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         prompt += (
             "\nNPC dialogue mode: if this is ordinary conversation with no structured "
             "interaction, use interaction.operation=none and return a brief Turkish "
-            "narration of the addressed NPC's reply in the narration field. Do not narrate "
+            "narration of the addressed NPC's reply in the narration field. Write it as "
+            "natural, direct speech and identify the speaker explicitly with the NPC's "
+            "name (for example, 'Marek: “...”'). Answer the player's actual question; "
+            "avoid scene summaries and stock templates. Usually use one or two short "
+            "sentences. Do not invent the player's feelings, decisions, or future actions. "
+            "Do not narrate "
             "the player's decisions/actions, NPC consent, successful checks, new facts, "
             "quest completion or changes of ownership. Unknown information must be "
             "answered in-character. Use only the supplied addressee perspective. "
@@ -11430,7 +11435,12 @@ def finalize_narration(
             )
             if repaired else None
         )
-        if safety.get("reason_code") in ("WRONG_NPC_SPEAKER_ATTRIBUTION", "NPC_MEMORY_DISCLOSURE_LEAK"):
+        if safety.get("reason_code") in (
+            "WRONG_NPC_SPEAKER_ATTRIBUTION",
+            "NPC_MEMORY_DISCLOSURE_LEAK",
+            "INVENTED_PLAYER_ACTION",
+            "INVENTED_PLAYER_MENTAL_STATE",
+        ):
             narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
             handling = "python_fallback"
@@ -15096,6 +15106,9 @@ def _run_player_turn_internal(
 
         if is_final:
             _incident_before_skipped_narration()
+            result["_engine_event_evidence"]["procedural_entity_ids"] = sorted(
+                procedural_entity_ids() - procedural_ids_before
+            )
             result["_engine_event_evidence"].pop("_procedural_ids_before", None)
             if "telemetry" not in result["_engine_event_evidence"]:
                 result["_engine_event_evidence"]["telemetry"] = {
@@ -16630,6 +16643,17 @@ def _run_player_turn_internal(
                     if unverified_history_echo else None
                 ),
             )
+            narration_safety = getattr(_session(), "last_narration_safety", None)
+            narration_safety = (
+                narration_safety if isinstance(narration_safety, dict) else {}
+            )
+            final_safety_reason_code = narration_safety.get("reason_code")
+            final_safety_handling = narration_safety.get("handling", "accepted")
+            if (
+                final_safety_reason_code
+                and final_safety_handling == "python_fallback"
+            ):
+                narration_source = "deterministic_fallback"
             if experimental_npc_dialogue and _SCENE_LEVEL_FALLBACK_RE.search(text):
                 text = speech_clarification_line(npc_target, player_input)
             if experimental_npc_dialogue:
@@ -16695,7 +16719,13 @@ def _run_player_turn_internal(
                     npc_target["id"], player_input,
                     raw_narration if accepted_model_speech else text,
                 )
-            return finish_turn(action_result, text, is_final=True)
+            return finish_turn(
+                action_result,
+                text,
+                is_final=True,
+                safety_reason_code=final_safety_reason_code,
+                safety_handling=final_safety_handling,
+            )
         validated_intent = {"intent": "dialogue"}
     else:
         if npc_target is not None and _is_object_inspection(player_input):
