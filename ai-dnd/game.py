@@ -7018,6 +7018,90 @@ def _experimental_speech_recap(interaction_context):
     )
 
 
+def _local_place_recommendation_options(npc_target, world_state):
+    if not isinstance(npc_target, dict):
+        return []
+    local_location_id = npc_target.get("location")
+    if (
+        not isinstance(local_location_id, str)
+        or local_location_id != world_state.get("location")
+    ):
+        return []
+    options = [
+        {
+            "name": str(place.get("name", ""))[:80],
+            "kind": str(place.get("scene_kind", ""))[:40],
+            "description": str(place.get("description", ""))[:180],
+        }
+        for place_id, place in world_state.get("locations", {}).items()
+        if isinstance(place, dict)
+        and place_id != local_location_id
+        and place.get("parent_location_id") == local_location_id
+        and place.get("hidden") is not True
+        and isinstance(place.get("name"), str)
+        and place.get("name", "").strip()
+    ]
+    return sorted(options, key=lambda option: option["name"].casefold())[:6]
+
+
+def _experimental_local_place_recommendation_guidance(
+    player_input, interaction_context, world_state
+):
+    if not local_dialogue.is_local_place_recommendation_request(player_input):
+        return ""
+    addressee = (
+        interaction_context.get("addressee")
+        if isinstance(interaction_context, dict) else None
+    )
+    npc_id = (
+        interaction_context.get("npc_id")
+        if isinstance(interaction_context, dict) else None
+    )
+    if not isinstance(npc_id, str) and isinstance(addressee, dict):
+        npc_id = addressee.get("npc_id")
+    npc = next(
+        (
+            item for item in world_state.get("npcs", [])
+            if isinstance(item, dict) and item.get("id") == npc_id
+        ),
+        None,
+    )
+    options = _local_place_recommendation_options(npc, world_state)
+    if not options:
+        return ""
+    return (
+        "\nLOCAL PLACE RECOMMENDATION: The player asks for an ordinary local "
+        "suggestion. Choose at least one exact name from the Python-known nearby "
+        "place options below and recommend it as your personal suggestion. Do not "
+        "say you do not know when an option is listed. Do not invent a place, "
+        "claim unsupported qualities such as quietness or safety, or imply that "
+        "the recommendation itself proves anything about the world. Keep it to "
+        "one concise in-character answer.\n"
+        "Python-known nearby place options (read-only): "
+        f"{json.dumps(options, ensure_ascii=False, separators=(',', ':'))}\n"
+    )
+
+
+def _local_place_recommendation_fallback(
+    player_input, npc_target, world_state, model_reply
+):
+    if not local_dialogue.is_local_place_recommendation_request(player_input):
+        return None
+    import npc_statements
+    if npc_statements._named_places(model_reply):
+        return None
+    options = _local_place_recommendation_options(npc_target, world_state)
+    if not options:
+        return None
+    normalized_reply = local_dialogue.normalize_text(model_reply)
+    if any(
+        local_dialogue.normalize_text(option["name"]) in normalized_reply
+        for option in options
+    ):
+        return None
+    return f"Ben olsam {options[0]['name']} adlı yere gitmeyi denerdim."
+
+
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
                         operation_hint=None, require_conversation=False,
                         allow_scene_detail_proposals=False,
@@ -7134,6 +7218,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + json.dumps(interaction_context, ensure_ascii=False, separators=(",", ":"))
             + "\n"
             + _experimental_speech_recap(interaction_context)
+            + _experimental_local_place_recommendation_guidance(
+                player_input, interaction_context, world_state
+            )
             + _experimental_speech_final_line(player_input, interaction_context)
         )
     elif dialogue_narration:
@@ -9686,6 +9773,35 @@ def _spoken_lore_fact_ids(lore_context, response, selected_ids):
             ):
                 spoken.append(fact_id)
     return spoken
+
+
+def _has_active_local_npc_focus_for_place_request(world_state, *, target_id=None):
+    if not isinstance(world_state, dict):
+        return False
+    flags = world_state.get("flags", {})
+    if not isinstance(flags, dict):
+        flags = {}
+    try:
+        focus_is_active = int(flags.get("active_npc_until_turn", -1)) >= (
+            int(flags.get("turn_index", 0)) + 1
+        )
+    except (TypeError, ValueError):
+        focus_is_active = False
+    candidate_ids = [target_id] if isinstance(target_id, str) and target_id else []
+    if focus_is_active:
+        candidate_ids.extend(
+            value
+            for value in (flags.get("active_npc_id"), flags.get("last_npc_id"))
+            if isinstance(value, str) and value
+        )
+    return bool(candidate_ids) and any(
+        isinstance(npc, dict)
+        and npc.get("id") in candidate_ids
+        and npc.get("location") == world_state.get("location")
+        and npc.get("status") == "active"
+        and npc.get("combat_status") not in {"unconscious", "dead"}
+        for npc in world_state.get("npcs", [])
+    )
 
 
 def _supported_lore_question_response(player_input, lore_context, world_state):
@@ -14762,9 +14878,16 @@ def _run_player_turn_internal(
         and entry_combat["current_actor_id"] == "player"
     ):
         raise ValueError("Bilinçsiz karakter eylem gerçekleştiremez.")
+    local_npc_place_request = (
+        interaction_mode != "ask_dm"
+        and local_dialogue.is_local_place_recommendation_request(player_input)
+        and _has_active_local_npc_focus_for_place_request(
+            world_state, target_id=target_id
+        )
+    )
     world_subject_question = (
         True if interaction_mode == "ask_dm"
-        else False if interaction_mode == "say"
+        else False if interaction_mode == "say" or local_npc_place_request
         else local_dialogue.is_world_subject_question(player_input)
     )
     scene_exploration_question = living_world.is_exploratory_structure_question(
@@ -16275,11 +16398,17 @@ def _run_player_turn_internal(
         and npc_target is not None
         and _npc_speech_enabled()
     )
+    npc_place_recommendation = (
+        isinstance(npc_target, dict)
+        and interaction_mode != "ask_dm"
+        and local_dialogue.is_local_place_recommendation_request(player_input)
+    )
     if (
         (
-            world_subject_question
+            world_subject_question and not npc_place_recommendation
             or (
                 not experimental_say_session
+                and not npc_place_recommendation
                 and local_dialogue.is_world_subject_question(player_input)
             )
         )
@@ -16472,6 +16601,19 @@ def _run_player_turn_internal(
                 # Keep only the NPC's own words; a derailed model tail never
                 # reaches the player. Nothing left means the reply was unusable.
                 raw_narration = _clean_npc_speech(raw_narration)
+            local_place_fallback = False
+            fallback_text = _local_place_recommendation_fallback(
+                player_input,
+                npc_target,
+                world_state,
+                raw_narration if isinstance(raw_narration, str) else "",
+            ) if experimental_npc_dialogue else None
+            if (
+                fallback_text
+                and interaction_adventure.safe_narration(fallback_text)
+            ):
+                raw_narration = fallback_text
+                local_place_fallback = True
             invalid_or_empty = not isinstance(raw_narration, str) or not raw_narration.strip()
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
@@ -16547,6 +16689,7 @@ def _run_player_turn_internal(
                 experimental_npc_dialogue
                 and not invalid_or_empty
                 and not unverified_history_echo
+                and not local_place_fallback
                 and text == raw_narration
             )
             if experimental_npc_dialogue:
@@ -16554,7 +16697,15 @@ def _run_player_turn_internal(
                 if not text.casefold().startswith(name.casefold()):
                     text = f'{name}, “{text}”'
 
-            if empty_model_narration or unverified_history_echo or (experimental_npc_dialogue and invalid_or_empty):
+            if (
+                (empty_model_narration and not local_place_fallback)
+                or unverified_history_echo
+                or (
+                    experimental_npc_dialogue
+                    and invalid_or_empty
+                    and not local_place_fallback
+                )
+            ):
                 narration_source = "deterministic_fallback"
                 if experimental_npc_dialogue:
                     _remember_experimental_npc_speech(
