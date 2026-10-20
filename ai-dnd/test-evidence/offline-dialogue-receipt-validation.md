@@ -48,7 +48,7 @@ The branch artifact tree `artifacts/ai-dnd-experience` is unchanged between `cc9
 - Frontend tests: **152 total, 151 passed, 0 failed, 1 skipped**.
 - `pnpm run typecheck`: passed.
 - `PORT=5173 BASE_PATH=/ai-dnd-experience pnpm run build`: passed.
-- Build emitted existing warnings for the tooltip sourcemap and a minified chunk over 500 kB.
+- Build emitted warnings for the tooltip sourcemap and a minified chunk over 500 kB.
 
 ## Scope
 
