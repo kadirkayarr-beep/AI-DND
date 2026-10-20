@@ -681,11 +681,23 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             ),
         )
         self.assertEqual(response.status_code, 200, response.text)
+        refs = npc_statements.place_references(
+            session.world_state, settlement_id=city_id
+        )
+        ref = next(
+            (
+                item for item in refs
+                if item.get("name") == "Mavi Fener Camhanesi"
+                and item.get("said_by") == npc["id"]
+            ),
+            None,
+        )
+        self.assertIsNotNone(ref, refs)
+        self.assertEqual(ref.get("status"), "rumor")
+        self.assertIsNone(ref.get("location_id"))
         self.assertFalse(any(
-            ref.get("name") == "Mavi Fener Camhanesi"
-            for ref in npc_statements.place_references(
-                session.world_state, settlement_id=city_id
-            )
+            location.get("name") == "Mavi Fener Camhanesi"
+            for location in session.world_state["locations"].values()
         ))
 
     async def test_opt_in_save_failure_rolls_back_and_retry_receipt_replays(self):

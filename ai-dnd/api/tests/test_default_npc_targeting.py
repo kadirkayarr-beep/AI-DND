@@ -91,6 +91,17 @@ class AttributedPlaceClient(test_campaign_api.FakeOllamaClient):
         }, ensure_ascii=False)}}
 
 
+class InvalidConversationPlaceClient(AttributedPlaceClient):
+    def chat(self, *args, **kwargs):
+        response = super().chat(*args, **kwargs)
+        packet = json.loads(response["message"]["content"])
+        packet["interaction"]["conversation"]["candidate_evidence_ids"] = [
+            "unavailable-evidence-id"
+        ]
+        response["message"]["content"] = json.dumps(packet, ensure_ascii=False)
+        return response
+
+
 class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
@@ -158,6 +169,73 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             and "Marek" in prompt
             for prompt in client.prompts
         ), client.prompts)
+
+    async def test_local_place_recommendation_reaches_focused_npc_in_default_mode(self):
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        guard = {
+            "id": "npc_default_recommendation_guard",
+            "name": "Marek",
+            "role": "guard",
+            "role_known_to_player": True,
+            "appearance": "Pazar girişinde mavi pelerinli bir muhafız.",
+            "location": city_id,
+            "status": "active",
+            "current_hp": 12,
+            "combat_status": "active",
+            "memory": [],
+        }
+        session.world_state["npcs"].append(guard)
+        scene = "Pazar girişinde mavi pelerinli muhafız arabaları kontrol ediyor."
+        session.messages.append({"role": "assistant", "content": scene})
+        greeting = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self,
+            turn_url,
+            DescriptorTargetClient(guard["id"], scene),
+            {
+                "message": "Pazar girişindeki mavi pelerinli muhafıza selam veriyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(greeting.status_code, 200, greeting.text)
+        self.assertEqual(
+            session.world_state["flags"].get("last_npc_id"), guard["id"]
+        )
+
+        client = InvalidConversationPlaceClient(
+            guard["id"],
+            "Marek: “Şehirdeki han kısa bir mola için sakin bir yer.”",
+        )
+        before_locations = set(session.world_state["locations"])
+        captured = {}
+        run_player_turn = session.run_player_turn
+
+        def capture_turn(*args, **kwargs):
+            result = run_player_turn(*args, **kwargs)
+            captured["telemetry"] = result["_engine_event_evidence"]["telemetry"]
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self,
+                turn_url,
+                client,
+                {
+                    "message": "Şehirde gidebileceğim sakin bir yer önerir misin?",
+                    "interaction_mode": "do",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertGreater(client.chat_calls, 0)
+        self.assertEqual(captured["telemetry"]["narration_source"], "qwen")
+        self.assertEqual(
+            captured["telemetry"]["narration_validation_result"], "accepted"
+        )
+        self.assertEqual(
+            session.world_state["flags"].get("last_npc_id"), guard["id"]
+        )
+        self.assertEqual(set(session.world_state["locations"]), before_locations)
 
     async def test_entry_door_can_be_inspected_from_its_venue_interior(self):
         city_id, _, session, turn_url, tavern_id, door = (
