@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import unittest
@@ -171,7 +172,11 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
-        session = self.manager.get(session_id).game_session
+        record = self.manager.get(session_id)
+        session = record.game_session
+        before_world = copy.deepcopy(session.world_state)
+        before_receipt_refs = set(record.lore_authority.procedural_entity_refs)
+        campaign_id = record.campaign_id
         turn_url = f"/api/game/sessions/{session_id}/turn"
 
         class FailedInvestigationClient(test_campaign_api.FakeOllamaClient):
@@ -254,6 +259,22 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(public_check["outcome"], "failure")
         self.assertEqual(response.json()["turn_outcome"]["status"], "resolved")
         self.assertEqual(session.world_state["location"], city_id)
+        procedural_entity_refs = test_campaign_api.main_module._procedural_entity_refs
+        actual_added_refs = (
+            procedural_entity_refs(session.world_state)
+            - procedural_entity_refs(before_world)
+        )
+        committed_added_refs = (
+            set(record.lore_authority.procedural_entity_refs)
+            - before_receipt_refs
+        )
+        self.assertTrue(actual_added_refs, "fixture must materialize procedural entities")
+        self.assertEqual(committed_added_refs, actual_added_refs)
+        persisted = self.store.get_campaign(campaign_id)
+        persisted_refs = set(
+            persisted.payload["lore_authority"]["procedural_entity_refs"]
+        )
+        self.assertEqual(persisted_refs - before_receipt_refs, actual_added_refs)
         final_text = response.json()["narration"]
         self.assertNotIn("korkmuş hissedersin", final_text.casefold())
         self.assertNotIn("hana girersin", final_text.casefold())

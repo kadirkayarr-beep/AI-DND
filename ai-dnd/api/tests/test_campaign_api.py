@@ -2478,6 +2478,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_state = copy.deepcopy(session.serialize_game_state())
         before_rng = session.rng.getstate()
         before_memory = copy.deepcopy(record.narrative_memory)
+        before_lore_authority = copy.deepcopy(record.lore_authority.to_dict())
+        before_persisted_payload = copy.deepcopy(
+            self.store.get_campaign(campaign_id).payload
+        )
         original_save = self.store.save_campaign
         save_calls = 0
 
@@ -2495,6 +2499,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.serialize_game_state(), before_state)
         self.assertEqual(session.rng.getstate(), before_rng)
         self.assertEqual(record.narrative_memory, before_memory)
+        self.assertEqual(record.lore_authority.to_dict(), before_lore_authority)
+        self.assertEqual(
+            self.store.get_campaign(campaign_id).payload,
+            before_persisted_payload,
+        )
         self.assertIsNone(
             self.store.get_turn_action(
                 campaign_id, action_id, principal=TEST_PLAYER

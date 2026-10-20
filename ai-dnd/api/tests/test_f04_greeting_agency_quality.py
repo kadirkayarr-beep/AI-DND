@@ -34,24 +34,52 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         self.npc["relationship"] = "neutral"
 
     def turn(self, user_message, narration, *, lore_claims=None):
-        payload = {
+        narrator_payload = {
             "world_updates": {},
             "narration": narration,
             "lore_claims": [] if lore_claims is None else lore_claims,
         }
+        phases = []
+
+        def phase_aware_chat(*args, **kwargs):
+            properties = kwargs.get("format", {}).get("properties", {})
+            if "intent" in properties:
+                phases.append("scene_intent")
+                packet = {
+                    "intent": "dialogue",
+                    "action": "dialogue",
+                    "target": {"type": "none", "reference": ""},
+                    "completion": "unclear",
+                    "confidence": 1.0,
+                    "interaction": {"operation": "none", "quote": user_message},
+                }
+            elif "narration" in properties:
+                phases.append("narrator")
+                packet = narrator_payload
+            else:
+                raise AssertionError(
+                    f"Unexpected model phase schema: {sorted(properties)}"
+                )
+            return {
+                "message": {
+                    "content": json.dumps(packet, ensure_ascii=False)
+                }
+            }
+
         before = copy.deepcopy({
             "inventory": self.session.world_state.get("inventory"),
             "currency": self.session.world_state.get("currency"),
             "quests": self.session.world_state.get("quests"),
             "relationships": self.session.world_state.get("relationships"),
         })
-        with patch("game.ollama.chat", return_value={
-            "message": {"content": json.dumps(payload, ensure_ascii=False)}
-        }) as provider:
+        with patch("game.ollama.chat", side_effect=phase_aware_chat) as provider:
             result = self.session.run_player_turn(user_message, interaction_mode="say")
-        self.assertEqual(provider.call_count, 1)
+        self.assertEqual(phases, ["scene_intent", "narrator"])
+        self.assertEqual(provider.call_count, 2)
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["intent_model_calls"], 1)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], 2)
         self.assertEqual(
             {key: self.session.world_state.get(key) for key in before}, before
         )
