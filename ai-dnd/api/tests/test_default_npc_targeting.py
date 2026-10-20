@@ -237,6 +237,16 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         fallback_client = AttributedPlaceClient(
             guard["id"], "Bu konuda söyleyecek bir şey bilmiyorum."
         )
+        refs_before_uncertain_reply = npc_statements.place_references(
+            session.world_state, settlement_id=city_id
+        )
+        tavern_ref_before_uncertain_reply = next(
+            ref for ref in refs_before_uncertain_reply
+            if ref.get("name") == tavern_name
+        )
+        quotes_before_uncertain_reply = list(
+            tavern_ref_before_uncertain_reply.get("quotes", [])
+        )
         with patch.dict(os.environ, {"AI_DND_NPC_SPEECH": "1"}):
             fallback_response = await test_campaign_api.CampaignApiTests.post_scene_turn(
                 self,
@@ -256,15 +266,23 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 for prompt in fallback_client.prompts
             )
         )
-        self.assertIn(tavern_name, fallback_response.json()["narration"])
-        fallback_refs = npc_statements.place_references(
+        self.assertEqual(fallback_client.chat_calls, 2)
+        self.assertIn(
+            "Bu konuda söyleyecek bir şey bilmiyorum.",
+            fallback_response.json()["narration"],
+        )
+        self.assertNotIn(tavern_name, fallback_response.json()["narration"])
+        refs_after_uncertain_reply = npc_statements.place_references(
             session.world_state, settlement_id=city_id
         )
-        fallback_ref = next(
-            (ref for ref in fallback_refs if ref.get("name") == tavern_name), None
+        tavern_ref_after_uncertain_reply = next(
+            ref for ref in refs_after_uncertain_reply
+            if ref.get("name") == tavern_name
         )
-        self.assertIsNotNone(fallback_ref)
-        self.assertEqual(fallback_ref.get("said_by"), guard["id"])
+        self.assertEqual(
+            tavern_ref_after_uncertain_reply.get("quotes"),
+            quotes_before_uncertain_reply,
+        )
         self.assertEqual(set(session.world_state["locations"]), original_location_ids)
 
         unlock_venue_door(session.world_state, tavern_id)
@@ -338,18 +356,49 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             "memory": [],
         }
         session.world_state["npcs"].append(npc)
-        quote = f"{tavern_name} şehir merkezinde, uğrayabileceğin sakin bir yerdir."
+        scene_line = "Bir muhafız pazar girişinde arabaları sırayla kontrol eder."
+        session.messages.append({"role": "assistant", "content": scene_line})
+        selection = DescriptorTargetClient(npc["id"], scene_line)
+        with patch.dict(os.environ):
+            os.environ.pop("AI_DND_NPC_SPEECH", None)
+            greeting = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self,
+                turn_url,
+                selection,
+                {
+                    "message": "Pazar girişinde arabaları kontrol eden kişiye selam veriyorum.",
+                    "interaction_mode": "do",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(greeting.status_code, 200, greeting.text)
+        self.assertEqual(
+            session.world_state["flags"].get("last_npc_id"), npc["id"]
+        )
+        self.assertFalse(
+            getattr(session, "_experimental_npc_dialogue_enabled", False)
+        )
+
+        quote = f"{tavern_name} şehir merkezindedir; uğramaya değer."
         client = AttributedPlaceClient(npc["id"], quote)
         body = {
-            "message": "Merhaba; bana şehirde gidilecek bir yer öner.",
+            "message": "Şehirde gidebileceğim sakin bir yer önerir misin?",
             "interaction_mode": "do",
-            "target_id": npc["id"],
             "action_id": str(uuid.uuid4()),
         }
-        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
-            self, turn_url, client, body
-        )
+        with patch.dict(os.environ):
+            os.environ.pop("AI_DND_NPC_SPEECH", None)
+            response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self, turn_url, client, body
+            )
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(client.chat_calls, 2)
+        self.assertIn(quote, response.json()["narration"])
+        self.assertTrue(any(
+            "LOCAL PLACE RECOMMENDATION" in prompt
+            and tavern_name in prompt
+            for prompt in client.prompts
+        ))
         self.assertLessEqual(client.chat_calls, 2)
         refs = npc_statements.place_references(
             session.world_state, settlement_id=city_id
@@ -362,6 +411,69 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(place_ref.get("said_by"), npc["id"])
         self.assertIn(quote, place_ref.get("quotes", []))
+
+        proposed_place = "Mavi Fener Camhanesi"
+        proposed_quote = (
+            f"{proposed_place} doğu kapısının yanında; bence uğramaya değer."
+        )
+        proposed_client = AttributedPlaceClient(npc["id"], proposed_quote)
+        with patch.dict(os.environ):
+            os.environ.pop("AI_DND_NPC_SPEECH", None)
+            proposed = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self,
+                turn_url,
+                proposed_client,
+                {
+                    "message": "Yakınlarda başka bir yer önerir misin?",
+                    "interaction_mode": "do",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(proposed.status_code, 200, proposed.text)
+        self.assertGreaterEqual(proposed_client.chat_calls, 1)
+        self.assertLessEqual(proposed_client.chat_calls, 2)
+        self.assertIn(proposed_quote, proposed.json()["narration"])
+        proposed_ref = next(
+            ref for ref in npc_statements.place_references(
+                session.world_state, settlement_id=city_id
+            ) if ref.get("name") == proposed_place
+        )
+        self.assertEqual(proposed_ref.get("said_by"), npc["id"])
+        self.assertIsNone(proposed_ref.get("location_id"))
+        self.assertFalse(any(
+            location.get("name") == proposed_place
+            for location in session.world_state["locations"].values()
+        ))
+
+        unsure_client = AttributedPlaceClient(
+            npc["id"], "Bu konuda emin değilim."
+        )
+        refs_before_unsure = npc_statements.place_references(
+            session.world_state, settlement_id=city_id
+        )
+        with patch.dict(os.environ):
+            os.environ.pop("AI_DND_NPC_SPEECH", None)
+            unsure = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self,
+                turn_url,
+                unsure_client,
+                {
+                    "message": "Bana bir yer tavsiye edebilir misin?",
+                    "interaction_mode": "do",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(unsure.status_code, 200, unsure.text)
+        self.assertGreaterEqual(unsure_client.chat_calls, 1)
+        self.assertLessEqual(unsure_client.chat_calls, 2)
+        self.assertIn("Bu konuda emin değilim.", unsure.json()["narration"])
+        refs_after_unsure = npc_statements.place_references(
+            session.world_state, settlement_id=city_id
+        )
+        self.assertEqual(
+            [ref.get("name") for ref in refs_after_unsure],
+            [ref.get("name") for ref in refs_before_unsure],
+        )
 
         campaign_id = self.manager.get(session_id).campaign_id
         saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
@@ -385,12 +497,23 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             resumed_session = resumed_manager.get(
                 resumed.json()["session_id"]
             ).game_session
+            self.assertIn(
+                npc["id"],
+                {item.get("id") for item in resumed_session.world_state["npcs"]},
+            )
             resumed_ref = next(
                 ref for ref in npc_statements.place_references(
                     resumed_session.world_state, settlement_id=city_id
                 ) if ref.get("name") == tavern_name
             )
             self.assertEqual(resumed_ref.get("said_by"), npc["id"])
+            resumed_proposal = next(
+                ref for ref in npc_statements.place_references(
+                    resumed_session.world_state, settlement_id=city_id
+                ) if ref.get("name") == proposed_place
+            )
+            self.assertEqual(resumed_proposal.get("said_by"), npc["id"])
+            self.assertIsNone(resumed_proposal.get("location_id"))
             travel = await resumed_http.post(
                 f"/api/game/sessions/{resumed.json()['session_id']}/turn",
                 json={

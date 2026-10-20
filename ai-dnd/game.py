@@ -7044,7 +7044,7 @@ def _local_place_recommendation_options(npc_target, world_state):
     return sorted(options, key=lambda option: option["name"].casefold())[:6]
 
 
-def _experimental_local_place_recommendation_guidance(
+def _local_place_recommendation_guidance(
     player_input, interaction_context, world_state
 ):
     if not local_dialogue.is_local_place_recommendation_request(player_input):
@@ -7071,35 +7071,17 @@ def _experimental_local_place_recommendation_guidance(
         return ""
     return (
         "\nLOCAL PLACE RECOMMENDATION: The player asks for an ordinary local "
-        "suggestion. Choose at least one exact name from the Python-known nearby "
-        "place options below and recommend it as your personal suggestion. Do not "
-        "say you do not know when an option is listed. Do not invent a place, "
-        "claim unsupported qualities such as quietness or safety, or imply that "
-        "the recommendation itself proves anything about the world. Keep it to "
-        "one concise in-character answer.\n"
+        "suggestion. You may recommend one of the exact Python-known nearby "
+        "places below as your personal opinion. You may also offer a plausible "
+        "new local place as an explicitly personal suggestion, not as an "
+        "established world fact; Python records such a named place only as an "
+        "attributed NPC statement and does not create a location. Never invent "
+        "unsupported qualities such as quietness, safety, opening hours, or "
+        "availability. If you have no honest suggestion, say so in character; "
+        "do not fabricate certainty. Keep it concise and in character.\n"
         "Python-known nearby place options (read-only): "
         f"{json.dumps(options, ensure_ascii=False, separators=(',', ':'))}\n"
     )
-
-
-def _local_place_recommendation_fallback(
-    player_input, npc_target, world_state, model_reply
-):
-    if not local_dialogue.is_local_place_recommendation_request(player_input):
-        return None
-    import npc_statements
-    if npc_statements._named_places(model_reply):
-        return None
-    options = _local_place_recommendation_options(npc_target, world_state)
-    if not options:
-        return None
-    normalized_reply = local_dialogue.normalize_text(model_reply)
-    if any(
-        local_dialogue.normalize_text(option["name"]) in normalized_reply
-        for option in options
-    ):
-        return None
-    return f"Ben olsam {options[0]['name']} adlı yere gitmeyi denerdim."
 
 
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
@@ -7218,7 +7200,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + json.dumps(interaction_context, ensure_ascii=False, separators=(",", ":"))
             + "\n"
             + _experimental_speech_recap(interaction_context)
-            + _experimental_local_place_recommendation_guidance(
+            + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
             )
             + _experimental_speech_final_line(player_input, interaction_context)
@@ -7376,6 +7358,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "context'ten yalnızca soruyla ilgili candidate_evidence_ids. Hitap edilen "
             "kişi sorunun öznesi olmayabilir; hava gibi bir konuyu NPC'nin güncel "
             "faaliyetine zorla bağlama. Kaynağı olmayan olguyu üretme; Python seçimi doğrular."
+        )
+        prompt += _local_place_recommendation_guidance(
+            player_input, interaction_context, world_state
         )
     if experimental_npc_dialogue:
         schema = _EXPERIMENTAL_NPC_SPEECH_SCHEMA
@@ -16601,19 +16586,6 @@ def _run_player_turn_internal(
                 # Keep only the NPC's own words; a derailed model tail never
                 # reaches the player. Nothing left means the reply was unusable.
                 raw_narration = _clean_npc_speech(raw_narration)
-            local_place_fallback = False
-            fallback_text = _local_place_recommendation_fallback(
-                player_input,
-                npc_target,
-                world_state,
-                raw_narration if isinstance(raw_narration, str) else "",
-            ) if experimental_npc_dialogue else None
-            if (
-                fallback_text
-                and interaction_adventure.safe_narration(fallback_text)
-            ):
-                raw_narration = fallback_text
-                local_place_fallback = True
             invalid_or_empty = not isinstance(raw_narration, str) or not raw_narration.strip()
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
@@ -16689,7 +16661,6 @@ def _run_player_turn_internal(
                 experimental_npc_dialogue
                 and not invalid_or_empty
                 and not unverified_history_echo
-                and not local_place_fallback
                 and text == raw_narration
             )
             if experimental_npc_dialogue:
@@ -16698,12 +16669,11 @@ def _run_player_turn_internal(
                     text = f'{name}, “{text}”'
 
             if (
-                (empty_model_narration and not local_place_fallback)
+                empty_model_narration
                 or unverified_history_echo
                 or (
                     experimental_npc_dialogue
                     and invalid_or_empty
-                    and not local_place_fallback
                 )
             ):
                 narration_source = "deterministic_fallback"
