@@ -1,0 +1,75 @@
+{
+  "source_sha": "28440ba348f37a47c9954ef1b6153ec99e42c14a",
+  "turns": [
+    {
+      "phase": "select_default_npc",
+      "player_input": "Pazar girişindeki mavi pelerinli muhafıza selam veriyorum.",
+      "narration": "Bir muhafız, “Selam vermen iyi bir şey. Bu pazarın güvenliği benim görevim.”",
+      "turn_outcome": {
+        "action": "dialogue",
+        "status": "experimental_attributed_speech",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    },
+    {
+      "phase": "ask_for_local_place",
+      "player_input": "Şehirde gidebileceğim sakin bir yer önerir misin?",
+      "narration": "Bir muhafız, “Jamal Hanı'na git.”",
+      "turn_outcome": {
+        "action": "dialogue",
+        "status": "experimental_attributed_speech",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    },
+    {
+      "phase": "follow_npc_place",
+      "player_input": "Marek'in önerdiği Jamal Hanı konumuna gidiyorum.",
+      "narration": "Dar geçitte karşıdan gelenler yolun açılmasını bekliyor. Devam edebilir, durabilir veya başka bir yol seçebilirsin.",
+      "turn_outcome": {
+        "action": "travel",
+        "status": "interrupted",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    },
+    {
+      "phase": "continue_travel",
+      "player_input": "Devam ediyorum.",
+      "narration": "Jamal Hanı konumuna vardın.",
+      "turn_outcome": {
+        "action": "travel",
+        "status": "completed",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    },
+    {
+      "phase": "inspect_arrival",
+      "player_input": "Bulunduğum yeri dikkatlice inceliyorum.",
+      "narration": "Ahşap masanın kenarında duruyorsun, gözlerini etrafına çevirmişsin. Sıradan bir kil bardak, hâlâ masanın üzerinde durur. Barmenin tezgâhının arkasındaki hareketi sakin ve düzenli. Herhangi bir şeyin farkına varmamışsındır; ama bu sessizlikte bir şeyler hissediyorsun.",
+      "turn_outcome": {
+        "action": "skill_check",
+        "status": "resolved",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    }
+  ]
+}

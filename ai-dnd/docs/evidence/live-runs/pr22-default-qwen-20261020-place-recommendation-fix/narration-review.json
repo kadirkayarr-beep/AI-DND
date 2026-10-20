@@ -1,0 +1,33 @@
+{
+  "source_sha": "28440ba348f37a47c9954ef1b6153ec99e42c14a",
+  "turns": [
+    {
+      "phase": "select_default_npc",
+      "player_input": "Pazar girişindeki mavi pelerinli muhafıza selam veriyorum.",
+      "narration": "Bir muhafız, “Selam!”",
+      "turn_outcome": {
+        "action": "dialogue",
+        "status": "experimental_attributed_speech",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    },
+    {
+      "phase": "ask_for_local_place",
+      "player_input": "Şehirde gidebileceğim sakin bir yer önerir misin?",
+      "narration": "Bir muhafız omuz silkiyor. “Bunu gerçekten bilmiyorum; ağzıma gelen her şey tahminden öteye geçmez.”",
+      "turn_outcome": {
+        "action": "dialogue",
+        "status": "experimental_attributed_speech",
+        "kind": null,
+        "target_name": null,
+        "found": null,
+        "place_created": null
+      },
+      "http_status": 200
+    }
+  ]
+}

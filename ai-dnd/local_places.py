@@ -1,10 +1,11 @@
 """LR00-P3 pilot: a local place the player heads for becomes a real, saved place.
 
-Scope (OH1-SCOPE-01): inside the current settlement only. One place per kind
-per settlement, one local person, one interactable detail and one small local
-matter that is NOT a quest, reward or obligation. No new city, route, distance
-or economy. Python owns identity and persistence; the model only narrates later
-turns. Revisits and restarts reuse the saved records, never re-roll them.
+Scope (OH1-SCOPE-01): inside the current settlement only. Unnamed player
+discoveries remain one place per kind; distinct NPC-attributed names retain
+separate identities. Each place can have one local person, one interactable
+detail and one small local matter that is NOT a quest, reward or obligation.
+No new city, route, distance or economy. Python owns identity and persistence;
+the model only narrates later turns. Revisits and restarts reuse saved records.
 """
 
 from __future__ import annotations
@@ -229,9 +230,24 @@ def mentioned_by(world: dict[str, Any], kind: str) -> str | None:
     return None
 
 
-def create_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> dict[str, Any] | None:
-    """Create the saved place record (no person yet). Idempotent per settlement+kind."""
-    existing = find_local_place(world, settlement_id, kind)
+def create_local_place(
+    world: dict[str, Any],
+    settlement_id: str,
+    kind: str,
+    *,
+    name: str | None = None,
+) -> dict[str, Any] | None:
+    """Create a saved place; unnamed discoveries remain idempotent per kind."""
+    existing = (
+        next((
+            record for record in world.get("locations", {}).values()
+            if isinstance(record, dict)
+            and record.get("parent_location_id") == settlement_id
+            and living_world.normalize_text(record.get("name")) == living_world.normalize_text(name)
+        ), None)
+        if name
+        else find_local_place(world, settlement_id, kind)
+    )
     if existing:
         return existing
     locations = world.setdefault("locations", {})
@@ -247,7 +263,7 @@ def create_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> 
         number += 1
     location_id = f"location_{number:03d}"
     world["next_location_number"] = number + 1
-    name = f"{living_world.stable_local_name(world, settlement_id, 'place:' + kind)} {spec['suffix']}"
+    name = name or f"{living_world.stable_local_name(world, settlement_id, 'place:' + kind)} {spec['suffix']}"
     record = {
         "id": location_id,
         "name": name,

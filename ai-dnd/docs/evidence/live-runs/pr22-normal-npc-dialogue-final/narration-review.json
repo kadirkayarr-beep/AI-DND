@@ -1,0 +1,24 @@
+{
+  "turns": [
+    {
+      "label": "greeting",
+      "player": "Merhaba, sana bir şey danışabilir miyim?",
+      "narration": "Marek, sana bir şey danışabileceğini duymakla memnun görünüyor."
+    },
+    {
+      "label": "recommendation",
+      "player": "Şehirde gezmeye değer bir yer önerir misin?",
+      "narration": "Carrion Hanı, sokağa açılan, sade ve sıcak bir han olarak bilinir."
+    },
+    {
+      "label": "travel",
+      "player": "Marek'in önerdiği Carrion Hanı yerine gidiyorum.",
+      "narration": "Carrion Hanı konumuna vardın."
+    },
+    {
+      "label": "inspect",
+      "player": "Bulunduğum yeri dikkatlice inceliyorum.",
+      "narration": "Karanlıkta ışıldayan kil bardağı fark ederken, ahşap masanın kenarında bir şeyin titrediğini hissedersiniz. Duygusal yoğunluk artarken, barmenin gözleri sizi yakalıyor."
+    }
+  ]
+}

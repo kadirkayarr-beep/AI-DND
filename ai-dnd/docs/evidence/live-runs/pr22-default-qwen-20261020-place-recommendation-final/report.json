@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "source_sha": "28440ba348f37a47c9954ef1b6153ec99e42c14a",
+  "source_diff_sha256": "61ed15a386e8b46f921f5f1ffbd0db85652d6ab9f241c0253f88b01dc3a3983d",
+  "model": "qwen3:8b",
+  "turn_count": 6,
+  "model_calls": 5,
+  "npc_targeted": "npc_live_market_guard",
+  "place_attributed": true,
+  "place_canonical_match": true,
+  "travel_from_id": "fr:city:neverwinter",
+  "travel_to_id": "location_001",
+  "expected_destination_id": "location_001",
+  "inspection_action": "skill_check",
+  "inspection_status": "resolved",
+  "turns": [
+    {
+      "phase": "temporary_campaign_setup",
+      "calls": 0,
+      "status": "ready"
+    },
+    {
+      "phase": "select_default_npc",
+      "http": 200,
+      "calls": 1,
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "location_id": "fr:city:neverwinter",
+      "target_id": null
+    },
+    {
+      "phase": "ask_for_local_place",
+      "http": 200,
+      "calls": 2,
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "location_id": "fr:city:neverwinter",
+      "target_id": null
+    },
+    {
+      "phase": "follow_npc_place",
+      "http": 200,
+      "calls": 0,
+      "action": "travel",
+      "status": "interrupted",
+      "location_id": "fr:city:neverwinter",
+      "target_id": null
+    },
+    {
+      "phase": "continue_travel",
+      "http": 200,
+      "calls": 0,
+      "action": "travel",
+      "status": "completed",
+      "location_id": "location_001",
+      "target_id": null
+    },
+    {
+      "phase": "inspect_arrival",
+      "http": 200,
+      "calls": 2,
+      "action": "skill_check",
+      "status": "resolved",
+      "location_id": "location_001",
+      "target_id": null
+    }
+  ],
+  "total_chat_calls_including_previous_attempts": 16
+}

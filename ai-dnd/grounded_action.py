@@ -250,6 +250,10 @@ def _read_clause(clause: dict[str, Any]) -> dict[str, Any]:
     if not actions:
         return info
     position, verb, negated, infinitive = actions[-1]
+    # Keep a current first-person movement when a reported NPC utterance is
+    # only the source of its destination ("Marek'in söylediği ... yere gidiyorum").
+    if info["reported"] and verb == "go" and _FIRST_PERSON_ACT.search(text):
+        info["reported"] = False
     # "açmaya çalışıyorum", "açmayı denemiyorum", "girmek istiyorum": the
     # infinitive names the act, the helper verb only says try / want / not.
     helper = tokens[position + 1] if position + 1 < len(tokens) else ""
@@ -923,6 +927,44 @@ def _receipt(verb, status, target=None, **extra):
     return data
 
 
+def _reported_move_player_clause(player_input: str) -> str | None:
+    """Separate reported NPC travel from a subsequent player action clause.
+
+    None means this is not a reported move; an empty string means the utterance
+    contains only the NPC's reported move; otherwise return the player's clause.
+    """
+    if not isinstance(player_input, str):
+        return None
+    text = fold(player_input)
+    report = re.search(
+        r"\b(?:dedi|diyor|demis|soyledi|soyliyor|anlatti|anlatiyor|"
+        r"bahsetti|bahsediyor|konustu|konusuyor)\b",
+        text,
+    )
+    if report is None:
+        return None
+    moves = list(re.finditer(r"\b(?:gid\w*|git\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", text))
+    if not any(move.start() < report.start() for move in moves):
+        return None
+    tail = player_input[report.end():]
+    player_clause = re.search(
+        r"(?:^|[,;])\s*(?:ben\s+)?(?P<clause>.+)$", tail, re.IGNORECASE
+    )
+    if not player_clause:
+        return ""
+    clause_text = player_clause.group("clause").strip()
+    clauses, _ = split_clauses(clause_text)
+    if any(
+        (info := _read_clause(clause))["verb"]
+        and not info["reported"]
+        and not info["question"]
+        and not info["conditional"]
+        for clause in clauses
+    ):
+        return clause_text
+    return ""
+
+
 def _place_target(run: _Run, target: dict[str, Any] | None) -> dict[str, Any] | None:
     """A place candidate for a place, its door, or a followed reference."""
     if target is None:
@@ -979,7 +1021,7 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
     if len(locations) >= 80:
         return None
     if kind in local_places.PLACE_KINDS:
-        record = local_places.create_local_place(world, settlement, kind)
+        record = local_places.create_local_place(world, settlement, kind, name=name)
         if record is None:
             return None
         if name and fold(record.get("name")) != fold(name):
@@ -2208,6 +2250,27 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     world = session.world_state
     if not isinstance(world, dict):
         return None
+    if isinstance(player_input, str):
+        player_clause = _reported_move_player_clause(player_input)
+        if player_clause is not None:
+            if player_clause:
+                player_input = player_clause
+            else:
+                if dry_run:
+                    return True
+                narration = "Aktarılan NPC sözü oyuncunun hareketi sayılmaz."
+                return {
+                    "messages": session.messages,
+                    "narration": narration,
+                    "model_calls": 0,
+                    "action_result": {
+                        "action": "narrative",
+                        "status": "no_effect",
+                        "success": False,
+                        "state_changes": [],
+                        "direct_response": narration,
+                    },
+                }
     snapshot = copy.deepcopy(world)
     try:
         decision, payload = _decide(session, player_input, interaction_mode=interaction_mode,

@@ -1,0 +1,38 @@
+{
+  "status": "BLOCKED_OR_FAILED",
+  "source_sha": "28440ba348f37a47c9954ef1b6153ec99e42c14a",
+  "model": "qwen3:8b",
+  "error_class": "RuntimeError",
+  "error_code": "NO_ATTRIBUTED_CANONICAL_PLACE",
+  "turn_count": 3,
+  "model_calls": 3,
+  "npc_targeted": "npc_live_market_guard",
+  "place_attributed": false,
+  "expected_destination_id": null,
+  "turns": [
+    {
+      "phase": "temporary_campaign_setup",
+      "calls": 0,
+      "status": "ready"
+    },
+    {
+      "phase": "select_default_npc",
+      "http": 200,
+      "calls": 1,
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "location_id": "fr:city:neverwinter",
+      "target_id": null
+    },
+    {
+      "phase": "ask_for_local_place",
+      "http": 200,
+      "calls": 2,
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "location_id": "fr:city:neverwinter",
+      "target_id": null
+    }
+  ],
+  "total_chat_calls_including_previous_attempts": 7
+}

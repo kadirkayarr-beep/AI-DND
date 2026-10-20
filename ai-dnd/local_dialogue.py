@@ -248,6 +248,30 @@ def is_world_subject_question(value: Any) -> bool:
     return bool(_WORLD_SUBJECT_TERMS.search(value) and _QUESTION_SIGNAL.search(value))
 
 
+def is_local_place_recommendation_request(value: Any) -> bool:
+    """An ordinary request for an NPC's local recommendation, not a canon claim."""
+    text = normalize_text(value)
+    if not text:
+        return False
+    if re.search(
+        r"\b(?:daha once|onceki|gecmis|hatirla\w*|"
+        r"soz ver\w*|soylemistin|demistin|anlatmistin|bahsetmistin|"
+        r"secret|hidden|gizli|sakli|yasakli)\b",
+        text,
+    ):
+        return False
+    asks_for_place = bool(
+        re.search(r"\b(?:yer\w*|mekan\w*|nereye|lokasyon\w*)\b", text)
+    )
+    asks_for_recommendation = bool(
+        re.search(
+            r"\b(?:oner\w*|tavsiye\w*|recommend\w*|suggest\w*)\b",
+            text,
+        )
+    )
+    return asks_for_place and asks_for_recommendation
+
+
 def explicit_player_name_disclosure(value: Any) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None

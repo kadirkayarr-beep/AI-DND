@@ -1,0 +1,93 @@
+[
+  {
+    "script": "pr22_mixed_action",
+    "theme": "Varsayılan API'de rapor edilen NPC hareketinden sonra gerçek kapı incelemesi",
+    "opening": ""
+  },
+  {
+    "script": "pr22_mixed_action",
+    "turn": 1,
+    "player": "Yakındaki hanın kapısına yaklaşıyorum.",
+    "expect_written_blind": "Geçici kampanyada yer ve kapı kaydının oluşması.",
+    "http_status": 200,
+    "shown": "Hangisini kastediyorsun: Yakındaki kişi, Carrion Hanı Kapısı ya da Carrion Hanı?",
+    "error": null,
+    "seconds": 0.87,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "grounded_action",
+      "status": "clarification",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": {
+      "source": "deterministic",
+      "model_calls": 0
+    },
+    "changes": {
+      "doors": {
+        "venue-door:location_001": [
+          null,
+          {
+            "name": "Carrion Hanı Kapısı",
+            "open": false,
+            "locked": true,
+            "broken": false
+          }
+        ]
+      },
+      "new_locations": {
+        "location_001": "Carrion Hanı"
+      },
+      "new_npcs": {
+        "npc_001": {
+          "name": "Rowan",
+          "location": "fr:city:neverwinter"
+        },
+        "npc_002": {
+          "name": "Dessa",
+          "location": "fr:city:neverwinter"
+        }
+      }
+    },
+    "where": "Neverwinter"
+  },
+  {
+    "script": "pr22_mixed_action",
+    "turn": 2,
+    "player": "Marek oraya doğru gidiyorum dedi; ben hanın kapısını inceliyorum.",
+    "expect_written_blind": "NPC'nin hareketi oyuncuya yüklenmeden aynı han kapısında gerçek inceleme sonucu.",
+    "http_status": 200,
+    "shown": "Kime ya da neye yöneldiğini seçemedim (yakınındakiler: Yakındaki kişi, Bir muhafız; çevrede: Carrion Hanı Kapısı, Carrion Hanı). Hangisini kastediyorsun?",
+    "error": null,
+    "seconds": 0.29,
+    "model_calls": 0,
+    "model_call_seconds": [],
+    "receipt": {
+      "action": "approach",
+      "status": "clarification",
+      "success": false,
+      "reason": null,
+      "target_name": null,
+      "skill": null,
+      "dice": null,
+      "total": null,
+      "dc": null,
+      "outcome": null,
+      "npc_id": null
+    },
+    "steps": [],
+    "grounding": null,
+    "changes": {},
+    "where": "Neverwinter"
+  }
+]

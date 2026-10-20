@@ -1,0 +1,24 @@
+{
+  "turns": [
+    {
+      "label": "greeting",
+      "player": "Merhaba, sana bir şey danışabilir miyim?",
+      "narration": "Marek, sana bir şey danışabileceğini düşünerek sana biraz ilgi gösterdi."
+    },
+    {
+      "label": "recommendation",
+      "player": "Şehirde gezmeye değer bir yer önerir misin?",
+      "narration": "Marek, sadece Lidda Hanı'na yönlendirdi."
+    },
+    {
+      "label": "travel",
+      "player": "Marek'in önerdiği Lidda Hanı yerine gidiyorum.",
+      "narration": "Lidda Hanı Kapısı kapalı. İçeri geçemezsin."
+    },
+    {
+      "label": "inspect",
+      "player": "Bulunduğum yeri dikkatlice inceliyorum.",
+      "narration": "Sokağı dikkatle süzüyorsun. Lidda Hanı kapısının kilitli olduğunu fark edersin, ama etrafında bir şey yok gibi görünüyor. Biraz ilgi çeken Marek, sana yaklaşarak 'Lidda Hanı'na gitmeni önerirken, diğerlerinin de gözlerini senin üzerine çevirdiğini hissedersin."
+    }
+  ]
+}
