@@ -552,3 +552,208 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 if item.get("id") == door["id"]
             )["locked"])
             self.assertLessEqual(client.chat_calls, 3)
+
+    async def test_default_new_place_is_campaign_scoped_replayable_and_cold_loadable(self):
+        city_id, session_id, session, turn_url, _, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        npc = {
+            "id": "npc_default_new_place",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {},
+            "knowledge": [],
+            "status": "active",
+            "combat_status": "active",
+            "current_hp": 12,
+            "memory": [],
+        }
+        session.world_state["npcs"].append(npc)
+
+        other_creation = await test_campaign_api.CampaignApiTests.create_campaign(self)
+        self.assertNotEqual(other_creation["session_id"], session_id)
+        other_session = self.manager.get(
+            other_creation["session_id"]
+        ).game_session
+        other_campaign_id = self.manager.get(
+            other_creation["session_id"]
+        ).campaign_id
+        campaign_id = self.manager.get(session_id).campaign_id
+        self.assertNotEqual(campaign_id, other_campaign_id)
+
+        spoken_place = "Mavi Fener Camhanesi"
+        quote = (
+            f"{spoken_place} doğu kapısının yanında; bence uğramaya değer."
+        )
+        client = AttributedPlaceClient(npc["id"], quote)
+        suggestion_action_id = str(uuid.uuid4())
+        suggestion_body = {
+            "message": "Yakınlarda başka bir yer önerir misin?",
+            "interaction_mode": "do",
+            "target_id": npc["id"],
+            "action_id": suggestion_action_id,
+        }
+        with patch.dict(os.environ):
+            os.environ.pop("AI_DND_NPC_SPEECH", None)
+            suggestion = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self, turn_url, client, suggestion_body
+            )
+        self.assertEqual(suggestion.status_code, 200, suggestion.text)
+        suggestion_payload = suggestion.json()
+        suggestion_outcome = suggestion_payload["turn_outcome"]
+        self.assertEqual(suggestion_payload["action_id"], suggestion_action_id)
+        self.assertEqual(suggestion_outcome.get("action"), "dialogue")
+        self.assertEqual(suggestion_outcome.get("status"), "resolved")
+        # Dialogue receipts intentionally omit target IDs and names; the
+        # request target and the recorded said_by reference are authoritative.
+        self.assertIsNone(suggestion_outcome.get("target_name"))
+        self.assertEqual(suggestion_payload["state"]["location"], city_id)
+        self.assertIn(quote, suggestion_payload["narration"])
+        refs = npc_statements.place_references(
+            session.world_state, settlement_id=city_id
+        )
+        rumor = next(
+            ref for ref in refs if ref.get("name") == spoken_place
+        )
+        self.assertEqual(rumor.get("said_by"), npc["id"])
+        self.assertIn(quote, rumor.get("quotes", []))
+        self.assertIsNone(rumor.get("location_id"))
+        self.assertFalse(any(
+            item.get("name") == spoken_place
+            for item in session.world_state["locations"].values()
+        ))
+
+        calls_after_suggestion = client.chat_calls
+        suggestion_state = json.dumps(
+            session.world_state, sort_keys=True, ensure_ascii=False
+        )
+        suggestion_replay = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, suggestion_body
+        )
+        self.assertEqual(suggestion_replay.status_code, 200, suggestion_replay.text)
+        self.assertEqual(suggestion_replay.json(), suggestion_payload)
+        self.assertEqual(client.chat_calls, calls_after_suggestion)
+        self.assertEqual(
+            json.dumps(session.world_state, sort_keys=True, ensure_ascii=False),
+            suggestion_state,
+        )
+
+        self.assertFalse(any(
+            npc_item.get("id") == npc["id"]
+            for npc_item in other_session.world_state.get("npcs", [])
+        ))
+        self.assertFalse(any(
+            location.get("name") == spoken_place
+            for location in other_session.world_state.get("locations", {}).values()
+        ))
+        self.assertFalse(any(
+            ref.get("name") == spoken_place
+            for ref in npc_statements.place_references(
+                other_session.world_state,
+                settlement_id=other_session.world_state.get("location"),
+            )
+        ))
+
+        self.assertEqual(
+            (await self.http.post(
+                f"/api/game/campaigns/{campaign_id}/save"
+            )).status_code,
+            200,
+        )
+        self.assertEqual(
+            (await self.http.post(
+                f"/api/game/campaigns/{other_campaign_id}/save"
+            )).status_code,
+            200,
+        )
+        cold_manager = test_campaign_api.SessionManager(campaign_store=self.store)
+        cold_app = test_campaign_api.create_app(
+            session_manager=cold_manager,
+            ollama_adapter=test_campaign_api.AuthenticatedOllamaAdapter(client),
+            authenticator=test_campaign_api.FixedAuthenticator(
+                test_campaign_api.TEST_PLAYER
+            ),
+        )
+        async with test_campaign_api.httpx.AsyncClient(
+            transport=test_campaign_api.httpx.ASGITransport(app=cold_app),
+            base_url="http://cold-load",
+        ) as cold_http:
+            resumed = await cold_http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            resumed_session_id = resumed.json()["session_id"]
+            self.assertNotEqual(resumed_session_id, session_id)
+            resumed_session = cold_manager.get(
+                resumed_session_id
+            ).game_session
+            self.assertEqual(resumed_session.world_state["location"], city_id)
+            self.assertIn(
+                npc["id"],
+                {item.get("id") for item in resumed_session.world_state["npcs"]},
+            )
+            cold_ref = next(
+                ref for ref in npc_statements.place_references(
+                    resumed_session.world_state, settlement_id=city_id
+                ) if ref.get("name") == spoken_place
+            )
+            self.assertEqual(cold_ref.get("said_by"), npc["id"])
+            self.assertIn(quote, cold_ref.get("quotes", []))
+            self.assertIsNone(cold_ref.get("location_id"))
+            self.assertFalse(any(
+                location.get("name") == spoken_place
+                for location in resumed_session.world_state["locations"].values()
+            ))
+
+            resumed_turn_url = (
+                f"/api/game/sessions/{resumed_session_id}/turn"
+            )
+            calls_before_cold_replays = client.chat_calls
+            cold_state_before_replay = json.dumps(
+                resumed_session.world_state,
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+            cold_suggestion_replay = await cold_http.post(
+                resumed_turn_url, json=suggestion_body
+            )
+            self.assertEqual(cold_suggestion_replay.status_code, 200)
+            self.assertEqual(
+                cold_suggestion_replay.json()["action_id"],
+                suggestion_action_id,
+            )
+            self.assertEqual(
+                cold_suggestion_replay.json()["turn_outcome"],
+                suggestion_payload["turn_outcome"],
+            )
+            self.assertEqual(
+                cold_suggestion_replay.json()["narration"],
+                suggestion_payload["narration"],
+            )
+            self.assertEqual(client.chat_calls, calls_before_cold_replays)
+            self.assertEqual(
+                json.dumps(
+                    resumed_session.world_state,
+                    sort_keys=True,
+                    ensure_ascii=False,
+                ),
+                cold_state_before_replay,
+            )
+
+            other_resumed = await cold_http.post(
+                f"/api/game/campaigns/{other_campaign_id}/resume"
+            )
+            self.assertEqual(other_resumed.status_code, 200, other_resumed.text)
+            other_loaded = cold_manager.get(
+                other_resumed.json()["session_id"]
+            ).game_session
+            self.assertFalse(any(
+                item.get("id") == npc["id"]
+                for item in other_loaded.world_state.get("npcs", [])
+            ))
+            self.assertFalse(any(
+                location.get("name") == spoken_place
+                for location in other_loaded.world_state["locations"].values()
+            ))
