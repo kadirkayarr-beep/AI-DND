@@ -4,13 +4,12 @@ import json
 import subprocess
 import unicodedata
 from pathlib import Path
+from external_sources import source_path
 
 import pymupdf
 
 
-SOURCE = Path(
-    "attached_assets/Forgotten_Realms_-_Heroes_of_Faerun_1790680112925.pdf"
-)
+SOURCE = source_path('Forgotten_Realms_-_Heroes_of_Faerun_1790680112925.pdf')
 OUTPUT = Path(".agents/outputs/dnd-reference-review")
 OUTPUT.mkdir(parents=True, exist_ok=True)
 TEXT_OUTPUT = OUTPUT / "heroes-of-faerun-ocr.txt"

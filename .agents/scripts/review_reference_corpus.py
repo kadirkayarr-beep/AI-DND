@@ -4,6 +4,7 @@ import json
 import re
 import unicodedata
 from pathlib import Path
+from external_sources import source_path
 
 import fitz
 
@@ -15,7 +16,7 @@ SOURCES = [
     {
         "key": "dmg_2024",
         "title": "D&D 5e Dungeon Master's Guide 2024",
-        "path": Path("attached_assets/D&D_5e_-_Dungeon_Master_Guide_2024_1790967864536.pdf"),
+        "path": source_path('D&D_5e_-_Dungeon_Master_Guide_2024_1790967864536.pdf'),
         "terms": [
             "campaign", "adventure", "encounter", "magic item", "attunement",
             "treasure", "downtime", "travel", "faction", "fear", "chase",
@@ -24,7 +25,7 @@ SOURCES = [
     {
         "key": "mm_2024",
         "title": "D&D 5e Monster Manual 2024",
-        "path": Path("attached_assets/D&D_5e_-_Monster_Manual_2024_1790967864536.pdf"),
+        "path": source_path('D&D_5e_-_Monster_Manual_2024_1790967864536.pdf'),
         "terms": [
             "challenge rating", "legendary action", "lair action", "goblin",
             "wolf", "skeleton", "zombie", "bandit", "owlbear", "dragon",
@@ -34,7 +35,7 @@ SOURCES = [
     {
         "key": "phb_2024",
         "title": "D&D 5e Player's Handbook 2024",
-        "path": Path("attached_assets/D&D_5e_-_Players_Handbook_2024_1790967864536.pdf"),
+        "path": source_path('D&D_5e_-_Players_Handbook_2024_1790967864536.pdf'),
         "terms": [
             "d20 test", "attack roll", "saving throw", "death saving throw",
             "exhaustion", "weapon mastery", "weapon properties", "concentration",
@@ -45,7 +46,7 @@ SOURCES = [
     {
         "key": "adventures_faerun",
         "title": "Forgotten Realms: Adventures in Faerûn",
-        "path": Path("attached_assets/Forgotten_Realms_-_Adventures_in_Faerûn_1790680112924.pdf"),
+        "path": source_path('Forgotten_Realms_-_Adventures_in_Faerûn_1790680112924.pdf'),
         "terms": [
             "Faerûn", "Sword Coast", "Neverwinter", "Waterdeep", "Baldur's Gate",
             "Icewind Dale", "Anauroch", "Netheril", "Harpers", "Zhentarim",
@@ -56,7 +57,7 @@ SOURCES = [
     {
         "key": "heroes_faerun",
         "title": "Forgotten Realms: Heroes of Faerûn",
-        "path": Path("attached_assets/Forgotten_Realms_-_Heroes_of_Faerun_1790680112925.pdf"),
+        "path": source_path('Forgotten_Realms_-_Heroes_of_Faerun_1790680112925.pdf'),
         "terms": [
             "Faerûn", "background", "species", "subclass", "feat", "spell",
             "Harpers", "Zhentarim", "Lords' Alliance", "Emerald Enclave",
@@ -66,7 +67,7 @@ SOURCES = [
     {
         "key": "netherils_fall",
         "title": "Forgotten Realms: Netheril's Fall",
-        "path": Path("attached_assets/Forgotten_Realms_Netheril_s_Fall_(mostly_here)_1790968211203.pdf"),
+        "path": source_path('Forgotten_Realms_Netheril_s_Fall_(mostly_here)_1790968211203.pdf'),
         "terms": [
             "Netheril", "Karsus", "Mystryl", "Mystra", "Ioulaum", "phaerimm",
             "Anauroch", "Thultanthar", "City of Shade", "mythallar",

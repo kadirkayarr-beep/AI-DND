@@ -37,3 +37,7 @@ Local ownership behavior remains unchanged: 409/404 differences remain, includin
 Unreferenced historical development-run outputs and pasted prompt files were moved to `C:\Users\Kadir\Documents\AI-DND-Arsiv\2026-10-22\repo-cleanup`, preserving repository-relative paths with a SHA256 manifest. They remain recoverable locally and in Git history at the gameplay baseline. Historical JSON run manifests may still list their original paths as snapshots of the old tree; those are archival observations, not active file links or runtime inputs.
 
 Referenced reports, approved specifications, fixtures, generated API clients, licenses, assets and all product sources remain. Untracked agent configuration, personal saves, credentials, other worktrees and desktop transfer packages were not swept into this cleanup. Do not bulk-read old evidence when reviewing current behavior; retrieve a specific archived record only when needed.
+
+## External books and deliveries
+
+Large owner-provided books and historical deliveries now live outside the repository. See [EXTERNAL_SOURCES.md](EXTERNAL_SOURCES.md) for portable research setup and the separate full-book identity check. Default CI validates reviewed source metadata and application behavior; it does not claim to have checked unavailable book bytes. Runtime product code is unchanged by this extraction.

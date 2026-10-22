@@ -101,3 +101,8 @@ ai-dnd/reports/wave3-local-live-*/full_suite_release_gates.log
 # graphify (generated knowledge graph output)
 graphify-out/
 **/graphify-out/
+
+# Owner-provided external books and historical delivery archives
+/attached_assets/*.pdf
+/attached_assets/*.rar
+/attached_assets/.*.pdf.*~

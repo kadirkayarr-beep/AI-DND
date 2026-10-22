@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from external_sources import source_path
 
 import fitz
 
@@ -12,17 +13,17 @@ OUTPUT.mkdir(parents=True, exist_ok=True)
 SOURCES = [
     (
         "Dungeon Master's Guide 2024",
-        Path("attached_assets/D&D_5e_-_Dungeon_Master_Guide_2024_1790967864536.pdf"),
+        source_path('D&D_5e_-_Dungeon_Master_Guide_2024_1790967864536.pdf'),
         ["Netheril", "Forgotten Realms", "campaign", "adventure", "magic item"],
     ),
     (
         "Monster Manual 2024",
-        Path("attached_assets/D&D_5e_-_Monster_Manual_2024_1790967864536.pdf"),
+        source_path('D&D_5e_-_Monster_Manual_2024_1790967864536.pdf'),
         ["Netheril", "lich", "phaerimm", "dragon", "beholder"],
     ),
     (
         "Player's Handbook 2024",
-        Path("attached_assets/D&D_5e_-_Players_Handbook_2024_1790967864536.pdf"),
+        source_path('D&D_5e_-_Players_Handbook_2024_1790967864536.pdf'),
         [
             "Fighting Style",
             "Protection",
@@ -38,7 +39,7 @@ SOURCES = [
     ),
     (
         "Forgotten Realms: Netheril's Fall",
-        Path("attached_assets/Forgotten_Realms_Netheril_s_Fall_(mostly_here)_1790968211203.pdf"),
+        source_path('Forgotten_Realms_Netheril_s_Fall_(mostly_here)_1790968211203.pdf'),
         [
             "Netheril",
             "Karsus",
