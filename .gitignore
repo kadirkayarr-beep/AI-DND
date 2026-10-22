@@ -97,3 +97,7 @@ ai-dnd/reports/wave3-local-live-*/full_suite_api_discover.log
 ai-dnd/reports/wave3-local-live-*/full_suite_release_gates.log
 !ai-dnd/reports/wave3-local-live-*/full_suite_*_retry.log
 !ai-dnd/reports/wave3-local-live-*/posix_httpevidence_wsl.log
+
+# graphify (generated knowledge graph output)
+graphify-out/
+**/graphify-out/
