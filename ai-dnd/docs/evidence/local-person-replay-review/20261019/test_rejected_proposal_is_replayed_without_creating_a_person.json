@@ -1,0 +1,29 @@
+[
+  {
+    "step": "proposal colliding with canonical Neris",
+    "http_status": 200,
+    "turn_status": "proposal_rejected",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": []
+  },
+  {
+    "step": "same action_id replay of rejection",
+    "http_status": 200,
+    "turn_status": "proposal_rejected",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": []
+  },
+  {
+    "step": "retry with new action_id",
+    "http_status": 200,
+    "turn_status": "proposal_rejected",
+    "model_calls_total": 2,
+    "history_rows": 2,
+    "receipt_rows": 2,
+    "stored_local_people": []
+  }
+]

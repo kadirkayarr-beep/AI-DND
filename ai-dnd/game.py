@@ -14051,6 +14051,15 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     """Resolve ordinary local actions and materialize before scoped lore lookup."""
     world_state = _session().world_state
     interaction_mode = _normalize_interaction_mode(interaction_mode)
+    # LR00 fix: a turn the grounded owner will take must not get this planner's
+    # side effects first (a tavern created by a tavern search, a person made
+    # the active interlocutor by an approach). The dry run writes nothing.
+    import grounded_action
+    if grounded_action.resolve_turn(
+        _session(), player_input, interaction_mode=interaction_mode, target_id=target_id, dry_run=True,
+    ):
+        return {"direct_result": None, "state_changes": [],
+                "procedural_entity_ids_before": _current_procedural_entity_ids()}
     anchored_structure = living_world.is_anchored_structure_inquiry(player_input)
     affirmative_anchored_inspection = (
         anchored_structure

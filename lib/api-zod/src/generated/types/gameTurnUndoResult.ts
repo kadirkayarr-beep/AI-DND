@@ -5,8 +5,12 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameState } from './gameState';
 
-export interface TurnUndoRequest {
+export interface GameTurnUndoResult {
+  session_id: string;
   action_id: string;
-  target_action_id: string;
+  undone_action_id: string;
+  narration: string;
+  state: GameState;
 }

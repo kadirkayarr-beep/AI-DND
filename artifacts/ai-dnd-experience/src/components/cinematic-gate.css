@@ -1009,3 +1009,25 @@
 @media (prefers-reduced-motion: reduce) {
   .cinematic-reveal .reveal-back { transition: none; }
 }
+
+@media (max-width: 560px) {
+  .cinematic-gate .opening-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "emblem" "copy";
+    min-height: auto;
+    align-items: start;
+    gap: 16px;
+    padding-top: 14px;
+  }
+  .cinematic-gate .opening-art {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    display: grid;
+    grid-area: emblem;
+    justify-items: center;
+    min-height: 0;
+  }
+  .cinematic-gate .opening-copy { grid-area: copy; order: 0; }
+  .cinematic-gate .opening-emblem-frame { width: min(100%, 8rem); }
+}

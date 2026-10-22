@@ -1,0 +1,111 @@
+python : test_later_description_finds_same_person_after_cold_restart (api.tests.test_local_person_replay_review.LocalPe
+rsonReplayReviewTests.test_later_description_finds_same_person_after_cold_restart) ... INFO: Lore retrieval turn=1 sele
+cted_fact_count=0 selected_fact_ids=[]
+At C:\Users\Kadir\AppData\Local\Temp\ps-script-b9464279-4b44-4161-aad9-218e76207025.ps1:93 char:234
++ ... CE_DIR=$ev; python -m unittest api.tests.test_local_person_replay_rev ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (test_later_desc...ted_fact_ids=[]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=2, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=2, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=reused_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+test_rejected_proposal_is_replayed_without_creating_a_person (api.tests.test_local_person_replay_review.LocalPersonRepl
+ayReviewTests.test_rejected_proposal_is_replayed_without_creating_a_person) ... INFO: Lore retrieval turn=1 selected_fa
+ct_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=proposal_rejected, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=proposal_rejected, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+test_same_action_id_elsewhere_never_returns_first_campaign_person (api.tests.test_local_person_replay_review.LocalPerso
+nReplayReviewTests.test_same_action_id_elsewhere_never_returns_first_campaign_person) ... INFO: Lore retrieval turn=1 s
+elected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+test_same_action_id_replay_returns_receipt_without_new_work (api.tests.test_local_person_replay_review.LocalPersonRepla
+yReviewTests.test_same_action_id_replay_returns_receipt_without_new_work) ... Executing <Task finished name='Task-72' c
+oro=<LocalPersonReplayReviewTests.asyncSetUp() done, defined at C:\Users\Kadir\Desktop\AI-DND-local-person-replay-revie
+w\ai-dnd\api\tests\test_local_person_replay_review.py:122> result=None created at C:\Users\Kadir\AppData\Local\Python\p
+ythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.120 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+test_same_action_id_replay_survives_http_resume_and_cold_restart (api.tests.test_local_person_replay_review.LocalPerson
+ReplayReviewTests.test_same_action_id_replay_survives_http_resume_and_cold_restart) ... Executing <Task finished name='
+Task-91' coro=<LocalPersonReplayReviewTests.asyncSetUp() done, defined at C:\Users\Kadir\Desktop\AI-DND-local-person-re
+play-review\ai-dnd\api\tests\test_local_person_replay_review.py:122> result=None created at C:\Users\Kadir\AppData\Loca
+l\Python\pythoncore-3.14-64\Lib\asyncio\runners.py:109> took 0.147 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+test_save_failure_leaves_no_person_and_retry_creates_exactly_one (api.tests.test_local_person_replay_review.LocalPerson
+ReplayReviewTests.test_save_failure_leaves_no_person_and_retry_creates_exactly_one) ... INFO: Lore retrieval turn=1 sel
+ected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=created_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=reused_local_person, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, na
+rrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, nar
+rative_selected={}, narrative_ambiguities=0)
+ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 3.467s
+
+OK

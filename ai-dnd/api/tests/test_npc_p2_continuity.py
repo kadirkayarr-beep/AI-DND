@@ -15,6 +15,7 @@ import game
 
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as harness
+from api.tests.test_untrusted_player_input import CLASSIFIER_PREFIX, read_block
 
 ScriptedNpcSpeechClient = harness.ScriptedNpcSpeechClient
 
@@ -433,8 +434,10 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         client.narration = "Çünkü arşiv bana emanet."
         await self.say(turn_url, client, npc, FOLLOWUP)
         prompt = self.user_prompt(client, 1)
-        tail = prompt.rstrip().splitlines()[-1]
-        self.assertIn(FOLLOWUP, tail, tail)
+        shown, _, closing = read_block(prompt, CLASSIFIER_PREFIX)
+        self.assertEqual(shown, FOLLOWUP)
+        self.assertEqual(prompt.count('<UNTRUSTED_USER_INPUT id='), 1)
+        self.assertTrue(prompt.split(closing, 1)[1].startswith(" (a short follow-up"))
         self.assertIn("rumor", prompt.casefold())
         self.assertRegex(prompt, r"(?i)only if|yalnızca .*sorarsa|unless the player asks")
         self.assertIn("Kendini tanıtır mısın?", prompt)
@@ -533,7 +536,10 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context["recent_player_utterances"], [])
         self.assertEqual(context["last_exchange"]["player"], "Yağmurda ne içersin?")
         tail = prompt.rstrip().splitlines()[-1]
-        self.assertIn("Neden onu?", tail)
+        shown, _, closing = read_block(prompt, CLASSIFIER_PREFIX)
+        self.assertEqual(shown, "Neden onu?")
+        self.assertEqual(prompt.count('<UNTRUSTED_USER_INPUT id='), 1)
+        self.assertTrue(prompt.split(closing, 1)[1].startswith(" (a short follow-up"))
         self.assertIn(FIRST_REPLY.rstrip("."), tail, "last line must restate the referent")
 
     async def test_live3_a_fresh_topic_question_keeps_the_rumor_available(self):

@@ -27,5 +27,6 @@ export interface GameTurnResult {
   quest_outcomes: QuestOutcome[];
   /** Server-owned experience award for this turn. Null when the turn granted no experience. */
   level_up: LevelUpResult | null;
+  /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
 }

@@ -37,15 +37,15 @@ import type {
   GameState,
   GameTurnInput,
   GameTurnResult,
+  GameTurnUndoInput,
+  GameTurnUndoResult,
   HealthResponse,
   IdentitySuggestionJob,
   IdentitySuggestionRequest,
   QuestCommandResult,
   RequestValidationErrorResponse,
   SpeciesTraitActionInput,
-  SpeciesTraitCommandResult,
-  TurnUndoRequest,
-  TurnUndoResponse
+  SpeciesTraitCommandResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -569,6 +569,95 @@ export const usePlayGameTurn = <TError = ErrorType<AuthenticationRequiredRespons
         TContext
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
+    }
+
+export const getUndoGameTurnUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/undo`
+}
+
+/**
+ * @summary Undo the last completed turn and its effects (one step)
+ */
+export const undoGameTurn = async (sessionId: string,
+    gameTurnUndoInput: GameTurnUndoInput, options?: Parameters<typeof customFetch>[1]): Promise<GameTurnUndoResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GameTurnUndoResult>(getUndoGameTurnUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(gameTurnUndoInput)
+  }
+);}
+
+
+
+
+
+export const getUndoGameTurnMutationKey = () => ['undoGameTurn'] as const;
+
+export const getUndoGameTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext> => {
+
+const mutationKey = getUndoGameTurnMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoGameTurn>>, UndoGameTurnMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  undoGameTurn(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoGameTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoGameTurn>>>
+    export type UndoGameTurnMutationBody = BodyType<GameTurnUndoInput>
+    export type UndoGameTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type UndoGameTurnMutationVariables = {sessionId: string;data: BodyType<GameTurnUndoInput>}
+
+    /**
+ * @summary Undo the last completed turn and its effects (one step)
+ */
+export const useUndoGameTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoGameTurn>>,
+        TError,
+        UndoGameTurnMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUndoGameTurnMutationOptions(options));
     }
 
 export const getAcceptGameQuestUrl = (sessionId: string,
@@ -2790,6 +2879,95 @@ export const usePlayLegacyTurn = <TError = ErrorType<AuthenticationRequiredRespo
       return useMutation(getPlayLegacyTurnMutationOptions(options));
     }
 
+export const getUndoLegacyTurnUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/undo`
+}
+
+/**
+ * @summary Legacy undo alias
+ */
+export const undoLegacyTurn = async (sessionId: string,
+    gameTurnUndoInput: GameTurnUndoInput, options?: Parameters<typeof customFetch>[1]): Promise<GameTurnUndoResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GameTurnUndoResult>(getUndoLegacyTurnUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(gameTurnUndoInput)
+  }
+);}
+
+
+
+
+
+export const getUndoLegacyTurnMutationKey = () => ['undoLegacyTurn'] as const;
+
+export const getUndoLegacyTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext> => {
+
+const mutationKey = getUndoLegacyTurnMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLegacyTurn>>, UndoLegacyTurnMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  undoLegacyTurn(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoLegacyTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoLegacyTurn>>>
+    export type UndoLegacyTurnMutationBody = BodyType<GameTurnUndoInput>
+    export type UndoLegacyTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type UndoLegacyTurnMutationVariables = {sessionId: string;data: BodyType<GameTurnUndoInput>}
+
+    /**
+ * @summary Legacy undo alias
+ */
+export const useUndoLegacyTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoLegacyTurn>>,
+        TError,
+        UndoLegacyTurnMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUndoLegacyTurnMutationOptions(options));
+    }
+
 export const getGetLegacyCampaignsUrl = () => {
 
 
@@ -3258,183 +3436,5 @@ export const useSaveLegacyCampaign = <TError = ErrorType<AuthenticationRequiredR
         TContext
       > => {
       return useMutation(getSaveLegacyCampaignMutationOptions(options));
-    }
-
-export const getUndoGameTurnUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/game/sessions/${sessionId}/undo`
-}
-
-/**
- * @summary Undo the last completed turn by action ID
- */
-export const undoGameTurn = async (sessionId: string,
-    turnUndoRequest: TurnUndoRequest, options?: Parameters<typeof customFetch>[1]): Promise<TurnUndoResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<TurnUndoResponse>(getUndoGameTurnUrl(sessionId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(turnUndoRequest)
-  }
-);}
-
-
-
-
-
-export const getUndoGameTurnMutationKey = () => ['undoGameTurn'] as const;
-
-export const getUndoGameTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext> => {
-
-const mutationKey = getUndoGameTurnMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoGameTurn>>, UndoGameTurnMutationVariables> = (props) => {
-          const {sessionId,data} = props ?? {};
-
-          return  undoGameTurn(sessionId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UndoGameTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoGameTurn>>>
-    export type UndoGameTurnMutationBody = BodyType<TurnUndoRequest>
-    export type UndoGameTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
-    export type UndoGameTurnMutationVariables = {sessionId: string;data: BodyType<TurnUndoRequest>}
-
-    /**
- * @summary Undo the last completed turn by action ID
- */
-export const useUndoGameTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof undoGameTurn>>,
-        TError,
-        UndoGameTurnMutationVariables,
-        TContext
-      > => {
-      return useMutation(getUndoGameTurnMutationOptions(options));
-    }
-
-export const getUndoLegacyTurnUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/sessions/${sessionId}/undo`
-}
-
-/**
- * @summary Undo the last completed turn by action ID
- */
-export const undoLegacyTurn = async (sessionId: string,
-    turnUndoRequest: TurnUndoRequest, options?: Parameters<typeof customFetch>[1]): Promise<TurnUndoResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<TurnUndoResponse>(getUndoLegacyTurnUrl(sessionId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(turnUndoRequest)
-  }
-);}
-
-
-
-
-
-export const getUndoLegacyTurnMutationKey = () => ['undoLegacyTurn'] as const;
-
-export const getUndoLegacyTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext> => {
-
-const mutationKey = getUndoLegacyTurnMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLegacyTurn>>, UndoLegacyTurnMutationVariables> = (props) => {
-          const {sessionId,data} = props ?? {};
-
-          return  undoLegacyTurn(sessionId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UndoLegacyTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoLegacyTurn>>>
-    export type UndoLegacyTurnMutationBody = BodyType<TurnUndoRequest>
-    export type UndoLegacyTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
-    export type UndoLegacyTurnMutationVariables = {sessionId: string;data: BodyType<TurnUndoRequest>}
-
-    /**
- * @summary Undo the last completed turn by action ID
- */
-export const useUndoLegacyTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof undoLegacyTurn>>,
-        TError,
-        UndoLegacyTurnMutationVariables,
-        TContext
-      > => {
-      return useMutation(getUndoLegacyTurnMutationOptions(options));
     }
 

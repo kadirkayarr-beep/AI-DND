@@ -1,0 +1,62 @@
+[
+  {
+    "step": "first accepted turn",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "player B posts same action_id to A's session",
+    "http_status": 404,
+    "turn_status": null,
+    "model_calls_total": 1,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Neris",
+        "appearance": "Yosun lekeli pelerinli, gümüş sakallı biri"
+      }
+    ]
+  },
+  {
+    "step": "same action_id in new campaign of player A",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 2,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Taren",
+        "appearance": "Tuz izli önlüklü, kısa saçlı biri"
+      }
+    ]
+  },
+  {
+    "step": "same action_id in new campaign of player B",
+    "http_status": 200,
+    "turn_status": "created_local_person",
+    "model_calls_total": 3,
+    "history_rows": 1,
+    "receipt_rows": 1,
+    "stored_local_people": [
+      {
+        "id": "npc_001",
+        "name": "Taren",
+        "appearance": "Tuz izli önlüklü, kısa saçlı biri"
+      }
+    ]
+  }
+]

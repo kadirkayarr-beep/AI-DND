@@ -1558,46 +1558,6 @@ export interface GameTurnInput {
   action_id?: string | null;
 }
 
-export interface TurnOutcome {
-  /**
-     * @maxLength 48
-     * @nullable
-     */
-  action?: string | null;
-  /**
-     * @maxLength 48
-     * @nullable
-     */
-  status?: string | null;
-  /**
-     * @maxLength 48
-     * @nullable
-     */
-  kind?: string | null;
-  /**
-     * @maxLength 120
-     * @nullable
-     */
-  target_name?: string | null;
-  /** @nullable */
-  found?: boolean | null;
-  /** @nullable */
-  place_created?: boolean | null;
-}
-
-export interface TurnUndoRequest {
-  action_id: string;
-  target_action_id: string;
-}
-
-export interface TurnUndoResponse {
-  session_id: string;
-  action_id: string;
-  undone_action_id: string;
-  narration: string;
-  state: GameState;
-}
-
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export type CombatAttackResultResolution = { [key: string]: unknown } | null;
@@ -1933,6 +1893,15 @@ export interface LevelUpResult {
   hit_points_gained: number;
 }
 
+export interface TurnOutcome {
+  action?: string | null;
+  status?: string | null;
+  kind?: string | null;
+  target_name?: string | null;
+  found?: boolean | null;
+  place_created?: boolean | null;
+}
+
 export interface GameTurnResult {
   session_id: string;
   action_id: string;
@@ -1947,7 +1916,21 @@ export interface GameTurnResult {
   quest_outcomes: QuestOutcome[];
   /** Server-owned experience award for this turn. Null when the turn granted no experience. */
   level_up: LevelUpResult | null;
+  /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
+}
+
+export interface GameTurnUndoInput {
+  action_id: string;
+  target_action_id: string;
+}
+
+export interface GameTurnUndoResult {
+  session_id: string;
+  action_id: string;
+  undone_action_id: string;
+  narration: string;
+  state: GameState;
 }
 
 export interface QuestCommandResult {

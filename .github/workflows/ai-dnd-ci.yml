@@ -40,6 +40,22 @@ jobs:
           uv pip install --system --require-hashes -r "$RUNNER_TEMP/ai-dnd-requirements.txt"
       - name: Install locked workspace dependencies
         run: pnpm install --frozen-lockfile
+      - name: Validate official hosted Chrome runtime
+        shell: bash
+        run: |
+          CHROMIUM_PATH=""
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              CHROMIUM_PATH="$(command -v "$candidate")"
+              break
+            fi
+          done
+          if [[ -z "$CHROMIUM_PATH" || ! -f "$CHROMIUM_PATH" || ! -x "$CHROMIUM_PATH" ]]; then
+            echo "No executable Chrome/Chromium found on the supported GitHub-hosted Ubuntu runner." >&2
+            exit 1
+          fi
+          "$CHROMIUM_PATH" --version
+          printf 'CHROMIUM_PATH=%s\n' "$CHROMIUM_PATH" >> "$GITHUB_ENV"
       - name: Health Check (structural, no tests)
         run: python ai-dnd/scripts/project_health_check.py --archive-root "$RUNNER_TEMP/ai-dnd-evidence"
       - name: Final Gate (bounded offline regression and frontend)

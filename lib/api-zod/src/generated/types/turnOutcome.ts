@@ -7,28 +7,10 @@
  */
 
 export interface TurnOutcome {
-  /**
-     * @maxLength 48
-     * @nullable
-     */
   action?: string | null;
-  /**
-     * @maxLength 48
-     * @nullable
-     */
   status?: string | null;
-  /**
-     * @maxLength 48
-     * @nullable
-     */
   kind?: string | null;
-  /**
-     * @maxLength 120
-     * @nullable
-     */
   target_name?: string | null;
-  /** @nullable */
   found?: boolean | null;
-  /** @nullable */
   place_created?: boolean | null;
 }
