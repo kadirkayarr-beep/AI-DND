@@ -228,6 +228,49 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.assertEqual(self.w["npcs"][0]["inventory"], [])
         self.unchanged_rejection("/item reward fixture", "reward_already_claimed")
 
+    def test_authoritative_item_transfer_narration_is_bound_to_the_received_item(self):
+        _, dagger = self.prepare()
+        self.w["quests"] = [{"quest_id": "fixture", "status": "completed"}]
+        self.w["item_rewards"] = {"fixture": {
+            "source_npc_id": "vendor", "item_ids": [dagger], "currency_cp": 0}}
+        result = self.run_item("/item reward fixture")
+        token = game._ACTIVE_SESSION.set(self.s)
+        try:
+            accepted = game._narration_safety_decision(
+                "Mira: “Hançeri sana verdim.”",
+                "Ödülümü alıyorum.",
+                npc_target=self.w["npcs"][0],
+                action_result=result,
+            )
+            wrong_item = game._narration_safety_decision(
+                "Mira: “Anahtarı sana verdim.”",
+                "Ödülümü alıyorum.",
+                npc_target=self.w["npcs"][0],
+                action_result=result,
+            )
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertFalse(accepted["unsafe"], accepted)
+        self.assertTrue(wrong_item["unsafe"], wrong_item)
+
+    def test_authorized_dagger_does_not_authorize_an_extra_potion_claim(self):
+        _, dagger = self.prepare()
+        self.w["quests"] = [{"quest_id": "fixture", "status": "completed"}]
+        self.w["item_rewards"] = {"fixture": {
+            "source_npc_id": "vendor", "item_ids": [dagger], "currency_cp": 0}}
+        result = self.run_item("/item reward fixture")
+        token = game._ACTIVE_SESSION.set(self.s)
+        try:
+            mixed_claim = game._narration_safety_decision(
+                "Gromm hançeri sana veriyor. Sana özel iksiri de uzatıyor; 20 altın da veriyor.",
+                "Ödülümü alıyorum.",
+                npc_target=self.w["npcs"][0],
+                action_result=result,
+            )
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertTrue(mixed_claim["unsafe"], mixed_claim)
+
     def test_reward_missing_second_item_rolls_back_all_sources(self):
         _, dagger = self.prepare()
         self.w["quests"] = [{"quest_id": "fixture", "status": "completed"}]

@@ -36,6 +36,14 @@ class N08UnverifiedProseRegression(unittest.TestCase):
                 "operation": "none", "quote": CLAIM, "thread_id": None,
                 "evidence_id": None, "requested_item": None,
                 "steps": [], "candidates": [],
+                "conversation": {
+                    "addressee_id": npc["id"],
+                    "subject_phrase": "",
+                    "subject_role": "unknown",
+                    "meaning": "other",
+                    "topic_relation": "new",
+                    "candidate_evidence_ids": [],
+                },
             },
             "narration": LIVE_STYLE_ECHO,
         }
@@ -82,6 +90,14 @@ class N08UnverifiedProseRegression(unittest.TestCase):
                 "operation": "none", "quote": CLAIM, "thread_id": None,
                 "evidence_id": None, "requested_item": None,
                 "steps": [], "candidates": [],
+                "conversation": {
+                    "addressee_id": npc["id"],
+                    "subject_phrase": "",
+                    "subject_role": "unknown",
+                    "meaning": "other",
+                    "topic_relation": "new",
+                    "candidate_evidence_ids": [],
+                },
             },
             "narration": invented,
         }

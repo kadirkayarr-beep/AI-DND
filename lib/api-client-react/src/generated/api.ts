@@ -38,10 +38,14 @@ import type {
   GameTurnInput,
   GameTurnResult,
   HealthResponse,
+  IdentitySuggestionJob,
+  IdentitySuggestionRequest,
   QuestCommandResult,
   RequestValidationErrorResponse,
   SpeciesTraitActionInput,
-  SpeciesTraitCommandResult
+  SpeciesTraitCommandResult,
+  TurnUndoRequest,
+  TurnUndoResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1435,6 +1439,171 @@ export function useGetCharacterCreationCatalog<TData = Awaited<ReturnType<typeof
 
 
 
+export const getCreateCharacterIdentitySuggestionUrl = () => {
+
+
+
+
+  return `/api/game/character-identity-suggestions`
+}
+
+/**
+ * @summary Ask for one bounded character-identity draft
+ */
+export const createCharacterIdentitySuggestion = async (identitySuggestionRequest: IdentitySuggestionRequest, options?: Parameters<typeof customFetch>[1]): Promise<IdentitySuggestionJob> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<IdentitySuggestionJob>(getCreateCharacterIdentitySuggestionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(identitySuggestionRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateCharacterIdentitySuggestionMutationKey = () => ['createCharacterIdentitySuggestion'] as const;
+
+export const getCreateCharacterIdentitySuggestionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>, TError,CreateCharacterIdentitySuggestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>, TError,CreateCharacterIdentitySuggestionMutationVariables, TContext> => {
+
+const mutationKey = getCreateCharacterIdentitySuggestionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>, CreateCharacterIdentitySuggestionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCharacterIdentitySuggestion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCharacterIdentitySuggestionMutationResult = NonNullable<Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>>
+    export type CreateCharacterIdentitySuggestionMutationBody = BodyType<IdentitySuggestionRequest>
+    export type CreateCharacterIdentitySuggestionMutationError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>
+    export type CreateCharacterIdentitySuggestionMutationVariables = {data: BodyType<IdentitySuggestionRequest>}
+
+    /**
+ * @summary Ask for one bounded character-identity draft
+ */
+export const useCreateCharacterIdentitySuggestion = <TError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>, TError,CreateCharacterIdentitySuggestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCharacterIdentitySuggestion>>,
+        TError,
+        CreateCharacterIdentitySuggestionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCharacterIdentitySuggestionMutationOptions(options));
+    }
+
+export const getGetCharacterIdentitySuggestionUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/game/character-identity-suggestions/${requestId}`
+}
+
+/**
+ * @summary Read one character-identity suggestion job
+ */
+export const getCharacterIdentitySuggestion = async (requestId: string, options?: Parameters<typeof customFetch>[1]): Promise<IdentitySuggestionJob> => {
+
+  return customFetch<IdentitySuggestionJob>(getGetCharacterIdentitySuggestionUrl(requestId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCharacterIdentitySuggestionQueryKey = (requestId: string,) => {
+    return [
+    `/api/game/character-identity-suggestions/${requestId}`
+    ] as const;
+    }
+
+
+export const getGetCharacterIdentitySuggestionQueryOptions = <TData = Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(requestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCharacterIdentitySuggestionQueryKey(requestId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>> = ({ signal }) => getCharacterIdentitySuggestion(requestId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: requestId !== null && requestId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCharacterIdentitySuggestionQueryResult = NonNullable<Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>>
+export type GetCharacterIdentitySuggestionQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
+
+
+/**
+ * @summary Read one character-identity suggestion job
+ */
+
+export function useGetCharacterIdentitySuggestion<TData = Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
+ requestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterIdentitySuggestion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCharacterIdentitySuggestionQueryOptions(requestId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetCampaignsUrl = () => {
 
 
@@ -2211,6 +2380,173 @@ export function useGetLegacyCharacterCreationCatalog<TData = Awaited<ReturnType<
 
 
 
+export const getCreateLegacyCharacterIdentitySuggestionUrl = () => {
+
+
+
+
+  return `/api/character-identity-suggestions`
+}
+
+/**
+ * Compatibility alias for /game/character-identity-suggestions. Prefer the /game route family for new clients.
+ * @summary Legacy character-identity suggestion alias
+ */
+export const createLegacyCharacterIdentitySuggestion = async (identitySuggestionRequest: IdentitySuggestionRequest, options?: Parameters<typeof customFetch>[1]): Promise<IdentitySuggestionJob> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<IdentitySuggestionJob>(getCreateLegacyCharacterIdentitySuggestionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(identitySuggestionRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateLegacyCharacterIdentitySuggestionMutationKey = () => ['createLegacyCharacterIdentitySuggestion'] as const;
+
+export const getCreateLegacyCharacterIdentitySuggestionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>, TError,CreateLegacyCharacterIdentitySuggestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>, TError,CreateLegacyCharacterIdentitySuggestionMutationVariables, TContext> => {
+
+const mutationKey = getCreateLegacyCharacterIdentitySuggestionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>, CreateLegacyCharacterIdentitySuggestionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLegacyCharacterIdentitySuggestion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLegacyCharacterIdentitySuggestionMutationResult = NonNullable<Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>>
+    export type CreateLegacyCharacterIdentitySuggestionMutationBody = BodyType<IdentitySuggestionRequest>
+    export type CreateLegacyCharacterIdentitySuggestionMutationError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>
+    export type CreateLegacyCharacterIdentitySuggestionMutationVariables = {data: BodyType<IdentitySuggestionRequest>}
+
+    /**
+ * @summary Legacy character-identity suggestion alias
+ */
+export const useCreateLegacyCharacterIdentitySuggestion = <TError = ErrorType<AuthenticationRequiredResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>, TError,CreateLegacyCharacterIdentitySuggestionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLegacyCharacterIdentitySuggestion>>,
+        TError,
+        CreateLegacyCharacterIdentitySuggestionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateLegacyCharacterIdentitySuggestionMutationOptions(options));
+    }
+
+export const getGetLegacyCharacterIdentitySuggestionUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/character-identity-suggestions/${requestId}`
+}
+
+/**
+ * Compatibility alias for /game/character-identity-suggestions/{request_id}. Prefer the /game route family for new clients.
+ * @summary Legacy character-identity suggestion status alias
+ */
+export const getLegacyCharacterIdentitySuggestion = async (requestId: string, options?: Parameters<typeof customFetch>[1]): Promise<IdentitySuggestionJob> => {
+
+  return customFetch<IdentitySuggestionJob>(getGetLegacyCharacterIdentitySuggestionUrl(requestId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLegacyCharacterIdentitySuggestionQueryKey = (requestId: string,) => {
+    return [
+    `/api/character-identity-suggestions/${requestId}`
+    ] as const;
+    }
+
+
+export const getGetLegacyCharacterIdentitySuggestionQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(requestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLegacyCharacterIdentitySuggestionQueryKey(requestId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>> = ({ signal }) => getLegacyCharacterIdentitySuggestion(requestId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: requestId !== null && requestId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLegacyCharacterIdentitySuggestionQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>>
+export type GetLegacyCharacterIdentitySuggestionQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
+
+
+/**
+ * @summary Legacy character-identity suggestion status alias
+ */
+
+export function useGetLegacyCharacterIdentitySuggestion<TData = Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
+ requestId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterIdentitySuggestion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLegacyCharacterIdentitySuggestionQueryOptions(requestId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getCreateLegacySessionUrl = () => {
 
 
@@ -2922,5 +3258,183 @@ export const useSaveLegacyCampaign = <TError = ErrorType<AuthenticationRequiredR
         TContext
       > => {
       return useMutation(getSaveLegacyCampaignMutationOptions(options));
+    }
+
+export const getUndoGameTurnUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/undo`
+}
+
+/**
+ * @summary Undo the last completed turn by action ID
+ */
+export const undoGameTurn = async (sessionId: string,
+    turnUndoRequest: TurnUndoRequest, options?: Parameters<typeof customFetch>[1]): Promise<TurnUndoResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<TurnUndoResponse>(getUndoGameTurnUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(turnUndoRequest)
+  }
+);}
+
+
+
+
+
+export const getUndoGameTurnMutationKey = () => ['undoGameTurn'] as const;
+
+export const getUndoGameTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext> => {
+
+const mutationKey = getUndoGameTurnMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoGameTurn>>, UndoGameTurnMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  undoGameTurn(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoGameTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoGameTurn>>>
+    export type UndoGameTurnMutationBody = BodyType<TurnUndoRequest>
+    export type UndoGameTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type UndoGameTurnMutationVariables = {sessionId: string;data: BodyType<TurnUndoRequest>}
+
+    /**
+ * @summary Undo the last completed turn by action ID
+ */
+export const useUndoGameTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoGameTurn>>, TError,UndoGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoGameTurn>>,
+        TError,
+        UndoGameTurnMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUndoGameTurnMutationOptions(options));
+    }
+
+export const getUndoLegacyTurnUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/undo`
+}
+
+/**
+ * @summary Undo the last completed turn by action ID
+ */
+export const undoLegacyTurn = async (sessionId: string,
+    turnUndoRequest: TurnUndoRequest, options?: Parameters<typeof customFetch>[1]): Promise<TurnUndoResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<TurnUndoResponse>(getUndoLegacyTurnUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(turnUndoRequest)
+  }
+);}
+
+
+
+
+
+export const getUndoLegacyTurnMutationKey = () => ['undoLegacyTurn'] as const;
+
+export const getUndoLegacyTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext> => {
+
+const mutationKey = getUndoLegacyTurnMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLegacyTurn>>, UndoLegacyTurnMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  undoLegacyTurn(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoLegacyTurnMutationResult = NonNullable<Awaited<ReturnType<typeof undoLegacyTurn>>>
+    export type UndoLegacyTurnMutationBody = BodyType<TurnUndoRequest>
+    export type UndoLegacyTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type UndoLegacyTurnMutationVariables = {sessionId: string;data: BodyType<TurnUndoRequest>}
+
+    /**
+ * @summary Undo the last completed turn by action ID
+ */
+export const useUndoLegacyTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLegacyTurn>>, TError,UndoLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoLegacyTurn>>,
+        TError,
+        UndoLegacyTurnMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUndoLegacyTurnMutationOptions(options));
     }
 

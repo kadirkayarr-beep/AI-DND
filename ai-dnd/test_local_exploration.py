@@ -4,7 +4,9 @@ import unittest
 from unittest.mock import patch
 
 import game
+import grounded_action
 import local_exploration as exploration
+import exploration as world_exploration
 
 
 class LocalExplorationTests(unittest.TestCase):
@@ -18,6 +20,43 @@ class LocalExplorationTests(unittest.TestCase):
         self.world["inventory"] = ["Erzak", "Erzak", "Erzak", "Erzak"]
         self.session.character["current_hp"] = 12
         self.session.character["modifiers"] = {"wisdom": 0, "dexterity": 0}
+
+    def test_hidden_world_door_stays_unknown_until_discovery(self):
+        hidden = {
+            "id": "door:secret-archive",
+            "name": "Gizli Arşiv Kapısı",
+            "description": "Oyuk taş duvarın arkasında saklı bir kapı.",
+            "location": "tavern",
+            "hidden": True,
+        }
+        ordinary = {
+            "id": "door:main-hall",
+            "name": "Ana Salon Kapısı",
+            "description": "Ana salona açılan kapı.",
+            "location": "tavern",
+        }
+        self.world["doors"] = [hidden, ordinary]
+
+        self.assertEqual(world_exploration.visible_doors(self.world), [ordinary])
+        self.assertNotIn(
+            "secret-archive",
+            str([candidate for candidate in grounded_action.candidates(self.session)]),
+        )
+        for query in ("Nereye yönelmeliyim?", "Gizli Arşiv Kapısı nedir?"):
+            with self.subTest(query=query):
+                planned = grounded_action.plan(self.session, query)
+                self.assertNotIn("secret-archive", str(planned["candidates"]))
+                self.assertNotIn("Gizli Arşiv Kapısı", str(planned["candidates"]))
+                self.assertIn("Ana Salon Kapısı", str(planned["candidates"]))
+
+        hidden["hidden"] = False
+        self.assertEqual(
+            world_exploration.visible_doors(self.world), [hidden, ordinary],
+        )
+        self.assertIn(
+            "Gizli Arşiv Kapısı",
+            str([candidate for candidate in grounded_action.candidates(self.session)]),
+        )
 
     def test_begin_look_and_travel_decision(self):
         with patch.object(game, "ask_dungeon_master", side_effect=AssertionError("model")):

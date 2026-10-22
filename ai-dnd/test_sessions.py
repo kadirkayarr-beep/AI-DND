@@ -342,7 +342,11 @@ class SessionTests(unittest.TestCase):
         ):
             result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
 
-        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
+        # Unverified lore is answered inside the fiction, without naming records
+        # or verification, and without inventing a ruler.
+        self.assertIn("yöneticisinin kim olduğu", result["narration"])
+        self.assertNotIn("Vharion", result["narration"])
+        self.assertNotIn("doğrulama", result["narration"].lower())
         self.assertNotIn("UNVERIFIED", result["narration"])
         after = copy.deepcopy(self.a.world_state)
         before["flags"]["turn_index"] = after["flags"]["turn_index"]

@@ -117,14 +117,35 @@ class Subtests(unittest.TestCase):
         self.assertEqual(data["aggregate"]["tests_run"], 1)
 
     def test_source_hash_changes_with_untracked_content_and_deletion(self):
-        with tempfile.TemporaryDirectory(dir=ROOT) as temporary:
-            path = Path(temporary) / "fingerprint.txt"
-            path.write_text("first")
-            first = owner.source_snapshot(owner.DEFAULT_ARCHIVE)
-            path.write_text("second")
-            second = owner.source_snapshot(owner.DEFAULT_ARCHIVE)
-            path.unlink()
-            third = owner.source_snapshot(owner.DEFAULT_ARCHIVE)
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.name", "Evidence Test"],
+                check=True,
+            )
+            tracked = repo / "ai-dnd/game.py"
+            tracked.parent.mkdir()
+            tracked.write_text("tracked fixture", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "fixture baseline"],
+                check=True,
+            )
+            path = repo / "fingerprint.txt"
+            path.write_text("first", encoding="utf-8")
+            with unittest.mock.patch.object(owner, "ROOT", repo), unittest.mock.patch.object(
+                owner, "DEFAULT_ARCHIVE", repo / "archive"
+            ):
+                first = owner.source_snapshot(repo / "archive")
+                path.write_text("second", encoding="utf-8")
+                second = owner.source_snapshot(repo / "archive")
+                path.unlink()
+                third = owner.source_snapshot(repo / "archive")
             self.assertNotEqual(first["working_tree_sha256"], second["working_tree_sha256"])
             self.assertNotEqual(second["working_tree_sha256"], third["working_tree_sha256"])
             self.assertTrue(first["dirty"])

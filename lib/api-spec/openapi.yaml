@@ -926,6 +926,80 @@ paths:
           $ref: "#/components/responses/ApiError"
         "503":
           $ref: "#/components/responses/ApiError"
+  /game/sessions/{session_id}/undo:
+    parameters:
+    - in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      operationId: undoGameTurn
+      tags:
+      - game
+      summary: Undo the last completed turn by action ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TurnUndoRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: Restored public state and undo receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TurnUndoResponse'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
+        '503':
+          $ref: '#/components/responses/ApiError'
+  /sessions/{session_id}/undo:
+    parameters:
+    - in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      operationId: undoLegacyTurn
+      tags:
+      - game
+      summary: Undo the last completed turn by action ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TurnUndoRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: Restored public state and undo receipt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TurnUndoResponse'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
+        '503':
+          $ref: '#/components/responses/ApiError'
 components:
   schemas:
     CampaignDeleteResult:
@@ -1126,6 +1200,70 @@ components:
         target_id: {type: ["string", "null"]}
         distance_ft: {type: ["integer", "null"], minimum: 1}
       required: [kind]
+    TurnOutcome:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type:
+          - string
+          - 'null'
+          maxLength: 48
+        status:
+          type:
+          - string
+          - 'null'
+          maxLength: 48
+        kind:
+          type:
+          - string
+          - 'null'
+          maxLength: 48
+        target_name:
+          type:
+          - string
+          - 'null'
+          maxLength: 120
+        found:
+          type:
+          - boolean
+          - 'null'
+        place_created:
+          type:
+          - boolean
+          - 'null'
+    TurnUndoRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        action_id:
+          type: string
+          format: uuid
+        target_action_id:
+          type: string
+          format: uuid
+      required:
+      - action_id
+      - target_action_id
+    TurnUndoResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+        action_id:
+          type: string
+        undone_action_id:
+          type: string
+        narration:
+          type: string
+        state:
+          $ref: '#/components/schemas/GameState'
+      required:
+      - session_id
+      - action_id
+      - undone_action_id
+      - narration
+      - state
     GameTurnResult:
       type: object
       properties:
@@ -1162,6 +1300,10 @@ components:
             - $ref: "#/components/schemas/LevelUpResult"
             - type: "null"
           description: Server-owned experience award for this turn. Null when the turn granted no experience.
+        turn_outcome:
+          anyOf:
+            - $ref: "#/components/schemas/TurnOutcome"
+            - type: "null"
       required: [session_id, action_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes, level_up]
     LevelUpResult:
       type: object

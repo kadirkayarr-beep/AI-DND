@@ -616,7 +616,12 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
         # Unsupported claim to Elaris
         t3 = session.run_player_turn("Elaris bana ejderha hazinesinden bahsetmişti.", target_id="npc_001")
         self.assertEqual(t3["action_result"].get("status"), "unverified")
-        self.assertIn("hatırlamıyorum", t3["narration"])
+        # In-character denial (NPC P2); the claim is neither confirmed nor stored.
+        self.assertTrue(any(
+            marker in t3["narration"]
+            for marker in ("hatırlamıyorum", "anımsamıyorum", "sözüm yok", "söylemedim", "ağzımdan çıkmadı")
+        ), t3["narration"])
+        self.assertNotIn("ejderha hazinesi", t3["narration"])
 
 
 if __name__ == "__main__":

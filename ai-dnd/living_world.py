@@ -40,10 +40,38 @@ def _legacy_ambient_event_instance_id(
     )
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"ai-dnd:ambient-event:{identity}"))
 
-_LOCAL_NAMES = (
+# The first 16 names are the legacy pool and must stay first and in order:
+# campaigns without a seed (old saves, fixtures) still draw from exactly these.
+# The names after them are only reachable through a campaign seed.
+_LEGACY_LOCAL_NAMES = (
     "Aldren", "Brynna", "Cael", "Darian", "Elaris", "Fenra", "Garrick",
     "Ilyra", "Kael", "Liora", "Marek", "Neris", "Orin", "Sylva", "Thalen",
     "Veyra",
+)
+_EXTENDED_LOCAL_NAMES = (
+    # Human and Chondathan/Illuskan-leaning
+    "Alaric", "Berrin", "Corwin", "Dessa", "Edric", "Fiora", "Gwenna",
+    "Hadrik", "Isolde", "Joren", "Kestrin", "Lysa", "Merrick", "Nadra",
+    "Osric", "Perrin", "Quenna", "Rowan", "Selwyn", "Tamsin", "Ulric",
+    "Vesna", "Wystan", "Yara", "Zelda",
+    # Dwarven and gnomish
+    "Baern", "Dagna", "Eldeth", "Gardain", "Hlin", "Kildrak", "Mardred",
+    "Riswynn", "Thorbin", "Vistra", "Fibblestib", "Nissa", "Orryn", "Zook",
+    "Boddynock", "Wrenn",
+    # Elven and half-elven
+    "Aelar", "Caelynn", "Erevan", "Faelar", "Galinndan", "Ielenia", "Mialee",
+    "Naivara", "Quarion", "Sariel", "Thia", "Varis", "Adrie", "Enna",
+    "Lia", "Shava",
+    # Halfling and tiefling-leaning
+    "Cora", "Eldon", "Finnan", "Lidda", "Merla", "Pip", "Seraphine",
+    "Tobin", "Wellby", "Ash", "Brissa", "Carrion", "Damaia", "Ekemon",
+    "Kallista", "Orianna",
+    # Calishite, Tethyrian and Turami-leaning
+    "Amara", "Basim", "Dalia", "Farid", "Hakim", "Iman", "Jamal", "Kalila",
+    "Nuri", "Rashid", "Samira", "Tariq",
+)
+_LOCAL_NAMES = _LEGACY_LOCAL_NAMES + tuple(
+    name for name in _EXTENDED_LOCAL_NAMES if name not in _LEGACY_LOCAL_NAMES
 )
 
 _LOOK_RE = re.compile(
@@ -72,7 +100,8 @@ _EXIT_RE = re.compile(
     re.IGNORECASE,
 )
 _SIT_RE = re.compile(
-    r"(?:otur(?:uyorum|ayım|alım|mak)?|masaya geç|yerime otur|"
+    # LR00 fix: a word boundary; "goturur musun" (typed without ö/ü) is not "otur".
+    r"(?:(?<!\w)otur(?:uyorum|ayım|alım)?(?!\w)|masaya geç|yerime otur|"
     r"sit(?:ting)? down|take a seat)",
     re.IGNORECASE,
 )
@@ -82,6 +111,7 @@ _STAND_RE = re.compile(
 )
 _APPROACH_RE = re.compile(
     r"(?:yaklaş(?:ıyorum|ayım|alım|mak)?|yanına git|yanına yaklaşı|"
+    r"yanına (?:yürü|gel|gid|sokul|var)|(?:'?y?[ae]) doğru (?:yürü|ilerl|git|gid)|sokuluyorum|"
     r"yakınına git|yakınına gid|yakınına yaklaş|"
     r"approach|walk up to|go over to)",
     re.IGNORECASE,
@@ -207,6 +237,17 @@ _PUBLIC_ROLE_TR = {
     "merchant": "tüccar",
     "blacksmith": "demirci",
     "server": "garson",
+    "resident": "buralı",
+    "local": "buralı",
+    "villager": "köylü",
+    "farmer": "çiftçi",
+    "priest": "rahip",
+    "scholar": "bilgin",
+    "clerk": "kâtip",
+    "sailor": "denizci",
+    "noble": "soylu",
+    "beggar": "dilenci",
+    "child": "çocuk",
 }
 
 
@@ -320,7 +361,12 @@ def classify_scene_action(value: Any) -> str | None:
         return "wait"
     if _EXIT_RE.search(text):
         return "exit"
-    if _SIT_RE.search(text):
+    if re.search(r"\boturup\b.{0,55}\b\w+yorum\b", normalized):
+        return "sit"
+    sit_match = _SIT_RE.search(text)
+    # "oturup sıcak bir yemek yiyebileceğim bir yer" names a place to sit in a
+    # subordinate clause; the gerund "oturup" is not an affirmative sit action.
+    if sit_match and text[sit_match.end():sit_match.end() + 2].casefold() != "up":
         return "sit"
     if _STAND_RE.search(text):
         return "stand"
@@ -1188,22 +1234,40 @@ def record_scene_visit(
     return scene
 
 
+def _campaign_seed(world_state: dict[str, Any]) -> str:
+    """Read the campaign seed without creating or validating scene state."""
+    scene_state = world_state.get("scene_state")
+    seed = scene_state.get("campaign_seed") if isinstance(scene_state, dict) else ""
+    return seed if isinstance(seed, str) else ""
+
+
 def _stable_name(world_state: dict[str, Any], location_id: str, role: str) -> str:
-    digest = hashlib.sha256(
-        f"{location_id}\x00{role}\x00{world_state.get('next_npc_number', 1)}".encode()
-    ).digest()
-    start = int.from_bytes(digest[:4], "big") % len(_LOCAL_NAMES)
+    """Pick a deterministic, unused local NPC name.
+
+    Without a campaign seed the legacy 16-name pool and hash are used unchanged,
+    so old saves and fixtures keep their names. With a seed the seed is folded
+    into the hash and the whole extended pool is used, so different campaigns
+    stop meeting the same NPC names. Saved NPCs are never renamed: they carry
+    their stored name and only block it from being picked again.
+    """
+    seed = _campaign_seed(world_state)
+    pool = _LOCAL_NAMES if seed else _LEGACY_LOCAL_NAMES
+    material = f"{location_id}\x00{role}\x00{world_state.get('next_npc_number', 1)}"
+    if seed:
+        material = f"{seed}\x00{material}"
+    digest = hashlib.sha256(material.encode()).digest()
+    start = int.from_bytes(digest[:4], "big") % len(pool)
     used = {
         str(npc.get("name", "")).casefold()
         for npc in world_state.get("npcs", [])
         if isinstance(npc, dict)
     }
-    for offset in range(len(_LOCAL_NAMES)):
-        name = _LOCAL_NAMES[(start + offset) % len(_LOCAL_NAMES)]
+    for offset in range(len(pool)):
+        name = pool[(start + offset) % len(pool)]
         if name.casefold() not in used:
             return name
     suffix = 1 + len(used)
-    return f"{_LOCAL_NAMES[start]} {suffix}"
+    return f"{pool[start]} {suffix}"
 
 
 def stable_local_name(world_state: dict[str, Any], location_id: str, role: str) -> str:

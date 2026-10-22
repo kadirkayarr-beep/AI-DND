@@ -10,6 +10,10 @@ def lore_rejected_action(result, lore_context=None):
         return None
     if result.get("skill") not in {"Investigation", "Perception"}:
         return None
+    findings = result.get("inspection")
+    if isinstance(findings, dict) and isinstance(findings.get("text"), str):
+        # LR00-P2: the concrete, target-bound finding is the resolved outcome.
+        return findings["text"]
     success = result.get("outcome") in {"success", "critical_success"}
     if success:
         sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
@@ -18,9 +22,10 @@ def lore_rejected_action(result, lore_context=None):
         if any(fact.get("subject_id") == "fr:city:neverwinter"
                and fact.get("predicate") == "current_status"
                and fact.get("object_id_or_value") == "rebuilding" for fact in facts):
-            return "İncelemen başarılı oldu. Neverwinter yeniden inşa ediliyor; bunun ötesinde doğrulanmış yeni bir bilgi yok."
-        return "İncelemen başarılı oldu; bunun ötesinde doğrulanmış yeni bir bilgi yok."
-    return "İncelemen bu kez sonuç vermedi; yeni bir bilgiye ulaşamadın."
+            return ("İncelemen başarılı: Neverwinter'ın her yanında yeniden inşa izleri var; "
+                    "bunun ötesinde yeni bir şey göze çarpmıyor.")
+        return "İncelemen başarılı: gözden kaçan bir şey yok, ama yeni bir ipucu da çıkmıyor."
+    return "İncelemen sonuç vermedi; bu bakışla yeni bir ayrıntı seçilmiyor."
 
 
 def bounded_rebuilding_check(result, player_input, lore_context):

@@ -84,6 +84,12 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
             ("GET", f"/api/game/sessions/{self.session_id}/state", None),
             ("POST", f"/api/sessions/{self.session_id}/turn", {"message": "Bekle."}),
             ("POST", f"/api/game/sessions/{self.session_id}/turn", {"message": "Bekle."}),
+            ("POST", f"/api/sessions/{self.session_id}/undo", {
+                "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
+            }),
+            ("POST", f"/api/game/sessions/{self.session_id}/undo", {
+                "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
+            }),
             ("POST", f"/api/sessions/{self.session_id}/quests/{quest_id}/accept", None),
             ("POST", f"/api/game/sessions/{self.session_id}/quests/{quest_id}/accept", None),
             ("POST", f"/api/sessions/{self.session_id}/quests/{quest_id}/cancel", None),

@@ -236,6 +236,49 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
                    if n["id"] == shop["shopkeeper_id"])
         return record, shop, npc
 
+    def request_proposal(self, text, requested_item, *, intent="dialogue",
+                         action="dialogue", target=None, operation="request"):
+        return {
+            "intent": intent,
+            "action": action,
+            "target": target or {"type": "none", "reference": ""},
+            "completion": "unclear",
+            "confidence": 1.0,
+            "interaction": {
+                "operation": operation,
+                "quote": text,
+                "requested_item": requested_item,
+            },
+        }
+
+    async def post_with_proposal(self, campaign, command, proposal, narration=""):
+        resolver_results = []
+        actual_resolver = interaction_adventure.resolve
+
+        def capture_resolver(*args, **kwargs):
+            result = actual_resolver(*args, **kwargs)
+            resolver_results.append(result)
+            return result
+
+        with (
+            patch("game.parse_player_intent", return_value=proposal) as parser,
+            patch("game.ask_dungeon_master", return_value={
+                "valid_response": True,
+                "narration": narration,
+                "world_updates": {},
+                "lore_claims": [],
+            }),
+            patch(
+                "interaction_adventure.resolve",
+                side_effect=capture_resolver,
+            ) as resolver,
+        ):
+            response = await self.post(campaign, command)
+        self.last_proposal_parse_calls = parser.call_count
+        self.last_proposal_parse_kwargs = parser.call_args.kwargs if parser.call_args else {}
+        self.last_interaction_result = resolver_results[-1] if resolver_results else None
+        return response, resolver.call_count
+
     async def test_native_request_replay_conflict_resume_and_save_failure(self):
         campaign = await self.create_campaign()
         record, _, npc = await self.native_market(campaign)
@@ -269,20 +312,22 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
         text = "Elindeki Club adlı eşyayı bana ver."
         command = {"message": text, "target_id": npc["id"], "action_id": str(uuid4())}
         turn_before = record.game_session.world_state["flags"]["turn_index"]
-        proposal = {"interaction": {"operation": "request", "quote": text,
-                                    "requested_item": identity}}
-        # This is interpretation-contract coverage, not real Qwen evidence.
-        # A safe deterministic narration fallback must not undo the validated transfer.
+        proposal = self.request_proposal(text, identity)
         with (
-            patch("game.parse_player_intent", return_value=proposal),
+            patch("game.parse_player_intent", return_value=proposal) as parse_spy,
             patch("game.ask_dungeon_master", return_value={
-                "valid_response": False,
+                "valid_response": True,
                 "narration": "Equipment Merchant sana Club adlı eşyayı verdi.",
                 "world_updates": {}, "lore_claims": [],
             }),
+            patch("interaction_adventure.resolve",
+                  wraps=interaction_adventure.resolve) as resolve_spy,
         ):
             response = await self.post(campaign, command)
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(parse_spy.call_count, 1)
+        self.assertEqual(resolve_spy.call_count, 1)
+        self.assertEqual(response.json()["turn_outcome"]["status"], "resolved")
         world = record.game_session.world_state
         self.assertEqual(world["flags"]["turn_index"], turn_before + 1)
         self.assertEqual(sum(i.get("item_id") == identity for i in world["inventory"]), 1)
@@ -294,6 +339,226 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
         committed = self.snapshot(record)
         self.assertEqual((await self.post(campaign, command)).json(), response.json())
         self.assertEqual(committed, self.snapshot(record))
+
+    async def test_natural_request_without_consent_reaches_permission_owner(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        identity = npc["equipment"]["main_hand"]
+        npc["item_consents"] = {}
+        npc["item_release_policy"] = {}
+        text = "Elindeki Club adlı eşyayı bana ver."
+        response, resolve_calls = await self.post_with_proposal(
+            campaign,
+            {"message": text, "target_id": npc["id"], "action_id": str(uuid4())},
+            self.request_proposal(text, identity),
+            "Equipment Merchant sana Club adlı eşyayı verdi.",
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(resolve_calls, 1)
+        outcome = response.json()["turn_outcome"]
+        self.assertEqual(outcome["status"], "pending")
+        self.assertEqual(self.last_interaction_result["item_validation"]["reason"],
+                         "npc_consent_required")
+        self.assertNotIn("Club adlı eşyayı verdi", response.json()["narration"])
+        world = record.game_session.world_state
+        source = next(n for n in world["npcs"] if n["id"] == npc["id"])
+        self.assertEqual(source["equipment"]["main_hand"], identity)
+        self.assertFalse(any(i.get("item_id") == identity for i in world["inventory"]))
+        self.assertNotIn(identity, source.get("item_consents", {}))
+
+    async def test_request_for_nonexistent_item_reaches_owner_without_transfer(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        text = "Elindeki Ruby adlı eşyayı bana ver."
+        response, resolve_calls = await self.post_with_proposal(
+            campaign,
+            {"message": text, "target_id": npc["id"], "action_id": str(uuid4())},
+            self.request_proposal(text, "Ruby"),
+            "Equipment Merchant sana Ruby adlı eşyayı verdi.",
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(resolve_calls, 1)
+        outcome = response.json()["turn_outcome"]
+        self.assertEqual(outcome["status"], "pending")
+        self.assertEqual(self.last_interaction_result["item_validation"]["reason"],
+                         "not_owned")
+        self.assertNotIn("Ruby adlı eşyayı verdi", response.json()["narration"])
+        self.assertFalse(any(i.get("name") == "Ruby"
+                             for i in record.game_session.world_state["inventory"]))
+
+    async def test_request_rejects_wrong_npc_or_object_identity(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        identity = npc["equipment"]["main_hand"]
+        text = "Elindeki Club adlı eşyayı bana ver."
+        other_identity = next(
+            item["item_id"] for item in npc["inventory"]
+            if isinstance(item, dict) and item.get("name") == "Dagger"
+        )
+        proposals = (
+            self.request_proposal(
+                text, identity,
+                target={
+                    "type": "npc", "reference": npc["name"],
+                    "npc_id": "npc_not_the_target", "evidence_quote": "Club",
+                },
+            ),
+            self.request_proposal(text, other_identity),
+        )
+        for proposal in proposals:
+            with self.subTest(proposal=proposal):
+                response, resolve_calls = await self.post_with_proposal(
+                    campaign,
+                    {"message": text, "target_id": npc["id"],
+                     "action_id": str(uuid4())},
+                    proposal,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(resolve_calls, 0)
+                self.assertNotEqual(response.json()["turn_outcome"]["status"],
+                                    "resolved")
+                source = next(
+                    n for n in record.game_session.world_state["npcs"]
+                    if n["id"] == npc["id"]
+                )
+                self.assertEqual(source["equipment"]["main_hand"], identity)
+                self.assertFalse(any(i.get("item_id") == identity
+                                     for i in record.game_session.world_state["inventory"]))
+
+    async def test_attack_or_other_action_cannot_be_relabelled_as_request(self):
+        for text, intent, action in (
+            ("Club'u almak için tüccara saldırıyorum.", "attack", "attack"),
+            ("Club'u almak için pazara gidiyorum.", "travel", "travel"),
+            ("Elindeki Club adlı eşyayı bana ver.", "dialogue", "attack"),
+        ):
+            with self.subTest(intent=intent):
+                campaign = await self.create_campaign()
+                record, _, npc = await self.native_market(campaign)
+                identity = npc["equipment"]["main_hand"]
+                response, resolve_calls = await self.post_with_proposal(
+                    campaign,
+                    {"message": text, "target_id": npc["id"],
+                     "action_id": str(uuid4())},
+                    self.request_proposal(
+                        text, identity, intent=intent, action=action
+                    ),
+                )
+                if intent == "attack":
+                    self.assertEqual(response.status_code, 400, response.text)
+                    self.assertEqual(response.json()["detail"]["code"], "no_weapon")
+                elif intent == "travel":
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()["turn_outcome"]["action"], "travel")
+                else:
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()["turn_outcome"]["status"],
+                                     "proposal_rejected")
+                self.assertEqual(resolve_calls, 0)
+                self.assertFalse(any(i.get("item_id") == identity
+                                     for i in record.game_session.world_state["inventory"]))
+                source = next(
+                    n for n in record.game_session.world_state["npcs"]
+                    if n["id"] == npc["id"]
+                )
+                self.assertEqual(source["equipment"]["main_hand"], identity)
+
+    async def test_transfer_mentioned_only_in_quote_does_not_resolve_request(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        text = "Dükkâncı “Club'u bana ver” dediğini aktarıyorum."
+        response, resolve_calls = await self.post_with_proposal(
+            campaign,
+            {"message": text, "target_id": npc["id"], "action_id": str(uuid4())},
+            self.request_proposal(text, npc["equipment"]["main_hand"]),
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(resolve_calls, 0)
+        self.assertNotEqual(response.json()["turn_outcome"]["status"], "resolved")
+        self.assertFalse(any(i.get("item_id") == npc["equipment"]["main_hand"]
+                             for i in record.game_session.world_state["inventory"]))
+
+    async def test_real_conversation_still_requires_conversation_proposal(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        text = "Kuzey kapısının neden kapandığını biliyor musun?"
+        proposal = {
+            "intent": "dialogue",
+            "action": "dialogue",
+            "target": {"type": "none", "reference": ""},
+            "completion": "unclear",
+            "confidence": 1.0,
+            "interaction": {"operation": "none", "quote": text},
+        }
+        response, resolve_calls = await self.post_with_proposal(
+            campaign,
+            {"message": text, "target_id": npc["id"],
+             "interaction_mode": "say", "action_id": str(uuid4())},
+            proposal,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.last_proposal_parse_calls, 1)
+        self.assertEqual(resolve_calls, 0)
+        self.assertEqual(response.json()["turn_outcome"]["status"],
+                         "proposal_rejected")
+        self.assertFalse(any(i.get("item_id") == npc["equipment"]["main_hand"]
+                             for i in record.game_session.world_state["inventory"]))
+        source = next(n for n in record.game_session.world_state["npcs"]
+                      if n["id"] == npc["id"])
+        self.assertEqual(source["equipment"]["main_hand"], npc["equipment"]["main_hand"])
+
+    async def test_generic_non_requests_still_require_conversation_after_parse(self):
+        for text, intent in (
+            ("Bir süre dinleniyorum.", "rest"),
+            ("Kılıcımı kuşanıyorum.", "inventory"),
+        ):
+            with self.subTest(intent=intent):
+                campaign = await self.create_campaign()
+                record, _, npc = await self.native_market(campaign)
+                world = record.game_session.world_state
+                before = copy.deepcopy({
+                    key: world.get(key)
+                    for key in (
+                        "inventory", "currency", "quests", "relationships",
+                        "events", "npcs",
+                    )
+                })
+                proposal = {
+                    "intent": intent,
+                    "action": intent,
+                    "target": {"type": "none", "reference": ""},
+                    "completion": "unclear",
+                    "confidence": 1.0,
+                    "interaction": {
+                        "operation": "none",
+                        "quote": text,
+                        "requested_item": None,
+                    },
+                }
+                response, resolve_calls = await self.post_with_proposal(
+                    campaign,
+                    {
+                        "message": text,
+                        "target_id": npc["id"],
+                        "interaction_mode": "do",
+                        "action_id": str(uuid4()),
+                    },
+                    proposal,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(self.last_proposal_parse_calls, 1)
+                self.assertFalse(
+                    self.last_proposal_parse_kwargs["require_conversation"]
+                )
+                self.assertEqual(resolve_calls, 0)
+                self.assertEqual(
+                    response.json()["turn_outcome"]["status"],
+                    "proposal_rejected",
+                )
+                after = {
+                    key: record.game_session.world_state.get(key)
+                    for key in before
+                }
+                self.assertEqual(before, after)
 
     async def test_native_shop_buy_sell_and_reward_through_http(self):
         campaign = await self.create_campaign()

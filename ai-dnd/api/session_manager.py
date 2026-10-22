@@ -72,6 +72,8 @@ class ManagedSession:
     owner_subject: str = ""
     revoked: bool = False
     usable: bool = True
+    # Last-turn undo data only; ownership behavior remains the local contract.
+    undo_checkpoint: dict[str, Any] | None = None
 
 
 class SessionManager:

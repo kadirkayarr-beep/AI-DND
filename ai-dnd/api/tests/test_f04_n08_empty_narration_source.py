@@ -16,7 +16,15 @@ class EmptyNarrationSourceRegression(unittest.TestCase):
             "completion": "unclear", "confidence": 1.0,
             "interaction": {"operation": "none", "quote": message,
                             "thread_id": None, "evidence_id": None,
-                            "requested_item": None, "steps": [], "candidates": []},
+                            "requested_item": None, "steps": [], "candidates": [],
+                            "conversation": {
+                                "addressee_id": "npc_001",
+                                "subject_phrase": "",
+                                "subject_role": "unknown",
+                                "meaning": "other",
+                                "topic_relation": "new",
+                                "candidate_evidence_ids": [],
+                            }},
             "narration": narration
         }
         with patch("game.ollama.chat", return_value={"message": {"content": json.dumps(payload)}}) as provider:

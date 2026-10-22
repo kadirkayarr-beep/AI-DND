@@ -41,6 +41,29 @@ def containers(world):
         yield "legacy_ground", world["ground_items"]
 
 
+def item_transfers(before, after):
+    def locations(world):
+        found = {}
+        for owner, items in containers(world):
+            for item in items:
+                if isinstance(item, dict) and item.get("item_id"):
+                    found[item["item_id"]] = (owner, item.get("name", ""))
+        return found
+
+    old, new = locations(before), locations(after)
+    transfers = []
+    for identity, (owner, name) in new.items():
+        previous = old.get(identity)
+        if owner == "player" and (previous is None or previous[0] != owner):
+            transfers.append({
+                "item_id": identity,
+                "name": name,
+                "from": previous[0] if previous else "catalog",
+                "to": owner,
+            })
+    return transfers
+
+
 def validate_world(world):
     """Accept legacy strings but never duplicate canonical instance identities."""
     policy = world.get("supplies_policy", {"enabled": False})
@@ -244,7 +267,7 @@ def forage(session):
     ground = world.get("ground_items_by_location", {}).get(world["location"], [])
     candidates = [item for item in ground if supply_kind(item)]
     if not candidates:
-        return {"success": False, "direct_response": "Burada doğrulanmış yiyecek veya su kaynağı yok."}
+        return {"success": False, "direct_response": "Yakında yiyecek ya da su bulabileceğin bir yer göremiyorsun."}
     advancement = session.advance_campaign_time(3600, "foraging")
     if advancement.get("interrupted"):
         return {"success": False, "time_result": advancement, "direct_response": "Erzak araman kesildi."}
@@ -454,7 +477,7 @@ def _apply(world, operation, args):
         lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
         wallet = world.get("currency", {}).get("player")
         lines.append(f"Bakiye: {wallet} CP değer birimi." if wallet is not None
-                     else "Bakiye: doğrulanmış para kaydı yok.")
+                     else "Kesende sayabileceğin bir para yok.")
         ground = world.get("ground_items_by_location", {}).get(world["location"], [])
         lines.extend(f'Yerde: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
                      for i in ground)
@@ -648,6 +671,8 @@ def execute(session, text, *, advance_turn=True):
             "status": "resolved" if success else "rejected",
             "success": success, "reason": reason,
             "state_changes": ["player.inventory", "equipment", "economy"] if success and before != session.world_state else [],
+            **({"item_transfers": item_transfers(before, session.world_state)}
+               if success else {}),
         },
     }
 

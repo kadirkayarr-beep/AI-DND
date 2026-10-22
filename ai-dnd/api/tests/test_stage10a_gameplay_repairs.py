@@ -233,6 +233,12 @@ class LocalTavernEntryTests(unittest.TestCase):
         self.assertEqual(entered["action_result"]["status"], "completed")
         self.assertEqual(entered["action_result"]["target_id"], tavern["id"])
         self.assertEqual(after_entry, tavern["id"])
+        entrance_door = next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == f"venue-door:{tavern['id']}"
+        )
+        self.assertTrue(entrance_door["open"])
+        self.assertFalse(entrance_door["locked"])
         self.assertEqual(tavern["parent_location_id"], "fr:city:neverwinter")
         self.assertEqual(tavern["exit_location_id"], "fr:city:neverwinter")
         self.assertEqual(tavern["reality_layer"], "PROCEDURAL_LOCAL_FICTION")
@@ -268,6 +274,22 @@ class LocalTavernEntryTests(unittest.TestCase):
         self.assertEqual(result["action_result"]["status"], "unverified")
         self.assertEqual(session.world_state["locations"]["forest"], before["forest"])
         self.assertEqual(procedural_taverns(session.world_state), [])
+
+    def test_search_created_locked_tavern_stays_locked_on_entry_attempt(self):
+        session = city_session()
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            found = session.run_player_turn("Yakınlarda bir taverna var mı?")
+            tavern = procedural_taverns(session.world_state)[0]
+            door = next(
+                item for item in session.world_state["doors"]
+                if item.get("id") == f"venue-door:{tavern['id']}"
+            )
+            entered = session.run_player_turn("tavernaya gidiyorum")
+        self.assertEqual(found["action_result"]["status"], "found")
+        self.assertFalse(door["open"])
+        self.assertTrue(door["locked"])
+        self.assertEqual(entered["action_result"]["status"], "blocked")
+        self.assertEqual(session.world_state["location"], "fr:city:neverwinter")
 
     def test_combat_blocks_local_tavern_entry(self):
         session = city_session()
@@ -340,7 +362,7 @@ class QuestAvailabilityTests(unittest.TestCase):
             with patch("game.ollama.chat", side_effect=AssertionError("model")):
                 result = session.run_player_turn(QUEST_QUESTION)
             self.assertFalse(session._unsupported_available_quest_claim(
-                "Sana sunulmuş kayıtlı görev şunlar: Kayıtlı Not."
+                "Üstlenebileceğin işler şunlar: Kayıtlı Not."
             ))
         finally:
             quest_catalog.CATALOG = original

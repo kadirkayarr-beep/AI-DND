@@ -397,6 +397,22 @@ class AmbientEventCommandResult(BaseModel):
     result: AmbientEventResult
 
 
+class TurnOutcome(BaseModel):
+    """Player-safe receipt of what the turn actually resolved (LR00-P5).
+
+    Only names the player can already see; never hidden IDs, DCs or secrets.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: str | None = Field(default=None, max_length=48)
+    status: str | None = Field(default=None, max_length=48)
+    kind: str | None = Field(default=None, max_length=48)
+    target_name: str | None = Field(default=None, max_length=120)
+    found: bool | None = None
+    place_created: bool | None = None
+
+
 class TurnResponse(BaseModel):
     session_id: str
     action_id: str
@@ -407,6 +423,24 @@ class TurnResponse(BaseModel):
     skill_check_result: SkillCheckResult | None = None
     quest_outcomes: list[QuestOutcome] = []
     level_up: LevelUpResult | None = None
+    turn_outcome: TurnOutcome | None = None
+
+
+class TurnUndoRequest(BaseModel):
+    """Undo exactly the last completed turn, named by its action ID (LR00-P7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: UUID
+    target_action_id: UUID
+
+
+class TurnUndoResponse(BaseModel):
+    session_id: str
+    action_id: str
+    undone_action_id: str
+    narration: str
+    state: dict[str, Any]
 
 
 class SpeciesTraitActionRequest(BaseModel):

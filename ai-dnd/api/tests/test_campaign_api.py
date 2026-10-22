@@ -26,6 +26,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+import grounded_action
 import campaign_time
 import living_world
 import timed_gameplay
@@ -135,6 +136,18 @@ class ControlledVenueOllamaClient(FakeOllamaClient):
                 "world_updates": {},
                 "lore_claims": [],
             }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
+class ControlledShopSetupOllamaClient(FakeOllamaClient):
+    """Offline narration for the Python-owned explicit shop-setup HTTP action."""
+
+    def chat(self, *args, **kwargs):
+        packet = {
+            "narration": "Küçük yerel dükkân kuruldu.",
+            "world_updates": {},
+            "lore_claims": [],
+        }
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
@@ -279,19 +292,23 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
 class ControlledSceneDetailOllamaClient(FakeOllamaClient):
     """Synthetic provider proposing one new local detail beneath a building."""
 
-    def __init__(self, location_id, parent_id, proposals=None, narration=None):
+    def __init__(self, location_id, parent_id, proposals=None, narration=None,
+                 explore_type="inspect"):
         self.location_id = location_id
         self.parent_id = parent_id
         self.proposals = proposals
         self.narration = narration or "Girişte taş bir kartal kabartması göze çarpıyor."
+        self.explore_type = explore_type
         self.calls = 0
         self.last_intent_schema_has_proposals = False
+        self.last_intent_schema = None
         self.last_intent_proposals = None
 
     def chat(self, *args, **kwargs):
         self.calls += 1
         properties = kwargs.get("format", {}).get("properties", {})
         if "intent" in properties:
+            self.last_intent_schema = copy.deepcopy(kwargs.get("format"))
             self.last_intent_schema_has_proposals = (
                 "scene_detail_proposals" in properties
             )
@@ -299,7 +316,7 @@ class ControlledSceneDetailOllamaClient(FakeOllamaClient):
                 "intent": "explore",
                 "action": "narrative",
                 "target": {"type": "location", "reference": ""},
-                "explore_type": "inspect",
+                "explore_type": self.explore_type,
                 "completion": "completed",
                 "confidence": 1.0,
             }
@@ -411,6 +428,52 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    async def create_local_shop_via_api(self, session_id, city_id):
+        record = self.manager.get(session_id)
+        session = record.game_session
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(session.world_state["shops"], [])
+        results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_setup(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        # Shop ownership stays in Python. Only the follow-up narration is
+        # scripted at the API's model boundary, with external sockets disabled.
+        setup_body = {
+            "message": "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_setup):
+            response = await self.post_scene_turn(
+                f"/api/game/sessions/{session_id}/turn",
+                ControlledShopSetupOllamaClient(),
+                setup_body,
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["action"], "shop_setup")
+        self.assertEqual(results[0]["status"], "created")
+        self.assertTrue(results[0]["success"])
+        world = self.store.get_campaign(record.campaign_id).payload[
+            "engine_save"
+        ]["world_state"]
+        self.assertEqual(len(world["shops"]), 1)
+        shop = copy.deepcopy(world["shops"][0])
+        self.assertEqual(shop["id"], results[0]["shop_id"])
+        self.assertEqual(shop["location"], city_id)
+        keepers = [
+            npc for npc in world["npcs"] if npc.get("shop_id") == shop["id"]
+        ]
+        self.assertEqual(len(keepers), 1)
+        self.assertEqual(keepers[0]["id"], shop["shopkeeper_id"])
+        self.assertEqual(shop["shopkeeper_id"], results[0]["shopkeeper_id"])
+        return shop
 
     async def post_scene_turn(self, url, model, body):
         with (
@@ -790,7 +853,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_personal_profile_why_followup_reaches_same_npc_context(self):
-        city_id, session_id, session, turn_url, _, _ = (
+        city_id, session_id, session, turn_url, venue_id, _ = (
             await create_city_with_locked_tavern(self)
         )
         profile = {
@@ -946,7 +1009,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         sera["knowledge"].append(other_npc_only_cause)
         unknown = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertIn("görmedim", unknown.json()["narration"])
+        # In-character "I do not know" (wording varies by NPC and input).
+        self.assertTrue(
+            any(marker in unknown.json()["narration"]
+                for marker in ("bilmiyorum", "emin değilim")),
+            unknown.json()["narration"],
+        )
         unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
         self.assertNotIn(other_npc_only_cause, unknown_context)
         self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])
@@ -1276,13 +1344,72 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertTrue(
             any(term in response.json()["narration"].casefold() for term in (
-                "doğrulanmış", "belirsiz", "kesin konuşamam",
-            )),
+    # Unverified lore is answered as uncertainty inside the fiction (the NPC
+    # does not know / will not guess, or the talk around the player is unsettled).
+    # Legacy record-style wording is still tolerated; it is no longer required.
+    "doğrulanmış", "belirsiz", "kesin konuşamam", "bilmiyorum", "emin değilim",
+    "kesin bir şey söyleyemem", "sağlam görünmüyor", "tahminden öteye",
+    "ayıramıyorum", "yanlış bir şey söyleyip", "başka birine sorsan",
+)),
             response.json()["narration"],
+        )
+        self.assertNotIn(
+            "ejderha", response.json()["narration"].casefold(),
+            "The unverified dragon rumour must not be repeated as fact.",
         )
         self.assertEqual(
             len(client.message_batches), batches_before_lore_question,
             "Unsupported lore remains on the deterministic safety path.",
+        )
+
+        entities_before_recommendation = {
+            "locations": copy.deepcopy(session.world_state["locations"]),
+            "npc_ids": [
+                npc.get("id") for npc in session.world_state["npcs"]
+            ],
+            "shop_ids": [
+                shop.get("id") for shop in session.world_state["shops"]
+            ],
+        }
+        batches_before_recommendation = len(client.message_batches)
+        client.conversation_replies = [{
+            "conversation": {
+                "addressee_id": marek["id"],
+                "subject_phrase": "Marek",
+                "subject_role": "addressee",
+                "meaning": "other",
+                "topic_relation": "new",
+                "candidate_evidence_ids": [],
+            },
+            "narration": "Marek, “Cael Hanı'na uğramanı öneririm,” der.",
+        }]
+        recommendation = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, yakınlarda gitmemi önereceğin bir yer var mı?",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(
+            recommendation.status_code, 200, recommendation.text
+        )
+        self.assertGreater(
+            len(client.message_batches), batches_before_recommendation,
+            "A grounded local recommendation should reach the model.",
+        )
+        self.assertNotEqual(
+            recommendation.json()["turn_outcome"]["status"], "unverified"
+        )
+        self.assertTrue(recommendation.json()["narration"].strip())
+        self.assertEqual(
+            entities_before_recommendation,
+            {
+                "locations": session.world_state["locations"],
+                "npc_ids": [
+                    npc.get("id") for npc in session.world_state["npcs"]
+                ],
+                "shop_ids": [
+                    shop.get("id") for shop in session.world_state["shops"]
+                ],
+            },
+            "An NPC recommendation is attributed speech, not a world-state mutation.",
         )
 
     async def test_activity_why_does_not_inherit_unrelated_profile_purpose(self):
@@ -1458,10 +1585,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(
                 marker in lore.json()["narration"].casefold()
-                for marker in ("doğrulanmış", "belirsiz", "kesin konuşamam")
+                for marker in (
+    # Unverified lore is answered as uncertainty inside the fiction (the NPC
+    # does not know / will not guess, or the talk around the player is unsettled).
+    # Legacy record-style wording is still tolerated; it is no longer required.
+    "doğrulanmış", "belirsiz", "kesin konuşamam", "bilmiyorum", "emin değilim",
+    "kesin bir şey söyleyemem", "sağlam görünmüyor", "tahminden öteye",
+    "ayıramıyorum", "yanlış bir şey söyleyip", "başka birine sorsan",
+)
             ),
             lore.json()["narration"],
         )
+        self.assertNotIn("ejderha", lore.json()["narration"].casefold())
         self.assertEqual(len(client.message_batches), batches_before_lore)
 
         other_actor = await post(
@@ -2034,22 +2169,32 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "topic_relation",
             "candidate_evidence_ids",
         }
-        for message in (
-            "Dikkatle etrafı değerlendir.",
-            "Marek, ne biliyorsun?",
+        for message, conversation_required in (
+            ("Dikkatle etrafı değerlendir.", False),
+            ("Marek, ne biliyorsun?", True),
         ):
             with self.subTest(message=message):
                 client.intent_schemas.clear()
                 schema = await ask(message)
                 interaction = schema["properties"]["interaction"]
-                self.assertIn("conversation", interaction["required"])
+                if conversation_required:
+                    self.assertIn("conversation", interaction["required"])
+                else:
+                    self.assertNotIn("conversation", interaction["required"])
                 conversation = schema["$defs"]["ConversationProposal"]
-                self.assertTrue(
-                    required_proposal_fields.issubset(
-                        set(conversation.get("required", []))
-                    ),
-                    conversation.get("required"),
-                )
+                if conversation_required:
+                    self.assertTrue(
+                        required_proposal_fields.issubset(
+                            set(conversation.get("required", []))
+                        ),
+                        conversation.get("required"),
+                    )
+                else:
+                    self.assertTrue(
+                        required_proposal_fields.issubset(
+                            set(conversation.get("properties", []))
+                        )
+                    )
                 self.assertIn(
                     "null",
                     conversation["properties"]["addressee_id"]["anyOf"][1]["type"],
@@ -2451,6 +2596,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_state = copy.deepcopy(session.serialize_game_state())
         before_rng = session.rng.getstate()
         before_memory = copy.deepcopy(record.narrative_memory)
+        before_lore_authority = copy.deepcopy(record.lore_authority.to_dict())
+        before_persisted_payload = copy.deepcopy(
+            self.store.get_campaign(campaign_id).payload
+        )
         original_save = self.store.save_campaign
         save_calls = 0
 
@@ -2468,6 +2617,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.serialize_game_state(), before_state)
         self.assertEqual(session.rng.getstate(), before_rng)
         self.assertEqual(record.narrative_memory, before_memory)
+        self.assertEqual(record.lore_authority.to_dict(), before_lore_authority)
+        self.assertEqual(
+            self.store.get_campaign(campaign_id).payload,
+            before_persisted_payload,
+        )
         self.assertIsNone(
             self.store.get_turn_action(
                 campaign_id, action_id, principal=TEST_PLAYER
@@ -2846,6 +3000,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             expected_status,
             expected_success=True,
             assert_read_only=False,
+            allow_entry_reference_expiry=False,
         ):
             # Observe the real engine boundary: TurnResponse deliberately exposes
             # narration/state rather than the living-world action_result.
@@ -2875,8 +3030,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(result["direct_response"].strip())
                 if assert_read_only:
                     self.assertEqual(result["state_changes"], [])
+                    expected_state = copy.deepcopy(state_before)
+                    if allow_entry_reference_expiry:
+                        entry_reference = expected_state["scene_state"].get(
+                            "entry_target_reference"
+                        )
+                        self.assertEqual(
+                            entry_reference["source_action_id"],
+                            requests[1]["action_id"],
+                        )
+                        expected_state["scene_state"]["entry_target_reference"] = None
                     self.assertEqual(
-                        merchant_state_snapshot(game_session), state_before
+                        merchant_state_snapshot(game_session), expected_state
                     )
                 before_replay = copy.deepcopy(game_session.serialize_game_state())
                 replay = await http.post(url, json=body)
@@ -2939,6 +3104,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 expected_status="unavailable",
                 expected_success=False,
                 assert_read_only=True,
+                allow_entry_reference_expiry=True,
             )
             await execute_and_replay(
                 http, session_id, loaded, requests[3], 3,
@@ -3748,7 +3914,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(action.get("action") == "local_search" and action.get("success"))
             self.assertEqual(action["status"], "unverified")
             narration = results[0]["narration"]
-            self.assertIn("ölçüm kaydı yok", narration)
+            self.assertIn("Kesin bir ölçü henüz elinde değil", narration)
             self.assertEqual(question.json()["narration"], narration)
             self.assertNotEqual(narration, discovered.json()["narration"])
 
@@ -3950,6 +4116,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(opened.status_code, 200, opened.text)
             self.assertTrue(door["open"])
             self.assertEqual(opened.json()["state"]["location"], city_id)
+            token = game._ACTIVE_SESSION.set(session)
+            try:
+                opened_narration = game._narration_safety_decision(
+                    "Kapı gıcırdayarak açılır.",
+                    "Kapıyı açıyorum.",
+                    action_result=results[-1],
+                )
+            finally:
+                game._ACTIVE_SESSION.reset(token)
+            self.assertFalse(opened_narration["unsafe"], opened_narration)
 
             entered = await self.http.post(
                 turn_url,
@@ -7156,7 +7332,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(action["state_changes"], [])
                         self.assertNotIn("npc_id", action)
                         narration = results[-1]["narration"]
-                        self.assertIn("güvenilir bir doğrulamam yok", narration)
+                        self.assertIn("yöneticisinin kim olduğu", narration)
+                        self.assertNotIn("doğrulama", narration.lower())
                         for npc in local_npcs:
                             self.assertNotIn(npc["name"], narration)
                         self.assertEqual(turn["narration"], narration)
@@ -10081,6 +10258,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         campaign_id = created_response.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created_response.json()["session_id"], city_id,
+        )
         active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
@@ -10103,7 +10283,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 base_url="http://testserver",
             ) as stale_http,
         ):
-            # Load both independent sessions before any merchant is discovered.
+            # Load both independent sessions before either searches for the merchant.
             active_resume = await active_http.post(
                 f"/api/game/campaigns/{campaign_id}/resume"
             )
@@ -10124,7 +10304,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             stale_journal = copy.deepcopy(stale_record.journal)
             before = active_store.get_campaign(campaign_id)
             self.assertEqual(stale_save, before.payload["engine_save"])
-            self.assertEqual(stale_save["world_state"]["shops"], [])
+            self.assertEqual(stale_save["world_state"]["shops"], [setup_shop])
 
             body = {
                 "message": "Bir tüccar arıyorum.",
@@ -10180,9 +10360,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
                     "ORDER BY action_id", (campaign_id,),
                 ).fetchall()
-            self.assertEqual(len(receipts_before), 1)
+            self.assertEqual(len(receipts_before), 2)
 
-            # No second resume: this session still has the merchant-free city.
+            # No second resume: this session still has its pre-search city state.
             self.assertEqual(stale_session.serialize_game_state(), stale_save)
             stale_body = {
                 "message": "Yakınlarda bir satıcı bulunuyor mu?",
@@ -10292,7 +10472,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 return result
 
             # Recovery has loaded an already committed merchant. A storage
-            # failure here must restore that state, not the old merchant-free
+            # failure here must restore that state, not the old pre-search
             # snapshot, and must leave the rejected action ID available to retry.
             recovered_save = copy.deepcopy(stale_session.serialize_game_state())
             recovered_journal = copy.deepcopy(stale_record.journal)
@@ -10584,7 +10764,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     await self._assert_first_merchant_search_save_race(shared_action=False)
                 self.assertTrue(timed_out)
                 self.assertTrue(worker_finished.is_set())
-                self.assertEqual(len(turn_saves), 2)
+                self.assertEqual(len(turn_saves), 3)
                 self.assertEqual(len(request_tasks), 2)
                 self.assertEqual(len(exited_clients), 2)
                 self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
@@ -10593,7 +10773,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 with closing(sqlite3.connect(self.store.path)) as connection:
                     self.assertEqual(connection.execute(
                         "SELECT COUNT(*) FROM campaign_turn_actions",
-                    ).fetchone()[0], 1)
+                    ).fetchone()[0], 2)
         finally:
             release_worker.set()
 
@@ -10632,6 +10812,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created.json()["session_id"], city_id,
+        )
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
         winner_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         loser_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
@@ -10695,10 +10878,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             before_receipts = copy.deepcopy(loser_record.turn_action_receipts)
             before_version = loser_session._campaign_persistence_version
             before_rows = receipt_rows()
-            self.assertEqual(before_engine["world_state"]["shops"], [])
-            self.assertFalse(any(
-                npc.get("shop_id") for npc in before_engine["world_state"]["npcs"]
-            ))
+            self.assertEqual(before_engine["world_state"]["shops"], [setup_shop])
+            self.assertEqual(
+                [npc["id"] for npc in before_engine["world_state"]["npcs"]
+                 if npc.get("shop_id") == setup_shop["id"]],
+                [setup_shop["shopkeeper_id"]],
+            )
             self.assertEqual(winner_session.serialize_game_state(), before_engine)
             self.assertEqual(before_campaign.payload["engine_save"], before_engine)
             self.assertEqual(before_version, (campaign_id, before_campaign.metadata["revision"]))
@@ -10773,8 +10958,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     stale_save_rejected.set()
                     raise
 
-            # Both requests enter against the merchant-free revision. Pause only
-            # after the loser's real engine has materialized its first shop.
+            # Both searches enter against the same explicitly prepared revision.
+            # Pause only after the loser's real engine resolves that shop.
             with (
                 patch.object(
                     loser_session, "run_player_turn", new=observe_turn(loser_session, "loser"),
@@ -10896,7 +11081,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 shopkeepers = [npc for npc in world["npcs"] if npc.get("shop_id") == shop["id"]]
                 self.assertEqual(len(shopkeepers), 1)
                 self.assertEqual(shopkeepers[0]["id"], shop["shopkeeper_id"])
-                self.assertNotIn(shop["shopkeeper_id"], before_npc_ids)
+                self.assertIn(shop["shopkeeper_id"], before_npc_ids)
                 self.assertEqual(result["shop_id"], shop["id"])
                 self.assertEqual(result["target_id"], shop["shopkeeper_id"])
                 self.assertEqual(
@@ -10942,7 +11127,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if shared_action:
                 self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
                 # Replay must work while the loser still holds its rolled-back,
-                # merchant-free revision, without recovering the winning state.
+                # pre-search revision, without recovering the winning state.
                 replay_messages = copy.deepcopy(loser_session.messages)
                 replay_rng = loser_session.rng.getstate()
                 with (
@@ -11413,9 +11598,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if kwargs.get("turn_action_receipt") is not None:
                 turn_saves.append(store)
                 is_recovered = callable(getattr(store.save_campaign, "side_effect", None))
-                # Ignore the initial discovery. Delay either the competing
-                # winner or the recovered save after its instance barrier opens.
-                if (timeout_winner and len(turn_saves) == 2) or (
+                # The explicit setup and initial search precede this race.
+                # Delay either its competing winner or the recovered save.
+                if (timeout_winner and len(turn_saves) == 3) or (
                     not timeout_winner and is_recovered
                 ):
                     worker_entered.set()
@@ -11464,7 +11649,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(client.is_closed)
             self.assertTrue(worker_finished.is_set())
             self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
-            self.assertEqual(len(turn_saves), 3)
+            self.assertEqual(len(turn_saves), 4)
             exited_clients.append(client)
             return await real_exit(client, *args)
 
@@ -11489,7 +11674,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 with closing(sqlite3.connect(self.store.path)) as connection:
                     self.assertEqual(connection.execute(
                         "SELECT COUNT(*) FROM campaign_turn_actions",
-                    ).fetchone()[0], 2)
+                    ).fetchone()[0], 3)
         finally:
             release_worker.set()
 
@@ -11508,6 +11693,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
+        setup_shop = await self.create_local_shop_via_api(
+            created.json()["session_id"], city_id,
+        )
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
         active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         recovered_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
@@ -11553,7 +11741,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(active_id, recovered_id)
             self.assertIsNot(active_session, session)
             self.assertIsNot(active_session.world_state, session.world_state)
-            self.assertEqual(session.world_state["shops"], [])
+            self.assertEqual(session.world_state["shops"], [setup_shop])
             active_url = f"/api/game/sessions/{active_id}/turn"
             recovered_url = f"/api/game/sessions/{recovered_id}/turn"
             discovery_body = {
@@ -12157,6 +12345,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
+        create_message = "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur."
+        created_shop_response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": create_message, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(
+            created_shop_response.status_code, 200, created_shop_response.text
+        )
+        setup_world = self.manager.get(
+            created["session_id"]
+        ).game_session.world_state
+        self.assertEqual(len(setup_world["shops"]), 1)
+        setup_shop = copy.deepcopy(setup_world["shops"][0])
         requests = [
             {"message": message, "action_id": str(uuid.uuid4())}
             for message in (
@@ -12291,7 +12492,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_campaign.history, committed.history)
         self.assertEqual(
             [entry["player_message"] for entry in final_campaign.history],
-            [body["message"] for body in requests],
+            [create_message, *(body["message"] for body in requests)],
+        )
+        self.assertEqual(
+            final_campaign.payload["engine_save"]["world_state"]["shops"],
+            [setup_shop],
         )
         for action_id, receipt in receipts.items():
             self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
@@ -12340,6 +12545,20 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.store.get_campaign(campaign_id).payload["engine_save"]["world_state"]["shops"],
             [],
         )
+        create_message = "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur."
+        shop_created = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={
+                "message": create_message,
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(shop_created.status_code, 200, shop_created.text)
+        setup_world = self.store.get_campaign(campaign_id).payload[
+            "engine_save"
+        ]["world_state"]
+        self.assertEqual(len(setup_world["shops"]), 1)
+        setup_shop = copy.deepcopy(setup_world["shops"][0])
         discovery_body = {
             "message": "Bir tüccar arıyorum.",
             "action_id": str(uuid.uuid4()),
@@ -12353,6 +12572,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         saved_world = committed.payload["engine_save"]["world_state"]
         self.assertEqual(len(saved_world["shops"]), 1)
         shop = saved_world["shops"][0]
+        self.assertEqual(shop, setup_shop)
         self.assertEqual(shop["location"], city_id)
         self.assertEqual(saved_world["flags"]["active_npc_id"], shop["shopkeeper_id"])
         discovery_receipt = self.store.get_turn_action(
@@ -12520,6 +12740,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(created["session_id"])
         session = record.game_session
         url = f"/api/game/sessions/{created['session_id']}/turn"
+        setup_shop = await self.create_local_shop_via_api(
+            created["session_id"], city_id,
+        )
         observation_body = {
             "message": "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "action_id": str(uuid.uuid4()),
@@ -12566,9 +12789,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_campaign = self.store.get_campaign(campaign_id)
         before_world = before_save["world_state"]
         self.assertEqual(before_world["location"], city_id)
-        self.assertEqual(before_world["shops"], [])
+        self.assertEqual(before_world["shops"], [setup_shop])
         self.assertTrue(before_world["scene_state"]["scenes"][city_id]["materialized"])
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(before_campaign.payload["engine_save"], before_save)
         self.assertEqual(before_campaign.payload["journal"], before_journal)
         results = []
@@ -12582,8 +12805,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             return result
 
         def fail_save(*args, **kwargs):
-            # Fail at the actual persistence boundary, after the real engine
-            # has created both related records, not before discovery executes.
+            # Fail at the real persistence boundary after the real engine
+            # resolves the already-authorized shop search.
             attempted_saves.append(copy.deepcopy(session.serialize_game_state()))
             raise CampaignStorageError("database unavailable")
 
@@ -12602,20 +12825,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[0]["action"], "local_search")
         self.assertEqual(results[0]["status"], "found")
         self.assertTrue(results[0]["success"])
-        uncommitted_shop_id = results[0]["shop_id"]
-        uncommitted_npc_id = results[0]["target_id"]
+        searched_shop_id = results[0]["shop_id"]
+        searched_npc_id = results[0]["target_id"]
         attempted_world = attempted_saves[0]["world_state"]
         self.assertEqual(len(attempted_world["shops"]), 1)
         attempted_shop = attempted_world["shops"][0]
-        self.assertEqual(attempted_shop["id"], uncommitted_shop_id)
-        self.assertEqual(attempted_shop["shopkeeper_id"], uncommitted_npc_id)
+        self.assertEqual(attempted_shop, setup_shop)
+        self.assertEqual(attempted_shop["id"], searched_shop_id)
+        self.assertEqual(attempted_shop["shopkeeper_id"], searched_npc_id)
         self.assertEqual(attempted_shop["location"], city_id)
         new_shopkeepers = [
             npc for npc in attempted_world["npcs"]
-            if npc.get("shop_id") == uncommitted_shop_id
+            if npc.get("shop_id") == searched_shop_id
         ]
         self.assertEqual(len(new_shopkeepers), 1)
-        self.assertEqual(new_shopkeepers[0]["id"], uncommitted_npc_id)
+        self.assertEqual(new_shopkeepers[0]["id"], searched_npc_id)
         self.assertEqual(new_shopkeepers[0]["location"], city_id)
 
         # Rollback covers the entire engine and the API-owned side effects.
@@ -12670,11 +12894,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reopened_campaign.history, before_campaign.history)
         self.assertEqual(reopened_campaign.combat_history, before_campaign.combat_history)
         reopened_world = reopened_record.game_session.world_state
-        self.assertNotIn(
-            uncommitted_shop_id, [shop["id"] for shop in reopened_world["shops"]]
-        )
-        self.assertNotIn(
-            uncommitted_npc_id, [npc["id"] for npc in reopened_world["npcs"]]
+        self.assertEqual(reopened_world["shops"], [setup_shop])
+        self.assertEqual(
+            [npc["id"] for npc in reopened_world["npcs"]
+             if npc.get("shop_id") == setup_shop["id"]],
+            [setup_shop["shopkeeper_id"]],
         )
         self.assertEqual(
             reopened_store.get_turn_action(campaign_id, observation_body["action_id"]),
@@ -12880,6 +13104,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             results.append(copy.deepcopy(result["action_result"]))
             return result
 
+        setup_shop = await self.create_local_shop_via_api(
+            created["session_id"], city_id,
+        )
         # Establish real committed city progress, rather than injecting state.
         with patch.object(session, "run_player_turn", new=capture_turn):
             observed = await self.http.post(turn_url, json=observation_body)
@@ -12898,13 +13125,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_receipts = copy.deepcopy(record.turn_action_receipts)
         before_campaign = self.store.get_campaign(campaign_id)
         self.assertEqual(before_save["world_state"]["location"], city_id)
-        self.assertEqual(before_save["world_state"]["shops"], [])
+        self.assertEqual(before_save["world_state"]["shops"], [setup_shop])
         self.assertTrue(
             before_save["world_state"]["scene_state"]["scenes"][city_id]["materialized"]
         )
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(
-            before_campaign.history[0]["player_message"], observation_body["message"]
+            before_campaign.history[-1]["player_message"], observation_body["message"]
         )
         discovery_body = {
             "message": "Buralarda bir tücaar var mı?",
@@ -12913,7 +13140,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         attempted_saves = []
 
         def fail_save(*args, **kwargs):
-            # Fail after discovery really creates the shop and linked keeper.
+            # Fail after the real search resolves the existing shop.
             attempted_saves.append(copy.deepcopy(session.serialize_game_state()))
             raise CampaignStorageError("database unavailable")
 
@@ -12934,6 +13161,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         attempted_world = attempted_saves[0]["world_state"]
         self.assertEqual(len(attempted_world["shops"]), 1)
         attempted_shop = attempted_world["shops"][0]
+        self.assertEqual(attempted_shop, setup_shop)
         self.assertEqual(attempted_shop["id"], results[-1]["shop_id"])
         self.assertEqual(attempted_shop["shopkeeper_id"], results[-1]["target_id"])
         self.assertEqual(
@@ -14155,6 +14383,293 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "kind_enum": ["detail", "seat"],
         }
         self.assertEqual(observed, expected)
+
+    async def test_scene_detail_with_workbench_name_is_not_rejected_as_shop(self):
+        city_id, _, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        unlock_venue_door(session.world_state, venue_id)
+        entered = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(entered.status_code, 200, entered.text)
+        self.assertEqual(entered.json()["state"]["location"], venue_id)
+        readable_line = "Aletleri yerlerine bırak."
+        model = ControlledSceneDetailOllamaClient(
+            venue_id, venue_id,
+            proposals=[{
+                "proposal_key": "ordinary_workbench",
+                "location": venue_id,
+                "parent_id": venue_id,
+                "name": "Çalışma Tezgâhı",
+                "description": "Tezgâha iliştirilmiş okunaklı bir not var.",
+                "text": readable_line,
+                "kind": "detail",
+                "aliases": ["çalışma tezgâhı", "tezgah", "tezgâh"],
+            }],
+            narration="Tezgâhın kenarına iliştirilmiş bir not görüyorsun.",
+            explore_type="observe",
+        )
+        response = await self.post_scene_turn(turn_url, model, {
+            "message": "Odanın köşelerini dikkatle inceliyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.last_intent_schema_has_proposals)
+        workbench_name = "Çalışma Tezgâhı"
+        feature = next(
+            (
+                row for row in session.world_state["features"]
+                if row.get("name") == workbench_name
+            ),
+            None,
+        )
+        self.assertIsNotNone(feature, "Ordinary workbench detail was rejected.")
+        self.assertEqual(feature.get("location"), venue_id)
+        self.assertEqual(feature.get("parent_id"), venue_id)
+        self.assertEqual(feature.get("reality_layer"), "PROCEDURAL_LOCAL_FICTION")
+        self.assertEqual(feature.get("text"), readable_line)
+        self.assertLessEqual(model.calls, 2)
+        read_body = {
+            "message": "Çalışma Tezgâhı okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        read = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read.status_code, 200, read.text)
+        self.assertIn(
+            f"{workbench_name} üzerinde yazan: “{readable_line}”",
+            read.json()["narration"],
+        )
+        replay = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), read.json())
+        exited = await self.http.post(turn_url, json={
+            "message": "Tavernadan dışarı çıkıyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(exited.status_code, 200, exited.text)
+        self.assertEqual(exited.json()["state"]["location"], city_id)
+        self.assertIsNone(grounded_action.resolve_turn(
+            session, "Çalışma Tezgâhı okuyorum.", allow_model=False
+        ))
+        returned = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned.status_code, 200, returned.text)
+        self.assertEqual(returned.json()["state"]["location"], venue_id)
+        returned_feature = next(
+            row for row in session.world_state["features"]
+            if row.get("id") == feature["id"]
+        )
+        self.assertEqual(returned_feature.get("text"), readable_line)
+        returned_read = await self.http.post(turn_url, json={
+            "message": "Çalışma Tezgâhı okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned_read.status_code, 200, returned_read.text)
+        self.assertIn(
+            f"{workbench_name} üzerinde yazan: “{readable_line}”",
+            returned_read.json()["narration"],
+        )
+
+    async def test_current_scene_observation_can_create_and_read_a_local_detail(self):
+        city_id, session_id, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        session.world_state["locations"][city_id].update(
+            name="Kıyı Atölyesi", aliases=["Kıyı Atölyesi"]
+        )
+        detail_name = "Yıpranmış Defter"
+        readable_line = "Kapı kilitsiz."
+        model = ControlledSceneDetailOllamaClient(
+            city_id,
+            city_id,
+            proposals=[{
+                "proposal_key": "ordinary_notebook",
+                "location": city_id,
+                "parent_id": city_id,
+                "name": detail_name,
+                "description": f'Açık sayfada okunabilen tek satır: “{readable_line}”',
+                "text": readable_line,
+                "kind": "detail",
+                "aliases": ["defter", "defter sayfası"],
+            }],
+            narration="Atölyenin köşesinde yıpranmış bir defter duruyor.",
+            explore_type="observe",
+        )
+        outcomes = []
+        original_turn = session.run_player_turn
+
+        @wraps(original_turn)
+        def capture_turn(*args, **kwargs):
+            result = original_turn(*args, **kwargs)
+            outcomes.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        body = {
+            "message": "Odanın köşelerini dikkatle inceliyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(model.last_intent_schema_has_proposals)
+        self.assertEqual(len(outcomes), 1)
+        self.assertNotEqual(outcomes[0].get("action"), "shop_setup")
+        calls_after_first_turn = model.calls
+        replay = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), response.json())
+        self.assertEqual(model.calls, calls_after_first_turn)
+        feature = next(
+            (
+                row for row in session.world_state["features"]
+                if row.get("name") == detail_name
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            feature,
+            f"Scene detail missing: {outcomes!r}",
+        )
+        self.assertEqual(feature.get("parent_id"), city_id)
+        self.assertLessEqual(model.calls, 2)
+
+        read_body = {
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        untouched_keys = ("doors", "inventory", "item_rewards", "rewards", "events")
+        tavern_door = next(
+            door for door in session.world_state["doors"]
+            if door.get("id") == f"venue-door:{venue_id}"
+        )
+        self.assertTrue(tavern_door.get("locked"))
+        self.assertFalse(tavern_door.get("open"))
+        before_read = {
+            key: copy.deepcopy(session.world_state.get(key))
+            for key in untouched_keys
+        }
+        read_results = []
+        original_read_turn = session.run_player_turn
+
+        @wraps(original_read_turn)
+        def capture_read_turn(*args, **kwargs):
+            result = original_read_turn(*args, **kwargs)
+            read_results.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+
+        model_calls_before_read = model.calls
+        with patch.object(session, "run_player_turn", new=capture_read_turn):
+            read = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read.status_code, 200, read.text)
+        self.assertEqual(read_results[0]["steps"][0]["verb"], "read")
+        self.assertEqual(read_results[0]["steps"][0]["target_id"], feature["id"])
+        self.assertIn(f"{detail_name} üzerinde yazan: “{readable_line}”", read.json()["narration"])
+        self.assertEqual(
+            {key: session.world_state.get(key) for key in untouched_keys},
+            before_read,
+        )
+        read_replay = await self.http.post(turn_url, json=read_body)
+        self.assertEqual(read_replay.status_code, 200, read_replay.text)
+        self.assertEqual(read_replay.json(), read.json())
+        self.assertEqual(model.calls, model_calls_before_read)
+
+        tavern_id = venue_id
+        unlock_venue_door(session.world_state, tavern_id)
+        entered = await self.http.post(turn_url, json={
+            "message": "Enter the tavern.", "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(entered.status_code, 200, entered.text)
+        self.assertEqual(entered.json()["state"]["location"], tavern_id)
+        unavailable = await self.http.post(turn_url, json={
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(unavailable.status_code, 200, unavailable.text)
+        self.assertNotIn(readable_line, unavailable.json()["narration"])
+        exited = await self.http.post(turn_url, json={
+            "message": "Tavernadan dışarı çıkıyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(exited.status_code, 200, exited.text)
+        self.assertEqual(exited.json()["state"]["location"], city_id)
+        returned_read = await self.http.post(turn_url, json={
+            "message": "Yıpranmış Defteri okuyorum.",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(returned_read.status_code, 200, returned_read.text)
+        self.assertIn(
+            f"{detail_name} üzerinde yazan: “{readable_line}”",
+            returned_read.json()["narration"],
+        )
+
+        campaign_id = self.manager.get(session_id).campaign_id
+        persisted = self.store.get_campaign(campaign_id)
+        self.assertTrue(any(
+            row.get("id") == feature["id"]
+            for row in persisted.payload["engine_save"]["world_state"]["features"]
+        ))
+
+        old_http = self.http
+        reloaded_store = CampaignStore(
+            self.store.path, bound_principal=TEST_PLAYER
+        )
+        self.store = reloaded_store
+        resumed_manager = SessionManager(campaign_store=reloaded_store)
+        self.manager = resumed_manager
+        self.app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(model),
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+        await old_http.aclose()
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{campaign_id}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        resumed_session = resumed_manager.get(
+            resumed.json()["session_id"]
+        ).game_session
+        resumed_feature = next(
+            row for row in resumed_session.world_state["features"]
+            if row.get("id") == feature["id"]
+        )
+        self.assertEqual(resumed_feature.get("text"), readable_line)
+        resumed_read = await self.http.post(
+            f"/api/game/sessions/{resumed.json()['session_id']}/turn",
+            json={
+                "message": "Yıpranmış Defteri okuyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(resumed_read.status_code, 200, resumed_read.text)
+        self.assertIn(
+            f"{detail_name} üzerinde yazan: “{readable_line}”",
+            resumed_read.json()["narration"],
+        )
+
+        isolated = await self.http.post(
+            "/api/game/campaigns",
+            json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": city_id,
+            }},
+        )
+        self.assertEqual(isolated.status_code, 200, isolated.text)
+        isolated_session = resumed_manager.get(
+            isolated.json()["session_id"]
+        ).game_session
+        self.assertFalse(any(
+            row.get("name") == detail_name
+            for row in isolated_session.world_state["features"]
+        ))
 
     async def test_ordinary_stonework_proposal_for_city_and_inn_is_accepted_and_persisted(self):
         city_id, session_id, session, turn_url, venue_id, _ = (

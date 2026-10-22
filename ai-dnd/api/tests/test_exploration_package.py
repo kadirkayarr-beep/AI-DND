@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 import exploration
+import grounded_action
 import local_adventure_catalog as catalog
 import timed_gameplay
 from combat_lifecycle import CombatRequestError
@@ -64,6 +65,24 @@ class ExplorationPackageTests(NativeBase):
         self.assertFalse(set(catalog.LOCATIONS) & visited)
         self.assertNotIn("stone_secret", json.dumps(result["state"]["exploration"]))
         self.assertNotIn("stone_secret_door", {d["id"] for d in result["state"]["doors"]})
+
+    def test_undiscovered_catalog_door_is_not_grounded_or_suggested(self):
+        self.enter()
+        world = self.session.world_state
+        self.assertEqual(world["location"], catalog.ENTRY)
+        self.assertEqual(world[catalog.KEY]["discoveries"], [])
+        secret = next(d for d in world["doors"] if d["id"] == "stone_secret_door")
+        self.assertNotIn("hidden", secret)
+
+        visible = exploration.visible_doors(world)
+        candidates = grounded_action.candidates(self.session)
+        self.assertNotIn("stone_secret_door", {d["id"] for d in visible})
+        self.assertNotIn("stone_secret_door", json.dumps(candidates, ensure_ascii=False))
+        self.assertNotIn("Gizli Taş Kapı", exploration.describe(world))
+        answer_target = grounded_action.bind(
+            ["gizli", "tas", "kapi"], candidates, world=world, verb="inspect",
+        )["target"]
+        self.assertNotEqual(answer_target and answer_target["id"], "stone_secret_door")
 
     def test_pace_distances_and_duration_are_owned_and_legacy_is_unchanged(self):
         self.call("/explore begin")

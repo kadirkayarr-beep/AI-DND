@@ -273,6 +273,17 @@ class DevelopmentToolingTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     owner.load_config(self.config_path)
 
+    def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
+        config = owner.load_config(owner.DEFAULT_CONFIG)
+        selectors = config["regression_selectors"]
+        self.assertEqual(len(selectors), len(set(selectors)))
+        self.assertEqual(sum(config["regression_group_sizes"]), len(selectors))
+        browser = next(
+            command for command in config["frontend_commands"]
+            if command["name"] == "frontend_browser_ui_mocked_auth"
+        )
+        self.assertEqual(browser["argv"][-1], "test:ui")
+
     def test_production_scope_is_not_semantic_authority_proof(self):
         (self.repo / "ai-dnd/game.py").write_text("changed")
         rows = owner.structural_checks(self.config, owner.repository_state(self.repo), self.repo)
@@ -329,6 +340,7 @@ class DevelopmentToolingTests(unittest.TestCase):
         runner.write_bytes((ROOT / "scripts/run_regression_evidence.py").read_bytes())
         (self.repo / "ai-dnd/test_fixture.py").write_text("def test_ok(): pass\n")
         self.config["regression_selectors"] = ["test_fixture"]
+        self.config["regression_group_sizes"] = [1]
         for command in self.config["frontend_commands"]:
             command["argv"] = [sys.executable, "-c", "print('offline command fixture')"]
         self.config_path.write_text(json.dumps(self.config))

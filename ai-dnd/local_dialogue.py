@@ -12,6 +12,7 @@ import unicodedata
 from typing import Any
 
 import living_world
+import npc_statements
 
 
 VERIFIED_SETTING_FACT = "VERIFIED_SETTING_FACT"
@@ -248,6 +249,52 @@ def is_world_subject_question(value: Any) -> bool:
     return bool(_WORLD_SUBJECT_TERMS.search(value) and _QUESTION_SIGNAL.search(value))
 
 
+def is_local_place_recommendation_request(value: Any) -> bool:
+    """An ordinary request for an NPC's local recommendation, not a canon claim."""
+    text = normalize_text(value)
+    if not text:
+        return False
+    if re.search(
+        r"\b(?:daha once|onceki|gecmis|hatirla\w*|"
+        r"soz ver\w*|soylemistin|demistin|anlatmistin|bahsetmistin|"
+        r"secret|hidden|gizli|sakli|yasakli)\b",
+        text,
+    ):
+        return False
+    asks_for_place = bool(
+        re.search(r"\b(?:yer\w*|mekan\w*|nereye|lokasyon\w*)\b", text)
+        or any(npc_statements.place_kind_of(word) for word in text.split())
+    )
+    asks_for_recommendation = bool(
+        re.search(
+            r"\b(?:oner\w*|tavsiye\w*|recommend\w*|suggest\w*)\b",
+            text,
+        )
+    )
+    return asks_for_place and asks_for_recommendation
+
+
+def local_place_recommendation_kind(value: Any) -> str | None:
+    """Return a requested venue/service kind, not merely a request for a place."""
+    if not is_local_place_recommendation_request(value):
+        return None
+    for word in normalize_text(value).split():
+        place_kind = npc_statements.place_kind_of(word)
+        if place_kind is not None:
+            return place_kind[1]
+    return None
+
+
+def is_open_local_place_discovery(value: Any) -> bool:
+    """An open-ended request for another place, with no requested venue kind."""
+    text = normalize_text(value)
+    return bool(
+        is_local_place_recommendation_request(value)
+        and local_place_recommendation_kind(value) is None
+        and re.search(r"\b(?:baska|farkli|alternatif)\b", text)
+    )
+
+
 def explicit_player_name_disclosure(value: Any) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -331,10 +378,12 @@ def personal_question_kind(value: Any) -> str | None:
     if re.search(
         r"\b(?:neden|niye|nicin|why)\b.{0,45}"
         r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
-        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz|din|dın|dun|dün|"
+        r"diniz|dınız|dunuz|dünüz)|come\w*)\b|"
         r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
         r"\b(?:neden|niye|nicin|why)\b.{0,45}"
-        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz|din|dın|dun|dün|"
+        r"diniz|dınız|dunuz|dünüz)|come\w*)\b|"
         r"\b(?:neden|niye|nicin|why)\b.{0,65}"
         r"\b(?:ara|ari|bul|yap|ugras|calis)\w*(?:sin|sın|sun|sün|siniz|sınız|sunuz|sünüz)\b",
         text,
@@ -350,7 +399,10 @@ def personal_question_kind(value: Any) -> str | None:
     if re.search(
         r"\b(?:ad|adi|adiniz|adin|ismin|ismi)\b.{0,24}"
         r"\b(?:ne|nedir|sor\w*)\b|"
-        r"\b(?:kimsin|sen kimsin|adini sor)\b",
+        r"\b(?:kimsin|sen kimsin|adini sor)\b|"
+        r"\b(?:ismini|adini|adinizi|isminizi)\b.{0,30}"
+        r"\b(?:ogren\w*|soyle\w*|sora\w*|sorabilir\w*)\b|"
+        r"\b(?:ismin|adin) ne\w*\b",
         text,
     ):
         return "npc_identity"

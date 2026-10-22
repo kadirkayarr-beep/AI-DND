@@ -11,6 +11,7 @@ import type { GameState } from './gameState';
 import type { LevelUpResult } from './levelUpResult';
 import type { QuestOutcome } from './questOutcome';
 import type { SkillCheckResult } from './skillCheckResult';
+import type { TurnOutcome } from './turnOutcome';
 
 export interface GameTurnResult {
   session_id: string;
@@ -26,4 +27,5 @@ export interface GameTurnResult {
   quest_outcomes: QuestOutcome[];
   /** Server-owned experience award for this turn. Null when the turn granted no experience. */
   level_up: LevelUpResult | null;
+  turn_outcome?: TurnOutcome | null;
 }

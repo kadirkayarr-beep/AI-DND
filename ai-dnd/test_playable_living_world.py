@@ -15,6 +15,7 @@ import living_world
 import local_dialogue
 import exploration
 import scheduled_events
+import grounded_action
 from api.serializers import serialize_session_state, serialize_combat_result
 from api.campaign_journal import empty_campaign_journal, update_campaign_journal
 
@@ -25,6 +26,19 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.world = self.session.world_state
         self.world["location"] = "forest"
         self.root_location = self.world["location"]
+
+    def _seed_local_shop(self):
+        created = self.session.create_shop_from_proposal({
+            "name": f"{game._turkish_genitive_form('Test Merchant')} Tezgâhı",
+            "description": "Küçük ve sade bir yerel tezgâh.",
+            "shopkeeper": {
+                "name": "Test Merchant",
+                "personality": "Sakin ve dikkatli.",
+                "appearance": "Sade giysili bir dükkâncı.",
+            },
+        })
+        self.assertIsNotNone(created)
+        return created["shop"], created["shopkeeper"]
 
     def _set_npc_conversation_deadline(self, turn_index, *, active=True):
         npcs = [
@@ -613,8 +627,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(
             guard,
-            "Duru, “Yol ve güvenlik hakkında doğrulanmış bilgim yok; "
-            "kesin bir şey söyleyemem,” diye yanıt verir.",
+            "Duru, “Yolların ne durumda olduğunu bilemem; kesin bir şey "
+            "söylersem seni yanıltırım,” diye yanıt verir.",
         )
         greeting = game._direct_npc_smalltalk_response(
             "Onunla kısa bir selamlaşıyorum.", npc
@@ -627,18 +641,18 @@ class PlayableLivingWorldTests(unittest.TestCase):
             game._direct_npc_smalltalk_response("Doğu'da ne var?", npc)
         )
 
-    def test_merchant_search_creates_local_person_and_shop_without_trade(self):
+    def test_merchant_search_finds_existing_local_person_and_shop_without_trade(self):
+        shop, merchant = self._seed_local_shop()
+        inventory_before = copy.deepcopy(self.world["inventory"])
+        shops_before = copy.deepcopy(self.world["shops"])
+        merchant_before = copy.deepcopy(merchant)
         plan = self.session.plan_living_world_turn(
             "Bir tüccar arıyorum."
         )
         self.assertEqual(plan["direct_result"]["action"], "local_search")
         self.assertEqual(plan["direct_result"]["status"], "found")
-        self.assertEqual(len(self.world["shops"]), 1)
-        shop = self.world["shops"][0]
-        merchant = next(
-            item for item in self.world["npcs"]
-            if item["id"] == shop["shopkeeper_id"]
-        )
+        self.assertEqual(plan["direct_result"]["shop_id"], shop["id"])
+        self.assertEqual(plan["direct_result"]["target_id"], merchant["id"])
         self.assertEqual(shop["location"], self.root_location)
         self.assertEqual(merchant["location"], self.root_location)
         self.assertIn("campaign_local", shop["tags"])
@@ -652,12 +666,15 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(game._turkish_genitive_form("Veyra"), "Veyra'nın")
         self.assertEqual(game._turkish_genitive_form("Marek"), "Marek'in")
+        self.assertEqual(self.world["inventory"], inventory_before)
+        self.assertEqual(self.world["shops"], shops_before)
+        self.assertEqual(merchant, merchant_before)
 
         negative = self.session.plan_living_world_turn(
             "Bir tüccar aramıyorum."
         )
         self.assertIsNone(negative["direct_result"])
-        self.assertEqual(len(self.world["shops"]), 1)
+        self.assertEqual(self.world["shops"], shops_before)
 
     def test_addressed_npc_tavern_question_does_not_create_a_world_search_result(self):
         npc = self.session.create_npc_from_ai({
@@ -1190,8 +1207,20 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertFalse(living_world.is_tavern_search("Han kapısını kırmalı mıyım?"))
         self.assertFalse(living_world.is_tavern_search("Kael Hanı kapısını gözlemliyorum."))
         self.assertEqual(living_world.classify_scene_action("Etrafıma bakıyorum."), "look")
+        self.assertNotEqual(
+            living_world.classify_scene_action(
+                "Şehirde oturup sıcak yemek yiyebileceğim bir han var mı?"
+            ),
+            "sit",
+        )
+        self.assertEqual(
+            living_world.classify_scene_action(
+                "Sandalyeye oturup muhafızı dinliyorum."
+            ),
+            "sit",
+        )
 
-    def test_building_detail_inquiry_does_not_start_a_new_tavern_search(self):
+    def test_building_inspection_of_known_tavern_does_not_start_a_new_search(self):
         sentence = "hanın olduğu binayı araştırıyorum açık pencere varmı bakıyorum"
         self.assertFalse(living_world.is_tavern_search(sentence))
         self.assertTrue(living_world.is_anchored_structure_inquiry(sentence))
@@ -1342,6 +1371,122 @@ class PlayableLivingWorldTests(unittest.TestCase):
                 self.assertIsNone(
                     exploration._natural_venue_door_action(self.session, non_action)
                 )
+
+    def test_compound_move_and_knock_follow_the_actual_building_result(self):
+        self.world["location"] = "neverwinter"
+        self.world["locations"]["neverwinter"] = {
+            "id": "neverwinter", "name": "Neverwinter", "type": "city",
+        }
+        for identity, name in (("inn_ash", "Kuzgun Hanı"), ("inn_blue", "Mavi Fener")):
+            self.world["locations"][identity] = {
+                "id": identity, "name": name,
+                "parent_location_id": "neverwinter",
+                "scene_kind": "tavern", "type": "inn",
+            }
+        self.world["doors"] = [
+            {
+                "id": f"venue-door:{identity}",
+                "name": f"{name} Kapısı",
+                "location": "neverwinter",
+                "open": False, "locked": False, "broken": False,
+            }
+            for identity, name in (("inn_ash", "Kuzgun Hanı"), ("inn_blue", "Mavi Fener"))
+        ]
+        grounded_action.note_near(self.world, "venue-door:inn_ash")
+
+        result = grounded_action.resolve_turn(
+            self.session,
+            "Mavi Fener'e gidiyorum ve kapısını çalıyorum.",
+            allow_model=False,
+        )
+
+        self.assertEqual(result["action_result"]["status"], "completed")
+        steps = result["action_result"]["steps"]
+        self.assertEqual(steps[0]["target_id"], "inn_blue")
+        self.assertEqual(steps[1]["target_id"], "venue-door:inn_blue")
+        self.assertEqual(steps[1]["target_name"], "Mavi Fener Kapısı")
+
+    def test_compound_move_preserves_explicit_smithy_door_target(self):
+        self.world["location"] = "neverwinter"
+        self.world["locations"]["neverwinter"] = {
+            "id": "neverwinter", "name": "Neverwinter", "type": "city",
+        }
+        for identity, name, scene_kind, kind in (
+            ("inn_ash", "Kuzgun Hanı", "tavern", "inn"),
+            ("inn_blue", "Mavi Fener", "tavern", "inn"),
+            ("smithy", "Ali'nin Demirhanesi", "smithy", "smithy"),
+        ):
+            self.world["locations"][identity] = {
+                "id": identity, "name": name,
+                "parent_location_id": "neverwinter",
+                "scene_kind": scene_kind, "type": kind,
+            }
+        self.world["doors"] = [
+            {
+                "id": f"venue-door:{identity}",
+                "name": "Atölye Kapısı" if identity == "smithy" else f"{name} Kapısı",
+                "location": "neverwinter",
+                "open": False, "locked": False, "broken": False,
+            }
+            for identity, name in (
+                ("inn_ash", "Kuzgun Hanı"),
+                ("inn_blue", "Mavi Fener"),
+                ("smithy", "Atölye"),
+            )
+        ]
+        grounded_action.note_near(self.world, "venue-door:inn_ash")
+
+        result = grounded_action.resolve_turn(
+            self.session,
+            "Mavi Fener'e gidip demirhanenin kapısını açıyorum.",
+            allow_model=False,
+        )
+
+        self.assertEqual(result["action_result"]["status"], "completed")
+        steps = result["action_result"]["steps"]
+        self.assertEqual(steps[0]["target_id"], "inn_blue")
+        self.assertEqual(steps[1]["target_id"], "venue-door:smithy")
+        self.assertNotIn("venue-door:inn_ash|0:0", self.world[grounded_action.KEY]["answers"])
+
+    def test_named_smithy_door_wins_over_separate_workshop_kind(self):
+        self.world["location"] = "neverwinter"
+        self.world["locations"]["neverwinter"] = {
+            "id": "neverwinter", "name": "Neverwinter", "type": "city",
+        }
+        for identity, name, scene_kind, kind in (
+            ("inn_blue", "Mavi Fener", "tavern", "inn"),
+            ("smithy", "Arin'in Demirhanesi", "smithy", "smithy"),
+            ("workshop", "Lina'nın Atölyesi", "workshop", "workshop"),
+        ):
+            self.world["locations"][identity] = {
+                "id": identity, "name": name,
+                "parent_location_id": "neverwinter",
+                "scene_kind": scene_kind, "type": kind,
+            }
+        self.world["doors"] = [
+            {
+                "id": f"venue-door:{identity}",
+                "name": name,
+                "location": "neverwinter",
+                "open": False, "locked": False, "broken": False,
+            }
+            for identity, name in (
+                ("inn_blue", "Mavi Fener Kapısı"),
+                ("smithy", "Atölye Kapısı"),
+                ("workshop", "Lina'nın Atölyesi Kapısı"),
+            )
+        ]
+
+        result = grounded_action.resolve_turn(
+            self.session,
+            "Mavi Fener’e gidip Atölye Kapısını açıyorum.",
+            allow_model=False,
+        )
+
+        self.assertEqual(result["action_result"]["status"], "completed")
+        steps = result["action_result"]["steps"]
+        self.assertEqual(steps[0]["target_id"], "inn_blue")
+        self.assertEqual(steps[1]["target_id"], "venue-door:smithy")
 
     def test_guard_smalltalk_does_not_recommend_locked_known_tavern_as_unblocked(self):
         self.world["location"] = "fr:city:neverwinter"
@@ -1739,7 +1884,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         response = game._unverified_lore_response(
             "Bu iki yer arası kaç mil?"
         )
-        self.assertIn("ölçüm kaydı yok", response)
+        self.assertIn("Kesin bir ölçü henüz elinde değil", response)
         self.assertNotIn("vermiyorsun", response)
         self.assertNotIn("ölçün yok", response)
 
@@ -1774,7 +1919,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
 
         ask.assert_not_called()
         self.assertEqual(result["action_result"]["status"], "unverified")
-        self.assertIn("ölçüm kaydı yok", result["narration"])
+        self.assertIn("Kesin bir ölçü henüz elinde değil", result["narration"])
         for key, value in before.items():
             self.assertEqual(self.world.get(key), value, key)
 
@@ -1873,7 +2018,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         ))
 
     @patch("game.ollama.chat", side_effect=AssertionError("City observation is deterministic"))
-    def test_v11_semantic_city_observation_and_local_discovery(self, model_chat):
+    def test_v11_semantic_city_observation_and_existing_shop_discovery(self, model_chat):
         city_id = "city_observation_fixture"
         self.world["locations"][city_id] = {
             "id": city_id,
@@ -1914,6 +2059,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(tavern["parent_location_id"], city_id)
         self.assertEqual(tavern["exit_location_id"], city_id)
 
+        seeded_shop, seeded_shopkeeper = self._seed_local_shop()
         merchant = self.session.plan_living_world_turn(
             "Buralarda bir tücaar var mı?"
         )
@@ -1924,12 +2070,14 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertTrue(merchant["direct_result"]["direct_response"].strip())
         self.assertEqual(len(self.world["shops"]), 1)
         shop = self.world["shops"][0]
+        self.assertEqual(shop["id"], seeded_shop["id"])
         self.assertEqual(shop["id"], merchant["direct_result"]["shop_id"])
         self.assertEqual(shop["location"], city_id)
         self.assertEqual(shop["shopkeeper_id"], merchant["direct_result"]["target_id"])
         shopkeeper = next(
             npc for npc in self.world["npcs"] if npc["id"] == shop["shopkeeper_id"]
         )
+        self.assertEqual(shopkeeper["id"], seeded_shopkeeper["id"])
         self.assertEqual(shopkeeper["location"], city_id)
         self.assertEqual(self.world["location"], city_id)
         self.assertEqual(scene, scene_before_discovery)

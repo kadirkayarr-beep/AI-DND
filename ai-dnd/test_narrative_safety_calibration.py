@@ -326,6 +326,19 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
                 self.assertTrue(decision["unsafe"], decision)
                 self.assertEqual(decision["reason_code"], expected_reason)
 
+    def test_physical_key_claim_is_not_rescued_by_adjacent_metaphor(self):
+        cases = (
+            "Gromm sana güven göstergesi olarak hanın anahtarını verdi.",
+            "Gromm: “Hanın anahtarını sana verdim; kalbimin anahtarını da sana verdim.”",
+            "Gromm: “Kalbimin anahtarını sana verdim; hanın anahtarını da sana verdim.”",
+        )
+        for narration in cases:
+            with self.subTest(narration=narration):
+                decision = self.decide(narration)
+                self.assertTrue(decision["unsafe"], decision)
+        metaphor = self.decide("Gromm: “Kalbimin anahtarını sana verdi.”")
+        self.assertFalse(metaphor["unsafe"], metaphor)
+
     def test_unregistered_persistent_object_is_rejected_but_registered_object_is_allowed(self):
         claim = "Yerdeki sandık açılmış duruyor."
         decision = self.decide(claim)
@@ -691,7 +704,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             action_result={"action": "dialogue", "status": "resolved"},
         )
 
-        self.assertIn("Bu konuşmayı kiminle yaptığını", output)
+        self.assertIn("kiminle konuştuğunu çıkaramıyorsun", output)
         self.assertNotIn("Mira", output)
         self.assertEqual(
             self.session.last_narration_safety["reason_code"],
