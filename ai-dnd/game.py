@@ -9110,11 +9110,25 @@ def _narration_safety_decision(
         isinstance(action_result, dict)
         and action_result.get("status") == "experimental_attributed_speech"
     )
-    conditional = None if npc_speech else re.search(
-        r"\b(?:istersen|dilersen|açtıysan|başardıysan)\b"
-        r"|\beğer\b.{0,80}\b\w*(?:rsen|rsanız)\b",
-        text,
-    )
+    conditional = None
+    if not npc_speech:
+        quoted_spans = [
+            (quoted.start(), quoted.end())
+            for quoted in re.finditer(r'"[^"]*"|“[^”]*”', text)
+        ]
+        # A person's quoted "istersen" is an offer in their voice, not a choice
+        # the narrator makes for the player; only unquoted text is rejected.
+        conditional = next(
+            (
+                found for found in re.finditer(
+                    r"\b(?:istersen|dilersen|açtıysan|başardıysan)\b"
+                    r"|\beğer\b.{0,80}\b\w*(?:rsen|rsanız)\b",
+                    text,
+                )
+                if not any(start <= found.start() < end for start, end in quoted_spans)
+            ),
+            None,
+        )
     if conditional:
         return reject("UNSUPPORTED_PLAYER_CHOICE", conditional.group(0))
 
