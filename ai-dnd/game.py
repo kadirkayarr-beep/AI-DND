@@ -12383,9 +12383,15 @@ def finalize_narration(
                 npc_target, player_input, salt=len(recent_dm_narrations)
             )
         else:
-            replacement = fallback_for_turn()
-            if replacement in _GENERIC_NO_CHANGE_RESPONSES:
-                # A repeated real reply beats a "nothing happens" non-answer.
+            has_resolved_outcome = (
+                isinstance(resolved_fallback_response, str)
+                and bool(resolved_fallback_response.strip())
+            )
+            replacement = fallback_for_turn() if has_resolved_outcome else None
+            if replacement is None or replacement in _GENERIC_NO_CHANGE_RESPONSES:
+                # Without a Python-resolved outcome the only substitutes are a
+                # "nothing happens" line or an "I don't know" line; a repeated
+                # real reply beats both.
                 replaced = False
             else:
                 narration = replacement
