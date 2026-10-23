@@ -10093,6 +10093,17 @@ def _is_registered_lore_name(candidate, known_phrases, known_tokens):
     )
 
 
+_GENERIC_SPEAKER_LABEL_RE = re.compile(
+    r"(?:yakındaki kişi|bir [a-zçğıöşü]+(?: [a-zçğıöşü]+)?)",
+    re.IGNORECASE,
+)
+
+
+def _is_generic_speaker_label(label):
+    """A player-facing descriptor ("Yakındaki kişi", "Bir muhafız") names no entity."""
+    return bool(_GENERIC_SPEAKER_LABEL_RE.fullmatch(str(label).strip()))
+
+
 def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
     normalized_sentence = _lore_guard_text(sentence)
     contains_dr_year = bool(
@@ -10126,7 +10137,10 @@ def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
         # this boundary, ordinary capitalized words ("Evet", "Yolcuyum") are
         # mistaken for new entities solely because dialogue has a label.
         speaker = re.match(r'^\s*([^:«»“”"\n]{1,160}):\s*[“"«]', prefix)
-        if speaker and _is_registered_lore_name(speaker.group(1), known_phrases, known_tokens):
+        if speaker and (
+            _is_registered_lore_name(speaker.group(1), known_phrases, known_tokens)
+            or _is_generic_speaker_label(speaker.group(1))
+        ):
             prefix = prefix[speaker.end():]
         sentence_prefix = re.split(r"[.!?]\s*", prefix)[-1]
         at_sentence_start = not sentence_prefix.strip(
@@ -10444,6 +10458,22 @@ def _narration_has_unsupported_lore_claim(
                 if not linked or not has_outcome_evidence:
                     return True
     return False
+
+
+def _repair_unsupported_lore_narration(narration, lore_claims, lore_context, world_state):
+    """Drop only the unsupported sentences; None when nothing usable remains."""
+    sentences = re.split(r"(?<=[.!?。！？])\s+", narration)
+    kept = [
+        sentence for sentence in sentences
+        if not _narration_has_unsupported_lore_claim(
+            sentence, lore_claims, lore_context, world_state
+        )
+    ]
+    repaired = " ".join(kept).strip()
+    # A removed first sentence can leave an unbalanced quote and no speaker.
+    if not repaired or repaired.count("“") != repaired.count("”"):
+        return None
+    return repaired
 
 
 def _scene_has_registered_craft_role(term, world_state):
@@ -15590,12 +15620,19 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
     claims = packet.get("lore_claims", [])
-    if not _lore_claims_are_supported(claims, lore_context) or (
-        _narration_has_unsupported_lore_claim(
-            packet.get("narration"), claims, lore_context,
-            _session().world_state,
-        )
+    lore_unsupported = not _lore_claims_are_supported(claims, lore_context)
+    if not lore_unsupported and _narration_has_unsupported_lore_claim(
+        packet.get("narration"), claims, lore_context, _session().world_state,
     ):
+        # Repair before replacing: keep every sentence the guard accepts.
+        repaired_lore = _repair_unsupported_lore_narration(
+            packet.get("narration"), claims, lore_context, _session().world_state,
+        )
+        if repaired_lore:
+            packet["narration"] = repaired_lore
+        else:
+            lore_unsupported = True
+    if lore_unsupported:
         packet["valid_response"] = False
         packet["fallback_reason_code"] = "UNVERIFIED_LORE_CLAIM"
 
