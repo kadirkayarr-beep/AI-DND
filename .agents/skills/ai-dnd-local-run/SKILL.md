@@ -14,6 +14,6 @@ Start everything: `.\start_local.ps1` (params: `-ApiPort 8008 -UiPort 22785 -Wai
 
 ## Troubleshooting
 - "Ollama is not answering": start the Ollama service, retry.
-- "qwen3:8b is not in /api/tags": `ollama pull qwen3:8b`.
+- "qwen3.5:9b-q4_K_M is not in /api/tags": `ollama pull qwen3.5:9b-q4_K_M`.
 - UI NOT READY: run `pnpm install` at the root.
 - The game API is FastAPI. `artifacts/api-server` is NOT the game API; `artifacts/ai-dnd-web` is a session surface only.

@@ -11,11 +11,18 @@ from typing import Any, Iterator
 
 import game
 from api.model_phase import ModelFailure
-from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName, validate_local_model
+from api.local_model_config import (
+    DEFAULT_LOCAL_MODEL,
+    PRODUCTION_LOCAL_MODEL,
+    LocalModelName,
+    validate_local_model,
+)
 from api.world_metadata import validate_world_metadata
 
 
-MODEL_NAME = DEFAULT_LOCAL_MODEL  # Engine logical tag; adapter records the actual selected tag.
+# Engine logical tag: the fixed string game.py sends. The adapter checks it and
+# substitutes the actual selected local model (DEFAULT_LOCAL_MODEL by default).
+MODEL_NAME = "qwen3:8b"
 MAX_MODEL_CALLS_PER_TURN = 2
 # Successful tavern narration has completed in about 25s. A hung call was
 # still inside the client at the smoke's 240s HTTP limit. 90s fails closed
@@ -104,7 +111,7 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
 class AuthenticatedOllamaAdapter:
     """Binds one authenticated Ollama client without changing game.py."""
 
-    def __init__(self, client: Any, *, model_name: str = MODEL_NAME):
+    def __init__(self, client: Any, *, model_name: str = DEFAULT_LOCAL_MODEL):
         self._model_name = validate_local_model(model_name)
         self._client = client
 
@@ -118,7 +125,7 @@ class AuthenticatedOllamaAdapter:
         token = os.environ.get("OLLAMA_PROXY_TOKEN")
         if not host or not token:
             return None
-        model_name = validate_local_model(os.environ.get("AI_DND_OLLAMA_MODEL", MODEL_NAME))
+        model_name = validate_local_model(os.environ.get("AI_DND_OLLAMA_MODEL", PRODUCTION_LOCAL_MODEL))
         try:
             import ollama
 

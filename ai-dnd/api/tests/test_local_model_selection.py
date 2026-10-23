@@ -28,12 +28,25 @@ class RecordingClient:
 
 
 class LocalModelSelectionTests(unittest.TestCase):
-    def test_default_remains_original_model(self):
+    def test_library_default_remains_original_model(self):
         client = RecordingClient()
         adapter = AuthenticatedOllamaAdapter(client)
         self.assertEqual(adapter.model_name, 'qwen3:8b')
         adapter.chat(model='qwen3:8b', messages=[])
         self.assertEqual(client.requests[0]['model'], 'qwen3:8b')
+
+    def test_running_game_defaults_to_the_9b_model(self):
+        env = {'OLLAMA_HOST': 'http://127.0.0.1:9', 'OLLAMA_PROXY_TOKEN': 'fixture-not-secret'}
+        with patch.dict(os.environ, env):
+            os.environ.pop('AI_DND_OLLAMA_MODEL', None)
+            with patch('ollama.Client'):
+                adapter = AuthenticatedOllamaAdapter.from_environment()
+        self.assertEqual(adapter.model_name, NINE)
+        # The engine keeps sending its fixed 'qwen3:8b' tag; the adapter maps it.
+        client = RecordingClient((NINE,))
+        mapped = AuthenticatedOllamaAdapter(client, model_name=adapter.model_name)
+        mapped.chat(model='qwen3:8b', messages=[])
+        self.assertEqual(client.requests[0]['model'], NINE)
 
     def test_explicit_local_selection_is_actual_requested_tag(self):
         for model in (FOUR, NINE):
@@ -60,7 +73,7 @@ class LocalModelSelectionTests(unittest.TestCase):
             adapter.ensure_required_model()
 
     def test_default_similar_tag_is_not_the_requested_tag(self):
-        adapter = AuthenticatedOllamaAdapter(RecordingClient(('qwen3:8b-other',)))
+        adapter = AuthenticatedOllamaAdapter(RecordingClient(('qwen3:8b-other', NINE)))
         with self.assertRaises(RequiredModelUnavailableError):
             adapter.ensure_required_model()
 

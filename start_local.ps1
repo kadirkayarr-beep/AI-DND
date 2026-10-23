@@ -7,7 +7,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "qwen3:8b" }
+$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "qwen3.5:9b-q4_K_M" }
 if ($requiredModel -cnotin @("qwen3:8b", "qwen3.5:4b-q4_K_M", "qwen3.5:9b-q4_K_M")) {
     Write-Host "NOT READY: unsupported AI_DND_OLLAMA_MODEL. No services were started."
     exit 1
@@ -54,6 +54,12 @@ Write-Host "Ollama OK (selected model $requiredModel present)."
 if (-not $env:OLLAMA_HOST) {
     $env:OLLAMA_HOST = "http://127.0.0.1:11434"
 }
+# The API selects a model only through its Ollama adapter, which needs a token.
+# On loopback the project's smokes use the placeholder "loopback"; Ollama ignores it.
+if (-not $env:OLLAMA_PROXY_TOKEN -and $env:OLLAMA_HOST -match '^https?://(127\.0\.0\.1|localhost|\[::1\])(:|/|$)') {
+    $env:OLLAMA_PROXY_TOKEN = "loopback"
+}
+$env:AI_DND_OLLAMA_MODEL = $requiredModel
 $env:AI_DND_API_ORIGIN = "http://127.0.0.1:$ApiPort"
 
 $health = "http://127.0.0.1:$ApiPort/api/game/health"
