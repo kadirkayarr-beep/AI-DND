@@ -1219,6 +1219,29 @@ def known_character_answer(player_input):
     return "; ".join(facts) + "."
 
 
+# Ordinary Turkish sentence openers; capitalized at a sentence start they are
+# not person names even when a descriptor word follows ("Belki muhafıza sor").
+_COMMON_SENTENCE_OPENERS = frozenset({
+    "belki", "evet", "hayır", "tabii", "tabi", "elbette", "şimdi", "sonra", "peki",
+    "ama", "çünkü", "eğer", "yoksa", "bence", "açıkçası", "doğrusu", "galiba",
+    "herhalde", "mutlaka", "kesinlikle", "ayrıca", "üstelik", "yine", "şöyle",
+})
+
+_QUESTION_CUE_RE = re.compile(
+    r"\?|\b(?:ne|neler|nere\w*|kim\w*|kac\w*|hangi\w*|nasil|neden|niye|nicin|m[iu]\w*)\b"
+)
+
+
+def _model_query_type_is_plausible(player_input):
+    """A model-supplied query_type counts only when the player asked something.
+
+    Live qwen fills query_type on plain statements ("Tamam, o zaman gideyim."),
+    and the engine then answered a location query to a statement.
+    """
+    text = _normalize_turkish_typos(str(player_input).casefold())
+    return bool(_QUESTION_CUE_RE.search(text))
+
+
 def _detect_query_type(player_input, npc_target=None):
     """Ground questions in known entities, not in an ambient NPC alone."""
     world_state = _session().world_state
@@ -7558,6 +7581,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         "ÖNEMLİ: 'saldırmıyorum', 'saldırmayacağım' ve 'saldırmak istemiyorum' saldırı değildir; bunlarda narrative seç. "
         "Saldırı fiilinin görünmesi olumsuzluk ekini veya 'istemiyorum' ifadesini geçersiz kılmaz. "
         "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
+        "query_type yalnızca oyuncu gerçekten bir bilgi sorusu soruyorsa doldurulur; düz cümlelerde "
+        "('Tamam, o zaman gideyim.', 'Bir şey satın almak istiyorum.') query_type verme ve intent=query seçme. "
         "Oyuncu kendi adı, sınıfı, ırkı veya seviyesi hakkında sorarsa query_type=self seç; target.type=none ve target.reference boş olsun. "
         "Bu sorular konum sorusu değildir; target.type=location seçme. Örnek: 'Benim adım ne?' için "
         '{"intent":"query","action":"query","target":{"type":"none","reference":""},'
@@ -7804,6 +7829,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "This limited conversation exception overrides 'Hikâye yazma' above. "
             "If there is an interaction proposal, leave narration empty: Python must "
             "resolve the proposal before narration. No lore claims or world updates."
+            "\nRolde kal: oyun yöneticisi veya asistan gibi konuşma ('anladım', 'belirtir "
+            "misin' gibi oyuncuya talimat veren sistem dili yok). Oyuncunun cümlesini aynen "
+            "tekrar etme. Aynı jesti (örneğin pelerin düzeltmek) art arda cevaplarda "
+            "tekrarlama; jest gerekmiyorsa yalnızca konuş."
         )
         prompt += (
             "\ninteraction.conversation alanında tek seferlik anlam önerisi döndür: "
@@ -8044,7 +8073,11 @@ def validate_intent(intent, player_input):
         valid.pop("query_type", None)
         return valid
     if valid["intent"] == "query":
-        if valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}:
+        if (
+            valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}
+            or not _model_query_type_is_plausible(player_input)
+        ):
+            valid.pop("query_type", None)
             valid["intent"] = "narrative"
         valid["completion"] = "unclear"
         return valid
@@ -9507,7 +9540,7 @@ def _narration_safety_decision(
         r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
         r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|"
         r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
-        r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı))",
+        r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
         r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
     )
     import npc_speech_boundary
@@ -9527,6 +9560,8 @@ def _narration_safety_decision(
             ):
                 continue
             candidate = match.group(1).casefold()
+            if candidate in _COMMON_SENTENCE_OPENERS:
+                continue
             normalized_candidate = _normalize_turkish_typos(candidate)
             if candidate not in (
                 registered_names | registered_name_tokens | known_places
@@ -10185,7 +10220,7 @@ def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
         sentence_prefix = re.split(r"[.!?]\s*", prefix)[-1]
         at_sentence_start = not sentence_prefix.strip(
             " \t\r\n\"'“‘([{"
-        )
+        ) or bool(re.search(r"[:]\s*['\"“‘]\s*$", prefix))  # speech opened after a colon
         if at_sentence_start:
             first_word = _lore_guard_text(candidate.split()[0])
             if first_word in _LORE_SENTENCE_START_WORDS:
@@ -10526,16 +10561,32 @@ def _salvage_plain_speech(raw_intent):
     return True
 
 
+_SPEECH_SPAN_RE = re.compile(r"""“[^”]*”|"[^"]*"|(?<!\w)'[^']*'(?!\w)""")
+_TERMINATOR_MASK = {".": "\u0001", "!": "\u0002", "?": "\u0003"}
+
+
+def _split_sentences_keep_speech(text):
+    """Split on sentence ends, but never inside a quoted utterance."""
+    masked = _SPEECH_SPAN_RE.sub(
+        lambda span: "".join(_TERMINATOR_MASK.get(c, c) for c in span.group(0)), text
+    )
+    unmask = {mask: char for char, mask in _TERMINATOR_MASK.items()}
+    return [
+        "".join(unmask.get(c, c) for c in part)
+        for part in re.split(r"(?<=[.!?。！？])\s+", masked)
+    ]
+
+
 def _repair_unsupported_lore_narration(narration, lore_claims, lore_context, world_state):
     """Drop only the unsupported sentences; None when nothing usable remains."""
-    sentences = re.split(r"(?<=[.!?。！？])\s+", narration)
+    sentences = _split_sentences_keep_speech(narration)
     kept = [
         sentence for sentence in sentences
         if not _narration_has_unsupported_lore_claim(
             sentence, lore_claims, lore_context, world_state
         )
     ]
-    repaired = " ".join(kept).strip()
+    repaired = _trim_dangling_quote(" ".join(kept).strip())
     # A removed first sentence can leave an unbalanced quote and no speaker.
     if not repaired or repaired.count("“") != repaired.count("”"):
         return None
@@ -12065,6 +12116,26 @@ def _record_narration_safety(decision, handling):
         )
 
 
+_QUOTE_CLOSER_RE = re.compile(r"""(?<=[.!?…,])['"”’](?=\s|$)""")
+_QUOTE_OPENER_RE = re.compile(r"""(?:(?<=^)|(?<=[\s:(]))['"“‘](?=\S)""")
+
+
+def _trim_dangling_quote(text):
+    """Drop a leading fragment that ends in a closing quote nobody opened.
+
+    Removing the sentence that carried the opening quote leaves "...alırız.' Fırın
+    kokusu..."; keep only what follows. Untouched when balanced or nothing remains.
+    """
+    closer = _QUOTE_CLOSER_RE.search(text)
+    if closer is None:
+        return text
+    opener = _QUOTE_OPENER_RE.search(text)
+    if opener is not None and opener.start() < closer.start():
+        return text
+    rest = text[closer.end():].strip()
+    return rest if rest else text
+
+
 def _remove_trigger_sentence(narration, decision):
     """Remove one complete unsafe sentence only for deterministic agency repairs."""
     if decision.get("reason_code") not in {
@@ -12088,7 +12159,7 @@ def _remove_trigger_sentence(narration, decision):
                 kept.append(sentence)
         if kept:
             paragraphs.append(" ".join(kept))
-    repaired = "\n\n".join(paragraphs).strip()
+    repaired = _trim_dangling_quote("\n\n".join(paragraphs).strip())
     return repaired if removed else None
 
 
@@ -13119,7 +13190,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         return result
 
     # Handle identity/location/presence queries
-    query_type = _detect_query_type(player_input, npc_target) or intent.get("query_type")
+    model_query_type = (
+        intent.get("query_type") if _model_query_type_is_plausible(player_input) else None
+    )
+    query_type = _detect_query_type(player_input, npc_target) or model_query_type
     if query_type:
         query_response = _handle_query(player_input, query_type, npc_target)
         if query_response:

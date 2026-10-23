@@ -362,11 +362,15 @@ class QwenShapedModel(TranscriptModel):
     """Answers like the live Qwen: one packet holding intent, a helper
     conversation proposal that does not resolve, and a good reply."""
 
-    def __init__(self, reply, operation="none", fault="reply_as_quote", meaning="other"):
+    def __init__(self, reply, operation="none", fault="reply_as_quote", meaning="other",
+                 intent="narrative", query_type=None):
         super().__init__()
         self.reply = reply
         self.operation = operation
         self.meaning = meaning
+        # The live model fills query_type on turns that ask nothing (S26, S35).
+        self.intent = intent
+        self.query_type = query_type
         # reply_as_quote: the model writes its own answer into interaction.quote
         # (live S04). bad_evidence: it cites evidence ids that do not exist (S15).
         self.fault = fault
@@ -385,7 +389,7 @@ class QwenShapedModel(TranscriptModel):
             if self.fault == "bad_evidence" else []
         )
         packet = {
-            "intent": "narrative", "action": "narrative",
+            "intent": self.intent, "action": self.intent,
             "target": {"type": "none", "reference": ""},
             "completion": "unclear", "confidence": 1.0,
             "interaction": {
@@ -400,6 +404,8 @@ class QwenShapedModel(TranscriptModel):
             "narration": self.reply,
             "world_updates": {}, "lore_claims": [],
         }
+        if self.query_type:
+            packet["query_type"] = self.query_type
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
@@ -432,6 +438,30 @@ class ProposalSalvage(ReplayHarness):
                     "INVALID_CONVERSATION_PROPOSAL", record,
                 )
                 self.assertIn("hava gerçekten güzel", record["narration"], record)
+
+    async def test_a_model_query_type_on_a_non_question_is_ignored(self):
+        # Live qwen answered "Tamam, o zaman gideyim." with query_type=location and
+        # the engine replied "Bulunduğun yer: Neverwinter." to a statement.
+        reply = "Yakındaki kişi: “İyi yolculuklar, yolun açık olsun.”"
+        for message in ("Tamam, o zaman gideyim.", "Bir şey satın almak istiyorum."):
+            with self.subTest(message=message):
+                self.records.clear()
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault="clean", intent="query", query_type="location"),
+                    message,
+                )
+                self.assertNotIn("Bulunduğun yer", record["narration"], record)
+
+    async def test_a_real_location_question_is_still_answered(self):
+        reply = "Yakındaki kişi: “Neverwinter’dasın.”"
+        for message in ("Neredeyim?", "Şu an nerede bulunuyorum"):
+            with self.subTest(message=message):
+                self.records.clear()
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault="clean", intent="query", query_type="location"),
+                    message,
+                )
+                self.assertEqual(record["action"], "query", record)
 
     async def test_a_factual_reading_without_evidence_is_still_vetoed(self):
         # personal_purpose needs profile evidence; an invented answer must not stand.
@@ -472,6 +502,81 @@ class InteriorBaseline(ReplayHarness):
         self.assertEqual(session.world_state.get("location"), tavern_id)
         self.assertTrue(people, "the inn is empty")
         self.assertNotIn("İçerisi sessiz", look["narration"], look)
+
+
+class NarrationGuardUnitTests(unittest.TestCase):
+    """False positives and repair leftovers seen with the live qwen3.5:9b."""
+
+    def setUp(self):
+        import game
+        self.game = game
+        self.session = game.GameSession()
+        self.session.character["name"] = "Tester"
+        self.token = game._ACTIVE_SESSION.set(self.session)
+        self.addCleanup(game._ACTIVE_SESSION.reset, self.token)
+        world = self.session.world_state
+        self.npc = {
+            "id": "npc_n", "name": "Nissa", "role": "Fırıncı", "location": world["location"],
+            "name_known_to_player": True, "role_known_to_player": True, "status": "active",
+            "combat_status": "active", "current_hp": 8, "memory": [], "knowledge": [],
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION", "personal_profile": {},
+        }
+        world["npcs"].append(self.npc)
+
+    def decide(self, text, player_input="Pazar ne zaman açılıyor?"):
+        return self.game._narration_safety_decision(
+            text, player_input, self.npc, {"action": "dialogue", "status": "resolved"}
+        )
+
+    def test_a_common_sentence_opener_is_not_a_person_name(self):
+        for quote in ("'{}'", "“{}”", '"{}"'):
+            with self.subTest(quote=quote):
+                body = ("Pazar? Her sabah erken açılıyor, ama tam zamanı bilmem. "
+                        "Belki muhafızlardan birine sormak daha iyi olur.")
+                self.assertFalse(self.decide("Nissa: " + quote.format(body))["unsafe"])
+
+    def test_a_real_unregistered_name_is_still_caught(self):
+        decision = self.decide("Garrick yaklaşır ve sana bakar.", "Merhaba")
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+
+    def test_speech_after_a_colon_starts_a_sentence(self):
+        # Live 9b: "...karşılık verir: 'Amin olsun!" read "Amin" as a person's name.
+        for opener in ("'", "“"):
+            with self.subTest(opener=opener):
+                closer = "'" if opener == "'" else "”"
+                text = ("Yakındaki kişi başını eğerek karşılık verir: "
+                        f"{opener}Amin olsun! Güneşli günlerde her şey kolaylaşır.{closer} der.")
+                self.assertFalse(self.decide(text, "Kolay gelsin.")["unsafe"])
+
+    def test_lore_repair_never_cuts_a_quoted_utterance_in_half(self):
+        ws = self.session.world_state
+        text = ("Kapıda bekçi durur. Nissa der ki: 'Brom adlı kişi burada. Ama şimdi gitti.' "
+                "Sonra sessizlik olur.")
+        repaired = self.game._repair_unsupported_lore_narration(text, [], {}, ws)
+        self.assertEqual(repaired, "Kapıda bekçi durur.")
+        for fragment in ("Ama şimdi gitti", "Sonra sessizlik"):
+            self.assertNotIn(fragment, repaired or "")
+
+    def test_repair_drops_a_dangling_closing_quote(self):
+        trim = self.game._trim_dangling_quote
+        self.assertEqual(
+            trim("O zaman rahat nefes alırız.' Fırının kokusu havada asılı duruyor."),
+            "Fırının kokusu havada asılı duruyor.",
+        )
+        self.assertEqual(
+            trim("Yolculuğunuz bol şanslı olsun.'\nArka planda muhafızlar nöbette."),
+            "Arka planda muhafızlar nöbette.",
+        )
+
+    def test_balanced_text_is_left_alone(self):
+        trim = self.game._trim_dangling_quote
+        for text in ("Nissa: 'Merhaba. Nasılsın?' diye sorar.",
+                     "Nissa, “Merhaba.” der. Fırın sıcak.",
+                     "Nissa'nın fırını sıcak. Kimse yok.",
+                     "Yalnızca bir cümle.'"):
+            with self.subTest(text=text):
+                self.assertEqual(trim(text), text)
 
 
 class LoreGuardRepairUnitTests(unittest.TestCase):
