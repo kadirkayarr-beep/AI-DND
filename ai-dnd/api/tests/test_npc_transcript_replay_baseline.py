@@ -32,6 +32,7 @@ from api.tests.test_npc_dialogue_stage_a_diagnostic import (
 
 LORE_REFUSAL_MARKER = "hiçbir söz sağlam görünmüyor"
 CLARIFICATION_MARKER = "seçemedim"
+NO_CHANGE_MARKER = "çevrede şimdilik belirgin bir değişiklik olmuyor"
 
 # NPC lines taken from the transcript, keyed by a substring of the player text.
 QUENNA_REPLIES = [
@@ -87,7 +88,9 @@ class TranscriptModel(test_campaign_api.FakeOllamaClient):
 def classify(record, earlier_narrations):
     telemetry = record.get("telemetry") or {}
     narration = record["narration"]
-    if telemetry.get("fallback_reason") or LORE_REFUSAL_MARKER in narration:
+    folded = narration.casefold()
+    generic_text = LORE_REFUSAL_MARKER in folded or NO_CHANGE_MARKER in folded
+    if telemetry.get("fallback_reason") or generic_text:
         owner = "fallback"
     elif record.get("model_chat_calls", 0) > 0:
         owner = "model"
@@ -95,7 +98,7 @@ def classify(record, earlier_narrations):
         owner = "deterministic"
     return {
         "owner": owner,
-        "generic": LORE_REFUSAL_MARKER in narration or bool(telemetry.get("fallback_reason")),
+        "generic": generic_text or bool(telemetry.get("fallback_reason")),
         "clarification": CLARIFICATION_MARKER in narration
         or record.get("action_status") == "clarification",
         "repeat": bool(narration) and narration in earlier_narrations,

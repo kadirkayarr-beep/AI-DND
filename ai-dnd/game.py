@@ -8335,13 +8335,27 @@ def _fallback_narration(player_input, npc_target=None):
         return "Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir."
     if outcome in ("critical_failure", "failure"):
         return "Girişimin ters gider ve amaçladığın sonuç gerçekleşmez."
-    return _GENERIC_NO_CHANGE_RESPONSE
+    return _generic_no_change_response()
 
 
 _GENERIC_NO_CHANGE_RESPONSE = (
     "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
     "hamleni bekliyor."
 )
+# Every variant keeps the prefix _SCENE_LEVEL_FALLBACK_RE recognizes.
+_GENERIC_NO_CHANGE_RESPONSES = (
+    _GENERIC_NO_CHANGE_RESPONSE,
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; herkes kendi işine "
+    "bakıyor, söz sende.",
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; gözün bir şey "
+    "yakalamıyor, sıra sende.",
+)
+
+
+def _generic_no_change_response():
+    return _GENERIC_NO_CHANGE_RESPONSES[
+        _variation_index(("no_change",), len(_GENERIC_NO_CHANGE_RESPONSES))
+    ]
 
 _INTERNAL_PLAYER_FACING_RE = re.compile(
     r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
@@ -9215,7 +9229,9 @@ def _narration_safety_decision(
         r"sınız|siniz|sunuz|sünüz|acaksın|eceksin)\b"
     )
     player_action_text = text
-    if npc_target:
+    # Quoted words are somebody's speech, not the narrator committing the
+    # player; that holds with or without a resolved addressee.
+    if npc_target or re.search(r'"[^"]+"|“[^”]+”', text):
         quotes = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|\'[^\']*\'')
         player_action_text = quotes.sub(
             lambda quoted: " " * len(quoted.group(0)), text
@@ -9372,7 +9388,7 @@ def _narration_safety_decision(
         return reject("INVENTED_PLAYER_ACTION", sitting.group(0))
     forced_player_action = re.search(
         r"\b(?:seni|sana)\b.{0,50}"
-        r"\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır\w*|kaldır\w*)\b",
+        r"\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır(?!m|ış)\w*|kaldır\w*)\b",
         text,
     )
     if forced_player_action:
@@ -12354,7 +12370,7 @@ def finalize_narration(
             )
         else:
             replacement = fallback_for_turn()
-            if replacement == _GENERIC_NO_CHANGE_RESPONSE:
+            if replacement in _GENERIC_NO_CHANGE_RESPONSES:
                 # A repeated real reply beats a "nothing happens" non-answer.
                 replaced = False
             else:
