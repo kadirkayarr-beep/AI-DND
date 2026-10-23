@@ -255,6 +255,31 @@ class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(record["protected_fields_unchanged"], record)
 
 
+class InteriorBaseline(TranscriptReplayBaseline):
+    """Entering a venue must put someone and something in it (creativity metric)."""
+
+    async def test_entering_the_inn_is_not_empty(self):
+        from api.tests.test_campaign_api import unlock_venue_door
+
+        _city, _sid, session, turn_url, tavern_id, _door = \
+            await create_city_with_locked_tavern(self)
+        unlock_venue_door(session.world_state, tavern_id)
+        inn = session.world_state["locations"][tavern_id].get("name", "Han")
+        model = TranscriptModel()
+        self.addCleanup(self._write_summary)
+        await self._turn("I1 go to the inn", session, turn_url, model, f"{inn} yoluna çıkıp oraya gidiyorum")
+        enter = await self._turn("I2 go inside", session, turn_url, model, "İçeri giriyorum")
+        look = await self._turn("I3 look around inside", session, turn_url, model, "Çevreyi gözlemliyorum.")
+        people = [
+            npc for npc in session.world_state["npcs"]
+            if isinstance(npc, dict) and npc.get("location") == tavern_id
+        ]
+        print(f"INTERIOR_PEOPLE={len(people)} enter={enter['narration'][:120]!r} look={look['narration'][:120]!r}")
+        self.assertEqual(session.world_state.get("location"), tavern_id)
+        self.assertTrue(people, "the inn is empty")
+        self.assertNotIn("İçerisi sessiz", enter["narration"], enter)
+
+
 class LoreGuardRepairUnitTests(unittest.TestCase):
     def test_generic_npc_label_is_not_a_new_entity(self):
         import game

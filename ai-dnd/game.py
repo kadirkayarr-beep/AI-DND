@@ -13927,7 +13927,7 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
         )
 
     if _is_conversation_start_input(player_input):
-        return f'{name} sana dönüyor. “Seni dinliyorum,” der.'
+        return _conversation_opening_line(name)
 
     if _is_local_place_question(player_input):
         location_name = location_display_name()
@@ -14102,6 +14102,49 @@ def _scene_presence_text(location_id):
     return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
 
 
+_LOOK_OPENINGS = (
+    "{name} çevresine göz gezdiriyorsun.",
+    "Bakışların {name} çevresinde bir kez daha dolaşıyor.",
+    "Bir an durup {name} çevresindeki hareketi izliyorsun.",
+    "{name} çevresini yeniden, bu sefer daha dikkatle süzüyorsun.",
+)
+
+
+def _variation_index(key, size):
+    """0 on first use of ``key``, then one step per turn; stable within a turn.
+
+    Transient presentation state only: never saved, never read by rules.
+    """
+    session = _session()
+    store = session.__dict__.setdefault("_variation_state", {})
+    turn = session.world_state.get("flags", {}).get("turn_index", 0)
+    last_turn, count = store.get(key, (None, -1))
+    if last_turn != turn:
+        count += 1
+        store[key] = (turn, count)
+    return store[key][1] % size
+
+
+def _look_opening(location_name):
+    """First look keeps the plain line; repeated looks do not repeat it verbatim."""
+    openings = [line.format(name=location_name) for line in _LOOK_OPENINGS]
+    return openings[_variation_index(("look", location_name), len(openings))]
+
+
+_CONVERSATION_OPENINGS = (
+    "{name} sana dönüyor. “Seni dinliyorum,” der.",
+    "{name} işini bir an bırakıp sana bakıyor. “Buyur, ne vardı?” diye sorar.",
+    "{name} başını kaldırıyor. “Evet, söyle bakalım,” der.",
+    "{name} hafifçe gülümsüyor. “Yine sen! Dinliyorum,” der.",
+)
+
+
+def _conversation_opening_line(name):
+    """The first opening is the plain line; later ones with the same person vary."""
+    openings = [line.format(name=name) for line in _CONVERSATION_OPENINGS]
+    return openings[_variation_index(("opening", name), len(openings))]
+
+
 def _scene_look_text(location_id):
     world_state = _session().world_state
     location_name = location_display_name(location_id)
@@ -14117,7 +14160,7 @@ def _scene_look_text(location_id):
         living_world.expire_referents(
             world_state, turn_index, location_id=location_id
         )
-    parts = [f"{location_name} çevresine göz gezdiriyorsun."]
+    parts = [_look_opening(location_name)]
     if people:
         parts.append(
             "Yakında " + living_world.public_scene_people(people[:3]) + " var."
