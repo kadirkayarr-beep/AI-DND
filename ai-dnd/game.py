@@ -10500,6 +10500,32 @@ def _narration_has_unsupported_lore_claim(
     return False
 
 
+def _salvage_plain_speech(raw_intent):
+    """Keep a usable reply when only its helper conversation proposal is bad.
+
+    Safe only for plain speech: with a real operation (promise, trade, item
+    request...) a malformed packet must still be vetoed, so nothing is kept.
+    The rejected proposal is cleared and grants no authority.
+    """
+    if not isinstance(raw_intent, dict):
+        return False
+    interaction = raw_intent.get("interaction")
+    narration = raw_intent.get("narration")
+    if not isinstance(interaction, dict):
+        return False
+    if interaction.get("operation") not in (None, "none"):
+        return False
+    if not isinstance(narration, str) or not narration.strip():
+        return False
+    proposal = interaction.get("conversation")
+    # A factual reading (personal purpose, cause, identity, lore...) needs
+    # evidence; without it the answer must stay the in-character "I don't know".
+    if isinstance(proposal, dict) and proposal.get("meaning") not in (None, "other"):
+        return False
+    interaction["conversation"] = None
+    return True
+
+
 def _repair_unsupported_lore_narration(narration, lore_claims, lore_context, world_state):
     """Drop only the unsupported sentences; None when nothing usable remains."""
     sentences = re.split(r"(?<=[.!?。！？])\s+", narration)
@@ -17627,7 +17653,11 @@ def _run_player_turn_internal(
             and not experimental_npc_dialogue
             and not npc_place_recommendation
         ):
-            return finish_conversation_rejection(npc_target)
+            if _salvage_plain_speech(raw_intent):
+                conversation_rejected = False
+                conversation_resolution = None
+            else:
+                return finish_conversation_rejection(npc_target)
         if _interaction_proposal_applies(raw_intent, npc_target, player_input):
             if experimental_npc_dialogue:
                 action_result = {
@@ -17949,7 +17979,11 @@ def _run_player_turn_internal(
             )
         )
         if conversation_rejected:
-            return finish_conversation_rejection(npc_target)
+            if _salvage_plain_speech(raw_intent):
+                conversation_rejected = False
+                conversation_resolution = None
+            else:
+                return finish_conversation_rejection(npc_target)
         if _interaction_proposal_applies(raw_intent, npc_target, player_input):
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,

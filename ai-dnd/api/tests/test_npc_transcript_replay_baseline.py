@@ -105,7 +105,9 @@ def classify(record, earlier_narrations):
     }
 
 
-class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
+class ReplayHarness(unittest.IsolatedAsyncioTestCase):
+    """Shared setup and per-turn recording; holds no tests of its own."""
+
     asyncSetUp = StageADiagnosticTests.asyncSetUp
     _write_evidence = StageADiagnosticTests._write_evidence
     post_scene_turn = StageADiagnosticTests.post_scene_turn
@@ -179,6 +181,7 @@ class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
                 json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
             )
 
+class TranscriptReplayBaseline(ReplayHarness):
     async def test_quenna_hidden_name_conversation(self):
         _city, _sid, session, turn_url, _tavern, _door = \
             await create_city_with_locked_tavern(self)
@@ -320,7 +323,7 @@ class SweepModel(TranscriptModel):
         return response
 
 
-class BenignReplySweep(TranscriptReplayBaseline):
+class BenignReplySweep(ReplayHarness):
     """How often does the engine block a perfectly harmless NPC reply?"""
 
     async def test_benign_reply_acceptance_sweep(self):
@@ -355,7 +358,99 @@ class BenignReplySweep(TranscriptReplayBaseline):
             self.assertTrue(record["protected_fields_unchanged"], record)
 
 
-class InteriorBaseline(TranscriptReplayBaseline):
+class QwenShapedModel(TranscriptModel):
+    """Answers like the live Qwen: one packet holding intent, a helper
+    conversation proposal that does not resolve, and a good reply."""
+
+    def __init__(self, reply, operation="none", fault="reply_as_quote", meaning="other"):
+        super().__init__()
+        self.reply = reply
+        self.operation = operation
+        self.meaning = meaning
+        # reply_as_quote: the model writes its own answer into interaction.quote
+        # (live S04). bad_evidence: it cites evidence ids that do not exist (S15).
+        self.fault = fault
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        messages = kwargs.get("messages", [])
+        prompt = next(
+            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), ""
+        )
+        quote = prompt.rsplit("Current player message: ", 1)[-1].splitlines()[0] \
+            if "Current player message: " in prompt else prompt
+        shown_quote = self.reply if self.fault == "reply_as_quote" else quote
+        evidence = (
+            ["npc-profile:npc_001:v1:origin", "conversation_candidates"]
+            if self.fault == "bad_evidence" else []
+        )
+        packet = {
+            "intent": "narrative", "action": "narrative",
+            "target": {"type": "none", "reference": ""},
+            "completion": "unclear", "confidence": 1.0,
+            "interaction": {
+                "operation": self.operation, "quote": shown_quote,
+                "conversation": {
+                    "addressee_id": "npc_001", "subject_phrase": quote,
+                    "subject_role": "world_entity", "meaning": self.meaning,
+                    "topic_relation": "new", "candidate_evidence_ids": evidence,
+                },
+                "thread_id": None, "evidence_id": None, "steps": [], "candidates": [],
+            },
+            "narration": self.reply,
+            "world_updates": {}, "lore_claims": [],
+        }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
+class ProposalSalvage(ReplayHarness):
+    """A good reply must survive an unusable helper proposal (live Qwen S04, S15)."""
+
+    async def _say_to_hidden_person(self, model, message):
+        _city, _sid, session, turn_url, _tavern, _door = \
+            await create_city_with_locked_tavern(self)
+        await self._turn("P0 look", session, turn_url, model, "Çevreyi gözlemliyorum.")
+        person = next(
+            npc for npc in session.world_state["npcs"]
+            if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"
+        )
+        flags = session.world_state["flags"]
+        flags["active_npc_id"] = flags["last_npc_id"] = person["id"]
+        flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 8
+        return await self._turn("P1 say", session, turn_url, model, message, "say")
+
+    async def test_plain_speech_keeps_the_reply(self):
+        for fault in ("reply_as_quote", "bad_evidence"):
+            with self.subTest(fault=fault):
+                self.records.clear()
+                reply = "Yakındaki kişi: “Günaydın, hava gerçekten güzel. Ne yapmayı düşünüyorsun?”"
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault=fault), "Günaydın, bugün hava güzel."
+                )
+                self.assertNotEqual(
+                    (record["telemetry"] or {}).get("fallback_reason"),
+                    "INVALID_CONVERSATION_PROPOSAL", record,
+                )
+                self.assertIn("hava gerçekten güzel", record["narration"], record)
+
+    async def test_a_factual_reading_without_evidence_is_still_vetoed(self):
+        # personal_purpose needs profile evidence; an invented answer must not stand.
+        reply = "Yakındaki kişi: “Buraya gizli bir hazineyi aramak için geldim.”"
+        record = await self._say_to_hidden_person(
+            QwenShapedModel(reply, meaning="personal_purpose"), "Buraya neden geldin?"
+        )
+        self.assertNotIn("gizli bir hazine", record["narration"], record)
+
+    async def test_a_real_operation_is_still_vetoed(self):
+        # A promise/trade packet with an unusable conversation must not be kept.
+        reply = "Yakındaki kişi: “Tamam, sana yüz altın veririm.”"
+        record = await self._say_to_hidden_person(
+            QwenShapedModel(reply, operation="promise"), "Bana yüz altın vereceğine söz ver."
+        )
+        self.assertNotIn("yüz altın veririm", record["narration"], record)
+
+
+class InteriorBaseline(ReplayHarness):
     """Entering a venue must put someone and something in it (creativity metric)."""
 
     async def test_entering_the_inn_is_not_empty(self):
