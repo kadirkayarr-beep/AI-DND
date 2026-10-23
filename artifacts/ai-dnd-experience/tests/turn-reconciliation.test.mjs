@@ -12,7 +12,8 @@ const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Late
 const component = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const submit = component.body.statements.find(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === 'submitTurn'));
 assert.ok(submit);
-const code = ts.transpileModule([submit.getText(ast), 'globalThis.submit = submitTurn;'].join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+const cacheCode = (await readFile(new URL('../src/lib/advisory-cache.ts', import.meta.url), 'utf8')).replace(/^export\s+/gm, '');
+const code = ts.transpileModule([cacheCode, submit.getText(ast), 'globalThis.submit = submitTurn;'].join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 function storage() {
  const values = new Map();
  return { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v), removeItem: k => values.delete(k), values };
@@ -26,6 +27,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const env = {
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
   turnLifetime: life,
+  wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {}, setLastTurn() {},
   window: { sessionStorage, localStorage: storage(), crypto: { randomUUID: () => crypto.randomUUID() } },
   sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: current,
   inFlightSessionsRef: { current: new Set() }, undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() }, pendingTurnRef: { current: null }, activeSessionRef: { current: 'session-a' },
@@ -52,6 +54,35 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   assert.equal(env.inFlightSessionsRef.current.size, 0, 'turn settled');
  } };
 }
+test('a failed optional transcript cache does not turn a committed turn into an error', async () => {
+ const h = harness();
+ h.env.window.localStorage.setItem = () => { throw new DOMException('Full', 'QuotaExceededError'); };
+ let draft = 'Synthetic action';
+ h.env.setMessage = value => { draft = value; };
+ await h.run();
+ assert.equal(h.requests.length, 1);
+ assert.equal(h.errors.length, 0);
+ assert.equal(h.shown.at(-1).at(-1).text, 'Synthetic receipt');
+ assert.equal(h.client.getQueryData(['state', 'session-a']).revision, current.revision);
+ assert.equal(draft, '');
+ assert.equal(h.env.pendingTurnRef.current, null);
+ h.client.clear();
+});
+
+test('only a validated own submission returns a scrolled transcript to the live end', async () => {
+ const h = harness();
+ const node = { scrollTop: 100, scrollHeight: 1200 };
+ h.env.storyScrollRef.current = node;
+ h.env.wasAtBottom.current = false;
+ h.env.submit('');
+ assert.equal(node.scrollTop, 100);
+ assert.equal(h.env.wasAtBottom.current, false);
+ await h.run();
+ assert.equal(node.scrollTop, 1200);
+ assert.equal(h.env.wasAtBottom.current, true);
+ h.client.clear();
+});
+
 test('lost response then reload retries the same UUID/context and keeps authoritative same-turn revision', async () => {
  const first = harness({ transport: async () => { throw new Error('response lost after commit'); } });
  await first.run();

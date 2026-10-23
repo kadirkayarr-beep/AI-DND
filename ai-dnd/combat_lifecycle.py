@@ -12,6 +12,32 @@ class CombatRequestError(ValueError):
         self.status_code = status_code
 
 
+def registered_name_candidates(session):
+    """Read local multiword names without requiring migrated target IDs.
+
+    Combat preflight runs before scene migration. Merely recognizing a name
+    must not create doors/references or require a complete targeting registry.
+    """
+    world = session.world_state
+    here = world.get("location")
+    locations = world.get("locations", {})
+    current = locations.get(here, {}) if isinstance(locations, dict) else {}
+    parent = current.get("parent_location_id") if isinstance(current, dict) else None
+    anchors = {value for value in (here, parent) if isinstance(value, str)}
+    records = [place for key, place in locations.items()
+               if isinstance(place, dict) and not place.get("hidden")
+               and (key in anchors or place.get("parent_location_id") in anchors)] if isinstance(locations, dict) else []
+    records.extend(record for key in ("doors", "features") for record in world.get(key, [])
+                   if isinstance(record, dict) and not record.get("hidden")
+                   and record.get("discovered") is not False
+                   and (record.get("location") == here or record.get("place_id") == here))
+    records.extend(npc for npc in session.active_npcs()
+                   if isinstance(npc, dict) and not npc.get("hidden")
+                   and living_world.npc_name_known_to_player(npc))
+    return [{"names": [record["name"]]} for record in records
+            if isinstance(record.get("name"), str) and len(record["name"].split()) > 1]
+
+
 def is_attack_decision(session, message):
     text = session._normalize_turkish_typos(message)
     return (session._has_explicit_attack_verb(message)

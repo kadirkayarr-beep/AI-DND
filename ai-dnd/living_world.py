@@ -118,23 +118,26 @@ _APPROACH_RE = re.compile(
 )
 _ENTER_RE = re.compile(
     r"(?:içeri gir|içeriye gir|içine gir|hana gir|tavernaya gir|taverna.{0,12}gir|meyhaneye gir|"
-    r"enter|go inside|head inside)",
+    r"\b(?:enter(?:s|ed|ing)?|go inside|head inside)\b)",
     re.IGNORECASE,
 )
 _LOCAL_TAVERN_DEPARTURE_RE = re.compile(
     r"\b(?:tavernaya|meyhaneye|hana)\s+gid\w*\b",
     re.IGNORECASE,
 )
-_TAVERN_RE = re.compile(
-    r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
-    re.IGNORECASE,
+# Venue nouns are lexical tokens, never substrings of generated person names
+# (Finnan contains "inn") or ordinary items (kalem contains "ale").
+_TAVERN_TERM = (
+    r"(?:\b(?:taverna|meyhane|han)"
+    r"(?:['’]?(?:lar|ler)?(?:[ıiuü]n|s?[ıiuü])?(?:[ny]?[ae]|[dt][ae]n?|y[ıiuü])?)?\b"
+    r"|\b(?:tavern|inn)s?\b)"
 )
+_TAVERN_RE = re.compile(_TAVERN_TERM, re.IGNORECASE)
 _MERCHANT_RE = re.compile(
     r"(?:tüccar|tacir|satıcı|esnaf|merchant|trader|vendor)", re.IGNORECASE
 )
 _VENUE_RE = re.compile(
-    r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana|"
-    r"içecek|içki|drink|ale|"
+    _TAVERN_TERM + r"|(?:\biçecek|\biçki|\b(?:drink|ale)\b|"
     r"oturacak.{0,20}yer|dinlenecek.{0,20}yer|"
     r"bir şeyler iç|bir seyler ic)",
     re.IGNORECASE,
@@ -339,6 +342,105 @@ def public_shop_projection(world_state: Any, shop: Any) -> dict[str, Any] | None
     return projected
 
 
+def visible_scene_facts(world_state: Any) -> dict[str, Any]:
+    """A bounded, read-only projection of the player's current visible scene.
+
+    Do not materialize a scene, expose private profiles, or promote model prose.
+    The same facts can answer a contents query and ground attributed NPC speech.
+    """
+    if not isinstance(world_state, dict):
+        return {}
+    here = world_state.get("location")
+    locations = world_state.get("locations", {})
+    place = locations.get(here) if isinstance(locations, dict) else None
+    if not isinstance(here, str) or not isinstance(place, dict):
+        return {}
+
+    def text(value: Any, limit: int) -> str:
+        return value.strip()[:limit] if isinstance(value, str) else ""
+
+    import scheduled_events
+    people = [
+        {"name": text(public_npc_name(npc), 80), "role": text(public_npc_role(npc), 80)}
+        for npc in scheduled_events.visible_npcs(world_state)
+        if isinstance(npc, dict) and npc.get("location") == here
+        and not npc.get("hidden") and npc.get("combat_status") != "dead"
+    ][:6]
+    features = [
+        {"name": text(feature.get("name"), 80),
+         "description": text(feature.get("description"), 240)}
+        for feature in world_state.get("features", [])
+        if isinstance(feature, dict) and feature.get("location") == here
+        and not feature.get("hidden") and feature.get("discovered") is not False
+        and isinstance(feature.get("name"), str) and feature["name"].strip()
+    ][:6]
+    # Nearby public locations are scene facts, independent of question wording.
+    # A bounded projection does not create places or supply invented directions.
+    import exploration
+    known = exploration.known_locations(world_state)
+    nearby_places = []
+    for place_id, record in sorted(locations.items(), key=lambda item: str(item[0])):
+        if (not isinstance(record, dict) or place_id == here
+            or record.get("parent_location_id") != here
+            or record.get("hidden") or record.get("discovered") is False
+            or place_id not in known or not text(record.get("name"), 80)):
+            continue
+        locked = any(
+            isinstance(door, dict) and door.get("locked") is True
+            and (door.get("place_id") == place_id
+                 or door.get("location_id") == place_id
+                 or door.get("id") == f"venue-door:{place_id}")
+            for door in world_state.get("doors", [])
+        )
+        nearby_places.append({
+            "id": place_id, "name": text(record.get("name"), 80),
+            "kind": text(record.get("place_kind") or record.get("scene_kind"), 40),
+            "access": "locked" if locked else "available",
+        })
+        if len(nearby_places) == 6:
+            break
+    return {
+        "location": {"id": here, "name": text(place.get("name"), 80) or here,
+                     "kind": scene_kind(world_state, here), "description": text(place.get("description"), 400)},
+        "people": people, "features": features, "nearby_places": nearby_places,
+    }
+
+
+def visible_contents_text(world_state: Any) -> str:
+    """Describe existing observable facts, not a fresh ambient event or search roll."""
+    facts = visible_scene_facts(world_state)
+    if not facts:
+        return "Bulunduğun yere ilişkin görünür bir ayrıntı seçemiyorsun."
+    place = facts["location"]
+    parts = [f"Bulunduğun yer: {place['name']}."]
+    if place["description"]:
+        parts.append(place["description"])
+    if facts["features"]:
+        parts.append("Görebildiğin ayrıntılar: " + "; ".join(
+            item["name"] + (": " + item["description"] if item["description"] else "")
+            for item in facts["features"]
+        ))
+    if facts["people"]:
+        parts.append("Buradaki kişiler: " + ", ".join(item["name"] for item in facts["people"]) + ".")
+    if not place["description"] and not facts["features"] and not facts["people"]:
+        parts.append("Şu an seçebildiğin belirgin bir eşya veya kişi ayrıntısı yok.")
+    return " ".join(parts)
+
+
+def is_visible_contents_query(value: Any) -> bool:
+    """A request for visible contents, not a search for concealed information.
+
+    Keep this question grammar anchored: a mention inside dialogue, a negative
+    action, or a compound action must not swallow the rest of the turn.
+    """
+    text = normalize_text(value)
+    return bool(re.fullmatch(
+        r"(?:burada|iceride|bulundugum yerde|(?:bu )?(?:dukkanda|handa|odada|binada|tavernada)) "
+        r"(?:ne|neler) (?:var|gorunuyor)(?: diye (?:bakiyorum|etrafima bakiyorum))?",
+        text,
+    ))
+
+
 def classify_scene_action(value: Any) -> str | None:
     """Recognize a small set of high-confidence, harmless scene actions."""
     if not isinstance(value, str):
@@ -355,7 +457,7 @@ def classify_scene_action(value: Any) -> str | None:
             normalized,
         )
     )
-    if _LOOK_RE.search(text) or semantic_look:
+    if _LOOK_RE.search(text) or semantic_look or is_visible_contents_query(text):
         return "look"
     if _WAIT_RE.search(text):
         return "wait"
@@ -604,6 +706,11 @@ def is_exploratory_structure_question(
     return venue and structure and (not nearby or definite_building)
 
 
+def has_tavern_reference(value: Any) -> bool:
+    """Shared lexical venue detection; canonical target binding stays upstream."""
+    return isinstance(value, str) and bool(_TAVERN_RE.search(_text_outside_quotes(value)))
+
+
 def is_tavern_search(value: Any) -> bool:
     if (
         not isinstance(value, str)
@@ -832,6 +939,8 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         or entry_reference.get("source_kind") not in {
             "local_search",
             "door_skill_check",
+            "grounded_arrival",
+            "blocked_travel",
         }
         or type(entry_reference.get("source_turn_index")) is not int
         or entry_reference["source_turn_index"] < 0
@@ -1629,6 +1738,31 @@ def record_entry_target_reference(
         door_id = f"venue-door:{location_id}"
         source_kind = "local_search"
     elif (
+        action_result.get("action") == "travel"
+        and action_result.get("status") == "blocked"
+        and action_result.get("success") is False
+    ):
+        # A paused journey does not place the player at its destination door.
+        # Preserve travel ownership rather than bypassing its remaining stages.
+        journey = world_state.get("journey")
+        if journey is not None and (
+            not isinstance(journey, dict) or journey.get("status") != "ARRIVED"
+        ):
+            return
+        # The legacy travel owner can stop at a closed local entrance. Keep
+        # its blocked outcome, but do not lose what "inside" means next turn.
+        # A distant, hidden or noncanonical door is not an entry reference.
+        candidate = action_result.get("target_id") or action_result.get("target")
+        locations = world_state.get("locations")
+        target = locations.get(candidate) if isinstance(locations, dict) and isinstance(candidate, str) else None
+        if isinstance(target, dict) and not target.get("hidden") and target.get("discovered") is not False:
+            import exploration
+            candidate_door = f"venue-door:{candidate}"
+            if any(isinstance(door, dict) and door.get("id") == candidate_door and not door.get("open")
+                   for door in exploration.visible_doors(world_state)):
+                location_id, door_id = candidate, candidate_door
+                source_kind = "blocked_travel"
+    elif (
         action_result.get("action") == "skill_check"
         and action_result.get("status") == "resolved"
         and action_result.get("target_type") == "door"
@@ -1639,6 +1773,19 @@ def record_entry_target_reference(
         door_id = action_result["target_id"]
         location_id = door_id.removeprefix("venue-door:")
         source_kind = "door_skill_check"
+    elif action_result.get("action") == "grounded_action":
+        # Feed the SAME one-turn, canonical entry reference used by the older
+        # scene owner. A proximity memory alone is not authority to enter later.
+        steps = action_result.get("steps") or []
+        last = steps[-1] if steps and isinstance(steps[-1], dict) else {}
+        if (last.get("verb") in {"go", "approach"}
+                and last.get("status") == "completed"
+                and last.get("position") == "at_door"
+                and isinstance(last.get("target_id"), str)):
+            target_id = last["target_id"]
+            location_id = target_id.removeprefix("venue-door:")
+            door_id = f"venue-door:{location_id}"
+            source_kind = "grounded_arrival"
 
     if (
         source_kind is None

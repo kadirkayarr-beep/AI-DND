@@ -503,9 +503,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .app-header-inner { flex-wrap: wrap; max-width: 100%; }
 .play-shell .header-actions { display: flex; flex-wrap: wrap; max-width: 100%; min-width: 0; }
 .play-shell .header-location-copy > span { overflow: visible; text-overflow: unset; white-space: normal; }
-.play-shell .app-main { flex: 1 0 auto; width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 12px 0 8px; min-height: min-content; }
-.play-shell .app-main.workspace-grid { display: flex; flex-direction: column; max-width: none; overflow: visible; }
-.play-shell .workspace-story { display: flex; flex-direction: column; flex: 1 0 auto; min-width: 0; min-height: min-content; max-width: none; overflow: visible; }
+.play-shell .app-main { flex: 1 1 0; width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 12px 0 8px; min-height: 0; }
+.play-shell .app-main.workspace-grid { display: flex; flex-direction: column; max-width: none; overflow: auto; }
+.play-shell .workspace-story { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; max-width: none; overflow: visible; }
 .play-shell .story-text { font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.5rem); }
 .play-shell .player-entry { font-size: 1.1875rem; }
 .play-shell .location-ribbon strong { font-size: 1.25rem; }
@@ -533,7 +533,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .world-tabs button { white-space: normal; line-height: 1.2; }
 .play-shell .dnd-button { width: auto; min-height: 44px !important; height: auto; padding: 0 1rem; }
 .play-shell .drawer-trigger { display: inline-flex; padding: 0 12px; }
-.play-shell .session-footnote { flex: 0 0 auto; margin: 0 auto 12px; width: min(960px, calc(100% - 32px)); color: #c4b49a; text-align: right; }
+.play-shell .session-footnote { flex: 0 0 auto; max-height: 3.5rem; overflow: auto; margin: 0 auto 12px; width: min(960px, calc(100% - 32px)); color: #c4b49a; text-align: right; }
 .play-shell .drawer-backdrop { position: fixed; z-index: 50; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(9, 7, 5, .72); }
 .play-shell .drawer-sheet { width: min(720px, calc(100% - 32px)); max-height: min(86dvh, 100%); overflow: auto; border: 1px solid #9a774a; background: #1b1510; padding: 17px 14px 28px; }
 .play-shell .drawer-sheet .workspace-left,
@@ -612,31 +612,47 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   line-height: 1.68;
   text-wrap: pretty;
 }
+.play-shell .story-scene-context {
+  flex: 1 1 auto;
+  min-height: 2.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .play-shell .command-box {
-  position: sticky;
-  bottom: 0;
+  position: static;
   z-index: 5;
   background: rgba(27, 21, 16, .98);
   box-shadow: 0 -12px 30px rgba(8, 5, 3, .3);
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 .play-shell .command-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: end;
 }
-.play-shell .command-form .command-target-label { grid-column: 1 / -1; }
-.play-shell .command-input {
-  width: 100%;
+.play-shell .command-form .command-target-label {
+  flex: 0 0 100%;
   min-width: 0;
+  margin-bottom: 0;
+}
+.play-shell .command-form .command-input {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 0;
+  min-height: calc(2lh + 8px);
   max-height: 9rem;
   overflow-y: auto;
   resize: vertical;
 }
-.play-shell .command-form .dnd-button { white-space: nowrap; }
-@media (max-width: 560px) {
-  .play-shell .command-form { grid-template-columns: minmax(0, 1fr); }
-  .play-shell .command-form .command-target-label,
-  .play-shell .command-form .command-input,
-  .play-shell .command-form .dnd-button { grid-column: 1; width: 100%; max-width: 100%; min-width: 0; }
+.play-shell .command-form .dnd-button {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+  white-space: normal;
+}
+@media (max-width: 720px) {
+  /* Keep every header control reachable without consuming the play viewport.
+     Large text and short screens scroll within regions, not over the footer. */
+  .play-shell .app-header { max-height: 20dvh; overflow-y: auto; }
 }

@@ -200,7 +200,7 @@ def split_clauses(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     return merged, speech
 
 
-def _registered_target_name_covers(tokens: list[str], index: int, cands) -> bool:
+def _registered_target_name_covers(tokens: list[str], index: int, cands, *, strict=False) -> bool:
     """Do not read a conditional-looking token as grammar inside a known name."""
     for candidate in cands or ():
         for name in candidate.get("names", ()) if isinstance(candidate, dict) else ():
@@ -210,10 +210,14 @@ def _registered_target_name_covers(tokens: list[str], index: int, cands) -> bool
             low = max(0, index - len(words) + 1)
             high = min(index, len(tokens) - len(words))
             for start in range(low, high + 1):
-                if all(
-                    token_matches(word, tokens[start + offset])
-                    for offset, word in enumerate(words)
-                ):
+                matches = (
+                    _condition_name_phrase_matches(words, tokens[start:start + len(words)])
+                    if strict else all(
+                        token_matches(word, tokens[start + offset])
+                        for offset, word in enumerate(words)
+                    )
+                )
+                if matches:
                     return True
     return False
 
@@ -902,8 +906,19 @@ def _foreign_object(tokens, verb_index, step, cands) -> str | None:
     if verb_index is None:
         return None
     index = verb_index - 1
-    while index >= 0 and (_ADVERBS.match(tokens[index]) or _CONDITION_WORD.match(tokens[index])):
-        index -= 1
+    # Instrument/manner phrases modify the act, not its direct object. Keep
+    # looking left so "kitabı maymuncukla açıyorum" still belongs to the book,
+    # never to a nearby door. This does not grant possession of any tool.
+    while index >= 0:
+        word = tokens[index]
+        if _ADVERBS.match(word) or _CONDITION_WORD.match(word):
+            index -= 1
+        elif word == "ile" and index > 1:
+            index -= 2
+        elif index > 0 and re.fullmatch(r"[a-z]{3,}(?:yla|yle|la|le)", word):
+            index -= 1
+        else:
+            break
     if index < 0:
         return None
     word = tokens[index]
@@ -915,7 +930,10 @@ def _foreign_object(tokens, verb_index, step, cands) -> str | None:
         return None
     for cand in cands:
         names = [n for n in cand["names"] if n] + [n for n in cand["nouns"] if n]
-        if any(token_matches(w, word) for n in names for w in n.split()):
+        # A fuzzy name hit is not evidence that an explicit object belongs to
+        # this resolver. E.g. "dalı" must not become the door of Dalia Hanı.
+        # Keep exact names and grammatical case endings, not typo distance.
+        if any(_condition_name_phrase_matches([w], [word]) for n in names for w in n.split()):
             return None
     return word
 
@@ -1300,7 +1318,7 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
     inside = f" İçeride {', '.join(people)} var." if people else " İçerisi sessiz."
     description = record.get("description") or ""
     return _receipt("enter", "completed", place,
-                    text=f"{prefix}{opened}{record.get('name')} içine giriyorsun. {description}{inside}".strip())
+                    text=f"{prefix}{opened}Kapıdan içeri giriyorsun. {record.get('name')} içindesin. {description}{inside}".strip())
 
 
 def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
@@ -2302,6 +2320,16 @@ def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> l
 # ---------------------------------------------------------------------------
 # Public helpers used by older pipeline exits.
 # ---------------------------------------------------------------------------
+def enter_existing_place(session, location_id):
+    """Shared entry mechanics; the caller retains turn bookkeeping and receipt shape."""
+    run = _Run(session, "")
+    record = run.location(location_id)
+    if record is None:
+        return None
+    target = {"id": location_id, "kind": "place", "label": record.get("name"), "record": record}
+    return _enter(run, target)
+
+
 def clarification_text(session) -> str:
     cands = candidates(session)
     people = [c["label"] for c in cands if c["kind"] == "npc"][:4]

@@ -421,6 +421,19 @@ def personal_question_kind(value: Any) -> str | None:
     return None
 
 
+def is_nominal_speech_reference(value: Any) -> bool:
+    """An activity noun is not a command to address its mentioned participant.
+
+    For example, liking conversation with people does not select a new actor.
+    Anchor the nominal form to the matched reference, never a later clause.
+    """
+    return bool(re.match(
+        r"^\S+(?:\s+(?:la|le|yla|yle|a|e))?\s+(?:konusma(?:yi|ya|ktan|dan)|"
+        r"sohbet\s+etme(?:yi|ye|kten|den)|selam\s+verme(?:yi|ye|kten|den))\b",
+        normalize_text(value),
+    ))
+
+
 def is_local_dialogue_input(value: Any) -> bool:
     if not isinstance(value, str):
         return False
@@ -501,6 +514,72 @@ def unaddressed_work_answer(player_input: Any) -> tuple[str, str] | None:
         )
     return None
 
+# Discourse markers address the current interlocutor, not a newly named entity.
+# Keep them separate from canonical NPC name matching and hidden-name disclosure.
+DISCOURSE_ADDRESSES = frozenset({
+    "evet", "hayir", "peki", "tamam", "selam", "selamlar", "merhaba", "merhabalar",
+    "gunaydin", "hey", "dostum", "bayim", "hanimefendi", "beyefendi", "affedersiniz",
+    "pardon", "usta", "lutfen", "ben",
+})
+
+
+def identity_disclosure_is_negated(value: Any) -> bool:
+    """An explicit refusal/prohibition is not permission to reveal an identity."""
+    text = normalize_text(value)
+    return bool(re.search(
+        r"\b(?:adini|adinizi|ismini|isminizi|kim oldugunu)\s+"
+        r"(?:(?:soyleme|soylemeyin|soylemeyiniz|aciklama|aciklamayin)\b|"
+        r"(?:soylemeni|soylemenizi|ogrenmek|duymak)\s+istemiyorum\b)", text))
+
+
+def has_multiple_dialogue_clauses(value: Any, npc: Any) -> bool:
+    """Keep a deterministic smalltalk answer from consuming another clause.
+
+    Greetings and an explicit public addressee are discourse prefixes, not
+    additional questions. Unknown remaining clauses belong to the speech path.
+    """
+    if not isinstance(value, str):
+        return False
+    prefixes = set(DISCOURSE_ADDRESSES)
+    if isinstance(npc, dict):
+        prefixes.update(normalize_text(npc.get(key, "")) for key in ("name", "role"))
+    prefixes.discard("")
+    clauses = []
+    for part in re.split(r"[,;.!?]|\b(?:ve|bir de|ayrıca|ayrica|hem)\b", value, flags=re.IGNORECASE):
+        text = normalize_text(part)
+        for _ in range(3):
+            prefix = next((p for p in sorted(prefixes, key=len, reverse=True)
+                           if text == p or text.startswith(p + " ")), None)
+            if prefix is None:
+                break
+            text = text[len(prefix):].strip()
+        if text:
+            clauses.append(text)
+    return len(clauses) > 1
+
+
+def is_identity_only_question(value: Any, npc: Any) -> bool:
+    """Permit a fact-only shortcut only when no other request is left over."""
+    text = normalize_text(value)
+    prefixes = set(DISCOURSE_ADDRESSES)
+    if isinstance(npc, dict):
+        prefixes.update(normalize_text(npc.get(key, "")) for key in ("name", "role"))
+    prefixes.discard("")
+    # Strip salutations/explicit addressees, but never the question's remainder.
+    for _ in range(3):
+        prefix = next((p for p in sorted(prefixes, key=len, reverse=True)
+                       if text.startswith(p + " ")), None)
+        if prefix is None:
+            break
+        text = text[len(prefix):].strip()
+    return bool(re.fullmatch(
+        r"(?:(?:(?:senin|sizin) )?(?:adin|adiniz|ismin|isminiz) (?:ne|nedir)|"
+        r"(?:sen )?kimsin(?:iz)?|"
+        r"(?:bana )?(?:adini|adinizi|ismini|isminizi) "
+        r"(?:soruyorum|(?:ogrenebilir|sorabilir) miyim|soyle(?:r|yebilir) misin(?:iz)?)|"
+        r"mi(?:sin(?:iz)?)?|kim(?:dir)?)", text))
+
+
 def unresolved_named_address(player_input: Any, available: list) -> str | None:
     """An explicit unknown vocative cannot inherit the active conversation."""
     if not isinstance(player_input, str):
@@ -510,7 +589,7 @@ def unresolved_named_address(player_input: Any, available: list) -> str | None:
         return None
     name = match.group(1)
     normalized = normalize_text(name)
-    if normalized in {"evet", "hayir", "peki", "tamam", "selam", "merhaba", "lutfen", "ben"}:
+    if normalized in DISCOURSE_ADDRESSES:
         return None
     for npc in available:
         if not isinstance(npc, dict):
@@ -519,3 +598,22 @@ def unresolved_named_address(player_input: Any, available: list) -> str | None:
                           normalize_text(living_world.public_npc_role(npc))}:
             return None
     return name
+
+
+def remember_explicit_player_name(npc: Any, name: str) -> None:
+    """Store only the disclosed name, never an accompanying unverified story.
+
+    This is a normalized player identity statement, not an invented NPC reply.
+    Full actual exchanges remain in the separately attributed speech history.
+    """
+    if not isinstance(npc, dict) or not isinstance(npc.get("id"), str) or not npc["id"]:
+        return
+    if not isinstance(name, str) or len(name) > 100 or not re.fullmatch(r"[A-Za-zÇĞİÖŞÜçğıöşü'’-]+", name):
+        return
+    entry = {"speaker": "player", "text": f"Benim adım {name}."}
+    memory = npc.setdefault("memory", [])
+    if not isinstance(memory, list):
+        return
+    if not memory or memory[-1] != entry:
+        memory.append(entry)
+    del memory[:-16]

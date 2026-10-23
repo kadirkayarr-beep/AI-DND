@@ -375,11 +375,15 @@ def _venue_entry_door(world, origin, destination):
 
 
 def _blocked_venue_result(door):
+    door_id = door.get("id")
+    target_id = door_id.removeprefix("venue-door:") if isinstance(door_id, str) and door_id.startswith("venue-door:") else None
     return _result(
         "travel",
         f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
         status="blocked",
         success=False,
+        target_id=target_id,
+        door_id=door_id,
     )
 
 

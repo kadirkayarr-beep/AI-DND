@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
-import { focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import ts from 'typescript';
+import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 
 process.env.PORT ||= '4183';
 process.env.BASE_PATH ||= '/';
@@ -62,6 +63,31 @@ test('keyboard inset is the covered bottom and never negative', () => {
   assert.equal(keyboardInset(800, 430, 0), 370);
   assert.equal(keyboardInset(800, 800, 0), 0);
   assert.equal(keyboardInset(800, 900, 20), 0);
+});
+
+test('keyboard recovery respects the clipping container as well as the viewport', () => {
+  assert.equal(clippedControlOverflow(580, 500, 640), 80);
+  assert.equal(clippedControlOverflow(580, 700, 430), 150);
+  assert.equal(clippedControlOverflow(420, 500, 640), 0);
+  assert.equal(clippedControlOverflow(580, Number.NaN, 640), 0);
+});
+
+test('a validated own turn returns to the live transcript before sending', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let submit = '';
+  const visit = node => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === 'submitTurn') submit = node.getText(ast);
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  const guard = submit.indexOf('if (!operation) return;');
+  const follow = submit.indexOf('wasAtBottom.current = true;');
+  const send = submit.indexOf('void playGameTurn(');
+  assert.ok(guard >= 0 && follow > guard && send > follow);
+  assert.match(submit.slice(follow, send), /transcript\.scrollTop = transcript\.scrollHeight/);
+  assert.match(source, /const container = send\.closest<HTMLElement>\('\.app-main'\) \?\? shell/);
+  assert.match(source, /if \(overflow > 1\) container\.scrollTop \+= overflow/);
 });
 
 test('transcript keeps player then narration order, the recorded roll, and a focus-free result cue', () => {
@@ -131,4 +157,36 @@ test('this package keeps the mode buttons and the existing turn submission path'
   assert.match(page, /event\.key === 'Escape'/);
   assert.match(page, /getElementById\('player-message'\)/);
   assert.doesNotMatch(page, /interaction_mode:\s*undefined/);
+});
+
+
+test('the final composer rule cannot cover the bounded story and scene regions', async () => {
+  const css = await readFile('src/index.css', 'utf8');
+  const rules = [...css.matchAll(/\.play-shell \.command-box\s*\{([^}]*)\}/g)];
+  assert.ok(rules.length > 0);
+  const positions = [...rules.at(-1)[1].matchAll(/(?:^|;)\s*position\s*:\s*([^;]+)/g)];
+  assert.equal(positions.at(-1)?.[1].trim(), 'static');
+  assert.match(css, /\.play-shell \.story-scene-context\s*\{[^}]*overflow-y:\s*auto/s);
+  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(page, /className="story-scene-context"[^>]*aria-label="Sahne bilgileri"/);
+});
+
+test('overflow stays inside the main region and the mobile composer can wrap', async () => {
+  const css = await readFile('src/index.css', 'utf8');
+  const main = [...css.matchAll(/\.play-shell \.app-main\.workspace-grid\s*\{([^}]*)\}/g)].at(-1)[1];
+  assert.match(main, /overflow:\s*auto/);
+  const form = [...css.matchAll(/\.play-shell \.command-form\s*\{([^}]*)\}/g)].at(-1)[1];
+  assert.match(form, /display:\s*flex/);
+  assert.match(form, /flex-wrap:\s*wrap/);
+  assert.match(css, /\.play-shell \.app-header\s*\{[^}]*max-height:\s*20dvh[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.play-shell \.session-footnote\s*\{[^}]*max-height:\s*3\.5rem[^}]*overflow:\s*auto/s);
+});
+
+
+test('transcript follow-bottom ends at the answer rather than a decorative tail', () => {
+  const html = renderTranscript([{ kind: 'narration', text: 'Son cevap tamamen okunmalı.' }]);
+  assert.match(html, /aria-description="Sahne, kişiler ve öykü notları karakter ve dünya panellerinde"/);
+  assert.doesNotMatch(html, /class="reader-note"/,
+    'a trailing note must not push a short answer above the small transcript viewport');
+  assert.match(html, /Son cevap tamamen okunmalı\.<\/p><\/div><\/div><\/div>$/);
 });

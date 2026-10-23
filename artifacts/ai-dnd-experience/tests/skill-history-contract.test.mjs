@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import ts from 'typescript';
 import {readFile} from 'node:fs/promises';
 import {CreateCampaignResponse,GetCampaignResponse,ResumeCampaignResponse} from '../../../lib/api-zod/src/generated/api.ts';
 
@@ -41,6 +42,21 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
   assert.match(specBlock[1],/skill_check_result:\s*\n\s+\$ref: "#\/components\/schemas\/SkillCheckResult"/);
   assert.match(specBlock[1],/required: \[player_message, narration, created_at\]/);
   assert.doesNotMatch(source,/HistoryWithSkillResult| as CampaignHistoryEntry & /,'no cast masks drift');
-  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,2,
-    'both real turn reconciliation and resume use generated skill field');
+  const ast=ts.createSourceFile('game-browser.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  const owners=new Map();
+  const visit=node=>{
+    if(ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)
+        && ['undoLastTurn','handleResume','submitTurn'].includes(node.name.text)){
+      owners.set(node.name.text,node.getText(ast));
+    }
+    ts.forEachChild(node,visit);
+  };
+  visit(ast);
+  for(const owner of ['undoLastTurn','handleResume','submitTurn']){
+    assert.ok(owners.has(owner),owner+' exists');
+    assert.equal(owners.get(owner).match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
+      owner+' preserves exactly one generated history skill field');
+  }
+  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,3,
+    'undo, resume and real turn reconciliation all preserve the skill field');
 });

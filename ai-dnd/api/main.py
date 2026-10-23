@@ -634,7 +634,7 @@ def create_app(
     @application.get("/api/health", response_model=HealthResponse)
     def health(response: Response) -> HealthResponse:
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
-        return HealthResponse()
+        return HealthResponse(model=adapter.model_name if adapter is not None else MODEL_NAME)
 
     @application.post("/api/logout", status_code=204)
     @application.post("/api/game/logout", status_code=204)
@@ -996,12 +996,13 @@ def create_app(
                     },
                 ) from None
             except RequiredModelUnavailableError:
-                _logger.warning("Required model qwen3:8b is unavailable.")
+                selected_model = adapter.model_name if adapter is not None else MODEL_NAME
+                _logger.warning("Required model %s is unavailable.", selected_model)
                 raise HTTPException(
                     status_code=503,
                     detail={
                         "code": "model_unavailable",
-                        "message": "Required model qwen3:8b is unavailable.",
+                        "message": f"Required model {selected_model} is unavailable.",
                     },
                 ) from None
 
@@ -1550,7 +1551,7 @@ def create_app(
             )
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
-                MODEL_NAME,
+                adapter.model_name if adapter is not None else MODEL_NAME,
                 len(model_calls),
                 narrative_frame.diagnostics.get("scene_type", "unavailable"),
                 narrative_frame.diagnostics.get("estimated_tokens", "unavailable"),

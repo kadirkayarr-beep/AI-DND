@@ -11,6 +11,15 @@ import "@/index.css";
 
 const CAMPAIGN_ID = "fixture-campaign";
 const SESSION_ID = "fixture-session";
+const cacheFailureFixture = new URLSearchParams(window.location.search).get("cache") === "blocked";
+let fixtureHp = 12;
+
+// This override is scoped to this disposable fixture page, never the app.
+if (cacheFailureFixture) {
+  Storage.prototype.setItem = () => {
+    throw new DOMException("Synthetic fixture quota failure", "QuotaExceededError");
+  };
+}
 
 type HistoryEntry = {
   player_message: string;
@@ -100,7 +109,7 @@ const state = () => ({
     level: 1,
     proficiency_bonus: 2,
     max_hp: 12,
-    current_hp: 12,
+    current_hp: fixtureHp,
     armor_class: 13,
     cantrips: [],
     spells: [],
@@ -136,7 +145,7 @@ const state = () => ({
         id: "player",
         kind: "player",
         name: "Riven",
-        current_hp: 12,
+        current_hp: fixtureHp,
         max_hp: 12,
         armor_class: 13,
         status: "active",
@@ -234,6 +243,7 @@ window.fetch = async (input, init) => {
       });
     }
     const message = body.message ?? "";
+    if (cacheFailureFixture) fixtureHp = Math.max(1, fixtureHp - 1);
     history.push({
       player_message: message,
       narration: `Yankı: ${message}`,

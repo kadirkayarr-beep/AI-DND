@@ -989,7 +989,7 @@ class ContractParityTests(unittest.TestCase):
         )
         self.assertEqual(
             _enum_values("HealthResponse", "model"),
-            {HealthResponse().model},
+            set(runtime_health["properties"]["model"]["enum"]),
         )
 
         self.assertEqual(

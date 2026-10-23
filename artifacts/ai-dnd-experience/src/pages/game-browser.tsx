@@ -7,7 +7,8 @@ import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract
 import { ExplorationControls } from '@/components/exploration-controls';
 import { CourtyardHelp } from '@/components/courtyard-help';
 import { explorationInputLabel } from '@/lib/exploration-input';
-import { focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
+import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
+import { removeAdvisoryCache, writeAdvisoryCache } from '@/lib/advisory-cache';
 import {
   AmbientEventActionPanel,
   createAmbientEventActionRequest,
@@ -606,36 +607,38 @@ function StoryColumn({
       : 'Ne yapmak istiyorsun?';
   return (
     <section className="story-column workspace-story" data-testid="panel-story">
-      <div className="story-heading">
-        <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
-        <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
-        <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
-      </div>
-      <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
-      <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
-        <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? 'Konum ayrıntıları henüz görünmüyor.'}</strong>{location?.type && JOURNAL_ENVIRONMENT_LABELS[location.type] && <span>{JOURNAL_ENVIRONMENT_LABELS[location.type]}</span>}</div>
-      </div>
-      <AmbientEventActionPanel
-        event={ambientEvent}
-        referents={state.scene?.referents ?? []}
-        result={currentAmbientResult}
-        retryRequest={ambientActionRequest}
-        sending={ambientActionSending}
-        hasError={ambientActionError}
-        onAction={onAmbientAction}
-        onRetry={onRetryAmbientAction}
-      />
-      {combatEndNotice && (
-        <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
-          <Swords size={14} aria-hidden="true" />
-          <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
+      <div className="story-scene-context" role="region" aria-label="Sahne bilgileri" tabIndex={0}>
+        <div className="story-heading">
+          <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
+          <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
+          <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
         </div>
-      )}
-      {state.combat.active && currentActor && currentActor.id !== 'player' && (
-        <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
-          Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
+        <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
+        <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
+          <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? 'Konum ayrıntıları henüz görünmüyor.'}</strong>{location?.type && JOURNAL_ENVIRONMENT_LABELS[location.type] && <span>{JOURNAL_ENVIRONMENT_LABELS[location.type]}</span>}</div>
         </div>
-      )}
+        <AmbientEventActionPanel
+          event={ambientEvent}
+          referents={state.scene?.referents ?? []}
+          result={currentAmbientResult}
+          retryRequest={ambientActionRequest}
+          sending={ambientActionSending}
+          hasError={ambientActionError}
+          onAction={onAmbientAction}
+          onRetry={onRetryAmbientAction}
+        />
+        {combatEndNotice && (
+          <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
+            <Swords size={14} aria-hidden="true" />
+            <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
+          </div>
+        )}
+        {state.combat.active && currentActor && currentActor.id !== 'player' && (
+          <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
+            Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
+          </div>
+        )}
+      </div>
       <Transcript entries={entries.map((entry) => entry.kind === 'player'
         ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} resultCue={resultCue} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
@@ -1328,8 +1331,13 @@ export default function GameBrowser() {
       window.requestAnimationFrame(() => {
         const send = shell.querySelector<HTMLElement>('[data-testid="button-send-turn"]');
         if (!send) return;
-        const overflow = send.getBoundingClientRect().bottom - (window.innerHeight - inset);
-        if (overflow > 1) shell.scrollTop += overflow;
+        const container = send.closest<HTMLElement>('.app-main') ?? shell;
+        const overflow = clippedControlOverflow(
+          send.getBoundingClientRect().bottom,
+          container.getBoundingClientRect().bottom,
+          window.innerHeight - inset,
+        );
+        if (overflow > 1) container.scrollTop += overflow;
       });
     };
     apply();
@@ -1383,9 +1391,9 @@ export default function GameBrowser() {
       onSuccess: (created) => {
         if (!accountWriteAllowed(epoch)) return;
         setCampaignId(created.campaign_id);
-        window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);
+        writeAdvisoryCache(LAST_CAMPAIGN_KEY, created.campaign_id);
         queryClient.setQueryData(getGetGameSessionStateQueryKey(created.session_id), created.state);
-        window.localStorage.removeItem(`${TRANSCRIPT_KEY}${created.session_id}`);
+        removeAdvisoryCache(`${TRANSCRIPT_KEY}${created.session_id}`);
         setEntries([]);
         setCombatEntries([]);
         setCombatEndNotice(null);
@@ -1424,7 +1432,7 @@ export default function GameBrowser() {
       const transcript: TranscriptEntry[] = [{ kind: 'narration', text: opening }];
       setEntries(transcript);
       if (sessionId) {
-        window.localStorage.setItem(
+        writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
           JSON.stringify(transcript),
         );
@@ -1452,8 +1460,8 @@ export default function GameBrowser() {
           ]),
         ];
         setCampaignId(resumed.campaign_id);
-        window.localStorage.setItem(LAST_CAMPAIGN_KEY, resumed.campaign_id);
-        window.localStorage.setItem(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
+        writeAdvisoryCache(LAST_CAMPAIGN_KEY, resumed.campaign_id);
+        writeAdvisoryCache(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
@@ -1555,6 +1563,12 @@ export default function GameBrowser() {
     if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     const operation = turnLifetime.begin();
     if (!operation) return;
+    // Sending a new turn explicitly returns to the live conversation. A user
+    // who scrolls away while waiting still keeps their new reading position.
+    wasAtBottom.current = true;
+    setResultCue('');
+    const transcript = storyScrollRef.current;
+    if (transcript) transcript.scrollTop = transcript.scrollHeight;
     setNotice(null);
     const metadata = getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
@@ -1609,7 +1623,7 @@ export default function GameBrowser() {
           },
         ];
         if (stillVisible) setEntries(next);
-        window.localStorage.setItem(
+        writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
           JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
             kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),

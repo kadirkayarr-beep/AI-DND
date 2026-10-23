@@ -11,10 +11,11 @@ from typing import Any, Iterator
 
 import game
 from api.model_phase import ModelFailure
+from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName, validate_local_model
 from api.world_metadata import validate_world_metadata
 
 
-MODEL_NAME = "qwen3:8b"
+MODEL_NAME = DEFAULT_LOCAL_MODEL  # Engine logical tag; adapter records the actual selected tag.
 MAX_MODEL_CALLS_PER_TURN = 2
 # Successful tavern narration has completed in about 25s. A hung call was
 # still inside the client at the smoke's 240s HTTP limit. 90s fails closed
@@ -103,8 +104,13 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
 class AuthenticatedOllamaAdapter:
     """Binds one authenticated Ollama client without changing game.py."""
 
-    def __init__(self, client: Any):
+    def __init__(self, client: Any, *, model_name: str = MODEL_NAME):
+        self._model_name = validate_local_model(model_name)
         self._client = client
+
+    @property
+    def model_name(self) -> LocalModelName:
+        return self._model_name
 
     @classmethod
     def from_environment(cls) -> AuthenticatedOllamaAdapter | None:
@@ -112,6 +118,7 @@ class AuthenticatedOllamaAdapter:
         token = os.environ.get("OLLAMA_PROXY_TOKEN")
         if not host or not token:
             return None
+        model_name = validate_local_model(os.environ.get("AI_DND_OLLAMA_MODEL", MODEL_NAME))
         try:
             import ollama
 
@@ -126,7 +133,7 @@ class AuthenticatedOllamaAdapter:
                 type(error).__name__,
             )
             return None
-        return cls(client)
+        return cls(client, model_name=model_name)
 
     def install_for_engine(self) -> None:
         # The engine calls the ollama module directly. Bind its calls once at API
@@ -172,7 +179,7 @@ class AuthenticatedOllamaAdapter:
         except Exception as error:
             raise OllamaUnavailableError(type(error).__name__) from None
         if not any(
-            name == MODEL_NAME or name.startswith(f"{MODEL_NAME}-")
+            name == self.model_name
             for name in self._model_names(response)
         ):
             raise RequiredModelUnavailableError()
@@ -189,10 +196,12 @@ class AuthenticatedOllamaAdapter:
         if calls is not None:
             if len(calls) >= MAX_MODEL_CALLS_PER_TURN:
                 raise RuntimeError("Model call budget exhausted.")
-            calls.append(MODEL_NAME)
-        _logger.info("Ollama chat request started (model=%s)", MODEL_NAME)
+            calls.append(self.model_name)
+        _logger.info("Ollama chat request started (model=%s)", self.model_name)
         try:
-            return self._client.chat(*args, **_attach_world_metadata(kwargs))
+            prepared = _attach_world_metadata(kwargs)
+            prepared = {**prepared, "model": self.model_name}
+            return self._client.chat(*args, **prepared)
         except Exception as error:
             failures = _MODEL_FAILURES.get()
             if failures is not None:

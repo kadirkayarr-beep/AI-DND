@@ -18,7 +18,7 @@ export const getGameHealthResponseModelDefault = `qwen3:8b`;
 export const GetGameHealthResponse = zod.object({
   "status": zod.enum(['ok']).default(getGameHealthResponseStatusDefault),
   "engine": zod.enum(['AI-DND']).default(getGameHealthResponseEngineDefault),
-  "model": zod.enum(['qwen3:8b']).default(getGameHealthResponseModelDefault)
+  "model": zod.enum(['qwen3:8b', 'qwen3.5:4b-q4_K_M', 'qwen3.5:9b-q4_K_M']).default(getGameHealthResponseModelDefault)
 })
 
 
@@ -13224,7 +13224,7 @@ export const getLegacyHealthResponseModelDefault = `qwen3:8b`;
 export const GetLegacyHealthResponse = zod.object({
   "status": zod.enum(['ok']).default(getLegacyHealthResponseStatusDefault),
   "engine": zod.enum(['AI-DND']).default(getLegacyHealthResponseEngineDefault),
-  "model": zod.enum(['qwen3:8b']).default(getLegacyHealthResponseModelDefault)
+  "model": zod.enum(['qwen3:8b', 'qwen3.5:4b-q4_K_M', 'qwen3.5:9b-q4_K_M']).default(getLegacyHealthResponseModelDefault)
 })
 
 

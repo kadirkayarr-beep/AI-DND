@@ -16,6 +16,7 @@ const submitCode = declaration('submitTurn');
 assert.ok(undoCode);
 assert.ok(submitCode);
 const executable = ts.transpileModule([
+  (await readFile(new URL('../src/lib/advisory-cache.ts', import.meta.url), 'utf8')).replace(/^export\s+/gm, ''),
   undoCode.getText(ast),
   submitCode.getText(ast),
   'globalThis.undo = undoLastTurn; globalThis.submit = submitTurn;',
@@ -55,6 +56,7 @@ function harness() {
     inFlightSessionsRef: { current: new Set() },
     activeSessionRef: { current: 'session-a' },
     pendingTurnRef: { current: null },
+    wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {},
     turnLifetime: { begin: () => ({ signal: new AbortController().signal, isCurrent: () => true, close() {} }) },
     state, entries: [{ kind: 'narration', text: 'Before' }], message: 'draft before',
     undoGameTurn: (...args) => {

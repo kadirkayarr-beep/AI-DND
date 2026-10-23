@@ -5,11 +5,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
+
 
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     engine: Literal["AI-DND"] = "AI-DND"
-    model: Literal["qwen3:8b"] = "qwen3:8b"
+    model: LocalModelName = DEFAULT_LOCAL_MODEL
 
 
 class SessionResponse(BaseModel):

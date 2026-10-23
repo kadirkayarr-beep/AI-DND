@@ -4,6 +4,17 @@
 def lore_rejected_action(result, lore_context=None):
     if not isinstance(result, dict):
         return None
+    # Reject unsupported decoration, not an already committed physical result.
+    # These texts originate in the Python action owner, never model proposals.
+    if result.get("action") in {"enter", "travel", "grounded_action", "open", "close", "leave"}:
+        direct = result.get("direct_response")
+        if isinstance(direct, str) and direct.strip():
+            return direct
+    if (result.get("action") == "explore" and result.get("status") == "observed"
+            and result.get("success") is True):
+        direct = result.get("direct_response")
+        if isinstance(direct, str) and direct.strip():
+            return direct
     if result.get("action") == "shop_setup" and result.get("status") == "created":
         return result.get("direct_response")
     if result.get("action") != "skill_check":
