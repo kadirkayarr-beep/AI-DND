@@ -5468,7 +5468,15 @@ def resolve_npc_reference(
                 )
             )
         )
-        if name_match or role_match:
+        # The label the player is shown ("Yakındaki kişi", "Bir köylü") is public
+        # by construction, so typing it back must address that person.
+        descriptor_match = (
+            not living_world.npc_name_known_to_player(npc)
+            and _entity_reference_in_text(
+                living_world.public_npc_descriptor(npc), text
+            )
+        )
+        if name_match or role_match or descriptor_match:
             matches.append(npc)
     # Hidden canonical identity must never become target authority just because
     # the player guessed an internal name/role string. Generic pronouns may still
@@ -8327,11 +8335,13 @@ def _fallback_narration(player_input, npc_target=None):
         return "Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir."
     if outcome in ("critical_failure", "failure"):
         return "Girişimin ters gider ve amaçladığın sonuç gerçekleşmez."
-    return (
-        "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
-        "hamleni bekliyor."
-    )
+    return _GENERIC_NO_CHANGE_RESPONSE
 
+
+_GENERIC_NO_CHANGE_RESPONSE = (
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
+    "hamleni bekliyor."
+)
 
 _INTERNAL_PLAYER_FACING_RE = re.compile(
     r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
@@ -12333,6 +12343,7 @@ def finalize_narration(
 
     normalized = re.sub(r"\s+", " ", narration).strip().casefold()
     if any(normalized == old for old in recent_dm_narrations):
+        replaced = True
         if (
             isinstance(action_result, dict)
             and action_result.get("status") == "experimental_attributed_speech"
@@ -12342,13 +12353,19 @@ def finalize_narration(
                 npc_target, player_input, salt=len(recent_dm_narrations)
             )
         else:
-            narration = fallback_for_turn()
-        decision = {
-            "reason_code": "REPEATED_NARRATION",
-            "trigger_span": None,
-            "scene_type": _narration_scene_type(action_result),
-        }
-        handling = "python_fallback"
+            replacement = fallback_for_turn()
+            if replacement == _GENERIC_NO_CHANGE_RESPONSE:
+                # A repeated real reply beats a "nothing happens" non-answer.
+                replaced = False
+            else:
+                narration = replacement
+        if replaced:
+            decision = {
+                "reason_code": "REPEATED_NARRATION",
+                "trigger_span": None,
+                "scene_type": _narration_scene_type(action_result),
+            }
+            handling = "python_fallback"
 
     history_target = npc_target
     historical_claim = (

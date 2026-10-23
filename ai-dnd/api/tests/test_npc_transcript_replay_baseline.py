@@ -136,6 +136,8 @@ class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
             "narration": body.get("narration", ""),
             "action": outcome.get("action"),
             "action_status": outcome.get("status"),
+            "npc_id": (result.get("action_result") or {}).get("npc_id"),
+            "active_npc_id_after": session.world_state.get("flags", {}).get("active_npc_id"),
             "telemetry": evidence.get("telemetry"),
             "model_chat_calls": model.calls - calls_before,
             "protected_fields_unchanged": all(
@@ -198,6 +200,7 @@ class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
         person["role_known_to_player"] = False
         steps = [
             ("Q2 talk to the nearby person", "Yakındaki kişi ile konuşmak istiyorum.", "do", True),
+            ("Q2b same, say mode", "Yakındaki kişi ile konuşmak istiyorum.", "say", True),
             ("Q3 ask the name", "Selamlar, ismin nedir?", "say", True),
             ("Q4 end conversation", "Konuşmayı bitiriyorum.", "do", False),
             ("Q5 reopen by name", "Quenna ile konuşmak istiyorum.", "do", True),
@@ -211,6 +214,13 @@ class TranscriptReplayBaseline(unittest.IsolatedAsyncioTestCase):
         for record in self.records:
             self.assertEqual(record["http_status"], 200, record)
             self.assertTrue(record["protected_fields_unchanged"], record)
+        by_step = {record["step"].split(" ", 1)[0]: record for record in self.records}
+        # Typing the public label back must address that person and keep focus.
+        self.assertEqual(by_step["Q2"]["action_status"], "conversation_started", by_step["Q2"])
+        self.assertTrue(by_step["Q2"]["npc_id"], by_step["Q2"])
+        self.assertEqual(by_step["Q2"]["active_npc_id_after"], by_step["Q2"]["npc_id"])
+        self.assertIn("Quenna", by_step["Q3"]["narration"], by_step["Q3"])
+        self.assertFalse(any(r["generic"] for r in self.records), self.records)
 
     async def test_inn_door_and_lockpick_loop(self):
         _city, _sid, session, turn_url, tavern_id, door = \
