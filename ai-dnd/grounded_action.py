@@ -1551,10 +1551,21 @@ def _do_unlock(run: _Run, step) -> dict[str, Any]:
     improvised = next((label for label in labels if _IMPROVISED.search(fold(label))), None)
     policy = _lock_policy(door)
     if not tools and not improvised:
+        # The first refusal is the plain line; repeating the same attempt at the
+        # same door rotates through other wordings instead of echoing it.
+        words = policy["words"]
+        refusals = (
+            f"Kilide eğilip bakıyorsun: {words} bir kilit. Elinde maymuncuk ya da "
+            "ince bir alet yok; dilini çıplak parmakla oynatamıyorsun. Kapıyı çalabilir, "
+            "zorlayabilir ya da başka bir giriş arayabilirsin.",
+            f"Elinde maymuncuk ya da ince bir alet yok; kilitle bir kez daha uğraşsan da "
+            f"bu {words} kilit çıplak elle oynamaz.",
+            "Elinde maymuncuk ya da ince bir alet yok, bu yüzden kilitten bir şey çıkmaz. "
+            "Kapıyı çalmayı, zorlamayı ya da başka bir giriş aramayı deneyebilirsin.",
+        )
+        refusal = refusals[run.game._variation_index(("unlock_blocked", door.get("id")), len(refusals))]
         return _receipt("unlock", "blocked", door_target, reason="tools_required", door_state=_door_public(door),
-                        text=f"Kilide eğilip bakıyorsun: {policy['words']} bir kilit. Elinde maymuncuk ya da "
-                             "ince bir alet yok; dilini çıplak parmakla oynatamıyorsun. Kapıyı çalabilir, "
-                             "zorlayabilir ya da başka bir giriş arayabilirsin.")
+                        text=refusal)
     time_result = run.spend(policy["seconds"])
     if time_result.get("interrupted"):
         return _receipt("unlock", "blocked", door_target, reason="interrupted", text="Kilitle uğraşırken bir şey seni durduruyor.")
