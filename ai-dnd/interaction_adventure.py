@@ -365,6 +365,48 @@ def current_conversation_focus(world, npc=None):
     return focus.model_dump()
 
 
+def public_door_conversation_focus(world, npc):
+    """Project the current door owner receipt, never its raw value or private data."""
+    import exploration
+
+    focus = current_conversation_focus(world, npc)
+    if (
+        not isinstance(focus, dict)
+        or not focus["subject_id"].startswith("venue-door:")
+        or focus["predicate"] != "locked"
+        or focus["evidence_id"] != focus["subject_id"]
+    ):
+        return None
+    public_speakers = exploration.player_entities(world, present_npcs(world))
+    if not any(
+        item.get("id") == focus["speaker_id"]
+        and item.get("discovered") is not False
+        for item in public_speakers
+    ):
+        return None
+    door = next((item for item in exploration.visible_doors(world)
+                 if item.get("id") == focus["subject_id"]), None)
+    if (
+        not isinstance(door, dict)
+        or door.get("location") != world.get("location")
+        or door.get("discovered") is False
+    ):
+        return None
+    destination = focus["subject_id"].partition(":")[2]
+    known = exploration.known_locations(world)
+    for location_id in (world.get("location"), destination):
+        location = world.get("locations", {}).get(location_id)
+        if (
+            location_id not in known or not isinstance(location, dict)
+            or location.get("hidden") or location.get("discovered") is False
+        ):
+            return None
+    return {key: focus[key] for key in (
+        "speaker_id", "scene_id", "subject_id", "predicate",
+        "turn", "action_id", "evidence_id", "epistemic",
+    )}
+
+
 def is_focus_followup(world, text):
     focus = current_conversation_focus(world)
     if not focus or not isinstance(text, str):

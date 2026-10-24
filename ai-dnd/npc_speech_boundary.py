@@ -11,6 +11,30 @@ import re
 from narration_claims import fold
 
 
+def normalize_bound_speech_label(raw, npc, *, visible=False):
+    """Remove one redundant public-speaker wrapper, never narrative content."""
+    import living_world
+    if (
+        not isinstance(raw, str) or not isinstance(npc, dict) or not visible
+        or npc.get("hidden") or npc.get("discovered") is False
+        or not living_world.npc_name_known_to_player(npc)
+    ):
+        return raw
+    name = npc.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return raw
+    prefix = name.strip() + ": "
+    if not raw.startswith(prefix):
+        return raw
+    quoted = raw[len(prefix):]
+    for opening, closing in (("“", "”"), ('"', '"')):
+        if quoted.startswith(opening) and quoted.endswith(closing):
+            inner = quoted[1:-1]
+            if inner.strip() and not any(mark in inner for mark in ('“', '”', '"')):
+                return inner
+    return raw
+
+
 def bound_fields(payload, npc, action_result):
     if not all(isinstance(value, dict) for value in (payload, npc, action_result)):
         return None
@@ -181,3 +205,62 @@ def hidden_identity_scan_text(text, identity, world):
             result,
         )
     return result
+
+
+def mask_bound_self_name(text, identity, world, payload, npc, action_result):
+    """Mask only an exact public speaker's first-person name claim for disclosure.
+
+    This is an identity-scan view, never a rewritten reply. Stage directions,
+    other mentions and all role/private-fact checks keep their original text.
+    """
+    import living_world
+    fields = fields_for_narration(text, payload, npc, action_result)
+    if fields is None or not isinstance(world, dict):
+        return text
+    canonical = next((record for record in world.get('npcs', [])
+                      if isinstance(record, dict) and record.get('id') == npc.get('id')), None)
+    if (canonical is None or canonical.get('hidden')
+            or canonical.get('location') != world.get('location')
+            or not living_world.npc_name_known_to_player(canonical)
+            or fold(str(canonical.get('name', ''))) != fold(str(npc.get('name', '')))
+            or fold(str(identity)) != fold(str(canonical.get('name', '')))):
+        return text
+    spoken, stage = fields
+    name = re.escape(str(canonical['name']))
+    claim = re.compile(
+        r'(^|[.!?;]\s*)(?:benim\s+adım|adım|ismim|ben)\s+'
+        r'(?P<name>' + name + r"(?:['’]y?[ıiuü]m)?)(?=\s*[,!.?;]|$)",
+        re.IGNORECASE,
+    )
+    def mask(match):
+        start, end = match.span('name')
+        relative = start - match.start()
+        return match.group(0)[:relative] + ' ' * (end - start) + match.group(0)[relative + end - start:]
+    return ' '.join(part for part in (stage, claim.sub(mask, spoken)) if part)
+
+
+def mask_visible_entity_labels(text, world):
+    """Exclude whole known place/visible feature labels from person detection only."""
+    import exploration
+    import living_world
+    if not isinstance(world, dict):
+        return text
+    labels = {record['name'] for record in living_world.visible_features(world)}
+    known = exploration.known_locations(world)
+    labels.update(record['name'] for key, record in world.get('locations', {}).items()
+                  if key in known and isinstance(record, dict) and not record.get('hidden')
+                  and isinstance(record.get('name'), str) and record['name'].strip())
+    npc_names = {fold(str(record.get('name', ''))) for record in world.get('npcs', [])
+                 if isinstance(record, dict)}
+    for label in sorted(labels, key=len, reverse=True):
+        if fold(label) in npc_names:
+            continue
+        def mask_label(match):
+            # A known suffix must not conceal an unknown compound person name.
+            preceding = re.search(r'([^\W\d_]+)\s+$', text[:match.start()])
+            if preceding and preceding.group(1)[0].isupper():
+                return match.group(0)
+            return ' ' * len(match.group(0))
+        text = re.sub(r'(?<!\w)' + re.escape(label) + r'(?!\w)',
+                      mask_label, text, flags=re.IGNORECASE)
+    return text

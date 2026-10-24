@@ -1228,7 +1228,7 @@ _COMMON_SENTENCE_OPENERS = frozenset({
 })
 
 _QUESTION_CUE_RE = re.compile(
-    r"\?|\b(?:ne|neler|nere\w*|kim\w*|kac\w*|hangi\w*|nasil|neden|niye|nicin|m[iu]\w*)\b"
+    r"\?|\b(?:ne|neler|nere\w*|kim\w*|kac\w*|hangi\w*|nasil|neden|niye|nicin|m[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?)\b"
 )
 
 
@@ -1238,14 +1238,14 @@ def _model_query_type_is_plausible(player_input):
     Live qwen fills query_type on plain statements ("Tamam, o zaman gideyim."),
     and the engine then answered a location query to a statement.
     """
-    text = _normalize_turkish_typos(str(player_input).casefold())
+    text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
     return bool(_QUESTION_CUE_RE.search(text))
 
 
 def _detect_query_type(player_input, npc_target=None):
     """Ground questions in known entities, not in an ambient NPC alone."""
     world_state = _session().world_state
-    text = _normalize_turkish_typos(player_input)
+    text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
     self_phrases = (
         "ben kimim", "karakterim kim", "kim oynuyorum",
         "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne",
@@ -1268,8 +1268,25 @@ def _detect_query_type(player_input, npc_target=None):
     )
     location_query = any(_normalize_turkish_typos(phrase) in text for phrase in (
         "neredeyim", "nerdeyim", "nerdeyiz", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
-    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text))
+    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text)) or bool(re.fullmatch(
+        # Accusative current-location object + affirmative information imperative.
+        # Negative/past forms (soyleme/soyledim) must not authorize a query.
+        r"(?:(?:bana|lutfen)\s+)*(?:bulundugum|bulundugumuz)\s+(?:yeri|konumu|mekani)\s+"
+        r"(?:soyle(?:yin|yiniz)?|anlat(?:in|iniz)?)\b", text,
+    ))
     location_id = _location_reference_in_text(player_input)
+    # A resolved place + a terminal locative interrogative asks for that place,
+    # not the player's current location and not an ungrounded lore answer.
+    import exploration
+    query_locations = _query_location_candidates(player_input)
+    query_location_id = query_locations[0] if len(query_locations) == 1 else None
+    referenced_location = world_state.get("locations", {}).get(query_location_id, {})
+    location_query = location_query or bool(
+        query_location_id in exploration.known_locations(world_state)
+        and isinstance(referenced_location, dict)
+        and not referenced_location.get("hidden")
+        and re.search(r"\bner(?:e)?de(?:dir)?\s*[?!.]*$", text)
+    )
     explicit_npcs = [
         npc for npc in active_npcs()
         if (
@@ -1316,6 +1333,17 @@ def _detect_explore_type(player_input):
     return "observe"
 
 
+def _query_location_candidates(player_input):
+    """All registered place subjects in unquoted text; never pick the first."""
+    text = living_world._text_outside_quotes(str(player_input))
+    return [
+        key for key, record in _session().world_state.get("locations", {}).items()
+        if isinstance(record, dict) and any(
+            _entity_reference_in_text(alias, text)
+            for alias in _location_alias_values(record)
+        )
+    ]
+
 def _handle_query(player_input, query_type, npc_target=None):
     """Handle the detected query type and return response or None."""
     world_state = _session().world_state
@@ -1323,13 +1351,22 @@ def _handle_query(player_input, query_type, npc_target=None):
         return known_character_answer(player_input)
 
     if query_type == "location":
-        # LR00 fix: a place named in the question is not where the player is.
-        named = _location_reference_in_text(player_input)
-        if named and named != world_state.get("location"):
-            import grounded_action
-            hint = grounded_action.place_hint(_session(), named)
-            if hint:
-                return hint
+        # Only the player's unquoted, unambiguous public subject can select a
+        # place. A model location label cannot default an unknown subject to self.
+        import exploration
+        candidates = _query_location_candidates(player_input)
+        if len(candidates) > 1:
+            return None
+        if candidates:
+            named = candidates[0]
+            record = world_state.get("locations", {}).get(named, {})
+            if named not in exploration.known_locations(world_state) or record.get("hidden"):
+                return None
+            if named != world_state.get("location"):
+                import grounded_action
+                return grounded_action.place_hint(_session(), named)
+        elif _detect_query_type(player_input, npc_target) != "location":
+            return None
         return f"Bulunduğun yer: {location_display_name(world_state.get('location'))}."
 
     if query_type == "presence":
@@ -1393,7 +1430,18 @@ def resolve_python_world_action(player_input):
     if "kapı" in text and any(token in text for token in ("yok ettim", "yok ettin", "parçaladım", "kırdım")):
         return "Kapıya bakıyorsun: hâlâ yerinde ve sapasağlam duruyor."
     if door_action and not door:
-        return "Burada açıp kapatabileceğin bir kapı görünmüyor."
+        # Keep the owner's known absence typed; a handled reply is not a
+        # successfully executed door action.
+        return {
+            "action": "world_interaction",
+            "success": False,
+            "status": "blocked",
+            "reason": "target_unknown",
+            "target_type": "door",
+            "target_id": None,
+            "state_changes": [],
+            "direct_response": "Burada açıp kapatabileceğin bir kapı görünmüyor.",
+        }
     if not door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
         return "Etrafında öyle bir kapı yok."
     if door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
@@ -6264,7 +6312,7 @@ def build_world_context(npc_target=None):
                 "description": item.get("description", ""),
                 "reality_layer": item.get("reality_layer", "UNKNOWN_OR_UNLOADED"),
             }
-            for item in location_features()[:16]
+            for item in living_world.visible_features(world_state)[:16]
         ],
         "inventory_summary": equipment_economy.labels(world_state["inventory"]),
         "ground_items_summary": equipment_economy.labels(world_state["ground_items_by_location"].get(world_state["location"], [])),
@@ -6923,7 +6971,11 @@ def _speech_debug_trail(record):
 
 
 def _npc_speech_enabled():
-    """First-person NPC speech trial: per-session switch or AI_DND_NPC_SPEECH=1."""
+    """Compatibility switch for the existing target/focus routing extensions.
+
+    Resolved ordinary NPC speech uses the structured schema independently.
+    This switch still controls the broader experimental targeting behavior.
+    """
     if getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True:
         return True
     return os.environ.get("AI_DND_NPC_SPEECH", "").strip() == "1"
@@ -6958,20 +7010,7 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
     ):
         return
     world = _session().world_state
-    log = world.get(_NPC_SPEECH_LOG_KEY)
-    if not isinstance(log, dict):
-        log = {}
-        world[_NPC_SPEECH_LOG_KEY] = log
-    entries = [
-        *_experimental_recent_exchanges(npc_id),
-        {
-            "player": str(player_text or "").strip()[:240],
-            "npc": npc_text.strip()[:400],
-        },
-    ]
-    log[npc_id] = entries[-_NPC_SPEECH_KEEP:]
-    for stale in list(log)[:-24]:
-        del log[stale]
+    local_dialogue.remember_speech_exchange(world, npc_id, player_text, npc_text)
     # LR00 fix: the short log above is conversation context only; the
     # statement ledger keeps places and commitments for the whole campaign.
     import npc_statements
@@ -7127,6 +7166,10 @@ def _experimental_npc_dialogue_context(
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
     source = interaction_adventure.context(world, npc)
+    speech_profile_facts = list(source.get("conversation_candidates", []))
+    public_detail = local_dialogue.public_personal_detail(world, npc)
+    if public_detail is not None:
+        speech_profile_facts.append(public_detail)
     addressee = source.get("addressee") or {}
     allowed_kinds = {"witnessed", "player_claim", "belief", "rumor", "lie"}
     perspective = [
@@ -7171,7 +7214,8 @@ def _experimental_npc_dialogue_context(
             "name": living_world.public_npc_name(npc),
             "role": living_world.public_npc_role(npc),
         },
-        "shareable_profile_facts": source.get("conversation_candidates", []),
+        "shareable_profile_facts": speech_profile_facts,
+        "conversation_focus": interaction_adventure.public_door_conversation_focus(world, npc),
         "scene": living_world.visible_scene_facts(world),
         # A bare follow-up ("Neden onu?") is about the last exchange. Rumors and
         # old player lines pulled a small model away from it (18 Oct live T5),
@@ -8754,9 +8798,15 @@ def _is_figurative_key_transfer(text, match_start):
     return bool(re.search(r"(?:kalbimin|yüreğimin|yuregimin)$", prefix))
 
 
-def _experimental_private_npc_disclosure(text, world_state):
+def _experimental_private_npc_disclosure(
+    text, world_state, *, npc_target=None, speech_fields=None
+):
     """Match output against dynamically derived, non-shareable NPC source values."""
     folded_text = _normalize_turkish_typos(str(text or "").casefold())
+    public_detail = (
+        local_dialogue.public_personal_detail(world_state, npc_target)
+        if speech_fields is not None else None
+    )
 
     def strings(value):
         if isinstance(value, str):
@@ -8783,9 +8833,19 @@ def _experimental_private_npc_disclosure(text, world_state):
                     compact = re.sub(r"[^a-z0-9]", "", folded_value)
                     if len(compact) < 6:
                         continue
+                    field_text = folded_text
+                    if (
+                        public_detail is not None
+                        and npc.get("id") == public_detail["owner_id"]
+                        and field == "personal_detail"
+                        and private_value == public_detail["value"]
+                    ):
+                        # Only server-bound spoken text gets this exception.
+                        # Narrator stage text and every other NPC remain checked.
+                        field_text = _normalize_turkish_typos(speech_fields[1].casefold())
                     if re.search(
                         rf"(?<![a-z0-9]){re.escape(folded_value)}(?![a-z0-9])",
-                        folded_text,
+                        field_text,
                     ):
                         return True
 
@@ -8849,7 +8909,9 @@ def _narration_safety_decision(
     if (
         isinstance(action_result, dict)
         and action_result.get("status") == "experimental_attributed_speech"
-        and _experimental_private_npc_disclosure(narration, world_state)
+        and _experimental_private_npc_disclosure(
+            narration, world_state, npc_target=npc_target, speech_fields=speech_fields
+        )
     ):
         return reject("NPC_PRIVATE_PROFILE_DISCLOSURE")
 
@@ -8887,8 +8949,14 @@ def _narration_safety_decision(
                              ("role", living_world.npc_role_known_to_player)):
             identity = npc.get(field)
             if not known(npc) and identity and _entity_reference_in_text(identity, narration):
+                identity_view = narration
+                if field == "name" and npc.get("id") != (npc_target or {}).get("id"):
+                    identity_view = npc_speech_boundary.mask_bound_self_name(
+                        narration, identity, world_state, attributed_speech,
+                        npc_target, action_result,
+                    )
                 identity_view = npc_speech_boundary.hidden_identity_scan_text(
-                    narration, identity, world_state
+                    identity_view, identity, world_state
                 )
                 if _entity_reference_in_text(identity, identity_view):
                     return reject("HIDDEN_NPC_IDENTITY_DISCLOSURE", identity)
@@ -9552,8 +9620,9 @@ def _narration_safety_decision(
         if entity_narration != narration:
             verdict["source_field"] = "stage_direction"
         return verdict
+    entity_scan = npc_speech_boundary.mask_visible_entity_labels(entity_narration, world_state)
     for pattern in name_patterns:
-        for match in re.finditer(pattern, entity_narration):
+        for match in re.finditer(pattern, entity_scan):
             quote_prefix = entity_narration[:match.start()].rstrip()
             if match.group(1).casefold() == "bir" and quote_prefix.endswith(
                 ("'", "’", '"', "“", "‘")
@@ -9569,7 +9638,7 @@ def _narration_safety_decision(
                 if _authorized_item_transfer_matches(match.group(1), action_result):
                     continue
                 return reject_entity(match.group(1))
-    if _has_unregistered_person_name(entity_narration):
+    if _has_unregistered_person_name(entity_scan):
         return reject_entity()
 
     unregistered_object = _unregistered_persistent_object_claim(
@@ -9790,6 +9859,15 @@ def _narration_safety_decision(
     verdict = narration_claims.assess(narration, _narration_fact_packet(action_result))
     if verdict["reject"]:
         return reject(verdict["reason"] or "NARRATION_CLAIM_REJECTED", verdict.get("span"))
+
+    # Attributed words may be rumors; the optional narrator field is not speech.
+    # Reuse the narrator's existing lore authority, never the model's claim IDs.
+    if speech_fields is not None and _narration_has_unsupported_lore_claim(
+        speech_fields[1], [],
+        _prepare_lore_authority_context(getattr(_session(), "lore_authority_context", None)),
+        world_state,
+    ):
+        return {**reject("UNVERIFIED_LORE_CLAIM"), "source_field": "stage_direction"}
 
     return accept()
 
@@ -11470,7 +11548,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
                 "description": item.get("description"),
                 "aliases": item.get("aliases", []),
             }
-            for item in location_features(location_id)[:16]
+            for item in living_world.visible_features(world_state, location_id)[:16]
             if isinstance(item, dict)
         ],
         "background_referents": references[:4],
@@ -11720,6 +11798,15 @@ def ask_dungeon_master(
         for item in recent_narrations
         if isinstance(item, str) and item.strip()
     ) or "(yok)"
+    lore_claim_guidance = (
+        "Bu narration-only turunda lore_claims boş kalır; citation ekleme. "
+        "PYTHON ACTION RESULT, NARRATION FACTS ve görünür mevcut sahne bilgisini "
+        "mekanik sonucu değiştirmeden doğal biçimde anlat; cümleyi aynen kopyalamak zorunda değilsin. "
+        "Bu görevin dışına çıkarak yeni setting/campaign canon iddiası ekleme. "
+        if narration_only else
+        "Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
+        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
+    )
     user_prompt = (
         "Yalnızca bu turu yanıtla; aynı cümleyi tekrarlama. Oyuncunun iddialarını doğrulanmış gerçek sayma. "
         "RECENT NARRATION listesi yalnızca tekrar ve ifade çeşitliliği içindir; olgusal kaynak değildir. "
@@ -11748,8 +11835,8 @@ def ask_dungeon_master(
         "NPC memory alanını world_updates ile değiştirme; Python belleği yalnızca gerçekleşmiş NPC yanıtlarından yazar. "
         "SETTING REALITY yalnızca VERIFIED LORE AUTHORITY içindeki kaynaklı gerçeklerle belirlenir. "
         "Kendi model belleğini Forgotten Realms kaynağı olarak kullanma; yüklenmemiş veya bilinmeyen "
-        "lore'u uydurma. Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
-        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
+        "lore'u uydurma. "
+        f"{lore_claim_guidance}"
         "Söylenti, inanç ve efsaneleri nesnel gerçek gibi değil, bağlamdaki claim_type ve görünürlükle "
         "uyumlu biçimde aktar. Yeni NPC, konum ve özellikler yalnızca procedural local fiction'dır; "
         "events yalnızca narrative texture'dır. "
@@ -12220,7 +12307,10 @@ def _repair_attributed_speech(payload, decision):
     if not isinstance(payload, dict):
         return None
     if (
-        decision.get("reason_code") in {"UNREGISTERED_NAMED_ENTITY", "PLAYER_NAME_IN_NARRATION"}
+        decision.get("reason_code") in {
+            "UNREGISTERED_NAMED_ENTITY", "PLAYER_NAME_IN_NARRATION",
+            "UNVERIFIED_LORE_CLAIM",
+        }
         and decision.get("source_field") == "stage_direction"
     ):
         # This field marker is produced only for exact, server-bound speech.
@@ -12469,7 +12559,21 @@ def finalize_narration(
             handling = "python_fallback"
 
     normalized = re.sub(r"\s+", " ", narration).strip().casefold()
-    if any(normalized == old for old in recent_dm_narrations):
+    # Bound speech has already passed the complete safety check (including
+    # revalidation after repair). Repetition alone cannot invalidate its answer.
+    # Likewise, do not replace a safety fallback or overwrite its first reason.
+    import npc_speech_boundary
+    accepted_bound_speech = (
+        handling in {"accepted", "repaired"}
+        and npc_speech_boundary.fields_for_narration(
+            narration, attributed_speech, npc_target, action_result
+        ) is not None
+    )
+    if (
+        handling != "python_fallback"
+        and not accepted_bound_speech
+        and any(normalized == old for old in recent_dm_narrations)
+    ):
         replaced = True
         if (
             isinstance(action_result, dict)
@@ -12485,7 +12589,11 @@ def finalize_narration(
                 and bool(resolved_fallback_response.strip())
             )
             replacement = fallback_for_turn() if has_resolved_outcome else None
-            if replacement is None or replacement in _GENERIC_NO_CHANGE_RESPONSES:
+            if replacement == narration:
+                # A safe answer identical to the resolved receipt was not
+                # replaced. Keep its original safety/repair decision.
+                replaced = False
+            elif replacement is None or replacement in _GENERIC_NO_CHANGE_RESPONSES:
                 # Without a Python-resolved outcome the only substitutes are a
                 # "nothing happens" line or an "I don't know" line; a repeated
                 # real reply beats both.
@@ -13355,6 +13463,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         return result
 
     python_reply = resolve_python_world_action(player_input)
+    if isinstance(python_reply, dict):
+        result.update(python_reply)
+        return result
     if python_reply:
         result.update({
             "action": "world_interaction",
@@ -15407,6 +15518,9 @@ def run_player_turn(
         )
     if isinstance(result, dict) and isinstance(action_result, dict):
         _session()._publish_level_up(action_result)
+        local_dialogue.remember_native_reply(
+            _session().world_state, action_result, player_input, result.get("narration")
+        )
     return result
 
 
@@ -15442,6 +15556,7 @@ def _dispatch_player_turn(
         require_player_can_act()
         active = _active_interlocutor()
         _clear_active_interlocutor()
+        interaction_adventure.retire_conversation_focus(_session().world_state)
         if active is None:
             narration = "Şu anda sürdürdüğün bir konuşma yok."
             status = "no_effect"
@@ -16689,7 +16804,7 @@ def _run_player_turn_internal(
         if not combat["active"] and interaction_mode != "say"
         else None
     )
-    focused_npc_before_targeting = _active_interlocutor() if _npc_speech_enabled() else None
+    focused_npc_before_targeting = _active_interlocutor()
     if target_id is not None:
         if not isinstance(target_id, str) or not target_id:
             result = {
@@ -16899,13 +17014,16 @@ def _run_player_turn_internal(
 
     if (
         target_id is None
-        and interaction_mode == "say"
+        and (
+            interaction_mode == "say"
+            or (interaction_mode in {None, "do"} and should_generate_npcs(player_input))
+        )
         and npc_target is not None
         and preparsed_scene_intent is None
         and not (
-            _npc_speech_enabled()
-            and focused_npc_before_targeting is not None
+            focused_npc_before_targeting is not None
             and npc_target.get("id") == focused_npc_before_targeting.get("id")
+            and not should_generate_npcs(player_input)
         )
         and is_npc_dialogue_input(player_input)
         and not local_dialogue.personal_question_kind(player_input)
@@ -17572,8 +17690,16 @@ def _run_player_turn_internal(
         or _is_short_conversation_continuation(player_input)
         or _is_spoken_to(player_input, npc_target)
     ))
+    profile_focus = interaction_adventure.current_conversation_focus(world_state, npc_target)
+    canonical_profile_question = (
+        local_dialogue.personal_question_kind(player_input)
+        in interaction_adventure.PROFILE_FIELD_BY_MEANING.values()
+        or (_is_short_followup(player_input) and profile_focus
+            and profile_focus.get("predicate") in interaction_adventure.PROFILE_FIELD_BY_MEANING.values())
+    ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
     experimental_dialogue_session = (
-        npc_dialogue_route and interaction_mode != "ask_dm" and _npc_speech_enabled()
+        npc_dialogue_route and interaction_mode != "ask_dm"
+        and (_npc_speech_enabled() or not canonical_profile_question)
     )
     lore_safety_input = player_input
     if npc_place_recommendation:
@@ -17833,7 +17959,14 @@ def _run_player_turn_internal(
                     and len(raw_stage) <= 600
                 )
                 if valid_speech_packet:
-                    cleaned_spoken = _clean_npc_speech(raw_spoken)
+                    import npc_speech_boundary
+                    cleaned_spoken = _clean_npc_speech(
+                        npc_speech_boundary.normalize_bound_speech_label(
+                            raw_spoken, npc_target,
+                            visible=any(n.get("id") == npc_target.get("id")
+                                        for n in _conversation_npcs()),
+                        )
+                    )
                     if cleaned_spoken.strip():
                         cleaned_spoken = _ground_local_place_recommendation_reply(
                             cleaned_spoken,
@@ -17969,6 +18102,8 @@ def _run_player_turn_internal(
             )
             if experimental_npc_dialogue:
                 if accepted_model_speech:
+                    if not (_is_short_followup(player_input) and profile_focus):
+                        interaction_adventure.retire_conversation_focus(world_state)
                     text = _render_experimental_npc_speech(
                         attributed_speech, npc_target
                     )
@@ -18012,6 +18147,7 @@ def _run_player_turn_internal(
                 is_final=True,
                 safety_reason_code=final_safety_reason_code,
                 safety_handling=final_safety_handling,
+                record_safety=False,  # finalize_narration already recorded this verdict.
             )
         validated_intent = {"intent": "dialogue"}
     else:

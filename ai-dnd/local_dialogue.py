@@ -22,6 +22,51 @@ EPHEMERAL_SCENE_TEXTURE = "EPHEMERAL_SCENE_TEXTURE"
 PERSONAL_PROFILE_SCHEMA_VERSION = 1
 
 
+def remember_speech_exchange(world, npc_id, player_text, npc_text):
+    """Bounded attributed dialogue context, never facts or instructions."""
+    if not isinstance(npc_id, str) or not isinstance(npc_text, str) or not npc_text.strip():
+        return
+    log = world.get("npc_speech_log")
+    if not isinstance(log, dict):
+        log = {}
+        world["npc_speech_log"] = log
+    previous = log.get(npc_id)
+    entries = [item for item in previous if isinstance(item, dict)
+               and isinstance(item.get("player"), str)
+               and isinstance(item.get("npc"), str)] if isinstance(previous, list) else []
+    log[npc_id] = [*entries[-4:], {
+        "player": str(player_text or "").strip()[:240],
+        "npc": npc_text.strip()[:400],
+    }][-4:]
+    for stale in list(log)[:-24]:
+        del log[stale]
+
+
+def remember_native_reply(world, action_result, player_text, narration):
+    """Bridge accepted native reply routes after final rendering, once per turn.
+
+    Experimental prose already has its own accepted-speech writer. A resolved
+    answer_field is native even when requested by the experimental classifier.
+    No statement ledger or profile promotion is performed here.
+    """
+    if not isinstance(action_result, dict) or action_result.get("success") is not True:
+        return
+    action, status = action_result.get("action"), action_result.get("status")
+    native_dialogue = action == "dialogue" and status in {
+        "answered_personal_question", "answered_smalltalk", "conversation_started",
+        "player_name_disclosed", "answered_without_offer",
+    }
+    identity = (action == "query" and status == "answered_from_campaign_state"
+                and action_result.get("query_type") == "npc_identity")
+    if not (native_dialogue or identity):
+        return
+    npc_id = action_result.get("npc_id")
+    if not any(isinstance(n, dict) and n.get("id") == npc_id
+               for n in world.get("npcs", [])):
+        return
+    remember_speech_exchange(world, npc_id, player_text, narration)
+
+
 def normalize_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
@@ -200,6 +245,56 @@ def new_personal_profile(
     profile = dict(bank[int.from_bytes(seed[:4], "big") % len(bank)])
     profile["schema_version"] = PERSONAL_PROFILE_SCHEMA_VERSION
     return profile
+
+
+def public_personal_detail(world, npc):
+    """Project only a current visible NPC's bounded mundane template detail.
+
+    Existing arbitrary profile strings are NOT made public by a procedural tag.
+    This is a read-only eligibility check, not profile regeneration or migration.
+    """
+    if not isinstance(world, dict) or not isinstance(npc, dict):
+        return None
+    npc_id = npc.get("id")
+    if not isinstance(npc_id, str) or not npc_id:
+        return None
+    matches = [item for item in world.get("npcs", [])
+               if isinstance(item, dict) and item.get("id") == npc_id]
+    if len(matches) != 1:
+        return None
+    canonical = matches[0]
+    location = canonical.get("location")
+    hp = canonical.get("current_hp", 1)
+    if (
+        canonical.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
+        or not isinstance(location, str) or not location
+        or location != world.get("location")
+        or canonical.get("hidden") or canonical.get("discovered") is False
+        or canonical.get("status", "active") in {"dead", "unconscious", "defeated"}
+        or canonical.get("combat_status") in {"dead", "unconscious", "defeated"}
+        or not isinstance(hp, (int, float)) or hp <= 0
+        or not living_world.npc_role_known_to_player(canonical)
+    ):
+        return None
+    role = canonical.get("role")
+    profile = canonical.get("personal_profile")
+    if (
+        not isinstance(role, str) or not role.strip()
+        or not isinstance(profile, dict)
+        or profile.get("schema_version") != PERSONAL_PROFILE_SCHEMA_VERSION
+    ):
+        return None
+    value = profile.get("personal_detail")
+    expected = new_personal_profile(npc_id, location, role)["personal_detail"]
+    if not isinstance(value, str) or not value.strip() or value != expected:
+        return None
+    return {
+        "evidence_id": f"npc-profile:{npc_id}:v1:personal_detail",
+        "owner_id": npc_id,
+        "field": "personal_detail",
+        "value": value,
+        "source": "npc_personal_profile",
+    }
 
 
 def ensure_personal_profile(npc: Any) -> dict[str, Any] | None:
@@ -390,7 +485,8 @@ def personal_question_kind(value: Any) -> str | None:
     ):
         return "reason_for_being_here"
     if re.search(
-        r"\b(?:bugun|gunun|keyfin|halin|isler)\b.{0,45}"
+        r"\bbugun\s+(?:nasil(?:\s+(?:gidiyor|geciyor))?|gidiyor|geciyor)\s*$|"
+        r"\b(?:gunun|keyfin|halin|isler)\b.{0,45}"
         r"\b(?:nasil|gidiyor|geciyor|durum)\b|"
         r"\b(?:nasilsin|keyfin nasil)\b",
         text,

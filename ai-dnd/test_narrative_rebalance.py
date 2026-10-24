@@ -79,7 +79,7 @@ class TestNarrativeRebalance(unittest.TestCase):
     @patch("game.ollama.chat")
     def test_01_known_deterministic_gameplay_reaches_narration_model(self, mock_chat):
         mock_chat.return_value = self.mock_ollama_response(
-            '{"valid_response": true, "narration": "Hancı tezgaha yaslanıp kısık sesle konuşur.", "lore_claims": [], "world_updates": {}}'
+            '{"spoken_text": "Burada seni dinliyorum.", "stage_direction": "Hancı tezgaha yaslanıp kısık sesle konuşur."}'
         )
         result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
@@ -87,6 +87,8 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
         self.assertEqual(telemetry["narration_source"], "qwen")
+        self.assertIn("Burada seni dinliyorum.", result["narration"])
+        self.assertIn("tezgaha yaslanıp", result["narration"])
         mock_chat.assert_called_once()
 
     # 2. ambiguous input may use: intent model -> Python resolution -> narration model
@@ -179,15 +181,17 @@ class TestNarrativeRebalance(unittest.TestCase):
         )
         result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        # Conversation-only packets are stripped of unsupported updates/claims
-        # by the interaction owner before the general narration validator.
+        # A legacy proposal-shaped payload is invalid on the active structured
+        # speech route. Keep the fail-closed content assertions, and label the
+        # Python fallback truthfully rather than claiming Qwen was accepted.
+        # Valid spoken/stage lore separation is covered by StageContractTests.
         self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(
             self.session.world_state["npcs"][0]))
         self.assertNotIn("King Vharion", result["narration"])
         self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
-        self.assertEqual(telemetry["narration_source"], "qwen")
-        self.assertEqual(telemetry["narration_validation_result"], "accepted")
-        self.assertIsNone(telemetry["fallback_reason"])
+        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+        self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
+        self.assertEqual(telemetry["fallback_reason"], "INVALID_NARRATION")
         self.assertEqual(telemetry["total_model_calls"], 1)
         mock_chat.assert_called_once()
 
@@ -334,13 +338,14 @@ class TestNarrativeRebalance(unittest.TestCase):
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertLessEqual(telemetry["total_model_calls"], 2)
 
-        # 6. The interaction owner substitutes safe prose before validation;
-        # telemetry describes that accepted text, not the discarded model text.
+        # 6. This legacy world_updates envelope is rejected by the active
+        # structured speech contract. Rejection must not be reported as an
+        # accepted model answer. All state/memory assertions above are retained.
         self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(npc))
-        self.assertEqual(telemetry["narration_validation_result"], "accepted")
-        self.assertIsNone(telemetry["fallback_reason"])
+        self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
+        self.assertEqual(telemetry["fallback_reason"], "INVALID_NARRATION")
         self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
-        self.assertEqual(telemetry["narration_source"], "qwen")
+        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
         self.assertEqual(telemetry["total_model_calls"], 1)
         mock_chat.assert_called_once()
 
@@ -1000,7 +1005,9 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
         self.session.recent_dm_narrations.append(self.resolved_response.casefold())
         result = self.finalize(self.unsafe_response, self.resolved_response)
         self.assertEqual(result, self.resolved_response)
-        self.assertEqual(self.session.last_narration_safety["reason_code"], "REPEATED_NARRATION")
+        # Repetition of the safe fallback must not overwrite the original veto.
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+        self.assertEqual(self.session.last_narration_safety["trigger_span"], "Halric")
         self.assertEqual(self.session.last_narration_safety["handling"], "python_fallback")
         self.assertEqual(len(self.session.narration_safety_history), 1)
 

@@ -130,7 +130,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     stdio: "ignore",
   });
   const browser = spawn(chromiumPath, [
-    "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+    "--headless=new", "--disable-gpu", "--disable-dev-shm-usage",
     `--remote-debugging-port=${browserPort}`, `--user-data-dir=${tempProfile}`,
     "about:blank",
   ], { stdio: "ignore" });

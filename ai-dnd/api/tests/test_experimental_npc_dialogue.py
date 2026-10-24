@@ -930,7 +930,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(matching_commit["status"], "open", f"{label}: commitment fulfilled")
 
     async def test_default_say_path_still_requires_conversation_contract_and_non_say_preserves_behavior(self):
-        # 1. Flag-off: say path with non-smalltalk query requires conversation in schema
+        # Approved Job4 contract: resolved ordinary speech is structured without opt-in.
         _, _, _, turn_url, npc = await self.campaign_with_npc(experimental=False)
         client = ScriptedNpcSpeechClient(narration="Kayıtlarda eski bilgiler var.")
         body = self.request(npc, message="Bana kütüphanedeki eski kayıtları anlat.")
@@ -939,17 +939,18 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(client.chat_calls, 1)
-        required = client.schemas[0]["properties"]["interaction"]["required"]
-        self.assertIn("conversation", required)
+        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction"])
+        self.assertNotIn("narration", client.schemas[0]["properties"])
 
-        # 2. Flag-off: deterministic smalltalk answered immediately with 0 model calls
-        client_smalltalk = ScriptedNpcSpeechClient()
+        # Say-mode ordinary smalltalk now uses the same single speech request.
+        client_smalltalk = ScriptedNpcSpeechClient("Günüm sakin geçiyor.")
         body_smalltalk = self.request(npc, message="Selam, bugün nasılsın?")
         response_st = await test_campaign_api.CampaignApiTests.post_scene_turn(
             self, turn_url, client_smalltalk, body_smalltalk
         )
         self.assertEqual(response_st.status_code, 200, response_st.text)
-        self.assertEqual(client_smalltalk.chat_calls, 0)
+        self.assertEqual(client_smalltalk.chat_calls, 1)
+        self.assertIn(client_smalltalk.narration, response_st.json()["narration"])
 
         # 3. Experimental opt-in: non-say interaction preserves deterministic smalltalk with 0 model calls
         _, _, session_exp, turn_url_exp, npc_exp = await self.campaign_with_npc(experimental=True)

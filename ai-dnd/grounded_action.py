@@ -88,7 +88,7 @@ VERBS: tuple[tuple[str, str], ...] = (
     ("climb", r"(?:tirman)"),
     # Pushing a door ("itip açmaya çalışıyorum") is trying to open it, not forcing it.
     ("open", r"(?:ac(?!ik|il)|kaldir|cevir|bastir|it(?=iyor|ip|erek|mek|meye|eyim|er))"),
-    ("force", r"(?:zorla|kir(?!m?iz|li|ik)|omuzla|tekmele|parcala|yik(?=iyor|ip|mak|maya))"),
+    ("force", r"(?:zorla|zorlu(?=yor)|kir(?!m?iz|li|ik)|omuzla|tekmele|parcala|yik(?=iyor|ip|mak|maya))"),
     ("close", r"(?:kapat|kapa(?=yor|r|di|mak|maya))"),
     ("read", r"(?:oku(?!l))"),
     ("touch", r"(?:dokun|yokla|elle|cek(?=iyor|ip|mek|meye|erek))"),
@@ -2399,6 +2399,36 @@ HANDLERS = {
 _LOOK_AROUND = re.compile(r"\b(?:etraf\w*|cevre\w*|sahne\w*|sag\w*\s+sol\w*)\b")
 
 
+def _direct_door_step(step) -> bool:
+    """Admit a complete current door command, not merely a noun-bound target."""
+    target = step.get("target") or {}
+    if target.get("kind") != "door" or step.get("verb") not in {"open", "enter", "force"}:
+        return False
+    if any(step.get(key) for key in ("negated", "reported", "not_now", "question", "condition")):
+        return False
+    tokens = step.get("tokens") or []
+    info = _read_clause({"tokens": tokens, "asked": False}, [target])
+    index = info.get("verb_index")
+    if index is None or info.get("verb") != step["verb"]:
+        return False
+    prefix, tail = tokens[:index], tokens[index:]
+    named = any(
+        len(name.split()) == len(prefix)
+        and _phrase_match_quality(name.split(), prefix) == 2
+        for name in target.get("names", ()) if name
+    )
+    implicit_entry = step["verb"] == "enter" and prefix in (["iceri"], ["icine"], ["iceriye"])
+    if not (named or implicit_entry):
+        return False
+    form = _verb_of(tail[0], tail[1] if len(tail) > 1 else "")
+    if not form or form[1]:
+        return False
+    return (len(tail) == 1 and not form[2]) or (
+        len(tail) == 2 and form[2] and info.get("attempt")
+        and bool(_ATTEMPT_WORD.fullmatch(tail[1]))
+    )
+
+
 def _owned_single_step(step, conditional_seen: bool = False) -> bool:
     """Single acts this module owns: the ones the P6 run showed older owners get wrong."""
     kind = (step.get("target") or {}).get("kind")
@@ -2422,6 +2452,8 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # the lock or a part of the door, observed once, consistently
     if verb == "unlock" or (verb == "open" and step.get("part") == "lock"):
         return True  # "kilidi açmaya çalışıyorum": tools, a roll, or a concrete obstacle
+    if not conditional_seen and _direct_door_step(step):
+        return True
     if verb in {"go", "approach"} and step.get("outside"):
         return True
     if verb in {"go", "approach"} and kind is None and (step.get("place_noun") or (None, ""))[1] == "generic":

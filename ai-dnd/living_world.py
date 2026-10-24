@@ -342,6 +342,18 @@ def public_shop_projection(world_state: Any, shop: Any) -> dict[str, Any] | None
     return projected
 
 
+def visible_features(world_state: Any, location_id: str | None = None) -> list[dict[str, Any]]:
+    """Existing scene visibility policy, shared by player-facing projections."""
+    if not isinstance(world_state, dict):
+        return []
+    here = location_id if location_id is not None else world_state.get("location")
+    return [
+        feature for feature in world_state.get("features", [])
+        if isinstance(feature, dict) and feature.get("location") == here
+        and not feature.get("hidden") and feature.get("discovered") is not False
+        and isinstance(feature.get("name"), str) and feature["name"].strip()
+    ]
+
 def visible_scene_facts(world_state: Any) -> dict[str, Any]:
     """A bounded, read-only projection of the player's current visible scene.
 
@@ -369,10 +381,7 @@ def visible_scene_facts(world_state: Any) -> dict[str, Any]:
     features = [
         {"name": text(feature.get("name"), 80),
          "description": text(feature.get("description"), 240)}
-        for feature in world_state.get("features", [])
-        if isinstance(feature, dict) and feature.get("location") == here
-        and not feature.get("hidden") and feature.get("discovered") is not False
-        and isinstance(feature.get("name"), str) and feature["name"].strip()
+        for feature in visible_features(world_state, here)
     ][:6]
     # Nearby public locations are scene facts, independent of question wording.
     # A bounded projection does not create places or supply invented directions.
