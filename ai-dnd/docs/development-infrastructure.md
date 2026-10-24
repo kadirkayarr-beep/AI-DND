@@ -3,7 +3,7 @@
 From the repository root (also runnable from `ai-dnd/` as `python scripts/...`):
 
 For current operational status, branch identities, owners, and handoff requirements,
-use the [single operational handoff](../../docs/CURSOR_REPLIT_HANDOFF.md). This
+use the [single operational handoff](PLAYABLE_DIALOGUE.md). This
 document is the technical reference for bounded verification and evidence scope.
 
 ```sh

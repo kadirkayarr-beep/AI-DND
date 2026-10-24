@@ -1182,6 +1182,17 @@ def create_app(
                     type(error).__name__,
                     exc_info=True,
                 )
+                from dialogue_runtime import DialogueResponseError, DialogueProviderError
+                if isinstance(error, DialogueProviderError):
+                    raise HTTPException(status_code=503, detail={
+                        "code": "ollama_unavailable",
+                        "message": "Ollama request failed; the turn was not committed.",
+                    }) from None
+                if isinstance(error, DialogueResponseError):
+                    raise HTTPException(status_code=503, detail={
+                        "code": "invalid_dialogue_response",
+                        "message": "NPC yanıtı işlenemedi; hamle kaydedilmedi. Yeniden deneyebilirsin.",
+                    }) from None
                 if isinstance(error, combat_lifecycle.CombatRequestError):
                     raise HTTPException(status_code=error.status_code,
                                         detail={"code": error.code, "message": str(error)}) from None

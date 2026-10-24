@@ -12,7 +12,7 @@ The owner expressly approved finalizing the Phase 8 development checkpoint, auth
 
 Stage 10A is regarded as **CLOSED** under the existing owner decision. This record does not reopen Stage 10A, modify original acceptance records, or attempt to replace them.
 
-Stage 10B has a recorded **local final acceptance PASS** in `STAGE10B_LORE_INTEGRITY_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v1_2026-10-09.md`, with preserved earlier FAIL evidence. It is not a full-repository/production certification.
+Stage 10B has a recorded **local final acceptance PASS** in `STAGE10B_LORE_INTEGRITY_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v1_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md), with preserved earlier FAIL evidence. It is not a full-repository/production certification.
 
 ## Fresh validation bound to the working tree before commit
 

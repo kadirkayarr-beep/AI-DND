@@ -54,3 +54,7 @@ python ai-dnd/api/live_smoke.py
 
 The smoke sends real HTTP requests through FastAPI and uses the configured
 authenticated Ollama service; it does not mock the parser or model.
+
+## Yeni izole serbest diyalog adayı
+
+Güncel kapsam, temiz kampanya, doğrulama ve arşiv durumu: [Oynanabilir diyalog rehberi](../docs/PLAYABLE_DIALOGUE.md). `free_v1` yalnız yeni kampanyada seçilir. Bu adayın hazırlanması canlı kabul, push veya merge anlamına gelmez.

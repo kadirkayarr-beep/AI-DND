@@ -739,6 +739,31 @@ def resolve_pending(session, normalized):
                    status="pending_decision", success=False)
 
 
+def explicit_wait_request(text):
+    """A current player wait, not quoted speech, a question or a later clause."""
+    if not isinstance(text, str) or any(mark in text for mark in ('?', '"', '“', '”', '«', '»')):
+        return False
+    normalized = clock.normalize(text)
+    if not re.search(r"\b(?:bekle|bekliyorum|bekleyeyim|bekleyelim)[.! ]*$", normalized):
+        return False
+    # The grounding parser intentionally merges verb-less fragments into their
+    # neighbour. Preserve source boundaries here: a bare wait must not absorb
+    # another sentence (including an unrecognized declined/past action).
+    boundary_text = re.sub(r"(?<=\d)[.,](?=\d)", "", text)
+    parts = [part for part in re.split(
+        r"[.!?;,\n]+|\b(?:ve|sonra|ardından|ardindan|ama|fakat)\b",
+        boundary_text, flags=re.IGNORECASE) if part.strip()]
+    if len(parts) != 1:
+        return False
+    import grounded_action
+    clauses, speech = grounded_action.split_clauses(text)
+    if speech or len(clauses) != 1:
+        return False
+    clause = grounded_action._read_clause(clauses[0])
+    return not any(clause.get(key) for key in
+                   ("question", "reported", "conditional", "negated", "not_now"))
+
+
 def resolve_input(session, text):
     """Narrow deterministic player-intent grammar before model interpretation."""
     normalized = clock.normalize(text)
@@ -792,7 +817,16 @@ def resolve_input(session, text):
         if "sabaha kadar" in normalized:
             duration = clock.until_morning(world)
         if duration is None:
-            return None  # Existing atmosphere-only wait remains unchanged.
+            if (wait and not any(mark in text for mark in ('?', '"', '“', '”', '«', '»'))
+                    and re.search(r"\b(?:han\w*|dukkan\w*|magaza\w*|kapi\w*)\b.{0,80}\bacilana kadar\b", normalized)):
+                # There is no venue-opening schedule to turn this condition
+                # into a duration. Do not advance time or invent an unlock.
+                return _result("wait", "Ne zaman açılacağı bilinmiyor. Kaç dakika veya saat beklemek istediğini belirt.",
+                               status="clarification", success=False)
+            if explicit_wait_request(text):
+                return _result("wait", "Kaç dakika veya saat beklemek istediğini belirt.",
+                               status="clarification", success=False)
+            return None  # Non-action atmosphere remains with its existing owner.
         if "uyu" in normalized and duration >= 8 * 3600:
             rest = session.resolve_species_trait_action("long_rest", elapsed_seconds=duration)
             return _result("rest", rest["message"], rest["effects"]["time_result"])

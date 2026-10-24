@@ -204,3 +204,7 @@ The archived smoke traces are historical evidence, not proof that this engine
 was live-tested on the original machine. A separate nine-turn smoke against
 the current engine and configured Qwen service is recorded in the checkpoint
 addendum; its model output and fallback count varied between runs.
+
+## Yeni izole serbest diyalog adayı
+
+Güncel kapsam, temiz kampanya, doğrulama ve arşiv durumu: [Oynanabilir diyalog rehberi](docs/PLAYABLE_DIALOGUE.md). `free_v1` yalnız yeni kampanyada seçilir. Bu adayın hazırlanması canlı kabul, push veya merge anlamına gelmez.

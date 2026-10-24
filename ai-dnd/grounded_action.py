@@ -773,10 +773,25 @@ def plan(session, player_input: str) -> dict[str, Any]:
             verb_for_bind = "search"
         else:
             verb_for_bind = verb
-        binding = bind(goal_tokens, cands, world=world, verb=verb_for_bind)
+        binding_candidates = cands
+        if verb in {"go", "approach", "enter"} and _place_noun_in(goal_tokens):
+            # "Damaia ile hana": the explicitly named companion is not the
+            # destination. This is binding only, not consent or an escort grant.
+            companion_ids = {
+                candidate["id"] for candidate in cands if candidate["kind"] == "npc"
+                and any(
+                    goal_tokens[index:index + len(name.split()) + 1] == [*name.split(), "ile"]
+                    for name in candidate["names"] if name
+                    for index in range(len(goal_tokens))
+                )
+            }
+            binding_candidates = [candidate for candidate in cands
+                                  if candidate["id"] not in companion_ids]
+        binding = bind(goal_tokens, binding_candidates, world=world, verb=verb_for_bind)
         condition_binding = _condition_target_binding(pending_condition, cands, world)
+        effective_verb = "search" if purpose and purpose["verb"] == "search" else verb
         step = {
-            "verb": "search" if purpose and purpose["verb"] in {"search"} else verb,
+            "verb": effective_verb,
             "method": verb if purpose else None,
             "negated": info["negated"],
             "attempt": info["attempt"],
@@ -795,6 +810,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
             "other": any(t in {"baska", "diger", "farkli"} for t in tokens),
             "detail": _detail_in(goal_tokens),
             "place_noun": _place_noun_in(goal_tokens),
+            "requires_open_place": effective_verb == "search" and bool(_place_noun_in(goal_tokens))
+                and any(t in {"acik", "acilmis"} for t in goal_tokens)
+                and not any(t in {"olmayan", "degil"} for t in goal_tokens),
             "not_now": info.get("not_now", False),
         }
         if step["place_noun"]:
@@ -1494,7 +1512,13 @@ def _open_container(run: _Run, step, key: str) -> dict[str, Any]:
 
 
 def _do_open(run: _Run, step) -> dict[str, Any]:
-    if step.get("part") == "lock":
+    tokens = step.get("tokens") or []
+    uses_lockpick = "maymuncukla" in tokens or any(
+        tokens[i:i + 2] == ["maymuncuk", "ile"] for i in range(len(tokens) - 1)
+    )
+    if step.get("part") == "lock" or (
+        uses_lockpick and (step.get("target") or {}).get("kind") == "door"
+    ):
         return _do_unlock(run, step)
     target = step.get("target")
     if step.get("detail") in _CONTAINERS and (target is None or target["kind"] == "feature"):
@@ -1944,11 +1968,12 @@ def _do_leave(run: _Run, step) -> dict[str, Any]:
 
 
 # --- searching ----------------------------------------------------------------
-def _places_of_kind(run: _Run, settlement: str, kind: str) -> list[str]:
+def _places_of_kind(run: _Run, settlement: str, kind: str, *, noun: str | None = None) -> list[str]:
     return [
         lid for lid, rec in run.world.get("locations", {}).items()
         if isinstance(rec, dict) and rec.get("parent_location_id") == settlement
-        and (rec.get("scene_kind") == kind or rec.get("place_kind") == kind)
+        and (rec.get("scene_kind") == kind or rec.get("place_kind") == kind
+             or (kind == "generic" and noun is not None and rec.get("generic_noun") == noun))
     ]
 
 
@@ -1968,6 +1993,8 @@ def _do_search(run: _Run, step, *, move: bool = False) -> dict[str, Any]:
     text = " ".join(tokens)
     method = step.get("method")
     how = "Tabelaları takip ederek " if method == "inspect" or any(t.startswith("tabela") for t in step.get("tokens", [])) else ""
+    if step.get("requires_open_place"):
+        return _search_open_place(run, step, settlement, move=move, how=how)
     if target and target["kind"] in {"reference", "place"} and not (step.get("other") and target["kind"] == "place"):
         record = _place_target(run, target)
         if record:
@@ -2031,6 +2058,44 @@ def _claim_contrast(run: _Run, ref, record) -> str:
     return ""
 
 
+def _search_open_place(run, step, settlement, *, move, how):
+    """Search saved observable access, without inventing hours or opening doors."""
+    noun, kind = step["place_noun"]
+    target = step.get("target")
+    if step.get("named") and target:
+        # A named search must not substitute another venue or materialize a rumour.
+        ids = [target["id"]] if target["kind"] == "place" else []
+    else:
+        # An unbound description may include an unknown proper name ("Zümrüt
+        # Dükkânı"). Do not discard that constraint and substitute any shop.
+        # Only a plain generic request may enumerate other saved venues.
+        words = step.get("goal_tokens") or []
+        words = re.sub(r"\bsu an\b", " ", " ".join(words)).split()
+        plain_generic = all(
+            _ADVERBS.fullmatch(word) or word in {"acilmis", "bsr", "hala"}
+            or npc_statements.place_kind_of(word) or _verb_of(word, "")
+            for word in words
+        )
+        ids = _places_of_kind(run, settlement, kind, noun=noun) if settlement and plain_generic else []
+    spent = run.spend(600)
+    if spent.get("interrupted"):
+        return _receipt("search", "blocked", None, reason="interrupted", text="Ararken bir şey yolunu kesiyor.")
+    near = run.memory.get("near_target_id")
+    for place_id in ids:
+        record = run.location(place_id)
+        door = run.door_for(place_id)
+        if (not record or record.get("hidden") or record.get("discovered") is False
+                or not door or door.get("hidden") or door.get("discovered") is False
+                or door.get("open") is not True or door.get("locked") is not False
+                or door.get("broken") is True):
+            continue
+        if step.get("other") and (place_id == run.here or near in {place_id, door.get("id")}):
+            continue
+        return _found_place(run, record, how=how, move=move, step=step)
+    return _receipt("search", "completed", None, found=False, reason="no_confirmed_open_place",
+                    text="Arıyorsun ama şu an açık olduğunu doğrulayabildiğin bir yer bulamıyorsun.")
+
+
 def _search_place_kind(run, step, settlement, noun, kind, *, move, how):
     other = step.get("other")
     refs = [r for r in npc_statements.place_references(run.world, settlement_id=settlement)
@@ -2049,7 +2114,7 @@ def _search_place_kind(run, step, settlement, noun, kind, *, move, how):
             if contrast:
                 result["text"] = f"{result['text']} {contrast}"
             return result
-    known = [lid for lid in _places_of_kind(run, settlement, kind) if lid != run.here]
+    known = [lid for lid in _places_of_kind(run, settlement, kind, noun=noun) if lid != run.here]
     visited_or_known = set(known) | {run.here}
     if known and not other:
         return _found_place(run, run.location(known[0]), how=how, move=move, step=step)
@@ -2412,13 +2477,32 @@ def _direct_door_step(step) -> bool:
     if index is None or info.get("verb") != step["verb"]:
         return False
     prefix, tail = tokens[:index], tokens[index:]
+    if step.get("foreign_object"):
+        return False
+    # A means of opening is not part of the registered door name. Possession
+    # and success are checked by the existing unlock owner, not this parser.
+    lockpick_prefix = prefix[-1:] == ["maymuncukla"] or prefix[-2:] == ["maymuncuk", "ile"]
+    if step["verb"] == "open":
+        if prefix[-1:] == ["maymuncukla"]:
+            prefix = prefix[:-1]
+        elif prefix[-2:] == ["maymuncuk", "ile"]:
+            prefix = prefix[:-2]
     named = any(
         len(name.split()) == len(prefix)
         and _phrase_match_quality(name.split(), prefix) == 2
         for name in target.get("names", ()) if name
     )
     implicit_entry = step["verb"] == "enter" and prefix in (["iceri"], ["icine"], ["iceriye"])
-    if not (named or implicit_entry):
+    generic_door = (
+        len(prefix) == 1 and _phrase_match_quality(["kapi"], prefix) == 2
+    ) or (
+        len(prefix) == 2 and _place_noun_in(prefix[:1]) is not None
+        and _phrase_match_quality(["kapisi"], prefix[1:]) == 2
+    )
+    # Generic "try opening" already belongs to the legacy Athletics owner.
+    # Admit direct opening / explicit lockpick means without stealing that check.
+    generic_door = generic_door and step["verb"] == "open" and (not info.get("attempt") or lockpick_prefix)
+    if not (named or implicit_entry or generic_door):
         return False
     form = _verb_of(tail[0], tail[1] if len(tail) > 1 else "")
     if not form or form[1]:
@@ -2440,6 +2524,8 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
     if verb == "wander":
         return True  # walking the streets: something real and saved turns up
     if verb == "search":
+        if step.get("requires_open_place"):
+            return True
         # Searching for a rumoured place, "another" one, a back way in: ours.
         # A plain search of the surroundings stays an Investigation check, and
         # a search for a known place keeps the existing local_search receipt.
@@ -2599,7 +2685,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             return defer  # a named venue door already has its owner and contract
     except Exception:
         pass
-    if first["target"] is None and first["place_noun"] and not first["other"] \
+    if first["target"] is None and first["place_noun"] and not first["other"] and not first.get("requires_open_place") \
             and first["verb"] in {"search", "go", "enter", "wander"}:
         kind = first["place_noun"][1]
         settlement = _settlement(world)
@@ -2659,7 +2745,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             options = [c for c in p["candidates"] if c["kind"] in {"npc", "place", "door", "feature", "reference"}]
             return "clarify", (run, options[:4])
         return defer  # nothing to bind: older owners (people, travel) keep it
-    if steps[0]["ambiguous"]:
+    if steps[0]["ambiguous"] and not (steps[0].get("requires_open_place") and not steps[0].get("named")):
         return "clarify", (run, steps[0]["ambiguous"])
     return "execute", (run, steps, p)
 

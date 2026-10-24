@@ -20,10 +20,10 @@ Zorunluluk, bir maddenin hangi sözleşmede kapanış engeli diye yazıldığın
 |---|---|---|
 | S10B-AC-001 … AC-026 ve AC-028 | `STAGE10B_MASTER_IMPLEMENTATION_PLAN_v2.md` satırları. Repair-v2 `summary.json` bunları PASS yazar. | Tarihsel PASS. Bu belge taze PASS yazmaz. |
 | S10B-AC-027 | Aynı plan: ilgili regresyon grubu yeni kanıt kökünde exit 0. Repair-v2 kabul kaydı, 165’lik lore koşusu kırmızı kaldığı için maddeyi **FAIL** ve kapanış engeli yapar. | Zorunlu ve açık. 165 FAIL silinmez. 296/634 ile eşdeğerlik bu belgede **UNVERIFIED**. |
-| Repair-v2 final kabulü | `STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md`: “Final kabul: FAIL; kapanış yazılmadı.” | Tarihsel belge durumu. Sonraki lore-integrity PASS cümlesi bu FAIL’i yok etmez. |
+| Repair-v2 final kabulü | `STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md): “Final kabul: FAIL; kapanış yazılmadı.” | Tarihsel belge durumu. Sonraki lore-integrity PASS cümlesi bu FAIL’i yok etmez. |
 | `regressions-final` 633 / exit 1 | Repair-v2 `summary.json`. Neden CP1254. Aynı seçici listesinin sonraki `regressions-final-02` kaydı exit 0. | Tarihsel kırmızı koşu korunur. AC-027’nin plan metnindeki seçici yarısı için komut kimliği aşağıda doğrulanır. Bu, 165 lore FAIL’ini kapatmaz. |
 | S10B-INV-001 | Plan v2 satırı: doğrulanmamış durur; çıkmaması düzeltildiği anlamına gelmez; kök neden uydurulmaz. | Kayıt zorunlu. **Kök nedenin bulunması bu sözleşmede kapanış önkoşulu değildir.** UNCONFIRMED, PASS değildir. |
-| Stage 10A CLOSED | `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` | Tarihsel girdi. Bu belge onu yeniden açmaz ve taze PASS saymaz. Özgün tam sözleşme bulunamadı. |
+| Stage 10A CLOSED | `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md) | Tarihsel girdi. Bu belge onu yeniden açmaz ve taze PASS saymaz. Özgün tam sözleşme bulunamadı. |
 
 Bu listenin dışında kalan ve Phase 8 kapanışına **ithal edilmeyen** kapılar bölüm 4’tedir. Live-release NO-GO, F01-AC-004, F01-AC-005 ve şehir aktivasyonu Phase 8 kapanış engeli diye bu listeye yazılmaz. Onların kendi kapıları durur.
 

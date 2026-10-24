@@ -55,8 +55,8 @@ Eski FAIL silinmez ve PASS diye yeniden adlandırılmaz.
 
 | Kayıt | Hüküm | Kanıt | Bu plandaki statü |
 |---|---|---|---|
-| Stage 10A v2 | Reconstructed yerel kabul CLOSED. Özgün tam sözleşme yok. Production NO-GO. | `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md`, `.local/evidence/stage10a-final-acceptance-v1-20261009` | PASS — HISTORICAL ONLY |
-| Repair-v2 | Final kabul FAIL. Kapanış yazılmadı. | `STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md`, `.local/evidence/stage10b-repair-v2-20261009-085201` | FAIL durur |
+| Stage 10A v2 | Reconstructed yerel kabul CLOSED. Özgün tam sözleşme yok. Production NO-GO. | `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md), `.local/evidence/stage10a-final-acceptance-v1-20261009` | PASS — HISTORICAL ONLY |
+| Repair-v2 | Final kabul FAIL. Kapanış yazılmadı. | `STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md), `.local/evidence/stage10b-repair-v2-20261009-085201` | FAIL durur |
 | `boundary-persistence-weather-final` | 165 test, 4 failure, 14 error, exit 1. S10B-AC-027 FAIL. | Aynı kök, `protected-lore-blockers.json` | FAIL durur. Argv yok. |
 | `regressions-final` | 633 test, 3 failure, 2 error, exit 1. CP1254. | `regressions-final.log` | FAIL olayı durur. INV-001 değildir. |
 | `regressions-final-02` | 634 yürütme / 632 kimlik, exit 0. Komut `regressions-final-command.json`. | Aynı repair-v2 kökü | PASS — HISTORICAL ONLY. Lore modüllerini içermez. |

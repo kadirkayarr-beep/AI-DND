@@ -199,6 +199,8 @@ class SessionManager:
         initialize_campaign_opening(session, campaign_id)
         session.ensure_campaign_clock()
         session.world_state["campaign_id"] = campaign_id
+        import dialogue_runtime
+        dialogue_runtime.initialize_new_campaign(session.world_state, os.environ.get("AI_DND_DIALOGUE_MODE"))
         if (
             os.environ.get("AI_DND_EMERGENCE_LIVE") == "1"
             and getattr(lore_authority, "region_pack_id", None) == "fr:pack:the_north:neverwinter:v1"

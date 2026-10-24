@@ -713,3 +713,46 @@ def remember_explicit_player_name(npc: Any, name: str) -> None:
     if not memory or memory[-1] != entry:
         memory.append(entry)
     del memory[:-16]
+
+
+# Stable character identity is separate from transient mood and relationship.
+def ensure_dialogue_persona(npc: dict) -> dict:
+    """Persist a small persona once; never regenerate it on movement or mood."""
+    import copy
+    prior = npc.get('dialogue_persona')
+    if prior is not None:
+        if (not isinstance(prior, dict) or prior.get('version') != 1
+                or not isinstance(prior.get('voice'), dict)
+                or not all(isinstance(prior.get(k), str) for k in ('goal','temperament'))
+                or not isinstance(prior.get('values'), list)):
+            raise ValueError('Invalid NPC dialogue persona.')
+        return copy.deepcopy(prior)
+    seed = hashlib.sha256(str(npc.get('id','')).encode('utf-8')).digest()
+    temperaments = ('Sakin ve düşünceli.', 'Açık sözlü ve pratik.', 'Neşeli ama dikkatli.', 'Temkinli ve meraklı.')
+    values = ('dürüstlük', 'dayanışma', 'sorumluluk', 'bağımsızlık')
+    personality = npc.get('personality')
+    prior_text = personality.strip() if isinstance(personality,str) else ''
+    persona = {
+        'version': 1,
+        'values': [values[seed[0] % len(values)]],
+        'goal': 'Günlük işlerini tamamlamak ve kendi hayatını sürdürmek.',
+        'temperament': prior_text or temperaments[seed[1] % len(temperaments)],
+        'voice': {'register': ('samimi','ölçülü','resmî')[seed[2] % 3],
+                  'verbosity': ('kısa','dengeli','konuşkan')[seed[3] % 3],
+                  'humor': ('seyrek','hafif')[seed[4] % 2]},
+    }
+    npc['dialogue_persona'] = copy.deepcopy(persona)
+    return persona
+
+
+def persona_context(world: dict, npc: dict) -> dict:
+    """Pure projection. No backstory, private facts or invented past events."""
+    import copy
+    import relationships
+    stable = ensure_dialogue_persona(copy.deepcopy(npc))
+    profile = npc.get('personal_profile')
+    profile = profile if isinstance(profile,dict) else {}
+    current = {k:profile[k] for k in ('mood','current_activity') if isinstance(profile.get(k),str)}
+    relationship = relationships.read(world).get(npc.get('id'), {'score':0,'events':[]})
+    return {'stable':stable,'current':current,
+            'relationship':{'score':relationship['score'],'evidence':relationship['events'][-6:]}}

@@ -1427,6 +1427,16 @@ def resolve_python_world_action(player_input):
     door_action = ("kapı" in text or "kapıya" in text or "kilit" in text) and any(
         token in text for token in ("aç", "kapat", "zorla", "kır", "it", "kilit", "bak", "incele")
     )
+    if door_action and _model_query_type_is_plausible(player_input):
+        import grounded_action
+        parsed = grounded_action.plan(_session(), player_input)
+        physical = any(
+            step.get("verb") in grounded_action.TARGET_VERBS
+            and not any(step.get(k) for k in ("question", "negated", "reported", "not_now"))
+            for step in parsed["steps"]
+        )
+        if not physical:
+            door_action = False
     if "kapı" in text and any(token in text for token in ("yok ettim", "yok ettin", "parçaladım", "kırdım")):
         return "Kapıya bakıyorsun: hâlâ yerinde ve sapasağlam duruyor."
     if door_action and not door:
@@ -3671,7 +3681,7 @@ def _explicit_campaign_shop_request(player_input):
         r"tezg[aâ]h|t[uü]ccar|sat[iı]c[iı]|esnaf)"
     )
     create_action = (
-        r"(?:create|open|set\s+up|establish|build|add|start|make|kur\w*|aç\w*|oluştur\w*|ekle\w*|"
+        r"(?:create|open|set\s+up|establish|build|add|start|make|kur\w*|aç(?!ık|il|ıl)\w*|oluştur\w*|ekle\w*|"
         r"inşa\s+et\w*|istiyorum)"
     )
     return bool(
@@ -14658,6 +14668,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         scheduled_events.pending_events(world_state)
         or
         campaign_time.requested_duration(player_input) is not None
+        or timed_gameplay.explicit_wait_request(player_input)
         or timed_gameplay.clock.normalize(player_input).startswith(
             ("sabaha kadar", "yola devam", "yolculuga devam", "geri don")
         )
@@ -15458,6 +15469,7 @@ def run_player_turn(
 ):
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
     before = copy.deepcopy(_session().world_state)
+    before_hp = _session().character.get("current_hp")
     result = _dispatch_player_turn(
         player_input,
         messages,
@@ -15468,6 +15480,8 @@ def run_player_turn(
         combat_action,
         interaction_mode,
     )
+    import dialogue_runtime
+    dialogue_runtime.observe_turn(_session(), before, before_hp, result, player_input, action_id)
     action_result = result.get("action_result") if isinstance(result, dict) else None
     resolution = (
         action_result.get("resolution")
@@ -15575,6 +15589,15 @@ def _dispatch_player_turn(
                 "state_changes": ["conversation"] if active is not None else [],
             },
         }
+    if combat_action is None:
+        import dialogue_runtime
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            free_dialogue = dialogue_runtime.resolve_turn(
+                _session(), player_input, interaction_mode=interaction_mode,
+                target_id=target_id, action_id=action_id,
+            )
+        if free_dialogue is not None:
+            return free_dialogue
     if combat_action is None and interaction_mode in {"say", "ask_dm"}:
         if (
             interaction_mode == "ask_dm"
@@ -16522,7 +16545,9 @@ def _run_player_turn_internal(
         action_result = interaction_adventure.resolve(_session(), player_input, compound)
         return finish_turn(
             action_result, action_result["direct_response"],
-            is_final=action_result["status"] != "recorded",
+            # Recording intentions is not executing them. Keep the exact
+            # receipt rather than inviting prose to turn a plan into movement.
+            is_final=True,
         )
 
     ensure_campaign_clock()

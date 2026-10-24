@@ -20,9 +20,9 @@ Oyun kaynağı checkpoint’i: `f503d99`
 | `ai-dnd/docs/AI-DND_Future_Project_Bible_v2_3_2_PROPOSED.md` | Onaylı yol haritası. SHA-256 `7685bc4318bea56a5b23713af712d22b3a4749d2e5c2d97b551b1e545ef3fcb3`. Baytları bu taslakla değişmez. |
 | `ai-dnd/docs/AI-DND_Future_Project_Bible_v2_3_2_OWNER_APPROVAL_2026-10-09.md` | Yol haritası freeze kaydı. Faz, kapanış veya şehir açmaz. |
 | `ai-dnd/docs/PHASE8_LOCAL_CHECKPOINT_CLOSEOUT_2026-10-09.md` | Yerel mühendislik checkpoint’i CLOSED. Live-release NO-GO. Bu taslağın yerine geçmez. |
-| `ai-dnd/docs/STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` | Stage 10A reconstructed yerel kabul CLOSED. Özgün tam sözleşme bulunamadı. |
-| `ai-dnd/docs/STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md` | Final kabul FAIL. Kapanış yazılmadı. |
-| `ai-dnd/docs/STAGE10B_LORE_INTEGRITY_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v1_2026-10-09.md` | Yerel lore-integrity kabulü. Depo geneli veya production değildir. |
+| `ai-dnd/docs/PLAYABLE_DIALOGUE.md` (tarihsel STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md kaynak dışı arşivde) | Stage 10A reconstructed yerel kabul CLOSED. Özgün tam sözleşme bulunamadı. |
+| `ai-dnd/docs/PLAYABLE_DIALOGUE.md` (tarihsel STAGE10B_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v2_2026-10-09.md kaynak dışı arşivde) | Final kabul FAIL. Kapanış yazılmadı. |
+| `ai-dnd/docs/PLAYABLE_DIALOGUE.md` (tarihsel STAGE10B_LORE_INTEGRITY_REPAIR_FINAL_ACCEPTANCE_CURSOR_HANDOFF_v1_2026-10-09.md kaynak dışı arşivde) | Yerel lore-integrity kabulü. Depo geneli veya production değildir. |
 | `ai-dnd/docs/STAGE10B_MASTER_IMPLEMENTATION_PLAN_v2.md` | S10B-INV-001 hükmü. |
 | `ai-dnd/docs/evidence/phase8-expansion/gate-ledger.json` | Tarihsel `release: NO-GO`. Metni bu taslak değiştirmez. |
 

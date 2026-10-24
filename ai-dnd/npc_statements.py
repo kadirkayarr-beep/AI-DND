@@ -218,7 +218,7 @@ def place_kind_of(word: str) -> tuple[str, str] | None:
 def _named_places(text: str) -> list[tuple[str, str, str]]:
     """Proper place names in an NPC line -> [(display name, noun, kind)]."""
     found = []
-    tokens = re.findall(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû']+", text)
+    tokens = re.findall(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+(?:['’][A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+)?", text)
 
     def denied(name: str) -> bool:
         folded_text = fold(text)
@@ -295,9 +295,10 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
             continue
         display = " ".join(words)
         tail = fold(" ".join(tokens[following:]))
-        if not _PLACE_RELATION.search(tail) or denied(display):
+        known_kind = place_kind_of(fold(words[-1]))
+        if (known_kind is None and not _PLACE_RELATION.search(tail)) or denied(display):
             continue
-        found.append((display, fold(words[-1]), "generic"))
+        found.append((display, *known_kind) if known_kind else (display, fold(words[-1]), "generic"))
     # Sentence-initial ordinary words ("Bu", "Hanın") never survive the 3-char rule.
     unique = []
     for item in found:

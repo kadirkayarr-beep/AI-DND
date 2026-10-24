@@ -10,7 +10,7 @@ Bu belge, owner onayından sonra Stage 10B’nin tek uygulama ve kabul sözleşm
 - Branch: `phase8/emergent-storytelling-expansion`
 - HEAD: `f63d952506064cd59e960f1e3efa6627d4e52053`
 - Worktree bu belge eklenmeden önce dirty idi. HEAD tek başına test edilmiş snapshot değildir.
-- Stage 10A kapanışı: `ai-dnd/docs/STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md`
+- Stage 10A kapanışı: `ai-dnd/docs/PLAYABLE_DIALOGUE.md` (tarihsel STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md kaynak dışı arşivde)
 - Durum: reconstructed yerel kabul **PASS / OWNER-APPROVED / CLOSED**. `S10A-SIGNOFF-01` kapalı.
 - Özgün Stage 10A kabul sözleşmesi bulunamadı ve bu belgede kurtarılmış sayılmaz.
 - Kayıtlı 10A kanıt kökü: `.local/evidence/stage10a-final-acceptance-v1-20261009`
@@ -24,7 +24,7 @@ P1, kod değişmeden önce aynı HEAD ve dirty ağaç için kaynak SHA-256 manif
 
 Okunan otorite:
 
-- `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` ve önceki Stage 10A handoff’ları
+- `STAGE10A_FINAL_CLOSURE_CURSOR_HANDOFF_v2_2026-10-09.md` (kaynak dışı tarihsel arşiv; güncel davranış için PLAYABLE_DIALOGUE.md) ve önceki Stage 10A handoff’ları
 - `replit.md` oyuncu yolu
 - `ai-dnd/scripts/development_checks.json`
 - `C:\Users\Kadir\.codex\.chatgpt-projects\g-p-6abd4c46ccb08191b12a0d30ad81ba28\sources\AI-DND_Master_Handoff_v3_Project_Bible.md` bölüm 16

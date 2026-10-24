@@ -332,6 +332,7 @@ def process_events(world, old, now, *, observation=None, resolution=None,
             or (not active and event.get("aftermath_visible", event["visibility"] == "public"))
         ):
             _observe(event, limit, known, decision=active and _decision_required(event))
+    known.extend(process_npc_routines(world,limit))
     if resolution is not None:
         resolution.update(stop_at=limit, interrupted=not unconscious and bool(
             [e for e in pending_events(world) if e.get("decision_status") == "PENDING"]
@@ -397,3 +398,75 @@ def visible_npcs(world):
             for e in world.get("scheduled_events", [])
         )
     )]
+
+def register_npc_routine(world,npc_id,stops):
+    """A daily schedule on the existing NPC, resolved by the game clock only."""
+    npc=next((n for n in world.get('npcs',[]) if n.get('id')==npc_id),None)
+    if npc is None or not isinstance(stops,list) or not 1<=len(stops)<=8:
+        raise ValueError('Invalid NPC routine.')
+    required={'start_second','end_second','location_id','activity'}
+    expected=0
+    for stop in stops:
+        if (not isinstance(stop,dict) or set(stop)!=required
+                or type(stop['start_second']) is not int or type(stop['end_second']) is not int
+                or stop['start_second']!=expected or not expected<stop['end_second']<=86400
+                or stop['location_id'] not in world.get('locations',{})
+                or not isinstance(stop['activity'],str) or not 1<=len(stop['activity'])<=240):
+            raise ValueError('Invalid NPC routine stop.')
+        expected=stop['end_second']
+    if expected!=86400: raise ValueError('NPC routine must cover one complete day.')
+    baseline=[e.get('event_id') for e in world.get('scheduled_events',[]) if e.get('status')=='OCCURRED' and any(f.get('npc_id')==npc_id and f.get('kind') in {'npc_location','npc_hostility'} for f in e.get('effects',[]))]
+    npc['daily_routine']={'version':1,'stops':copy.deepcopy(stops),'event_baseline':baseline}
+
+
+def process_npc_routines(world,elapsed):
+    """Resolve final schedule position, including large jumps; never OS time."""
+    clock=world.get('campaign_time')
+    if not isinstance(clock,dict) or world.get('combat',{}).get('active'): return []
+    second=(clock['start_second']+elapsed)%86400
+    known=[]
+    flags=world.get('flags',{});turn=flags.get('turn_index',0)
+    pinned=set()
+    for q in world.get('quests',[]):
+        if q.get('status') in {'AVAILABLE','DISCOVERED','ACTIVE','BLOCKED','accepted'}:
+            pinned.add(q.get('giver_npc_id'))
+            b=q.get('bindings') or {};pinned.update((b.get('source_npc_id'),b.get('target_npc_id')))
+    for npc in world.get('npcs',[]):
+        routine=npc.get('daily_routine')
+        if not isinstance(routine,dict) or routine.get('version')!=1: continue
+        controlling=next((e for e in world.get('scheduled_events',[]) if e.get('status')=='OCCURRED' and e.get('event_id') not in routine.get('event_baseline',[]) and any(f.get('npc_id')==npc.get('id') and f.get('kind') in {'npc_location','npc_hostility'} for f in e.get('effects',[]))),None)
+        if controlling is not None: routine['suspended_by_event']=controlling.get('event_id') or 'scripted'
+        if routine.get('suspended_by_event'): continue
+        if npc.get('combat_status') in {'dead','defeated','unconscious'} or npc.get('current_hp',1)<=0 or npc.get('id') in pinned: continue
+        if npc.get('id')==flags.get('active_npc_id') and npc.get('location')==world.get('location') and flags.get('active_npc_until_turn',-1)>=turn: continue
+        stop=next((s for s in routine['stops'] if s['start_second']<=second<s['end_second']),None)
+        if stop is None or stop['location_id'] not in world.get('locations',{}): continue
+        visible_before=any(n is npc for n in visible_npcs(world))
+        old=npc.get('location');activity=npc.get('personal_profile',{}).get('current_activity')
+        if old==stop['location_id'] and activity==stop['activity']: continue
+        npc['location']=stop['location_id'];npc.setdefault('personal_profile',{})['current_activity']=stop['activity']
+        journey=world.get('journey') or {}
+        observable=(world.get('player_combat_status')!='unconscious' and (not journey or journey.get('status')=='ARRIVED'))
+        visible_after=any(n is npc for n in visible_npcs(world))
+        if observable and (visible_before if world.get('location')==old else visible_after) and old!=npc['location'] and world.get('location') in {old,npc['location']} and not npc.get('hidden') and npc.get('discovered') is not False:
+            import living_world
+            verb='buradan ayrılıyor' if world.get('location')==old else 'buraya geliyor'
+            known.append({'summary':f"{living_world.public_npc_name(npc)} {verb}.",'window_start':elapsed,'window_end':elapsed+1,'status':'OCCURRED','event_kind':'npc_routine'})
+    return known
+
+
+def ensure_default_npc_routines(world):
+    """Seed modest work/rest schedules using only already registered places."""
+    import dialogue_runtime
+    if not dialogue_runtime.is_enabled(world): return
+    for npc in world.get('npcs',[]):
+        if 'daily_routine' in npc or npc.get('hostile') or npc.get('combat_status') in {'dead','defeated'}: continue
+        work=npc.get('place_role_of') or npc.get('location')
+        record=world.get('locations',{}).get(work)
+        if not isinstance(record,dict): continue
+        rest=record.get('parent_location_id') or work
+        if rest not in world['locations']: rest=work
+        register_npc_routine(world,npc['id'],[
+          {'start_second':0,'end_second':8*3600,'location_id':rest,'activity':'Dinleniyor.'},
+          {'start_second':8*3600,'end_second':22*3600,'location_id':work,'activity':'Günlük işleriyle ilgileniyor.'},
+          {'start_second':22*3600,'end_second':86400,'location_id':rest,'activity':'Dinleniyor.'}])
