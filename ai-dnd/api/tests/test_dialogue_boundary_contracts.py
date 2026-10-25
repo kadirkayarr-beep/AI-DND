@@ -114,5 +114,59 @@ class MonthNameMaskTests(unittest.TestCase):
             "Yağmur ayında beklenir.", "Yağmur"), "Yağmur ayında beklenir.")
 
 
+from contextlib import closing
+from unittest.mock import patch
+
+from api.tests import test_intent_response_consistency as fixture
+from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+
+
+class MonthNameSpeechHttpTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        await fixture.IntentResponseConsistencyTests.asyncSetUp(self)
+
+    async def asyncTearDown(self):
+        await fixture.IntentResponseConsistencyTests.asyncTearDown(self)
+
+    async def turn(self, message, **fields):
+        return await fixture.IntentResponseConsistencyTests.turn(self, message, **fields)
+
+    def stored(self):
+        with closing(self.store._connect()) as db:
+            rows = db.execute(
+                "SELECT narration FROM campaign_history WHERE campaign_id = ? ORDER BY sequence",
+                (self.campaign_id,)).fetchall()
+        return [row[0] for row in rows]
+
+    async def test_calendar_speech_passes_but_identity_claim_is_rejected(self):
+        await self.turn("Çevreme bakıyorum.")
+        speaker = self.world["npcs"][0]
+        speaker.update(name="Lysa", name_known_to_player=True)
+        hidden = dict(self.world["npcs"][1]) if len(self.world["npcs"]) > 1 else None
+        secret = self.session.create_npc_from_ai({
+            "name": "Kasım", "role": "Demirci", "location": self.world["location"],
+            "appearance": "Önlüklü kişi."})
+        secret.update(name_known_to_player=False, role_known_to_player=False)
+        before = copy.deepcopy((self.session.character, self.world["inventory"], self.world["location"]))
+        harmless = "Kasım ayı soğuk geçti, rüzgar sertleşiyor."
+        with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(
+                self.app.state.ollama_adapter, "_client", ScriptedNpcSpeechClient(harmless)):
+            shown = await self.turn("Hava nasıl?", target_id=speaker["id"])
+        self.assertIn(harmless, shown["narration"])
+        self.assertEqual(self.session.last_narration_safety["handling"], "accepted")
+        leak = "Kasım gülümsüyor ve adını söylüyor."
+        with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(
+                self.app.state.ollama_adapter, "_client", ScriptedNpcSpeechClient(leak)):
+            blocked = await self.turn("Peki ya yarın?", target_id=speaker["id"])
+        self.assertNotIn("Kasım", blocked["narration"])
+        self.assertTrue(any(d.get("reason_code") == "HIDDEN_NPC_IDENTITY_DISCLOSURE"
+                            for d in self.session.narration_safety_history))
+        self.assertFalse(any("Kasım gülümsüyor" in text for text in self.stored()))
+        self.assertEqual(before, (self.session.character, self.world["inventory"], self.world["location"]))
+        self.assertFalse(secret["name_known_to_player"])
+        if hidden is not None:
+            self.assertEqual(self.world["npcs"][1]["name"], hidden["name"])
+
+
 if __name__ == "__main__":
     unittest.main()
