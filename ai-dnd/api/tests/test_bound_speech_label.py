@@ -38,7 +38,7 @@ class PlayerQuoteTests(unittest.TestCase):
   )
   cleaned = npc_speech_boundary.drop_ungrounded_prop_sentences(spoken, facts)
   self.assertNotIn("bardak", cleaned.casefold())
-  self.assertNotIn("ekmek", cleaned.casefold())
+  self.assertIn("ekmek", cleaned.casefold())
   kept = npc_speech_boundary.drop_ungrounded_prop_sentences(
    "Kenarında sıradan bir kil bardak duruyor.", facts
   )
@@ -47,6 +47,33 @@ class PlayerQuoteTests(unittest.TestCase):
   kept_speech = npc_speech_boundary.drop_ungrounded_prop_sentences(ordinary, facts)
   self.assertIn("sakin", kept_speech.casefold())
   self.assertIn("dürüst", kept_speech.casefold())
+  story = npc_speech_boundary.drop_ungrounded_prop_sentences("Masal anlatayım, dostum.", facts)
+  self.assertIn("masal", story.casefold())
+  sole = "Günün gidişi, tezgâhın üzerinde dönen bardaklar kadar kaotik ama tatlı."
+  self.assertEqual(
+   npc_speech_boundary.drop_ungrounded_prop_sentences(sole, facts),
+   sole,
+  )
+  stacked = npc_speech_boundary.drop_ungrounded_prop_sentences(
+   "Bardaklardaki toz eski. Günüm sakin.", facts
+  )
+  self.assertNotIn("bardak", stacked.casefold())
+  self.assertIn("sakin", stacked.casefold())
+  inflected = npc_speech_boundary.drop_ungrounded_prop_sentences(
+   "Kenarındaki bardak bugün de duruyor. Günüm sakin.", facts
+  )
+  self.assertIn("bardak", inflected.casefold())
+
+ def test_a_smile_does_not_eat_an_unrelated_sentence(self):
+  said = "Gülümseyip 'Kitaplar bile kimlik gösteriyor mu?' diyorum."
+  self.assertIn("buğulu", npc_speech_boundary.strip_player_echo("Cam buğulu.", said).casefold())
+  self.assertIn("gülünç", npc_speech_boundary.strip_player_echo("Bu gülünç.", said).casefold())
+  smiled = "Gülümseyerek içeri girdim."
+  live = "Gülüşünüz, dostum, bu şehirde işlenmiş bir maskeden daha tehlikeli olabilir."
+  self.assertEqual(npc_speech_boundary.strip_player_echo(live, smiled), "")
+  self.assertIn("gülünç", npc_speech_boundary.strip_player_echo("Bu gülünç.", smiled).casefold())
+  live = "Gülüşünüz, dostum, bu şehirde işlenmiş bir maskeden daha tehlikeli olabilir."
+  self.assertEqual(npc_speech_boundary.strip_player_echo(live, said), "")
 
 class BoundSpeechLabelTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=RouteFocusRegressionTests.asyncSetUp

@@ -334,7 +334,9 @@ def strip_player_echo(text, player_input):
         stem = fold(match.group("stem"))
         if len(stem) >= 6:
             stems.append(stem)
-            stems.append(stem[:4])
+            # "Gülümseyip" and "Gülümseyerek" do not contain the noun "gülüş".
+            if stem.startswith("gulumse"):
+                stems.append("gulus")
     quote = player_supplied_quote(player_input)
     if quote:
         stems.extend(fold(word) for word in re.findall(r"\w{5,}", quote))
@@ -343,48 +345,69 @@ def strip_player_echo(text, player_input):
     kept = []
     for sentence in re.split(r"(?<=[.!?])\s+", text):
         folded = fold(sentence)
-        if any(stem and stem in folded for stem in stems):
+        if any(stem and _stem_starts_word(stem, folded) for stem in stems):
             continue
         kept.append(sentence)
     return " ".join(kept).strip()
 
 
-_UNGROUNDED_NOUN = re.compile(r"(?<![\wçğıöşüÇĞİÖŞÜ])([\wçğıöşüÇĞİÖŞÜ]{5,})")
-
-
-_UNREGISTERED_PRESENTATION = re.compile(
-    r"(?<![\wçğıöşüÇĞİÖŞÜ])(?:kokusu|kokusunu)(?![\wçğıöşüÇĞİÖŞÜ])",
-    re.IGNORECASE,
+_CASE_SUFFIXES = (
+    "lardan", "lerden", "larda", "lerde",
+    "daki", "deki", "taki", "teki",
+    "lari", "leri", "lar", "ler",
+    "dan", "den", "tan", "ten",
+    "nin", "nun", "yi", "yu",
+    "da", "de", "ta", "te", "ya", "ye",
+    "in", "un", "ki", "i", "u",
 )
+_CASE_SUFFIXES_LONG_FIRST = tuple(sorted(_CASE_SUFFIXES, key=len, reverse=True))
 
 
-def _presents_unregistered_object(sentence, packet_text):
-    """True when a smell sentence names an object absent from the scene facts."""
-    if not _UNREGISTERED_PRESENTATION.search(sentence or ""):
+def _word_is_label(word, label):
+    """True when word is label, or label plus Turkish case and plural endings."""
+    if not word or not label or not word.startswith(label):
         return False
-    for match in _UNGROUNDED_NOUN.finditer(sentence):
-        stem = fold(match.group(1))
-        if stem in {"kokusu", "kokusunu"}:
-            continue
-        if len(stem) < 5 or stem in packet_text:
-            continue
-        if stem.endswith(("iyor", "uyor", "acak", "ecek")):
-            continue
-        return True
+    rest = word[len(label):]
+    while rest:
+        if rest in _CASE_SUFFIXES:
+            return True
+        peeled = False
+        for suffix in _CASE_SUFFIXES_LONG_FIRST:
+            if len(rest) > len(suffix) and rest.endswith(suffix):
+                rest = rest[: -len(suffix)]
+                peeled = True
+                break
+        if not peeled:
+            return False
+    return True
+
+
+def _text_names_label(folded, label):
+    words = folded.split()
+    parts = [part for part in label.split() if part]
+    if not parts or len(words) < len(parts):
+        return False
+    last = len(words) - len(parts) + 1
+    for start in range(last):
+        if all(_word_is_label(words[start + index], parts[index]) for index in range(len(parts))):
+            return True
     return False
 
 
-def drop_ungrounded_prop_sentences(text, facts):
-    """Drop a spoken sentence that names a prop the scene cannot support.
+def _stem_starts_word(stem, folded):
+    return any(word.startswith(stem) for word in folded.split())
 
-    A registered prop must bring one content word from its own description.
-    A sentence that names no registered prop stays, unless it presents an
-    unregistered object by its smell. Ordinary speech stays.
+
+def drop_ungrounded_prop_sentences(text, facts):
+    """Drop a spoken sentence that names a registered prop without its description.
+
+    A sentence that names no registered prop stays, so ordinary answers and
+    unregistered color are not silenced. If every sentence would drop, the
+    original reply stays. The filter must not erase the turn.
     """
     if not isinstance(text, str) or not text.strip():
         return text
     records = []
-    packet = []
     for fact in facts or []:
         if not isinstance(fact, dict):
             continue
@@ -396,27 +419,29 @@ def drop_ungrounded_prop_sentences(text, facts):
             if len(word) >= 5 and word not in stems
         ]
         records.append((stems, content))
-        packet.extend(stems)
-        packet.extend(description.split())
-    packet_text = " ".join(packet)
     kept = []
     for sentence in re.split(r"(?<=[.!?])\s+", text.strip()):
         folded = fold(sentence)
+        words = folded.split()
         grounded = False
         names_prop = False
         for stems, content in records:
-            if not any(stem and stem in folded for stem in stems):
+            if not any(_text_names_label(folded, stem) for stem in stems):
                 continue
             names_prop = True
-            if any(word and word in folded for word in content):
+            if any(
+                word and piece and _word_is_label(word, piece)
+                for word in words for piece in content
+            ):
                 grounded = True
                 break
         if names_prop and not grounded:
             continue
-        if not names_prop and _presents_unregistered_object(sentence, packet_text):
-            continue
         kept.append(sentence)
-    return " ".join(kept).strip()
+    cleaned = " ".join(kept).strip()
+    if not cleaned:
+        return text.strip()
+    return cleaned
 
 
 def strip_player_quote(text, player_input):
