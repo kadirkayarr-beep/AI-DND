@@ -5655,6 +5655,8 @@ _OFFER_MARKER = re.compile(
 
 
 def _interaction_proposal_applies(raw_intent, npc_target, player_input):
+    if combat_lifecycle.quoted_report(_session(), player_input):
+        return False
     interaction = raw_intent.get("interaction") if isinstance(raw_intent, dict) else None
     if not isinstance(interaction, dict) or interaction.get("operation") in (None, "none"):
         return False
@@ -8613,6 +8615,36 @@ def _unregistered_persistent_object_claim(world_state, narration):
     return claim.group(0)
 
 
+_HELD_SKIP = frozenset({
+    "el", "goz", "yuz", "bas", "omuz", "kol", "parmak", "sac", "agiz",
+    "kucuk", "buyuk", "eski", "yeni", "pasli", "tozlu", "tuttugu", "tutan",
+})
+
+
+def _unregistered_held_object(world_state, narration):
+    """A thing in a hand, or a named prop, that the scene does not have."""
+    normalized = _normalize_turkish_typos(narration)
+    names = " ".join(
+        _normalize_turkish_typos(name)
+        for name in _registered_persistent_object_names(world_state, include_carried=True)
+    )
+    for head in ("caydanlik", "supurge", "cekic"):
+        if re.search(rf"\b{head}", normalized) and not re.search(rf"\b{head}", names):
+            return head
+    marker = re.search(r"\b(?:elindeki|elinde|tuttugu)\b", normalized)
+    if marker is None:
+        return None
+    window = normalized[marker.end():marker.end() + 48]
+    for word in re.findall(r"[a-z]+", window):
+        stem = re.sub(r"(?:nin|nun|in|un|si|su|yi|yu|i|u)$", "", word)
+        if word in _HELD_SKIP or stem in _HELD_SKIP or len(stem) < 4:
+            continue
+        if re.search(rf"\b{re.escape(stem)}", names):
+            return None
+        return window.strip()
+    return None
+
+
 def _resolve_campaign_npc_reference(player_input, world_state=None):
     if not isinstance(player_input, str):
         return None
@@ -9292,6 +9324,12 @@ def _narration_safety_decision(
         )
         if failed_check_claim:
             return reject("SKILL_RESULT_CONTRADICTION", failed_check_claim.group(0))
+        reported_find = re.search(
+            r"fark ed|goruyorsun|buluyorsun|secebiliyorsun",
+            _normalize_turkish_typos(text),
+        )
+        if reported_find:
+            return reject("SKILL_RESULT_CONTRADICTION", reported_find.group(0))
 
     arrival_text = living_world._text_outside_quotes(narration)
     current_location = world_state.get("location")
@@ -9664,6 +9702,14 @@ def _narration_safety_decision(
     )
     if unregistered_object:
         return reject("UNREGISTERED_PERSISTENT_OBJECT", unregistered_object)
+    held_object = _unregistered_held_object(world_state, narration)
+    held_action = action_result.get("action") if isinstance(action_result, dict) else None
+    held_outcome = action_result.get("outcome") if isinstance(action_result, dict) else None
+    if held_object and (
+        held_action == "narrative"
+        or held_outcome in {"failure", "critical_failure"}
+    ):
+        return reject("UNREGISTERED_PERSISTENT_OBJECT", held_object)
 
     arrival_sentences = re.split(
         r"(?<=[.!?;,:])\s+|\s+\b(?:ama|ancak|fakat|oysa|ve|ya da|yoksa)\b\s+",
@@ -9886,6 +9932,12 @@ def _narration_safety_decision(
         world_state,
     ):
         return {**reject("UNVERIFIED_LORE_CLAIM"), "source_field": "stage_direction"}
+
+    if combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
+        folded_narration = narration_claims.fold(narration)
+        fight = re.search(r"\b(?:saldir|savun)\w*|\bkan\b", folded_narration)
+        if fight:
+            return reject("REPORTED_NON_ATTACK", fight.group(0))
 
     return accept()
 
@@ -10502,6 +10554,26 @@ _UNVERIFIED_RULER_RESPONSE = (
     "Bu yerin yöneticisinin kim olduğu hakkında herkes başka bir şey fısıldıyor; "
     "hangisinin doğru olduğunu henüz seçemiyorsun."
 )
+
+
+def _rejected_lore_narration(player_input, npc_target=None):
+    """A lore miss on a question stays the rumor line. A social act does not."""
+    text = _normalize_turkish_typos(player_input or "")
+    asked = "?" in str(player_input or "") or bool(re.search(
+        r"\b(?:nedir|kimdir|nerede|ne kadar|soyler misin|anlatir misin)\b", text
+    ))
+    if asked:
+        return _unverified_lore_response(player_input, npc_target)
+    return _generic_no_change_response()
+
+
+def _shown_stage_direction(stage, world_state):
+    """Drop a stage direction that puts an unrecorded object in someone's hand."""
+    if not isinstance(stage, str) or not stage.strip():
+        return ""
+    if _unregistered_held_object(world_state, stage):
+        return ""
+    return stage.strip()
 
 
 def _unverified_lore_response(player_input, npc_target=None):
@@ -11475,9 +11547,6 @@ DM_RESPONSE_SCHEMA = {
     "additionalProperties": False,
 }
 
-_SUPPLIED_PLAYER_QUOTE = re.compile(r'[“"«]([^“”"«»\n]{1,300})[”"»]')
-
-
 def _validated_player_line(raw_line, player_input):
     """Return the player's own line to show, or None. The model never writes it.
 
@@ -11488,9 +11557,10 @@ def _validated_player_line(raw_line, player_input):
     """
     if not isinstance(raw_line, dict):
         return None
-    supplied = _SUPPLIED_PLAYER_QUOTE.search(player_input or "")
+    import npc_speech_boundary
+    supplied = npc_speech_boundary.player_supplied_quote(player_input)
     if supplied:
-        return supplied.group(1).strip()
+        return supplied
     text = raw_line.get("text")
     if not isinstance(text, str) or "\n" in text or "\r" in text:
         return None
@@ -12010,8 +12080,16 @@ def ask_dungeon_master(
     if not claims_supported or not refs_supported:
         narration = None
         updates = {}
+    raw_player_line = data.get("player_line") if data else None
+    if (
+        data and claims_supported and refs_supported
+        and not isinstance(raw_player_line, dict)
+    ):
+        import npc_speech_boundary
+        if npc_speech_boundary.player_supplied_quote(player_input):
+            raw_player_line = {"text": ""}
     player_line = (
-        _validated_player_line(data.get("player_line"), player_input)
+        _validated_player_line(raw_player_line, player_input)
         if data and claims_supported and refs_supported else None
     )
     if return_details:
@@ -12154,16 +12232,38 @@ def _inspection_findings(player_input, outcome):
         labels = [feature.get("name", ""), *(feature.get("aliases") or [])]
         if any(isinstance(label, str) and label.strip() and _entity_reference_in_text(label, text)
                for label in labels):
-            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if success
+            recorded = _normalize_turkish_typos(" ".join(
+                str(part) for part in (
+                    feature.get("name", ""), feature.get("description") or "", *labels
+                )
+            ))
+            named_absence = []
+            for word in re.findall(r"[a-z0-9]+", text):
+                if len(word) < 6 or word.endswith(("yorum", "iyorum", "uyorum", "sunuz")):
+                    continue
+                stem = re.sub(r"(?:da|de|ta|te|ya|ye|yi|yu|na|ne|nin|nun|in|un|i|u)$", "", word)
+                if stem in recorded or word in recorded:
+                    continue
+                named_absence.append(word)
+            found = success and not named_absence
+            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
                     else f"{feature['name']} üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.")
             return {"target_kind": "feature", "target_id": feature.get("id"),
-                    "target_name": feature.get("name"), "found": success, "text": line}
+                    "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
         line = ("İzleri dikkatle inceliyorsun: kalabalık bir zeminde beklendiği gibi birbirine "
                 "karışmışlar; belirli birinin izini ayırmak bu haliyle mümkün değil." if success
                 else "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.")
         return {"target_kind": "tracks", "target_id": None, "target_name": "izler",
                 "found": False, "text": line}
+    if re.search(r"\b(?:incel|arastir)\w*", text):
+        return {
+            "target_kind": "feature",
+            "target_id": None,
+            "target_name": None,
+            "found": False,
+            "text": "Bu bakışla adlandırdığın ayrıntı seçilmiyor.",
+        }
     return None
 
 
@@ -12570,7 +12670,7 @@ def finalize_narration(
                 else "Selam veriyorsun."
             )
         if not narration:
-            narration = _unverified_lore_response(player_input, npc_target)
+            narration = _rejected_lore_narration(player_input, npc_target)
         handling = "python_fallback"
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
@@ -12610,6 +12710,7 @@ def finalize_narration(
         if safety.get("reason_code") in (
             "WRONG_NPC_SPEAKER_ATTRIBUTION",
             "NPC_MEMORY_DISCLOSURE_LEAK",
+            "REPORTED_NON_ATTACK",
         ):
             narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
@@ -13310,7 +13411,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
         raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
-    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input):
+    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input) and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
         raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
     before = _world_snapshot()
     result = {
@@ -13319,6 +13420,15 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         "status": "resolved",
         "state_changes": [],
     }
+    if intent_type in {"attack", "combat"} and combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
+        result.update(
+            action="narrative",
+            success=None,
+            status="not_executed",
+            outcome="reported_not_attack",
+            state_changes=[],
+        )
+        return result
 
     if _is_door_inspection_request(player_input) and _current_door() is None:
         result.update({
@@ -14191,14 +14301,22 @@ def _scene_feature_match(player_input, location_id):
         if not isinstance(feature, dict) or feature.get("location") != location_id:
             continue
         aliases = [feature.get("name", ""), *feature.get("aliases", [])]
-        if any(
-            _entity_reference_in_text(alias, text)
-            or living_world.normalize_text(alias) in text
-            for alias in aliases
-            if isinstance(alias, str) and alias
-        ):
-            matches.append(feature)
-    return matches
+        best = 0
+        for alias in aliases:
+            if not isinstance(alias, str) or not alias.strip():
+                continue
+            if (
+                _entity_reference_in_text(alias, text)
+                or living_world.normalize_text(alias) in text
+            ):
+                words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(alias))
+                best = max(best, len(words))
+        if best:
+            matches.append((best, feature))
+    if not matches:
+        return []
+    longest = max(score for score, _feature in matches)
+    return [feature for score, feature in matches if score == longest]
 
 
 def resolve_scene_seating(action_input):
@@ -16107,7 +16225,14 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         and validation_result in ("accepted", "repaired")
     ):
         # The player's own words are a separate, attributed segment, never NPC speech.
-        final_dict["narration"] = f"Sen: “{shown_player_line}”\n\n{final_dict['narration']}"
+        import npc_speech_boundary
+        body = npc_speech_boundary.strip_player_quote(
+            final_dict["narration"], player_input
+        )
+        final_dict["narration"] = (
+            f"Sen: “{shown_player_line}”\n\n{body}".strip()
+            if body else f"Sen: “{shown_player_line}”"
+        )
 
     if validation_result in ("python_memory_response", "python_memory_fallback"):
         narration_source = "python_memory_response"
@@ -16618,6 +16743,12 @@ def _run_player_turn_internal(
         interaction = (
             raw.get("interaction") if isinstance(raw, dict) else None
         )
+        # A quoted note is not speech to the NPC. A bad conversation reading
+        # must not replace the turn with an in-character refusal.
+        if combat_lifecycle.quoted_report(_session(), player_input):
+            if isinstance(interaction, dict):
+                interaction["conversation"] = None
+            return None, False
         proposal_present = (
             isinstance(interaction, dict)
             and interaction.get("conversation") is not None
@@ -17348,6 +17479,7 @@ def _run_player_turn_internal(
 
     interaction_hint = (
         None if interaction_mode == "ask_dm"
+        or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
     if interaction_hint and not combat["active"]:
@@ -18106,6 +18238,30 @@ def _run_player_turn_internal(
                         world_state,
                         player_input,
                     )
+                    cleaned_spoken = npc_speech_boundary.strip_player_echo(
+                        cleaned_spoken, player_input
+                    )
+                    cleaned_spoken = npc_speech_boundary.drop_ungrounded_prop_sentences(
+                        cleaned_spoken,
+                        [
+                            {
+                                "name": feature.get("name"),
+                                "description": feature.get("description"),
+                                "aliases": feature.get("aliases") or [],
+                            }
+                            for feature in living_world.visible_features(world_state)
+                            if isinstance(feature, dict)
+                        ],
+                    )
+                    cleaned_stage = npc_speech_boundary.strip_player_quote(
+                        cleaned_stage, player_input
+                    )
+                    cleaned_stage = _shown_stage_direction(cleaned_stage, world_state)
+                    if (
+                        not cleaned_spoken.strip()
+                        and npc_speech_boundary.player_supplied_quote(player_input)
+                    ):
+                        cleaned_spoken = "Bunu senden duyuyorum."
                     if _is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):
                         cleaned_spoken = ""
                         invalid_spoken_stage_direction = True

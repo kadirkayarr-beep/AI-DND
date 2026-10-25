@@ -81,6 +81,30 @@ class CombatLifecycleTests(unittest.TestCase):
             session.resolve_enemy_attack(npc)
         self.assertEqual(session.rng.getstate(), before)
 
+    def test_quoted_report_and_conditional_defense_are_not_attacks(self):
+        session = v1.scene()
+        npc = session.create_npc_from_ai({"name": "Hlin", "role": "Han görevlisi", "location": "tavern"})
+        session.world_state.setdefault("flags", {})["active_npc_id"] = npc["id"]
+        before = copy.deepcopy(session.world_state)
+        hp = session.character.get("current_hp")
+        reports = (
+            "'Ona saldırıyorum' diye yazan notu okuyorum.",
+            '"Ona saldırıyorum" diye yazan notu okuyorum.',
+            "O bana saldırırsa kendimi savunacağım.",
+        )
+        for text in reports:
+            self.assertFalse(combat_lifecycle.is_attack_decision(session, text), text)
+            combat_lifecycle.validate_request(session, text)
+            session.execute_intent({"intent": "attack"}, text, npc)
+            self.assertFalse(session.world_state["combat"]["active"], text)
+        self.assertEqual(session.world_state["npcs"], before["npcs"])
+        self.assertEqual(session.character.get("current_hp"), hp)
+        self.assertTrue(combat_lifecycle.is_attack_decision(session, "Sinirlenip ona saldırıyorum."))
+        self.assertTrue(combat_lifecycle.is_attack_decision(
+            session, "Ona saldırıyorum; o bana saldırırsa kendimi savunacağım."))
+        with self.assertRaises(combat_lifecycle.CombatRequestError):
+            session.execute_intent({"intent": "attack"}, "Merhaba.", npc)
+
     def test_hostility_threat_and_model_proposal_are_not_combat_triggers(self):
         session = v1.scene()
         npc = session.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})

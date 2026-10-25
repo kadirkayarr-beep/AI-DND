@@ -1822,7 +1822,56 @@ def _open_feature(run: _Run, target) -> dict[str, Any]:
     return _receipt("open", "blocked", target, reason="feature_closed", text=f"{feature.get('name')} {state}; açılmıyor.")
 
 
+def _quoted_pieces(value: str) -> list[str]:
+    """Quoted spans. A lone apostrophe in a name is not a quote."""
+    pairs = {'"': '"', "“": "”", "‘": "’", "'": "'"}
+    pieces: list[str] = []
+    index = 0
+    while index < len(value):
+        opening = value[index]
+        closing = pairs.get(opening)
+        if closing is None or (
+            opening in {"'", "‘"}
+            and index > 0
+            and (value[index - 1].isalnum() or value[index - 1] == "_")
+        ):
+            index += 1
+            continue
+        end = index + 1
+        while end < len(value):
+            if value[end] == closing:
+                next_char = value[end + 1] if end + 1 < len(value) else ""
+                if closing in {"'", "’"} and next_char and (next_char.isalnum() or next_char == "_"):
+                    end += 1
+                    continue
+                break
+            end += 1
+        if end == len(value):
+            index += 1
+        else:
+            piece = value[index + 1:end].strip()
+            if piece:
+                pieces.append(piece)
+            index = end + 1
+    return pieces
+
+
+def _readable_note(session, player_input: str) -> str | None:
+    """The words of a note the player is reading, when they are already in the sentence."""
+    import combat_lifecycle
+    if not combat_lifecycle.quoted_report(session, player_input):
+        return None
+    outside = living_world._text_outside_quotes(player_input)
+    if not re.search(r"\boku(?!l)", fold(outside)):
+        return None
+    note = " ".join(_quoted_pieces(player_input)).strip()
+    return note[:200] if note else None
+
+
 def _do_read(run: _Run, step) -> dict[str, Any]:
+    note = step.get("quoted_note")
+    if isinstance(note, str) and note.strip():
+        return _receipt("read", "completed", None, text=f"Notta şunlar yazıyor: “{note.strip()}”")
     target = step.get("target")
     if target is None and step.get("detail") in {"tabela", "ilan", "afis"}:
         return _observe_detail(run, step, step["detail"])
@@ -2658,6 +2707,11 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         return defer
     if session.character.get("current_hp", 0) <= 0 or world.get("player_combat_status") not in (None, "active"):
         return defer
+    note = _readable_note(session, player_input)
+    if note:
+        run = _Run(session, player_input)
+        step = {"verb": "read", "target": None, "negated": False, "quoted_note": note}
+        return "execute", (run, [step], {"steps": [step]})
     p = plan(session, player_input)
     if p["steps"] and p["steps"][0].get("not_now"):
         return defer  # "dün kırmayı denedim", "hedefim araştırmak": told, not done now

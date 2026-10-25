@@ -42,6 +42,143 @@ class IdentityBoundaryTests(unittest.TestCase):
     def test_unknown_selected_name_does_not_get_public_namesake_exception(self):
         self.public['name_known_to_player']=False
         self.assertTrue(self.decision('Adım Lysa. Günüm sakin.')['unsafe'])
+    def test_conditional_defense_cannot_invent_a_broom_or_a_counter(self):
+        hlin = {"id": "hlin", "name": "Hlin", "name_known_to_player": True,
+                "role": "barmen", "location": self.world["location"]}
+        self.world["npcs"] = [hlin]
+        shown = (
+            "Hlin'in yanındaki küçük han tezgahına doğru yürüyorsun. "
+            "Hlin, elindeki süpürgeyi yere vurarak tozları savuruyor. "
+            "Kendinizi savunmanız gerekirse, kılıcınızdaki alevi kullanın."
+        )
+        decision = self.session._narration_safety_decision(
+            shown,
+            "O bana saldırırsa kendimi savunacağım.",
+            hlin,
+            {"action": "narrative", "status": "resolved"},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertIn(decision["reason_code"], {
+            "INVENTED_PLAYER_ACTION", "UNREGISTERED_PERSISTENT_OBJECT",
+            "INVENTED_ITEM",
+        })
+
+    def test_reported_non_attack_cannot_be_narrated_as_a_fight(self):
+        hlin = {"id": "hlin", "name": "Hlin", "name_known_to_player": True,
+                "role": "barmen", "location": self.world["location"]}
+        self.world["npcs"] = [hlin]
+        shown = (
+            "Hlin, sözlerini kesip omuz silker ve tezgâhının kenarına yaslanır; "
+            "elleri cebinde kayarak hafifçe titrer: 'Saldırırsan kendimi savunacağım mı? "
+            "Hah! İyi ki durdun. Yoksa şimdi bu sokakta kan izi bırakmış birisi olurdum.'"
+        )
+        decision = self.session._narration_safety_decision(
+            shown,
+            "O bana saldırırsa kendimi savunacağım.",
+            hlin,
+            {"action": "narrative", "status": "resolved"},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "REPORTED_NON_ATTACK")
+
+    def test_reported_non_attack_can_stay_a_calm_line(self):
+        hlin = {"id": "hlin", "name": "Hlin", "name_known_to_player": True,
+                "role": "barmen", "location": self.world["location"]}
+        self.world["npcs"] = [hlin]
+        decision = self.session._narration_safety_decision(
+            "Hlin başını sallar ve sözü sana bırakır.",
+            "O bana saldırırsa kendimi savunacağım.",
+            hlin,
+            {"action": "narrative", "status": "resolved"},
+        )
+        self.assertFalse(decision["unsafe"], decision)
+
+    def test_narrative_held_broom_is_rejected_without_a_player_verb(self):
+        hlin = {"id": "hlin", "name": "Hlin", "name_known_to_player": True,
+                "role": "barmen", "location": self.world["location"]}
+        self.world["npcs"] = [hlin]
+        decision = self.session._narration_safety_decision(
+            "Hlin elindeki süpürgenin sapına dokundu.",
+            "Eğlenmiş görünerek bir şaka yapıyorum.",
+            hlin,
+            {"action": "narrative", "status": "resolved"},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "UNREGISTERED_PERSISTENT_OBJECT")
+        kettle = self.session._narration_safety_decision(
+            "Tezgahındaki çaydanlıkta kaynayan suyun cızırtısı sürer.",
+            "Eğlenmiş görünerek bir şaka yapıyorum.",
+            hlin,
+            {"action": "narrative", "status": "resolved"},
+        )
+        self.assertTrue(kettle["unsafe"], kettle)
+        self.assertEqual(kettle["reason_code"], "UNREGISTERED_PERSISTENT_OBJECT")
+
+    def test_failed_investigation_cannot_report_a_find(self):
+        decision = self.session._narration_safety_decision(
+            "Tezgahın altında paslı vida başları fark edebiliyorsunuz.",
+            "Tezgâhın altını sistemli inceliyorum.",
+            None,
+            {"action": "skill_check", "status": "resolved",
+             "skill": "Investigation", "outcome": "failure"},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "SKILL_RESULT_CONTRADICTION")
+        live = self.session._narration_safety_decision(
+            "Tezgâhın altında tozlu bir ahşap yüzey fark edersin.",
+            "Tezgâhın altını sistemli inceliyorum.",
+            None,
+            {"action": "skill_check", "status": "resolved",
+             "skill": "Investigation", "outcome": "failure"},
+        )
+        self.assertTrue(live["unsafe"], live)
+        self.assertEqual(live["reason_code"], "SKILL_RESULT_CONTRADICTION")
+
+    def test_social_act_rejected_for_lore_is_not_the_rumor_shrug(self):
+        token = game._ACTIVE_SESSION.set(self.session)
+        try:
+            line = game._rejected_lore_narration("Eğlenmiş görünerek bir şaka yapıyorum.", None)
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertNotIn("hiçbir söz sağlam", line)
+        self.assertIn("belirgin bir değişiklik olmuyor", line)
+
+    def test_named_table_beats_the_shorter_masa_alias(self):
+        loc = self.world["location"]
+        self.world["features"] = [
+            {"id": "wood", "name": "Ahşap masa", "location": loc, "kind": "table",
+             "aliases": ["masa", "ahşap masa", "bardak", "kil bardak"],
+             "description": "Kenarında sıradan bir kil bardak duran sağlam bir masa."},
+            {"id": "empty", "name": "Boş masa", "location": loc, "kind": "table",
+             "description": "Kimsenin oturmadığı sade bir masa."},
+        ]
+        token = game._ACTIVE_SESSION.set(self.session)
+        try:
+            seated = game.resolve_scene_seating("Boş masaya oturuyorum.")
+            looked = game._inspection_findings("Masada gizli bir çekmece arıyorum.", "success")
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertEqual(seated["status"], "completed", seated)
+        self.assertEqual(seated["target_id"], "empty")
+        self.assertNotIn("bardak", looked["text"].casefold())
+        self.assertIn("seçemiyorsun", looked["text"])
+
+    def test_successful_search_of_an_absent_counter_is_a_miss(self):
+        findings = self.session._inspection_findings(
+            "Tezgâhın altını sistemli inceliyorum.", "success"
+        )
+        self.assertIsNotNone(findings)
+        self.assertFalse(findings["found"])
+        self.assertIn("seçilmiyor", findings["text"])
+        self.assertNotIn("yük arabası", findings["text"])
+        self.assertNotIn("İncelemen başarılı", findings["text"])
+
+    def test_broom_stage_is_not_shown(self):
+        self.assertEqual(
+            game._shown_stage_direction("elindeki süpürgeyi yere vurur", self.world),
+            "",
+        )
+
     def test_whole_visible_feature_and_unknown_person_are_distinct(self):
         self.world['npcs']=[]
         self.world['features']=[{'id':'path','name':'Gizli Yol','location':self.world['location'],'description':'Dar bir patika.'}]

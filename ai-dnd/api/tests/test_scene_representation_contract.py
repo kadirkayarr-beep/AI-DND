@@ -68,6 +68,19 @@ class SceneRepresentationContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertLess(shown.index("Sen:"), shown.index("keman"))
         self.assertTrue(any(f"Sen: “{line}”" in text for text in self.stored_narrations()))
 
+    async def test_omitted_player_line_still_lifts_a_supplied_quote(self):
+        narration = "Uzaktan bir keman sesi geliyor. Hlin “ne gördüğümü anlatıyorum” diye tekrar eder."
+        with self.scripted_model(narration):
+            response = await self.send("Etrafa bakıp “ne gördüğümü anlatıyorum” diyorum")
+        self.assertEqual(response.status_code, 200, response.text)
+        shown = response.json()["narration"]
+        self.assertIn("Sen: “ne gördüğümü anlatıyorum”", shown)
+        self.assertIn("keman", shown)
+        body = shown.split("\n\n", 1)[1]
+        self.assertNotIn("ne gördüğümü anlatıyorum", body)
+        self.assertNotIn("“”", body)
+        self.assertLess(shown.index("Sen:"), shown.index("keman"))
+
     async def test_supplied_quote_beats_model_rewrite(self):
         with self.scripted_model("Uzaktan bir keman sesi geliyor.",
                                  player_line={"text": "Bu han berbat"}):

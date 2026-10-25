@@ -298,3 +298,121 @@ def mask_calendar_month_name(text, identity):
         return match.group(0)[:relative] + blank + match.group(0)[relative + end - start:]
 
     return _MONTH_PATTERN.sub(mask, text)
+
+
+_PLAYER_QUOTE = re.compile(
+    r'[“"«]([^“”"«»\n]{1,300})[”"»]'
+    r"|(?<![\wçğıöşüÇĞİÖŞÜ])['‘]([^'’\n]{1,300})['’](?![\wçğıöşüÇĞİÖŞÜ])",
+    re.IGNORECASE,
+)
+
+
+def player_supplied_quote(player_input):
+    """The words the player put in quotes, or None. An apostrophe is not a quote."""
+    if not isinstance(player_input, str):
+        return None
+    match = _PLAYER_QUOTE.search(player_input)
+    if match is None:
+        return None
+    text = (match.group(1) or match.group(2) or "").strip()
+    return text or None
+
+
+_PLAYER_ACT = re.compile(
+    r"(?<![\wçğıöşüÇĞİÖŞÜ])(?P<stem>[\wçğıöşüÇĞİÖŞÜ]{6,}?)(?:yip|yıp|yup|yüp|ip|ıp|up|üp|erek|arak|miş|mış|muş|müş)\b",
+    re.IGNORECASE,
+)
+
+
+def strip_player_echo(text, player_input):
+    """Drop NPC sentences that replay the player's own gesture or quoted words."""
+    text = strip_player_quote(text, player_input)
+    if not isinstance(text, str) or not text.strip():
+        return text
+    stems = []
+    for match in _PLAYER_ACT.finditer(player_input or ""):
+        stem = fold(match.group("stem"))
+        if len(stem) >= 6:
+            stems.append(stem)
+            stems.append(stem[:4])
+    quote = player_supplied_quote(player_input)
+    if quote:
+        stems.extend(fold(word) for word in re.findall(r"\w{5,}", quote))
+    if not stems:
+        return text
+    kept = []
+    for sentence in re.split(r"(?<=[.!?])\s+", text):
+        folded = fold(sentence)
+        if any(stem and stem in folded for stem in stems):
+            continue
+        kept.append(sentence)
+    return " ".join(kept).strip()
+
+
+_UNGROUNDED_NOUN = re.compile(r"(?<![\wçğıöşüÇĞİÖŞÜ])([\wçğıöşüÇĞİÖŞÜ]{5,})")
+
+
+def drop_ungrounded_prop_sentences(text, facts):
+    """Drop a spoken sentence that names a prop the scene cannot support.
+
+    A registered prop must bring one content word from its own description.
+    A sentence that names no registered prop still drops when it contains a
+    concrete noun absent from every fact. Ordinary short words stay.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return text
+    records = []
+    packet = []
+    for fact in facts or []:
+        if not isinstance(fact, dict):
+            continue
+        labels = [fact.get("name") or "", *(fact.get("aliases") or [])]
+        stems = [fold(label) for label in labels if isinstance(label, str) and label.strip()]
+        description = fold(fact.get("description") or "")
+        content = [
+            word for word in description.split()
+            if len(word) >= 5 and word not in stems
+        ]
+        records.append((stems, content))
+        packet.extend(stems)
+        packet.extend(description.split())
+    packet_text = " ".join(packet)
+    kept = []
+    for sentence in re.split(r"(?<=[.!?])\s+", text.strip()):
+        folded = fold(sentence)
+        grounded = False
+        names_prop = False
+        for stems, content in records:
+            if not any(stem and stem in folded for stem in stems):
+                continue
+            names_prop = True
+            if any(word and word in folded for word in content):
+                grounded = True
+                break
+        if names_prop and not grounded:
+            continue
+        foreign = False
+        for match in _UNGROUNDED_NOUN.finditer(sentence):
+            stem = fold(match.group(1))
+            if len(stem) < 5 or stem in packet_text:
+                continue
+            if stem.endswith(("iyor", "uyor", "acak", "ecek")):
+                continue
+            foreign = True
+            break
+        if foreign and not names_prop:
+            continue
+        kept.append(sentence)
+    return " ".join(kept).strip()
+
+
+def strip_player_quote(text, player_input):
+    """Drop the player's own quoted words from NPC speech. Other words stay."""
+    quote = player_supplied_quote(player_input)
+    if not quote or not isinstance(text, str) or fold(quote) not in fold(text):
+        return text
+    cleaned = re.sub(re.escape(quote), "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"[“”\"«»‘’']\s*[“”\"«»‘’']", "", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+    return cleaned.strip(" \t\"“”«»‘’'")

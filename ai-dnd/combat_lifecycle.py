@@ -38,10 +38,50 @@ def registered_name_candidates(session):
             if isinstance(record.get("name"), str) and len(record["name"].split()) > 1]
 
 
+def _conditional_self_defense(text):
+    """Someone else might attack, and the player only says they will defend."""
+    if not re.search(
+        r"\b(?:saldirirsa|saldirirlarsa|saldirdiginda|saldirdiklarinda)\b", text
+    ):
+        return False
+    if not re.search(r"\bsavun(?:acag\w*|urum|uruz|uyorum|uyoruz)\b", text):
+        return False
+    return not re.search(
+        r"\b(?:saldir|vur|dov|kes|sapla|bicakl|yumrukla)"
+        r"(?:iyorum|iyoruz|acagim|acagiz|ecegim|ecegiz|dim|dik|dum|duk)\b",
+        text,
+    )
+
+
+def quoted_report(session, message):
+    """An attack verb that survives only inside quotation is a report."""
+    spoken = living_world._text_outside_quotes(str(message))
+    return (
+        not session._has_explicit_attack_verb(spoken)
+        and session._has_explicit_attack_verb(message)
+    )
+
+
+def quoted_or_conditional_not_attack(session, message):
+    """A quoted report or a conditional defense is not the player's attack.
+
+    Called from is_attack_decision and from game.execute_intent. Reads only the
+    player message. Writes nothing: no HP, distance, or combat mutation.
+    """
+    spoken = living_world._text_outside_quotes(str(message))
+    text = session._normalize_turkish_typos(spoken)
+    if _conditional_self_defense(text):
+        return True
+    return quoted_report(session, message)
+
+
 def is_attack_decision(session, message):
-    text = session._normalize_turkish_typos(message)
-    return (session._has_explicit_attack_verb(message)
-            and not session._is_explicitly_negated_attack(message)
+    if quoted_or_conditional_not_attack(session, message):
+        return False
+    spoken = living_world._text_outside_quotes(str(message))
+    text = session._normalize_turkish_typos(spoken)
+    return (session._has_explicit_attack_verb(spoken)
+            and not session._is_explicitly_negated_attack(spoken)
             and not re.search(r"\b(?:tehdit|gozdagi|varsay|saldirsam)\w*\b", text)
             and not str(message).rstrip().endswith("?"))
 

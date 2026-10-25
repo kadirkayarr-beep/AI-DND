@@ -155,6 +155,24 @@ class Lr00P1IntentTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(resolution.get("status"), "found", resolution)
                 self.assertEqual(resolution["npc"]["id"], self.marek["id"])
 
+    async def test_quoted_attack_note_is_not_refused_as_conversation(self):
+        message = "'Ona saldırıyorum' diye yazan notu okuyorum."
+        self.client.intent = {
+            "intent": "dialogue", "action": "dialogue",
+            "target": {"type": "npc", "reference": "Marek"},
+        }
+        self.client.operation = "information"
+        hp = self.session.character.get("current_hp")
+        response, receipt = await self.turn(message, mode="do")
+        self.assertEqual(response.status_code, 200, response.text)
+        narration = response.json()["narration"]
+        self.assertIn("Notta şunlar yazıyor: “Ona saldırıyorum”", narration)
+        self.assertNotIn("tahminden öteye", narration)
+        self.assertNotEqual((receipt or {}).get("status"), "proposal_rejected", receipt)
+        self.assertFalse(self.session.world_state.get("combat", {}).get("active"))
+        self.assertEqual(self.session.character.get("current_hp"), hp)
+        self.assertEqual(self.client.calls, 0)
+
     async def test_unaddressed_physical_action_is_not_vetoed_by_optional_conversation(self):
         cases = (
             ("Pencerenin sürgüsünü parmaklarımla yokluyorum.", "perception", "none"),
