@@ -1,0 +1,9 @@
+﻿v02 start 2026-10-25T17:00:26.6565313+03:00
+api.tests.test_lr00_grounded_human exit=0 :: Ran 38 tests in 13.072s | OK
+api.tests.test_lr00_p1_intent exit=0 :: Ran 21 tests in 7.948s | OK
+api.tests.test_wave3_interaction_modes exit=1 :: Ran 9 tests in 0.796s | FAILED (errors=9)
+api.tests.test_scene_truth_contract exit=0 :: Ran 8 tests in 3.779s | OK
+api.tests.test_scene_compound_contract exit=0 :: Ran 6 tests in 2.299s | OK
+api.tests.test_scene_claim_contract exit=0 :: Ran 8 tests in 1.674s | OK
+api.tests.test_scene_transaction_contract exit=0 :: Ran 4 tests in 1.440s | OK
+api.tests.test_campaign_api exit=1 :: Ran 138 tests in 110.707s | FAILED (failures=15, errors=5)

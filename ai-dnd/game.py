@@ -3472,7 +3472,13 @@ def create_local_feature(proposal):
         None,
     )
     if existing:
-        return existing
+        # A proposal may only reuse a feature the player can see; handing back a
+        # hidden record would let its name pass as a registered, citable object.
+        visible_ids = {
+            feature.get("id")
+            for feature in living_world.visible_features(world_state, location)
+        }
+        return existing if existing.get("id") in visible_ids else None
     if len(location_features(location)) >= 16:
         return None
     scene_state = living_world.ensure_scene_state(world_state)
