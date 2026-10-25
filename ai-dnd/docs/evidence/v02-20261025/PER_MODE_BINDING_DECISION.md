@@ -1,6 +1,6 @@
 # Faz 3 Karar Belgesi: Kip Başına Bağlama
 
-Durum: **kısmen uygulandı** (nesne iddiası yarısı), kalan yarı **kullanıcı kararı bekliyor (K3)**.
+Durum: **uygulandı.** Nesne iddiası yarısı v0.2'de; K3 onaylandı ("bunları da onaylıyorum") ve `DM_RESPONSE_SCHEMA`'ya isteğe bağlı `player_line` ve `feature_refs` eklendi (zorunlu alanlar aynı). Kanıt: `api/tests/test_scene_representation_contract.py` (8 test). Sınır: istem metni modele bu alanları henüz üretmesini söylemiyor; alanlar yalnız geldiğinde doğrulanır. Aşağıdaki "Karar gereken" bölümü tarihsel kayıttır.
 Kaynak: `v0.1` üstü, dal `cursor/v02-consistent-world-20261025`.
 
 ## Bu belge neyi sabitliyor

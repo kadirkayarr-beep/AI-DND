@@ -1,6 +1,6 @@
 # Faz 4 Karar Belgesi: Masadaki İz ve Eşyanın Tek Kimlikle Devamı
 
-Durum: **uygulanmadı, kullanıcı kararı bekliyor.** Yeni kalıcı alan gerektirdiği için plan gereği önce karar.
+Durum: **onaylandı ve uygulandı** (kullanıcı: "bunları da onaylıyorum"). Sahip: `equipment_economy.py` (`surface_items`, `feature_marks`, `place`/`mark`/`take`, `validate_world`). Kanıt: `api/tests/test_scene_surface_persistence.py` (11 test). Doğal dil ile yerleştirme yok; yalnız `/item` komutları. Aşağıdaki "Karar gereken" bölümü tarihsel kayıttır.
 
 ## Mevcut durum (kanıtlı)
 

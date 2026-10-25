@@ -4,6 +4,8 @@ Tarih: 2026-10-25. Taban: v0.1 commit `b2ea58a`. Dal: `cursor/v02-consistent-wor
 
 ## Hüküm: **sınırlı kazanım**. Faz 3 ve 6 kısmen, Faz 4 ve 5 karar bekliyor.
 
+> **Güncelleme:** K3, Faz 4 ve Faz 5 sonradan onaylandı ve uygulandı. Güncel durum: [V02B_KABUL_NOTU.md](V02B_KABUL_NOTU.md). Aşağıdaki tablo ve "Sizden beklenenler" bölümü tarihsel kayıttır.
+
 | Faz | Durum | Ne yapıldı | Belge |
 |---|---|---|---|
 | 3 | Nesne iddiası yarısı uygulandı, oyuncu sözü/anlatıcı alanı **K3 kararı bekliyor** | 8 test, 1 gerçek kusur düzeltildi | [PER_MODE_BINDING_DECISION.md](PER_MODE_BINDING_DECISION.md) |

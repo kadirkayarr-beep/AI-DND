@@ -1,6 +1,10 @@
 # Faz 5 Karar Belgesi: Küçük Nedensel Olay, NPC Bilgisi ve Yalan Sınırı
 
-Durum: **uygulanmadı, kullanıcı kararı bekliyor (K4: onaylı küçük olay kümesi).** Faz 4 yüzey/iz sahibi olmadan başlayamaz.
+Durum: **onaylandı ve uygulandı (K4)**; kullanıcı: "bunları da onaylıyorum". Faz 4 önce yapıldı.
+
+Uygulanan: `scheduled_events.py` yeni etki türleri `mark_remove` ve `surface_item_custody` (`SURFACE_EFFECTS`; gizli, `NON_INTERRUPTIVE`, `aftermath_visible` yok; aksi `ValueError`). Mutasyon yalnız `equipment_economy.apply_scheduled_surface_effect` içinde: eylemci NPC olay mekânında canlı ve etkin olmalı, aksi halde hiçbir şey değişmez. Yalnız eylemci NPC'ye opak `witnessed:<event_id>` notu (`relationships.note`); oyuncu bilgisi değişmez. Kanıt: `api/tests/test_scene_small_events_contract.py` (9 test).
+
+Bilinen sınırlar (dürüst kayıt): olayı oyun içinde kendiliğinden başlatan bir tetikleyici yok, yalnız sunucu tarafı `register_event`. NPC diyalog paketi yalnız opak işareti taşır; neden içeriği paketten kasıtlı olarak çıkarıldığı için NPC nedeni henüz sözle anlatamaz. `npc_mistake_stays_attributed_not_canon`, `model_contradiction_not_reclassified_as_intentional_lie`, `secret_word_in_harmless_smalltalk_does_not_block_speech` testleri bu kapsamda yazılmadı (diyalog yalan sınırı yüzeyi, ayrı iş). `incidents/*` değiştirilmedi.
 
 ## Mevcut durum (kanıtlı)
 

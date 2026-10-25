@@ -9,6 +9,9 @@ BEHAVIORS = {"NON_INTERRUPTIVE", "INTERRUPTIVE", "OBSERVABLE", "FORCED"}
 EXTENSIONS = {"dependencies", "priority", "causal_group", "requires_decision",
               "decision_status", "player_decision", "combat_npc_id",
               "route_destination", "followups", "aftermath_visible"}
+# Approved small table events (Phase 5): effect kind -> its identifying field.
+# Item and mark mutation is owned by equipment_economy, never done here.
+SURFACE_EFFECTS = {"mark_remove": "mark_id", "surface_item_custody": "item_id"}
 
 
 def validate_events(events, world):
@@ -64,6 +67,22 @@ def validate_events(events, world):
                     effect[k] not in world.get("locations", {}) for k in ("origin", "destination")
                 ):
                     raise ValueError("Scheduled route obstacle is invalid.")
+            elif effect.get("kind") in SURFACE_EFFECTS:
+                keys = SURFACE_EFFECTS[effect["kind"]]
+                if (set(effect) != {"kind", "feature_id", "npc_id", keys}
+                        or any(not isinstance(effect[k], str) or not effect[k] for k in effect)
+                        or len(event["event_id"]) > 140
+                        or not any(isinstance(f, dict) and f.get("id") == effect["feature_id"]
+                                   and f.get("location") == event["location_id"]
+                                   for f in world.get("features", []))
+                        or not any(isinstance(n, dict) and n.get("id") == effect["npc_id"]
+                                   for n in world.get("npcs", []))):
+                    raise ValueError("Scheduled surface effect is invalid.")
+                # Cause stays server-side: these events are never public or loud.
+                if (event["visibility"] != "hidden" or event["behavior"] != "NON_INTERRUPTIVE"
+                        or event.get("aftermath_visible", False)
+                        or event.get("requires_decision", False)):
+                    raise ValueError("Scheduled surface effect must stay hidden.")
             else:
                 raise ValueError("Unsupported scheduled effect.")
         result = event["canonical_result"]
@@ -160,6 +179,10 @@ def _occur(event, world, at):
             world.setdefault("blocked_travel_routes", {}).setdefault(effect["origin"], {})[
                 effect["destination"]
             ] = effect["blocked"]
+        elif effect["kind"] in SURFACE_EFFECTS:
+            import equipment_economy
+            equipment_economy.apply_scheduled_surface_effect(
+                world, effect, event["location_id"], event["event_id"])
     event["status"] = "OCCURRED"
     event["canonical_result"] = {"resolved_at": at, "effects_applied": len(event["effects"])}
     for definition in event.get("followups", []):

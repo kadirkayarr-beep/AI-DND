@@ -1,0 +1,15 @@
+﻿v02d start 2026-10-25T18:04:58.1709205+03:00
+api.tests.test_lr00_grounded_human :: Ran 38 tests in 11.208s | OK
+api.tests.test_lr00_p1_intent :: Ran 21 tests in 7.416s | OK
+api.tests.test_wave3_interaction_modes :: Ran 9 tests in 0.662s | FAILED (errors=9)
+api.tests.test_scene_truth_contract :: Ran 8 tests in 3.045s | OK
+api.tests.test_scene_compound_contract :: Ran 6 tests in 2.146s | OK
+api.tests.test_scene_claim_contract :: Ran 8 tests in 1.528s | OK
+api.tests.test_scene_transaction_contract :: Ran 4 tests in 1.327s | OK
+api.tests.test_scene_representation_contract :: Ran 9 tests in 2.658s | OK
+api.tests.test_scene_surface_persistence :: Ran 14 tests in 1.920s | OK
+api.tests.test_scene_small_events_contract :: Ran 11 tests in 1.363s | OK
+api.tests.test_equipment_economy :: Ran 32 tests in 0.157s | OK
+api.tests.test_equipment_economy_http :: Ran 3 tests in 0.991s | OK
+Ran 138 tests in 91.124s
+FAILED (failures=15, errors=5)

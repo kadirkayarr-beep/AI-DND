@@ -11459,10 +11459,60 @@ DM_RESPONSE_SCHEMA = {
         "world_updates": WORLD_UPDATE_SCHEMA,
         "narration": {"type": "string"},
         "lore_claims": {"type": "array", "items": {"type": "string"}},
+        # Optional (K3): the player's own words as a separate segment, and the
+        # canonical ids of the visible features the narration refers to.
+        "player_line": {
+            "type": "object",
+            "properties": {"text": {"type": "string", "maxLength": 300}},
+            "required": ["text"],
+            "additionalProperties": False,
+        },
+        "feature_refs": {"type": "array", "items": {"type": "string"}, "maxItems": 8},
     },
     "required": ["narration", "world_updates", "lore_claims"],
     "additionalProperties": False,
 }
+
+_SUPPLIED_PLAYER_QUOTE = re.compile(r'[“"«]([^“”"«»\n]{1,300})[”"»]')
+
+
+def _validated_player_line(raw_line, player_input):
+    """Return the player's own line to show, or None. The model never writes it.
+
+    A quote the player supplied beats any model rewrite. Otherwise the model may
+    only point at words the player actually typed: the line must be a bounded,
+    single-line, quote-free substring of the player's own input (whitespace and
+    case normalized). Anything else the model invents is dropped.
+    """
+    if not isinstance(raw_line, dict):
+        return None
+    supplied = _SUPPLIED_PLAYER_QUOTE.search(player_input or "")
+    if supplied:
+        return supplied.group(1).strip()
+    text = raw_line.get("text")
+    if not isinstance(text, str) or "\n" in text or "\r" in text:
+        return None
+    text = text.strip()
+    if not text or len(text) > 300 or any(mark in text for mark in "“”«»\""):
+        return None
+    squash = lambda value: " ".join(str(value).split()).casefold()
+    if squash(text) not in squash(player_input or ""):
+        return None
+    return text
+
+
+def _feature_refs_are_visible(refs):
+    """Absent refs are fine; every given id must be a visible feature here."""
+    if refs is None:
+        return True
+    if not isinstance(refs, list) or len(refs) > 8 or not all(isinstance(r, str) for r in refs):
+        return False
+    world_state = _session().world_state
+    visible = {
+        feature.get("id")
+        for feature in living_world.visible_features(world_state, world_state.get("location"))
+    }
+    return all(ref in visible for ref in refs)
 
 
 def _dm_response_schema_for_turn(allow_new_shops=False, narration_only=False):
@@ -11954,23 +12004,38 @@ def ask_dungeon_master(
     updates = data.get("world_updates", {}) if data else {}
     lore_claims = data.get("lore_claims") if data else None
     claims_supported = _lore_claims_are_supported(lore_claims, lore_context)
-    if not claims_supported:
+    refs_supported = _feature_refs_are_visible(data.get("feature_refs")) if data else True
+    if not claims_supported or not refs_supported:
         narration = None
         updates = {}
+    player_line = (
+        _validated_player_line(data.get("player_line"), player_input)
+        if data and claims_supported and refs_supported else None
+    )
     if return_details:
         return {
             "narration": narration,
             "world_updates": updates if isinstance(updates, dict) else {},
             "lore_claims": lore_claims if claims_supported else [],
-            "valid_response": bool(data) and claims_supported,
+            "player_line": player_line,
+            "valid_response": bool(data) and claims_supported and refs_supported,
             "fallback_reason_code": (
                 "UNVERIFIED_LORE_CLAIM"
                 if not claims_supported
                 else "INVALID_MODEL_RESPONSE"
-                if not data and not (isinstance(narration, str) and narration.strip())
+                if not refs_supported
+                or (not data and not (isinstance(narration, str) and narration.strip()))
                 else None
             ),
         }
+    if not refs_supported:
+        return finalize_narration(
+            _fallback_for_action_result(player_input, action_result),
+            player_input,
+            npc_target,
+            action_result,
+            fallback_reason_code="INVALID_MODEL_RESPONSE",
+        )
     if not claims_supported:
         fallback = _fallback_for_action_result(player_input, action_result)
         return finalize_narration(
@@ -16030,6 +16095,17 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     safety_diag = getattr(_session(), "last_narration_safety", {}) or {}
     validation_result = safety_diag.get("handling", "accepted")
     fallback_reason = safety_diag.get("reason_code") or packet.get("fallback_reason_code")
+
+    shown_player_line = packet.get("player_line")
+    if (
+        shown_player_line
+        and packet.get("valid_response")
+        and packet.get("narration")
+        and not rejected_scene_detail_proposal
+        and validation_result in ("accepted", "repaired")
+    ):
+        # The player's own words are a separate, attributed segment, never NPC speech.
+        final_dict["narration"] = f"Sen: “{shown_player_line}”\n\n{final_dict['narration']}"
 
     if validation_result in ("python_memory_response", "python_memory_fallback"):
         narration_source = "python_memory_response"
