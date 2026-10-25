@@ -83,7 +83,7 @@ class MonthNameMaskTests(unittest.TestCase):
 
     def test_secret_word_in_harmless_smalltalk_does_not_block_speech(self):
         for text in ("Kasım ayı soğuk geçti, rüzgar sertleşiyor.",
-                     "Kasım ayında hava soğur.",
+                     "Kasım ayında yollar çamurlanır.",
                      "KASIM AYINDA kar yağar."):
             with self.subTest(text=text):
                 before = copy.deepcopy(self.world)
