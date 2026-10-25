@@ -6699,6 +6699,7 @@ def commit_location_change(location_id, turn_index=None):
         flags["active_npc_id"] = None
         flags["last_npc_id"] = None
         flags["active_npc_until_turn"] = -1
+        scheduled_events.arm_table_absence(world_state, previous_location)
         now = world_state["campaign_time"]["elapsed_seconds"]
         scheduled_events.process_events(
             world_state, now, now,

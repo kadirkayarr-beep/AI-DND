@@ -157,6 +157,43 @@ def apply_scheduled_surface_effect(world, effect, location_id, event_id):
     return True
 
 
+def resolve_table_absence(world, location_id, event_id):
+    """Apply one armed absence: the oldest mark, otherwise the first item.
+
+    The acting NPC is the first one who can still act in this place. Returns
+    False before any mutation when nobody can act or the table is already clear.
+    """
+    npc = next((record for record in world.get("npcs", [])
+                if isinstance(record, dict) and record.get("location") == location_id
+                and npc_can_act(record)), None)
+    if npc is None:
+        return False
+    features = [feature for feature in world.get("features", [])
+                if isinstance(feature, dict) and feature.get("location") == location_id
+                and isinstance(feature.get("id"), str)]
+    marks = []
+    for feature in features:
+        for mark in (world.get("feature_marks") or {}).get(feature["id"]) or []:
+            if isinstance(mark, dict) and isinstance(mark.get("mark_id"), str):
+                turn = mark.get("turn", 0)
+                marks.append((turn if type(turn) is int else 0, mark["mark_id"], feature["id"]))
+    if marks:
+        _, mark_id, feature_id = min(marks)
+        return apply_scheduled_surface_effect(world, {
+            "kind": "mark_remove", "feature_id": feature_id,
+            "mark_id": mark_id, "npc_id": npc["id"],
+        }, location_id, event_id)
+    for feature in sorted(features, key=lambda record: record["id"]):
+        item = next((record for record in (world.get("surface_items") or {}).get(feature["id"]) or []
+                     if isinstance(record, dict) and isinstance(record.get("item_id"), str)), None)
+        if item is not None:
+            return apply_scheduled_surface_effect(world, {
+                "kind": "surface_item_custody", "feature_id": feature["id"],
+                "item_id": item["item_id"], "npc_id": npc["id"],
+            }, location_id, event_id)
+    return False
+
+
 def item_transfers(before, after):
     def locations(world):
         found = {}

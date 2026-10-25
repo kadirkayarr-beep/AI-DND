@@ -83,6 +83,13 @@ def validate_events(events, world):
                         or event.get("aftermath_visible", False)
                         or event.get("requires_decision", False)):
                     raise ValueError("Scheduled surface effect must stay hidden.")
+            elif effect.get("kind") == "table_absence":
+                if set(effect) != {"kind"}:
+                    raise ValueError("Scheduled surface effect is invalid.")
+                if (event["visibility"] != "hidden" or event["behavior"] != "NON_INTERRUPTIVE"
+                        or event.get("aftermath_visible", False)
+                        or event.get("requires_decision", False)):
+                    raise ValueError("Scheduled surface effect must stay hidden.")
             else:
                 raise ValueError("Unsupported scheduled effect.")
         result = event["canonical_result"]
@@ -159,6 +166,66 @@ def register_event(world, *, event_id, window_start, window_end, location_id,
     return event
 
 
+ABSENCE_WINDOW = 86400
+
+
+def _table_absence(event):
+    effects = event.get("effects") or []
+    return (len(effects) == 1 and isinstance(effects[0], dict)
+            and effects[0].get("kind") == "table_absence")
+
+
+def _location_has_table_change(world, location_id):
+    feature_ids = {
+        feature.get("id") for feature in world.get("features", [])
+        if isinstance(feature, dict) and feature.get("location") == location_id
+        and isinstance(feature.get("id"), str)
+    }
+    marks = world.get("feature_marks") or {}
+    surfaces = world.get("surface_items") or {}
+    return any(marks.get(feature_id) for feature_id in feature_ids) or any(
+        surfaces.get(feature_id) for feature_id in feature_ids)
+
+
+def arm_table_absence(world, location_id):
+    """Arm one hidden table change for a place the player is leaving.
+
+    Nothing is armed when the place has no mark and no surface item, or when a
+    pending absence for that place already exists. The world does not change
+    until the player arrives back inside the window.
+    """
+    if not isinstance(location_id, str) or location_id not in world.get("locations", {}):
+        return None
+    events = world.get("scheduled_events", [])
+    if any(event.get("status") == "PENDING" and event.get("location_id") == location_id
+           and _table_absence(event) for event in events):
+        return None
+    if not _location_has_table_change(world, location_id):
+        return None
+    clock = world.get("campaign_time") or {}
+    now = clock.get("elapsed_seconds", 0)
+    if type(now) is not int or now < 0:
+        now = 0
+    used = []
+    for event in events:
+        identity = event.get("event_id", "")
+        if isinstance(identity, str) and identity.startswith("absence:"):
+            suffix = identity.split(":", 1)[1]
+            if suffix.isdigit():
+                used.append(int(suffix))
+    sequence = world.get("table_absence_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    number = max([sequence, *used]) + 1
+    world["table_absence_sequence"] = number
+    return register_event(
+        world, event_id=f"absence:{number}", window_start=now,
+        window_end=now + ABSENCE_WINDOW, location_id=location_id,
+        effects=[{"kind": "table_absence"}], visibility="hidden",
+        behavior="NON_INTERRUPTIVE", aftermath_visible=False, summary="", aftermath="",
+    )
+
+
 def _eligible(event, world):
     return all(world.get("flags", {}).get(key) == value for key, value in event["prerequisites"].items())
 
@@ -179,6 +246,13 @@ def _occur(event, world, at):
             world.setdefault("blocked_travel_routes", {}).setdefault(effect["origin"], {})[
                 effect["destination"]
             ] = effect["blocked"]
+        elif effect["kind"] == "table_absence":
+            import equipment_economy
+            if not equipment_economy.resolve_table_absence(
+                    world, event["location_id"], event["event_id"]):
+                event["status"] = "EXPIRED"
+                event["encounter_status"] = "MISSED"
+                return
         elif effect["kind"] in SURFACE_EFFECTS:
             import equipment_economy
             equipment_economy.apply_scheduled_surface_effect(
@@ -296,6 +370,11 @@ def process_events(world, old, now, *, observation=None, resolution=None,
             identity = event["event_id"]
             if identity in processed or identity in blocked or event["status"] != "PENDING":
                 continue
+            if _table_absence(event) and type(now) is int and now >= event["window_end"]:
+                event["status"] = "EXPIRED"
+                event["encounter_status"] = "MISSED"
+                processed.add(identity)
+                continue
             if not _in_player_horizon(event, world):
                 continue
             dependencies = [by_id[d] for d in event.get("dependencies", [])]
@@ -320,6 +399,17 @@ def process_events(world, old, now, *, observation=None, resolution=None,
                         and event["window_start"] <= limit < event["window_end"])
             if observed and not decision:
                 at = max(limit, dep_time)
+            if _table_absence(event):
+                arrived = (observation and observation.get("kind") == "arrival"
+                           and observation.get("location_id") == event["location_id"]
+                           and _local(event, world)
+                           and event["window_start"] <= now < event["window_end"]
+                           and type(now) is int and now <= limit)
+                if not arrived:
+                    continue
+                at = now
+                decision = False
+                observed = False
             if at <= limit:
                 candidates.append((at, -event.get("priority", 0), event.get("causal_group", ""),
                                    event["location_id"], identity, event, decision, observed))
