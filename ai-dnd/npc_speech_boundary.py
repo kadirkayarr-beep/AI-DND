@@ -264,3 +264,37 @@ def mask_visible_entity_labels(text, world):
         text = re.sub(r'(?<!\w)' + re.escape(label) + r'(?!\w)',
                       mask_label, text, flags=re.IGNORECASE)
     return text
+
+
+_MONTH_NAMES = frozenset({
+    "ocak", "subat", "mart", "nisan", "mayis", "haziran",
+    "temmuz", "agustos", "eylul", "ekim", "kasim", "aralik",
+})
+_MONTH_PATTERN = re.compile(
+    r"(?<!\w)(?P<name>\w+)\s+ay(?:ı|i|ında|inda|ının|inin|ına|ina|ından|indan|larında|larinda)\b",
+    re.IGNORECASE,
+)
+
+
+def mask_calendar_month_name(text, identity):
+    """Hide a month-name mention from the identity scan, nothing else.
+
+    A hidden NPC named after a real Turkish month ("Kasım") must not make
+    "Kasım ayında kar yağar" a disclosure. A bare name, "Ben Kasım" and
+    "Kasım gülümsüyor" stay visible, and a name that is not a month is never
+    masked. This returns a scan view; the narration itself is unchanged.
+    """
+    if not isinstance(text, str) or not isinstance(identity, str):
+        return text
+    if fold(identity) not in _MONTH_NAMES:
+        return text
+
+    def mask(match):
+        if fold(match.group("name")) != fold(identity):
+            return match.group(0)
+        start, end = match.span("name")
+        relative = start - match.start()
+        blank = " " * (end - start)
+        return match.group(0)[:relative] + blank + match.group(0)[relative + end - start:]
+
+    return _MONTH_PATTERN.sub(mask, text)

@@ -8974,6 +8974,7 @@ def _narration_safety_decision(
                 identity_view = npc_speech_boundary.hidden_identity_scan_text(
                     identity_view, identity, world_state
                 )
+                identity_view = npc_speech_boundary.mask_calendar_month_name(identity_view, identity)
                 if _entity_reference_in_text(identity, identity_view):
                     return reject("HIDDEN_NPC_IDENTITY_DISCLOSURE", identity)
     action_result = action_result or {}

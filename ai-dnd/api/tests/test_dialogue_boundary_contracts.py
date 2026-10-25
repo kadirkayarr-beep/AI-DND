@@ -10,6 +10,7 @@ import unittest
 
 import dialogue_runtime
 import game
+import npc_speech_boundary
 import npc_statements
 
 
@@ -60,6 +61,57 @@ class AttributionContracts(unittest.TestCase):
         self.assertIsNone(dialogue_runtime.deception_context(
             self.world, planted, {"text": "halka"}))
         self.assertEqual(planted["dialogue_deception"]["remaining_uses"], 2)
+
+
+class MonthNameMaskTests(unittest.TestCase):
+    def setUp(self):
+        self.session = game.create_session(seed=7)
+        self.world = self.session.world_state
+        self.world["locations"]["known_inn"] = {
+            "id": "known_inn", "name": "Hlin Hanı", "type": "building",
+            "scene_kind": "tavern", "description": "Sade bir salon."}
+        self.world["location"] = "known_inn"
+        self.npc = self.session.create_npc_from_ai({
+            "name": "Kasım", "role": "Demirci", "location": "known_inn",
+            "appearance": "Önlüklü kişi."})
+        self.npc.update(name_known_to_player=False, role_known_to_player=False)
+
+    def decision(self, text):
+        return self.session._narration_safety_decision(
+            text, "Etrafa bakıyorum.",
+            action_result={"action": "explore", "status": "observed", "success": True})
+
+    def test_secret_word_in_harmless_smalltalk_does_not_block_speech(self):
+        for text in ("Kasım ayı soğuk geçti, rüzgar sertleşiyor.",
+                     "Kasım ayında hava soğur.",
+                     "KASIM AYINDA kar yağar."):
+            with self.subTest(text=text):
+                before = copy.deepcopy(self.world)
+                self.assertFalse(self.decision(text)["unsafe"])
+                self.assertEqual(self.world, before)
+                self.assertFalse(self.npc["name_known_to_player"])
+
+    def test_real_identity_claim_is_still_rejected(self):
+        for text in ("Kasım gülümsüyor.", "Ben Kasım, demirciyim.",
+                     "Kasım ayı soğuk. Kasım gülümsüyor."):
+            with self.subTest(text=text):
+                result = self.decision(text)
+                self.assertTrue(result["unsafe"])
+                self.assertEqual(result["reason_code"], "HIDDEN_NPC_IDENTITY_DISCLOSURE")
+
+    def test_non_month_homograph_stays_rejected(self):
+        self.npc["name"] = "Yağmur"
+        result = self.decision("Yağmur yağıyor, sokaklar ıslandı.")
+        self.assertTrue(result["unsafe"])
+        self.assertEqual(result["reason_code"], "HIDDEN_NPC_IDENTITY_DISCLOSURE")
+
+    def test_mask_only_covers_real_month_names(self):
+        self.assertNotIn("kasım", npc_speech_boundary.mask_calendar_month_name(
+            "Kasım ayında kar yağar.", "Kasım").casefold())
+        self.assertIn("kasım", npc_speech_boundary.mask_calendar_month_name(
+            "Kasım gülümsüyor.", "Kasım").casefold())
+        self.assertEqual(npc_speech_boundary.mask_calendar_month_name(
+            "Yağmur ayında beklenir.", "Yağmur"), "Yağmur ayında beklenir.")
 
 
 if __name__ == "__main__":
