@@ -1,0 +1,15 @@
+﻿start 2026-10-25T13:12:10.3884443Z source 2d02a5e
+RELEASE DETERMINISTIC GATES: 33 selected
+Excluded historical prototypes: test_combat_v2.py, test_combat_v2_fixed.py
+
+=== test_definition_preflight_checks.py ===
+Traceback (most recent call last):
+  File "C:\Users\Kadir\Desktop\AI-DND-v01-scene-truth\ai-dnd\run_tests.py", line 252, in <module>
+    raise SystemExit(main(sys.argv[1:]))
+                     ~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Kadir\Desktop\AI-DND-v01-scene-truth\ai-dnd\run_tests.py", line 236, in main
+    result = run_child_gate(command, test_name=test_name, timeout=args.gate_timeout)
+  File "C:\Users\Kadir\Desktop\AI-DND-v01-scene-truth\ai-dnd\run_tests.py", line 116, in run_child_gate
+    raise RuntimeError("Gate process-tree cleanup requires a POSIX runtime")
+RuntimeError: Gate process-tree cleanup requires a POSIX runtime
+exit 1 end 2026-10-25T13:12:11.3900642Z

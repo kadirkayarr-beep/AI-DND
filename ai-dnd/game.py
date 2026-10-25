@@ -14128,6 +14128,59 @@ def _scene_feature_match(player_input, location_id):
     return matches
 
 
+def resolve_scene_seating(action_input):
+    """Seat the player at one visible seat here, or say why that is not possible.
+
+    Single owner of the sit decision for the direct scene action and for the
+    compound grounded action. Hidden or undiscovered features are not
+    candidates (``living_world.visible_features`` is the visibility owner) and
+    their names are never disclosed.
+    """
+    world_state = _session().world_state
+    current = world_state.get("location")
+    visible = living_world.visible_features(world_state, current)
+    visible_ids = {feature.get("id") for feature in visible}
+    features = [
+        feature for feature in _scene_feature_match(action_input, current)
+        if feature.get("id") in visible_ids
+    ]
+    seats = [
+        feature for feature in visible
+        if feature.get("kind") in ("furnishing", "seat", "table", "bench")
+    ]
+    target = features[0] if len(features) == 1 else (seats[0] if seats else None)
+    if len(features) > 1:
+        return {
+            "action": "sit",
+            "status": "clarification",
+            "success": False,
+            "state_changes": [],
+            "direct_response": "Birden fazla uygun yer var; hangi masaya oturmak istediğini belirtir misin?",
+        }
+    if target:
+        living_world.set_player_position(world_state, current, "seated", target.get("id"))
+        target_name = str(target.get("name") or "seçtiğin yer").strip()
+        return {
+            "action": "sit",
+            "status": "completed",
+            "success": True,
+            "target_id": target.get("id"),
+            "target_name": target.get("name"),
+            "state_changes": [],
+            "direct_response": (
+                f"“{target_name}” yakınında uygun bir yere oturup "
+                "yerleşiyorsun."
+            ),
+        }
+    return {
+        "action": "sit",
+        "status": "unresolved",
+        "success": False,
+        "state_changes": [],
+        "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
+    }
+
+
 def _direct_npc_smalltalk_response(player_input, npc_target):
     if (
         not isinstance(player_input, str)
@@ -15078,44 +15131,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "direct_response": __import__("grounded_action").clarification_text(_session()),
                 }
         elif action == "sit":
-            features = _scene_feature_match(action_input, current)
-            seats = [
-                feature for feature in location_features(current)
-                if isinstance(feature, dict)
-                and feature.get("kind") in ("furnishing", "seat", "table", "bench")
-            ]
-            target = features[0] if len(features) == 1 else (seats[0] if seats else None)
-            if len(features) > 1:
-                direct = {
-                    "action": "sit",
-                    "status": "clarification",
-                    "success": False,
-                    "state_changes": [],
-                    "direct_response": "Birden fazla uygun yer var; hangi masaya oturmak istediğini belirtir misin?",
-                }
-            elif target:
-                living_world.set_player_position(world_state, current, "seated", target.get("id"))
-                target_name = str(target.get("name") or "seçtiğin yer").strip()
-                direct = {
-                    "action": "sit",
-                    "status": "completed",
-                    "success": True,
-                    "target_id": target.get("id"),
-                    "target_name": target.get("name"),
-                    "state_changes": [],
-                    "direct_response": (
-                        f"“{target_name}” yakınında uygun bir yere oturup "
-                        "yerleşiyorsun."
-                    ),
-                }
-            else:
-                direct = {
-                    "action": "sit",
-                    "status": "unresolved",
-                    "success": False,
-                    "state_changes": [],
-                    "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
-                }
+            direct = resolve_scene_seating(action_input)
         elif action == "stand":
             living_world.set_player_position(world_state, current, "standing")
             direct = {

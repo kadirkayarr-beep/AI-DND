@@ -1,0 +1,43 @@
+{
+  "recorded_utc": "2026-10-25T13:00:00Z",
+  "phase": "Faz 0 - kaynak ve calisan surec kimligi",
+  "note": "Bilinmeyen alanlar null + gerekce ile yazildi. Commit kimligi calisan surecin kaynak kimligi degildir.",
+  "source": {
+    "repo": "kadirkayarr-beep/AI-DND",
+    "branch_main_worktree": "dev/ai-dnd",
+    "head": "2d02a5e21dbaea3f7e2b076bf6085ee1a54bec64",
+    "head_commit_time": "2026-10-25T11:23:46+03:00",
+    "isolated_worktree": "C:/Users/Kadir/Desktop/AI-DND-v01-scene-truth",
+    "isolated_branch": "cursor/v01-scene-truth-20261025",
+    "main_worktree_untracked": [
+      ".cursor/mcp.json",
+      ".cursor/settings.json",
+      "ai-dnd/docs/evidence/door-live-231b6cd-20261016/"
+    ],
+    "last_commits_touching_game_grounded_living_world": [
+      {"commit": "6eb2c47", "time": "2026-10-24T23:27:54+03:00"},
+      {"commit": "e51790e", "time": "2026-10-24T12:20:30+03:00"},
+      {"commit": "e03aa0c", "time": "2026-10-23T20:29:23+03:00"}
+    ],
+    "main_worktree_game_py_mtime": "2026-10-24T23:28:05+03:00"
+  },
+  "running_process": {
+    "listening_port": 8008,
+    "pid": 6492,
+    "parent_pid": 13884,
+    "started_local": "2026-10-24T13:44:37+03:00",
+    "command_line": "python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8008",
+    "executable": "C:/Users/Kadir/AppData/Local/Python/pythoncore-3.14-64/python.exe",
+    "working_directory": null,
+    "working_directory_reason": "Windows process listing does not expose the working directory; source tree of the running server is not proven.",
+    "openapi_reachable": true,
+    "observation": "The process started before the last game.py commit (6eb2c47) and before the main worktree game.py last write time. If it imported game.py from that worktree, it holds an older copy. This is a conditional, not a proven finding.",
+    "action_taken": "None. The process was not restarted, stopped or called with turns."
+  },
+  "model": {
+    "ollama_reachable": true,
+    "ollama_tags_present": ["qwen3.5:9b-q4_K_M"],
+    "test_harness_label": "qwen3:8b (constant in source; not proof of the model actually used)",
+    "live_model_call_made_in_this_phase": false
+  }
+}

@@ -472,12 +472,14 @@ def classify_scene_action(value: Any) -> str | None:
         return "wait"
     if _EXIT_RE.search(text):
         return "exit"
-    if re.search(r"\boturup\b.{0,55}\b\w+yorum\b", normalized):
+    # Words inside quotes are speech, not a command: "Garsona 'otur' diyorum".
+    spoken_free = _text_outside_quotes(text)
+    if re.search(r"\boturup\b.{0,55}\b\w+yorum\b", normalize_text(spoken_free)):
         return "sit"
-    sit_match = _SIT_RE.search(text)
+    sit_match = _SIT_RE.search(spoken_free)
     # "oturup sıcak bir yemek yiyebileceğim bir yer" names a place to sit in a
     # subordinate clause; the gerund "oturup" is not an affirmative sit action.
-    if sit_match and text[sit_match.end():sit_match.end() + 2].casefold() != "up":
+    if sit_match and spoken_free[sit_match.end():sit_match.end() + 2].casefold() != "up":
         return "sit"
     if _STAND_RE.search(text):
         return "stand"

@@ -1,0 +1,5 @@
+﻿source after-green start 2026-10-25T16:33:19.0317664+03:00
+api.tests.test_lr00_grounded_human exit=0 :: Ran 38 tests in 11.101s | OK
+api.tests.test_lr00_p1_intent exit=0 :: Ran 21 tests in 7.332s | OK
+api.tests.test_wave3_interaction_modes exit=1 :: Ran 9 tests in 0.615s | FAILED (errors=9)
+api.tests.test_campaign_api exit=1 :: Ran 138 tests in 90.893s | FAILED (failures=15, errors=5)

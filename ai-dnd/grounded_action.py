@@ -2440,6 +2440,17 @@ def place_hint(session, location_id: str) -> str | None:
 # ---------------------------------------------------------------------------
 # The turn
 # ---------------------------------------------------------------------------
+def _do_sit(run: _Run, step) -> dict[str, Any]:
+    """Sit through the single sit owner; a refusal is an obstacle, not progress."""
+    clause = " ".join(step.get("tokens") or []) or run.text
+    result = run.session.resolve_scene_seating(clause)
+    if result.get("success"):
+        seat = {"id": result.get("target_id"), "name": result.get("target_name")}
+        return _receipt("sit", "completed", seat, text=result.get("direct_response"))
+    reason = "ambiguous_seat" if result.get("status") == "clarification" else "no_seat"
+    return _receipt("sit", "blocked", None, reason=reason, text=result.get("direct_response"))
+
+
 HANDLERS = {
     "approach": lambda run, s: _do_move(run, s, "approach"),
     "go": lambda run, s: _do_move(run, s, "go"),
@@ -2458,6 +2469,7 @@ HANDLERS = {
     "listen": _do_listen,
     "touch": _do_touch,
     "wait": lambda run, s: _receipt("wait", "completed", None, text="Olduğun yerde bekliyorsun."),
+    "sit": _do_sit,
     "climb": _do_climb,
 }
 
