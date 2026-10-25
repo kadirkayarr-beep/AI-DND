@@ -6,7 +6,6 @@ import { mergeCombatHistory } from '@/lib/combat-history';
 import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract';
 import { ExplorationControls } from '@/components/exploration-controls';
 import { CourtyardHelp } from '@/components/courtyard-help';
-import { explorationInputLabel } from '@/lib/exploration-input';
 import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
 import { removeAdvisoryCache, writeAdvisoryCache } from '@/lib/advisory-cache';
 import {
@@ -23,6 +22,9 @@ import {
   Backpack,
   BookOpen,
   Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Compass,
   DoorOpen,
   Feather,
@@ -78,6 +80,8 @@ import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
+import { ReadingSettings } from '@/components/reading-settings';
+import { readReadingPreferences, writeReadingPreferences, type ReadingPreferences } from '@/lib/reading-preferences';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
@@ -89,6 +93,7 @@ import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-pr
 import { OuroborosMark } from '@/components/ouroboros-mark';
 import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGateSoundMuted, setGateSoundVolume } from '@/lib/gate-sound';
 import '@/components/cinematic-gate.css';
+import '@/components/unwritten-play.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
@@ -181,36 +186,43 @@ function EngineHealth() {
 
 function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
-    <main className="opening cinematic-gate gate-fade" data-testid="app-start">
-      <div className="dnd-shell">
-        <header className="opening-header">
-          <Brand />
-          <GateSoundControl />
-        </header>
-        <div className="opening-grid">
-          <section className="opening-copy" aria-labelledby="opening-title">
-            <div className="opening-eyebrow"><Kicker>Kapılar açılıyor</Kicker></div>
-            <h1 className="opening-title" id="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
-            <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
-            <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
-            <div className="opening-actions gate-actions">
-              <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={() => { primeGateSound(); playGateSound('menu'); onCreate(); }}>
-                {creating ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />} {creating ? 'Dünya kuruluyor' : 'Yeni macera'}
+    <main className="design-preview unwritten-entry" data-testid="app-start">
+      <div className="entry-ribbon"><span className="ribbon-dot" /><strong>GERÇEK OYUN</strong><span>/</span><span>Hesabınla giriş yap; kampanyaların kayıtlı kalır</span></div>
+      <header className="entry-header">
+        <div className="entry-brand"><span className="entry-brand-icon"><OuroborosMark /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
+        <GateSoundControl />
+      </header>
+      <section className="entry-page">
+        <div className="entry-main">
+          <div className="entry-art">
+            <img className="ouroboros-art" src={`${import.meta.env.BASE_URL}ouroboros-approved.jpg`} alt="UNWRITTEN amblemi: zümrüt ve altın renkli dairesel ejderha" data-testid="image-approved-ouroboros" />
+          </div>
+          <div className="entry-copy">
+            <h1>UNWRITTEN</h1>
+            <p className="entry-lede">Bir hikâyeye sessizce adım at.</p>
+            <nav className="entry-actions" aria-label="Kampanya işlemleri">
+              <button className="button-primary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={() => { primeGateSound(); playGateSound('menu'); onContinue(); }}>
+                {loadingCampaigns ? <RefreshCw size={16} className="animate-spin" aria-hidden="true" /> : <BookOpen size={16} aria-hidden="true" />}
+                Maceraya devam et <ArrowRight size={15} aria-hidden="true" />
               </button>
-              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={() => { primeGateSound(); playGateSound('menu'); onContinue(); }}>
-                {loadingCampaigns ? <RefreshCw size={14} className="animate-spin" /> : <BookOpen size={14} />} Maceraya devam et
+              <button className="button-quiet new-adventure-action" type="button" data-testid="button-create-session" disabled={creating} onClick={() => { primeGateSound(); playGateSound('menu'); onCreate(); }}>
+                <Sparkles size={15} aria-hidden="true" />{creating ? 'Dünya kuruluyor' : 'Yeni macera'}
               </button>
-            </div>
+            </nav>
             {showNoCampaigns && !hasCampaigns && <div className="continue-note" data-testid="text-no-session">Henüz bir macera yok. İlk yolculuğunu başlat.</div>}
-            {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
-            <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
-          </section>
-          <section className="opening-art opening-emblem" aria-label="Ouroboros simgesi">
-            <div className="opening-emblem-frame" aria-hidden="true"><OuroborosMark awaken /></div>
-          </section>
+            {notice && <div className="entry-notice"><NoticeBanner notice={notice} /></div>}
+            <div className="entry-safety" role="note" data-testid="status-real-game-safety">
+              <span className="safety-mark" aria-hidden="true">i</span>
+              <p>Bu giriş ekranında kayıtlı kampanyanı sürdürebilir veya yeni macera oluşturabilirsin. İlerlemen hesabındaki kampanyaya kaydedilir.</p>
+            </div>
+          </div>
         </div>
-        <EngineHealth />
-      </div>
+        <aside className="real-entry-card">
+          <div className="real-card-mark"><Shield size={17} aria-hidden="true" /></div>
+          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span><strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
+          <span className="entry-health"><EngineHealth /></span>
+        </aside>
+      </section>
     </main>
   );
 }
@@ -238,6 +250,110 @@ function InventoryPanel({ items }: { items: string[] }) {
 
 function WorldPanel({ state }: { state: GameState }) {
   return <CampaignContextPanel state={state} />;
+}
+
+function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDraft, onSetCombatTarget }: {
+  state: GameState;
+  sending: boolean;
+  onExplorationCommand: (message: string) => void;
+  onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void;
+  onSetCombatTarget: (targetId: string) => void;
+}) {
+  const actionSuggestions = [
+    ...getContextualActionSuggestions(state),
+    ...(state.campaign_adventures?.affordances ?? []).map((label: string) => ({
+      id: `adventure-${label}`, label, message: label, mode: 'do' as const,
+    })),
+  ];
+  return <details className="world-experimental" data-testid="world-experimental">
+    <summary><strong>Deneysel</strong><span>Keşif ve yolculuk · isteğe bağlı araçlar</span></summary>
+    <div className="world-experimental-content">
+      <CourtyardHelp state={state} disabled={sending} onDraft={(text) => onDraft(text, 'do')} />
+      <section className="data-row" data-testid="exploration-disclosure">
+        <h3>Keşif ve yolculuk</h3>
+        <ExplorationControls state={state}
+          disabled={sending || state.combat.active || state.character.current_hp <= 0 || !!state.pending_event_decisions?.length}
+          onCommand={onExplorationCommand} />
+      </section>
+      <div className="action-suggestions" role="group" aria-label="Bu sahne için önerilen hamleler" data-testid="action-suggestions">
+        <div className="action-suggestions-heading">
+          <span><Sparkles size={12} aria-hidden="true" /> Bu sahnede deneyebilirsin</span>
+          <small>Seçim metin kutusuna aktarılır; gönderilmez.</small>
+        </div>
+        <div className="action-suggestion-list">
+          {actionSuggestions.map((suggestion) => (
+            <button className="action-suggestion" data-testid={`button-suggestion-${suggestion.id}`} disabled={sending} key={suggestion.id} type="button"
+              onClick={() => {
+                const targetId = "targetId" in suggestion ? suggestion.targetId : undefined;
+                if (state.combat.active && targetId) onSetCombatTarget(targetId);
+                onDraft(suggestion.message, suggestion.mode, targetId);
+              }}>{suggestion.label}</button>
+          ))}
+        </div>
+      </div>
+      {state.pending_event_decisions?.map((event, index) => <div className="data-row" data-testid="scheduled-event-decision" key={index}>
+        <p>{event.summary}</p>
+        <small>{event.in_combat ? 'Çatışma sonrasında sonraki kararını sen vereceksin.' : event.forced ? 'Fiziksel engel: başka bir kayıtlı konum veya rota seçebilirsin.' : 'Kararın bekleniyor; zaman kendiliğinden ilerlemiyor.'}</small>
+        {!event.in_combat && <div className="action-suggestion-list">
+          {[
+            ...(!event.forced ? [['Devam etmeyi seç', 'Karşılaşmada devam etmeyi seçiyorum.'], ['Konuş', 'Karşılaşmada konuşmayı seçiyorum.']] : []),
+            ...(event.can_fight ? [['Savaş', 'Karşılaşmada savaşmayı seçiyorum.']] : []),
+            ...(state.journey ? [['Geri dön', 'Geri dönüyorum.']] : []),
+          ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => {
+            if (state.exploration) {
+              const choice = label === 'Savaş' ? 'fight' : label === 'Geri dön' ? 'return' : label === 'Konuş' ? 'talk' : 'continue';
+              onExplorationCommand('/explore decision ' + choice);
+            } else onDraft(`Karşılaşma: ${event.summary}\nKararım: ${intent}`, 'do');
+          }}>{label}</button>)}
+        </div>}
+      </div>)}
+      {state.journey && <div className="data-row" data-testid="journey-decision">
+        <p>{state.locations[state.journey.destination]?.name ?? state.journey.destination} yolunda · {state.journey.stage} / {state.journey.stage_count}</p>
+        {state.journey.encounter && <p>{state.journey.encounter}</p>}
+        <div className="action-suggestion-list">
+          {[
+            ['Yola devam', 'Yolculuğa devam ediyorum.'],
+            ['Dur', 'Yolculuğu durduruyorum.'],
+            ['Geri dön', 'Geri dönüyorum.'],
+          ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active || !!state.pending_event_decisions?.length} onClick={() => {
+            if (state.exploration) onExplorationCommand('/travel ' + (label === 'Yola devam' ? 'continue' : label === 'Dur' ? 'stop' : 'return'));
+            else onDraft(intent, 'do');
+          }}>{label}</button>)}
+        </div>
+      </div>}
+    </div>
+  </details>;
+}
+
+type RailPanelId = 'character' | 'world' | 'npcs' | 'journal' | 'combat';
+const PREVIOUS_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'ask_dm', say: 'do', ask_dm: 'say' };
+const NEXT_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'say', say: 'ask_dm', ask_dm: 'do' };
+
+function RailSummary({ panel, state }: { panel: RailPanelId; state: GameState }) {
+  if (panel === 'character') return <div className="rail-summary" data-testid="summary-character">
+    <strong>{state.character.name}</strong>
+    <span>{speciesLabel(state.character.race)} · {classLabel(state.character.class)} · Seviye {state.character.level}</span>
+    <span>Can {state.character.current_hp}/{state.character.max_hp} · Zırh {state.character.armor_class}</span>
+  </div>;
+  if (panel === 'world') return <div className="rail-summary" data-testid="summary-world">
+    <strong>{state.locations[state.location]?.name ?? 'Konum bilinmiyor'}</strong>
+    <span><CampaignDate state={state} /></span>
+  </div>;
+  if (panel === 'npcs') {
+    const people = currentSceneContext(state).people;
+    return <div className="rail-summary" data-testid="summary-npcs">
+      {people.length ? people.slice(0, 3).map((person) => <span key={person.id}>{person.name}{person.role ? ` · ${person.role}` : ''}</span>) : <span>Bu sahnede görünür kişi yok.</span>}
+    </div>;
+  }
+  if (panel === 'journal') return <div className="rail-summary" data-testid="summary-journal">
+    <span>Yerler {state.journal.discovered_locations.length} · Kişiler {state.journal.known_npcs.length}</span>
+    <span>Görevler {state.quests?.length ?? 0}</span>
+  </div>;
+  return <div className="rail-summary" data-testid="summary-combat">
+    {state.combat.active
+      ? <><strong>Çatışma sürüyor · Tur {state.combat.round}</strong><span>{state.combat.participant_records.filter((item) => item.status === 'active').length} etkin katılımcı</span></>
+      : <span>Çatışma yok.</span>}
+  </div>;
 }
 
 function PeoplePanel({ state }: { state: GameState }) {
@@ -465,7 +581,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
   );
 }
 
-function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
+function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
   const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'KİŞİLER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -506,8 +622,8 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
         ))}
       </div>
       <div role="tabpanel" id="world-panel-content" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
-        {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
-  {activeTab === 'npcs' && <PeoplePanel state={state} />}
+        {activeTab === 'world' && <><WorldPanel state={state} /><ExperimentalWorldControls state={state} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={onDraft} onSetCombatTarget={onSetCombatTarget} /><DetailsPanel state={state} /></>}
+        {activeTab === 'npcs' && <PeoplePanel state={state} />}
          {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
         {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
       </div>
@@ -518,6 +634,10 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
 function StoryColumn({
   state,
   entries,
+  readingPreferences,
+  setReadingPreferences,
+  composerOpen,
+  setComposerOpen,
   message,
   setMessage,
   interactionMode,
@@ -526,14 +646,15 @@ function StoryColumn({
   setConversationTargetId,
   onEndConversation,
   onSubmit,
-  onExplorationCommand,
+  onKeyboardSubmit,
   onEconomyCommand,
   sending,
   notice,
   scrollRef,
   onScroll,
   resultCue,
-  locationChanged,
+  newResponseEntryIndex,
+  onJumpToNewResponse,
   combatEndNotice,
   combatTargetId,
   setCombatTargetId,
@@ -546,6 +667,10 @@ function StoryColumn({
 }: {
   state: GameState;
   entries: TranscriptEntry[];
+  readingPreferences: ReadingPreferences;
+  setReadingPreferences: (next: ReadingPreferences) => void;
+  composerOpen: boolean;
+  setComposerOpen: (open: boolean) => void;
   message: string;
   setMessage: (value: string) => void;
   interactionMode: InteractionMode;
@@ -554,14 +679,15 @@ function StoryColumn({
   setConversationTargetId: (value: string) => void;
   onEndConversation: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onExplorationCommand: (message: string) => void;
+  onKeyboardSubmit: () => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
   sending: boolean;
   notice: Notice | null;
   scrollRef: RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   resultCue: string;
-  locationChanged: boolean;
+  newResponseEntryIndex: number | null;
+  onJumpToNewResponse: (focusTarget?: boolean) => void;
   combatEndNotice: string | null;
   combatTargetId: string;
   setCombatTargetId: (value: string) => void;
@@ -572,7 +698,6 @@ function StoryColumn({
   onAmbientAction: (action: AmbientEventActionInputAction) => void;
   onRetryAmbientAction: () => void;
 }) {
-  const location = state.locations[state.location];
   const ambientEvent = state.scene?.ambient_event ?? null;
   const currentAmbientResult = ambientActionResult?.event_instance_id === ambientEvent?.instance_id
     ? ambientActionResult
@@ -584,19 +709,9 @@ function StoryColumn({
       && participant.status === 'active'
       && participant.current_hp > 0,
   );
-  const actionSuggestions = [
-    ...getContextualActionSuggestions(state),
-    ...(state.campaign_adventures?.affordances ?? []).map((label: string) => ({
-      id: `adventure-${label}`,
-      label,
-      message: label,
-      mode: 'do' as const,
-    })),
-  ];
   const conversationTargets = (state.scene?.npcs ?? []).filter(
     (npc) => typeof npc.id === 'string' && typeof npc.name === 'string' && npc.name.trim().length > 0,
   );
-  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const currentActor = state.combat.participant_records.find(
     (participant) => participant.id === state.combat.current_actor_id,
   );
@@ -605,6 +720,27 @@ function StoryColumn({
     : interactionMode === 'ask_dm'
       ? 'Anlatıcıya ne sormak istiyorsun?'
       : 'Ne yapmak istiyorsun?';
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const composerTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasComposerOpen = useRef(composerOpen);
+  const desktopEnterSupported = typeof window !== 'undefined'
+    && typeof navigator !== 'undefined'
+    && !(window.matchMedia?.('(pointer: coarse)').matches
+      || window.matchMedia?.('(max-width: 760px)').matches
+      || navigator.maxTouchPoints > 0);
+  useEffect(() => {
+    if (composerOpen) messageInputRef.current?.focus();
+    else if (wasComposerOpen.current) composerTriggerRef.current?.focus({ preventScroll: true });
+    wasComposerOpen.current = composerOpen;
+  }, [composerOpen]);
+  const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+    if (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 760px)').matches || navigator.maxTouchPoints > 0) return;
+    event.preventDefault();
+    if (event.repeat || sending || !message.trim()) return;
+    onKeyboardSubmit();
+  };
   return (
     <section className="story-column workspace-story" data-testid="panel-story">
       <div className="story-scene-context" role="region" aria-label="Sahne bilgileri" tabIndex={0}>
@@ -612,11 +748,9 @@ function StoryColumn({
           <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
           <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
           <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
+          <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
         </div>
         <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
-        <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
-          <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? 'Konum ayrıntıları henüz görünmüyor.'}</strong>{location?.type && JOURNAL_ENVIRONMENT_LABELS[location.type] && <span>{JOURNAL_ENVIRONMENT_LABELS[location.type]}</span>}</div>
-        </div>
         <AmbientEventActionPanel
           event={ambientEvent}
           referents={state.scene?.referents ?? []}
@@ -639,145 +773,31 @@ function StoryColumn({
           </div>
         )}
       </div>
-      <Transcript entries={entries.map((entry) => entry.kind === 'player'
-        ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} resultCue={resultCue} />
+      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
-      <div className="command-box">
-        <div className="command-context">
-        <CourtyardHelp state={state} disabled={sending} onDraft={(text) => {
-          setInteractionMode('do');
-          setConversationTargetId('');
-          setMessage(text);
-          messageInputRef.current?.focus();
-        }} />
-        <details className="data-row mb-3" open={!state.exploration} data-testid="exploration-disclosure">
-          <summary className="cursor-pointer">Keşif ve yolculuk</summary>
-          <div className="mt-3 overflow-y-auto" style={{ maxHeight: '35vh' }}>
-            <ExplorationControls state={state}
-              disabled={sending || state.combat.active || state.character.current_hp <= 0 || !!state.pending_event_decisions?.length}
-              onCommand={onExplorationCommand} />
+      {state.conversation.active && state.conversation.interlocutor && (
+          <div className="active-interlocutor" role="status" data-testid="active-interlocutor">
+            <MessageCircle size={13} aria-hidden="true" />
+            <span>Konuşuyorsun: <strong>{state.conversation.interlocutor.name}</strong></span>
+            <button className="action-suggestion" type="button" disabled={sending} onClick={onEndConversation} data-testid="button-end-conversation">Konuşmayı bitir</button>
           </div>
-        </details>
-        <div className="action-suggestions" role="group" aria-label="Bu sahne için önerilen hamleler" data-testid="action-suggestions">
-          <div className="action-suggestions-heading">
-            <span><Sparkles size={12} aria-hidden="true" /> Bu sahnede deneyebilirsin</span>
-            <small>Seçim metin kutusuna aktarılır; gönderilmez.</small>
-          </div>
-          <div className="action-suggestion-list">
-            {actionSuggestions.map((suggestion) => (
-              <button
-                className="action-suggestion"
-                data-testid={`button-suggestion-${suggestion.id}`}
-                disabled={sending}
-                key={suggestion.id}
-                onClick={() => {
-                  const targetId = "targetId" in suggestion ? suggestion.targetId : undefined;
-                  setInteractionMode(suggestion.mode);
-                  setConversationTargetId(suggestion.mode === 'say' ? (targetId ?? '') : '');
-                  if (state.combat.active && targetId) setCombatTargetId(targetId);
-                  setMessage(suggestion.message);
-                  messageInputRef.current?.focus();
-                }}
-                type="button"
-              >
-                {suggestion.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {state.conversation.active && state.conversation.interlocutor && (
-          <div className="data-row mb-3" role="status" data-testid="active-interlocutor">
-            <div className="flex items-center gap-2">
-              <MessageCircle size={13} aria-hidden="true" />
-              <span>Konuşuyorsun: <strong>{state.conversation.interlocutor.name}</strong></span>
-              <button
-                className="action-suggestion ml-auto"
-                type="button"
-                disabled={sending}
-                onClick={onEndConversation}
-                data-testid="button-end-conversation"
-              >
-                Konuşmayı bitir
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="action-suggestion-list mb-3" role="group" aria-label="Etkileşim biçimi" data-testid="interaction-mode-selector">
-          {([
-            ['say', 'SÖYLE'],
-            ['do', 'YAP'],
-            ['ask_dm', 'ANLATICIYA SOR'],
-          ] as const).map(([mode, label]) => (
-            <button
-              key={mode}
-              className="action-suggestion"
-              type="button"
-              aria-pressed={interactionMode === mode}
-              data-testid={`button-mode-${mode}`}
-              disabled={sending || (state.combat.active && mode !== 'do')}
-              onClick={() => {
-                setInteractionMode(mode);
-                if (mode !== 'say') setConversationTargetId('');
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {interactionMode === 'say' && conversationTargets.length > 1 && (
-          <label className="command-target-label mb-3" htmlFor="conversation-target-select">
-            <span>Kiminle konuşuyorsun? <small>— isteğe bağlı</small></span>
-            <select
-              id="conversation-target-select"
-              className="command-target-select"
-              value={conversationTargetId}
-              onChange={(event) => setConversationTargetId(event.target.value)}
-              disabled={sending}
-              data-testid="select-conversation-target"
-            >
-              <option value="">Sözlerimde belirteceğim</option>
-              {conversationTargets.map((npc) => (
-                <option value={npc.id} key={npc.id}>{npc.name}</option>
-              ))}
-            </select>
-          </label>
-        )}
-          {state.pending_event_decisions?.map((event, index) => <div className="data-row mb-3" data-testid="scheduled-event-decision" key={index}>
-            <p>{event.summary}</p>
-            <small>{event.in_combat ? 'Çatışma sonrasında sonraki kararını sen vereceksin.' : event.forced ? 'Fiziksel engel: başka bir kayıtlı konum veya rota seçebilirsin.' : 'Kararın bekleniyor; zaman kendiliğinden ilerlemiyor.'}</small>
-            {!event.in_combat && <div className="action-suggestion-list">
-              {[
-                ...(!event.forced ? [['Devam etmeyi seç', 'Karşılaşmada devam etmeyi seçiyorum.'], ['Konuş', 'Karşılaşmada konuşmayı seçiyorum.']] : []),
-                ...(event.can_fight ? [['Savaş', 'Karşılaşmada savaşmayı seçiyorum.']] : []),
-                ...(state.journey ? [['Geri dön', 'Geri dönüyorum.']] : []),
-              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => {
-                if (state.exploration) {
-                  const choice = label === 'Savaş' ? 'fight' : label === 'Geri dön' ? 'return'
-                    : label === 'Konuş' ? 'talk' : 'continue';
-                  onExplorationCommand('/explore decision ' + choice);
-                } else {
-                  setMessage(`Karşılaşma: ${event.summary}\nKararım: ${intent}`);
-                  messageInputRef.current?.focus();
-                }
-              }}>{label}</button>)}
-            </div>}
-          </div>)}
-          {state.journey && <div className="data-row mb-3" data-testid="journey-decision">
-            <p>{state.locations[state.journey.destination]?.name ?? state.journey.destination} yolunda · {state.journey.stage} / {state.journey.stage_count}</p>
-            {state.journey.encounter && <p>{state.journey.encounter}</p>}
-            <div className="action-suggestion-list">
-              {[
-                ['Yola devam', 'Yolculuğa devam ediyorum.'],
-                ['Dur', 'Yolculuğu durduruyorum.'],
-                ['Geri dön', 'Geri dönüyorum.'],
-              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active || !!state.pending_event_decisions?.length} onClick={() => {
-                if (state.exploration) onExplorationCommand('/travel ' + (label === 'Yola devam' ? 'continue' : label === 'Dur' ? 'stop' : 'return'));
-                else { setMessage(intent); messageInputRef.current?.focus(); }
-              }}>{label}</button>)}
-            </div>
-          </div>}
+      )}
+      {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
+      {composerOpen && <div className="command-box" data-testid="command-box">
+        <div className="composer-heading">
+          <span>Hamleni anlat</span>
+          <button className="composer-close" type="button" disabled={sending} data-testid="button-close-composer" onClick={() => setComposerOpen(false)}>Kapat</button>
         </div>
         <form className="command-form" onSubmit={onSubmit}>
+          <div className="command-toolbar">
+            <div className="interaction-mode-picker" data-testid="interaction-mode-picker">
+              <button type="button" aria-label="Önceki hamle türü" disabled={sending || state.combat.active} onClick={() => setInteractionMode(PREVIOUS_INTERACTION_MODE[interactionMode])}><ChevronLeft size={15} /></button>
+              <label className="sr-only" htmlFor="interaction-mode">Hamle türü</label>
+              <select id="interaction-mode" value={interactionMode} disabled={sending || state.combat.active} aria-label="Hamle türü" data-testid="select-interaction-mode" onChange={(event) => setInteractionMode(event.target.value as InteractionMode)}>
+                <option value="do">Yap</option><option value="say">Söyle</option><option value="ask_dm">Anlatıcıya Sor</option>
+              </select>
+              <button type="button" aria-label="Sonraki hamle türü" disabled={sending || state.combat.active} onClick={() => setInteractionMode(NEXT_INTERACTION_MODE[interactionMode])}><ChevronRight size={15} /></button>
+            </div>
           {state.combat.active && combatTargets.length > 0 && (
             <label className="command-target-label" htmlFor="combat-target-select">
               <span>Hedef seç <small>· isteğe bağlı</small></span>
@@ -796,24 +816,38 @@ function StoryColumn({
               </select>
             </label>
           )}
+            {interactionMode === 'say' && conversationTargets.length > 1 && (
+              <label className="command-target-label compact-target" htmlFor="conversation-target-select">
+                <span>Konuşma hedefi</span>
+                <select id="conversation-target-select" className="command-target-select" value={conversationTargetId} onChange={(event) => setConversationTargetId(event.target.value)} disabled={sending} data-testid="select-conversation-target">
+                  <option value="">Sözlerimde belirteceğim</option>
+                  {conversationTargets.map((npc) => <option value={npc.id} key={npc.id}>{npc.name}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleMessageKeyDown} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-            {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
+            {sending ? 'İşleniyor' : 'Gönder'}
           </button>
         </form>
-        <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
-      </div>
+        {sending && <div className="pending-turn-status" data-testid="pending-turn-status" role="status" aria-live="polite" aria-atomic="true">
+          <span className="pending-turn-mark"><OuroborosMark /></span>
+          <span>Hamlen işleniyor</span>
+        </div>}
+        <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span>{desktopEnterSupported && <span className="desktop-enter-hint" data-testid="desktop-enter-hint"><kbd>Enter</kbd> gönder · <kbd>Shift+Enter</kbd> yeni satır</span>}<span data-testid="text-message-count">{message.length} / 4000</span></div>
+      </div>}
     </section>
   );
 }
 
 function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>, opener: HTMLElement) => void; onOpenCombat: (opener: HTMLElement) => void }) {
   return (
-    <header className="app-header">
-      <div className="dnd-shell app-header-inner">
-        <Brand />
+    <header className="preview-header app-header">
+      <div className="preview-header-inner">
+        <div className="preview-brand"><span className="preview-mark"><Feather size={17} /></span><span><strong>UNWRITTEN</strong><small>Bir hikâye, senin sözlerinle</small></span></div>
         <div className="header-location">
           <MapPinned size={13} />
           <div className="header-location-copy">
@@ -842,7 +876,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, onClose, returnFocus, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { drawer: Drawer; state: GameState; onClose: () => void; returnFocus: HTMLElement | null; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
+function DrawerSheet({ drawer, state, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef(returnFocus);
@@ -850,8 +884,26 @@ function DrawerSheet({ drawer, state, onClose, returnFocus, activeTab, setActive
   returnFocusRef.current = returnFocus;
   useEffect(() => {
     if (!drawer) return;
+    focusAfterCloseRef.current = 'opener';
     const dialog = dialogRef.current;
-    const focusable = () => dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [];
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousRootOverscroll = root.style.overscrollBehavior;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    root.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
+    body.style.overscrollBehavior = 'none';
+    const stopBackgroundTouch = (event: TouchEvent) => {
+      if (dialog && event.target instanceof Node && !dialog.contains(event.target)) event.preventDefault();
+    };
+    document.addEventListener('touchmove', stopBackgroundTouch, { capture: true, passive: false });
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]') ?? [])
+      .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden');
     focusable()[0]?.focus();
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -870,14 +922,23 @@ function DrawerSheet({ drawer, state, onClose, returnFocus, activeTab, setActive
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('touchmove', stopBackgroundTouch, true);
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+      root.style.overscrollBehavior = previousRootOverscroll;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      window.scrollTo(scrollX, scrollY);
+      const focusAfterClose = focusAfterCloseRef.current;
+      focusAfterCloseRef.current = 'opener';
       const opener = returnFocusRef.current;
       const target = focusReturnTarget(Boolean(opener?.isConnected));
-      if (target === 'opener') opener?.focus();
-      else document.getElementById('player-message')?.focus();
+      if (focusAfterClose === 'composer') document.getElementById('player-message')?.focus({ preventScroll: true });
+      else if (target === 'opener') opener?.focus({ preventScroll: true });
+      else document.getElementById('player-message')?.focus({ preventScroll: true });
     };
-  }, [drawer]);
+  }, [drawer, focusAfterCloseRef]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -1021,18 +1082,25 @@ export default function GameBrowser() {
   const [phase, setPhase] = useState<'opening' | 'library' | 'creation' | 'reveal' | 'adventure'>('opening');
   const [creationReturnPhase, setCreationReturnPhase] = useState<'opening' | 'library'>('opening');
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
+  const [readingPreferences, setReadingPreferences] = useState(readReadingPreferences);
+  useEffect(() => {
+    writeReadingPreferences(readingPreferences);
+  }, [readingPreferences]);
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
   const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
+  const [composerOpen, setComposerOpen] = useState(false);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
+  const [expandedRailPanel, setExpandedRailPanel] = useState<RailPanelId | null>(null);
   const [panelOpener, setPanelOpener] = useState<HTMLElement | null>(null);
+  const focusAfterDrawerCloseRef = useRef<'opener' | 'composer'>('opener');
   const [resultCue, setResultCue] = useState('');
+  const [newResponseEntryIndex, setNewResponseEntryIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<WorldTab>('world');
-  const [locationChanged, setLocationChanged] = useState(false);
   const [resumingCampaignId, setResumingCampaignId] = useState<string | null>(null);
   const createCampaign = useCreateCampaign();
   const resumeCampaign = useResumeCampaign();
@@ -1226,7 +1294,19 @@ export default function GameBrowser() {
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
   const seenEntryCount = useRef(0);
-  const previousLocation = useRef<string>('');
+  const isStoryNearBottom = (node: HTMLDivElement) => {
+    const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
+      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY);
+    return hasOwnScroll
+      ? node.scrollHeight - node.scrollTop - node.clientHeight < 80
+      : node.getBoundingClientRect().bottom <= window.innerHeight + 80;
+  };
+  const scrollStoryToBottom = (node: HTMLDivElement) => {
+    const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
+      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY);
+    if (hasOwnScroll) node.scrollTop = node.scrollHeight;
+    else node.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'auto' });
+  };
   const previousCombatActive = useRef<boolean | null>(null);
 
   useEffect(() => {
@@ -1274,17 +1354,6 @@ export default function GameBrowser() {
   }, [state?.scene]);
 
   useEffect(() => {
-    if (!state || previousLocation.current === '') { if (state) previousLocation.current = state.location; return; }
-    if (previousLocation.current !== state.location) {
-      previousLocation.current = state.location;
-      setLocationChanged(true);
-      const timer = window.setTimeout(() => setLocationChanged(false), 1200);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [state]);
-
-  useEffect(() => {
     if (!sessionId || !stateQuery.isError) return;
     if (statusCode(stateQuery.error) === 404) {
       setSessionId('');
@@ -1301,7 +1370,7 @@ export default function GameBrowser() {
     seenEntryCount.current = entries.length;
     if (!entries.length || !node) return;
     if (transcriptFollowsBottom(wasAtBottom.current)) {
-      node.scrollTop = node.scrollHeight;
+      scrollStoryToBottom(node);
       return;
     }
     if (grew) setResultCue(`Yeni sonuç geldi. ${entries.length}`);
@@ -1311,7 +1380,7 @@ export default function GameBrowser() {
     const content = node?.querySelector('[data-testid="transcript-local"]');
     if (!node || !content || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
-      if (transcriptFollowsBottom(wasAtBottom.current)) node.scrollTop = node.scrollHeight;
+      if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
     });
     observer.observe(content);
     return () => observer.disconnect();
@@ -1352,7 +1421,32 @@ export default function GameBrowser() {
   const handleStoryScroll = () => {
     const node = storyScrollRef.current;
     if (!node) return;
-    wasAtBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+    wasAtBottom.current = isStoryNearBottom(node);
+    if (wasAtBottom.current) {
+      setNewResponseEntryIndex(null);
+      setResultCue('');
+    }
+  };
+  useEffect(() => {
+    window.addEventListener('scroll', handleStoryScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleStoryScroll);
+  }, [phase, sessionId]);
+
+  const jumpToNewResponse = (focusTarget = false) => {
+    if (newResponseEntryIndex === null) return;
+    const target = storyScrollRef.current?.querySelector<HTMLElement>(
+      `[data-testid="transcript-narration-${newResponseEntryIndex}"]`,
+    );
+    target?.scrollIntoView({
+      block: 'end',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+    if (focusTarget && target) {
+      target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    }
+    setNewResponseEntryIndex(null);
+    setResultCue('');
   };
 
   const reset = () => {
@@ -1563,12 +1657,7 @@ export default function GameBrowser() {
     if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     const operation = turnLifetime.begin();
     if (!operation) return;
-    // Sending a new turn explicitly returns to the live conversation. A user
-    // who scrolls away while waiting still keeps their new reading position.
-    wasAtBottom.current = true;
     setResultCue('');
-    const transcript = storyScrollRef.current;
-    if (transcript) transcript.scrollTop = transcript.scrollHeight;
     setNotice(null);
     const metadata = getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
@@ -1608,25 +1697,29 @@ export default function GameBrowser() {
         clearPendingTurnAction(actionScope, actionId);
         const next: TranscriptEntry[] = snapshot.history ? [
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-          ...snapshot.history.flatMap(entry => [
-            { kind: 'player' as const, text: entry.player_message },
+          ...snapshot.history.flatMap((entry, index) => [
+            { kind: 'player' as const, text: entry.player_message, mode: (entry as CampaignHistoryEntry & { interaction_mode?: InteractionMode }).interaction_mode ?? (index === snapshot.history!.length - 1 ? metadata.interaction_mode : undefined) },
             { kind: 'narration' as const, text: entry.narration,
             skillCheckResult: entry.skill_check_result ?? undefined },
           ]),
         ] : [
           ...entries,
-          { kind: 'player' as const, text: trimmed },
+          { kind: 'player' as const, text: trimmed, mode: metadata.interaction_mode },
           {
             kind: 'narration' as const,
             text: result.narration,
             skillCheckResult: result.skill_check_result ?? undefined,
           },
         ];
-        if (stillVisible) setEntries(next);
+        const wasFollowingResponse = transcriptFollowsBottom(wasAtBottom.current);
+        if (stillVisible) {
+          setEntries(next);
+          setNewResponseEntryIndex(wasFollowingResponse ? null : next.length - 1);
+        }
         writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
-          JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
-            kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),
+          JSON.stringify(next.map(({ kind, text, skillCheckResult, mode }) => ({
+            kind, text, ...(mode ? { mode } : {}), ...(skillCheckResult ? { skillCheckResult } : {}),
           }))),
         );
         const combatResult = result.combat_result;
@@ -1679,7 +1772,10 @@ export default function GameBrowser() {
             detail: outcomeMessages.join(' '),
           });
         }
-        if (stillVisible) setMessage('');
+  if (stillVisible) {
+    setMessage('');
+    setComposerOpen(false);
+  }
         if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
@@ -1702,9 +1798,10 @@ export default function GameBrowser() {
   };
 
   const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
+  const submitCurrentTurn = () => submitTurn(message, undefined, interactionMode);
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    submitTurn(message, undefined, interactionMode);
+    submitCurrentTurn();
   };
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} locationCatalog={campaignStartOptionsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
   if (phase === 'creation') return (
@@ -1731,9 +1828,28 @@ export default function GameBrowser() {
   if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
-      <div className="dnd-app play-shell" data-testid="app-session">
+      <div className="design-preview dnd-app play-shell" data-testid="app-session">
+        <div className="preview-background">
+        <div className="preview-banner"><span>GERÇEK KAMPANYA</span><span>{sessionLabel} · Defter numarası: {campaignId}</span></div>
         {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={(next, opener) => { setPanelOpener(opener); setDrawer(next); }} onOpenCombat={(opener) => { setPanelOpener(opener); setActiveTab('combat'); setDrawer('world'); }} />}
-        <main className="app-main workspace-grid">
+        <div className="preview-layout">
+          <nav className="preview-rail" aria-label="Kampanya panelleri">
+            <span className="preview-rail-label">YANINDA</span>
+            {[
+              { id: 'character', label: 'Karakter', icon: Shield },
+              { id: 'world', label: 'Dünya', icon: Map },
+              { id: 'npcs', label: 'Kişiler', icon: Users },
+              { id: 'journal', label: 'Günlük', icon: BookOpen },
+              { id: 'combat', label: 'Çatışma', icon: Swords },
+            ].map(({ id, label, icon: Icon }) => (
+              <div className="preview-rail-item" key={id}>
+                <button type="button" aria-controls={`rail-summary-${id}`} aria-expanded={expandedRailPanel === id} onClick={() => setExpandedRailPanel(expandedRailPanel === id ? null : id as RailPanelId)} data-testid={`button-open-panel-${id}`}><Icon size={16} /><span>{label}</span><ChevronDown size={13} /></button>
+                {expandedRailPanel === id && state && <div id={`rail-summary-${id}`}><RailSummary panel={id as RailPanelId} state={state} /></div>}
+              </div>
+            ))}
+            {state && <div className="preview-rail-note"><Heart size={14} /><span>Can<br /><strong>{state.character.current_hp} / {state.character.max_hp}</strong></span></div>}
+          </nav>
+          <main className="preview-play app-main workspace-grid" aria-label="Kampanya hikâyesi">
           {stateQuery.isLoading ? (
             <>
               <div className="workspace-story">
@@ -1758,9 +1874,13 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
-              <StoryColumn
+      <StoryColumn
                 state={state}
                 entries={entries}
+                readingPreferences={readingPreferences}
+                setReadingPreferences={setReadingPreferences}
+                composerOpen={composerOpen}
+                setComposerOpen={setComposerOpen}
                 message={message}
                 setMessage={setMessage}
                 interactionMode={interactionMode}
@@ -1769,14 +1889,15 @@ export default function GameBrowser() {
                 setConversationTargetId={setConversationTargetId}
                 onEndConversation={() => submitTurn('Konuşmayı bitiriyorum.', undefined, 'do')}
                 onSubmit={handleSubmit}
-                onExplorationCommand={(text) => submitTurn(text, undefined, 'do')}
+                onKeyboardSubmit={submitCurrentTurn}
                 onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}
                 sending={turnSending}
                 notice={notice}
                 scrollRef={storyScrollRef}
                 onScroll={handleStoryScroll}
                 resultCue={resultCue}
-                locationChanged={locationChanged}
+                newResponseEntryIndex={newResponseEntryIndex}
+                onJumpToNewResponse={jumpToNewResponse}
                 combatEndNotice={combatEndNotice}
                 combatTargetId={combatTargetId}
                 setCombatTargetId={setCombatTargetId}
@@ -1796,11 +1917,13 @@ export default function GameBrowser() {
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
-        </main>
-        {state && <DrawerSheet drawer={drawer} state={state} returnFocus={panelOpener} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
+          </main>
+        </div>
+        {state && <DrawerSheet drawer={drawer} state={state} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
         <div className="session-footnote" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}
+        </div>
         </div>
       </div>
     </EnvironmentThemeProvider>

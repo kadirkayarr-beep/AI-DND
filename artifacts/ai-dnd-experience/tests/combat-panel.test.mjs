@@ -345,7 +345,7 @@ test('inactive combat renders without invented round, target, or roll data', () 
   assert.doesNotMatch(html, /data-testid="combat-entry-/);
 });
 
-test('the existing skill result card renders all four newly routed skills', () => {
+test('skill result cards render canonical values without exposing the DC', () => {
   const cases = [
     ['Persuasion', 'charisma'],
     ['Deception', 'charisma'],
@@ -370,18 +370,63 @@ test('the existing skill result card renders all four newly routed skills', () =
     const html = renderSkillCheckResult(result);
 
     assert.match(html, /data-testid="skill-check-result"/);
-    assert.ok(html.includes(skill), `accessible label should include ${skill}`);
-    assert.ok(html.includes(skill.toLocaleUpperCase('tr-TR')), `card should display ${skill}`);
+    assert.match(html, /zar kontrolü/i, 'the card should have a named disclosure control');
     const abilityLabels = { strength: 'KUV', dexterity: 'ÇEV', constitution: 'DAY', intelligence: 'ZEK', wisdom: 'BİL', charisma: 'KAR' };
-    assert.ok(html.includes(`<dt>${abilityLabels[ability]}</dt>`));
-    assert.ok(html.includes('<dt>Yeterlilik</dt>'));
+    assert.ok(html.includes(`<dt>Yetenek · ${abilityLabels[ability]}</dt>`));
+    assert.ok(html.includes('<dt>Yeterlilik bonusu</dt>'));
     assert.ok(html.includes('<dt>Toplam</dt>'));
     assert.ok(html.includes('>13<'));
-    assert.ok(html.includes('Orta · DC 15'));
+    assert.ok(html.includes('Orta'));
+    assert.ok(html.includes('<details'));
+    assert.ok(html.includes('<summary'));
+    assert.ok(!html.includes('DC'));
+    assert.doesNotMatch(html, /DC\s*15/i);
     assert.ok(!html.includes('<dt>PROF</dt>'));
     assert.ok(!html.includes('<dt>TOTAL</dt>'));
     assert.ok(!html.includes('<dt>STR</dt>'));
   }
+});
+
+test('advantage rolls and explicit modes are shown faithfully; missing values and criticals are not invented', () => {
+  const html = renderSkillCheckResult({
+    skill: 'Stealth',
+    ability: 'dexterity',
+    d20: 17,
+    d20_rolls: [4, 17],
+    advantage: true,
+    disadvantage: true,
+    proficient: true,
+    expertise: true,
+    ability_modifier: 2,
+    proficiency_modifier: 3,
+    total_modifier: 5,
+    total: 22,
+    difficulty: 'hard',
+    dc: 27,
+    outcome: 'success',
+    critical: true,
+  });
+
+  assert.match(html, /Başarılı/);
+  assert.match(html, /Atılan zarlar/);
+  assert.match(html, />4</);
+  assert.match(html, />17</);
+  assert.match(html, /Avantaj · Dezavantaj|Avantaj.*Dezavantaj/);
+  assert.match(html, /Uzmanlık/);
+  assert.match(html, /Zor/);
+  assert.doesNotMatch(html, /DC|27|kritik/i);
+
+  const incomplete = renderSkillCheckResult({
+    skill: 'Stealth',
+    ability: 'dexterity',
+    proficient: false,
+    difficulty: 'medium',
+    outcome: 'failure',
+  });
+  assert.match(incomplete, /Başarısız/);
+  assert.match(incomplete, /Orta/);
+  assert.doesNotMatch(incomplete, />0</);
+  assert.doesNotMatch(incomplete, /DC/);
 });
 
 test('active panel displays only canonical HP, AC, round, target, and initiative order', () => {

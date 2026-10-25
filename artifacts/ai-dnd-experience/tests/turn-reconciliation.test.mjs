@@ -6,6 +6,7 @@ import ts from 'typescript';
 import { createActionLifetime, stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import { rotateAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { QueryClient } from '@tanstack/react-query';
+import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 // Execute production AST-selected bodies; replace only hook, transport and view boundaries.
 const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -27,7 +28,8 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const env = {
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
   turnLifetime: life,
-  wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {}, setLastTurn() {},
+   wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {},
+   transcriptFollowsBottom,
   window: { sessionStorage, localStorage: storage(), crypto: { randomUUID: () => crypto.randomUUID() } },
   sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: current,
   inFlightSessionsRef: { current: new Set() }, undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() }, pendingTurnRef: { current: null }, activeSessionRef: { current: 'session-a' },
@@ -39,10 +41,12 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   getCampaign: async () => ({ state: await env.getGameSessionState(), history, combat_history: [] }),
   mergeCombatHistory: history => history,
   getGetCampaignsQueryKey: () => ['campaigns'], entries: [], TRANSCRIPT_KEY: 'transcript-',
-  setEntries: v => shown.push(v), setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {},
-  statusCode: e => e.status, friendlyError: () => 'Synthetic error',
+   setEntries: v => { env.entries = typeof v === 'function' ? v(env.entries) : v; shown.push(env.entries); },
+   setNewResponseEntryIndex: value => { env.newResponseEntryIndex = value; },
+   setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {}, setComposerOpen() {},
+   statusCode: e => e.status, friendlyError: e => e?.message ?? 'Synthetic error',
  };
- for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage']) {
+  for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
   const original = env[name]; env[name] = (...args) => { setters.push([name, ...args]); return original(...args); };
  }
  vm.runInNewContext(code, env);
@@ -61,7 +65,7 @@ test('a failed optional transcript cache does not turn a committed turn into an 
  h.env.setMessage = value => { draft = value; };
  await h.run();
  assert.equal(h.requests.length, 1);
- assert.equal(h.errors.length, 0);
+  assert.equal(h.errors.length, 0, JSON.stringify(h.errors));
  assert.equal(h.shown.at(-1).at(-1).text, 'Synthetic receipt');
  assert.equal(h.client.getQueryData(['state', 'session-a']).revision, current.revision);
  assert.equal(draft, '');
@@ -78,8 +82,9 @@ test('only a validated own submission returns a scrolled transcript to the live 
  assert.equal(node.scrollTop, 100);
  assert.equal(h.env.wasAtBottom.current, false);
  await h.run();
- assert.equal(node.scrollTop, 1200);
- assert.equal(h.env.wasAtBottom.current, true);
+  assert.equal(node.scrollTop, 100, 'reading history must not be forced to the live end after a response');
+  assert.equal(h.env.wasAtBottom.current, false);
+  assert.equal(h.env.newResponseEntryIndex, 1, 'the new response is announced separately from the reader position');
  h.client.clear();
 });
 

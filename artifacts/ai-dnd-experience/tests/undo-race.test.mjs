@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { ReconciliationError } from '../src/lib/action-reconciliation.ts';
+import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 
 const source = await readFile(process.env.AI_DND_TEST_SOURCE ?? new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -56,7 +58,8 @@ function harness() {
     inFlightSessionsRef: { current: new Set() },
     activeSessionRef: { current: 'session-a' },
     pendingTurnRef: { current: null },
-    wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {},
+  wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {}, transcriptFollowsBottom,
+  setNewResponseEntryIndex() {},
     turnLifetime: { begin: () => ({ signal: new AbortController().signal, isCurrent: () => true, close() {} }) },
     state, entries: [{ kind: 'narration', text: 'Before' }], message: 'draft before',
     undoGameTurn: (...args) => {
@@ -88,6 +91,7 @@ function harness() {
     setCombatEndNotice() {},
     setCombatTargetId() {},
     setConversationTargetId() {},
+    setComposerOpen() {},
     getTurnInteractionMetadata: () => ({ interaction_mode: 'do' }),
     stableTurnActionId: () => 'new-action',
     storedTurnContext: () => ({}),
@@ -111,6 +115,7 @@ function harness() {
     },
     crypto: { randomUUID: () => `undo-action-${++uuidCounter}` },
     ApiError,
+    ReconciliationError,
     setTimeout, clearTimeout, AbortController, Promise, JSON,
   };
   vm.runInNewContext(executable, env);

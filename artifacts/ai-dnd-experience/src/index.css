@@ -609,7 +609,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 .play-shell .story-text {
   max-width: 68ch;
-  line-height: 1.68;
+  font-size: var(--story-font-size, clamp(1.25rem, 1.05rem + 0.8vw, 1.5rem));
+  line-height: var(--story-line-height, 1.68);
   text-wrap: pretty;
 }
 .play-shell .story-scene-context {
