@@ -352,12 +352,34 @@ def strip_player_echo(text, player_input):
 _UNGROUNDED_NOUN = re.compile(r"(?<![\wçğıöşüÇĞİÖŞÜ])([\wçğıöşüÇĞİÖŞÜ]{5,})")
 
 
+_UNREGISTERED_PRESENTATION = re.compile(
+    r"(?<![\wçğıöşüÇĞİÖŞÜ])(?:kokusu|kokusunu)(?![\wçğıöşüÇĞİÖŞÜ])",
+    re.IGNORECASE,
+)
+
+
+def _presents_unregistered_object(sentence, packet_text):
+    """True when a smell sentence names an object absent from the scene facts."""
+    if not _UNREGISTERED_PRESENTATION.search(sentence or ""):
+        return False
+    for match in _UNGROUNDED_NOUN.finditer(sentence):
+        stem = fold(match.group(1))
+        if stem in {"kokusu", "kokusunu"}:
+            continue
+        if len(stem) < 5 or stem in packet_text:
+            continue
+        if stem.endswith(("iyor", "uyor", "acak", "ecek")):
+            continue
+        return True
+    return False
+
+
 def drop_ungrounded_prop_sentences(text, facts):
     """Drop a spoken sentence that names a prop the scene cannot support.
 
     A registered prop must bring one content word from its own description.
-    A sentence that names no registered prop still drops when it contains a
-    concrete noun absent from every fact. Ordinary short words stay.
+    A sentence that names no registered prop stays, unless it presents an
+    unregistered object by its smell. Ordinary speech stays.
     """
     if not isinstance(text, str) or not text.strip():
         return text
@@ -391,16 +413,7 @@ def drop_ungrounded_prop_sentences(text, facts):
                 break
         if names_prop and not grounded:
             continue
-        foreign = False
-        for match in _UNGROUNDED_NOUN.finditer(sentence):
-            stem = fold(match.group(1))
-            if len(stem) < 5 or stem in packet_text:
-                continue
-            if stem.endswith(("iyor", "uyor", "acak", "ecek")):
-                continue
-            foreign = True
-            break
-        if foreign and not names_prop:
+        if not names_prop and _presents_unregistered_object(sentence, packet_text):
             continue
         kept.append(sentence)
     return " ".join(kept).strip()

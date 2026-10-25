@@ -43,6 +43,10 @@ class PlayerQuoteTests(unittest.TestCase):
    "Kenarında sıradan bir kil bardak duruyor.", facts
   )
   self.assertIn("bardak", kept.casefold())
+  ordinary = "Bunu tam bilmiyorum; bugün burası bana da sakin geliyor. Yüz daha dürüst."
+  kept_speech = npc_speech_boundary.drop_ungrounded_prop_sentences(ordinary, facts)
+  self.assertIn("sakin", kept_speech.casefold())
+  self.assertIn("dürüst", kept_speech.casefold())
 
 class BoundSpeechLabelTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=RouteFocusRegressionTests.asyncSetUp
