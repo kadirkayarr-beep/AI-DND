@@ -1,0 +1,37 @@
+{
+  "decision_id": "DEC-2026-10-26-SOURCE-USE-SCOPE",
+  "date": "2026-10-26",
+  "decided_by": "user (Kadir), in chat",
+  "supersedes": null,
+  "original_documents_modified": false,
+  "scope": "private, local AI-DND development on the user's own computer",
+  "sources_named_by_user": [
+    {
+      "name": "D&D 5e - Players Handbook 2024",
+      "file_name": "D&D 5e - Players Handbook 2024.pdf",
+      "location_kind": "user's local reference-books folder (path recorded in the session handoff, not copied)",
+      "size_bytes": 88834798,
+      "sha256": "f2ea73369a6c4afbf6a7047249f06e5c51af503d9e42f87fe7a9c2c50aefafea",
+      "pages": 387,
+      "edition_verified_from_book_text": "The book's own text calls itself the 2024 version of the fifth edition Player's Handbook (PDF page 4)."
+    }
+  ],
+  "other_books_in_folder": "not part of the scope; not read; not added automatically",
+  "user_scope_decision": "ACCEPTED",
+  "user_scope_decision_meaning": "The user approves using the named source in private, local AI-DND development.",
+  "publication_distribution_rights_review": "NOT_APPLICABLE_TO_CURRENT_SCOPE",
+  "reevaluate_when": [
+    "public release",
+    "distribution to third parties",
+    "commercialization"
+  ],
+  "not_claimed": "This record is not a claim that any third-party license has been verified.",
+  "reporting_rule": "Do not repeat the publication-rights review as an open issue in every task report, do not ask for re-approval and do not stop technical progress because of it.",
+  "handling_rules": [
+    "Do not copy the book or the PDF into the repository or into any distribution package.",
+    "Record source name, version, option identifier and page or section references only.",
+    "Do not upload the books to Graphify or to any other service.",
+    "Do not read other books unless the user names them for a task."
+  ],
+  "effect_on_acceptance": "Technical acceptance of B04 inside the private development scope does not wait for the publication-rights review; entries that are technically unverified or incomplete stay open individually."
+}
