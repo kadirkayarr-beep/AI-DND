@@ -24,6 +24,9 @@ from api.world_metadata import validate_world_metadata
 # substitutes the actual selected local model (DEFAULT_LOCAL_MODEL by default).
 MODEL_NAME = "qwen3:8b"
 MAX_MODEL_CALLS_PER_TURN = 2
+# Ollama defaults to a 4096-token window and silently truncates (done_reason=length);
+# live 9b prompts reach ~4100 tokens before the reply.
+CONTEXT_WINDOW_TOKENS = 8192
 # Successful tavern narration has completed in about 25s. A hung call was
 # still inside the client at the smoke's 240s HTTP limit. 90s fails closed
 # first and leaves the turn lock.
@@ -208,6 +211,8 @@ class AuthenticatedOllamaAdapter:
         try:
             prepared = _attach_world_metadata(kwargs)
             prepared = {**prepared, "model": self.model_name}
+            options = prepared.get("options")
+            prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
             return self._client.chat(*args, **prepared)
         except Exception as error:
             failures = _MODEL_FAILURES.get()

@@ -38,6 +38,11 @@ class LocalPersonModel:
             "properties", {}
         ).get("npc_id", {}).get("enum", [])
         npc_id = next((item for item in npc_ids if item), None)
+        if "spoken_text" in properties:
+            # Default NPC route: one structured speech packet for the addressed person.
+            return {"message": {"content": json.dumps({
+                "spoken_text": "Hoş geldin, selamını aldım.", "stage_direction": "",
+            }, ensure_ascii=False)}}
         if "narration" in properties:
             packet = {
                 "intent": "dialogue",

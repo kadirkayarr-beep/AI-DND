@@ -15,7 +15,7 @@ import httpx
 from pydantic import ValidationError
 
 from api.auth import FixedAuthenticator
-from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -37,7 +37,7 @@ class FakeOllamaClient:
 
 class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.manager = SessionManager()
+        self.manager = TestPlayerSessionManager()
         self.adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
         self.enterContext(self.adapter.engine_binding())
         self.app = create_app(session_manager=self.manager, ollama_adapter=self.adapter, authenticator=FixedAuthenticator(TEST_PLAYER))

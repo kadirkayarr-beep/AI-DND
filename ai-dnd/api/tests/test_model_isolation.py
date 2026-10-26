@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import game
 import test_regression as legacy
-from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.ollama_adapter import CONTEXT_WINDOW_TOKENS, AuthenticatedOllamaAdapter
 
 
 class ModelIsolationTests(unittest.TestCase):
@@ -20,7 +20,9 @@ class ModelIsolationTests(unittest.TestCase):
             self.assertIs(target.list, client.list)
             self.assertEqual(target.chat, adapter.chat)
             target.chat(model="qwen3:8b", messages=[])
-            client.chat.assert_called_once_with(model="qwen3:8b", messages=[])
+            client.chat.assert_called_once_with(
+                model="qwen3:8b", messages=[], options={"num_ctx": CONTEXT_WINDOW_TOKENS},
+            )
 
     def test_nested_scopes_restore_exact_callbacks_after_exception(self):
         target = MagicMock()

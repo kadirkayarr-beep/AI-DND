@@ -5114,6 +5114,7 @@ def _combat_narration(result):
     enemies = result.get("enemy_actions")
     if enemies is None:
         enemies = [result.get("enemy_action") or {}]
+    announced = set()
     for enemy in enemies:
         subject = "Rakibinin"
         if len(enemies) > 1 and (enemy.get("actor_id") or enemy.get("actor")):
@@ -5124,7 +5125,10 @@ def _combat_narration(result):
         elif enemy.get("outcome") in ("hit", "critical_hit"):
             kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
             text += f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
-        text += monster_text.get(enemy.get("outcome"), "")
+        said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
+        if said not in announced:
+            announced.add(said)
+            text += monster_text.get(enemy.get("outcome"), "")
         if enemy.get("outcome") == "dash":
             import bounded_encounter
             text += bounded_encounter.visible_dash_narration(_session(), enemy)
@@ -6577,6 +6581,9 @@ def create_location_from_proposal(proposal):
         return None
     next_number = max(1, int(world_state.get("next_location_number", 1)))
     locations = world_state.setdefault("locations", {})
+    if len(locations) >= 80:
+        world_state.setdefault("flags", {})["location_create_status"] = "limit_reached"
+        return None
     while f"location_{next_number:03d}" in locations:
         next_number += 1
     location_id = f"location_{next_number:03d}"
@@ -7612,13 +7619,26 @@ def _local_place_recommendation_guidance(
     )
 
 
+class IntentInfrastructureError(Exception):
+    """The intent classifier could not run; the turn must not be committed."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
                         operation_hint=None, require_conversation=False,
                         allow_scene_detail_proposals=False,
                         allow_local_person_proposal=False,
                         experimental_npc_dialogue=False,
-                        recent_scene_narration=""):
-    """Ask Qwen only to label the current input; it cannot read or write state."""
+                        recent_scene_narration="", strict=False):
+    """Ask Qwen only to label the current input; it cannot read or write state.
+
+    With strict=True a classifier reply that is not usable JSON raises
+    IntentInfrastructureError instead of degrading to an "unknown" intent that
+    reads like a normal turn. Provider outages and timeouts still degrade.
+    """
     world_state = _session().world_state
     locations = [
         {"name": value.get("name"), "aliases": value.get("aliases", [])[:6]}
@@ -7929,8 +7949,16 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             ),
         )
         data = _extract_json_object(ollama_response_content(response))
-        return data if isinstance(data, dict) else {"intent": "unknown"}
+        if isinstance(data, dict):
+            return data
+        if strict and not experimental_npc_dialogue:
+            raise IntentInfrastructureError("intent_json_invalid")
+        return {"intent": "unknown"}
+    except IntentInfrastructureError:
+        raise
     except Exception:
+        # A provider outage or timeout keeps its deterministic fallback; only a
+        # reply that arrived but is not usable JSON must not read as a normal turn.
         return {"intent": "unknown"}
 
 
@@ -8270,6 +8298,8 @@ def update_inventory_from_player(player_input):
             if "Kılıç" not in loc_items:
                 loc_items.append("Kılıç")
             return "Python durumu: Kılıç envanterden yere taşındı."
+        if "Kılıç" in loc_items:
+            return "Python durumu: Kılıç zaten yerde."
         return "Python durumu: Kılıç zaten envanterde değil; yerde olup olmadığı world_state içindedir."
 
     if picking_up:
@@ -9476,6 +9506,11 @@ def _narration_safety_decision(
         if _normalize_turkish_typos(match.group(1)) in input_verb_stems:
             continue
         normalized_verb = _normalize_turkish_typos(match.group(0))
+        if normalized_verb.startswith("gel") and re.search(
+            r"\bho[sş]\s*$", _normalize_turkish_typos(player_action_text[:match.start()])
+        ):
+            # "Hoş geldin(iz)" is the ordinary welcome, not a claim of arrival.
+            continue
         if npc_name_question and normalized_verb.startswith("de"):
             # This exact NPC-attributed clarifying question asks whether the
             # player said the NPC's name; it does not commit a player action.
@@ -12256,7 +12291,9 @@ def _inspection_findings(player_input, outcome):
                 else "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.")
         return {"target_kind": "tracks", "target_id": None, "target_name": "izler",
                 "found": False, "text": line}
-    if re.search(r"\b(?:incel|arastir)\w*", text):
+    # Only a successful search for a detail the scene lacks is a Python miss;
+    # a failed roll keeps its normal (guarded) failure narration.
+    if success and re.search(r"\b(?:incel|arastir)\w*", text):
         return {
             "target_kind": "feature",
             "target_id": None,
@@ -15677,16 +15714,41 @@ def run_player_turn(
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
     before = copy.deepcopy(_session().world_state)
     before_hp = _session().character.get("current_hp")
-    result = _dispatch_player_turn(
-        player_input,
-        messages,
-        target_id,
-        scene_plan,
-        action_id,
-        session_id,
-        combat_action,
-        interaction_mode,
-    )
+    try:
+        runtime_snapshot = _session()._capture_runtime_snapshot()
+    except AttributeError:
+        # A test die without getstate cannot be snapshotted; the API restores its own.
+        runtime_snapshot = None
+    turn_index_before = _session().world_state.get("flags", {}).get("turn_index", 0)
+    try:
+        result = _dispatch_player_turn(
+            player_input,
+            messages,
+            target_id,
+            scene_plan,
+            action_id,
+            session_id,
+            combat_action,
+            interaction_mode,
+        )
+    except IntentInfrastructureError as error:
+        # The classifier could not run: nothing was decided, so nothing is kept.
+        if runtime_snapshot is not None:
+            _session()._restore_runtime_snapshot(runtime_snapshot)
+        else:
+            _session().world_state.setdefault("flags", {})["turn_index"] = turn_index_before
+        text = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+        return {
+            "narration": text,
+            "action_result": {
+                "action": "unknown",
+                "status": "infrastructure_failure",
+                "success": False,
+                "state_changes": [],
+                "infrastructure_code": error.code,
+                "direct_response": text,
+            },
+        }
     import dialogue_runtime
     dialogue_runtime.observe_turn(_session(), before, before_hp, result, player_input, action_id)
     action_result = result.get("action_result") if isinstance(result, dict) else None
@@ -16161,6 +16223,15 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
     claims = packet.get("lore_claims", [])
+    if (narration_only and not claims and resolved_turn.npc_target is None
+            and isinstance(packet.get("narration"), str)):
+        # The narration-only prompt asks for no citations; a narration that only
+        # restates public official facts is bound to them here instead.
+        from api.lore_authority.claim_authorization import exact_narration_evidence_ids
+        exact_ids = exact_narration_evidence_ids(packet["narration"], lore_context)
+        if exact_ids:
+            claims = exact_ids
+            packet["lore_claims"] = exact_ids
     lore_unsupported = not _lore_claims_are_supported(claims, lore_context)
     if not lore_unsupported and _narration_has_unsupported_lore_claim(
         packet.get("narration"), claims, lore_context, _session().world_state,
@@ -17208,6 +17279,7 @@ def _run_player_turn_internal(
                     player_input, world_state, interaction_mode
                 ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
+                strict=True,
             )
             scene_preparse_model_calls = 1
             intent_model_calls = scene_preparse_model_calls
@@ -17299,6 +17371,7 @@ def _run_player_turn_internal(
                 player_input, world_state, interaction_mode
             ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
+                strict=True,
         )
         scene_preparse_model_calls = 1
         intent_model_calls = scene_preparse_model_calls
@@ -18456,6 +18529,7 @@ def _run_player_turn_internal(
                 allow_scene_detail_proposals=_scene_detail_proposals_allowed(
                     player_input, world_state, interaction_mode
                 ),
+                strict=True,
             )
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
@@ -18540,6 +18614,30 @@ def _run_player_turn_internal(
         )
 
     findings = action_result.get("inspection")
+    if (isinstance(findings, dict) and findings.get("target_id") is None
+            and isinstance(raw_intent, dict)
+            and isinstance(raw_intent.get("scene_detail_proposals"), list)
+            and raw_intent["scene_detail_proposals"]):
+        # An unmatched named search is a miss only if the model proposed no
+        # valid detail; an accepted proposal continues to the creation path.
+        # The submitted/verified record is kept either way, as on that path.
+        early_parent = _scene_detail_parent(world_state.get("location"), player_input)
+        early_parent_id = early_parent.get("id") if isinstance(early_parent, dict) else None
+        early_bound = [proposal for proposal in raw_intent["scene_detail_proposals"][:1]
+                       if isinstance(proposal, dict)
+                       and proposal.get("parent_id") == early_parent_id]
+        early_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
+        early_changed = early_entry or world_state.get("location") != previous_location
+        action_result["scene_detail_proposal_submitted"] = True
+        action_result["verified_world_updates"] = validate_world_updates(
+            {"create_features": early_bound},
+            allow_new_features=(not shop_request
+                                and should_generate_features(player_input, early_changed)
+                                and not is_player_world_assertion(player_input)),
+            allowed_feature_kinds=SCENE_DETAIL_KIND_ALLOWLIST,
+        )
+        if action_result["verified_world_updates"].get("create_features"):
+            findings = None
     if isinstance(findings, dict) and isinstance(findings.get("text"), str) and findings["text"].strip():
         # LR00-P2: a target-bound finding IS the result. Live runs showed the
         # narrator inventing a figure behind closed shutters; the receipt's

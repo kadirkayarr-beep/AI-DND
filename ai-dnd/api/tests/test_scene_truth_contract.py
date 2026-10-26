@@ -164,12 +164,12 @@ class SceneTruthContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_same_name_tables_require_clarification(self):
         city, place, door, entered = await self.enter_tavern()
         self.assertEqual(self.world["location"], place["id"])
-        twin = self.session.create_local_feature({
-            "location": place["id"], "name": "Boş masa",
-            "description": "Pencere kenarındaki başka bir masa.", "kind": "table",
-        })
-        if twin is None:
-            self.skipTest("fixture could not create a second same-named feature")
+        # create_local_feature deduplicates visible same-name features by design,
+        # so a same-name pair (legacy save) is written to the registry directly.
+        original = next(f for f in self.world["features"] if f.get("name") == "Boş masa")
+        twin = dict(original, id="feature_twin_table",
+                    description="Pencere kenarındaki başka bir masa.")
+        self.world["features"].append(twin)
         before = dict(self.world["scene_state"]["player_position"])
         result = await self.send("Boş masaya oturuyorum")
         self.assertEqual(result.status_code, 200, result.text)

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from api.main import create_app
-from api.ollama_adapter import AuthenticatedOllamaAdapter, RequiredModelUnavailableError
+from api.ollama_adapter import CONTEXT_WINDOW_TOKENS, AuthenticatedOllamaAdapter, RequiredModelUnavailableError
 from api.schemas import TurnRequest
 
 NINE = 'qwen3.5:9b-q4_K_M'
@@ -58,7 +58,11 @@ class LocalModelSelectionTests(unittest.TestCase):
                     result = adapter.chat(model='qwen3:8b', messages=[], think=False)
                 self.assertEqual(result['message']['content'], 'ok')
                 self.assertEqual(calls, [model])
-                self.assertEqual(client.requests, [{'model': model, 'messages': [], 'think': False}])
+                # The adapter owns the context window (4096 default truncated live replies).
+                self.assertEqual(client.requests, [{
+                    'model': model, 'messages': [], 'think': False,
+                    'options': {'num_ctx': CONTEXT_WINDOW_TOKENS},
+                }])
 
     def test_missing_selected_model_does_not_fall_back(self):
         client = RecordingClient()

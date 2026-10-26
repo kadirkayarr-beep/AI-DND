@@ -29,7 +29,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
-from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 
 
 class FakeOllamaClient:
@@ -70,7 +70,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             self.manager = SessionManager(campaign_store=self.store)
             app_options["authenticator"] = FixedAuthenticator(TEST_PLAYER)
         else:
-            self.manager = SessionManager()
+            self.manager = TestPlayerSessionManager()
         self.fake_client = FakeOllamaClient()
         self.adapter = AuthenticatedOllamaAdapter(self.fake_client)
         self.enterContext(self.adapter.engine_binding())

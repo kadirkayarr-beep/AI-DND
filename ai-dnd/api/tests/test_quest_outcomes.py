@@ -258,7 +258,11 @@ class QuestOutcomeTests(unittest.TestCase):
         self.assertIs(session.rng, held_rng)
         self.assertEqual(session.rng.getstate(), rng_state)
         self.assertEqual(session.world_state, expected_world)
-        self.assertEqual(session.serialize_game_state()["version"], game.SAVE_FORMAT_VERSION)
+        # A loaded v1-v3 file is written back as its own version (game.py keeps
+        # _persisted_engine_format); only a fresh session writes the current one.
+        self.assertEqual(session.serialize_game_state()["version"], 1)
+        self.assertEqual(game.create_session(seed=1).serialize_game_state()["version"],
+                         game.SAVE_FORMAT_VERSION)
 
     def test_malformed_v2_quest_records_are_rejected(self):
         session = game.create_session(seed=2)

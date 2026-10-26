@@ -4,8 +4,23 @@ import unittest
 from unittest.mock import patch
 
 import game
+import local_dialogue
 from api.tests import test_campaign_api as api
 from api.tests import test_experimental_npc_dialogue as speech
+
+
+class DiscoursePrefixTests(unittest.TestCase):
+    NPC = {"name": "Marek", "role": "resident"}
+
+    def test_two_real_requests_are_still_two_clauses(self):
+        self.assertTrue(local_dialogue.has_multiple_dialogue_clauses(
+            "Adın nedir? Bir de kralın yarınki planını söyler misin?", self.NPC))
+
+    def test_peki_sen_self_description_goes_to_the_speech_path(self):
+        # Two clauses by design: the model speaks the NPC's public detail
+        # (test_stage_profile_contract), it is not answered from a template.
+        self.assertTrue(local_dialogue.has_multiple_dialogue_clauses(
+            "Peki sen, kendinden biraz bahset.", self.NPC))
 
 
 class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):

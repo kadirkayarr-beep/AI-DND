@@ -160,10 +160,12 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
         request = chat.call_args.kwargs
         self.assertEqual(chat.call_count,1)
         self.assertIn(row['notes'],str(request['messages']))
-        self.assertIn('ilgili fact_id veya override_id',str(request['messages']))
+        # Narration-only: no citation is requested; evidence is chosen by Python.
+        self.assertNotIn('ilgili fact_id veya override_id',str(request['messages']))
         self.assertEqual(request['format']['properties']['lore_claims']['maxItems'],0)
-        self.assertNotEqual(result['narration'],row['notes'])
-        self.assertIn('Ahşap raf',result['narration'])
+        from api.lore_authority.claim_authorization import exact_narration_evidence_ids
+        self.assertEqual(exact_narration_evidence_ids(row['notes'],context),[row['fact_id']])
+        self.assertEqual(result['narration'],row['notes'])
         self.assertEqual(self.session.world_state,before)
         self.assertTrue(game._narration_has_unsupported_lore_claim(row['notes'],[],context,self.world))
         self.assertFalse(game._narration_has_unsupported_lore_claim(row['notes'],[row['fact_id']],context,self.world))

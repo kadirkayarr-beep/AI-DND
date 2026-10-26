@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import os
 from pathlib import Path
 import sys
@@ -126,6 +127,12 @@ class ScriptedNpcModel(test_campaign_api.FakeOllamaClient):
             narration = next(
                 (text for key, text in REPLIES if key in player_text), DEFAULT_REPLY
             )
+        if "spoken_text" in properties:
+            # Default NPC route: one structured speech packet; the "Name: “…”"
+            # label is rendered by the product, so the double sends bare speech.
+            spoken = re.sub(r"^[^:“\"]{1,40}:\s*[“\"]?|[”\"]\s*$", "", narration.strip())
+            return {"message": {"content": json.dumps(
+                {"spoken_text": spoken, "stage_direction": ""}, ensure_ascii=False)}}
         packet = {
             "intent": "dialogue",
             "action": "dialogue",

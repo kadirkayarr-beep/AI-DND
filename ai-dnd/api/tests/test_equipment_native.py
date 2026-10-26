@@ -498,8 +498,10 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(self.last_proposal_parse_calls, 1)
         self.assertEqual(resolve_calls, 0)
+        # The default route answers a question as attributed NPC speech and needs no
+        # conversation proposal; what must hold is that no equipment moves.
         self.assertEqual(response.json()["turn_outcome"]["status"],
-                         "proposal_rejected")
+                         "experimental_attributed_speech")
         self.assertFalse(any(i.get("item_id") == npc["equipment"]["main_hand"]
                              for i in record.game_session.world_state["inventory"]))
         source = next(n for n in record.game_session.world_state["npcs"]

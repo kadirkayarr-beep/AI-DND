@@ -12,7 +12,7 @@ Run from ai-dnd (Ollama up, qwen3:8b pulled):
     set AI_DND_NPC_SPEECH=1
     python -m unittest api.tests.live_lr00_probe -v
 
-Optional: AI_DND_PROBE_SCENARIOS=door,npc,free (subset), AI_DND_PROBE_CAP (total
+Optional: AI_DND_OLLAMA_MODEL (default qwen3:8b), AI_DND_PROBE_SCENARIOS=door,npc,free (subset), AI_DND_PROBE_CAP (total
 real call cap, default 60), AI_DND_LIVE_EVIDENCE_DIR, AI_DND_LIVE_P2_DRY=1.
 The phrases below were written fresh for this probe; once a phrase is used to
 repair behaviour it belongs in a regression test and a new phrase replaces it.
@@ -28,6 +28,7 @@ import unittest
 import uuid
 from pathlib import Path
 
+from api.local_model_config import DEFAULT_LOCAL_MODEL, validate_local_model
 from api.tests import live_npc_p2_sample as sample
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as harness
@@ -143,10 +144,21 @@ class LiveLr00Probe(unittest.IsolatedAsyncioTestCase):
             return outcome
 
         self.enterContext(patch.object(game, "_dispatch_player_turn", recording_dispatch))
+        touched: list = []
         for name in wanted:
+            # Setup fixtures list only the library default model; restore it first.
+            for adapter in touched:
+                adapter._model_name = DEFAULT_LOCAL_MODEL
+            touched.clear()
             _, _, session, turn_url, npc = await self.campaign_with_npc(
                 experimental=os.environ.get("AI_DND_NPC_SPEECH") == "1"
             )
+            model = os.environ.get("AI_DND_OLLAMA_MODEL")
+            if model:
+                # The harness adapter keeps the library default unless told otherwise.
+                adapter = self.app.state.ollama_adapter
+                adapter._model_name = validate_local_model(model)
+                touched.append(adapter)
             with sample.unittest_patch(self.app.state.ollama_adapter, client):
                 for index, (text, mode, target) in enumerate(SCENARIOS[name], start=1):
                     before = _snapshot(session)

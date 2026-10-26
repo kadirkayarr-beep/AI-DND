@@ -163,6 +163,13 @@ class IdentityBoundaryTests(unittest.TestCase):
         self.assertNotIn("bardak", looked["text"].casefold())
         self.assertIn("seçemiyorsun", looked["text"])
 
+    def test_failed_search_of_an_absent_counter_keeps_the_guarded_narration(self):
+        # Only a successful search is a Python miss (5a83e6d commit message);
+        # a failed roll still reaches the narrator, whose inventions are rejected.
+        for outcome in ("failure", "critical_failure"):
+            self.assertIsNone(self.session._inspection_findings(
+                "Tezgâhın altını sistemli inceliyorum.", outcome), outcome)
+
     def test_successful_search_of_an_absent_counter_is_a_miss(self):
         findings = self.session._inspection_findings(
             "Tezgâhın altını sistemli inceliyorum.", "success"

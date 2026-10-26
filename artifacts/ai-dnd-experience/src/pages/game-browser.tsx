@@ -1698,7 +1698,7 @@ export default function GameBrowser() {
         const next: TranscriptEntry[] = snapshot.history ? [
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
           ...snapshot.history.flatMap((entry, index) => [
-            { kind: 'player' as const, text: entry.player_message, mode: (entry as CampaignHistoryEntry & { interaction_mode?: InteractionMode }).interaction_mode ?? (index === snapshot.history!.length - 1 ? metadata.interaction_mode : undefined) },
+            { kind: 'player' as const, text: entry.player_message, mode: index === snapshot.history!.length - 1 ? metadata.interaction_mode : undefined },
             { kind: 'narration' as const, text: entry.narration,
             skillCheckResult: entry.skill_check_result ?? undefined },
           ]),

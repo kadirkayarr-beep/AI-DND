@@ -1059,13 +1059,27 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
         chat.assert_not_called()
 
     def test_dedicated_lore_fallback_remains_authoritative(self):
-        expected = self.session._unverified_lore_response(self.player_input, self.npc)
+        # A lore miss on a QUESTION keeps the rumor line (5a83e6d); a social act
+        # such as a greeting gets the neutral no-change line instead.
+        question = "Kralın adı ne?"
+        expected = self.session._unverified_lore_response(question, self.npc)
+        result = game.finalize_narration(
+            self.unsafe_response, question, npc_target=self.npc,
+            action_result=self.action, fallback_reason_code="UNVERIFIED_LORE_CLAIM",
+            resolved_fallback_response=self.resolved_response, session=self.session,
+        )
+        self.assertEqual(result, expected)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNVERIFIED_LORE_CLAIM")
+
+    def test_lore_fallback_for_a_social_act_is_the_neutral_line(self):
+        rumor = self.session._unverified_lore_response(self.player_input, self.npc)
         result = game.finalize_narration(
             self.unsafe_response, self.player_input, npc_target=self.npc,
             action_result=self.action, fallback_reason_code="UNVERIFIED_LORE_CLAIM",
             resolved_fallback_response=self.resolved_response, session=self.session,
         )
-        self.assertEqual(result, expected)
+        self.assertIn(result, game._GENERIC_NO_CHANGE_RESPONSES)
+        self.assertNotEqual(result, rumor)
         self.assertEqual(self.session.last_narration_safety["reason_code"], "UNVERIFIED_LORE_CLAIM")
 
     def test_other_resolved_action_uses_its_deterministic_fallback(self):

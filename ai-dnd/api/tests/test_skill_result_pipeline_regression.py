@@ -207,7 +207,9 @@ class RejectedLoreSkillFallbackTests(unittest.TestCase):
         self.session = city_session()
 
     def test_real_final_turn_skill_success_and_failure_preserve_python_outcome(self):
-        for d20, expected in ((2, "başarısız"), (20, "başarılı")):
+        # The fallback states the Python outcome in plain Turkish: the attempt "tutmaz"
+        # (fails) or "tutar" (holds); each must exclude the other.
+        for d20, expected, opposite in ((2, "tutmaz", "tutar"), (20, "tutar", "tutmaz")):
             with self.subTest(d20=d20):
                 session = city_session()
                 wrong = {
@@ -226,6 +228,7 @@ class RejectedLoreSkillFallbackTests(unittest.TestCase):
                 self.assertEqual(skill["status"], "resolved")
                 self.assertEqual(skill["success"], d20 == 20)
                 self.assertIn(expected, turn["narration"].casefold())
+                self.assertNotIn(opposite, turn["narration"].casefold())
                 self.assertNotIn("güvenilir bir doğrulamam yok", turn["narration"].casefold())
                 self.assertNotIn("yakaland", turn["narration"].casefold())
                 self.assertNotIn("hasar", turn["narration"].casefold())

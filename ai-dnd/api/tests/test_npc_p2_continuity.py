@@ -400,16 +400,17 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("istersen", result)
 
-    async def test_live_t5_repeated_speech_gets_in_character_line_not_robotic(self):
-        """Live T5: the model repeated its previous line, the repeat guard fired
-        and the robotic 'doğrulanmış bir bilgi yok' fallback was shown."""
+    async def test_live_t5_repeated_speech_stays_in_character_and_not_robotic(self):
+        """Live T5: the model repeated its previous line and the robotic
+        'doğrulanmış bir bilgi yok' fallback was shown. Since c48df86 the repeated
+        reply is kept; what must hold is that it stays in character."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
         client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
         await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
         second = await self.say(turn_url, client, npc, "Neden onu?")
         text = second["narration"]
         self.assertTrue(text.startswith("Marek"), text)
-        self.assertNotIn(FIRST_REPLY.rstrip("."), text)
+        self.assertIn(FIRST_REPLY.rstrip("."), text)
         for phrase in self.ROBOTIC_FALLBACK:
             self.assertNotIn(phrase, text.casefold())
 
@@ -766,14 +767,16 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(options["temperature"], 0.0)
         self.assertGreater(options.get("repeat_penalty", 1.0), 1.0)
 
-    async def test_guard_exact_repeat_of_previous_speech_still_falls_back(self):
-        """Repetition protection stays: the same line twice is not shown again."""
+    async def test_exact_repeat_of_previous_speech_is_kept_not_swapped_for_a_robotic_line(self):
+        """c48df86: a repeated real reply beats an "I do not know" substitute."""
         _, _, _, turn_url, npc = await self.campaign_with_npc()
         client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
         first = await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
         second = await self.say(turn_url, client, npc, FOLLOWUP)
         self.assertIn(FIRST_REPLY.rstrip("."), first["narration"])
-        self.assertNotIn(FIRST_REPLY.rstrip("."), second["narration"])
+        self.assertIn(FIRST_REPLY.rstrip("."), second["narration"])
+        for phrase in self.ROBOTIC_FALLBACK:
+            self.assertNotIn(phrase, second["narration"].casefold())
 
     async def test_guard_fake_client_output_conforms_to_the_requested_schema(self):
         """The fixture itself must be schema-compliant (the 1fbec296 trap)."""

@@ -91,9 +91,12 @@ class InvalidConversationPlaceClient(AttributedPlaceClient):
     def chat(self, *args, **kwargs):
         response = super().chat(*args, **kwargs)
         packet = json.loads(response["message"]["content"])
-        packet["interaction"]["conversation"]["candidate_evidence_ids"] = [
-            "unavailable-evidence-id"
-        ]
+        # Only a classifier packet carries a helper conversation proposal; the
+        # default route's speech packet has none, so there is nothing to corrupt.
+        if isinstance(packet.get("interaction"), dict):
+            packet["interaction"]["conversation"]["candidate_evidence_ids"] = [
+                "unavailable-evidence-id"
+            ]
         response["message"]["content"] = json.dumps(packet, ensure_ascii=False)
         return response
 
@@ -463,9 +466,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             captured["telemetry"]["narration_validation_result"], "accepted"
         )
         self.assertTrue(any(
-            "NPC dialogue mode" in prompt
-            and "natural, direct speech" in prompt
-            and "Answer the player's actual question" in prompt
+            "INTERNAL NPC SPEECH EXPERIMENT" in prompt
+            and "addressed NPC's spoken reply" in prompt
+            and "Answer the player's current message in character" in prompt
             and "Marek" in prompt
             for prompt in client.prompts
         ), client.prompts)
@@ -1694,7 +1697,8 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         suggestion_outcome = suggestion_payload["turn_outcome"]
         self.assertEqual(suggestion_payload["action_id"], suggestion_action_id)
         self.assertEqual(suggestion_outcome.get("action"), "dialogue")
-        self.assertEqual(suggestion_outcome.get("status"), "resolved")
+        # The default route records NPC speech as attributed, not as a resolved mechanic.
+        self.assertEqual(suggestion_outcome.get("status"), "experimental_attributed_speech")
         # Dialogue receipts intentionally omit target IDs and names; the
         # request target and the recorded said_by reference are authoritative.
         self.assertIsNone(suggestion_outcome.get("target_name"))

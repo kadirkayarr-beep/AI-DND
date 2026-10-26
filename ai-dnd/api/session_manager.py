@@ -546,6 +546,9 @@ class SessionManager:
         if record is not None and not self._owned_by(record, owner):
             raise CampaignNotFoundError("Campaign not found.")
         if record is None:
+            # Only the owner of a stored campaign may learn that it is inactive;
+            # a stranger and an unknown id get the same "not found".
+            store.get_campaign(campaign_id, principal=owner)
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
             if not record.usable:

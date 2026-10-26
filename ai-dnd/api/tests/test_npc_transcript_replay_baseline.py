@@ -23,6 +23,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import living_world
+from api.tests.speech_double import bare_speech, speech_packet
 from api.tests import test_campaign_api
 from api.tests.test_campaign_api import create_city_with_locked_tavern
 from api.tests.test_npc_dialogue_stage_a_diagnostic import (
@@ -383,6 +384,11 @@ class QwenShapedModel(TranscriptModel):
         )
         quote = prompt.rsplit("Current player message: ", 1)[-1].splitlines()[0] \
             if "Current player message: " in prompt else prompt
+        properties = (kwargs.get("format") or {}).get("properties", {})
+        if "spoken_text" in properties:
+            # Default NPC route: the helper-proposal faults below cannot occur in a
+            # speech-only packet, so the good reply must simply be kept.
+            return speech_packet(bare_speech(self.reply))
         shown_quote = self.reply if self.fault == "reply_as_quote" else quote
         evidence = (
             ["npc-profile:npc_001:v1:origin", "conversation_candidates"]

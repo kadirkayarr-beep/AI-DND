@@ -93,6 +93,11 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
                 target={"type": "npc", "reference": "halatlı kişi",
                         "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
             )["message"]["content"])
+            if "spoken_text" in kwargs["format"]["properties"]:
+                # Default NPC route: the second call is one structured speech packet.
+                return {"message": {"content": json.dumps({
+                    "spoken_text": "Yükümü indirip sana dönüyorum.", "stage_direction": "",
+                }, ensure_ascii=False)}}
             if "narration" in kwargs["format"]["properties"]:
                 body["narration"] = "Hamal yükünü indirip sana dönüyor."
             return {"message": {"content": json.dumps(body, ensure_ascii=False)}}

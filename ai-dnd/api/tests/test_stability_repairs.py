@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import httpx
 
+import combat_lifecycle
 import game
 import living_world
 from api.main import create_app
@@ -27,7 +28,7 @@ from api.tests.live_playable_living_world_v1_1_smoke import (
     apply_smoke_summary,
 )
 from api.auth import FixedAuthenticator
-from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 
 
 def _intent_json(intent="unknown"):
@@ -67,6 +68,19 @@ def _ruler_context():
     context["diagnostics"] = {"query_intents": ["rulership"]}
     return context
 
+
+
+def _arm(session, weapon_name):
+    """Attacks use only a weapon the character really holds (authoritative inventory)."""
+    world = session.world_state
+    hands = world.get("equipment")
+    if not isinstance(hands, dict) or set(hands) != {"main_hand", "off_hand"}:
+        hands = {"main_hand": None, "off_hand": None}
+        world["equipment"] = hands
+    inventory = world.setdefault("inventory", [])
+    if weapon_name not in inventory:
+        inventory.append(weapon_name)
+    hands["main_hand"] = weapon_name
 
 class FakeOllamaClient:
     def list(self):
@@ -579,12 +593,19 @@ class NarrationAndCoreTests(unittest.TestCase):
             "armor_class": 1,
             "max_hp": 8,
             "current_hp": 8,
+            "distance_ft": 5,  # attacks need an authoritative distance
         }
         session.world_state["npcs"].append(target)
         weapon = next(iter(game.WEAPONS.values()))
         weapon_name = next(iter(game.WEAPONS))
+        _arm(session, weapon_name)
         for _ in range(20):
-            session.resolve_attack("saldır", weapon_name, weapon, target)
+            try:
+                session.resolve_attack("saldır", weapon_name, weapon, target)
+            except combat_lifecycle.CombatRequestError:
+                # A dead creature is refused outright, so HP can never be driven below zero.
+                self.assertEqual(target["current_hp"], 0)
+                break
             self.assertGreaterEqual(target["current_hp"], 0)
             self.assertGreaterEqual(session.character["current_hp"], 0)
 
@@ -682,9 +703,11 @@ class CrossSessionTests(unittest.TestCase):
             "max_hp": 12,
             "current_hp": 12,
             "memory": [],
+            "distance_ft": 5,  # attacks need an authoritative distance
         }
         session.world_state["npcs"].append(target)
         weapon_name = next(iter(game.WEAPONS))
+        _arm(session, weapon_name)
         session.resolve_attack(
             "saldır",
             weapon_name,
@@ -738,7 +761,7 @@ class CrossSessionTests(unittest.TestCase):
 
 class ApiRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.manager = SessionManager()
+        self.manager = TestPlayerSessionManager()
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
