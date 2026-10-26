@@ -263,7 +263,7 @@ def main() -> int:
             health = http.get("/api/health")
             print(f"health {health.status_code} {health.text[:180]}", flush=True)
             diagnose = "diagnose" in sys.argv
-            rerun = any(flag in sys.argv for flag in ("rerun", "rerun2", "rerun3", "rerun4", "rerun5"))
+            rerun = any(flag in sys.argv for flag in ("rerun", "rerun2", "rerun3", "rerun4", "rerun5", "rerun6", "rerun7"))
             if rerun:
                 session_id, session = campaign(http)
                 dialogue = (
@@ -348,7 +348,9 @@ def main() -> int:
                     turn(http, "H-sit", scene_id, scene, "Boş masaya oturuyorum.", "do")
                     turn(http, "H-leave", scene_id, scene, "Dışarı çıkıyorum.", "do")
             out = Path(__file__).with_name(
-                "faz7-rerun5-qwen35-9b.jsonl" if "rerun5" in sys.argv
+                "faz7-rerun7-qwen35-9b.jsonl" if "rerun7" in sys.argv
+                else "faz7-rerun6-qwen35-9b.jsonl" if "rerun6" in sys.argv
+                else "faz7-rerun5-qwen35-9b.jsonl" if "rerun5" in sys.argv
                 else "faz7-rerun4-qwen35-9b.jsonl" if "rerun4" in sys.argv
                 else "faz7-rerun3-qwen35-9b.jsonl" if "rerun3" in sys.argv
                 else "faz7-rerun2-qwen35-9b.jsonl" if "rerun2" in sys.argv

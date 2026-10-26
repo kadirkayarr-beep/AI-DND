@@ -1,0 +1,1895 @@
+[
+  {
+    "scenario": "door",
+    "turn": 1,
+    "player": "Hanın kapısına iki kez hafifçe vurup içeriden ses gelip gelmediğini dinliyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Parmak eklemlerinle Farid Hanı Kapısı kapısını tıklatıyorsun. Kulak veriyorsun: içeride ne ayak sesi ne bir seslenme var. Kapı kilitli.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "door",
+    "turn": 2,
+    "player": "Kapıyı açmaya kalkmıyorum; sadece kilidin nasıl bir şey olduğuna bakıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Farid Hanı Kapısı kilitli. Kilit sağlam ve yerinde; zorlandığına dair bir iz görmüyorsun.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": true,
+      "skill": "Investigation",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": {
+      "skill": "Investigation",
+      "ability": "intelligence",
+      "d20": 16,
+      "advantage": false,
+      "proficient": false,
+      "ability_modifier": 0,
+      "proficiency_modifier": 0,
+      "total_modifier": 0,
+      "total": 16,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "success",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "5d60ab94-1fa8-4066-9745-599d03b48d06",
+      "resolution_id": "5d60ab94-1fa8-4066-9745-599d03b48d06:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 16.5,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "door",
+    "turn": 3,
+    "player": "Eğer kapı açıksa içeri süzülürüm, değilse beklerim.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Koşulun gerçekleşmiyor; bunu yapmıyorsun. Olduğun yerde bekliyorsun.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "partial",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.2,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "door",
+    "turn": 4,
+    "player": "Hanın sokağa bakan penceresinden içeriyi görmeye çalışıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Farid Hanı penceresi: kepenkler kapalı; aralıktan bu açıdan bir şey seçilmiyor.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": false,
+      "skill": "Perception",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": {
+      "skill": "Perception",
+      "ability": "wisdom",
+      "d20": 1,
+      "advantage": false,
+      "proficient": true,
+      "ability_modifier": 1,
+      "proficiency_modifier": 2,
+      "total_modifier": 3,
+      "total": 4,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "failure",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "2a784c28-6a85-427f-9f0f-a0b422e51031",
+      "resolution_id": "2a784c28-6a85-427f-9f0f-a0b422e51031:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 3.8,
+    "state_changed": [
+      "feature_count"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "door",
+    "turn": 5,
+    "player": "Pencerenin sürgüsünü parmaklarımla yokluyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Farid Hanı penceresi: Sokağa bakan küçük bir pencere; kepenkleri içeriden kapatılmış. Kepenklerin aralığından içerisi loş ve sessiz görünüyor; bu açıdan fazlası seçilmiyor.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": true,
+      "skill": "Investigation",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": {
+      "skill": "Investigation",
+      "ability": "intelligence",
+      "d20": 17,
+      "advantage": false,
+      "proficient": false,
+      "ability_modifier": 0,
+      "proficiency_modifier": 0,
+      "total_modifier": 0,
+      "total": 17,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "success",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "96366f41-3bc1-4b1d-958b-f0da2e2c1f1b",
+      "resolution_id": "96366f41-3bc1-4b1d-958b-f0da2e2c1f1b:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 3.4,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 1,
+    "player": "Marek'in yanına gidip başımla selam veriyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek, “Merhaba,” diye karşılık verir.",
+    "receipt": {
+      "action": "dialogue",
+      "status": "answered_smalltalk",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "world.npcs"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 4.1,
+    "state_changed": [
+      "npc_ids"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 2,
+    "player": "Arşivde seni en çok ne yoruyor?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Eski kayıtların çoğu kâtiplik için yorucu.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 3,
+    "player": "Neden öyle?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Çünkü çoğu zaman kâtiplerin zihnindeki bilgileri yeniden düzenlemek gerekiyor.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.7,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 4,
+    "player": "Bunu geç; bu şehirde güvenilir bir demirci bilir misin?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek (biraz kafa karışık bir şekilde başını sallar ve gözlerini muhafızlara çevirir): “Bilmiyorum, ama muhafızlar bana sorduğunda her zaman Elaris Hanı'na yönlendirirler.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.3,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 5,
+    "player": "Oraya buradan nasıl giderim?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Elaris Hanı'nın kapısı kilitli, ama buralardan giden yolun sonuna kadar gitmen yeterli.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "npc",
+    "turn": 6,
+    "player": "Geçen hafta bana bedava bir kılıç sözü vermiştin, unuttun mu?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Hayır, ama o kılıç artık burada değil. Eski kayıtlarda kayıp kayıtlar var, onları bulmaya çalışıyorum.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.0,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 1,
+    "player": "Marek, çalıştığın arşiv nerede? Nasıl bir yer orası?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Arşiv Cael Hanı'nın arkasında, sokakların içine gizli bir yerde. Orası biraz sorgulamaya değer.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 2,
+    "player": "Marek'in bahsettiği arşive gidiyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Fibblestib Arşivi karşına çıkıyor ve içeri adım atıyorsun. Basık tavanlı, uzun bir oda; pencerelerden süzülen ışık tozu görünür kılıyor. Tavana kadar uzanan, etiketleri solmuş raflar; bazı kutuların mührü kırık. Bir arşivci burada. Nemlenmiş bir tomarı mum ışığında kurutmaya çalışıyor. Bir kayıt defterinin son sayfaları yırtılmış; kimin yaptığı belli değil.",
+    "receipt": {
+      "action": "travel",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "location",
+        "locations",
+        "npcs",
+        "features"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [
+      "feature_count",
+      "location",
+      "location_ids",
+      "npc_ids"
+    ],
+    "where": {
+      "id": "location_002",
+      "name": "Fibblestib Arşivi"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 3,
+    "player": "Etrafa dikkatlice bakıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Fibblestib Arşivi çevresine göz gezdiriyorsun. Yakında bir arşivci var. Gözüne Tozlu raflar, Tozlu raflar çarpıyor. Bir ulak kapının önünde durup içeriden yanıt bekler.",
+    "receipt": {
+      "action": "explore",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "world.features"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 2,
+    "seconds": 8.8,
+    "state_changed": [
+      "feature_count"
+    ],
+    "where": {
+      "id": "location_002",
+      "name": "Fibblestib Arşivi"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 4,
+    "player": "Arşivciye selam verip burada bir sorun olup olmadığını soruyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Bir arşivci: “Selam. Burada her şey yolunda, ama bu tozlu rafların içinden bir şey bulmak istersen çok vakit alabilir.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_001",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.3,
+    "state_changed": [],
+    "where": {
+      "id": "location_002",
+      "name": "Fibblestib Arşivi"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 5,
+    "player": "Raflara yakından bakıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Tozlu raflar üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.",
+    "receipt": {
+      "action": "explore",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 4.2,
+    "state_changed": [],
+    "where": {
+      "id": "location_002",
+      "name": "Fibblestib Arşivi"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 6,
+    "player": "Buradan çıkıp sokağa dönüyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Fibblestib Arşivi içinden çıkıp Neverwinter sokaklarına dönüyorsun. Zaten dışarıdasın.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "completed",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "location",
+        "next_npc_number",
+        "npcs",
+        "scene_state"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [
+      "location",
+      "npc_ids",
+      "quests"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "p3",
+    "turn": 7,
+    "player": "Arşive geri gidiyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Yeniden Fibblestib Arşivi içindesin; her şey bıraktığın gibi. Tavana kadar uzanan, etiketleri solmuş raflar; bazı kutuların mührü kırık. Bir arşivci burada. Nemlenmiş bir tomarı mum ışığında kurutmaya çalışıyor.",
+    "receipt": {
+      "action": "travel",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "location"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [
+      "location"
+    ],
+    "where": {
+      "id": "location_002",
+      "name": "Fibblestib Arşivi"
+    }
+  },
+  {
+    "scenario": "free",
+    "turn": 1,
+    "player": "Meydandaki çanı birkaç kez çalıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Çanı çalıyorsun; tiz sesi sokak boyunca yankılanıp yavaşça sönüyor. Marek başını çevirip sesin nereden geldiğine bakıyor.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "free",
+    "turn": 2,
+    "player": "Çantamdaki eski kitabı açıp birkaç sayfa okuyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Çantanı karıştırıyorsun ama içinde okuyabileceğin bir kitap yok.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "free",
+    "turn": 3,
+    "player": "Biraz şehrin sokaklarında amaçsızca dolaşıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sokak sokak dolaşıyorsun. Yolun seni Gardain Karakolu önüne çıkarıyor. Gardain Karakolu önüne geliyorsun. Mızrakların duvara dayandığı, sert ışıklı küçük bir karakol.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "completed",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "campaign_time",
+        "locations",
+        "next_location_number",
+        "scheduled_event_diagnostics"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [
+      "location_ids"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "free",
+    "turn": 4,
+    "player": "Yerdeki çamurlu ayak izlerini dikkatle inceliyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": false,
+      "skill": "Investigation",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "world.npcs"
+      ]
+    },
+    "skill_check": {
+      "skill": "Investigation",
+      "ability": "intelligence",
+      "d20": 14,
+      "advantage": false,
+      "proficient": false,
+      "ability_modifier": 0,
+      "proficiency_modifier": 0,
+      "total_modifier": 0,
+      "total": 14,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "failure",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "ff4db926-94f6-4425-8169-396eb281caf5",
+      "resolution_id": "ff4db926-94f6-4425-8169-396eb281caf5:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 5.3,
+    "state_changed": [
+      "npc_ids"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "free",
+    "turn": 5,
+    "player": "Az önce gördüğüm adamın peşine takılıyorum.",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Kalabalığın içinde gözünü bir an ayırınca izini kaybediyorsun; kimin peşinde olduğunu artık seçemiyorsun.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_knock",
+    "turn": 1,
+    "player": "kapıyı birkaç kez hafifçe vuruyorum, içerde biri var mı diye",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Parmak eklemlerinle Vesna Hanı Kapısı kapısını tıklatıyorsun. Kulak veriyorsun: içeride ne ayak sesi ne bir seslenme var. Kapı kilitli.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_knock",
+    "turn": 2,
+    "player": "tak tak... hanci! açsana şu kapıyı, uyuyor musun",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Vesna Hanı Kapısı üzerine birkaç kez vuruyorsun. Tahta tok bir ses veriyor; bir süre bekliyorsun ama içeriden yanıt gelmiyor ve kapı kilitli kalıyor.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_knock",
+    "turn": 3,
+    "player": "Yumruğumun yan tarafıyla kapıya üç kere tıklatıp bekliyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Parmak eklemlerinle Vesna Hanı Kapısı kapısını tıklatıyorsun. Kulak veriyorsun: içeride ne ayak sesi ne bir seslenme var. Kapı kilitli.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_negation",
+    "turn": 1,
+    "player": "saldırmıyorum tamam mı, sadece elimi kılıcımın kabzasına koydum o kadar",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Kılıç envanterinde bulunuyor.",
+    "receipt": {
+      "action": "narrative",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 2,
+    "seconds": 8.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_negation",
+    "turn": 2,
+    "player": "Kapıyı kırmayacağım, merak etme Sera. sadece kilide bakıcam",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Kime ya da neye yöneldiğini seçemedim (yakınındakiler: Marek, Sera; çevrede: Ielenia Hanı Kapısı, Ielenia Hanı). Hangisini kastediyorsun?",
+    "receipt": {
+      "action": "interact",
+      "status": "unresolved",
+      "success": false,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 4.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_negation",
+    "turn": 3,
+    "player": "marek'e bağırmadım ki ben, yüksek sesle düşündüm sadece",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “Ama gece karanlık ve kimse yardımcı olmaz. Sadece ışık görüldü, daha fazlası yok.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.5,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_conditional",
+    "turn": 1,
+    "player": "eğer kimse açmazsa arka tarafa dolaşırım, belki başka kapı vardır",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Koşulun şu an belli değil; bunu yapmıyorsun. Baern Hanı önüne geliyorsun. Baern Hanı Kapısı kapalı ve kilitli.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "partial",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_conditional",
+    "turn": 2,
+    "player": "Sera izin verirse halatı kullanıp üst kattaki pencereye tırmanmak istiyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Koşulun şu an belli değil; bunu yapmıyorsun.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "condition_unknown",
+      "success": false,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_conditional",
+    "turn": 3,
+    "player": "marek bişey bilmiyosa ona bi altın veririm, o zaman belki dili çözülür",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek kaşlarını kaldırıyor. “Bu konuda bir şey bilmiyorum, yabancı. Başka birine sorsan daha iyi edersin.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "proposal_rejected",
+      "success": false,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 4.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_inspect_object",
+    "turn": 1,
+    "player": "kilide yakından bakıyorum, zorlanmış mı yeni mi takılmış",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Samira Hanı Kapısı kilitli. Kilit sağlam ve yerinde; zorlandığına dair bir iz görmüyorsun.",
+    "receipt": {
+      "action": "explore",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 5.6,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_inspect_object",
+    "turn": 2,
+    "player": "Pencerenin kepenklerini inceliyorum, aralık var mı içeri bakabilir miyim",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Samira Hanı penceresi: Sokağa bakan küçük bir pencere; kepenkleri içeriden kapatılmış. Kepenklerin aralığından içerisi loş ve sessiz görünüyor; bu açıdan fazlası seçilmiyor.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": true,
+      "skill": "Investigation",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "world.npcs"
+      ]
+    },
+    "skill_check": {
+      "skill": "Investigation",
+      "ability": "intelligence",
+      "d20": 19,
+      "advantage": false,
+      "proficient": false,
+      "ability_modifier": 0,
+      "proficiency_modifier": 0,
+      "total_modifier": 0,
+      "total": 19,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "success",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "faf7c4c5-1942-4e48-8947-3a20b23f7c5e",
+      "resolution_id": "faf7c4c5-1942-4e48-8947-3a20b23f7c5e:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 6.4,
+    "state_changed": [
+      "feature_count",
+      "npc_ids"
+    ],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_inspect_object",
+    "turn": 3,
+    "player": "duvarda kapının hemen yanındaki o çiziklere bakıyorum, ne bunlar?",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Samira Hanı Kapısı kilitli; bu bakışla kilidin ayrıntısını seçemiyorsun.",
+    "receipt": {
+      "action": "skill_check",
+      "status": "resolved",
+      "success": false,
+      "skill": "Investigation",
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": {
+      "skill": "Investigation",
+      "ability": "intelligence",
+      "d20": 4,
+      "advantage": false,
+      "proficient": false,
+      "ability_modifier": 0,
+      "proficiency_modifier": 0,
+      "total_modifier": 0,
+      "total": 4,
+      "difficulty": "medium",
+      "dc": 15,
+      "outcome": "failure",
+      "disadvantage": false,
+      "expertise": false,
+      "action_id": "67e5bca2-0e25-4177-b384-bb49ad52916c",
+      "resolution_id": "67e5bca2-0e25-4177-b384-bb49ad52916c:skill_check:1"
+    },
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 3.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_topic_change",
+    "turn": 1,
+    "player": "Merhaba Marek, biraz konuşabilir miyiz?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Elbette, ne istiyorsun?”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.9,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_topic_change",
+    "turn": 2,
+    "player": "neyse bunu boşver marek, sen arşivde ne iş yapıyosun tam olarak",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “Eski kayıtları tasnif ediyorum. Kayıp kayıtları bulmaya geldim, ama henüz bir şey bulamadım.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_topic_change",
+    "turn": 3,
+    "player": "Hanı geçelim şimdi. Sera, bu mahallede son zamanlarda tuhaf bir şey oldu mu?",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sera: “Hanı geçmek istiyorsan, önce kilitlerini çözmüş olmalısın. Son zamanlarda burada bir şey olduğunu duydum ama ne olduğu konusunda tamamen emin değilim.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_private_sera",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.4,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_topic_change",
+    "turn": 4,
+    "player": "tamam anladım da asıl merak ettiğim şey şu: Neverwinter'da kitap satan biri var mı",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Bu konuda duyduğun hiçbir söz sağlam görünmüyor; doğrusunu öğrenmek için biraz daha dinlemen gerekecek.",
+    "receipt": {
+      "action": "dialogue",
+      "status": "unverified",
+      "success": false,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_short_followup",
+    "turn": 1,
+    "player": "Merhaba Marek, biraz konuşabilir miyiz?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Elbette, ne istersin?”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.8,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_short_followup",
+    "turn": 2,
+    "player": "kim?",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “Ben Marek, burada arşivde kâtiplik yapıyorum.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.8,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_short_followup",
+    "turn": 3,
+    "player": "e sonra",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek omuz silkip hafifçe gülümsüyor. “Sözün nereye varacağını kestiremedim. Biraz açar mısın?”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.6,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_short_followup",
+    "turn": 4,
+    "player": "ne zamandan beri",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “Bir aydan beri, eski kayıtları bulmaya gelmeden önce biraz daha hazırlık yapmak için.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_wrong_target_risk",
+    "turn": 1,
+    "player": "Sera, Marek'in dediğine sen de inanıyor musun?",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sera: “Marek'le aynı fikirdeyim, ama bazı şeyleri anlamam.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_private_sera",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.0,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_wrong_target_risk",
+    "turn": 2,
+    "player": "marek sen sus biraz, sera'ya soruyorum: han neden kapalı",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sera: “Hanın kapalı olmasıyla ilgili bir şey bilmiyorum, ama bazı şeylerin gizli olduğunu düşünüyorum.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_private_sera",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_wrong_target_risk",
+    "turn": 3,
+    "player": "Marek'e dönüp Sera'nın az önce söylediğini tekrarlamasını istiyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek başını iki yana sallıyor. “Hayır, öyle bir sözüm yok. Kimden duyduysan iyi düşün, yanılıyorsun.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 3.2,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_unsupported_action",
+    "turn": 1,
+    "player": "kapının üstündeki küçük çanı çekiştirip çalıyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Çanı çalıyorsun; tiz sesi sokak boyunca yankılanıp yavaşça sönüyor. Marek başını çevirip sesin nereden geldiğine bakıyor.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_unsupported_action",
+    "turn": 2,
+    "player": "Çantamdaki kitabı çıkarıp ilk sayfayı yüksek sesle okuyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Çantanı karıştırıyorsun ama içinde okuyabileceğin bir kitap yok.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_unsupported_action",
+    "turn": 3,
+    "player": "sıkıldım, ıslık çala çala sokakta biraz dans ediyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Kendi kendine ıslık çalıp birkaç adım atıyorsun; sokağın gürültüsü bir an için hafifliyor gibi. Marek göz ucuyla sana bakıp hafifçe gülümsüyor.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_walk_follow",
+    "turn": 1,
+    "player": "marekin peşinden gidiyorum ama fark ettirmeden, biraz arkadan",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Mesafeni koruyarak Marek arkasından yürüyorsun. Yalnızca birkaç sokak köşesi dolaşıp tanıdık yüzlerle selamlaşıyor, sonra olduğu yere dönüyor.",
+    "receipt": {
+      "action": "everyday_action",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_walk_follow",
+    "turn": 2,
+    "player": "Sokağın sonuna kadar yürüyüp köşeden geri dönüyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Bu seyahat hedefi doğrulanamadı; konumun değişmedi.",
+    "receipt": {
+      "action": "travel",
+      "status": "failed",
+      "success": false,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": "sokağın sonu",
+      "fallback_reason_code": null,
+      "state_changes": [
+        "flags.pending_destination"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 2,
+    "seconds": 10.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_walk_follow",
+    "turn": 3,
+    "player": "biraz etrafta dolaşayım bakalım hanın arkası nereye çıkıyo",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Neverwinter çevresine göz gezdiriyorsun; belirgin bir hareket seçilmiyor.",
+    "receipt": {
+      "action": "explore",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 2,
+    "seconds": 9.3,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_compound",
+    "turn": 1,
+    "player": "kapıyı çalıyorum, cevap gelmezse pencereden içeri bakıyorum sonra marek'e dönüp soruyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Basim Hanı Kapısı üzerine birkaç kez vuruyorsun. Üst kattaki bir kepenk aralanıyor, biri aşağı bakıp başını sallıyor ve kepengi geri kapatıyor. Kapı kilitli kalıyor. Koşulun gerçekleşmiyor; bunu yapmıyorsun. Marek yanına gidiyorsun; seni fark edip sana dönüyor. Ne söyleyeceğini bir sonraki hamlende yazabilirsin.",
+    "receipt": {
+      "action": "grounded_action",
+      "status": "partial",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "npcs"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_compound",
+    "turn": 2,
+    "player": "Halatı çantadan çıkarıp omzuma atıyorum, Sera'ya selam verip hanın arka sokağına yürüyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "İlk adımın: Halatı çantadan çıkarıp omzuma atıyorum. Bunu denemek için hamleni söyle; diğer adımlar bekleyebilir.",
+    "receipt": {
+      "action": "interaction",
+      "status": "recorded",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": [
+        "world.interaction_adventure_v1"
+      ]
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 0,
+    "seconds": 0.2,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_compound",
+    "turn": 3,
+    "player": "marek'e bi altın uzatıp teşekkür ettim, sonra kitabı ona gösterip bunu tanıyor mu diye sordum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “Kitabı biliyorum, ama benim için çok değerli bir eser. Arşivdeki eski kayıtlarla ilgili bir şey mi arıyorsun?”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.3,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_explore_verbs",
+    "turn": 1,
+    "player": "bu sokağı biraz keşfetmek istiyorum, acelem yok",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sokakta yürüyerek çevreni gözlemliyorsun. Lysa Hanı kapısı hâlâ kilitli ve kapalı duruyor. Yavaşça ilerlerken, biraz uzaktaki sokakta hareket eden isimsiz kalabalık sesleri duyulabiliyor. Ne yapacağını kararlaştırman gerekiyor.",
+    "receipt": {
+      "action": "explore",
+      "status": "resolved",
+      "success": true,
+      "skill": null,
+      "npc_id": null,
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 2,
+    "seconds": 9.2,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_explore_verbs",
+    "turn": 2,
+    "player": "Kesinlikle kavga istemiyorum Sera, sadece içerdekini merak ediyorum",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sera: “İçerde ne oluyor peki? Biraz gizli ama...”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_private_sera",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.0,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_explore_verbs",
+    "turn": 3,
+    "player": "halatın yıpranmış ucunu bıçakla kesip düzeltiyorum, sonra Marek'e kitapta vurguladığı satırı sorucam",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek: “İyi bir plan. Ama bana da sormak istersen, o satırın ne anlama geldiğini bilmiyorum. Sadece burada olduğunu düşünmüştüm.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 3.1,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_fake_memory",
+    "turn": 1,
+    "player": "Merhaba Marek, biraz konuşabilir miyiz?",
+    "mode": "say",
+    "target": "npc",
+    "http_status": 200,
+    "shown": "Marek: “Elbette, ne zaman isterseniz.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.6,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_fake_memory",
+    "turn": 2,
+    "player": "Marek, dün bana arşivin anahtarını vereceğine söz vermiştin unuttun mu",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 0.7,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_fake_memory",
+    "turn": 3,
+    "player": "sera sen demiştin ya bu hanın sahibi bana borçlu diye, hadi şimdi aç kapıyı",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Sera başını iki yana sallıyor. “Hayır, öyle bir sözüm yok. Kimden duyduysan iyi düşün, yanılıyorsun.”",
+    "receipt": {
+      "action": "dialogue",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_private_sera",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 1.0,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  },
+  {
+    "scenario": "unseen_fake_memory",
+    "turn": 4,
+    "player": "Hani geçen sefer bu kitabı getirirsem 50 altın vericektin marek? işte getirdim",
+    "mode": null,
+    "target": null,
+    "http_status": 200,
+    "shown": "Marek bir an sana bakıp kaşlarını çatıyor. “Öyle bir şey konuştuğumuzu anımsamıyorum. Beni başka biriyle karıştırmış olmalısın.”",
+    "receipt": {
+      "action": "world_interaction",
+      "status": "experimental_attributed_speech",
+      "success": true,
+      "skill": null,
+      "npc_id": "npc_experimental_marek",
+      "target_reference": null,
+      "fallback_reason_code": null,
+      "state_changes": []
+    },
+    "skill_check": null,
+    "error": null,
+    "real_calls_this_turn": 1,
+    "seconds": 2.4,
+    "state_changed": [],
+    "where": {
+      "id": "fr:city:neverwinter",
+      "name": "Neverwinter"
+    }
+  }
+]

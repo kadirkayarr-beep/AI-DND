@@ -1,0 +1,1704 @@
+RELEASE DETERMINISTIC GATES: 33 selected
+Excluded historical prototypes: test_combat_v2.py, test_combat_v2_fixed.py
+
+=== test_definition_preflight_checks.py ===
+......................................
+----------------------------------------------------------------------
+Ran 38 tests in 0.101s
+
+OK
+
+=== test_runner_inventory.py ===
+........................................
+----------------------------------------------------------------------
+Ran 40 tests in 26.522s
+
+OK
+
+=== test_ai_pipeline_port.py ===
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 0.564s
+
+OK
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Persuasion
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +2
+Total Bonus: +4
+Total: 16
+Result: BAŞARILI
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Persuasion
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 14
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Deception
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +2
+Total Bonus: +4
+Total: 16
+Result: BAŞARILI
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Deception
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 14
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Acrobatics
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +2
+Total Bonus: +4
+Total: 16
+Result: BAŞARILI
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Acrobatics
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 14
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Survival
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +2
+Total Bonus: +4
+Total: 16
+Result: BAŞARILI
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Survival
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 14
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Survival
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +2
+Total Bonus: +4
+Total: 16
+Result: BAŞARILI
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Survival
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 14
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Persuasion
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 12
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Deception
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 12
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Acrobatics
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 12
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Survival
+Difficulty: medium
+DC: 15
+D20: 12
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 12
+Result: BAŞARISIZ
+===================================
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Persuasion
+Difficulty: medium
+DC: 15
+D20: 8
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 8
+Result: BAŞARISIZ
+===================================
+
+=== test_ai_pipeline_semantics.py ===
+PASS: 87 semantic, 24 query-grounding, and 18 narrator-safety checks
+
+=== test_startup.py ===
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.016s
+
+OK
+
+=== test_sessions.py ===
+................................................
+----------------------------------------------------------------------
+Ran 48 tests in 1.841s
+
+OK
+LR00_SHORT_REST_SLOT_EVIDENCE slot_before=1 slot_after=1 elapsed_before=0 elapsed_after=3600 hp_before=13 hp_after=13
+
+=== test_playable_living_world.py ===
+test_addressed_npc_tavern_question_does_not_create_a_world_search_result (__main__.PlayableLivingWorldTests.test_addressed_npc_tavern_question_does_not_create_a_world_search_result) ... ok
+test_addressed_npc_tavern_question_is_bounded_dialogue_without_model_or_discovery (__main__.PlayableLivingWorldTests.test_addressed_npc_tavern_question_is_bounded_dialogue_without_model_or_discovery) ... ok
+test_approach_bartender_phrase_routes_to_existing_scene_action (__main__.PlayableLivingWorldTests.test_approach_bartender_phrase_routes_to_existing_scene_action) ... ok
+test_building_inspection_of_known_tavern_does_not_start_a_new_search (__main__.PlayableLivingWorldTests.test_building_inspection_of_known_tavern_does_not_start_a_new_search) ... ok
+test_campaign_journal_does_not_promote_unknown_identity (__main__.PlayableLivingWorldTests.test_campaign_journal_does_not_promote_unknown_identity) ... ok
+test_compound_city_observation_defers_scene_execution_to_plan_owner (__main__.PlayableLivingWorldTests.test_compound_city_observation_defers_scene_execution_to_plan_owner) ... ok
+test_compound_move_and_knock_follow_the_actual_building_result (__main__.PlayableLivingWorldTests.test_compound_move_and_knock_follow_the_actual_building_result) ... ok
+test_compound_move_preserves_explicit_smithy_door_target (__main__.PlayableLivingWorldTests.test_compound_move_preserves_explicit_smithy_door_target) ... ok
+test_discovered_venue_entry_is_not_generic_travel (__main__.PlayableLivingWorldTests.test_discovered_venue_entry_is_not_generic_travel) ... ok
+test_distance_question_mentioning_tavern_does_not_create_local_venue (__main__.PlayableLivingWorldTests.test_distance_question_mentioning_tavern_does_not_create_local_venue) ... ok
+test_dynamic_venue_door_action_requires_current_affirmative_named_intent (__main__.PlayableLivingWorldTests.test_dynamic_venue_door_action_requires_current_affirmative_named_intent) ... ok
+test_elsewhere_named_ablative_dialogue_rejects_single_local_npc_fallback (__main__.PlayableLivingWorldTests.test_elsewhere_named_ablative_dialogue_rejects_single_local_npc_fallback) ... ok
+test_exact_venue_door_break_is_not_a_tavern_search (__main__.PlayableLivingWorldTests.test_exact_venue_door_break_is_not_a_tavern_search) ... ok
+test_expired_npc_conversation_still_allows_explicit_name_or_role (__main__.PlayableLivingWorldTests.test_expired_npc_conversation_still_allows_explicit_name_or_role) ... ok
+test_expired_scene_referent_expires_when_addressed (__main__.PlayableLivingWorldTests.test_expired_scene_referent_expires_when_addressed) ... ok
+test_explicit_attack_after_approach_uses_existing_combat_owner (__main__.PlayableLivingWorldTests.test_explicit_attack_after_approach_uses_existing_combat_owner) ... ok
+test_explicit_conversation_start_is_stable_and_model_free (__main__.PlayableLivingWorldTests.test_explicit_conversation_start_is_stable_and_model_free) ... ok
+test_explicit_local_name_resolves_with_another_npc_elsewhere (__main__.PlayableLivingWorldTests.test_explicit_local_name_resolves_with_another_npc_elsewhere) ... ok
+test_explicit_newly_observed_hidden_npc_name_resolves_after_reopening_at_and_after_deadline (__main__.PlayableLivingWorldTests.test_explicit_newly_observed_hidden_npc_name_resolves_after_reopening_at_and_after_deadline) ... ok
+test_explicit_visible_local_name_resolves_with_hidden_scheduled_npc (__main__.PlayableLivingWorldTests.test_explicit_visible_local_name_resolves_with_hidden_scheduled_npc) ... ok
+test_feature_identity_and_scene_projection_survive_save_load (__main__.PlayableLivingWorldTests.test_feature_identity_and_scene_projection_survive_save_load) ... ok
+test_guard_smalltalk_does_not_recommend_locked_known_tavern_as_unblocked (__main__.PlayableLivingWorldTests.test_guard_smalltalk_does_not_recommend_locked_known_tavern_as_unblocked) ... ok
+test_guessed_hidden_name_cannot_select_attack_target (__main__.PlayableLivingWorldTests.test_guessed_hidden_name_cannot_select_attack_target) ... ok
+test_hidden_canonical_name_cannot_target_npc_until_learned (__main__.PlayableLivingWorldTests.test_hidden_canonical_name_cannot_target_npc_until_learned) ... ok
+test_hidden_identity_is_absent_from_public_state_and_model_context (__main__.PlayableLivingWorldTests.test_hidden_identity_is_absent_from_public_state_and_model_context) ... ok
+test_hidden_identity_is_sanitized_in_combat_api_projection (__main__.PlayableLivingWorldTests.test_hidden_identity_is_sanitized_in_combat_api_projection) ... ok
+test_hidden_identity_stays_out_of_full_model_prompts_and_fallbacks (__main__.PlayableLivingWorldTests.test_hidden_identity_stays_out_of_full_model_prompts_and_fallbacks) ... ok
+test_hidden_scheduled_named_ablative_dialogue_rejects_single_local_npc_fallback (__main__.PlayableLivingWorldTests.test_hidden_scheduled_named_ablative_dialogue_rejects_single_local_npc_fallback) ... ok
+test_invalid_scene_state_load_is_atomic (__main__.PlayableLivingWorldTests.test_invalid_scene_state_load_is_atomic) ... ok
+test_learned_npc_identity_survives_save_load (__main__.PlayableLivingWorldTests.test_learned_npc_identity_survives_save_load) ... ok
+test_legacy_npcs_without_epistemic_fields_remain_known (__main__.PlayableLivingWorldTests.test_legacy_npcs_without_epistemic_fields_remain_known) ... ok
+test_legacy_save_migrates_feature_ids_idempotently (__main__.PlayableLivingWorldTests.test_legacy_save_migrates_feature_ids_idempotently) ... ok
+test_local_place_question_to_orin_uses_current_scene_not_verification_fallback (__main__.PlayableLivingWorldTests.test_local_place_question_to_orin_uses_current_scene_not_verification_fallback) ... ok
+test_look_materializes_once_and_presence_is_natural (__main__.PlayableLivingWorldTests.test_look_materializes_once_and_presence_is_natural) ... ok
+test_lore_guard_allows_local_craft_role_and_personal_arrival (__main__.PlayableLivingWorldTests.test_lore_guard_allows_local_craft_role_and_personal_arrival) ... ok
+test_merchant_search_finds_existing_local_person_and_shop_without_trade (__main__.PlayableLivingWorldTests.test_merchant_search_finds_existing_local_person_and_shop_without_trade) ... ok
+test_named_destination_still_routes_through_travel (__main__.PlayableLivingWorldTests.test_named_destination_still_routes_through_travel) ... ok
+test_named_smithy_door_wins_over_separate_workshop_kind (__main__.PlayableLivingWorldTests.test_named_smithy_door_wins_over_separate_workshop_kind) ... ok
+test_narration_projection_isolates_sessions_and_save_load (__main__.PlayableLivingWorldTests.test_narration_projection_isolates_sessions_and_save_load) ... ok
+test_narration_projection_presented_referent_remains_visible (__main__.PlayableLivingWorldTests.test_narration_projection_presented_referent_remains_visible) ... ok
+test_narration_projection_preserves_promoted_binding_and_public_metadata (__main__.PlayableLivingWorldTests.test_narration_projection_preserves_promoted_binding_and_public_metadata) ... ok
+test_narration_projection_promoted_presence_omits_anonymous_description (__main__.PlayableLivingWorldTests.test_narration_projection_promoted_presence_omits_anonymous_description) ... ok
+test_narration_projection_promoted_prompt_uses_persistent_npc (__main__.PlayableLivingWorldTests.test_narration_projection_promoted_prompt_uses_persistent_npc) ... ok
+test_narration_projection_save_load_preserves_binding_and_deduplication (__main__.PlayableLivingWorldTests.test_narration_projection_save_load_preserves_binding_and_deduplication) ... ok
+test_nested_combat_receipt_hides_actor_id_identity_without_mutation (__main__.PlayableLivingWorldTests.test_nested_combat_receipt_hides_actor_id_identity_without_mutation) ... ok
+test_new_npc_name_is_hidden_until_identity_is_learned (__main__.PlayableLivingWorldTests.test_new_npc_name_is_hidden_until_identity_is_learned) ... ok
+test_new_tavern_door_opens_or_stays_locked_and_reloads (__main__.PlayableLivingWorldTests.test_new_tavern_door_opens_or_stays_locked_and_reloads) ... ok
+test_npc_conversation_deadline_is_inclusive (__main__.PlayableLivingWorldTests.test_npc_conversation_deadline_is_inclusive) ... ok
+test_npc_conversation_first_turn_after_deadline_needs_clarification (__main__.PlayableLivingWorldTests.test_npc_conversation_first_turn_after_deadline_needs_clarification) ... ok
+test_npc_identity_knowledge_is_session_isolated (__main__.PlayableLivingWorldTests.test_npc_identity_knowledge_is_session_isolated) ... ok
+test_observing_referent_does_not_promote_it_to_an_npc (__main__.PlayableLivingWorldTests.test_observing_referent_does_not_promote_it_to_an_npc) ... ok
+test_obvious_role_can_be_visible_without_revealing_name (__main__.PlayableLivingWorldTests.test_obvious_role_can_be_visible_without_revealing_name) ... ok
+test_personal_question_does_not_reveal_unlearned_npc_name (__main__.PlayableLivingWorldTests.test_personal_question_does_not_reveal_unlearned_npc_name) ... ok
+test_pronoun_dialogue_is_ambiguous_after_conversation_expiry (__main__.PlayableLivingWorldTests.test_pronoun_dialogue_is_ambiguous_after_conversation_expiry) ... ok
+test_pronoun_dialogue_selects_conversation_at_deadline (__main__.PlayableLivingWorldTests.test_pronoun_dialogue_selects_conversation_at_deadline) ... ok
+test_pronoun_greetings_are_ambiguous_after_conversation_expiry (__main__.PlayableLivingWorldTests.test_pronoun_greetings_are_ambiguous_after_conversation_expiry) ... ok
+test_pronoun_greetings_select_conversation_at_deadline (__main__.PlayableLivingWorldTests.test_pronoun_greetings_select_conversation_at_deadline) ... ok
+test_pronoun_only_dialogue_preserves_single_npc_fallback (__main__.PlayableLivingWorldTests.test_pronoun_only_dialogue_preserves_single_npc_fallback) ... ok
+test_public_scene_referent_exposes_only_one_addressable_alias (__main__.PlayableLivingWorldTests.test_public_scene_referent_exposes_only_one_addressable_alias) ... ok
+test_rejected_hidden_identity_narration_does_not_retry_or_reveal (__main__.PlayableLivingWorldTests.test_rejected_hidden_identity_narration_does_not_retry_or_reveal) ... ok
+test_selected_npc_smalltalk_uses_grounded_responses (__main__.PlayableLivingWorldTests.test_selected_npc_smalltalk_uses_grounded_responses) ... ok
+test_tavern_search_enter_exit_and_return_use_local_parent (__main__.PlayableLivingWorldTests.test_tavern_search_enter_exit_and_return_use_local_parent) ... ok
+test_travel_uses_last_named_location_as_destination (__main__.PlayableLivingWorldTests.test_travel_uses_last_named_location_as_destination) ... ok
+test_unknown_named_ablative_dialogue_rejects_conversation_fallback (__main__.PlayableLivingWorldTests.test_unknown_named_ablative_dialogue_rejects_conversation_fallback) ... ok
+test_unknown_named_ablative_dialogue_rejects_single_npc_fallback (__main__.PlayableLivingWorldTests.test_unknown_named_ablative_dialogue_rejects_single_npc_fallback) ... ok
+test_unknown_named_dialogue_with_pronouns_rejects_conversation_fallback (__main__.PlayableLivingWorldTests.test_unknown_named_dialogue_with_pronouns_rejects_conversation_fallback) ... ok
+test_unknown_named_greetings_do_not_fall_back_to_conversation (__main__.PlayableLivingWorldTests.test_unknown_named_greetings_do_not_fall_back_to_conversation) ... ok
+test_unrelated_unsupported_query_does_not_expire_scene_referent (__main__.PlayableLivingWorldTests.test_unrelated_unsupported_query_does_not_expire_scene_referent) ... ok
+test_unverified_distance_response_does_not_attribute_player_action (__main__.PlayableLivingWorldTests.test_unverified_distance_response_does_not_attribute_player_action) ... ok
+test_unverified_ruler_response_handles_turkish_inflections (__main__.PlayableLivingWorldTests.test_unverified_ruler_response_handles_turkish_inflections) ... ok
+test_v11_name_disclosure_is_bound_to_the_npc_who_heard_it (__main__.PlayableLivingWorldTests.test_v11_name_disclosure_is_bound_to_the_npc_who_heard_it) ... ok
+test_v11_npc_identity_answer_uses_natural_name_only (__main__.PlayableLivingWorldTests.test_v11_npc_identity_answer_uses_natural_name_only) ... ok
+test_v11_personal_profile_answers_remain_procedural_and_stable (__main__.PlayableLivingWorldTests.test_v11_personal_profile_answers_remain_procedural_and_stable) ... ok
+test_v11_reentering_the_current_tavern_is_idempotent (__main__.PlayableLivingWorldTests.test_v11_reentering_the_current_tavern_is_idempotent) ... ok
+test_v11_semantic_city_observation_and_existing_shop_discovery (__main__.PlayableLivingWorldTests.test_v11_semantic_city_observation_and_existing_shop_discovery) ... ok
+test_v11_work_questions_do_not_create_or_imply_a_job_offer (__main__.PlayableLivingWorldTests.test_v11_work_questions_do_not_create_or_imply_a_job_offer) ... ok
+test_v11_world_subject_question_is_not_routed_to_active_npc_identity (__main__.PlayableLivingWorldTests.test_v11_world_subject_question_is_not_routed_to_active_npc_identity) ... ok
+
+----------------------------------------------------------------------
+Ran 77 tests in 1.091s
+
+OK
+Qwen request failed; using deterministic fallback. (AssertionError)
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 1
+Result: BAŞARISIZ
+===================================
+Qwen request failed; using deterministic fallback. (AssertionError)
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 19
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 19
+Result: BAŞARILI
+===================================
+
+=== test_persistence.py ===
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.038s
+
+OK
+
+=== test_combat.py ===
+=== COMBAT MECHANICS TEST ===
+
+TEST A: Normal hit (d20=15, AC=10)
+  Attack total: 17 vs AC 10 -> hit
+  Damage: 5
+  Target HP: 10 -> 5
+  PASS
+
+TEST B: Miss (d20=5, AC=20)
+  Attack total: 7 vs AC 20 -> miss
+  Target HP: 10 -> 10
+  PASS
+
+TEST C: Natural 1 = auto miss (even with AC 0)
+  Attack roll: 1 vs AC 0 -> miss
+  PASS
+
+TEST D: Natural 20 = critical hit
+  Attack roll: 20 vs AC 30 -> critical_hit
+  Damage: 7 (2d8+0)
+  Target HP: 20 -> 13
+  PASS
+
+TEST E: Zero HP from lethal NPC damage -> dead
+  Critical hit damage: 16
+  Target HP: 5 -> 0
+  Status: dead
+  PASS
+
+TEST F: Wrong location - NPC in different location
+  Target resolved: None
+  Target resolved: None -> PASS
+
+TEST G: No valid target
+  Target: None
+  PASS
+
+TEST H: No weapon in inventory
+  Weapon found: None
+  PASS
+
+TEST I: Forged / detached NPC dict
+  Target resolved: None -> PASS
+
+TEST J: Full pipeline cross-location attack
+  Nonlocal target rejected without state, RNG or model work -> PASS
+
+TEST: Authoritative prerequisite refusal (distance_unknown)
+  Rejected without state or RNG mutation -> PASS
+
+TEST: Authoritative prerequisite refusal (invalid_combat_target)
+  Rejected without state or RNG mutation -> PASS
+
+=== ALL COMBAT TESTS PASSED ===
+
+=== test_combat_v2_authoritative.py ===
+test_A_combat_starts (__main__.CombatV2.test_A_combat_starts) ... ok
+test_B_player_initiative_higher_and_tie (__main__.CombatV2.test_B_player_initiative_higher_and_tie) ... ok
+test_C_npc_initiative_higher_owns_the_first_turn (__main__.CombatV2.test_C_npc_initiative_higher_owns_the_first_turn) ... ok
+test_D_enemy_normal_hit (__main__.CombatV2.test_D_enemy_normal_hit) ... ok
+test_E_enemy_miss (__main__.CombatV2.test_E_enemy_miss) ... ok
+test_F_enemy_nat1 (__main__.CombatV2.test_F_enemy_nat1) ... ok
+test_G_enemy_nat20 (__main__.CombatV2.test_G_enemy_nat20) ... ok
+test_H_player_lethal_damage_kills_npc (__main__.CombatV2.test_H_player_lethal_damage_kills_npc) ... ok
+test_I_enemy_knocks_out_player (__main__.CombatV2.test_I_enemy_knocks_out_player) ... ok
+test_J_round_once_per_exchange (__main__.CombatV2.test_J_round_once_per_exchange) ... ok
+test_K_missing_state (__main__.CombatV2.test_K_missing_state) ... ok
+test_L_empty_partial_invalid_state (__main__.CombatV2.test_L_empty_partial_invalid_state) ... ok
+test_M_active_empty_order (__main__.CombatV2.test_M_active_empty_order) ... ok
+test_N_wrong_location (__main__.CombatV2.test_N_wrong_location) ... ok
+test_O_forged_stats (__main__.CombatV2.test_O_forged_stats) ... ok
+test_P_no_target_switch (__main__.CombatV2.test_P_no_target_switch) ... ok
+test_Q_location_change (__main__.CombatV2.test_Q_location_change) ... ok
+test_R_incapacitated (__main__.CombatV2.test_R_incapacitated) ... ok
+test_S_qwen_npc_mechanics (__main__.CombatV2.test_S_qwen_npc_mechanics) ... ok
+test_T_qwen_global_mechanics (__main__.CombatV2.test_T_qwen_global_mechanics) ... ok
+test_U_final_snapshot (__main__.CombatV2.test_U_final_snapshot) ... ok
+test_V3_conflicting_base_action_ledger_rejects_load_without_mutation (__main__.CombatV2.test_V3_conflicting_base_action_ledger_rejects_load_without_mutation) ... ok
+test_V3_failed_legacy_load_restores_state_and_references (__main__.CombatV2.test_V3_failed_legacy_load_restores_state_and_references) ... ok
+test_V3_invalid_legacy_action_markers_roll_back_load (__main__.CombatV2.test_V3_invalid_legacy_action_markers_roll_back_load) ... ok
+test_V3_invalid_legacy_boundaries_roll_back_load_references_and_rng (__main__.CombatV2.test_V3_invalid_legacy_boundaries_roll_back_load_references_and_rng) ... ok
+test_V3_legacy_action_markers_are_detached_from_input (__main__.CombatV2.test_V3_legacy_action_markers_are_detached_from_input) ... ok
+test_V3_legacy_action_markers_survive_migration_and_reopen (__main__.CombatV2.test_V3_legacy_action_markers_survive_migration_and_reopen) ... ok
+test_V3_legacy_active_state_without_boundary_fails_visibly (__main__.CombatV2.test_V3_legacy_active_state_without_boundary_fails_visibly) ... ok
+test_V3_legacy_turn_boundary_migrates_without_losing_cursor (__main__.CombatV2.test_V3_legacy_turn_boundary_migrates_without_losing_cursor) ... ok
+test_V3_legacy_versions_resume_and_persist_migration_owned_identity (__main__.CombatV2.test_V3_legacy_versions_resume_and_persist_migration_owned_identity) ... ok
+test_V3_midround_engine_save_resumes_exact_scheduler_state (__main__.CombatV2.test_V3_midround_engine_save_resumes_exact_scheduler_state) ... ok
+test_V3_multiple_enemies_and_stable_initiative_ties (__main__.CombatV2.test_V3_multiple_enemies_and_stable_initiative_ties) ... ok
+test_V3_native_active_identity_is_not_repaired_by_migration (__main__.CombatV2.test_V3_native_active_identity_is_not_repaired_by_migration) ... ok
+test_V3_native_invalid_action_markers_are_not_legacy_normalized (__main__.CombatV2.test_V3_native_invalid_action_markers_are_not_legacy_normalized) ... ok
+test_V3_pre_resource_save_reconstructs_spending_from_markers (__main__.CombatV2.test_V3_pre_resource_save_reconstructs_spending_from_markers) ... ok
+test_V3_rejects_forged_and_nonparticipant_targets_without_rolls (__main__.CombatV2.test_V3_rejects_forged_and_nonparticipant_targets_without_rolls) ... ok
+test_V3_round_reset_save_reopens_before_other_actor_turn (__main__.CombatV2.test_V3_round_reset_save_reopens_before_other_actor_turn) ... ok
+test_V3_unsupported_combat_actions_do_not_change_the_turn (__main__.CombatV2.test_V3_unsupported_combat_actions_do_not_change_the_turn) ... ok
+test_V_no_combat_dialogue_memory (__main__.CombatV2.test_V_no_combat_dialogue_memory) ... ok
+test_W_critical_damage_narration (__main__.CombatV2.test_W_critical_damage_narration) ... ok
+test_W_enemy_knockout_is_not_narrated_as_death (__main__.CombatV2.test_W_enemy_knockout_is_not_narrated_as_death) ... ok
+test_W_fatal_enemy_hit_player_death_narration (__main__.CombatV2.test_W_fatal_enemy_hit_player_death_narration) ... ok
+test_W_historical_unconscious_npc_narration (__main__.CombatV2.test_W_historical_unconscious_npc_narration) ... ok
+test_W_initial_enemy_miss_does_not_hide_later_damage (__main__.CombatV2.test_W_initial_enemy_miss_does_not_hide_later_damage) ... ok
+test_W_multiple_enemy_hits_narrated_in_resolution_order (__main__.CombatV2.test_W_multiple_enemy_hits_narrated_in_resolution_order) ... ok
+test_W_npc_death_narration (__main__.CombatV2.test_W_npc_death_narration) ... ok
+test_W_npc_lethal_hit_narration (__main__.CombatV2.test_W_npc_lethal_hit_narration) ... ok
+test_W_npc_nonlethal_hit_narration (__main__.CombatV2.test_W_npc_nonlethal_hit_narration) ... ok
+test_W_orc_survival_is_not_narrated_as_death (__main__.CombatV2.test_W_orc_survival_is_not_narrated_as_death) ... ok
+test_W_player_unconscious_narration (__main__.CombatV2.test_W_player_unconscious_narration) ... ok
+test_W_single_end_combat_definition (__main__.CombatV2.test_W_single_end_combat_definition) ... ok
+test_W_temporary_hp_survival_is_not_narrated_as_death (__main__.CombatV2.test_W_temporary_hp_survival_is_not_narrated_as_death) ... ok
+test_W_valid_free_fatal_exchange_narration_is_preserved_without_mechanical_change (__main__.CombatV2.test_W_valid_free_fatal_exchange_narration_is_preserved_without_mechanical_change) ... ok
+test_X_inventory_parser_no_op (__main__.CombatV2.test_X_inventory_parser_no_op) ... ok
+test_Y_interleaved_adventures_own_all_combat_dice (__main__.CombatV2.test_Y_interleaved_adventures_own_all_combat_dice) ... ok
+
+----------------------------------------------------------------------
+Ran 55 tests in 1.391s
+
+OK
+
+=== api/tests/test_death_bounded.py ===
+............INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+..INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+....INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+Executing <Task pending name='Task-102' coro=<SaveDeleteTests.test_normal_rejected_fatal_death_save_accepts_corrected_context_after_reopen() running at /root/ai-dnd-gates/ai-dnd/api/tests/test_death_bounded.py:725> cb=[_run_until_complete_cb() at /usr/lib/python3.12/asyncio/base_events.py:182, <1 more>, WorkerThread.stop()] created at /usr/lib/python3.12/asyncio/runners.py:100> took 0.132 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.Executing <Task finished name='Task-131' coro=<CampaignApiTests.asyncSetUp() done, defined at /root/ai-dnd-gates/ai-dnd/api/tests/test_campaign_api.py:450> result=None created at /usr/lib/python3.12/asyncio/runners.py:100> took 0.172 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+...INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+..
+----------------------------------------------------------------------
+Ran 45 tests in 8.130s
+
+OK
+
+=== api/tests/test_initiative.py ===
+..INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Engine turn failed (error_type=CombatRequestError, rolled_back=true)
+Traceback (most recent call last):
+  File "/root/ai-dnd-gates/ai-dnd/api/main.py", line 1161, in play_turn
+    result = run_turn(request.message, **run_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 19204, in bound
+    return __implementation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 15719, in run_player_turn
+    result = _dispatch_player_turn(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 19204, in bound
+    return __implementation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 16001, in _dispatch_player_turn
+    return _run_player_turn_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 19204, in bound
+    return __implementation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 18573, in _run_player_turn_internal
+    action_result = execute_intent(validated_intent, player_input, npc_target)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 19204, in bound
+    return __implementation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/ai-dnd-gates/ai-dnd/game.py", line 13452, in execute_intent
+    raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
+combat_lifecycle.CombatRequestError: Combat needs a real player attack decision.
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+..INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+....INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+......................................................................
+----------------------------------------------------------------------
+Ran 84 tests in 2.089s
+
+OK
+
+=== api/tests/test_intent_response_consistency.py ===
+...........INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=4 selected_fact_ids=['fr:fact:neverwinter_known_as_city_of_skilled_hands', 'fr:fact:neverwinter_known_for_craft_goods', 'fr:fact:neverwinter_rebuilding', 'fr:fact:dagult_neverember_current_lord']
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=4 selected_fact_ids=['fr:fact:neverwinter_known_as_city_of_skilled_hands', 'fr:fact:neverwinter_known_for_craft_goods', 'fr:fact:neverwinter_rebuilding', 'fr:fact:dagult_neverember_current_lord']
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=4 selected_fact_ids=['fr:fact:neverwinter_known_as_city_of_skilled_hands', 'fr:fact:neverwinter_known_for_craft_goods', 'fr:fact:neverwinter_rebuilding', 'fr:fact:dagult_neverember_current_lord']
+INFO: Turn diagnostics (model_calls=0, safety_code=unverified, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=7 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=7 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=8 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=9 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=7 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=8 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=9 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+..INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.Executing <Task pending name='Task-161' coro=<IntentResponseConsistencyTests.asyncSetUp() running at /root/ai-dnd-gates/ai-dnd/api/tests/test_intent_response_consistency.py:39> cb=[_run_until_complete_cb() at /usr/lib/python3.12/asyncio/base_events.py:182] created at /usr/lib/python3.12/asyncio/runners.py:100> took 0.136 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=exploration, narrative_tokens=1744, narrative_estimated_total=9936, narrative_budget=32768/40960, narrative_context_bytes=3487, narrative_selected={'recent_turns': 2, 'npcs': 0, 'npc_interactions': 0, 'locations': 1, 'location_continuity': 1, 'threads': 0}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+INFO: Turn diagnostics (model_calls=0, safety_code=unverified, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=answered_from_campaign_state, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=invalid_target, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=completed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=exploration, narrative_tokens=1626, narrative_estimated_total=9818, narrative_budget=32768/40960, narrative_context_bytes=3251, narrative_selected={'recent_turns': 4, 'npcs': 0, 'npc_interactions': 0, 'locations': 1, 'location_continuity': 1, 'threads': 0}, narrative_ambiguities=0)
+.
+----------------------------------------------------------------------
+Ran 53 tests in 8.783s
+
+OK
+
+=== api/tests/test_local_model_selection.py ===
+/root/gates-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+WARNING: Required model qwen3.5:9b-q4_K_M is unavailable.
+....INFO: Ollama chat request started (model=qwen3.5:4b-q4_K_M)
+INFO: Ollama chat request started (model=qwen3.5:9b-q4_K_M)
+...INFO: Ollama chat request started (model=qwen3:8b)
+...INFO: Ollama chat request started (model=qwen3.5:9b-q4_K_M)
+..INFO: Ollama chat request started (model=qwen3.5:9b-q4_K_M)
+INFO: Ollama chat request started (model=qwen3.5:9b-q4_K_M)
+..
+----------------------------------------------------------------------
+Ran 14 tests in 0.145s
+
+OK
+
+=== api/tests/test_npc_speech_identity_inflection.py ===
+.....INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+...
+----------------------------------------------------------------------
+Ran 10 tests in 0.523s
+
+OK
+
+=== api/tests/test_npc_speech_question_boundary.py ===
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+...
+----------------------------------------------------------------------
+Ran 6 tests in 0.665s
+
+OK
+
+=== api/tests/test_npc_player_address.py ===
+..INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=player_name_disclosed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.
+----------------------------------------------------------------------
+Ran 15 tests in 2.181s
+
+OK
+
+=== api/tests/test_grounded_foreign_object_boundary.py ===
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=found, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=found, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=recorded, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+..
+----------------------------------------------------------------------
+Ran 3 tests in 0.320s
+
+OK
+
+=== api/tests/test_grounded_instrument_target.py ===
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=2, safety_code=resolved, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=2, narrative_scene=exploration, narrative_tokens=1772, narrative_estimated_total=9964, narrative_budget=32768/40960, narrative_context_bytes=3543, narrative_selected={'recent_turns': 1, 'npcs': 0, 'npc_interactions': 0, 'locations': 1, 'location_continuity': 1, 'threads': 0}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=failed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=blocked, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+....
+----------------------------------------------------------------------
+Ran 6 tests in 0.574s
+
+OK
+
+=== api/tests/test_npc_scene_places.py ===
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Turn diagnostics (model_calls=0, safety_code=observed, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Turn diagnostics (model_calls=1, safety_code=experimental_attributed_speech, rolled_back=false)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.353s
+
+OK
+
+=== test_local_exploration.py ===
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.006s
+
+OK
+
+=== test_held_weapon.py ===
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.031s
+
+OK
+
+=== test_monster_sense.py ===
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.034s
+
+OK
+
+=== test_regression.py ===
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Stealth
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 3
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_stealth_narrator_contradiction
+PASS: test_unlocked_door_normal_open
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_locked_door_requires_check
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_force_door_requires_check
+PASS: test_enter_through_door
+PASS: test_location_name_vs_character_name
+PASS: test_who_is_here
+PASS: test_exit_location
+PASS: test_return_travel
+PASS: test_named_location_return
+PASS: test_ground_item_same_location
+PASS: test_ground_item_different_location
+PASS: test_player_said_memory
+PASS: test_false_memory_claim
+PASS: test_draw_weapon
+PASS: test_sheathe_weapon
+PASS: test_unsupported_attack
+PASS: test_ordinary_environment_look
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 20
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_successful_investigation
+
+===================================
+D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 1
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_investigation
+PASS: test_malformed_intent_json
+Qwen request failed; using deterministic fallback. (Exception)
+PASS: test_ollama_unavailable
+PASS: test_terminal_skill_command
+
+==================================================
+Results: 29 passed, 0 failed out of 29
+==================================================
+
+=== test_migration.py ===
+=== Testing Legacy Format Migration ===
+Before migration:
+  ground_items (legacy): ['Kılıç', 'Kalkan']
+  ground_items_by_location: {}
+After migration:
+  ground_items (legacy): []
+  ground_items_by_location: {'tavern': ['Kılıç', 'Kalkan']}
+
+✅ Legacy migration works correctly!
+
+After location change to forest:
+  ground_items_by_location: {'tavern': ['Kılıç', 'Kalkan']}
+✅ Items don't leak to other locations!
+
+=== test_migration_harden.py ===
+=== Testing Legacy Migration Hardening ===
+Before migration:
+  ground_items: ['Kılıç', 'Kalkan']
+  ground_items_by_location: MISSING
+After migration:
+  ground_items: []
+  ground_items_by_location: {'tavern': ['Kılıç', 'Kalkan']}
+
+✅ Legacy migration hardening works!
+✅ No duplicates on repeated calls!
+✅ Idempotent - no-op when already normalized!
+
+=== test_door_enter.py ===
+Test 1 - içeri giriyorum (unlocked):
+  door.open = True
+  action = world_interaction
+  narration: Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki hamleni bekl...
+Test 2 - kapıyı açıp içeri giriyorum (unlocked):
+  door.open = True
+  action = world_interaction
+  narration: Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki hamleni bekl...
+Test 3 - içeri giriyorum (locked):
+  door.open = False
+  action = narrative
+  narration: Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki hamleni bekl...
+Test 4 - içeri giriyorum (no door):
+  door = None
+  action = narrative
+  narration: Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki hamleni bekl...
+
+=== test_query.py ===
+Action: narrative
+Direct response: None
+Narration: Bu konuda duyduğun hiçbir söz sağlam görünmüyor; doğrusunu öğrenmek için biraz daha dinlemen gerekecek.
+
+=== test_self_query.py ===
+Testing 'benim adım ne?'
+Action: character_query
+Direct response: Adın TestHero.
+Query type: None
+Narration: Adın TestHero.
+
+=== test_actual_logic.py ===
+Active NPC: TestNPC
+
+=== With Active NPC ===
+  'adın ne?' -> npc_identity
+  'senin adın ne?' -> npc_identity
+  'kimsin?' -> npc_identity
+  'ismin ne?' -> npc_identity
+
+=== Without NPC ===
+  'adın ne?' -> None
+  'senin adın ne?' -> None
+  'kimsin?' -> None
+  'ismin ne?' -> None
+
+=== test_npc_query.py ===
+NPC target: Barmen
+'adın ne?' with NPC: npc_identity
+'senin adın ne?' with NPC: npc_identity
+'adın ne?' without NPC: None
+'kimsin?' with NPC: npc_identity
+'kimsin?' without NPC: None
+
+--- Response handling ---
+Response to 'adın ne?' with NPC: Barmen, “Ben Barmen. Barmen olarak buradayım.” diye yanıt verir.
+'adın ne?' without NPC: No query type detected (correct - safe fallback)
+'kimsin?' without NPC: No query type detected (correct - safe fallback)
+
+=== test_narrative_rebalance.py ===
+........................................................
+----------------------------------------------------------------------
+Ran 56 tests in 0.738s
+
+OK
+
+=== test_narrative_safety_calibration.py ===
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 0.132s
+
+OK
+
+======================================================
+ALL 33 DETERMINISTIC GATES PASSED
