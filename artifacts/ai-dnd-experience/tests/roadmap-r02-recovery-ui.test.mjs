@@ -2,6 +2,7 @@
 // from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport are replaced. The
 // transport answers with the shared backend bodies (ai-dnd/api/tests/fixtures/r02_intent_contract.json). This proves the
 // client wiring, NOT backend behaviour (that is covered by the Python tests against the real app).
+import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { afterEach, beforeEach, test } from 'node:test';
@@ -77,7 +78,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
     RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer,
     readPending: pending.readPending, currentAccountOwner: () => OWNER, LOCAL_OWNER: 'local',
     inFlightSessionsRef: { current: new Set() }, setInFlightSessions() {}, turnLifetime: createActionLifetime(),
-    getGetGameSessionStateQueryKey: (id) => ['state', id], reconcileState, ReconciliationError, RETRY_MESSAGE,
+    getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(), reconcileState, ReconciliationError, RETRY_MESSAGE,
     getCampaign: async (id) => {
       calls.push(`getCampaign ${id}`);
       if (campaignFails) throw new Error('campaign read failed');

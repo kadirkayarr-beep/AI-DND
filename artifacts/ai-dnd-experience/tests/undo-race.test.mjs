@@ -1,3 +1,4 @@
+import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -82,7 +83,7 @@ function harness() {
       getQueryState(key) { return { dataUpdateCount: this.counts.get(JSON.stringify(key)) ?? 0 }; },
       invalidateQueries() { return Promise.resolve(); },
     },
-    getGetGameSessionStateQueryKey: id => ['state', id],
+    getGetGameSessionStateQueryKey: id => ['state', id], ...gateInjection(),
     getGetCampaignsQueryKey: () => ['campaigns'],
     setUndoPendingSessions() {},
     setLastTurn(value) { env.visibleLastTurn = value; env.lastTurnRef.current = value; },

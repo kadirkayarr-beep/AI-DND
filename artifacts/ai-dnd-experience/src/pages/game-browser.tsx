@@ -81,6 +81,8 @@ import type { TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
+import { applyGameState, gameStateScope, nextRevision } from '@/lib/game-state-gate';
+import { gatedStateRead, stateStructuralSharing } from '@/lib/state-envelope';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
@@ -457,8 +459,10 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
   };
   const acceptQuest = useAcceptGameQuest({
     mutation: {
-      onSuccess: (result) => {
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+      // A reply is only as new as the moment its command was issued: a later turn or read must not be overwritten by it.
+      onMutate: () => ({ issued: nextRevision() }),
+      onSuccess: (result, _variables, context) => {
+        applyGameState(queryClient, sessionId, result.state, { revision: context?.issued });
         setCommandNotice(result.outcome ? 'Görev kabul edildi.' : 'Görev durumu değişmedi.');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
@@ -466,8 +470,10 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
   });
   const cancelQuest = useCancelGameQuest({
     mutation: {
-      onSuccess: (result) => {
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+      // A reply is only as new as the moment its command was issued: a later turn or read must not be overwritten by it.
+      onMutate: () => ({ issued: nextRevision() }),
+      onSuccess: (result, _variables, context) => {
+        applyGameState(queryClient, sessionId, result.state, { revision: context?.issued });
         setCommandNotice(result.outcome ? 'Görev iptal edildi.' : 'Görev durumu değişmedi.');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
@@ -1230,6 +1236,7 @@ export default function GameBrowser() {
           history: CampaignDetail['history'] | null;
           combat_history: CampaignDetail['combat_history'] | null;
         };
+        const readRevision = nextRevision();
         try {
           snapshot = await reconcileState(queryClient, stateKey, operation, (signal) =>
             campaignId
@@ -1250,7 +1257,7 @@ export default function GameBrowser() {
           return;
         }
         if (!isCurrent()) return;
-        queryClient.setQueryData(stateKey, snapshot.state);
+        applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent });
         if (snapshot.history) {
           setEntries([
             ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
@@ -1283,6 +1290,7 @@ export default function GameBrowser() {
         });
         try {
           const statusReadUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
+          const readRevision = nextRevision();
           const canonicalState = await getGameSessionState(sessionId);
           if (!isCurrent()) return;
           if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== statusReadUpdateCount) {
@@ -1294,7 +1302,7 @@ export default function GameBrowser() {
             });
             return;
           }
-          queryClient.setQueryData(stateKey, canonicalState);
+          applyGameState(queryClient, sessionId, canonicalState, { revision: readRevision, isCurrent });
         } catch {
           if (!isCurrent()) return;
           void queryClient.invalidateQueries({ queryKey: stateKey });
@@ -1376,7 +1384,12 @@ export default function GameBrowser() {
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
   const resolveAmbientEventAction = useResolveAmbientEventAction();
-  const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
+  const stateQuery = useGetGameSessionState(sessionId, { query: {
+    enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false,
+    // A refetch stamped with the moment it was issued cannot overwrite a newer mutation or reconciled state.
+    queryFn: ({ signal }) => gatedStateRead(gameStateScope(sessionId))(() => getGameSessionState(sessionId, { signal })),
+    structuralSharing: stateStructuralSharing(queryClient, getGetGameSessionStateQueryKey(sessionId)),
+  } });
   const state = stateQuery.data;
   const [ambientActionResult, setAmbientActionResult] = useState<AmbientEventResult | null>(null);
   const [ambientActionRequest, setAmbientActionRequest] = useState<AmbientEventActionRequest | null>(null);
@@ -1577,7 +1590,7 @@ export default function GameBrowser() {
         if (!accountWriteAllowed(epoch)) return;
         setCampaignId(created.campaign_id);
         writeAdvisoryCache(LAST_CAMPAIGN_KEY, created.campaign_id);
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(created.session_id), created.state);
+        applyGameState(queryClient, created.session_id, created.state);
         removeAdvisoryCache(`${TRANSCRIPT_KEY}${created.session_id}`);
         setEntries([]);
         setCombatEntries([]);
@@ -1658,7 +1671,7 @@ export default function GameBrowser() {
         setMessage('');
         setPhase('adventure');
         setResumingCampaignId(null);
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(resumed.session_id), resumed.state);
+        applyGameState(queryClient, resumed.session_id, resumed.state);
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => {
@@ -1690,6 +1703,7 @@ export default function GameBrowser() {
     pendingAmbientActionRef.current = request;
     setAmbientActionRequest(request);
     setAmbientActionError(false);
+    const issued = nextRevision();
     resolveAmbientEventAction.mutate(
       {
         sessionId: request.sessionId,
@@ -1698,10 +1712,7 @@ export default function GameBrowser() {
       },
       {
         onSuccess: (response) => {
-          queryClient.setQueryData(
-            getGetGameSessionStateQueryKey(request.sessionId),
-            response.state,
-          );
+          applyGameState(queryClient, request.sessionId, response.state, { revision: issued });
           if (pendingAmbientActionRef.current === request) {
             pendingAmbientActionRef.current = null;
             setAmbientActionResult(response.result);
@@ -1808,6 +1819,7 @@ export default function GameBrowser() {
         if (!operation.isCurrent()) return;
         receiptReceived = true;
         const stateKey = getGetGameSessionStateQueryKey(sessionId);
+        const readRevision = nextRevision();
         const snapshot = await reconcileState<{ state: GameState; history: CampaignDetail['history'] | null; combat_history: CampaignDetail['combat_history'] | null }>(queryClient, stateKey, operation, (signal) =>
           campaignId ? getCampaign(campaignId, { signal })
             : getGameSessionState(sessionId, { signal }).then(state => ({ state, history: null, combat_history: null })));
@@ -1872,7 +1884,7 @@ export default function GameBrowser() {
         } else if (stillVisible) {
           setCombatEndNotice(null);
         }
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        applyGameState(queryClient, sessionId, result.state, { revision: readRevision, isCurrent: operation.isCurrent });
         if (stillVisible && !stored) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
           const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
@@ -1966,13 +1978,14 @@ export default function GameBrowser() {
     setInFlightSessions(new Set(inFlightSessionsRef.current));
     const reconcileFromServer = async () => {
       const stateKey = getGetGameSessionStateQueryKey(sessionId);
+      const readRevision = nextRevision();
       const snapshot = await reconcileState<{ state: GameState; history: CampaignDetail['history'] | null; combat_history: CampaignDetail['combat_history'] | null }>(
         queryClient, stateKey, operation,
         async (signal) => (campaignId
           ? getCampaign(campaignId, { signal })
           : { state: await getGameSessionState(sessionId, { signal }), history: null, combat_history: null }));
       if (!operation.isCurrent()) throw new ReconciliationError();
-      queryClient.setQueryData(stateKey, snapshot.state);
+      applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
       if (snapshot.history) {
         const next: TranscriptEntry[] = [
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),

@@ -1,6 +1,7 @@
 // R02: the species stuck-key exit. The REAL settleWithServer body of SpeciesTraitControls (AST-selected from
 // src/components/species-trait-controls.tsx, run in a vm) with the transport replaced by the shared backend bodies
 // (r02_intent_contract.json). Client wiring only; the backend contract is covered by the Python tests.
+import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { afterEach, beforeEach, test } from 'node:test';
@@ -59,7 +60,7 @@ function mount({ answers = {}, stateFails = false } = {}) {
     pendingRequest: { current: { action: 'healing_hands', action_id: ACTION } },
     setSending: (v) => sending.push(v), setFailure: (v) => failures.push(v), setRetryInput: (v) => retryInputs.push(v),
     askServer: recovery.askServer, queryClient: client, reconcileState, RETRY_MESSAGE, clearPendingTurnAction,
-    getGetGameSessionStateQueryKey: (id) => ['state', id],
+    getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(),
     getGameSessionState: async () => { calls.push('state'); if (stateFails) throw new Error('state read failed'); return state; },
     getGameActionStatus: async (sid, id) => { calls.push(`status ${sid} ${id}`); return reply('status'); },
     abandonGameAction: async (sid, id) => { calls.push(`abandon ${sid} ${id}`); return reply('abandon'); },

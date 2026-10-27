@@ -1,3 +1,4 @@
+import { applyGameState, nextRevision } from '@/lib/game-state-gate';
 import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 import { readPending } from '@/lib/pending-action';
@@ -145,9 +146,10 @@ export function SpeciesTraitControls({
       if (!operation.isCurrent()) return;
       receiptReceived = true;
       const stateKey = getGetGameSessionStateQueryKey(sessionId);
+      const readRevision = nextRevision();
       const fresh = await reconcileState(queryClient, stateKey, operation, signal => getGameSessionState(sessionId, { signal }));
       if (!operation.isCurrent()) return;
-      queryClient.setQueryData(stateKey, fresh);
+      applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent });
       clearPendingTurnAction(scope, request.action_id!);
       try { window.sessionStorage.removeItem(retryKey); } catch { /* storage may be unavailable */ }
       pendingRequest.current = null;
@@ -193,9 +195,10 @@ export function SpeciesTraitControls({
       }
       if (verdict.kind === 'applied') {
         const stateKey = getGetGameSessionStateQueryKey(sessionId);
+        const readRevision = nextRevision();
         const fresh = await reconcileState(queryClient, stateKey, operation, signal => getGameSessionState(sessionId, { signal }));
         if (!operation.isCurrent()) return;
-        queryClient.setQueryData(stateKey, fresh);
+        applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent });
         setFailure('Sunucu bu işlemin uygulandığını doğruladı; durum güncellendi.');
       } else {
         setFailure('Sunucu bu işlemin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Başka bir seçim yapabilirsin.');
