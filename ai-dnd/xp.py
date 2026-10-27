@@ -110,6 +110,7 @@ def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, even
     previous = character.get("level")
     if type(previous) is not int or previous < 1:
         previous = 1
+    stored_level = previous
     previous = min(previous, MAX_LEVEL)
     current_xp = character.get("xp")
     if type(current_xp) is not int or current_xp < 0:
@@ -140,10 +141,11 @@ def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, even
         hit_points_gained += gain
     character["max_hp"] = max_hp
     character["current_hp"] = current_hp
+    level = max(level, min(stored_level, 20))  # XP never demotes a character created above the XP-earned cap (C06)
     character["level"] = level
-    character["proficiency_bonus"] = PROFICIENCY_BONUS
+    character["proficiency_bonus"] = 2 + (level - 1) // 4
     return {
-        "previous_level": previous,
+        "previous_level": min(stored_level, 20),
         "new_level": level,
         "xp_gained": amount,
         "hit_points_gained": hit_points_gained,
@@ -218,10 +220,17 @@ def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, An
     xp = player.get("xp")
     if type(xp) is not int or xp < 0 or xp > MAX_STORED_XP:
         raise ValueError("Kayıt deneyim puanı geçersiz.")
-    if player.get("level") != level_for_xp(xp) or player.get("level") > MAX_LEVEL:
-        raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
-    if player.get("proficiency_bonus") != PROFICIENCY_BONUS:
-        raise ValueError("Kayıt ustalık bonusu geçersiz.")
+    level, applied = player.get("level"), player.get("progression_level")
+    if applied is None:
+        if level != level_for_xp(xp) or level > MAX_LEVEL:
+            raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
+        if player.get("proficiency_bonus") != PROFICIENCY_BONUS:
+            raise ValueError("Kayıt ustalık bonusu geçersiz.")
+    else:  # C06: a level reached through applied class-table choices may be ahead of the XP-earned level, never behind it
+        if type(level) is not int or type(applied) is not int or not level_for_xp(xp) <= level <= 20 or not 1 <= applied <= level:
+            raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
+        if player.get("proficiency_bonus") != 2 + (level - 1) // 4:
+            raise ValueError("Kayıt ustalık bonusu geçersiz.")
     for key, limit in (("species", 40), ("origin_feat", 40)):
         if key not in player or player.get(key) is None:
             continue

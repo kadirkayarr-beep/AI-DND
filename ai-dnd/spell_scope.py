@@ -58,9 +58,12 @@ def validate(state, character):
     if not definition.get("is_spellcaster"):
         raise ValueError("Spell access requires a legitimate class feature.")
     catalog = SPELLS_CATALOG.get(cls, {})
+    import character_progression
+    sourced = character_progression.capacity(character)  # the applied level's table row (C06), or None: the legacy level-1 definition
     for field, source, limit in (
-        ("cantrips", "cantrips", definition["cantrips_count"]),
-        ("prepared", "spells_level_1", 0 if cls in {"Wizard", "Cleric", "Druid"} else definition["spells_count"]),
+        ("cantrips", "cantrips", sourced["cantrips"] if sourced else definition["cantrips_count"]),
+        ("prepared", "spells_level_1", sourced["prepared_spells"] if sourced
+         else 0 if cls in {"Wizard", "Cleric", "Druid"} else definition["spells_count"]),
     ):
         selected = state[field]
         allowed = {s["id"] for s in catalog.get(source, [])}
@@ -68,7 +71,7 @@ def validate(state, character):
                 or len(selected) != len(set(selected)) or len(selected) > limit
                 or not set(selected).issubset(allowed)):
             raise ValueError("Invalid saved spell access.")
-    capacity = definition["spell_slots"]
+    capacity = sourced["slots"] if sourced else definition["spell_slots"]
     if (not isinstance(state["slots"], dict) or set(state["slots"]) != set(capacity)
             or any(type(n) is not int or not 0 <= n <= capacity[k]
                    for k, n in state["slots"].items())):
@@ -86,7 +89,9 @@ def restore_slots(session):
     state = session.world_state.get("spellcasting_v1")
     validate(state, session.character)
     if state is not None:
-        state["slots"] = copy.deepcopy(CLASS_DEFINITIONS[state["class"]]["spell_slots"])
+        import character_progression
+        state["slots"] = (character_progression.slot_capacity(session.character)
+                          or copy.deepcopy(CLASS_DEFINITIONS[state["class"]]["spell_slots"]))
         # A rest does not authorize a second slot in the same combat turn.
 
 
@@ -152,7 +157,8 @@ def _cast(session, spell_id, target_id, slot_level):
         fail("unsupported_spell_mode", "V1 does not support upcasting.")
     character = session.character
     character_level = character["level"]
-    if level and character_level != 1:
+    import character_progression
+    if level and character_level != 1 and not character_progression.has_table(character):
         fail("unsupported_spell_progression", "Only sourced level-one slot progression is supported.")
     pb = character["proficiency_bonus"]
     if type(character_level) is not int or not 1 <= character_level <= 20 or pb != 2 + (character_level - 1) // 4:

@@ -97445,7 +97445,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -97470,7 +97470,7 @@
     "C04.phb2024:equipment:armor:padded-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -97495,7 +97495,7 @@
     "C04.phb2024:equipment:armor:padded-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -97520,7 +97520,7 @@
     "C04.phb2024:equipment:armor:padded-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -97545,7 +97545,7 @@
     "C04.phb2024:equipment:armor:padded-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -97570,7 +97570,7 @@
     "C04.phb2024:equipment:armor:padded-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:padded-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:padded-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -97741,7 +97741,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -97766,7 +97766,7 @@
     "C04.phb2024:equipment:armor:studded-leather-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -97791,7 +97791,7 @@
     "C04.phb2024:equipment:armor:studded-leather-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -97816,7 +97816,7 @@
     "C04.phb2024:equipment:armor:studded-leather-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -97841,7 +97841,7 @@
     "C04.phb2024:equipment:armor:studded-leather-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -97866,7 +97866,7 @@
     "C04.phb2024:equipment:armor:studded-leather-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:studded-leather-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:studded-leather-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -97889,7 +97889,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -97914,7 +97914,7 @@
     "C04.phb2024:equipment:armor:hide-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -97939,7 +97939,7 @@
     "C04.phb2024:equipment:armor:hide-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -97964,7 +97964,7 @@
     "C04.phb2024:equipment:armor:hide-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -97989,7 +97989,7 @@
     "C04.phb2024:equipment:armor:hide-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -98014,7 +98014,7 @@
     "C04.phb2024:equipment:armor:hide-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:hide-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:hide-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -98037,7 +98037,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -98062,7 +98062,7 @@
     "C04.phb2024:equipment:armor:chain-shirt.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -98087,7 +98087,7 @@
     "C04.phb2024:equipment:armor:chain-shirt.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -98112,7 +98112,7 @@
     "C04.phb2024:equipment:armor:chain-shirt.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -98137,7 +98137,7 @@
     "C04.phb2024:equipment:armor:chain-shirt.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -98162,7 +98162,7 @@
     "C04.phb2024:equipment:armor:chain-shirt.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:chain-shirt|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:chain-shirt.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -98333,7 +98333,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -98358,7 +98358,7 @@
     "C04.phb2024:equipment:armor:breastplate.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -98383,7 +98383,7 @@
     "C04.phb2024:equipment:armor:breastplate.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -98408,7 +98408,7 @@
     "C04.phb2024:equipment:armor:breastplate.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -98433,7 +98433,7 @@
     "C04.phb2024:equipment:armor:breastplate.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -98458,7 +98458,7 @@
     "C04.phb2024:equipment:armor:breastplate.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:breastplate|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:breastplate.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -98481,7 +98481,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -98506,7 +98506,7 @@
     "C04.phb2024:equipment:armor:half-plate-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -98531,7 +98531,7 @@
     "C04.phb2024:equipment:armor:half-plate-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -98556,7 +98556,7 @@
     "C04.phb2024:equipment:armor:half-plate-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -98581,7 +98581,7 @@
     "C04.phb2024:equipment:armor:half-plate-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -98606,7 +98606,7 @@
     "C04.phb2024:equipment:armor:half-plate-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:half-plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:half-plate-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -98629,7 +98629,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -98654,7 +98654,7 @@
     "C04.phb2024:equipment:armor:ring-mail.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -98679,7 +98679,7 @@
     "C04.phb2024:equipment:armor:ring-mail.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -98704,7 +98704,7 @@
     "C04.phb2024:equipment:armor:ring-mail.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -98729,7 +98729,7 @@
     "C04.phb2024:equipment:armor:ring-mail.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -98754,7 +98754,7 @@
     "C04.phb2024:equipment:armor:ring-mail.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:ring-mail|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:ring-mail.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -98925,7 +98925,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -98950,7 +98950,7 @@
     "C04.phb2024:equipment:armor:splint-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -98975,7 +98975,7 @@
     "C04.phb2024:equipment:armor:splint-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -99000,7 +99000,7 @@
     "C04.phb2024:equipment:armor:splint-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -99025,7 +99025,7 @@
     "C04.phb2024:equipment:armor:splint-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -99050,7 +99050,7 @@
     "C04.phb2024:equipment:armor:splint-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:splint-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:splint-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",
@@ -99073,7 +99073,7 @@
    "command": "cd ai-dnd && python -m unittest api.tests.test_roadmap_c04 -v",
    "dependencies": [],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.visible",
    "oracle": {
     "book": "Player's Handbook",
@@ -99098,7 +99098,7 @@
     "C04.phb2024:equipment:armor:plate-armor.visible"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.create",
    "oracle": {
     "book": "Player's Handbook",
@@ -99123,7 +99123,7 @@
     "C04.phb2024:equipment:armor:plate-armor.create"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.select",
    "oracle": {
     "book": "Player's Handbook",
@@ -99148,7 +99148,7 @@
     "C04.phb2024:equipment:armor:plate-armor.select"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.use",
    "oracle": {
     "book": "Player's Handbook",
@@ -99173,7 +99173,7 @@
     "C04.phb2024:equipment:armor:plate-armor.use"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.advance",
    "oracle": {
     "book": "Player's Handbook",
@@ -99198,7 +99198,7 @@
     "C04.phb2024:equipment:armor:plate-armor.advance"
    ],
    "entry_id": "equipment|phb2024:equipment:armor:plate-armor|2024",
-   "existing_owner": null,
+   "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
    "leaf_id": "C04.phb2024:equipment:armor:plate-armor.save_load",
    "oracle": {
     "book": "Player's Handbook",

@@ -1950,6 +1950,10 @@ def _player_state_for_save():
     choices = _origin_choices_for_save(character)
     if choices:
         saved["origin_choices"] = choices
+    if "progression_level" in character:  # C06: the level whose class-table choices were applied (XP may be ahead of it)
+        saved["progression_level"] = character["progression_level"]
+    if character.get("metamagic"):
+        saved["metamagic"] = list(character["metamagic"])
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -2146,6 +2150,13 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt deneyim alanı geçersiz.")
     if "origin_choices" in player and not _origin_choices_valid(player["origin_choices"]):
         raise ValueError("Kayıt köken seçimleri geçersiz.")
+    if "progression_level" in player and (type(player["progression_level"]) is not int
+                                          or not 1 <= player["progression_level"] <= player["level"]):
+        raise ValueError("Kayıt seviye ilerlemesi geçersiz.")
+    if "metamagic" in player and (not isinstance(player["metamagic"], list) or len(player["metamagic"]) > 20
+                                  or any(not isinstance(m, str) or not 0 < len(m) <= 40 for m in player["metamagic"])
+                                  or len(set(player["metamagic"])) != len(player["metamagic"])):
+        raise ValueError("Kayıt metamagic seçimleri geçersiz.")
 
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
@@ -2213,6 +2224,8 @@ def _validate_save_payload(payload):
         raise ValueError("Karakter ırkı veya sınıfı geçersiz.")
     import spell_scope
     spell_scope.validate(saved_world.get("spellcasting_v1"), player)
+    import character_progression
+    character_progression.validate_saved(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
         raise ValueError("Karakter türü geçersiz.")
@@ -2520,6 +2533,12 @@ def load_game(path):
                       + ("final_ability_scores", "equipment_package", "equipment_choices", "fighting_style")):
             character.pop(stale, None)  # choices and derived creation state of a previous character never leak into the loaded one
         character.update(copy.deepcopy(player.get("origin_choices") or {}))
+        character.pop("progression_level", None)
+        character.pop("metamagic", None)
+        if "progression_level" in player:
+            character["progression_level"] = player["progression_level"]
+        if player.get("metamagic"):
+            character["metamagic"] = list(player["metamagic"])
         for field in ("origin", "appearance", "personality", "backstory"):
             if field not in player or player[field] is None:
                 character[field] = None
