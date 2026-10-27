@@ -81,7 +81,7 @@ test('a validated own turn preserves the reader position and marks a new respons
     ts.forEachChild(node, visit);
   };
   visit(ast);
-  const guard = submit.indexOf('if (!operation) return;');
+  const guard = submit.indexOf('if (!startedOperation) return;');
   const send = submit.indexOf('void playGameTurn(');
   assert.ok(guard >= 0 && send > guard);
   assert.match(submit, /const wasFollowingResponse = transcriptFollowsBottom\(wasAtBottom\.current\)/);

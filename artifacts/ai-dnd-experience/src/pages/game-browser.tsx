@@ -82,6 +82,7 @@ import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
 import { applyGameState, gameStateScope, nextRevision } from '@/lib/game-state-gate';
+import { ActionDeadlineError, startDeadline, withActionDeadline } from '@/lib/action-deadline';
 import { gatedStateRead, stateStructuralSharing } from '@/lib/state-envelope';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
@@ -1203,8 +1204,9 @@ export default function GameBrowser() {
     }
     const target = pendingRequest?.targetActionId ?? visibleLastTurn!.actionId;
     if (pendingRequest && visibleLastTurn && pendingRequest.targetActionId !== target) return;
-    const operation = turnLifetime.begin();
-    if (!operation) return;
+    const startedOperation = turnLifetime.begin();
+    if (!startedOperation) return;
+    const operation = withActionDeadline(startedOperation, startDeadline());
     const recoveringRequest = Boolean(pendingRequest);
     const request = pendingRequest
       ? { ...pendingRequest, generation: undoGenerationRef.current, scope: undoScope }
@@ -1228,9 +1230,9 @@ export default function GameBrowser() {
       ));
     const stateKey = getGetGameSessionStateQueryKey(sessionId);
     let retainRequest = false;
-    void undoGameTurn(sessionId, { action_id: request.actionId, target_action_id: target })
+    void undoGameTurn(sessionId, { action_id: request.actionId, target_action_id: target }, { signal: operation.signal })
       .then(async (result) => {
-        if (!isCurrent()) return;
+        if (!isCurrent() || operation.deadlineExpired()) return;
         let snapshot: {
           state: GameState;
           history: CampaignDetail['history'] | null;
@@ -1291,7 +1293,7 @@ export default function GameBrowser() {
         try {
           const statusReadUpdateCount = queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0;
           const readRevision = nextRevision();
-          const canonicalState = await getGameSessionState(sessionId);
+          const canonicalState = await getGameSessionState(sessionId, { signal: operation.signal });
           if (!isCurrent()) return;
           if ((queryClient.getQueryState(stateKey)?.dataUpdateCount ?? 0) !== statusReadUpdateCount) {
             void queryClient.invalidateQueries({ queryKey: stateKey });
@@ -1778,8 +1780,11 @@ export default function GameBrowser() {
       setNotice(elsewhere);
       return;
     }
-    const operation = turnLifetime.begin();
-    if (!operation) return;
+    const startedOperation = turnLifetime.begin();
+    if (!startedOperation) return;
+    // One absolute budget for the whole action (token read, mutation, reconciliation): it is never reset by a sub-step.
+    const actionDeadline = startDeadline();
+    const operation = withActionDeadline(startedOperation, actionDeadline);
     setResultCue('');
     setNotice(null);
     const fresh = stored ? null : getTurnInteractionMetadata(
@@ -1816,7 +1821,8 @@ export default function GameBrowser() {
         ...request,
         action_id: actionId,
     } as Parameters<typeof playGameTurn>[1], { signal: operation.signal }).then(async (result) => {
-        if (!operation.isCurrent()) return;
+        // A reply that arrives after the deadline is never applied: the outcome was already declared unknown.
+        if (!operation.isCurrent() || operation.deadlineExpired()) return;
         receiptReceived = true;
         const stateKey = getGetGameSessionStateQueryKey(sessionId);
         const readRevision = nextRevision();
@@ -1945,9 +1951,15 @@ export default function GameBrowser() {
           });
           return;
         }
+        // An expired budget is an UNKNOWN outcome: the server may have committed it. The draft and the key stay, and only
+        // the player's own retry (same id) or the server's verdict can settle it.
+        const deadlineExpired = error instanceof ActionDeadlineError || operation.deadlineExpired();
         setNotice({
-          tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı',
-          detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.'),
+          tone: deadlineExpired ? 'warning' : 'error',
+          title: deadlineExpired ? 'Hamlenin sonucu belirsiz' : statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı',
+          detail: deadlineExpired
+            ? 'Süre doldu ve sunucudan yanıt alınamadı; hamle uygulanmış olabilir. Aynı hamleyi yeniden dene: kayıtlı işlem kimliği korunuyor, yazdığın metin taslakta duruyor.'
+            : error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.'),
           ...(unresolved ? { retry: retryPendingTurn, recover: recoveryHandlers() } : {}),
         });
       }).finally(() => {

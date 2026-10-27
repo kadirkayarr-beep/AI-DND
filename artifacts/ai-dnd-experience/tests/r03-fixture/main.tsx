@@ -11,6 +11,7 @@ import { getGetGameSessionStateQueryKey } from "@workspace/api-client-react";
 import { setAuthTokenGetter } from "@workspace/api-client-react/custom-fetch";
 import GameBrowser from "@/pages/game-browser";
 import { nextAccountClient, type AccountBoundary } from "@/lib/account-session";
+import { setActionDeadlineBudget } from "@/lib/action-deadline";
 import "@/index.css";
 
 const CAMPAIGN_ID = "r03-campaign";
@@ -67,6 +68,12 @@ type Held = { release: () => void; poison: Partial<{ hp: number; minute: number 
 const holds = new Map<string, Held>();
 const stateReads = { count: 0 };
 const log: string[] = [];
+// The scripted server keeps one receipt per turn action id: the same id replays the stored answer and changes nothing.
+const turnReceipts = new Map<string, unknown>();
+const turnActionIds: string[] = [];
+const undoRequests: string[] = [];
+const deadlineParam = new URLSearchParams(window.location.search).get("deadline");
+if (deadlineParam) setActionDeadlineBudget(Number(deadlineParam));
 
 function arm(kind: string, poison: Held["poison"] = {}) {
   let release: () => void = () => {};
@@ -79,13 +86,14 @@ async function answer(kind: string, effect: () => void, body: (frozen: ReturnTyp
   const held = holds.get(kind);
   effect();
   const frozen = state();
+  const reply = body(frozen); // the commit (and its receipt) happens now, before any delivery delay
   if (held?.armed) {
     held.armed = false;
     if (held.poison.hp !== undefined) frozen.character.current_hp = held.poison.hp;
     if (held.poison.minute !== undefined) frozen.campaign_time.minute = held.poison.minute;
     await held.promise;
   }
-  return json(body(frozen));
+  return json(reply);
 }
 
 window.fetch = async (input, init) => {
@@ -110,9 +118,22 @@ window.fetch = async (input, init) => {
       result: { event_instance_id: AMBIENT_ID, action_id: body.action_id, status: "APPLIED", reason_code: null, transition_id: null, canonical_event_id: null },
     }));
   }
+  if (path === `/api/game/sessions/${SESSION_ID}/undo` && method === "POST") {
+    const body = JSON.parse(String(init?.body ?? "{}")) as { action_id?: string; target_action_id?: string };
+    undoRequests.push(body.action_id ?? "");
+    return answer("undo", () => { world.hp += 1; world.minute -= 1; world.turn -= 1; world.events.pop(); history.pop(); },
+      (frozen) => ({ session_id: SESSION_ID, action_id: body.action_id, undone_action_id: body.target_action_id, narration: "↶ Son tur geri alındı", state: frozen }));
+  }
   if (path === `/api/game/sessions/${SESSION_ID}/turn` && method === "POST") {
     const body = JSON.parse(String(init?.body ?? "{}")) as { message?: string; action_id?: string };
-    return answer("turn", () => { spendTurn(body.message ?? ""); history.push({ player_message: body.message ?? "", narration: `Yankı: ${body.message}`, created_at: "2026-10-27T08:05:00Z" }); }, (frozen) => ({ session_id: SESSION_ID, action_id: body.action_id, narration: `Yankı: ${body.message}`, state: frozen, combat_result: null, combat_history_entry: null, skill_check_result: null, quest_outcomes: [], level_up: null }));
+    turnActionIds.push(body.action_id ?? "");
+    const stored = body.action_id ? turnReceipts.get(body.action_id) : undefined;
+    if (stored) return json(stored); // a replay: no second effect
+    return answer("turn", () => { spendTurn(body.message ?? ""); history.push({ player_message: body.message ?? "", narration: `Yankı: ${body.message}`, created_at: "2026-10-27T08:05:00Z" }); }, (frozen) => {
+      const reply = { session_id: SESSION_ID, action_id: body.action_id, narration: `Yankı: ${body.message}`, state: frozen, combat_result: null, combat_history_entry: null, skill_check_result: null, quest_outcomes: [], level_up: null };
+      if (body.action_id) turnReceipts.set(body.action_id, reply);
+      return reply;
+    });
   }
   return json({ detail: { code: "campaign_error", message: `R03 fixture has no response for ${method} ${path}` } }, 404);
 };
@@ -158,6 +179,8 @@ async function openPlay() {
   world: () => ({ hp: world.hp, minute: world.minute, events: world.events.length, questAccepted: world.questAccepted, ambientOpen: world.ambientOpen }),
   cache: cacheView,
   stateReads: () => stateReads.count,
+  turnActionIds: () => [...turnActionIds],
+  undoRequests: () => [...undoRequests],
   log: () => [...log],
   switchIdentity: (identity: string) => rerender(identity),
   openPlay,

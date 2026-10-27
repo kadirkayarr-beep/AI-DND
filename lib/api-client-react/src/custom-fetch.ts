@@ -173,6 +173,23 @@ function combineSignals(authSignal: AbortSignal, callerSignal: AbortSignal | nul
   return controller.signal;
 }
 
+/** Lets an abort signal release an await that cannot be cancelled itself (e.g. a token read that never answers). */
+function releaseOnAbort<T>(pending: Promise<T>, signal: AbortSignal | null | undefined): Promise<T> {
+  if (!signal) return pending;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    pending.then(
+      (value) => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      (error) => { signal.removeEventListener("abort", onAbort); reject(error); },
+    );
+  });
+}
+
 function isRequest(input: RequestInfo | URL): input is Request {
   return typeof Request !== "undefined" && input instanceof Request;
 }
@@ -502,7 +519,7 @@ export async function customFetch<T = unknown>(
     if (epoch !== authEpoch || epochSignal.aborted) {
       throw new ApiRequestError("authentication_changed");
     }
-    const token = await readBearerToken();
+    const token = await releaseOnAbort(readBearerToken(), init.signal);
     if (epoch !== authEpoch || epochSignal.aborted) {
       throw new ApiRequestError("authentication_changed");
     }
@@ -529,14 +546,15 @@ export async function customFetch<T = unknown>(
 
   let response: Response;
   try {
-    response = await fetch(fetchInput, {
+    // A transport that ignores the abort signal must not keep the caller waiting past its deadline (R07).
+    response = await releaseOnAbort(fetch(fetchInput, {
       ...init,
       method,
       headers,
       credentials,
       redirect: redirectMode,
       signal,
-    });
+    }), signal);
   } catch (error) {
     if (destination === "protected" && (epoch !== authEpoch || epochSignal.aborted)) {
       throw new ApiRequestError("authentication_changed");

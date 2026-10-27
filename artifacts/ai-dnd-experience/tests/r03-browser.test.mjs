@@ -71,8 +71,8 @@ class CdpPage {
 }
 
 const env = {};
-async function newPage() {
-  const url = `${env.baseUrl}${fixturePath}`;
+async function newPage(query = '') {
+  const url = `${env.baseUrl}${fixturePath}${query}`;
   const target = await fetch(`http://127.0.0.1:${env.browserPort}/json/new?${encodeURIComponent(url)}`, { method: "PUT" }).then((r) => r.json());
   const page = new CdpPage(target.webSocketDebuggerUrl);
   await page.send("Page.enable");
@@ -149,6 +149,10 @@ test("R03 real browser flows", async (t) => {
   env.baseUrl = `http://127.0.0.1:${vitePort}`;
   await waitFor(`${env.baseUrl}${fixturePath}`);
   await waitFor(`http://127.0.0.1:${env.browserPort}/json/version`, true);
+  // Warm-up: the first load compiles the whole app on demand, which can exceed a normal page wait.
+  const warm = await newPage();
+  await until(warm, "document.querySelector('[data-testid=\"button-open-world\"]')", "warm-up play screen", 600);
+  warm.close();
 
   const openJournal = async (page) => {
     await until(page, "document.querySelector('[data-testid=\"button-open-world\"]')", "play screen");
@@ -202,6 +206,49 @@ test("R03 real browser flows", async (t) => {
       { hp: final.hp, minute: final.minute, events: final.events, questAccepted: final.questAccepted, ambientOpen: final.ambientOpen },
       { hp: server.hp, minute: server.minute, events: server.events, questAccepted: server.questAccepted, ambientOpen: server.ambientOpen },
     );
+    page.close();
+  });
+
+  await t.test("R07: an expired deadline shows the unknown outcome, keeps draft and ActionKey, and a late commit gives one effect", async () => {
+    const page = await newPage("?deadline=1500");
+    await until(page, "document.querySelector('[data-testid=\"button-open-world\"]')", "play screen");
+    await page.evaluate("window.__r03.hold('turn')");
+    await sendTurn(page, "Avluyu inceliyorum");
+    await until(page, "document.body.innerText.includes('Hamlenin sonucu belirsiz')", "unknown-outcome notice", 80);
+    // The server committed once (the reply is only delayed); the page must not have sent anything else on its own.
+    assert.deepEqual((await page.evaluate("window.__r03.turnActionIds()")).length, 1, "no automatic second action");
+    assert.equal((await world(page)).hp, 11, "the late commit is exactly one effect");
+    const pending = await page.evaluate("Object.keys(sessionStorage).filter((k) => k.startsWith('ai-dnd-pending-turns:action:')).map((k) => sessionStorage.getItem(k)).join('|')");
+    assert.match(pending, /Avluyu inceliyorum/, "the ActionKey and request stay stored");
+    await page.evaluate("window.__r03.release('turn')");
+    await delay(800);
+    assert.equal((await page.evaluate("window.__r03.turnActionIds()")).length, 1, "the late reply triggered nothing");
+    // The player's own retry resends the SAME id; the server replays its receipt and nothing changes twice.
+    await until(page, "document.querySelector('[data-testid=\"button-retry-turn\"]')", "retry offered");
+    await click(page, '[data-testid="button-retry-turn"]');
+    await until(page, "window.__r03.turnActionIds().length === 2", "retry sent");
+    const ids = await page.evaluate("window.__r03.turnActionIds()");
+    assert.equal(ids[0], ids[1], "same action id");
+    await until(page, "window.__r03.cache()?.hp === 11", "view shows the single committed effect");
+    assert.equal((await world(page)).hp, 11, "still exactly one effect after the retry");
+    assert.equal((await world(page)).events, 1);
+    page.close();
+  });
+
+  await t.test("R07: a hung undo is bounded by the same deadline, shows the uncertainty and is not resent on its own", async () => {
+    const page = await newPage("?deadline=1500");
+    await until(page, "document.querySelector('[data-testid=\"button-open-world\"]')", "play screen");
+    await sendTurn(page, "Avluyu inceliyorum");
+    await until(page, "window.__r03.cache()?.hp === 11", "turn applied");
+    await until(page, "document.querySelector('[data-testid=\"button-undo-last-turn\"]')", "undo offered");
+    await page.evaluate("window.__r03.hold('undo')");
+    await click(page, '[data-testid="button-undo-last-turn"]');
+    await until(page, "document.querySelector('[data-testid=\"confirm-undo\"] button')", "undo confirmation");
+    await click(page, '[data-testid="confirm-undo"] button');
+    await until(page, "document.body.innerText.includes('Geri alma sonucu')", "unknown undo outcome shown", 80);
+    assert.equal((await page.evaluate("window.__r03.undoRequests()")).length, 1, "no automatic resend of the undo");
+    assert.equal((await world(page)).hp, 12, "the server applied the undo once (its reply is only delayed)");
+    await until(page, "[...document.querySelectorAll('button')].some((b) => b.innerText.toLocaleLowerCase('tr').includes('geri almayı yeniden dene'))", "the retry is offered, the busy state is not stuck", 40);
     page.close();
   });
 
