@@ -1,0 +1,8446 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "pdf_pages": [
+   238,
+   342
+  ],
+  "note": "values and pages only, no book text; OCR text layer: fields the OCR made unreadable are null with a *_status; printed page = PDF page + 1"
+ },
+ "spells": {
+  "Acid Splash": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 238,
+   "duration_status": "OK"
+  },
+  "Aid": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 238,
+   "duration_status": "OK"
+  },
+  "Alarm": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 238,
+   "duration_status": "OK"
+  },
+  "Alter Self": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 238,
+   "duration_status": "OK"
+  },
+  "Animal Friendship": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 238,
+   "duration_status": "OK"
+  },
+  "Animal Messenger": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 239,
+   "duration_status": "OK"
+  },
+  "Animal Shapes": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 239,
+   "duration_status": "OK"
+  },
+  "Animate Dead": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 239,
+   "duration_status": "OK"
+  },
+  "Animate Objects": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 239,
+   "duration_status": "OK"
+  },
+  "Antilife Shell": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 240,
+   "duration_status": "OK"
+  },
+  "Antimagic Field": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 240,
+   "duration_status": "OK"
+  },
+  "Antipathy/Sympathy": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 days",
+   "pdf_page": 241,
+   "duration_status": "OK"
+  },
+  "Arcane Eye": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 241,
+   "duration_status": "OK"
+  },
+  "Arcane Gate": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "500 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 241,
+   "duration_status": "OK"
+  },
+  "Arcane Lock": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 241,
+   "duration_status": "OK"
+  },
+  "Arcane Vigor": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 241,
+   "duration_status": "OK"
+  },
+  "Armor of Agathys": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 242,
+   "duration_status": "OK"
+  },
+  "Arms of Hadar": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 242,
+   "duration_status": "OK"
+  },
+  "Astral Projection": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 242,
+   "duration_status": "OK"
+  },
+  "Augury": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 243,
+   "duration_status": "OK"
+  },
+  "Aura of Life": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 243,
+   "duration_status": "OK"
+  },
+  "Aura of Purity": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 243,
+   "duration_status": "OK"
+  },
+  "Aura of Vitality": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 243,
+   "duration_status": "OK"
+  },
+  "Awaken": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid"
+   ],
+   "casting_time": "8 hours",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 243,
+   "duration_status": "OK"
+  },
+  "Bane": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Banishing Smite": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Banishment": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Barkskin": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Beacon of Hope": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Beast Sense": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 244,
+   "duration_status": "OK"
+  },
+  "Befuddlement": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 244,
+   "ocr_notes": [
+    "range: OCR 'SO'->'50' (150 feet)"
+   ],
+   "duration_status": "OK"
+  },
+  "Bestow Curse": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 245,
+   "duration_status": "OK"
+  },
+  "Bigby's Hand": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 245,
+   "duration_status": "OK"
+  },
+  "Blade Barrier": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 246,
+   "duration_status": "OK"
+  },
+  "Blade Ward": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 246,
+   "duration_status": "OK"
+  },
+  "Bless": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 246,
+   "duration_status": "OK"
+  },
+  "Blight": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 246,
+   "duration_status": "OK"
+  },
+  "Blinding Smite": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 246,
+   "duration_status": "OK"
+  },
+  "Blindness/Deafness": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 247,
+   "duration_status": "OK"
+  },
+  "Blink": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 247,
+   "duration_status": "OK"
+  },
+  "Blur": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 247,
+   "duration_status": "OK"
+  },
+  "Burning Hands": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 247,
+   "duration_status": "OK"
+  },
+  "Call Lightning": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 247,
+   "duration_status": "OK"
+  },
+  "Calm Emotions": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Chain Lightning": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Charm Monster": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Charm Person": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Chill Touch": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Chromatic Orb": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 248,
+   "duration_status": "OK"
+  },
+  "Circle of Death": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 249,
+   "duration_status": "OK"
+  },
+  "Circle of Power": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 249,
+   "duration_status": "OK"
+  },
+  "Clairvoyance": {
+   "level": 3,
+   "level_status": "LEVEL_FROM_CLASS_LISTS_PDF_61_71_142",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "1 mile",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": null,
+   "duration": null,
+   "pdf_page": 249,
+   "duration_status": "BLOCKED_OCR_UNREADABLE"
+  },
+  "Clone": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 250,
+   "duration_status": "OK"
+  },
+  "Cloud of Daggers": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 250,
+   "duration_status": "OK"
+  },
+  "Cloudkill": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 250,
+   "duration_status": "OK"
+  },
+  "Color Spray": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 250,
+   "duration_status": "OK"
+  },
+  "Command": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 250,
+   "duration_status": "OK"
+  },
+  "Commune": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 251,
+   "duration_status": "OK"
+  },
+  "Commune with Nature": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 251,
+   "duration_status": "OK"
+  },
+  "Compelled Duel": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 251,
+   "duration_status": "OK"
+  },
+  "Comprehend Languages": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 251,
+   "duration_status": "OK"
+  },
+  "Compulsion": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 251,
+   "duration_status": "OK"
+  },
+  "Cone of Cold": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 252,
+   "duration_status": "OK"
+  },
+  "Confusion": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 252,
+   "duration_status": "OK"
+  },
+  "Conjure Animals": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 253,
+   "duration_status": "OK"
+  },
+  "Conjure Barrage": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 253,
+   "duration_status": "OK"
+  },
+  "Conjure Celestial": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 253,
+   "duration_status": "OK"
+  },
+  "Conjure Elemental": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 253,
+   "duration_status": "OK"
+  },
+  "Conjure Fey": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 254,
+   "duration_status": "OK"
+  },
+  "Conjure Minor Elementals": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 254,
+   "duration_status": "OK"
+  },
+  "Conjure Volley": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 254,
+   "ocr_notes": [
+    "range: OCR 'SO'->'50' (150 feet)"
+   ],
+   "duration_status": "OK"
+  },
+  "Conjure Woodland Beings": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 254,
+   "duration_status": "OK"
+  },
+  "Contact Other Plane": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 254,
+   "duration_status": "OK"
+  },
+  "Contagion": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "7 days",
+   "pdf_page": 255,
+   "duration_status": "OK"
+  },
+  "Contingency": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 days",
+   "pdf_page": 255,
+   "duration_status": "OK"
+  },
+  "Continual Flame": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 255,
+   "duration_status": "OK"
+  },
+  "Control Water": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 255,
+   "duration_status": "OK"
+  },
+  "Control Weather": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 8 hours",
+   "pdf_page": 256,
+   "duration_status": "OK"
+  },
+  "Cordon of Arrows": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 257,
+   "duration_status": "OK"
+  },
+  "Counterspell": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Reaction",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 257,
+   "duration_status": "OK"
+  },
+  "Create Food and Water": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 257,
+   "duration_status": "OK"
+  },
+  "Create Undead": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 257,
+   "duration_status": "OK"
+  },
+  "Create or Destroy Water": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 257,
+   "duration_status": "OK"
+  },
+  "Creation": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Special",
+   "pdf_page": 258,
+   "duration_status": "OK"
+  },
+  "Crown of Madness": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 258,
+   "duration_status": "OK"
+  },
+  "Crusader's Mantle": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 258,
+   "duration_status": "OK"
+  },
+  "Cure Wounds": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 258,
+   "duration_status": "OK"
+  },
+  "Dancing Lights": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 258,
+   "duration_status": "OK"
+  },
+  "Darkness": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 259,
+   "duration_status": "OK"
+  },
+  "Darkvision": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 259,
+   "duration_status": "OK",
+   "ocr_notes": [
+    "classes: OCR 'Range,·' = Ranger; no Bard in the source line"
+   ]
+  },
+  "Daylight": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 259,
+   "duration_status": "OK"
+  },
+  "Death Ward": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 260,
+   "duration_status": "OK"
+  },
+  "Delayed Blast Fireball": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 260,
+   "duration_status": "OK"
+  },
+  "Demiplane": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 260,
+   "duration_status": "OK"
+  },
+  "Destructive Wave": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 260,
+   "duration_status": "OK"
+  },
+  "Detect Evil and Good": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 260,
+   "duration_status": "OK"
+  },
+  "Detect Magic": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 261,
+   "duration_status": "OK"
+  },
+  "Detect Poison and Disease": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 261,
+   "duration_status": "OK"
+  },
+  "Detect Thoughts": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 261,
+   "duration_status": "OK"
+  },
+  "Dimension Door": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "500 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 261,
+   "duration_status": "OK"
+  },
+  "Disguise Self": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 261,
+   "duration_status": "OK"
+  },
+  "Disintegrate": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 262,
+   "duration_status": "OK"
+  },
+  "Dispel Evil and Good": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 262,
+   "duration_status": "OK"
+  },
+  "Dispel Magic": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 263,
+   "duration_status": "OK"
+  },
+  "Dissonant Whispers": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 263,
+   "duration_status": "OK"
+  },
+  "Divination": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 263,
+   "duration_status": "OK"
+  },
+  "Divine Favor": {
+   "level": null,
+   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "school": "Transmutation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 264,
+   "duration_status": "OK"
+  },
+  "Divine Smite": {
+   "level": 1,
+   "level_status": "LEVEL_FROM_UPCAST_TEXT",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 264,
+   "duration_status": "OK"
+  },
+  "Divine Word": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 264,
+   "duration_status": "OK"
+  },
+  "Dominate Beast": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 264,
+   "duration_status": "OK"
+  },
+  "Dominate Monster": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 264,
+   "duration_status": "OK"
+  },
+  "Dominate Person": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 265,
+   "duration_status": "OK"
+  },
+  "Dragon's Breath": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 265,
+   "duration_status": "OK"
+  },
+  "Drawmij's Instant Summons": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 265,
+   "duration_status": "OK"
+  },
+  "Dream": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Special",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 265,
+   "duration_status": "OK"
+  },
+  "Druidcraft": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 265,
+   "duration_status": "OK"
+  },
+  "Earthquake": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "500 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 266,
+   "duration_status": "OK"
+  },
+  "Eldritch Blast": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 266,
+   "duration_status": "OK"
+  },
+  "Elemental Weapon": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 267,
+   "duration_status": "OK"
+  },
+  "Elementalism": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 266,
+   "duration_status": "OK"
+  },
+  "Enhance Ability": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 267,
+   "duration_status": "OK"
+  },
+  "Enlarge/Reduce": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 267,
+   "duration_status": "OK"
+  },
+  "Ensnaring Strike": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 267,
+   "duration_status": "OK"
+  },
+  "Entangle": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 267,
+   "duration_status": "OK"
+  },
+  "Enthrall": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 268,
+   "duration_status": "OK"
+  },
+  "Etherealness": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Up to 8 hours",
+   "pdf_page": 268,
+   "duration_status": "OK"
+  },
+  "Evard's Black Tentacles": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 269,
+   "duration_status": "OK"
+  },
+  "Expeditious Retreat": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 269,
+   "duration_status": "OK"
+  },
+  "Eyebite": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 269,
+   "duration_status": "OK"
+  },
+  "Fabricate": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "Faerie Fire": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "False Life": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "Fear": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "Feather Fall": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Reaction",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "Feign Death": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 270,
+   "duration_status": "OK"
+  },
+  "Find Familiar": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": true,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 271,
+   "duration_status": "OK"
+  },
+  "Find Steed": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 271,
+   "duration_status": "OK"
+  },
+  "Find Traps": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 272,
+   "duration_status": "OK"
+  },
+  "Find the Path": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 day",
+   "pdf_page": 272,
+   "duration_status": "OK"
+  },
+  "Finger of Death": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 272,
+   "duration_status": "OK"
+  },
+  "Fire Bolt": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 273,
+   "ocr_notes": [
+    "duration: OCR 'Instantaneous'"
+   ],
+   "duration_status": "OK"
+  },
+  "Fire Shield": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 273,
+   "duration_status": "OK"
+  },
+  "Fire Storm": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 274,
+   "duration_status": "OK"
+  },
+  "Fireball": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 273,
+   "duration_status": "OK"
+  },
+  "Flame Blade": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 274,
+   "duration_status": "OK"
+  },
+  "Flame Strike": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 274,
+   "duration_status": "OK"
+  },
+  "Flaming Sphere": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 274,
+   "duration_status": "OK"
+  },
+  "Flesh to Stone": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 274,
+   "duration_status": "OK"
+  },
+  "Fly": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 275,
+   "duration_status": "OK"
+  },
+  "Fog Cloud": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 275,
+   "duration_status": "OK"
+  },
+  "Forbiddance": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 day",
+   "pdf_page": 275,
+   "duration_status": "OK"
+  },
+  "Forcecage": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "100 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 275,
+   "duration_status": "OK"
+  },
+  "Foresight": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 275,
+   "duration_status": "OK"
+  },
+  "Fount of Moonlight": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 276,
+   "duration_status": "OK"
+  },
+  "Freedom of Movement": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 276,
+   "duration_status": "OK"
+  },
+  "Friends": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 276,
+   "duration_status": "OK"
+  },
+  "Gaseous Form": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 276,
+   "duration_status": "OK"
+  },
+  "Gate": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 276,
+   "duration_status": "OK"
+  },
+  "Geas": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "30 days",
+   "pdf_page": 277,
+   "duration_status": "OK"
+  },
+  "Gentle Repose": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Paladin",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 days",
+   "pdf_page": 277,
+   "duration_status": "OK"
+  },
+  "Giant Insect": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 278,
+   "duration_status": "OK"
+  },
+  "Glibness": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 278,
+   "duration_status": "OK"
+  },
+  "Globe of Invulnerability": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 278,
+   "duration_status": "OK"
+  },
+  "Glyph of Warding": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled or triggered",
+   "pdf_page": 278,
+   "duration_status": "OK"
+  },
+  "Goodberry": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 279,
+   "duration_status": "OK"
+  },
+  "Grasping Vine": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 279,
+   "duration_status": "OK"
+  },
+  "Grease": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 279,
+   "duration_status": "OK"
+  },
+  "Greater Invisibility": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 280,
+   "duration_status": "OK"
+  },
+  "Greater Restoration": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 280,
+   "duration_status": "OK"
+  },
+  "Guardian of Faith": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 280,
+   "duration_status": "OK"
+  },
+  "Guards and Wards": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 281,
+   "duration_status": "OK"
+  },
+  "Guidance": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 281,
+   "duration_status": "OK"
+  },
+  "Guiding Bolt": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 round",
+   "pdf_page": 281,
+   "duration_status": "OK"
+  },
+  "Gust of Wind": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 281,
+   "duration_status": "OK"
+  },
+  "Hail of Thorns": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 282,
+   "duration_status": "OK"
+  },
+  "Hallow": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "24 hours",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 282,
+   "duration_status": "OK"
+  },
+  "Hallucinatory Terrain": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 282,
+   "duration_status": "OK"
+  },
+  "Harm": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 282,
+   "duration_status": "OK"
+  },
+  "Haste": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Heal": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Healing Word": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Heat Metal": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Hellish Rebuke": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Reaction",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Heroes' Feast": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 283,
+   "duration_status": "OK"
+  },
+  "Heroism": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 284,
+   "duration_status": "OK"
+  },
+  "Hex": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 284,
+   "duration_status": "OK"
+  },
+  "Hold Monster": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 284,
+   "duration_status": "OK"
+  },
+  "Hold Person": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 285,
+   "duration_status": "OK"
+  },
+  "Holy Aura": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 285,
+   "duration_status": "OK"
+  },
+  "Hunger of Hadar": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 285,
+   "duration_status": "OK"
+  },
+  "Hunter's Mark": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 286,
+   "duration_status": "OK"
+  },
+  "Hypnotic Pattern": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 286,
+   "duration_status": "OK"
+  },
+  "Ice Knife": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 286,
+   "duration_status": "OK"
+  },
+  "Ice Storm": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 286,
+   "duration_status": "OK"
+  },
+  "Identify": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 286,
+   "duration_status": "OK"
+  },
+  "Illusory Script": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 days",
+   "pdf_page": 287,
+   "duration_status": "OK"
+  },
+  "Imprisonment": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 287,
+   "duration_status": "OK"
+  },
+  "Incendiary Cloud": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 287,
+   "duration_status": "OK"
+  },
+  "Inflict Wounds": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 287,
+   "duration_status": "OK"
+  },
+  "Insect Plague": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 288,
+   "duration_status": "OK"
+  },
+  "Invisibility": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 288,
+   "duration_status": "OK"
+  },
+  "Jallarzi's Storm of Radiance": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 288,
+   "duration_status": "OK"
+  },
+  "Jump": {
+   "level": 1,
+   "level_status": "LEVEL_FROM_UPCAST_TEXT",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 289,
+   "duration_status": "OK"
+  },
+  "Knock": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 289,
+   "duration_status": "OK"
+  },
+  "Legend Lore": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 289,
+   "duration_status": "OK"
+  },
+  "Leomund's Secret Chest": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 289,
+   "duration_status": "OK"
+  },
+  "Leomund's Tiny Hut": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 290,
+   "duration_status": "OK"
+  },
+  "Lesser Restoration": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 290,
+   "duration_status": "OK"
+  },
+  "Levitate": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 290,
+   "duration_status": "OK"
+  },
+  "Light": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 291,
+   "duration_status": "OK"
+  },
+  "Lightning Arrow": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 291,
+   "duration_status": "OK"
+  },
+  "Lightning Bolt": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 291,
+   "duration_status": "OK"
+  },
+  "Locate Animals or Plants": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 291,
+   "duration_status": "OK"
+  },
+  "Locate Creature": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 291,
+   "duration_status": "OK"
+  },
+  "Locate Object": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 292,
+   "duration_status": "OK"
+  },
+  "Longstrider": {
+   "level": 1,
+   "level_status": "LEVEL_FROM_UPCAST_TEXT",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 292,
+   "duration_status": "OK"
+  },
+  "Mage Armor": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 292,
+   "duration_status": "OK"
+  },
+  "Mage Hand": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 292,
+   "duration_status": "OK"
+  },
+  "Magic Circle": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 292,
+   "duration_status": "OK"
+  },
+  "Magic Jar": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 293,
+   "duration_status": "OK"
+  },
+  "Magic Missile": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 294,
+   "duration_status": "OK"
+  },
+  "Magic Mouth": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 294,
+   "duration_status": "OK"
+  },
+  "Magic Weapon": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Paladin",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 294,
+   "duration_status": "OK"
+  },
+  "Major Image": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 294,
+   "duration_status": "OK"
+  },
+  "Mass Cure Wounds": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Mass Heal": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Mass Healing Word": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Mass Suggestion": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Maze": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Meld Into Stone": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 295,
+   "duration_status": "OK"
+  },
+  "Melf's Acid Arrow": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 296,
+   "duration_status": "OK"
+  },
+  "Mending": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 296,
+   "duration_status": "OK"
+  },
+  "Message": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 round",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Meteor Swarm": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "1 mile",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Mind Blank": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Mind Sliver": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 round",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Mind Spike": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Minor Illusion": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 297,
+   "duration_status": "OK"
+  },
+  "Mirage Arcane": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Sight",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 days",
+   "pdf_page": 298,
+   "duration_status": "OK"
+  },
+  "Mirror Image": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 298,
+   "duration_status": "OK"
+  },
+  "Mislead": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 298,
+   "duration_status": "OK"
+  },
+  "Misty Step": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 298,
+   "duration_status": "OK"
+  },
+  "Modify Memory": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 298,
+   "duration_status": "OK"
+  },
+  "Moonbeam": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 299,
+   "duration_status": "OK"
+  },
+  "Mordenkainen's Faithful Hound": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 299,
+   "duration_status": "OK"
+  },
+  "Mordenkainen's Magnificent Mansion": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 299,
+   "duration_status": "OK"
+  },
+  "Mordenkainen's Private Sanctum": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 300,
+   "duration_status": "OK"
+  },
+  "Mordenkainen's Sword": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 301,
+   "duration_status": "OK"
+  },
+  "Move Earth": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 2 hours",
+   "pdf_page": 301,
+   "duration_status": "OK"
+  },
+  "Nondetection": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 301,
+   "duration_status": "OK"
+  },
+  "Nystul's Magic Aura": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 301,
+   "duration_status": "OK"
+  },
+  "Otiluke's Freezing Sphere": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "300 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 301,
+   "duration_status": "OK"
+  },
+  "Otiluke's Resilient Sphere": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 302,
+   "duration_status": "OK"
+  },
+  "Otto's Irresistible Dance": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 302,
+   "duration_status": "OK"
+  },
+  "Pass without Trace": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 302,
+   "duration_status": "OK"
+  },
+  "Passwall": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 302,
+   "duration_status": "OK"
+  },
+  "Phantasmal Force": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 303,
+   "duration_status": "OK"
+  },
+  "Phantasmal Killer": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 303,
+   "duration_status": "OK"
+  },
+  "Phantom Steed": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 303,
+   "duration_status": "OK"
+  },
+  "Planar Ally": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 303,
+   "duration_status": "OK"
+  },
+  "Planar Binding": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 304,
+   "duration_status": "OK"
+  },
+  "Plane Shift": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 304,
+   "duration_status": "OK"
+  },
+  "Plant Growth": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action (Overgrowth) or 8 hours (Enrichment)",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 304,
+   "duration_status": "OK"
+  },
+  "Poison Spray": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Polymorph": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Power Word Fortify": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Power Word Heal": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Power Word Kill": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Power Word Stun": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 305,
+   "duration_status": "OK"
+  },
+  "Prayer of Healing": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 306,
+   "duration_status": "OK"
+  },
+  "Prestidigitation": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Up to 1 hour",
+   "pdf_page": 306,
+   "duration_status": "OK"
+  },
+  "Prismatic Spray": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 306,
+   "duration_status": "OK"
+  },
+  "Prismatic Wall": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 307,
+   "duration_status": "OK"
+  },
+  "Produce Flame": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 307,
+   "duration_status": "OK"
+  },
+  "Programmed Illusion": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 308,
+   "duration_status": "OK"
+  },
+  "Project Image": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "500 miles",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 day",
+   "pdf_page": 308,
+   "duration_status": "OK"
+  },
+  "Protection from Energy": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 308,
+   "duration_status": "OK"
+  },
+  "Protection from Evil and Good": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 308,
+   "duration_status": "OK"
+  },
+  "Protection from Poison": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 309,
+   "duration_status": "OK"
+  },
+  "Purify Food and Drink": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 309,
+   "duration_status": "OK"
+  },
+  "Raise Dead": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 309,
+   "duration_status": "OK"
+  },
+  "Rary's Telepathic Bond": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Ray of Enfeeblement": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Ray of Frost": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Ray of Sickness": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Regenerate": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Reincarnate": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 310,
+   "duration_status": "OK"
+  },
+  "Remove Curse": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Resistance": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Resurrection": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Cleric"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Reverse Gravity": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "100 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Revivify": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Paladin",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Rope Trick": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 311,
+   "duration_status": "OK"
+  },
+  "Sacred Flame": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 312,
+   "duration_status": "OK"
+  },
+  "Sanctuary": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 312,
+   "duration_status": "OK"
+  },
+  "Scorching Ray": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 312,
+   "duration_status": "OK"
+  },
+  "Scrying": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "10 minutes",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 312,
+   "duration_status": "OK"
+  },
+  "Searing Smite": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 313,
+   "duration_status": "OK"
+  },
+  "See Invisibility": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 313,
+   "duration_status": "OK"
+  },
+  "Seeming": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 313,
+   "duration_status": "OK"
+  },
+  "Sending": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Unlimited",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 313,
+   "duration_status": "OK"
+  },
+  "Sequester": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 314,
+   "duration_status": "OK"
+  },
+  "Shapechange": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 314,
+   "duration_status": "OK"
+  },
+  "Shatter": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Shield": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Reaction",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 round",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Shield of Faith": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Shillelagh": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Shining Smite": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Shocking Grasp": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Silence": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 315,
+   "duration_status": "OK"
+  },
+  "Silent Image": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 316,
+   "duration_status": "OK"
+  },
+  "Simulacrum": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "12 hours",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled",
+   "pdf_page": 316,
+   "duration_status": "OK"
+  },
+  "Sleep": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 316,
+   "duration_status": "OK"
+  },
+  "Sleet Storm": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 316,
+   "ocr_notes": [
+    "range: OCR 'SO'->'50' (150 feet)"
+   ],
+   "duration_status": "OK"
+  },
+  "Slow": {
+   "level": null,
+   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 317,
+   "duration_status": "OK"
+  },
+  "Sorcerous Burst": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 317,
+   "duration_status": "OK"
+  },
+  "Spare the Dying": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "15 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 317,
+   "duration_status": "OK"
+  },
+  "Speak with Animals": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger",
+    "Warlock"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 317,
+   "duration_status": "OK"
+  },
+  "Speak with Dead": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 317,
+   "duration_status": "OK"
+  },
+  "Speak with Plants": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 318,
+   "duration_status": "OK"
+  },
+  "Spider Climb": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 318,
+   "duration_status": "OK"
+  },
+  "Spike Growth": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 318,
+   "duration_status": "OK"
+  },
+  "Spirit Guardians": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 318,
+   "duration_status": "OK"
+  },
+  "Spiritual Weapon": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 318,
+   "duration_status": "OK"
+  },
+  "Staggering Smite": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 319,
+   "duration_status": "OK"
+  },
+  "Starry Wisp": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 319,
+   "duration_status": "OK"
+  },
+  "Steel Wind Strike": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 319,
+   "duration_status": "OK"
+  },
+  "Stinking Cloud": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 320,
+   "duration_status": "OK"
+  },
+  "Stone Shape": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 320,
+   "duration_status": "OK"
+  },
+  "Stoneskin": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 320,
+   "duration_status": "OK"
+  },
+  "Storm of Vengeance": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "1 mile",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 320,
+   "duration_status": "OK"
+  },
+  "Suggestion": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 8 hours",
+   "pdf_page": 320,
+   "duration_status": "OK"
+  },
+  "Summon Aberration": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 321,
+   "duration_status": "OK"
+  },
+  "Summon Beast": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 321,
+   "duration_status": "OK"
+  },
+  "Summon Celestial": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 322,
+   "duration_status": "OK"
+  },
+  "Summon Construct": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 323,
+   "duration_status": "OK"
+  },
+  "Summon Dragon": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 323,
+   "duration_status": "OK"
+  },
+  "Summon Elemental": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 324,
+   "duration_status": "OK"
+  },
+  "Summon Fey": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 325,
+   "duration_status": "OK"
+  },
+  "Summon Fiend": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 325,
+   "duration_status": "OK"
+  },
+  "Summon Undead": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "90 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 327,
+   "duration_status": "OK"
+  },
+  "Sunbeam": {
+   "level": 6,
+   "level_status": "LEVEL_FROM_PARTIAL_HEADER",
+   "school": "Evocation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 328,
+   "duration_status": "OK",
+   "ocr_notes": [
+    "duration: scrambled OCR line still reads 'Concentration, up to 1 minute' (PDF 328)"
+   ]
+  },
+  "Sunburst": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 328,
+   "duration_status": "OK"
+  },
+  "Swift Quiver": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Ranger"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 328,
+   "duration_status": "OK"
+  },
+  "Symbol": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Until dispelled or triggered",
+   "pdf_page": 328,
+   "duration_status": "OK"
+  },
+  "Synaptic Static": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 329,
+   "duration_status": "OK"
+  },
+  "Tasha's Bubbling Cauldron": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "5 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 329,
+   "duration_status": "OK"
+  },
+  "Tasha's Hideous Laughter": {
+   "level": null,
+   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 330,
+   "duration_status": "OK"
+  },
+  "Telekinesis": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 330,
+   "duration_status": "OK"
+  },
+  "Telepathy": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Unlimited",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 330,
+   "duration_status": "OK"
+  },
+  "Teleport": {
+   "level": 7,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 330,
+   "duration_status": "OK"
+  },
+  "Teleportation Circle": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 round",
+   "pdf_page": 331,
+   "duration_status": "OK"
+  },
+  "Tenser's Floating Disk": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 331,
+   "duration_status": "OK"
+  },
+  "Thaumaturgy": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Up to 1 minute",
+   "pdf_page": 332,
+   "duration_status": "OK"
+  },
+  "Thorn Whip": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 332,
+   "duration_status": "OK"
+  },
+  "Thunderclap": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 332,
+   "duration_status": "OK"
+  },
+  "Thunderous Smite": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Thunderwave": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Bard",
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Time Stop": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Toll the Dead": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Tongues": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Transport via Plants": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "10 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 333,
+   "duration_status": "OK"
+  },
+  "Tree Stride": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 334,
+   "duration_status": "OK"
+  },
+  "True Polymorph": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 334,
+   "duration_status": "OK"
+  },
+  "True Resurrection": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Cleric",
+    "Druid"
+   ],
+   "casting_time": "1 hour",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 335,
+   "duration_status": "OK"
+  },
+  "True Seeing": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 335,
+   "duration_status": "OK"
+  },
+  "True Strike": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Divination",
+   "classes": [
+    "Bard",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": false,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 335,
+   "duration_status": "OK"
+  },
+  "Tsunami": {
+   "level": 8,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "1 mile",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 6 rounds",
+   "pdf_page": 335,
+   "duration_status": "OK"
+  },
+  "Unseen Servant": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Bard",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 335,
+   "duration_status": "OK"
+  },
+  "Vampiric Touch": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 336,
+   "duration_status": "OK"
+  },
+  "Vicious Mockery": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 336,
+   "duration_status": "OK"
+  },
+  "Vitriolic Sphere": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "150 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 336,
+   "duration_status": "OK"
+  },
+  "Wall of Fire": {
+   "level": 4,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 337,
+   "duration_status": "OK"
+  },
+  "Wall of Force": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 337,
+   "duration_status": "OK"
+  },
+  "Wall of Ice": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 338,
+   "duration_status": "OK"
+  },
+  "Wall of Stone": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 338,
+   "duration_status": "OK"
+  },
+  "Wall of Thorns": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
+   "pdf_page": 338,
+   "duration_status": "OK"
+  },
+  "Warding Bond": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Abjuration",
+   "classes": [
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Touch",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 339,
+   "duration_status": "OK"
+  },
+  "Water Breathing": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid",
+    "Ranger",
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "24 hours",
+   "pdf_page": 339,
+   "duration_status": "OK"
+  },
+  "Water Walk": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Cleric",
+    "Druid",
+    "Ranger",
+    "Sorcerer"
+   ],
+   "casting_time": "Action",
+   "ritual": true,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "1 hour",
+   "pdf_page": 339,
+   "duration_status": "OK"
+  },
+  "Web": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 hour",
+   "pdf_page": 339,
+   "duration_status": "OK"
+  },
+  "Weird": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Illusion",
+   "classes": [
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 340,
+   "duration_status": "OK"
+  },
+  "Wind Walk": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Transmutation",
+   "classes": [
+    "Druid"
+   ],
+   "casting_time": "1 minute",
+   "ritual": false,
+   "range": "30 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "8 hours",
+   "pdf_page": 340,
+   "duration_status": "OK"
+  },
+  "Wind Wall": {
+   "level": 3,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Druid",
+    "Ranger"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "120 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 340,
+   "duration_status": "OK"
+  },
+  "Wish": {
+   "level": 9,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Sorcerer",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 340,
+   "duration_status": "OK"
+  },
+  "Witch Bolt": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  },
+  "Word of Radiance": {
+   "level": 0,
+   "level_status": "OK",
+   "school": "Evocation",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": true
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  },
+  "Word of Recall": {
+   "level": 6,
+   "level_status": "OK",
+   "school": "Conjuration",
+   "classes": [
+    "Cleric"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "5 feet",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "Instantaneous",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  },
+  "Wrathful Smite": {
+   "level": 1,
+   "level_status": "OK",
+   "school": "Necromancy",
+   "classes": [
+    "Paladin"
+   ],
+   "casting_time": "Bonus Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": false,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "1 minute",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  },
+  "Yolande's Regal Presence": {
+   "level": 5,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Wizard"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "Self",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": true
+   },
+   "concentration": true,
+   "duration": "Concentration, up to 1 minute",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  },
+  "Zone of Truth": {
+   "level": 2,
+   "level_status": "OK",
+   "school": "Enchantment",
+   "classes": [
+    "Bard",
+    "Cleric",
+    "Paladin"
+   ],
+   "casting_time": "Action",
+   "ritual": false,
+   "range": "60 feet",
+   "components": {
+    "v": true,
+    "s": true,
+    "m": false
+   },
+   "concentration": false,
+   "duration": "10 minutes",
+   "pdf_page": 342,
+   "duration_status": "OK"
+  }
+ }
+}
