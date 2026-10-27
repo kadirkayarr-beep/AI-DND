@@ -628,6 +628,15 @@ class SessionManager:
             record.game_session,
             getattr(record.game_session, "world_metadata", None),
         )
+        if turn_action_receipt is not None:
+            # R04: the state side of the commit bundle is projected from the live session NOW, at commit time, so a
+            # receipt built earlier that no longer describes this session is caught inside the transaction.
+            from api.serializers import serialize_session_state
+
+            turn_action_receipt = {
+                **turn_action_receipt,
+                "public_state": serialize_session_state(record.game_session, record.journal, record.lore_authority),
+            }
         metadata = self._require_campaign_store().save_campaign(
             record.campaign_id,
             record.game_session,
@@ -646,6 +655,21 @@ class SessionManager:
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)
         return metadata
+
+    def adopt_committed_turn(
+        self,
+        record: ManagedSession,
+        narrative_memory: dict[str, Any] | None,
+        combat_history_entry: dict[str, Any] | None,
+    ) -> None:
+        """The save committed but its acknowledgement was lost: bring the live record to what was stored.
+
+        Mirrors the tail of autosave_turn, which a raised error skipped. Caller holds record.turn_lock.
+        """
+        record.narrative_memory = validate_narrative_memory(
+            narrative_memory if narrative_memory is not None else record.narrative_memory
+        )
+        self._remember_combat_entry(record, combat_history_entry)
 
     def get_turn_action(
         self,

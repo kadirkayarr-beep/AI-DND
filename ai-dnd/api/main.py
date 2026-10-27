@@ -20,6 +20,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
+from api import action_contract, failure_policy, runtime_recovery
 from api.auth import (
     AuthenticationError,
     FailClosedAuthenticator,
@@ -149,23 +150,71 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     session._restore_runtime_snapshot(snapshot["runtime"])
 
 
-def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
-    """Restore the pre-turn snapshot or close the session if that restore fails."""
+def _commit_already_durable(
+    manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any],
+) -> bool | None:
+    """After a failed autosave: True only if THIS action's receipt is durably stored with this exact result.
+
+    A lost commit acknowledgement leaves the database on the new revision. Rolling the live runtime back then would
+    split memory from storage, so the runtime stays on the committed state and the caller answers "unconfirmed",
+    never success and never "not applied". If the lookup itself fails the answer is UNKNOWN (None): the caller must not
+    guess in either direction.
+    """
     try:
-        _restore_session(session, snapshot)
-    except Exception as restore_error:
+        stored = manager.get_turn_action(record, action_id)
+    except Exception:
+        return None
+    return (
+        stored is not None
+        and stored["request_hash"] == request_hash
+        and action_contract.result_digest(stored["response"]) == action_contract.result_digest(response_payload)
+    )
+
+
+def _raise_if_commit_unconfirmed(
+    manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any] | None,
+    error: Exception, adopt: Any = None,
+) -> None:
+    """Keep the live runtime on the committed revision when the database already holds this action's receipt.
+
+    `adopt` brings the rest of the live record (narrative memory, history caches, undo checkpoint) to the stored state.
+    """
+    if response_payload is None or isinstance(error, CampaignStaleError):
+        return  # Stale: the check runs inside the transaction before anything is written, provably not committed.
+    durable = _commit_already_durable(manager, record, action_id, request_hash, response_payload)
+    if durable is None:
+        # Neither "committed" nor "rolled back" can be claimed, and rolling the runtime back could split it from storage.
+        # The safe stance is the quarantine: the session closes, durable truth is what a restart resumes (R05/R06).
         record.usable = False
-        _logger.critical(
-            "Session restore failed (error_type=%s); session closed",
-            type(restore_error).__name__,
+        _logger.critical("Campaign autosave failed and its receipt could not be reconciled; session closed")
+        decision = failure_policy.classify_failure(failure_policy.ActionPhase.RECONCILIATION, "unknown", error)
+        raise HTTPException(status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown")) from None
+    if not durable:
+        return
+    if adopt is not None:
+        adopt()
+    _logger.error("Campaign autosave committed but was not acknowledged (error_type=%s)", type(error).__name__)
+    decision = failure_policy.classify_failure(failure_policy.ActionPhase.COMMIT_UNKNOWN, "unknown", error)
+    raise HTTPException(
+        status_code=decision.status_code,
+        detail=decision.detail(commit_status="committed_unconfirmed"),
+    ) from None
+
+
+def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
+    """Restore the pre-turn snapshot; close the session unless the restore is VERIFIED (R05).
+
+    A restore that raises, or that returns without leaving the snapshot's state, is a double fault: the runtime may be
+    dirty, so every route refuses it and nothing from it is ever saved. Only restore_trusted_runtime reopens it.
+    """
+    if not runtime_recovery.restore_trusted_runtime(
+        record, snapshot, restore=lambda target, trusted: _restore_session(target, trusted),
+    ):
+        _logger.critical("Session restore could not be verified; session closed")
+        decision = failure_policy.classify_failure(
+            failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "quarantined", RuntimeError("restore not verified"),
         )
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "session_restore_failed",
-                "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
-            },
-        ) from None
+        raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
 
 
 def _turn_outcome(action_result: Any) -> TurnOutcome | None:
@@ -544,6 +593,13 @@ def create_app(
         ]
         return JSONResponse(status_code=422, content={"detail": safe_errors})
 
+    def ensure_usable(record: Any) -> None:
+        if not getattr(record, "usable", True):
+            decision = failure_policy.classify_failure(
+                failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "quarantined", RuntimeError("session closed"),
+            )
+            raise HTTPException(status_code=decision.status_code, detail=decision.detail())
+
     def get_record(session_id: str):
         try:
             record = manager.get(session_id)
@@ -552,14 +608,7 @@ def create_app(
                 status_code=404,
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
-        if not getattr(record, "usable", True):
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "session_restore_failed",
-                    "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
-                },
-            )
+        ensure_usable(record)
         return record
 
     def campaign_http_exception(error: CampaignError) -> HTTPException:
@@ -607,11 +656,20 @@ def create_app(
             },
         )
 
+    def action_archived_error() -> HTTPException:
+        # R08: the action WAS applied; only its stored reply was archived. It is refused, never re-run, never treated as new.
+        return HTTPException(status_code=409, detail={
+            "code": "action_archived",
+            "message": "This action was already applied; its stored reply was archived and it will not be run again.",
+        })
+
     def replay_action_response(
-        response: dict[str, Any],
+        response: dict[str, Any] | None,
         response_model: type[BaseModel],
         session_id: str,
     ) -> dict[str, Any]:
+        if response is None:
+            raise action_archived_error()
         # Validate the stored contract before replacing session identity: an
         # incomplete receipt must not be repaired or reach response serialization.
         try:
@@ -1015,6 +1073,8 @@ def create_app(
         with record.turn_lock:
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            # A request that queued behind a failing one must not run on a runtime that failure just quarantined (R05).
+            ensure_usable(record)
             try:
                 previous_action = manager.get_turn_action(record, action_id)
             except CampaignError as error:
@@ -1587,6 +1647,10 @@ def create_app(
                     },
                 )
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
                 session.campaign_lore_state = lore_authority_snapshot
@@ -1616,8 +1680,17 @@ def create_app(
                 # many tests, is "retry with the same id commits once" (receipt replay if it did). So the id stays
                 # unresolved: the same id is the safe retry, a different UUID is blocked until then, and the player's
                 # server-proven abandon is the explicit way out. Cost: a transient disk error blocks other ids meanwhile.
+                decision = failure_policy.classify_failure(
+                    failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
+                )
+                if decision.code in ("campaign_stale", "campaign_storage_unavailable"):
+                    raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
                 raise campaign_http_exception(error) from None
             except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
                 session.campaign_lore_state = lore_authority_snapshot
@@ -1630,13 +1703,10 @@ def create_app(
                     type(error).__name__,
                 )
                 # Same product rule as above (retry with the same id stays possible), so no never-applied claim here.
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "persistence_error",
-                        "message": "The campaign turn could not be saved safely.",
-                    },
-                ) from None
+                decision = failure_policy.classify_failure(
+                    failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
+                )
+                raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
 
             safety_code = (
                 action_result.get("infrastructure_code")
@@ -1706,6 +1776,8 @@ def create_app(
         with record.turn_lock:
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            # A request that queued behind a failing one must not run on a runtime that failure just quarantined (R05).
+            ensure_usable(record)
             try:
                 previous = manager.get_turn_action(record, action_id)
             except CampaignError as error:
@@ -1736,6 +1808,7 @@ def create_app(
             current_journal = copy.deepcopy(record.journal)
             current_memory = copy.deepcopy(record.narrative_memory)
             current_lore = record.lore_authority
+            payload = None
             try:
                 _restore_session(session, checkpoint["snapshot"])
                 session.world_metadata = copy.deepcopy(checkpoint["world_metadata"])
@@ -1771,6 +1844,10 @@ def create_app(
                     },
                 )
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
                 _rollback_session(record, session, current)
                 session.world_metadata = current_metadata
                 record.journal = current_journal
@@ -1778,7 +1855,11 @@ def create_app(
                 record.lore_authority = current_lore
                 session.campaign_lore_state = current_lore
                 raise campaign_http_exception(error) from None
-            except Exception:
+            except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
                 _rollback_session(record, session, current)
                 session.world_metadata = current_metadata
                 record.journal = current_journal
@@ -1885,6 +1966,7 @@ def create_app(
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
+            ensure_usable(record)
             session = record.game_session
             try:
                 previous = manager.get_turn_action(record, action_id)
@@ -1927,6 +2009,7 @@ def create_app(
                 record.narrative_memory = memory_snapshot
                 record.lore_authority = lore_snapshot
 
+            response_payload = None
             try:
                 result = session.resolve_species_trait_action(
                     request.action,
@@ -1959,6 +2042,7 @@ def create_app(
                     },
                 ) from None
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
                 if isinstance(error, CampaignStaleError):
                     # The winning receipt may only become visible at save time.
@@ -1974,7 +2058,8 @@ def create_app(
                             "message": "This action ID was already used for a different action.",
                         }) from None
                 raise campaign_http_exception(error) from None
-            except Exception:
+            except Exception as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
                 raise
 
@@ -2042,6 +2127,8 @@ def create_app(
             if previous is not None:
                 if previous["request_hash"] != request_hash:
                     return response_for("REJECTED", "action_id_conflict")
+                if previous.get("archived"):
+                    raise action_archived_error()
                 try:
                     if "legacy_ambient_result" in previous:
                         prior = previous["legacy_ambient_result"]
@@ -2119,7 +2206,7 @@ def create_app(
                 status = transition.get("status")
                 transition_id = transition.get("transition_id")
                 if status != "APPLIED":
-                    _restore_session(session, snapshot)
+                    _rollback_session(record, session, snapshot)
                     record.journal = journal_snapshot
                     canonical_event_id = None
                     if status == "ALREADY_APPLIED" and isinstance(
@@ -2184,15 +2271,16 @@ def create_app(
                 })
                 return response_payload
             except Exception as error:
+                # R05: a restore that fails or cannot be verified quarantines the session; it is never just logged.
+                closed: HTTPException | None = None
                 try:
-                    _restore_session(session, snapshot)
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Ambient-event rollback failed (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                    _rollback_session(record, session, snapshot)
+                except HTTPException as quarantine:
+                    closed = quarantine
                 finally:
                     record.journal = journal_snapshot
+                if closed is not None:
+                    raise closed from None
                 _logger.error(
                     "Ambient-event result could not be persisted (error_type=%s)",
                     type(error).__name__,

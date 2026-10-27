@@ -15,9 +15,11 @@ from typing import Any, Iterator
 
 import game
 
+from api import action_contract
 from api.auth import AuthenticationError, Principal, current_principal
 from api.campaign_journal import empty_campaign_journal
 from api.lore_authority.models import CampaignLoreState
+from api.persistence import receipt_archive
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignIdConflictError,
@@ -335,6 +337,12 @@ class CampaignStore:
             try:
                 connection.execute(self._REFUSED_ACTIONS_DDL)
                 connection.execute(self._INTENTS_DDL)
+                connection.execute(receipt_archive.ARCHIVE_DDL)
+                # R04: each receipt row records the revision step and digest of the commit that wrote it (legacy rows stay NULL).
+                receipt_columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(campaign_turn_actions)")}
+                for column, kind in (("base_revision", "INTEGER"), ("committed_revision", "INTEGER"), ("result_digest", "TEXT")):
+                    if column not in receipt_columns:
+                        connection.execute(f"ALTER TABLE campaign_turn_actions ADD COLUMN {column} {kind}")
                 connection.commit()
             except Exception:
                 connection.rollback()
@@ -401,7 +409,8 @@ class CampaignStore:
         }.issubset(combat_history_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
         if not {
-            "campaign_id", "action_id", "request_hash", "response_json", "created_at"
+            "campaign_id", "action_id", "request_hash", "response_json", "created_at",
+            "base_revision", "committed_revision", "result_digest",
         }.issubset(turn_action_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
         attempt_columns = {
@@ -413,6 +422,7 @@ class CampaignStore:
         if not set(_EMERGENCE_ATTEMPT_COLUMNS).issubset(attempt_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
         for table, required in (
+            ("campaign_turn_actions_archive", receipt_archive.ARCHIVE_COLUMNS),
             ("campaign_refused_actions", {"campaign_id", "action_id", "request_hash", "status_code", "detail_json", "created_at"}),
             ("campaign_action_intents", {"campaign_id", "action_id", "request_hash", "created_at"}),
         ):
@@ -685,13 +695,19 @@ class CampaignStore:
                 if existing is None:
                     raise CampaignNotFoundError("Campaign not found.")
                 self.assert_current(campaign_id, session, connection, principal)
+                base_revision = int(connection.execute(
+                    "SELECT revision FROM campaigns WHERE campaign_id = ?", (campaign_id,),
+                ).fetchone()[0])
                 if turn_action_receipt is not None:
                     prior_action = connection.execute(
                         """
                         SELECT request_hash FROM campaign_turn_actions
                         WHERE campaign_id = ? AND action_id = ?
+                        UNION ALL
+                        SELECT request_hash FROM campaign_turn_actions_archive
+                        WHERE campaign_id = ? AND action_id = ?
                         """,
-                        (campaign_id, turn_action_receipt["action_id"]),
+                        (campaign_id, turn_action_receipt["action_id"], campaign_id, turn_action_receipt["action_id"]),
                     ).fetchone()
                     if prior_action is not None:
                         raise CampaignValidationError(
@@ -787,11 +803,38 @@ class CampaignStore:
                         (campaign_id, turn_action_receipt["action_id"]),
                     ).fetchone() is not None:
                         raise CampaignStaleError("This action was already refused and can no longer be applied.")
+                    # The receipt and the state it describes are validated as ONE bundle before either becomes durable.
+                    committed_revision = int(connection.execute(
+                        "SELECT revision FROM campaigns WHERE campaign_id = ?", (campaign_id,),
+                    ).fetchone()[0])
+                    receipt_response = turn_action_receipt["response"]
+                    receipt = action_contract.build_receipt(
+                        campaign_id, turn_action_receipt["action_id"], receipt_response,
+                        base_revision, committed_revision, float(turn_action_receipt.get("elapsed_s", 0.0)),
+                    )
+                    # Combat events are the rows written above; quest events live in the same payload row.
+                    quest_event_ids = action_contract.event_ids_of({"quest_outcomes": receipt_response.get("quest_outcomes")})
+                    committed_event_ids = list(quest_event_ids)
+                    if combat_history_entry is not None:
+                        committed_event_ids.append(combat_history_entry["event_id"])
+                    # Only a turn receipt carries the public state it describes; event and species receipts keep their own
+                    # shape and still record their revision step and digest below.
+                    if isinstance(receipt_response.get("state"), dict):
+                        try:
+                            action_contract.validate_commit_bundle({
+                                "public_state": turn_action_receipt.get("public_state", receipt_response.get("state")),
+                                "response": receipt_response,
+                                "committed_event_ids": committed_event_ids,
+                            }, receipt)
+                        except action_contract.CommitBundleError:
+                            # Contradictory candidate: refused whole, nothing is dropped or re-rolled to make it fit.
+                            raise CampaignStorageError("Campaign turn bundle is inconsistent and was not saved.") from None
                     connection.execute(
                         """
                         INSERT INTO campaign_turn_actions (
-                            campaign_id, action_id, request_hash, response_json, created_at
-                        ) VALUES (?, ?, ?, ?, ?)
+                            campaign_id, action_id, request_hash, response_json, created_at,
+                            base_revision, committed_revision, result_digest
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             campaign_id,
@@ -799,6 +842,9 @@ class CampaignStore:
                             turn_action_receipt["request_hash"],
                             action_json,
                             now,
+                            base_revision,
+                            committed_revision,
+                            receipt.result_digest,
                         ),
                     )
                 connection.execute(
@@ -1003,8 +1049,9 @@ class CampaignStore:
                 if owned is None:
                     raise CampaignNotFoundError("Campaign was not found.")
                 has_receipt = connection.execute(
-                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
-                    (campaign_id, action_id),
+                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
+                    "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, action_id, campaign_id, action_id),
                 ).fetchone()
                 if has_receipt is not None:
                     connection.commit()
@@ -1052,6 +1099,8 @@ class CampaignStore:
         WHERE intents.campaign_id = ?
           AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions AS receipts
                           WHERE receipts.campaign_id = intents.campaign_id AND receipts.action_id = intents.action_id)
+          AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions_archive AS archived
+                          WHERE archived.campaign_id = intents.campaign_id AND archived.action_id = intents.action_id)
           AND NOT EXISTS (SELECT 1 FROM campaign_refused_actions AS refused
                           WHERE refused.campaign_id = intents.campaign_id AND refused.action_id = intents.action_id)
     """
@@ -1103,7 +1152,7 @@ class CampaignStore:
         connection = self._owned_connection(campaign_id, principal)
         try:
             try:
-                for table in ("campaign_turn_actions", "campaign_refused_actions"):
+                for table in ("campaign_turn_actions", "campaign_turn_actions_archive", "campaign_refused_actions"):
                     if connection.execute(
                         f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
                     ).fetchone() is not None:
@@ -1165,7 +1214,9 @@ class CampaignStore:
         try:
             connection.commit()
             if connection.execute(
-                "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+                "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
+                "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
+                (campaign_id, action_id, campaign_id, action_id),
             ).fetchone() is not None:
                 return "applied"
             if connection.execute(
@@ -1268,7 +1319,28 @@ class CampaignStore:
                 (campaign_id, action_id, issuer, subject),
             ).fetchone()
             if row is None:
-                return None
+                # An archived action is still applied: only its full reply was replaced by a verified tombstone (R08).
+                archived = connection.execute(
+                    """
+                    SELECT archive.request_hash, archive.result_digest
+                    FROM campaign_turn_actions_archive AS archive
+                    JOIN campaigns ON campaigns.campaign_id = archive.campaign_id
+                    WHERE archive.campaign_id = ? AND archive.action_id = ?
+                      AND campaigns.ownership_state = 'owned'
+                      AND campaigns.owner_issuer = ?
+                      AND campaigns.owner_subject = ?
+                    """,
+                    (campaign_id, action_id, issuer, subject),
+                ).fetchone()
+                if archived is None:
+                    return None
+                if not (receipt_archive.is_sha256_hex(archived["request_hash"])
+                        and receipt_archive.is_sha256_hex(archived["result_digest"])):
+                    raise CampaignCorruptError("Campaign action archive is invalid.")
+                return {
+                    "request_hash": str(archived["request_hash"]), "response": None,
+                    "archived": True, "result_digest": str(archived["result_digest"]),
+                }
             response = json.loads(str(row["response_json"]))
             request_hash = str(row["request_hash"])
             if (
@@ -1285,6 +1357,122 @@ class CampaignStore:
             raise CampaignStorageError(
                 "Campaign action receipt could not be loaded safely."
             ) from None
+        finally:
+            connection.close()
+
+    def compact_receipts(
+        self,
+        campaign_id: str,
+        before_revision: int,
+        principal: Principal | None = None,
+        batch_size: int = 500,
+    ) -> dict[str, Any]:
+        """Replace receipts committed at revisions strictly older than `before_revision` with verified tombstones.
+
+        Nothing is dropped blindly: a receipt that cannot be verified, one without a recorded revision, and the receipt that
+        opened a still-open reaction are left whole. The campaign state and its revision head are not touched.
+        """
+        self._validate_campaign_id(campaign_id)
+        if type(before_revision) is not int or before_revision < 0 or type(batch_size) is not int or batch_size < 1:
+            raise CampaignValidationError("Compaction bounds are invalid.")
+        connection = self._owned_connection(campaign_id, principal)
+        try:
+            payload_row = connection.execute(
+                "SELECT payload_json FROM campaigns WHERE campaign_id = ?", (campaign_id,),
+            ).fetchone()
+            try:
+                open_reaction = receipt_archive.has_open_reaction(json.loads(str(payload_row["payload_json"])))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                open_reaction = True  # an unreadable state is not evidence that nothing is pending: keep everything whole
+            protected: set[str] = set()
+            if open_reaction:
+                newest = connection.execute(
+                    "SELECT action_id FROM campaign_turn_actions WHERE campaign_id = ? "
+                    "ORDER BY committed_revision IS NULL, committed_revision DESC, rowid DESC LIMIT 1",
+                    (campaign_id,),
+                ).fetchone()
+                if newest is not None:
+                    protected.add(str(newest["action_id"]))
+            archived = skipped = 0
+            now = _now()
+            skip_ids: set[str] = set(protected)
+            while True:
+                rows = connection.execute(
+                    "SELECT action_id, request_hash, response_json, base_revision, committed_revision, result_digest "
+                    "FROM campaign_turn_actions WHERE campaign_id = ? AND committed_revision IS NOT NULL "
+                    "AND committed_revision < ? ORDER BY committed_revision ASC LIMIT ?",
+                    (campaign_id, before_revision, batch_size + len(skip_ids)),
+                ).fetchall()
+                rows = [row for row in rows if str(row["action_id"]) not in skip_ids][:batch_size]
+                if not rows:
+                    break
+                for row in rows:
+                    tombstone = receipt_archive.tombstone_from_row(row)
+                    if tombstone is None:
+                        skip_ids.add(str(row["action_id"]))
+                        skipped += 1
+                        continue
+                    connection.execute(
+                        "INSERT OR IGNORE INTO campaign_turn_actions_archive (campaign_id, action_id, request_hash, "
+                        "result_digest, base_revision, committed_revision, turn_index, narration_digest, skill_json, archived_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (campaign_id, row["action_id"], tombstone["request_hash"], tombstone["result_digest"],
+                         tombstone["base_revision"], tombstone["committed_revision"], tombstone["turn_index"],
+                         tombstone["narration_digest"], tombstone["skill_json"], now),
+                    )
+                    connection.execute(
+                        "DELETE FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
+                        (campaign_id, row["action_id"]),
+                    )
+                    archived += 1
+            connection.commit()
+            return {"archived": archived, "protected": len(protected), "skipped_unverifiable": skipped}
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def get_turn_action_receipt(
+        self,
+        campaign_id: str,
+        action_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any] | None:
+        """The stored receipt with its commit metadata; the digest is recomputed from the stored text, never trusted."""
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        issuer, subject = self._owner_pair(principal)
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT actions.request_hash, actions.response_json, actions.base_revision,
+                       actions.committed_revision, actions.result_digest
+                FROM campaign_turn_actions AS actions
+                JOIN campaigns ON campaigns.campaign_id = actions.campaign_id
+                WHERE actions.campaign_id = ? AND actions.action_id = ?
+                  AND campaigns.ownership_state = 'owned'
+                  AND campaigns.owner_issuer = ?
+                  AND campaigns.owner_subject = ?
+                """,
+                (campaign_id, action_id, issuer, subject),
+            ).fetchone()
+            if row is None:
+                return None
+            response = json.loads(str(row["response_json"]))
+            digest = hashlib.sha256(str(row["response_json"]).encode("utf-8")).hexdigest()
+            if not isinstance(response, dict) or (row["result_digest"] is not None and row["result_digest"] != digest):
+                raise CampaignCorruptError("Campaign action receipt digest does not match its stored result.")
+            return {
+                "request_hash": str(row["request_hash"]), "response": response, "result_digest": digest,
+                "base_revision": row["base_revision"], "committed_revision": row["committed_revision"],
+            }
+        except CampaignCorruptError:
+            raise
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError):
+            raise CampaignStorageError("Campaign action receipt could not be loaded safely.") from None
         finally:
             connection.close()
 
@@ -1442,6 +1630,27 @@ class CampaignStore:
                         turn_number = state.get("turn_index") if isinstance(state, dict) else None
                         matched_history_row = existing.get(turn_number) if type(turn_number) is int else None
                         if matched_history_row is None or receipt.get("narration") != matched_history_row["narration"]:
+                            continue
+                        validated = SkillCheckResult.model_validate(skill).model_dump(exclude_none=True)
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        continue
+                    if turn_number in accepted:
+                        ambiguous.add(turn_number)
+                    else:
+                        accepted[turn_number] = validated
+                for archived_row in connection.execute(
+                    "SELECT action_id, turn_index, narration_digest, skill_json FROM campaign_turn_actions_archive "
+                    "WHERE campaign_id = ? AND skill_json IS NOT NULL ORDER BY rowid ASC",
+                    (campaign_id,),
+                ).fetchall():
+                    try:
+                        turn_number = archived_row["turn_index"]
+                        matched_history_row = existing.get(turn_number) if type(turn_number) is int else None
+                        if (matched_history_row is None or archived_row["narration_digest"]
+                                != receipt_archive.text_digest(str(matched_history_row["narration"]))):
+                            continue
+                        skill = json.loads(str(archived_row["skill_json"]))
+                        if not isinstance(skill, dict) or skill.get("action_id") != archived_row["action_id"]:
                             continue
                         validated = SkillCheckResult.model_validate(skill).model_dump(exclude_none=True)
                     except (json.JSONDecodeError, TypeError, ValueError):

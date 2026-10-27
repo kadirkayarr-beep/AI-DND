@@ -242,7 +242,9 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
 
         with patch.object(self.manager, "autosave_turn", side_effect=commit_then_fail):
             failed = await self.turn(body)
-        self.assertEqual(failed.status_code, 500, failed.text)
+        # R04: a stored receipt with this exact result is a committed-but-unconfirmed turn, reported as such (never success).
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(failed.json()["detail"]["commit_status"], "committed_unconfirmed")
         self.assertNotIn("not_applied", failed.json()["detail"], "a stored receipt means it may well have been applied")
         self.assertEqual((await self.status(body["action_id"])).json()["state"], "applied")
 
