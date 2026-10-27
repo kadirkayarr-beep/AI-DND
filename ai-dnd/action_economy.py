@@ -6,6 +6,7 @@ Only engine code can grant resources and publish perceivable trigger events.
 import copy
 import re
 import weapon_attack
+import spatial_rules
 from contextlib import contextmanager
 from contextvars import ContextVar
 from uuid import uuid4
@@ -370,9 +371,10 @@ def monster_routes(session, actor, kind):
         mode = route.get("mode", "walk")
         if mode != "walk":
             continue  # A special-movement owner must supply its validated adapter.
-        multiplier = 1 + int("prone" in conditions(session, actor)) + int(route.get("difficult_terrain") is True)
+        route_cost = spatial_rules.movement_cost(
+            distance, crawling="prone" in conditions(session, actor), difficult_terrain=route.get("difficult_terrain") is True)
         limit = movement_limit(session, actor) + (speed(session, actor) if kind == "dash" else 0)
-        if speed(session, actor) <= 0 or resources["movement_used"] + distance * multiplier > limit:
+        if speed(session, actor) <= 0 or resources["movement_used"] + route_cost > limit:
             continue
         distances = route.get("target_distances")
         starts = route.get("start_distances")
@@ -425,9 +427,9 @@ def resolve_monster_route(session, actor, route_id, kind):
     if route is None:
         fail("movement_unavailable", "The authoritative route is unavailable.")
     # Dash has already been consumed/added by #04; avoid adding it a second time.
-    multiplier = 1 + int("prone" in conditions(session, actor)) + int(route.get("difficult_terrain") is True)
     r = ensure(session)[actor]
-    cost = route["distance_ft"] * multiplier
+    cost = spatial_rules.movement_cost(
+        route["distance_ft"], crawling="prone" in conditions(session, actor), difficult_terrain=route.get("difficult_terrain") is True)
     if cost > movement_limit(session, actor) - r["movement_used"]:
         fail("movement_unavailable", "Movement exceeds the legal budget.")
     r["movement_used"] += cost
@@ -462,8 +464,8 @@ def move(session, actor, distance):
     if type(distance) is not int or distance < 1:
         fail("invalid_movement", "Movement needs a positive integer distance in feet.")
     r = ensure(session)[actor]
-    multiplier = 2 if actor_data(session, actor).get("prone") or "prone" in conditions(session, actor) else 1
-    cost = distance * multiplier
+    cost = spatial_rules.movement_cost(
+        distance, crawling=bool(actor_data(session, actor).get("prone") or "prone" in conditions(session, actor)))
     if speed(session, actor) <= 0 or cost > movement_limit(session, actor) - r["movement_used"]:
         fail("movement_unavailable", "Movement exceeds the current legal budget.")
     r["movement_used"] += cost

@@ -6,6 +6,7 @@ import re
 
 import action_economy as economy
 import initiative
+import spatial_rules
 import weapon_attack as attacks
 from api.core_resolution import resolve_attack_roll
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
@@ -254,7 +255,7 @@ def _cast(session, spell_id, target_id, slot_level):
         if spell_id == "Fire Bolt":
             resolution = resolve_attack_roll(
                 roll_fn=session.roll_d20, attack_bonus=modifier + pb,
-                target_ac=target["armor_class"] + {"none": 0, "half": 2, "three_quarters": 5}[cover],
+                target_ac=target["armor_class"] + spatial_rules.COVER_AC[cover],
                 actor_id="player", target_id=target_id,
             )
             result["resolution"] = resolution

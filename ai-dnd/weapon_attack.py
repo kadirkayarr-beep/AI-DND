@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import action_economy as economy
 import initiative
+import spatial_rules
 from combat_lifecycle import CombatRequestError
 from api.core_resolution import resolve_attack_roll, resolve_saving_throw, resolution_identity, resolution_action_scope
 from weapon_catalog import lookup
@@ -321,7 +322,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     covers = [covers] if isinstance(covers, str) else covers
     if not isinstance(covers, list) or set(covers) - {"none", "half", "three_quarters", "total"}:
         fail("invalid_attack_state", "Unknown authoritative cover.")
-    cover = max(covers or ["none"], key=lambda c: {"none": 0, "half": 2, "three_quarters": 5, "total": 99}[c])
+    cover = max(covers or ["none"], key=lambda c: spatial_rules.COVER_RANK[c])
     if cover == "total":
         fail("total_cover", "Total Cover prevents direct targeting.")
     rules = rules_for(session, actor, attacker, weapon)
@@ -517,7 +518,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             "damage_adjustment": damage_adjustment, "damage_modifiers": damage_modifiers,
             "advantage_sources": sorted(set(advantage)), "disadvantage_sources": sorted(set(disadvantage)),
             "target_ac_base": integer(defender.get("armor_class"), "target AC", 0),
-            "target_ac": defender["armor_class"] + {"none": 0, "half": 2, "three_quarters": 5}[cover],
+            "target_ac": defender["armor_class"] + spatial_rules.COVER_AC[cover],
             "cover": cover, "spatial": spatial, "auto_miss": auto_miss, "mastery": mastery,
             "damage_die": die, "damage_dice": count, "rules": rules,
             "ammunition": ammunition, "loading_key": loading_key, "unarmed": unarmed,
