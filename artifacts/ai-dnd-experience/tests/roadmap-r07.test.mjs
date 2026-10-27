@@ -131,3 +131,30 @@ test('production paths draw one deadline and keep the draft and ActionKey on exp
   assert.match(browser, /ActionDeadlineError/, 'expiry is a typed, unknown outcome');
   assert.doesNotMatch(browser, /setTimeout\([^)]*submitTurn/, 'an expired deadline never schedules a new action');
 });
+
+// The production primitive (submitTurn and undo use withActionDeadline, not runWithDeadline).
+test('withActionDeadline: 44999 ms leaves the operation alive and 45000 ms aborts it and records that the deadline fired', () => {
+  const time = fakeTime();
+  const until = deadline.startDeadline(deadline.DEFAULT_ACTION_DEADLINE_MS, time);
+  const owner = new AbortController();
+  let closed = 0;
+  const operation = deadline.withActionDeadline({ signal: owner.signal, isCurrent: () => true, close: () => { closed += 1; } }, until, time);
+  time.advance(44999);
+  assert.equal(operation.signal.aborted, false, 'one millisecond is still left');
+  assert.equal(operation.deadlineExpired(), false);
+  time.advance(1);
+  assert.equal(operation.signal.aborted, true);
+  assert.equal(operation.deadlineExpired(), true, 'the timer itself records expiry; no clock arithmetic is re-derived');
+  operation.close();
+  assert.equal(closed, 1, 'closing still closes the owning operation');
+});
+
+test('withActionDeadline: an owner abort is not mistaken for the deadline', () => {
+  const time = fakeTime();
+  const owner = new AbortController();
+  const operation = deadline.withActionDeadline({ signal: owner.signal, isCurrent: () => true, close() {} }, deadline.startDeadline(45000, time), time);
+  time.advance(1000);
+  owner.abort();
+  assert.equal(operation.signal.aborted, true);
+  assert.equal(operation.deadlineExpired(), false);
+});
