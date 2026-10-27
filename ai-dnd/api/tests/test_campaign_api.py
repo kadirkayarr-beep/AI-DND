@@ -463,6 +463,11 @@ class RecordedStoneworkOllamaClient(FakeOllamaClient):
 
 
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
+    def _without_intent_guard(self):
+        """Race tests below exercise the lower optimistic-revision layer with several sessions on one campaign.
+        The play-turn intent guard (test_roadmap_r02_intents) would refuse their concurrent distinct ids first."""
+        self.enterContext(patch.object(SessionManager, "claim_action_intent", return_value={"outcome": "claimed"}))
+
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.store = CampaignStore(
@@ -722,6 +727,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if npc.get("id") == marek["id"]
         )
         self.assertEqual(current_marek["memory"], memory_before_failed_save)
+        # The failed focus save is unresolved (rolled back, but the commit boundary is unknown), so a different move is
+        # refused until the player retries it or gives it up. Giving it up is the real, owner-authenticated player flow:
+        # the server writes a durable refusal (no receipt exists) and answers not_applied.
+        refused_other = await say("neden kilitli")
+        self.assertEqual(refused_other.status_code, 409, refused_other.text)
+        self.assertEqual(refused_other.json()["detail"]["unresolved_action_id"], failed_focus_action_id)
+        abandoned = await self.http.post(
+            f"/api/game/sessions/{session_id}/actions/{failed_focus_action_id}/abandon"
+        )
+        self.assertEqual(abandoned.json()["state"], "not_applied", abandoned.text)
         calls_before_replay = len(client.message_batches)
         replay = await say("Buralarda han var mı Marek?", tavern_action_id)
         self.assertEqual(replay.status_code, 200, replay.text)
@@ -4931,14 +4946,17 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 retry_results.append(copy.deepcopy(result["action_result"]))
                 return result
 
+            # The failed save was rolled back but whether the commit reached the disk is unknown, so the id stays
+            # unresolved: a DIFFERENT uuid is refused (and changes nothing), the SAME id is the safe retry.
+            other = await self.http.post(
+                turn_url, json={"message": "İçeri giriyorum.", "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(other.status_code, 409, other.text)
+            self.assertEqual(other.json()["detail"]["code"], "unresolved_action")
+            self.assertEqual(other.json()["detail"]["unresolved_action_id"], failed_entry_body["action_id"])
+            self.assertEqual(session.serialize_game_state(), before_entry)
             with patch.object(session, "plan_living_world_turn", new=capture_plan),                     patch.object(session, "run_player_turn", new=capture_retry):
-                retry = await self.http.post(
-                    turn_url,
-                    json={
-                        "message": "İçeri giriyorum.",
-                        "action_id": str(uuid.uuid4()),
-                    },
-                )
+                retry = await self.http.post(turn_url, json=failed_entry_body)
             self.assertEqual(retry.status_code, 200, retry.text)
             self.assertEqual(retry.json()["state"]["location"], city_id)
             self.assertEqual(len(entry_plans), 1)
@@ -7543,6 +7561,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json()["detail"], {
                     "code": "engine_error",
                     "message": "The game turn could not be completed.",
+                    "not_applied": True,
                 })
                 self.assertEqual(rejections, ["Ölü karakter eylem gerçekleştiremez."])
                 self.assertEqual(
@@ -7725,6 +7744,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(response.json()["detail"], {
                             "code": "engine_error",
                             "message": "The game turn could not be completed.",
+                            "not_applied": True,
                         })
                         # Positive HP rejects during real death-state validation,
                         # before the zero-HP dead-action gate or any lore answer.
@@ -7861,6 +7881,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json()["detail"], {
                     "code": "engine_error",
                     "message": "The game turn could not be completed.",
+                    "not_applied": True,
                 })
                 self.assertEqual(rejections, ["Bilinçsiz karakter eylem gerçekleştiremez."])
                 self.assertEqual(
@@ -10311,6 +10332,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(receipt_rows(), committed_receipts)
 
     async def test_stale_city_cannot_overwrite_merchant_discovery_but_can_replay(self):
+        self._without_intent_guard()
         city_id = "fr:city:neverwinter"
         created_response = await self.http.post(
             "/api/game/campaigns",
@@ -10763,6 +10785,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_first_merchant_save_race_timeout_drains_worker_before_teardown(self):
+        self._without_intent_guard()
         worker_entered = threading.Event()
         release_worker = threading.Event()
         worker_finished = threading.Event()
@@ -10865,6 +10888,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
         post_save_receipt_error=None,
     ):
+        self._without_intent_guard()
         if changed_payload:
             self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
@@ -11648,6 +11672,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=False)
 
     async def _assert_recovered_merchant_timeout_cleanup(self, *, timeout_winner):
+        self._without_intent_guard()
         worker_entered = threading.Event()
         release_worker = threading.Event()
         worker_finished = threading.Event()
@@ -11748,6 +11773,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def _assert_recovered_merchant_search_save_race(
         self, *, shared_action, changed_payload=False, paused_receipt_error=None,
     ):
+        self._without_intent_guard()
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
             "/api/game/campaigns",

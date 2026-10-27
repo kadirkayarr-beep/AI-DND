@@ -593,7 +593,13 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
       assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "retry-marker");
       assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"select-interaction-mode\"]').value"), "say", "error must preserve the selected mode");
       const failedActionId = await play.page.evaluate("window.__playFixture.lastTurn.action_id");
+      // R02: the unclear failure offers an explicit retry; pressing Send again must not send a second move.
+      await waitForSelector(play.page, '[data-testid="button-retry-turn"]');
+      const requestsBeforeSend = await play.page.evaluate("window.__playFixture.apiRequests.filter((request) => request.path.endsWith('/turn') && request.method === 'POST').length");
       await play.page.evaluate("document.querySelector('[data-testid=\"button-send-turn\"]').click()");
+      assert.equal(await play.page.evaluate("window.__playFixture.apiRequests.filter((request) => request.path.endsWith('/turn') && request.method === 'POST').length"), requestsBeforeSend, "a new move must not go out while the previous one is unresolved");
+      assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "retry-marker", "the draft is kept");
+      await play.page.evaluate("document.querySelector('[data-testid=\"button-retry-turn\"]').click()");
       await waitForValue(play.page, "Array.from(document.querySelectorAll('.story-text')).some(node => node.innerText.includes('Yankı: retry-marker'))");
       assert.equal(await play.page.evaluate("window.__playFixture.lastTurn.action_id"), failedActionId, "retry must retain the original action id");
       await waitForSelector(play.page, '[data-testid=\"button-open-composer\"]');

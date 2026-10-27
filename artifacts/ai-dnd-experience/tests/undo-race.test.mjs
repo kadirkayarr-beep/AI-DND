@@ -15,10 +15,13 @@ function declaration(name) {
 }
 const undoCode = declaration('undoLastTurn');
 const submitCode = declaration('submitTurn');
+const blockingCode = declaration('blockingMutation');
+assert.ok(blockingCode);
 assert.ok(undoCode);
 assert.ok(submitCode);
 const executable = ts.transpileModule([
   (await readFile(new URL('../src/lib/advisory-cache.ts', import.meta.url), 'utf8')).replace(/^export\s+/gm, ''),
+  blockingCode.getText(ast),
   undoCode.getText(ast),
   submitCode.getText(ast),
   'globalThis.undo = undoLastTurn; globalThis.submit = submitTurn;',
@@ -93,9 +96,18 @@ function harness() {
     setConversationTargetId() {},
     setComposerOpen() {},
     getTurnInteractionMetadata: () => ({ interaction_mode: 'do' }),
-    stableTurnActionId: () => 'new-action',
-    storedTurnContext: () => ({}),
-    clearPendingTurnAction() {},
+    // Stubs for the pending-action owner: this suite only needs a fixed action id and no stored pending turn.
+    readPending: () => null,
+    speciesActionUnresolved: () => false,
+    pendingAmbientActionRef: { current: null },
+    createIntentKey: (ownerId, campaignId) => ({ ownerId, campaignId, actionId: 'new-action' }),
+    resumePending: (key) => ({ key }),
+    closePending() {},
+    currentAccountOwner: () => 'user-a',
+    LOCAL_OWNER: 'local',
+    PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' },
+    retryPendingTurn() {}, messageRef: { current: '' },
+    pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
     currentAuthEpoch: () => 1,
     accountWriteAllowed: () => true,
     statusCode: error => error?.status,
@@ -348,4 +360,18 @@ test('a delayed status read cannot overwrite a newer same-session state or draft
   assert.deepEqual(h.env.entries, [{ kind: 'narration', text: 'Newer transcript' }]);
   assert.equal(h.env.message, 'newer draft');
   assert.equal(h.env.undoRequestsRef.current.has('session-a'), true);
+});
+
+test('undo is blocked while a move is unresolved and sends no request', async () => {
+  const h = harness();
+  h.env.readPending = () => ({ key: { ownerId: 'user-a', campaignId: 'campaign-a', actionId: 'uncertain-move' }, request: {} });
+  const notices = [];
+  h.env.setNotice = (value) => { notices.push(value); };
+  h.env.undo();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.undoRequests.length, 0, 'an unresolved move may still commit; undo must not run around it');
+  assert.equal(notices.at(-1).title, 'pending');
+  h.env.readPending = () => null;
+  h.env.undo();
+  assert.equal(h.undoRequests.length, 1, 'with nothing unresolved the same undo goes out');
 });

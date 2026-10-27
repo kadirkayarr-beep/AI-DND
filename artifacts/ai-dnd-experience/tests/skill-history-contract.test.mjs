@@ -46,17 +46,17 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
   const owners=new Map();
   const visit=node=>{
     if(ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)
-        && ['undoLastTurn','handleResume','submitTurn'].includes(node.name.text)){
+        && ['undoLastTurn','handleResume','submitTurn','serverRecovery'].includes(node.name.text)){
       owners.set(node.name.text,node.getText(ast));
     }
     ts.forEachChild(node,visit);
   };
   visit(ast);
-  for(const owner of ['undoLastTurn','handleResume','submitTurn']){
+  for(const owner of ['undoLastTurn','handleResume','submitTurn','serverRecovery']){
     assert.ok(owners.has(owner),owner+' exists');
     assert.equal(owners.get(owner).match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
       owner+' preserves exactly one generated history skill field');
   }
-  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,3,
-    'undo, resume and real turn reconciliation all preserve the skill field');
+  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,4,
+    'undo, resume, real turn reconciliation and server-proven recovery all preserve the skill field');
 });

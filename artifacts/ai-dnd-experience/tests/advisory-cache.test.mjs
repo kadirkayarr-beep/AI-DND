@@ -42,6 +42,7 @@ test('quota and denied storage are reported without throwing', () => {
 test('campaign create, reveal, resume and turn writes use the nonfatal cache boundary', async () => {
   const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /window\.localStorage\.(?:setItem|removeItem)\s*\(/);
-  assert.equal((source.match(/writeAdvisoryCache\s*\(/g) ?? []).length, 5);
+  // 5 earlier owners + the server-proven recovery reconcile (serverRecovery), which also writes through the nonfatal boundary.
+  assert.equal((source.match(/writeAdvisoryCache\s*\(/g) ?? []).length, 6);
   assert.equal((source.match(/removeAdvisoryCache\s*\(/g) ?? []).length, 1);
 });

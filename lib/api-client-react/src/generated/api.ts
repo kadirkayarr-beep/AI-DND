@@ -33,6 +33,7 @@ import type {
   CampaignSummary,
   CharacterCreationCatalogResponse,
   CharacterCreationOptions,
+  GameActionStatus,
   GameSession,
   GameState,
   GameTurnInput,
@@ -45,7 +46,8 @@ import type {
   QuestCommandResult,
   RequestValidationErrorResponse,
   SpeciesTraitActionInput,
-  SpeciesTraitCommandResult
+  SpeciesTraitCommandResult,
+  UnresolvedGameAction
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -569,6 +571,241 @@ export const usePlayGameTurn = <TError = ErrorType<AuthenticationRequiredRespons
         TContext
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
+    }
+
+export const getGetUnresolvedGameActionUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/actions/unresolved`
+}
+
+/**
+ * @summary Read the one accepted-but-unfinished action of this campaign, if any
+ */
+export const getUnresolvedGameAction = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<UnresolvedGameAction> => {
+
+  return customFetch<UnresolvedGameAction>(getGetUnresolvedGameActionUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUnresolvedGameActionQueryKey = (sessionId: string,) => {
+    return [
+    `/api/game/sessions/${sessionId}/actions/unresolved`
+    ] as const;
+    }
+
+
+export const getGetUnresolvedGameActionQueryOptions = <TData = Awaited<ReturnType<typeof getUnresolvedGameAction>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUnresolvedGameAction>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUnresolvedGameActionQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnresolvedGameAction>>> = ({ signal }) => getUnresolvedGameAction(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUnresolvedGameAction>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUnresolvedGameActionQueryResult = NonNullable<Awaited<ReturnType<typeof getUnresolvedGameAction>>>
+export type GetUnresolvedGameActionQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+
+
+/**
+ * @summary Read the one accepted-but-unfinished action of this campaign, if any
+ */
+
+export function useGetUnresolvedGameAction<TData = Awaited<ReturnType<typeof getUnresolvedGameAction>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUnresolvedGameAction>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUnresolvedGameActionQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetGameActionStatusUrl = (sessionId: string,
+    actionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/actions/${actionId}`
+}
+
+/**
+ * @summary Read what the server recorded for one action id
+ */
+export const getGameActionStatus = async (sessionId: string,
+    actionId: string, options?: Parameters<typeof customFetch>[1]): Promise<GameActionStatus> => {
+
+  return customFetch<GameActionStatus>(getGetGameActionStatusUrl(sessionId,actionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGameActionStatusQueryKey = (sessionId: string,
+    actionId: string,) => {
+    return [
+    `/api/game/sessions/${sessionId}/actions/${actionId}`
+    ] as const;
+    }
+
+
+export const getGetGameActionStatusQueryOptions = <TData = Awaited<ReturnType<typeof getGameActionStatus>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string,
+    actionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameActionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGameActionStatusQueryKey(sessionId,actionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGameActionStatus>>> = ({ signal }) => getGameActionStatus(sessionId,actionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined && actionId !== null && actionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGameActionStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGameActionStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getGameActionStatus>>>
+export type GetGameActionStatusQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+
+
+/**
+ * @summary Read what the server recorded for one action id
+ */
+
+export function useGetGameActionStatus<TData = Awaited<ReturnType<typeof getGameActionStatus>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
+ sessionId: string,
+    actionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameActionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGameActionStatusQueryOptions(sessionId,actionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAbandonGameActionUrl = (sessionId: string,
+    actionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/actions/${actionId}/abandon`
+}
+
+/**
+ * @summary Close an action id for good (server-proven) or learn it is applied or still processing
+ */
+export const abandonGameAction = async (sessionId: string,
+    actionId: string, options?: Parameters<typeof customFetch>[1]): Promise<GameActionStatus> => {
+
+  return customFetch<GameActionStatus>(getAbandonGameActionUrl(sessionId,actionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAbandonGameActionMutationKey = () => ['abandonGameAction'] as const;
+
+export const getAbandonGameActionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof abandonGameAction>>, TError,AbandonGameActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof abandonGameAction>>, TError,AbandonGameActionMutationVariables, TContext> => {
+
+const mutationKey = getAbandonGameActionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof abandonGameAction>>, AbandonGameActionMutationVariables> = (props) => {
+          const {sessionId,actionId} = props ?? {};
+
+          return  abandonGameAction(sessionId,actionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AbandonGameActionMutationResult = NonNullable<Awaited<ReturnType<typeof abandonGameAction>>>
+
+    export type AbandonGameActionMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type AbandonGameActionMutationVariables = {sessionId: string;actionId: string}
+
+    /**
+ * @summary Close an action id for good (server-proven) or learn it is applied or still processing
+ */
+export const useAbandonGameAction = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof abandonGameAction>>, TError,AbandonGameActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof abandonGameAction>>,
+        TError,
+        AbandonGameActionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAbandonGameActionMutationOptions(options));
     }
 
 export const getUndoGameTurnUrl = (sessionId: string,) => {

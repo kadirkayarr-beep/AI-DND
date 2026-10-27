@@ -4944,6 +4944,10 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 await self.assert_independent_duplicate_command("decline_reaction", winner)
 
     async def test_independent_competing_reactions_conflict_and_only_winner_replays_after_resume(self):
+        # Two sessions race different commands on one campaign. This test pins the lower optimistic-revision layer
+        # (loser rolled back, only the winner replays); the play-turn intent guard, which would refuse the second
+        # request before it runs, is covered by test_roadmap_r02_intents.
+        self.enterContext(patch.object(SessionManager, "claim_action_intent", return_value={"outcome": "claimed"}))
         for winner in (0, 1):
             with self.subTest(winning_command=("react", "decline_reaction")[winner]):
                 await self.assert_independent_duplicate_command(
@@ -5244,14 +5248,26 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         commands = [{"message": message, "action_id": str(uuid4())}
                     for message in ("1 saat bekle.", "2 saat bekle.")]
         results = await self.simultaneous(a, commands)
-        self.assertEqual([r.status_code for r in results], [200, 200])
-        self.assertEqual(record.game_session.world_state["campaign_time"]["elapsed_seconds"] - before_time, 10800)
+        # Server-side intent guard (R02): two DIFFERENT action ids racing in one campaign are not both applied. One wins;
+        # the other is refused before any effect with unresolved_action (a durable, never-applied refusal) - no lost time.
+        self.assertEqual(sorted(r.status_code for r in results), [200, 409])
+        winner = next(i for i, r in enumerate(results) if r.status_code == 200)
+        loser = 1 - winner
+        self.assertEqual(results[loser].json()["detail"]["code"], "unresolved_action")
+        self.assertIs(results[loser].json()["detail"]["not_applied"], True)
+        hours = (3600, 7200)
+        self.assertEqual(record.game_session.world_state["campaign_time"]["elapsed_seconds"] - before_time, hours[winner])
         self.assertEqual(record.game_session.rng.getstate(), before_rng)
-        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 2)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
         committed = self.snapshot(record)
-        for command in commands:
-            self.assertEqual((await self.post(a, command)).status_code, 200)
+        self.assertEqual((await self.post(a, commands[winner])).status_code, 200)  # the winner still replays
         self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual((await self.post(a, commands[loser])).status_code, 409, "the refused id stays closed")
+        # The player's explicit new choice (a new id) now goes through once the winner is terminal.
+        again = await self.post(a, {"message": commands[loser]["message"], "action_id": str(uuid4())})
+        self.assertEqual(again.status_code, 200, again.text)
+        self.assertEqual(record.game_session.world_state["campaign_time"]["elapsed_seconds"] - before_time, 10800)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 2)
 
     async def test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes(self):
         self.manager._session_factory = clocks.scene

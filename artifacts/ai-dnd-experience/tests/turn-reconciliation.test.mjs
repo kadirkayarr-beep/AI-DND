@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { createActionLifetime, stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
+import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '../src/lib/pending-action.ts';
+import { unresolvedActionFrom } from '../src/lib/action-recovery.ts';
 import { rotateAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { QueryClient } from '@tanstack/react-query';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
@@ -14,11 +16,14 @@ const component = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name
 const submit = component.body.statements.find(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === 'submitTurn'));
 assert.ok(submit);
 const cacheCode = (await readFile(new URL('../src/lib/advisory-cache.ts', import.meta.url), 'utf8')).replace(/^export\s+/gm, '');
-const code = ts.transpileModule([cacheCode, submit.getText(ast), 'globalThis.submit = submitTurn;'].join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+const blocking = component.body.statements.find(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === 'blockingMutation'));
+assert.ok(blocking);
+const code = ts.transpileModule([cacheCode, blocking.getText(ast), submit.getText(ast), 'globalThis.submit = submitTurn;'].join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 function storage() {
  const values = new Map();
  return { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v), removeItem: k => values.delete(k), values };
 }
+const PENDING_KEY = 'ai-dnd-pending-turns:action:["user-a","campaign-a"]';
 const current = { revision: 'newer-at-same-turn', turn_index: 3, combat: { active: true, combat_id: 'combat-a', round: 1, current_turn_index: 0 }, quests: [] };
 const old = { ...current, revision: 'receipt-snapshot' };
 function harness({ sessionStorage = storage(), transport, refresh = async () => current, history = [{ player_message: 'Synthetic action', narration: 'Synthetic receipt' }] } = {}) {
@@ -27,6 +32,10 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const life = createActionLifetime();
  const env = {
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
+  closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, pendingAmbientActionRef: { current: null }, currentAccountOwner: () => 'user-a', LOCAL_OWNER: 'local',
+  PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
+  pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
+  recoveryHandlers: () => ({ check() {}, abandon() {} }), unresolvedActionFrom,
   turnLifetime: life,
    wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {},
    transcriptFollowsBottom,
@@ -51,9 +60,9 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  }
  vm.runInNewContext(code, env);
  client.setQueryData(['state', 'session-a'], current);
- return { env, client, requests, shown, errors, setters, life, sessionStorage, async run() {
+ return { env, client, requests, shown, errors, setters, life, sessionStorage, async run({ retry = false } = {}) {
   globalThis.window = env.window;
-  env.submit('Synthetic action');
+  if (retry) env.submit('', undefined, 'do', true); else env.submit('Synthetic action');
   for (let i=0; i<100 && env.inFlightSessionsRef.current.size; i++) await new Promise(resolve => setImmediate(resolve));
   assert.equal(env.inFlightSessionsRef.current.size, 0, 'turn settled');
  } };
@@ -69,7 +78,7 @@ test('a failed optional transcript cache does not turn a committed turn into an 
  assert.equal(h.shown.at(-1).at(-1).text, 'Synthetic receipt');
  assert.equal(h.client.getQueryData(['state', 'session-a']).revision, current.revision);
  assert.equal(draft, '');
- assert.equal(h.env.pendingTurnRef.current, null);
+ assert.equal(readPending('user-a', 'campaign-a'), null);
  h.client.clear();
 });
 
@@ -93,12 +102,12 @@ test('lost response then reload retries the same UUID/context and keeps authorit
  await first.run();
  const retry = harness({ sessionStorage: first.sessionStorage });
  retry.env.state = { ...current, combat: { ...current.combat, round: 2 } };
- await retry.run();
+ await retry.run({ retry: true });
  assert.equal(retry.requests[0].data.action_id, first.requests[0].data.action_id);
  assert.equal(retry.requests[0].data.combat_id, first.requests[0].data.combat_id);
  assert.equal(retry.requests[0].data.combat_round, first.requests[0].data.combat_round);
  assert.equal(retry.client.getQueryData(['state','session-a']).revision, 'newer-at-same-turn');
- assert.equal(retry.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'), null);
+ assert.equal(retry.sessionStorage.getItem(PENDING_KEY), null);
  first.client.clear(); retry.client.clear();
 });
 
@@ -106,13 +115,13 @@ function deferred() { let resolve, reject; const promise = new Promise((a,b) => 
 test('failed authoritative read keeps UUID/context even for a 409 read failure', async () => {
  const h = harness({ refresh: async () => { throw Object.assign(new Error('read failed'), { status: 409 }); } });
  await h.run();
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  assert.equal(h.shown.length, 0);
  assert.equal(h.client.getQueryData(['state','session-a']).revision, current.revision);
  h.env.getGameSessionState = async () => current;
- await h.run();
+ await h.run({ retry: true });
  assert.equal(h.requests[0].data.action_id, h.requests[1].data.action_id);
- assert.equal(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'), null);
+ assert.equal(h.sessionStorage.getItem(PENDING_KEY), null);
  h.client.clear();
 });
 test('same-account A to B switch during reconciliation cannot change visible B', async () => {
@@ -121,7 +130,7 @@ test('same-account A to B switch during reconciliation cannot change visible B',
  h.client.setQueryData(['state','session-b'], { revision: 'B' });
  const done = h.run();
  await new Promise(resolve => setImmediate(resolve));
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  h.env.activeSessionRef.current = 'session-b';
  h.life.dispose();
  h.setters.length = 0;
@@ -130,7 +139,7 @@ test('same-account A to B switch during reconciliation cannot change visible B',
  assert.equal(h.shown.length, 0);
  assert.equal(h.setters.length, 0);
  assert.equal(h.env.window.localStorage.values.size, 0);
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  assert.equal(h.client.getQueryData(['state','session-b']).revision, 'B');
  assert.equal(h.client.getQueryData(['state','session-a']).revision, current.revision);
  h.client.clear();
@@ -148,7 +157,7 @@ test('account change during authoritative read prevents cache and transcript wri
  assert.equal(h.shown.length, 0);
  assert.equal(h.client.getQueryData(['state','session-a']), undefined);
  assert.equal(h.setters.length, 0);
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  assert.equal(h.env.window.localStorage.values.size, 0);
  h.client.clear();
 });
@@ -175,7 +184,7 @@ test('three cache conflicts stop reconciliation without transcript writes and re
  assert.equal(count, 3);
  assert.equal(h.shown.length, 0);
  assert.equal(h.env.window.localStorage.values.size, 0);
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  assert.equal(h.errors.at(-1).detail, RETRY_MESSAGE);
  h.client.clear();
 });
@@ -191,7 +200,7 @@ test('unmount then new lifetime cannot revive old continuation or finally setter
  await done;
  assert.equal(h.setters.length, 0);
  assert.equal(h.env.window.localStorage.values.size, 0);
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  h.client.clear();
 });
 test('receipt already present in resumed history is not appended again', async () => {
@@ -219,7 +228,7 @@ const speciesCode = ts.transpileModule(selected.map(n => n.getText(speciesAst)).
 function speciesHarness({ store = storage(), fail = false, refresh = async () => current } = {}) {
  const client = new QueryClient(); const life = createActionLifetime(); const requests = [], setters = [];
  const env = {
-  campaignId:'campaign-a', sessionId:'session-a', lifetime:life, busy:{ current:false }, pendingRequest:{current:null},
+  campaignId:'campaign-a', sessionId:'session-a', lifetime:life, readPending:() => null, currentAccountOwner:() => 'user-a', busy:{ current:false }, pendingRequest:{current:null},
   stableTurnActionId, clearPendingTurnAction, reconcileState, RETRY_MESSAGE,
   window:{ sessionStorage:store, crypto:{ randomUUID:() => crypto.randomUUID() } },
   useState: fn => [fn(), v => setters.push(['retry',v])],
@@ -286,7 +295,7 @@ test('main read timeout retains UUID, shows retry message, and writes no transcr
  globalThis.window=h.env.window; h.env.submit('Synthetic action');
  await new Promise(r=>setTimeout(r,30));
  assert.equal(h.env.inFlightSessionsRef.current.size,0);
- assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+ assert.ok(h.sessionStorage.getItem(PENDING_KEY));
  assert.equal(h.env.window.localStorage.values.size,0);
  assert.equal(h.shown.length,0);
  assert.equal(h.errors.at(-1).detail,RETRY_MESSAGE);
@@ -339,9 +348,10 @@ test('species post-receipt 409 read failure retains pending request and UUID', a
 });
 test('main storage throw and lost response retry reuse existing in-memory pending UUID', async () => {
  const h=harness({sessionStorage:unavailableStorage(),transport:async()=>{throw new Error('lost');}});
- await h.run(); await h.run();
+ await h.run(); await h.run({ retry: true });
  assert.equal(h.requests[0].data.action_id,h.requests[1].data.action_id);
- assert.ok(h.env.pendingTurnRef.current);
+ assert.ok(readPending('user-a','campaign-a'));
+ closePending(readPending('user-a','campaign-a').key,'confirmed');
  h.client.clear();
 });
 
@@ -462,7 +472,7 @@ for(const boundary of ['mutation-response','authoritative-read']) {
    assert.deepEqual([...h.env.window.localStorage.values],storageBefore);
    assert.equal(h.shown.length,0);assert.equal(h.setters.length,0);
    assert.equal(h.client.getQueryData(['state','session-a']).revision,current.revision);
-   assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+   assert.ok(h.sessionStorage.getItem(PENDING_KEY));
    if(boundary==='mutation-response') assert.equal(reads,0,'stale mutation cannot initiate reconciliation');
    lifecycle.cleanup();h.life.dispose();h.client.clear();
   });
@@ -506,4 +516,13 @@ test('resume history cannot be overwritten by stale local text cache on session-
  ctx.restoreTranscript();
  assert.equal(changes.length,0,
   'resumed canonical campaign history must not be overwritten with a text-only cache');
+});
+
+test('R02: a species action never overtakes an unresolved play move in the same campaign', async () => {
+ const h=speciesHarness();
+ h.env.readPending=() => ({ key: { ownerId: 'user-a', campaignId: 'campaign-a', actionId: 'uncertain-move' }, request: {} });
+ await h.run();
+ assert.equal(h.requests.length,0,'no species request while the play move is unresolved');
+ assert.ok(h.setters.some(([name,value]) => name==='failure' && /doğrulanamadı/.test(String(value))),'the player is told why');
+ h.client.clear();
 });

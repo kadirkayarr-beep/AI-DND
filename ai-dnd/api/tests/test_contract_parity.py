@@ -843,7 +843,8 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 42)
+        # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon).
+        self.assertEqual(len(documented_routes), 45)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),

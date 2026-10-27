@@ -460,7 +460,7 @@ export function CombatPanel({
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
       <SpeciesTraitControls key={campaignId || sessionId} state={state} sessionId={sessionId} campaignId={campaignId} />
-      <DeathRecoveryControls state={state} sessionId={sessionId} />
+      <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} />
       <header className="combat-panel-header">
         <div>
           <span className="combat-overline">KARŞILAŞMANIN SEYRİ</span>

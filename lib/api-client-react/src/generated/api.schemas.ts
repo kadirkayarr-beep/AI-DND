@@ -1560,6 +1560,40 @@ export interface GameTurnInput {
   action_id?: string | null;
 }
 
+export type UnresolvedGameActionUnresolvedState = typeof UnresolvedGameActionUnresolvedState[keyof typeof UnresolvedGameActionUnresolvedState];
+
+
+export const UnresolvedGameActionUnresolvedState = {
+  open: 'open',
+} as const;
+
+export type UnresolvedGameActionUnresolved = {
+  action_id: string;
+  state: UnresolvedGameActionUnresolvedState;
+  created_at: string;
+} | null;
+
+export interface UnresolvedGameAction {
+  unresolved: UnresolvedGameActionUnresolved;
+}
+
+export type GameActionStatusState = typeof GameActionStatusState[keyof typeof GameActionStatusState];
+
+
+export const GameActionStatusState = {
+  applied: 'applied',
+  not_applied: 'not_applied',
+  open: 'open',
+  unknown: 'unknown',
+  processing: 'processing',
+} as const;
+
+/**
+ * The stored refusal body of a not_applied action
+ * @nullable
+ */
+export type GameActionStatusDetail = { [key: string]: unknown } | null;
+
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export type CombatAttackResultResolution = { [key: string]: unknown } | null;
@@ -1920,6 +1954,20 @@ export interface GameTurnResult {
   level_up: LevelUpResult | null;
   /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
+}
+
+export interface GameActionStatus {
+  action_id: string;
+  state: GameActionStatusState;
+  /** The stored turn reply of an applied action; null when the receipt belongs to another command kind */
+  response?: null | GameTurnResult;
+  /**
+     * The stored refusal body of a not_applied action
+     * @nullable
+     */
+  detail?: GameActionStatusDetail;
+  /** True while a turn of this session holds the turn lock */
+  processing?: boolean;
 }
 
 export interface GameTurnUndoInput {

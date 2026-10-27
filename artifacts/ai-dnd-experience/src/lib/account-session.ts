@@ -5,6 +5,8 @@ import {
   rotateAuthEpoch,
 } from "@workspace/api-client-react/custom-fetch";
 
+import { clearPendingFallback } from "./pending-action.ts";
+
 const ACCOUNT_OWNER_KEY = "ai-dnd-account-owner";
 const ACCOUNT_STORAGE_KEYS = ["ai-dnd-last-selected-campaign-id"];
 const ACCOUNT_STORAGE_PREFIXES = [
@@ -52,6 +54,7 @@ export function clearAccountStorage(storage: KeyedStorage): void {
 }
 
 export function clearAccountBrowserState(): void {
+  clearPendingFallback();
   if (typeof window === "undefined") return;
   try {
     clearAccountStorage(window.localStorage);
@@ -86,6 +89,11 @@ function readStoredOwner(): string | null {
   } catch {
     return null;
   }
+}
+
+/** The Clerk user the browser state belongs to, once the gate has resolved it. Not an authorization. */
+export function currentAccountOwner(): string | null {
+  return readStoredOwner();
 }
 
 function writeStoredOwner(owner: string): void {

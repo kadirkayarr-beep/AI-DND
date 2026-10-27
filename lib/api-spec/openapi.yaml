@@ -174,6 +174,105 @@ paths:
           $ref: "#/components/responses/ApiError"
         "503":
           $ref: "#/components/responses/ApiError"
+  /game/sessions/{session_id}/actions/unresolved:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getUnresolvedGameAction
+      tags: [game]
+      summary: Read the one accepted-but-unfinished action of this campaign, if any
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: The open action of the campaign, or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnresolvedGameAction"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+  /game/sessions/{session_id}/actions/{action_id}:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: action_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getGameActionStatus
+      tags: [game]
+      summary: Read what the server recorded for one action id
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: applied, not_applied, open or unknown; unknown and open are never evidence that nothing happened
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameActionStatus"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+  /game/sessions/{session_id}/actions/{action_id}/abandon:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: action_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: abandonGameAction
+      tags: [game]
+      summary: Close an action id for good (server-proven) or learn it is applied or still processing
+      responses:
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "200":
+          description: applied (nothing is closed), not_applied (durably refused; a late request can never apply) or processing (identity kept)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameActionStatus"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
   /game/sessions/{session_id}/undo:
     parameters:
       - in: path
@@ -1200,6 +1299,41 @@ components:
         target_id: {type: ["string", "null"]}
         distance_ft: {type: ["integer", "null"], minimum: 1}
       required: [kind]
+    UnresolvedGameAction:
+      type: object
+      additionalProperties: false
+      required: [unresolved]
+      properties:
+        unresolved:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required: [action_id, state, created_at]
+              properties:
+                action_id: {type: string, format: uuid}
+                state: {type: string, enum: [open]}
+                created_at: {type: string}
+    GameActionStatus:
+      type: object
+      required: [action_id, state]
+      properties:
+        action_id: {type: string, format: uuid}
+        state:
+          type: string
+          enum: [applied, not_applied, open, unknown, processing]
+        response:
+          description: The stored turn reply of an applied action; null when the receipt belongs to another command kind
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/GameTurnResult"
+        detail:
+          description: The stored refusal body of a not_applied action
+          type: ["object", "null"]
+          additionalProperties: true
+        processing:
+          description: True while a turn of this session holds the turn lock
+          type: boolean
     GameTurnResult:
       type: object
       properties:

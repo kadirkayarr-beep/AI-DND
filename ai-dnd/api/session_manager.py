@@ -56,6 +56,12 @@ class UnknownSessionError(LookupError):
     """Raised when an API request refers to a session that is not registered."""
 
 
+# Transient (non-campaign) sessions keep this many refusals; campaigns persist them all.
+# Transient (non-campaign) sessions keep refusals only in process memory and only this many: no restart protection,
+# and the oldest are dropped. This is not the durable guarantee campaigns get (see HANDOFF, R08).
+MAX_TRANSIENT_REFUSED_ACTIONS = 256
+
+
 @dataclass
 class ManagedSession:
     game_session: Any
@@ -68,6 +74,9 @@ class ManagedSession:
         default_factory=CampaignLoreState.legacy_unbound
     )
     turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Action IDs refused before any effect (written and read under turn_lock). Receipts say "applied";
+    # this says "certainly never applied", so a client may close its pending move on it.
+    refused_actions: dict[str, dict[str, Any]] = field(default_factory=dict)
     owner_issuer: str = ""
     owner_subject: str = ""
     revoked: bool = False
@@ -691,6 +700,78 @@ class SessionManager:
         ):
             raise CampaignCorruptError("Campaign action receipt is invalid.")
         return copy.deepcopy(receipt)
+
+    def get_refused_action(self, record: ManagedSession, action_id: str) -> dict[str, Any] | None:
+        """Terminal pre-commit refusal for this action, durable for campaigns and per-session otherwise."""
+        if record.campaign_id is not None:
+            return self._require_campaign_store().get_refused_action(
+                record.campaign_id, action_id, principal=self._sealed_principal(record),
+            )
+        return copy.deepcopy(record.refused_actions.get(action_id))
+
+    def record_refused_action(
+        self,
+        record: ManagedSession,
+        action_id: str,
+        request_hash: str,
+        status_code: int,
+        detail: dict[str, Any],
+    ) -> bool:
+        """True only when the refusal is durably recorded (campaign) or retained for the transient session."""
+        if record.campaign_id is not None:
+            return self._require_campaign_store().record_refused_action(
+                record.campaign_id, action_id, request_hash, status_code, detail,
+                principal=self._sealed_principal(record),
+            )
+        record.refused_actions[action_id] = {
+            "request_hash": request_hash, "status_code": status_code, "detail": detail,
+        }
+        while len(record.refused_actions) > MAX_TRANSIENT_REFUSED_ACTIONS:
+            # A refusal the player asked for (abandon, wildcard hash) is evicted only when nothing else is left to drop.
+            victim = next(
+                (key for key, value in record.refused_actions.items() if value["request_hash"] != "0" * 64),
+                next(iter(record.refused_actions)),
+            )
+            record.refused_actions.pop(victim)
+        return True
+
+    # --- action intents: one open action per campaign (persisted for campaigns, not tracked for transient sessions) ---
+    def claim_action_intent(self, record: ManagedSession, action_id: str, request_hash: str) -> dict[str, Any]:
+        if record.campaign_id is None:
+            return {"outcome": "claimed"}
+        return self._require_campaign_store().claim_action_intent(
+            record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
+            session=record.game_session,  # the server-held session, never a client token
+        )
+
+    def unresolved_action(self, record: ManagedSession) -> dict[str, Any] | None:
+        if record.campaign_id is None:
+            return None
+        return self._require_campaign_store().unresolved_action(
+            record.campaign_id, principal=self._sealed_principal(record),
+        )
+
+    def action_state(self, record: ManagedSession, action_id: str) -> str:
+        if record.campaign_id is not None:
+            return self._require_campaign_store().action_state(
+                record.campaign_id, action_id, principal=self._sealed_principal(record),
+            )
+        if action_id in record.turn_action_receipts:
+            return "applied"
+        return "not_applied" if action_id in record.refused_actions else "unknown"
+
+    def abandon_action(self, record: ManagedSession, action_id: str) -> dict[str, Any]:
+        """Close an action id for good; call with the session turn lock held."""
+        if record.campaign_id is not None:
+            return self._require_campaign_store().abandon_action(
+                record.campaign_id, action_id, principal=self._sealed_principal(record),
+            )
+        if action_id in record.turn_action_receipts:
+            return {"state": "applied"}
+        detail = {"code": "action_abandoned", "message": "This action was closed by the player and was not applied.",
+                  "not_applied": True}
+        self.record_refused_action(record, action_id, "0" * 64, 409, detail)
+        return {"state": "not_applied", "status_code": 409, "detail": detail}
 
     def assert_current(self, record: ManagedSession) -> None:
         if record.revoked:

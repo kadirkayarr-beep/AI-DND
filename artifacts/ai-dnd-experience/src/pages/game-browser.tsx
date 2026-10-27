@@ -1,4 +1,6 @@
-import { stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
+import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
+import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
+import { askServer, findUnresolvedOnServer, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
@@ -67,6 +69,9 @@ import {
   playGameTurn,
   undoGameTurn,
   getCampaign,
+  getGameActionStatus,
+  abandonGameAction,
+  getUnresolvedGameAction,
   useResolveAmbientEventAction,
   useResumeCampaign,
   useSaveCampaign,
@@ -75,7 +80,7 @@ import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-f
 import type { TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
-import { accountWriteAllowed } from '@/lib/account-session';
+import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
@@ -103,8 +108,18 @@ import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.p
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
-type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
-type Drawer = 'character' | 'world' | null;
+// `recover` is the server-proven way out of an unresolved action: ask the server what it recorded, or close the id for good.
+type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void; recover?: { check: () => void; abandon: () => void } };
+const RECOVERY_API: RecoveryApi = {
+  status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction,
+};
+// Without a resolved Clerk owner (local fixture) the slot still separates campaigns; the server decides access.
+const LOCAL_OWNER = 'local';
+const PENDING_TURN_NOTICE: Notice = {
+  tone: 'warning',
+  title: 'Önceki hamle henüz doğrulanamadı',
+  detail: 'Yeni hamle göndermeden önce önceki hamleyi aynı kimlikle yeniden dene. Yazdığın metin taslakta korunuyor.',
+};type Drawer = 'character' | 'world' | null;
 type WorldTab = 'world' | 'npcs' | 'journal' | 'combat';
 
 function statusCode(error: unknown) {
@@ -168,6 +183,9 @@ function NoticeBanner({ notice }: { notice: Notice }) {
     <div className={`notice ${notice.tone === 'error' ? 'error' : notice.tone === 'success' ? 'success' : ''}`} role="status" data-testid={`status-${notice.tone}`}>
       <AlertTriangle size={15} className="shrink-0" />
       <div><strong>{notice.title}</strong><div>{notice.detail}</div></div>
+      {notice.retry && <button type="button" className="dnd-button" data-testid="button-retry-turn" onClick={notice.retry}>Aynı hamleyi yeniden dene</button>}
+      {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>Durumu sunucudan kontrol et</button>}
+      {notice.recover && <button type="button" className="dnd-button" data-testid="button-abandon-action" onClick={notice.recover.abandon}>Bu hamleden vazgeç (sunucu doğrular)</button>}
     </div>
   );
 }
@@ -428,9 +446,15 @@ const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
   unknown: 'Türü bilinmiyor',
 };
 
-function JournalPanel({ state, sessionId }: { state: GameState; sessionId: string }) {
+function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sessionId: string; campaignId?: string }) {
   const queryClient = useQueryClient();
   const [commandNotice, setCommandNotice] = useState<string | null>(null);
+  // Quest commands change the world too: they wait behind an unresolved play move or species action of this campaign.
+  const questBlocked = () => {
+    const reason = unresolvedElsewhere(currentAccountOwner() ?? LOCAL_OWNER, campaignId || sessionId);
+    if (reason) setCommandNotice('Önceki işlem henüz doğrulanamadı. Önce onun sonucunu doğrula; görev komutu bundan sonra gönderilir.');
+    return Boolean(reason);
+  };
   const acceptQuest = useAcceptGameQuest({
     mutation: {
       onSuccess: (result) => {
@@ -568,8 +592,8 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         quests={state.quests ?? []}
         offers={state.quest_offers ?? []}
         knownNpcs={journal.known_npcs}
-        onAccept={(questId) => acceptQuest.mutate({ sessionId, questId })}
-        onCancel={(questId) => cancelQuest.mutate({ sessionId, questId })}
+        onAccept={(questId) => { if (!questBlocked()) acceptQuest.mutate({ sessionId, questId }); }}
+        onCancel={(questId) => { if (!questBlocked()) cancelQuest.mutate({ sessionId, questId }); }}
         acceptPending={acceptQuest.isPending}
         cancelPending={cancelQuest.isPending}
         hasError={acceptQuest.isError || cancelQuest.isError}
@@ -624,7 +648,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
       <div role="tabpanel" id="world-panel-content" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
         {activeTab === 'world' && <><WorldPanel state={state} /><ExperimentalWorldControls state={state} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={onDraft} onSetCombatTarget={onSetCombatTarget} /><DetailsPanel state={state} /></>}
         {activeTab === 'npcs' && <PeoplePanel state={state} />}
-         {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
+         {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} campaignId={campaignId} />}
         {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
       </div>
     </aside>
@@ -1091,6 +1115,9 @@ export default function GameBrowser() {
   const [combatTargetId, setCombatTargetId] = useState('');
   const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
+  // The draft as it is when an async result lands (a retry must not clear text typed in the meantime).
+  const messageRef = useRef(message);
+  messageRef.current = message;
   const [composerOpen, setComposerOpen] = useState(false);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -1162,6 +1189,12 @@ export default function GameBrowser() {
   const undoLastTurn = () => {
     const pendingRequest = undoRequestsRef.current.get(sessionId);
     if (!sessionId || (!visibleLastTurn && !pendingRequest) || undoPendingRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
+    // An unresolved move may still commit; undoing around it would let a later retry land after the undo.
+    const unresolved = blockingMutation();
+    if (unresolved) {
+      setNotice(unresolved);
+      return;
+    }
     const target = pendingRequest?.targetActionId ?? visibleLastTurn!.actionId;
     if (pendingRequest && visibleLastTurn && pendingRequest.targetActionId !== target) return;
     const operation = turnLifetime.begin();
@@ -1281,7 +1314,65 @@ export default function GameBrowser() {
         operation.close();
       });
   };
-  const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
+  // The unresolved turn lives in pending-action storage (owner + campaign). Retry buttons sit in notice
+  // state, so they reach the latest submitTurn through this ref instead of a stale render's closure.
+  const submitTurnRef = useRef<(text: string, combatAction?: CombatActionInput, mode?: InteractionMode, retryPending?: boolean) => void>(() => {});
+  const retryPendingTurn = () => submitTurnRef.current('', undefined, undefined, true);
+  // Server-proven way out of an unresolved action (lost reply, damaged local request, second tab, re-login). The server's
+  // stored receipt or durable refusal decides; a 404/503, a timeout or a missing receipt never closes anything, and nothing
+  // here creates a new action id or resends a move.
+  const serverRecoveryRef = useRef<(mode: 'check' | 'abandon', serverActionId?: string, boundSessionId?: string) => Promise<void>>(async () => {});
+  // The handlers are bound to the session they were created for: a notice that outlives a session or campaign switch
+  // must never ask (or close) an action id of another campaign.
+  const recoveryHandlers = (serverActionId?: string) => {
+    const boundSessionId = sessionId;
+    return {
+      check: () => { void serverRecoveryRef.current('check', serverActionId, boundSessionId); },
+      abandon: () => { void serverRecoveryRef.current('abandon', serverActionId, boundSessionId); },
+    };
+  };
+  const pendingTurnNotice = (serverActionId?: string): Notice => ({ ...PENDING_TURN_NOTICE, retry: retryPendingTurn, recover: recoveryHandlers(serverActionId) });
+  // Any other unresolved mutation in this campaign (play move, species action, ambient action) blocks the rest:
+  // one uncertain move must not be overtaken by another path. The server still decides; this is only the client guard.
+  const blockingMutation = (ignoreAmbient = false): Notice | null => {
+    const scope = campaignId || sessionId;
+    if (readPending(currentAccountOwner() ?? LOCAL_OWNER, scope)) return pendingTurnNotice();
+    if (speciesActionUnresolved(scope)) {
+      return { tone: 'warning', title: 'Tür yeteneği henüz doğrulanamadı', detail: 'Önce tür yeteneğinin sonucunu doğrula; başka bir işlem göndermeden önce aynı kimlikle yeniden denenmesi gerekiyor.' };
+    }
+    if (!ignoreAmbient && pendingAmbientActionRef.current) {
+      return { tone: 'warning', title: 'Çevre olayı henüz doğrulanamadı', detail: 'Önce çevre olayı yanıtını yeniden dene; başka bir işlem göndermeden önce sonucu bekleniyor.' };
+    }
+    return null;
+  };
+  // The server's open action for this campaign (second tab, re-login, lost browser record) is offered for a server check
+  // or a server-proven abandon. A failed lookup is not "nothing is open"; the server still refuses a conflicting move.
+  const showServerOpenAction = async (forSession: string, forCampaign: string, stillCurrent: () => boolean) => {
+    try {
+      const open = await findUnresolvedOnServer(RECOVERY_API, forSession);
+      if (!stillCurrent() || !open || readPending(currentAccountOwner() ?? LOCAL_OWNER, forCampaign)) return;
+      setNotice({
+        tone: 'warning',
+        title: 'Tamamlanmamış bir hamle var',
+        detail: 'Sunucuda bu kampanya için henüz sonuçlanmamış bir hamle kayıtlı (başka bir sekme veya önceki oturum). Yeni hamle göndermeden önce durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.',
+        recover: recoveryHandlers(open.actionId),
+      });
+    } catch {
+      // Intentionally silent: see above.
+    }
+  };
+  useEffect(() => {
+    const unresolved = Boolean(readPending(currentAccountOwner() ?? LOCAL_OWNER, campaignId || sessionId));
+    // A retry button from another session or campaign must not outlive the switch.
+    setNotice((current) => (current?.retry || current?.recover ? null : current));
+    // After a reload the unresolved move is offered for a retry instead of being forgotten.
+    if (unresolved) setNotice(pendingTurnNotice());
+    // A second tab or a re-login has no browser record: the server's open action is read again, never assumed absent or closed.
+    if (!sessionId || !campaignId) return undefined;
+    let current = true;
+    void showServerOpenAction(sessionId, campaignId, () => current);
+    return () => { current = false; };
+  }, [campaignId, sessionId]);
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
   const resolveAmbientEventAction = useResolveAmbientEventAction();
@@ -1590,6 +1681,12 @@ export default function GameBrowser() {
   };
 
   const submitAmbientEventAction = (request: AmbientEventActionRequest) => {
+    // Its own retry is allowed; a play move or species action that is still unresolved is not overtaken.
+    const unresolved = blockingMutation(true);
+    if (unresolved) {
+      setNotice(unresolved);
+      return;
+    }
     pendingAmbientActionRef.current = request;
     setAmbientActionRequest(request);
     setAmbientActionError(false);
@@ -1652,38 +1749,62 @@ export default function GameBrowser() {
     text: string,
     combatAction?: CombatActionInput,
     mode: InteractionMode = interactionMode,
+    retryPending = false,
   ) => {
-    const trimmed = text.trim();
-    if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
+    const draft = text.trim();
+    if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
+    if (!retryPending && (draft.length < 1 || draft.length > 4000)) return;
+    const actionScope = campaignId || sessionId;
+    const ownerId = currentAccountOwner() ?? LOCAL_OWNER;
+    const stored = readPending(ownerId, actionScope);
+    if (retryPending ? !stored : stored) {
+      // An earlier move is unresolved: no new move goes out, the typed draft stays as it is.
+      if (stored) setNotice(pendingTurnNotice());
+      return;
+    }
+    const elsewhere = retryPending ? null : blockingMutation();
+    if (elsewhere) {
+      setNotice(elsewhere);
+      return;
+    }
     const operation = turnLifetime.begin();
     if (!operation) return;
     setResultCue('');
     setNotice(null);
-    const metadata = getTurnInteractionMetadata(
+    const fresh = stored ? null : getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
     );
-    const targetId = metadata.target_id;
-    const actionScope = campaignId || sessionId;
-    const signature = JSON.stringify([actionScope, trimmed, metadata.interaction_mode, targetId, combatAction ?? null]);
-    const actionId = pendingTurnRef.current?.signature === signature
-      ? pendingTurnRef.current.actionId
-      : stableTurnActionId(actionScope, signature, state?.combat.active && state.combat.combat_id ? {
+    // The original request body is stored with the pending action, so a retry resends exactly that.
+    const request: Record<string, unknown> = stored ? stored.request : {
+      message: draft,
+      interaction_mode: fresh?.interaction_mode,
+      ...(combatAction ? { combat_action: combatAction } : {}),
+      ...(state?.combat.active && state.combat.combat_id ? {
         combat_id: state.combat.combat_id, combat_round: state.combat.round,
         combat_turn_index: state.combat.current_turn_index,
-      } : {});
-    pendingTurnRef.current = { signature, actionId };
+      } : {}),
+      ...(fresh?.target_id ? { target_id: fresh.target_id } : {}),
+    };
+    let key: ReturnType<typeof createIntentKey>;
+    try {
+      key = stored ? resumePending(stored.key, currentAuthEpoch()).key : createIntentKey(ownerId, actionScope, request);
+    } catch {
+      // The move could not be recorded (no secure UUID, or an earlier move already holds the slot): say so, send nothing.
+      operation.close();
+      setNotice({ tone: 'error', title: 'Hamle kaydedilemedi', detail: 'Hamle güvenle kaydedilemediği için gönderilmedi. Sayfayı yenileyip tekrar dene; yazdığın metin taslakta duruyor.' });
+      return;
+    }
+    const actionId = key.actionId;
+    const trimmed = String(request.message ?? '');
+    const metadata = { interaction_mode: request.interaction_mode as InteractionMode };
     inFlightSessionsRef.current.add(sessionId);
     setInFlightSessions(new Set(inFlightSessionsRef.current));
     const epoch = currentAuthEpoch();
     let receiptReceived = false;
     void playGameTurn(sessionId, {
-        message: trimmed,
-        interaction_mode: metadata.interaction_mode,
+        ...request,
         action_id: actionId,
-        ...(combatAction ? { combat_action: combatAction } : {}),
-        ...storedTurnContext(actionScope, actionId),
-        ...(targetId ? { target_id: targetId } : {}),
-    }, { signal: operation.signal }).then(async (result) => {
+    } as Parameters<typeof playGameTurn>[1], { signal: operation.signal }).then(async (result) => {
         if (!operation.isCurrent()) return;
         receiptReceived = true;
         const stateKey = getGetGameSessionStateQueryKey(sessionId);
@@ -1693,8 +1814,8 @@ export default function GameBrowser() {
         if (!operation.isCurrent()) return;
         result = { ...result, state: snapshot.state };
         const stillVisible = activeSessionRef.current === sessionId;
-        if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
-        clearPendingTurnAction(actionScope, actionId);
+        // Only a reconciled, committed result closes the pending action.
+        closePending(key, 'confirmed');
         const next: TranscriptEntry[] = snapshot.history ? [
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
           ...snapshot.history.flatMap((entry, index) => [
@@ -1752,7 +1873,7 @@ export default function GameBrowser() {
           setCombatEndNotice(null);
         }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
-        if (stillVisible) setConversationTargetId('');
+        if (stillVisible && !stored) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
           const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
           const objective = quest?.objectives.find((item) => item.objective_id === outcome.objective_id);
@@ -1772,30 +1893,148 @@ export default function GameBrowser() {
             detail: outcomeMessages.join(' '),
           });
         }
-  if (stillVisible) {
+  // A retry resends the stored move; a draft that is still that same text is consumed with it, but text the
+  // player changed or typed meanwhile belongs to a later, deliberate move and stays.
+  if (stillVisible && (!stored || messageRef.current.trim() === trimmed)) {
     setMessage('');
     setComposerOpen(false);
   }
         if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
+        // A superseded or closed screen proves nothing about the server: the pending action stays.
         if (!operation.isCurrent()) return;
-        if (activeSessionRef.current !== sessionId) {
-          if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
-          return;
-        }
-        if (!receiptReceived && [400, 409, 422].includes(statusCode(error) ?? 0)) {
-          pendingTurnRef.current = null;
-          clearPendingTurnAction(actionScope, actionId);
+        if (activeSessionRef.current !== sessionId) return;
+        const failure = statusCode(error) ?? 0;
+        const refusal = (error as { data?: { detail?: { not_applied?: unknown; code?: unknown } } } | null)?.data?.detail;
+        let evidence: Parameters<typeof closePending>[2];
+        if (refusal?.not_applied === true && typeof refusal.code === 'string') evidence = { kind: 'server_not_applied', code: refusal.code };
+        // A schema-invalid body proves nothing if the stored request itself was lost or damaged: the original body may have committed.
+        else if (failure === 422 && typeof request.message === 'string') evidence = { kind: 'server_rejected', status: failure };
+        if (!receiptReceived && evidence) {
+          // After a reload the composer is empty and the text lived only in the pending record: give it back.
+          // Only a move that came from the composer (it always carries an interaction mode) gives its text back;
+          // a pending passive wait has no draft to restore.
+          if (!messageRef.current.trim() && request.interaction_mode) setMessage(trimmed);
+          // Only the server's own "never applied" answer (or a schema-invalid body) closes the move; the draft stays,
+          // and the next Send is a new move with a new UUID. A bare 404/409/500 never gets here.
+          closePending(key, 'cancelled', evidence);
           void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
         }
-        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
+        const unresolved = Boolean(readPending(ownerId, actionScope));
+        const blockedBy = unresolvedActionFrom(error);
+        if (blockedBy) {
+          // This NEW move was refused (and durably closed) because an earlier action of the campaign is still unresolved,
+          // e.g. started in another tab or before a re-login. The draft stays; the player decides, with the server's help.
+          setNotice({
+            tone: 'warning', title: 'Tamamlanmamış bir hamle var',
+            detail: 'Bu kampanyada sonucu henüz kesinleşmemiş bir hamle var (başka bir sekme veya önceki oturum). Yeni hamle uygulanmadı; yazdığın metin taslakta duruyor. Önce o hamlenin durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.',
+            recover: recoveryHandlers(blockedBy.actionId),
+          });
+          return;
+        }
+        setNotice({
+          tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı',
+          detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.'),
+          ...(unresolved ? { retry: retryPendingTurn, recover: recoveryHandlers() } : {}),
+        });
       }).finally(() => {
         inFlightSessionsRef.current.delete(sessionId);
         if (operation.isCurrent()) setInFlightSessions(new Set(inFlightSessionsRef.current));
         operation.close();
     });
   };
+  submitTurnRef.current = submitTurn;
+
+  // Asks the server what it recorded for the unresolved action (or closes it for good on `abandon`). The browser record is
+  // only a convenience: a verdict comes from the server's stored receipt or durable refusal, never from a timeout or a 404/503.
+  const serverRecovery = async (mode: 'check' | 'abandon', serverActionId?: string, boundSessionId?: string) => {
+    // A notice created for another session or campaign must not ask or close an id of this one.
+    if (boundSessionId !== undefined && boundSessionId !== sessionId) {
+      setNotice((current) => (current?.recover ? null : current));
+      return;
+    }
+    const scope = campaignId || sessionId;
+    const storedAny = readPending(currentAccountOwner() ?? LOCAL_OWNER, scope);
+    const actionId = serverActionId ?? storedAny?.key.actionId;
+    // The local record is settled only when it is the very id being asked about.
+    const stored = storedAny && storedAny.key.actionId === actionId ? storedAny : null;
+    if (!sessionId || !actionId || inFlightSessionsRef.current.has(sessionId)) return;
+    const operation = turnLifetime.begin();
+    if (!operation) return;
+    inFlightSessionsRef.current.add(sessionId);
+    setInFlightSessions(new Set(inFlightSessionsRef.current));
+    const reconcileFromServer = async () => {
+      const stateKey = getGetGameSessionStateQueryKey(sessionId);
+      const snapshot = await reconcileState<{ state: GameState; history: CampaignDetail['history'] | null; combat_history: CampaignDetail['combat_history'] | null }>(
+        queryClient, stateKey, operation,
+        async (signal) => (campaignId
+          ? getCampaign(campaignId, { signal })
+          : { state: await getGameSessionState(sessionId, { signal }), history: null, combat_history: null }));
+      if (!operation.isCurrent()) throw new ReconciliationError();
+      queryClient.setQueryData(stateKey, snapshot.state);
+      if (snapshot.history) {
+        const next: TranscriptEntry[] = [
+          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
+          ...snapshot.history.flatMap((entry) => [
+            { kind: 'player' as const, text: entry.player_message },
+            { kind: 'narration' as const, text: entry.narration, skillCheckResult: entry.skill_check_result ?? undefined },
+          ]),
+        ];
+        setEntries(next);
+        writeAdvisoryCache(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
+          kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),
+        }))));
+      }
+      if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+      void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+    };
+    const noticeFor = (verdict: ServerVerdict): Notice => {
+      if (verdict.kind === 'applied') {
+        return { tone: 'success', title: 'Hamle sonucu sunucudan alındı', detail: 'Sunucu bu hamlenin uygulandığını doğruladı; hikâye ve durum güncellendi. Yeni bir hamle gönderebilirsin.' };
+      }
+      if (verdict.kind === 'not_applied') {
+        return {
+          tone: 'warning', title: 'Hamle uygulanmadı',
+          detail: stored
+            ? 'Sunucu bu hamlenin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Yazdığın metin taslakta duruyor; istersen yeniden gönderebilirsin.'
+            : 'Sunucu bu hamlenin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Hamle başka bir sekmeden veya önceki oturumdan kalmıştı; istersen yeni bir hamle gönderebilirsin.',
+        };
+      }
+      return {
+        tone: 'warning',
+        title: verdict.processing ? 'Hamle şu anda işleniyor' : 'Sunucuda henüz sonuç yok',
+        detail: verdict.processing
+          ? 'Sunucu bu hamleyi hâlâ işliyor. Biraz sonra durumu yeniden kontrol et; kimlik korunuyor.'
+          : 'Sunucu bu hamle için bir sonuç kaydetmedi, ama bu hamlenin hiç uygulanmayacağı anlamına gelmez. Aynı hamleyi yeniden deneyebilir ya da bilinçli olarak vazgeçebilirsin.',
+        ...(stored ? { retry: retryPendingTurn } : {}),
+        recover: recoveryHandlers(serverActionId),
+      };
+    };
+    try {
+      const verdict = await askServer(RECOVERY_API, mode, sessionId, actionId);
+      if (!operation.isCurrent()) return;
+      if (stored) await settlePending(stored.key, verdict, reconcileFromServer);
+      else if (verdict.kind === 'applied') await reconcileFromServer();
+      if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
+        setMessage(stored.request.message);
+      }
+      setNotice(noticeFor(verdict));
+    } catch (error) {
+      if (!operation.isCurrent()) return;
+      setNotice({
+        tone: 'error', title: 'Sunucudan yanıt alınamadı',
+        detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Sunucu bu hamle hakkında bir şey söylemedi. Bu bir iptal kanıtı değildir; hamlenin kimliği korunuyor.'),
+        ...(stored ? { retry: retryPendingTurn } : {}),
+        recover: recoveryHandlers(serverActionId),
+      });
+    } finally {
+      inFlightSessionsRef.current.delete(sessionId);
+      if (operation.isCurrent()) setInFlightSessions(new Set(inFlightSessionsRef.current));
+      operation.close();
+    }
+  };
+  serverRecoveryRef.current = serverRecovery;
 
   const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
   const submitCurrentTurn = () => submitTurn(message, undefined, interactionMode);

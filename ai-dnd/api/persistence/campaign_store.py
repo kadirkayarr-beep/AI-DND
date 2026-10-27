@@ -329,6 +329,16 @@ class CampaignStore:
                 except Exception:
                     connection.rollback()
                     raise
+            # Refusal and intent records are part of the schema from the first open (no lazy creation inside a request,
+            # which would change the database as a side effect of a rejected one). No version bump: IF NOT EXISTS is idempotent.
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                connection.execute(self._REFUSED_ACTIONS_DDL)
+                connection.execute(self._INTENTS_DDL)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
             self._validate_schema(connection)
             # Reserve identities that old event APIs kept in canonical journals.
             # Do this before a later bounded journal trim can discard provenance.
@@ -402,6 +412,13 @@ class CampaignStore:
         }
         if not set(_EMERGENCE_ATTEMPT_COLUMNS).issubset(attempt_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
+        for table, required in (
+            ("campaign_refused_actions", {"campaign_id", "action_id", "request_hash", "status_code", "detail_json", "created_at"}),
+            ("campaign_action_intents", {"campaign_id", "action_id", "request_hash", "created_at"}),
+        ):
+            present = {str(row["name"]) for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
+            if not required.issubset(present):
+                raise CampaignStorageError("Campaign database schema is incomplete.")
 
     @staticmethod
     def _reserve_legacy_events(connection: sqlite3.Connection, campaign_id: str,
@@ -760,6 +777,16 @@ class CampaignStore:
                 if emergence_attempt is not None:
                     self._finish_attempt(connection, campaign_id, emergence_attempt, now)
                 if turn_action_receipt is not None and action_json is not None:
+                    # A durably refused action id can never gain a receipt, whichever worker got this far:
+                    # the same transaction that would commit the receipt checks the refusal record.
+                    refusals = connection.execute(
+                        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'campaign_refused_actions'"
+                    ).fetchone()
+                    if refusals is not None and connection.execute(
+                        "SELECT 1 FROM campaign_refused_actions WHERE campaign_id = ? AND action_id = ?",
+                        (campaign_id, turn_action_receipt["action_id"]),
+                    ).fetchone() is not None:
+                        raise CampaignStaleError("This action was already refused and can no longer be applied.")
                     connection.execute(
                         """
                         INSERT INTO campaign_turn_actions (
@@ -930,6 +957,291 @@ class CampaignStore:
                 return cursor.rowcount
         except sqlite3.Error:
             raise CampaignStorageError("Emergence attempts could not be compacted.") from None
+
+    _REFUSED_ACTIONS_DDL = """
+        CREATE TABLE IF NOT EXISTS campaign_refused_actions (
+            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,
+            action_id TEXT NOT NULL,
+            request_hash TEXT NOT NULL,
+            status_code INTEGER NOT NULL,
+            detail_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (campaign_id, action_id)
+        )
+    """
+
+    def record_refused_action(
+        self,
+        campaign_id: str,
+        action_id: str,
+        request_hash: str,
+        status_code: int,
+        detail: dict[str, Any],
+        principal: Principal | None = None,
+    ) -> bool:
+        """Persist a terminal pre-commit refusal; True only if it is durably recorded.
+
+        A committed receipt always wins: an action that has a receipt is never recorded as refused.
+        """
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        issuer, subject = self._owner_pair(principal)
+        connection = self._connect()
+        try:
+            connection.execute(self._REFUSED_ACTIONS_DDL)
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                owned = connection.execute(
+                    """
+                    SELECT 1 FROM campaigns
+                    WHERE campaign_id = ? AND ownership_state = 'owned'
+                      AND owner_issuer = ? AND owner_subject = ?
+                    """,
+                    (campaign_id, issuer, subject),
+                ).fetchone()
+                if owned is None:
+                    raise CampaignNotFoundError("Campaign was not found.")
+                has_receipt = connection.execute(
+                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, action_id),
+                ).fetchone()
+                if has_receipt is not None:
+                    connection.commit()
+                    return False
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO campaign_refused_actions (
+                        campaign_id, action_id, request_hash, status_code, detail_json, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        campaign_id, action_id, request_hash, int(status_code),
+                        json.dumps(detail, ensure_ascii=False, separators=(",", ":"), allow_nan=False),
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+                connection.commit()
+                return True
+            except Exception:
+                connection.rollback()
+                raise
+        except CampaignNotFoundError:
+            raise
+        except (sqlite3.Error, TypeError, ValueError):
+            raise CampaignStorageError("Campaign action refusal could not be saved safely.") from None
+        finally:
+            connection.close()
+
+    # An intent is the server's own note that an action id was accepted for processing. It is OPEN until the
+    # same id has a receipt (applied) or a refusal (not applied); no third state is stored and nothing ages out.
+    _INTENTS_DDL = """
+        CREATE TABLE IF NOT EXISTS campaign_action_intents (
+            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,
+            action_id TEXT NOT NULL,
+            request_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (campaign_id, action_id)
+        )
+    """
+    # Refusal written for an id the player gave up on; any later request with that id is refused whatever it says.
+    ABANDONED_REQUEST_HASH = "0" * 64
+    _OPEN_INTENT_SQL = """
+        SELECT intents.action_id, intents.request_hash, intents.created_at
+        FROM campaign_action_intents AS intents
+        WHERE intents.campaign_id = ?
+          AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions AS receipts
+                          WHERE receipts.campaign_id = intents.campaign_id AND receipts.action_id = intents.action_id)
+          AND NOT EXISTS (SELECT 1 FROM campaign_refused_actions AS refused
+                          WHERE refused.campaign_id = intents.campaign_id AND refused.action_id = intents.action_id)
+    """
+
+    def _owned_connection(self, campaign_id: str, principal: Principal | None):
+        """Connection inside BEGIN IMMEDIATE for an owned campaign, intent and refusal tables ensured."""
+        issuer, subject = self._owner_pair(principal)
+        connection = self._connect()
+        try:
+            connection.execute(self._REFUSED_ACTIONS_DDL)
+            connection.execute(self._INTENTS_DDL)
+            connection.execute("BEGIN IMMEDIATE")
+            owned = connection.execute(
+                """
+                SELECT 1 FROM campaigns
+                WHERE campaign_id = ? AND ownership_state = 'owned'
+                  AND owner_issuer = ? AND owner_subject = ?
+                """,
+                (campaign_id, issuer, subject),
+            ).fetchone()
+            if owned is None:
+                raise CampaignNotFoundError("Campaign was not found.")
+        except BaseException:
+            connection.close()
+            raise
+        return connection
+
+    def claim_action_intent(
+        self,
+        campaign_id: str,
+        action_id: str,
+        request_hash: str,
+        principal: Principal | None = None,
+        session: Any = None,
+    ) -> dict[str, Any]:
+        """Atomically record the intent unless another action of this campaign is still open.
+
+        When `session` (the server-held game session of the caller) is given, a NEW intent is inserted only if that
+        session is still current, checked inside the same BEGIN IMMEDIATE transaction; a stale session raises
+        CampaignStaleError and leaves nothing behind. Replays, existing intents and conflicts are decided before.
+
+        outcome: ``closed`` (receipt or refusal exists; the caller replays it), ``existing`` (this id is
+        already open with this hash), ``hash_conflict`` (open under another request body), ``conflict``
+        (another id is open; its id is returned) or ``claimed``.
+        """
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        connection = self._owned_connection(campaign_id, principal)
+        try:
+            try:
+                for table in ("campaign_turn_actions", "campaign_refused_actions"):
+                    if connection.execute(
+                        f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+                    ).fetchone() is not None:
+                        connection.commit()
+                        return {"outcome": "closed"}
+                same = connection.execute(
+                    "SELECT request_hash FROM campaign_action_intents WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, action_id),
+                ).fetchone()
+                if same is not None:
+                    connection.commit()
+                    return {"outcome": "existing" if same["request_hash"] == request_hash else "hash_conflict"}
+                other = connection.execute(
+                    self._OPEN_INTENT_SQL + " ORDER BY intents.created_at, intents.action_id LIMIT 1", (campaign_id,),
+                ).fetchone()
+                if other is not None:
+                    connection.commit()
+                    return {"outcome": "conflict", "unresolved_action_id": str(other["action_id"])}
+                if session is not None:
+                    self.assert_current(campaign_id, session, connection=connection, principal=principal)
+                connection.execute(
+                    "INSERT INTO campaign_action_intents (campaign_id, action_id, request_hash, created_at) VALUES (?, ?, ?, ?)",
+                    (campaign_id, action_id, request_hash, datetime.now(timezone.utc).isoformat()),
+                )
+                connection.commit()
+                return {"outcome": "claimed"}
+            except Exception:
+                connection.rollback()
+                raise
+        except CampaignNotFoundError:
+            raise
+        except (sqlite3.Error, TypeError, ValueError):
+            raise CampaignStorageError("Campaign action intent could not be saved safely.") from None
+        finally:
+            connection.close()
+
+    def unresolved_action(self, campaign_id: str, principal: Principal | None = None) -> dict[str, Any] | None:
+        """The open intent of this campaign (oldest first), or None."""
+        self._validate_campaign_id(campaign_id)
+        connection = self._owned_connection(campaign_id, principal)
+        try:
+            row = connection.execute(
+                self._OPEN_INTENT_SQL + " ORDER BY intents.created_at, intents.action_id LIMIT 1", (campaign_id,),
+            ).fetchone()
+            connection.commit()
+            return None if row is None else {"action_id": str(row["action_id"]), "state": "open",
+                                             "created_at": str(row["created_at"])}
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign action intent could not be read safely.") from None
+        finally:
+            connection.close()
+
+    def action_state(self, campaign_id: str, action_id: str, principal: Principal | None = None) -> str:
+        """``applied`` (receipt) / ``not_applied`` (refusal) / ``open`` (intent only) / ``unknown``."""
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        connection = self._owned_connection(campaign_id, principal)
+        try:
+            connection.commit()
+            if connection.execute(
+                "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+            ).fetchone() is not None:
+                return "applied"
+            if connection.execute(
+                "SELECT 1 FROM campaign_refused_actions WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+            ).fetchone() is not None:
+                return "not_applied"
+            if connection.execute(
+                "SELECT 1 FROM campaign_action_intents WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+            ).fetchone() is not None:
+                return "open"
+            return "unknown"
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign action state could not be read safely.") from None
+        finally:
+            connection.close()
+
+    def abandon_action(
+        self,
+        campaign_id: str,
+        action_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any]:
+        """Close an action id for good. The caller must hold the session turn lock.
+
+        ``applied`` if a receipt exists (nothing is written); otherwise a durable refusal is stored, which the
+        receipt insert checks inside its own transaction, so a late request with this id can never apply.
+        """
+        detail = {"code": "action_abandoned", "message": "This action was closed by the player and was not applied.",
+                  "not_applied": True}
+        recorded = self.record_refused_action(
+            campaign_id, action_id, self.ABANDONED_REQUEST_HASH, 409, detail, principal=principal,
+        )
+        if not recorded:
+            return {"state": "applied"}
+        stored = self.get_refused_action(campaign_id, action_id, principal=principal)
+        return {"state": "not_applied", "status_code": stored["status_code"], "detail": stored["detail"]}
+
+    def get_refused_action(
+        self,
+        campaign_id: str,
+        action_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any] | None:
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        issuer, subject = self._owner_pair(principal)
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT refused.request_hash, refused.status_code, refused.detail_json
+                FROM campaign_refused_actions AS refused
+                JOIN campaigns ON campaigns.campaign_id = refused.campaign_id
+                WHERE refused.campaign_id = ? AND refused.action_id = ?
+                  AND campaigns.ownership_state = 'owned'
+                  AND campaigns.owner_issuer = ? AND campaigns.owner_subject = ?
+                """,
+                (campaign_id, action_id, issuer, subject),
+            ).fetchone()
+            if row is None:
+                return None
+            detail = json.loads(str(row["detail_json"]))
+            if not isinstance(detail, dict) or len(str(row["request_hash"])) != 64:
+                raise CampaignCorruptError("Campaign action refusal is invalid.")
+            return {"request_hash": str(row["request_hash"]), "status_code": int(row["status_code"]), "detail": detail}
+        except CampaignCorruptError:
+            raise
+        except sqlite3.OperationalError as error:
+            if "no such table" in str(error):
+                return None  # nothing was ever refused in this database
+            raise CampaignStorageError("Campaign action refusal could not be loaded safely.") from None
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError):
+            raise CampaignStorageError("Campaign action refusal could not be loaded safely.") from None
+        finally:
+            connection.close()
 
     def get_turn_action(
         self,
