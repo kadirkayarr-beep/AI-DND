@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "task": "K07",
+  "note": "Oracle values are written by hand from the cited PHB 2024 lines (not read back from the engine). Only the leaves listed in `leaves` are covered; every family in `open_leaves` is OPEN and must never be reported complete.",
+  "source": {
+    "file": "D&D 5e - Players Handbook 2024.pdf",
+    "sha256": "f2ea73369a6c4afbf6a7047249f06e5c51af503d9e42f87fe7a9c2c50aefafea",
+    "page_basis": "PDF page index (printed page = PDF page + 1)"
+  },
+  "leaves": [
+    {
+      "leaf_id": "K07.ability_modifier",
+      "family": "ability",
+      "source_ref": {"pdf_page": 37, "text": "Ability Scores and Modifiers table"},
+      "engine_resolvers": ["game.get_modifier", "api.dnd_2024_rules.get_modifier"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"score": 10}, "expected": 0},
+        {"id": "02", "kind": "boundary", "input": {"score": 9}, "expected": -1},
+        {"id": "03", "kind": "boundary", "input": {"score": 11}, "expected": 0},
+        {"id": "04", "kind": "boundary", "input": {"score": 12}, "expected": 1},
+        {"id": "05", "kind": "boundary", "input": {"score": 1}, "expected": -5},
+        {"id": "06", "kind": "boundary", "input": {"score": 8}, "expected": -1},
+        {"id": "07", "kind": "boundary", "input": {"score": 30}, "expected": 10},
+        {"id": "08", "kind": "boundary", "input": {"score": 29}, "expected": 9},
+        {"id": "09", "kind": "boundary", "input": {"score": 20}, "expected": 5}
+      ]
+    },
+    {
+      "leaf_id": "K07.advantage_disadvantage",
+      "family": "d20_test",
+      "source_ref": {"pdf_page": 11, "text": "both Advantage and Disadvantage: neither, roll one d20 (the boolean engine API cannot express several sources of one kind; that aggregation is a separate OPEN rule)"},
+      "engine_resolvers": ["api.core_resolution.roll_d20"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"advantage": false, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 1, "selected": 7}},
+        {"id": "02", "kind": "normal", "input": {"advantage": true, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 2, "selected": 15}},
+        {"id": "03", "kind": "normal", "input": {"advantage": false, "disadvantage": true, "rolls": [7, 15]}, "expected": {"rolled": 2, "selected": 7}},
+        {"id": "04", "kind": "interaction", "input": {"advantage": true, "disadvantage": true, "rolls": [7, 15]}, "expected": {"rolled": 1, "selected": 7}},
+        {"id": "05", "kind": "boundary", "input": {"advantage": true, "disadvantage": false, "rolls": [1, 20]}, "expected": {"rolled": 2, "selected": 20}},
+        {"id": "06", "kind": "boundary", "input": {"advantage": false, "disadvantage": true, "rolls": [20, 1]}, "expected": {"rolled": 2, "selected": 1}},
+        {"id": "07", "kind": "boundary", "input": {"advantage": true, "disadvantage": true, "rolls": [20, 1]}, "expected": {"rolled": 1, "selected": 20}}
+      ]
+    },
+    {
+      "leaf_id": "K07.expertise_once",
+      "family": "proficiency",
+      "source_ref": {"pdf_page": 366, "text": "Expertise doubles the Proficiency Bonus for the check; p.12: the bonus can be multiplied only once, never stacked"},
+      "engine_resolvers": ["game.perform_skill_check"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"proficiency_bonus": 3, "proficient": false, "expertise": false}, "expected": 0},
+        {"id": "02", "kind": "normal", "input": {"proficiency_bonus": 3, "proficient": true, "expertise": false}, "expected": 3},
+        {"id": "03", "kind": "interaction", "input": {"proficiency_bonus": 3, "proficient": true, "expertise": true}, "expected": 6},
+        {"id": "04", "kind": "boundary", "input": {"proficiency_bonus": 6, "proficient": true, "expertise": true}, "expected": 12},
+        {"id": "05", "kind": "boundary", "input": {"proficiency_bonus": 2, "proficient": false, "expertise": true}, "expected": 0}
+      ]
+    },
+    {
+      "leaf_id": "K07.temp_hp_lost_first",
+      "family": "hit_points",
+      "source_ref": {"pdf_page": 28, "text": "Temporary Hit Points are lost first; leftover damage carries to Hit Points (5 temp + 7 damage = 2 HP lost)"},
+      "engine_resolvers": ["game._apply_attack_damage_to_player"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"temp": 5, "damage": 7, "hp": 20}, "expected": {"temp": 0, "hp": 18}},
+        {"id": "02", "kind": "boundary", "input": {"temp": 5, "damage": 3, "hp": 20}, "expected": {"temp": 2, "hp": 20}},
+        {"id": "03", "kind": "boundary", "input": {"temp": 0, "damage": 4, "hp": 20}, "expected": {"temp": 0, "hp": 16}},
+        {"id": "04", "kind": "boundary", "input": {"temp": 5, "damage": 5, "hp": 20}, "expected": {"temp": 0, "hp": 20}}
+      ]
+    }
+  ],
+  "open_leaves": [
+    {"family": "proficiency", "rule": "proficiency_bonus_by_level", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: the engine stores proficiency_bonus on the character and has no level-to-bonus resolver; PHB p.12 table (levels 1-4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6)"},
+    {"family": "save", "rule": "saving_throw_and_skill_list", "status": "OPEN", "reason": "no covered leaf yet (save proficiency, skill-to-ability map)"},
+    {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "several sources of one kind collapse to one state before roll_d20; not covered"},
+    {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
+    {"family": "hit_points", "rule": "death_saves_and_stable", "status": "OPEN"},
+    {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
+    {"family": "combat_order", "rule": "action_bonus_reaction_move_budgets", "status": "OPEN"},
+    {"family": "state", "rule": "conditions", "status": "OPEN"},
+    {"family": "state", "rule": "rest_and_resources", "status": "OPEN"}
+  ]
+}
