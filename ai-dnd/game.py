@@ -33,6 +33,7 @@ import combat_lifecycle
 import action_economy
 import initiative
 import weapon_attack
+import effect_targeting
 import interaction_adventure
 import npc_statements
 from weapon_catalog import WEAPONS
@@ -1718,6 +1719,12 @@ CELESTIAL_REVELATION_FORMS = (
     "inner_radiance",
     "necrotic_shroud",
 )
+# K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
+# "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
+# K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
+INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
+NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(
+    "necrotic_shroud", 10, "PHB 2024 p.185 (PDF) Aasimar: Necrotic Shroud", excludes_allies=True)
 SPECIES_WITH_TRAIT_STATE = frozenset({"Aasimar", "Goliath", "Orc", "Half-Orc"})
 
 
@@ -4060,18 +4067,13 @@ def _finish_species_player_turn():
     ):
         amount = character.get("proficiency_bonus", 2)
         combat = ensure_combat_state()
-        participant_ids = set(combat.get("participants", [])) if combat["active"] else set()
+        reachable = effect_targeting.eligible_effect_targets(_session(), "player", INNER_RADIANCE_SPEC)
         for npc in _session().world_state.get("npcs", []):
-            if (
-                not isinstance(npc, dict)
-                or npc.get("combat_status") != "active"
-                or (participant_ids and npc.get("id") not in participant_ids)
-            ):
+            if not isinstance(npc, dict) or npc.get("id") not in reachable:
                 continue
-            resistances = npc.get("damage_resistances", npc.get("resistances", []))
-            damage = amount // 2 if isinstance(resistances, list) and "radiant" in resistances else amount
-            before = npc.get("current_hp", npc.get("max_hp", 1))
-            after = max(0, before - damage)
+            # K02: the shared mitigation owner decides immunity/resistance/vulnerability; apply_npc_damage gets the final value.
+            mitigation = weapon_attack.mitigate(_session(), npc.get("id"), "radiant", amount)
+            damage = mitigation["final_damage"]
             after = apply_npc_damage(npc, damage)
             effects.append(
                 {
@@ -4079,6 +4081,7 @@ def _finish_species_player_turn():
                     "target_id": npc.get("id"),
                     "damage": damage,
                     "damage_type": "radiant",
+                    "mitigation": mitigation,
                     "target_hp_after": after,
                 }
             )
@@ -4215,12 +4218,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         elif form == "necrotic_shroud":
             save_dc = 8 + character.get("proficiency_bonus", 2) + character.get("charisma_mod", 0)
             saves = []
+            reachable = effect_targeting.eligible_effect_targets(_session(), "player", NECROTIC_SHROUD_SPEC)
             for npc in _session().world_state.get("npcs", []):
-                if (
-                    not isinstance(npc, dict)
-                    or npc.get("combat_status") != "active"
-                    or (combat["active"] and npc.get("id") not in combat["participants"])
-                ):
+                if not isinstance(npc, dict) or npc.get("id") not in reachable:
                     continue
                 save_bonus = npc.get("charisma_save_bonus", npc.get("charisma_modifier", 0))
                 if type(save_bonus) is not int:

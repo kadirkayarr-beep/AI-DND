@@ -2554,6 +2554,7 @@ class SessionTests(unittest.TestCase):
                     game.initialize_species_trait_state(session=session)
                     first = self.npc(session)
                     first["charisma_save_bonus"] = 0
+                    first["distance_ft"] = 5  # K01: an unknown distance is never reached
                     second = copy.deepcopy(first)
                     second.update(id="npc_002", name="Second enemy",
                                   hostile=True, charisma_save_bonus=0)
