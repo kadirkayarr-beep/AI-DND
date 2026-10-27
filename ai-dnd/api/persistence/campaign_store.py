@@ -1366,14 +1366,17 @@ class CampaignStore:
         before_revision: int,
         principal: Principal | None = None,
         batch_size: int = 500,
+        keep_latest: int = 1,
     ) -> dict[str, Any]:
         """Replace receipts committed at revisions strictly older than `before_revision` with verified tombstones.
 
         Nothing is dropped blindly: a receipt that cannot be verified, one without a recorded revision, and the receipt that
-        opened a still-open reaction are left whole. The campaign state and its revision head are not touched.
+        opened a still-open reaction are left whole, and so are the `keep_latest` newest receipts (default 1): a client that
+        lost the reply to its last action must still get that result back. The campaign state and revision head are not touched.
         """
         self._validate_campaign_id(campaign_id)
-        if type(before_revision) is not int or before_revision < 0 or type(batch_size) is not int or batch_size < 1:
+        if (type(before_revision) is not int or before_revision < 0 or type(batch_size) is not int or batch_size < 1
+                or type(keep_latest) is not int or keep_latest < 0):
             raise CampaignValidationError("Compaction bounds are invalid.")
         connection = self._owned_connection(campaign_id, principal)
         try:
@@ -1385,6 +1388,13 @@ class CampaignStore:
             except (json.JSONDecodeError, TypeError, ValueError):
                 open_reaction = True  # an unreadable state is not evidence that nothing is pending: keep everything whole
             protected: set[str] = set()
+            if keep_latest:
+                for newest_row in connection.execute(
+                    "SELECT action_id FROM campaign_turn_actions WHERE campaign_id = ? "
+                    "ORDER BY committed_revision IS NULL, committed_revision DESC, rowid DESC LIMIT ?",
+                    (campaign_id, keep_latest),
+                ).fetchall():
+                    protected.add(str(newest_row["action_id"]))
             if open_reaction:
                 newest = connection.execute(
                     "SELECT action_id FROM campaign_turn_actions WHERE campaign_id = ? "

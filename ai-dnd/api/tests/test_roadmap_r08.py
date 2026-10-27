@@ -90,7 +90,7 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         oldest, *_ = await self.play(3)
         hp = self.session.character["current_hp"]
         revision_before = self.revision()
-        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1)
+        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1, keep_latest=0)
         self.assertEqual(outcome["archived"], 3)
         self.assertEqual(self.rows("campaign_turn_actions"), 0)
         self.assertEqual(self.rows("campaign_turn_actions_archive"), 3)
@@ -173,7 +173,7 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
                 size_before = self.vacuumed_size()
                 tracemalloc.start()
                 started = time.perf_counter()
-                outcome = self.store.compact_receipts(cid, before_revision=count + 1)
+                outcome = self.store.compact_receipts(cid, before_revision=count + 1, keep_latest=0)
                 elapsed = time.perf_counter() - started
                 _current, peak = tracemalloc.get_traced_memory()
                 tracemalloc.stop()
@@ -216,6 +216,18 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         with closing(sqlite3.connect(self.db_path)) as db:
             db.execute("VACUUM")
         return os.path.getsize(self.db_path)
+
+
+    async def test_the_newest_receipt_keeps_its_full_reply_by_default(self):
+        # A client that lost the reply to its LAST action must still be able to get that result back.
+        *_older, newest = await self.play(3)
+        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1)
+        self.assertEqual(outcome["archived"], 2, "only receipts older than the newest are archived")
+        self.assertEqual(self.rows("campaign_turn_actions"), 1)
+        calls = self.calls
+        replay = await self.post(newest, "Hamle 2")
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(self.calls, calls, "replayed from the stored reply, not re-run")
 
 
 if __name__ == "__main__":
