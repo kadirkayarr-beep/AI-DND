@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "task": "W11",
+  "status": "BLOCKED",
+  "reason": "Content rights and the lore version of the first region are not verified; no region, source density or travel link is asserted.",
+  "regions": [],
+  "needs": [
+    "which Forgotten Realms edition/version the first region is authorized from",
+    "the source rows (book, page) and their usage rights for that region",
+    "an accessible-source density and travel-link table for the first region"
+  ],
+  "rules": [
+    "campaign_opening.build_opening consumes only lore the caller has authorized; it invents none",
+    "the official future is never forced into the story; campaign overrides win over the baseline"
+  ]
+}

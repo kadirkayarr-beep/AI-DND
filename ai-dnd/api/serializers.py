@@ -266,6 +266,9 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     ]
 
 
+_UNKNOWN_COMBATANT_NAME = "Yakındaki kişi"
+
+
 def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
     if identity == "player":
         return fallback
@@ -275,7 +278,10 @@ def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
         item for item in world_state.get("npcs", [])
         if isinstance(item, Mapping) and item.get("id") == identity
     ), None)
-    return living_world.public_npc_name(npc) if npc is not None else fallback
+    if npc is None:
+        # W01: an id that is no longer in the world cannot prove the player knows the name; fail closed.
+        return _UNKNOWN_COMBATANT_NAME
+    return living_world.public_npc_name(npc)
 
 
 def _sanitize_combat_names(projected: dict[str, Any], world_state: Any) -> dict[str, Any]:

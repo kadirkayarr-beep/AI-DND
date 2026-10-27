@@ -34,6 +34,7 @@ import action_economy
 import initiative
 import weapon_attack
 import effect_targeting
+import attributed_claims
 import effect_lifecycle
 import event_order
 import interaction_adventure
@@ -1567,6 +1568,7 @@ def resolve_python_world_action(player_input):
         if "incele" in text or "kilidin nasıl çalış" in text:
             return None  # A real investigation check is resolved below.
         state = "kilitli ve kapalı" if door["locked"] else ("açık" if door["open"] else "kapalı")
+        _mark_lock_seen(_session().world_state, door)  # W03: the player was just shown the lock
         return f"{door['name']} {state}. {door['description']}"
     return None
 
@@ -1859,6 +1861,47 @@ def initialize_species_trait_state(giant_ancestry=None):
     return copy.deepcopy(character["species_trait_state"])
 
 
+_ABILITY_NAMES = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
+_ORIGIN_TEXT_KEYS = ("background", "alignment", "ability_score_method", "background_equipment_option", "species_bonus_feat")
+_ORIGIN_LIST_KEYS = ("languages", "origin_feats")
+_ORIGIN_SCORE_KEYS = ("background_ability_bonuses", "base_ability_scores")
+
+
+def _origin_choices_valid(choices):
+    """C02: the shape of the saved origin choices; anything else is refused, never silently reshaped."""
+    if not isinstance(choices, dict) or set(choices) - set(_ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS):
+        return False
+    for key in _ORIGIN_TEXT_KEYS:
+        if key in choices and not (choices[key] is None or (type(choices[key]) is str and 0 < len(choices[key]) <= 60)):
+            return False
+    from api.dnd_2024_rules import BACKGROUND_DEFINITIONS
+    if choices.get("background") is not None and "background" in choices and choices["background"] not in BACKGROUND_DEFINITIONS:
+        return False  # a background the rules do not know is refused, never kept as free text
+    bonuses = choices.get("background_ability_bonuses")
+    if bonuses is not None:
+        positive = sorted(value for value in bonuses.values() if value > 0)
+        if any(value < 0 or value > 2 for value in bonuses.values()) or positive not in ([], [1, 2], [1, 1, 1]):
+            return False  # the book allows +2/+1 or +1/+1/+1 only
+    for key in _ORIGIN_LIST_KEYS:
+        if key in choices and not (type(choices[key]) is list and len(choices[key]) <= 24
+                                   and all(type(item) is str and 0 < len(item) <= 60 for item in choices[key])):
+            return False
+    for key in _ORIGIN_SCORE_KEYS:
+        if key in choices and not (type(choices[key]) is dict and set(choices[key]) <= set(_ABILITY_NAMES)
+                                   and all(type(value) is int and 0 <= value <= 30 for value in choices[key].values())):
+            return False
+    return True
+
+
+def _origin_choices_for_save(character):
+    """The player's creation choices (background, score split, languages, ...); written only when the character has them."""
+    choices = {key: copy.deepcopy(character[key]) for key in _ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS
+               if key in character}
+    if choices and not _origin_choices_valid(choices):
+        raise ValueError("Origin choice state is invalid.")
+    return choices
+
+
 def _player_state_for_save():
     character = _session().character
     saved = {
@@ -1904,6 +1947,9 @@ def _player_state_for_save():
         if type(value) is not str:
             raise ValueError("Kayıt kimlik metni geçersiz.")
         saved[field] = value
+    choices = _origin_choices_for_save(character)
+    if choices:
+        saved["origin_choices"] = choices
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -2098,6 +2144,8 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt oyuncu alanları eksik.")
     if "xp" in player and (type(player["xp"]) is not int or player["xp"] < 0):
         raise ValueError("Kayıt deneyim alanı geçersiz.")
+    if "origin_choices" in player and not _origin_choices_valid(player["origin_choices"]):
+        raise ValueError("Kayıt köken seçimleri geçersiz.")
 
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
@@ -2468,6 +2516,10 @@ def load_game(path):
         character["species_bonus_skills"] = list(
             player.get("species_bonus_skills", [])
         )
+        for stale in (_ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS
+                      + ("final_ability_scores", "equipment_package", "equipment_choices", "fighting_style")):
+            character.pop(stale, None)  # choices and derived creation state of a previous character never leak into the loaded one
+        character.update(copy.deepcopy(player.get("origin_choices") or {}))
         for field in ("origin", "appearance", "personality", "backstory"):
             if field not in player or player[field] is None:
                 character[field] = None
@@ -2558,6 +2610,28 @@ def _venue_entry_door(world_state, origin, destination):
             grounded_action.note_near(world_state, door["id"])
         return door
     return None
+
+
+def _mark_lock_seen(world_state, door):
+    """W03: call only where the player is actually shown that the door is LOCKED (the text says "kilitli");
+    the refusal "kapalı. İçeri geçemezsin." says only closed, so it does not teach the lock.
+
+    The knowledge lives in flags, not on the door: what the player knows is not the door's mechanical state.
+    """
+    if isinstance(door, dict) and door.get("locked") is True and isinstance(door.get("id"), str):
+        flags = world_state.setdefault("flags", {})
+        known = flags.get("known_locked_door_ids")
+        if not isinstance(known, list):
+            known = flags["known_locked_door_ids"] = []
+        if door["id"] not in known:
+            known.append(door["id"])
+    return door
+
+
+def _lock_known_to_player(world_state, door_id):
+    flags = world_state.get("flags") if isinstance(world_state, dict) else None
+    known = flags.get("known_locked_door_ids") if isinstance(flags, dict) else None
+    return isinstance(known, list) and door_id in known
 
 
 def _current_door():
@@ -3322,6 +3396,21 @@ def _clean_world_text_list(value, item_limit=180, max_items=8):
         if cleaned and cleaned not in result:
             result.append(cleaned)
     return result
+
+
+def _scene_texts_for_referents(world_state):
+    """Descriptive scene text whose lowercase words are evidence of common nouns (W05)."""
+    texts = []
+    # NPC descriptions can be model-authored; only the engine's own feature/location text counts as evidence
+    for collection in ("features",):
+        for item in world_state.get(collection, []) if isinstance(world_state, dict) else []:
+            if isinstance(item, dict) and isinstance(item.get("description"), str):
+                texts.append(item["description"])
+    locations = world_state.get("locations", {}) if isinstance(world_state, dict) else {}
+    for location in locations.values() if isinstance(locations, dict) else []:
+        if isinstance(location, dict) and isinstance(location.get("description"), str):
+            texts.append(location["description"])
+    return texts
 
 
 def _has_unregistered_person_name(value, extra_names=()):
@@ -7410,6 +7499,24 @@ def _local_place_access(place_id, world_state):
     return "available"
 
 
+def _attributed_place_note(spoken_text, npc_target, world_state, player_input):
+    """W03: the separate narrator note for a locked venue the NPC named, only when the player already knows the lock."""
+    if not isinstance(spoken_text, str) or not local_dialogue.is_local_place_recommendation_request(player_input):
+        return None
+    options = _local_place_recommendation_options(
+        npc_target, world_state, place_kind=local_dialogue.local_place_recommendation_kind(player_input))
+    folded = npc_statements.fold(spoken_text)
+    for option in options:
+        if option["access"] != "locked" or npc_statements.fold(option["name"]) not in folded:
+            continue
+        view = attributed_claims.present_claim(
+            {"speaker_text": spoken_text, "source_event_id": f"speech:{npc_target.get('id')}",
+             "subject": {"name": option["name"], "locked": True}},
+            {"lock_known_to_player": _lock_known_to_player(world_state, f"venue-door:{option['location_id']}")})
+        return view["narrator_note"]
+    return None
+
+
 def _ground_local_place_recommendation_reply(
     spoken_text, npc_target, world_state, player_input
 ):
@@ -7481,11 +7588,8 @@ def _ground_local_place_recommendation_reply(
     if options and all_named_places_match:
         selected = matched[0]
         if all(item["location_id"] == selected["location_id"] for item in matched):
-            if selected["access"] == "locked":
-                return (
-                    f'{selected["name"]} şu anda kilitli; açıldığını '
-                    "doğrulamadan oraya gitmeni önermem."
-                )
+            # W03 (Rev2 5.5): the NPC's own recommendation stays the NPC's; a lock the player already knows is a
+            # separate narrator note (attributed_claims.present_claim), an unknown lock is never revealed here.
             return spoken_text
     if open_discovery and options:
         # A general request such as "another place" is not permission to replace
@@ -9764,6 +9868,15 @@ def _narration_safety_decision(
                 registered_names | registered_name_tokens | known_places
             ) and normalized_candidate not in known_place_forms:
                 if _authorized_item_transfer_matches(match.group(1), action_result):
+                    continue
+                # W05: a common scene object is not an invented person; unknown names still fail closed.
+                import referent_span
+                if referent_span.classify_referent_span(
+                    match.group(1),
+                    {npc_statements.fold(npc.get("name", "")): npc.get("id")
+                     for npc in world_state.get("npcs", []) if isinstance(npc, dict) and npc.get("name")},
+                    {"scene_texts": _scene_texts_for_referents(world_state)}
+                )["kind"] == "common_object":
                     continue
                 return reject_entity(match.group(1))
     if _has_unregistered_person_name(entity_scan):
@@ -18383,6 +18496,10 @@ def _run_player_turn_internal(
                         "spoken_text": cleaned_spoken,
                         "stage_direction": cleaned_stage,
                     }
+                    # W03: a known lock may be recalled by a SEPARATE narrator note; it never replaces the NPC's line.
+                    place_note = _attributed_place_note(cleaned_spoken, npc_target, world_state, player_input)
+                    if place_note:
+                        attributed_speech["narrator_note"] = place_note
                     raw_narration = _compose_experimental_npc_speech(
                         attributed_speech
                     )

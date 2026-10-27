@@ -180,12 +180,26 @@ class SceneTruthContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_investigation_failure_preserves_visible_baseline(self):
         city, place, door, entered = await self.enter_tavern()
         before = sorted(f["id"] for f in self.venue_features(place))
-        with patch("game.roll_d20", return_value=2):
-            await self.send("Bar tezgâhının altında gizli bir şey var mı diye arıyorum")
+        # W10: the investigation reaches the narrator; since R02 an unanswered (503) action stays unresolved and blocks the
+        # next request with 409, so the double must be allowed to narrate, as in the neighbouring tests.
+        self.client.allow_narration = True
+        narration = {"message": {"content": (
+            '{"narration": "Tezgâhın altında aradığın şeyi bulamıyorsun; yalnızca eski bir bez var.",'
+            ' "world_updates": {}, "lore_claims": []}'
+        )}}
+        with patch("game.roll_d20", return_value=2), \
+                patch.object(self.client, "chat", side_effect=lambda *a, **k: narration):
+            first = await self.send("Bar tezgâhının altında gizli bir şey var mı diye arıyorum")
+        self.assertEqual(first.status_code, 200, first.text)
         self.assertEqual(self.world["location"], place["id"])
         self.assertEqual(sorted(f["id"] for f in self.venue_features(place)), before)
         observed = await self.send("Çevreyi gözlemliyorum")
-        self.assertIn(place["name"], observed.json()["narration"])
+        self.assertEqual(observed.status_code, 200, observed.text)
+        # the player-facing scene still lists what was visible before the failed check (the test double's own narration
+        # text is not the contract; the public scene state is)
+        scene = observed.json()["state"]["scene"]
+        self.assertEqual(scene["location_id"], place["id"])
+        self.assertTrue(set(before) <= {f["id"] for f in scene["features"]}, scene["features"])
 
     async def test_old_prose_does_not_move_player_or_create_table(self):
         city, place, door, entered = await self.enter_tavern()

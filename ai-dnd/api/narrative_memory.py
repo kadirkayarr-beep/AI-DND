@@ -336,6 +336,27 @@ def _summary_record(
     }
 
 
+def retain_entity_interactions(entries: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    """Keep at most `limit` entries: high importance first, then most recent; stable on ties.
+
+    The result lists the kept highs before the kept others (each in original order), as consumers already expect.
+    The former `(high + low)[-limit:]` sliced the newest high away whenever the collection was full of lows.
+    """
+    ranked = sorted(
+        enumerate(entries),
+        key=lambda pair: (
+            0 if pair[1].get("importance") == "high" else 1,
+            -int(pair[1].get("turn_index", 0)),
+            -pair[0],
+        ),
+    )[:max(0, limit)]
+    kept = sorted(ranked, key=lambda pair: pair[0])
+    return (
+        [item for _, item in kept if item.get("importance") == "high"]
+        + [item for _, item in kept if item.get("importance") != "high"]
+    )
+
+
 def update_narrative_memory(
     memory: dict[str, Any] | None,
     *,
@@ -410,9 +431,7 @@ def update_narrative_memory(
             entries = base["npc_interactions"].setdefault(npc_id, [])
             if not any(item["text"] == entry["text"] for item in entries):
                 entries.append(entry)
-            high = [item for item in entries if item["importance"] == "high"]
-            low = [item for item in entries if item["importance"] != "high"]
-            base["npc_interactions"][npc_id] = (high + low)[-MAX_INTERACTIONS_PER_ENTITY:]
+            base["npc_interactions"][npc_id] = retain_entity_interactions(entries, MAX_INTERACTIONS_PER_ENTITY)
 
     location_id = world_state_after.get("location")
     if isinstance(location_id, str) and location_id and location_id != "Henüz belirlenmedi":
@@ -777,6 +796,17 @@ def _fit_context_packet(packet: dict[str, Any]) -> tuple[dict[str, Any], int]:
     for key, empty in reductions:
         if len(encoded().encode("utf-8")) <= 4800:
             break
+        if key == "npc_interactions":
+            # W06: shed the lowest-priority interactions one at a time (high first, then recent) before giving up the block,
+            # so an important promise is still retrieved when the whole history does not fit.
+            interactions = continuity.get(key) or {}
+            while interactions and len(encoded().encode("utf-8")) > 4800:
+                owner = max(interactions, key=lambda entity_id: (len(interactions[entity_id]), entity_id))
+                if len(interactions[owner]) <= 1:
+                    break
+                interactions[owner] = retain_entity_interactions(interactions[owner], len(interactions[owner]) - 1)
+            if len(encoded().encode("utf-8")) <= 4800:
+                break
         continuity[key] = empty
     if len(encoded().encode("utf-8")) > 4800:
         # Canonical data remains first-class, but oversized free text is

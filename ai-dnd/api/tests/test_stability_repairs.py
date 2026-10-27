@@ -43,30 +43,10 @@ def _intent_json(intent="unknown"):
 
 
 def _ruler_context():
-    context = game._empty_lore_authority_context()
-    context["sections"]["official_forgotten_realms_lore"] = [
-        {
-            "fact_id": "fr:fact:dagult_neverember_current_lord",
-            "subject_id": "fr:city:neverwinter",
-            "predicate": "current_lord_id",
-            "object_id_or_value": "fr:person:dagult_neverember",
-            "notes": "Dagult Neverember is the current Lord of Neverwinter.",
-        }
-    ]
-    context["sections"]["verified_entities"] = [
-        {
-            "entity_id": "fr:city:neverwinter",
-            "canonical_name": "Neverwinter",
-            "aliases": [],
-        },
-        {
-            "entity_id": "fr:person:dagult_neverember",
-            "canonical_name": "Dagult Neverember",
-            "aliases": ["Dagult"],
-        },
-    ]
-    context["diagnostics"] = {"query_intents": ["rulership"]}
-    return context
+    # W04: the fixture now carries the verified city link (`current_location_entity_id`) and the `current_ruler` intent the
+    # real resolver consumes; the old `rulership`-only diagnostics never linked "bu şehir" to a city entity.
+    from api.tests.test_roadmap_w04 import make_verified_city_ruler_fixture
+    return make_verified_city_ruler_fixture("fr:city:neverwinter", "fr:person:dagult_neverember")
 
 
 
@@ -706,7 +686,9 @@ class CrossSessionTests(unittest.TestCase):
             "distance_ft": 5,  # attacks need an authoritative distance
         }
         session.world_state["npcs"].append(target)
-        weapon_name = next(iter(game.WEAPONS))
+        # W04: a plain-string held weapon must be a sword for the save record to validate (held_weapon.validate_saved);
+        # the first catalog entry ("Club") is not, which is a fixture drift unrelated to the ruler answer under test.
+        weapon_name = "Longsword"
         _arm(session, weapon_name)
         session.resolve_attack(
             "saldır",

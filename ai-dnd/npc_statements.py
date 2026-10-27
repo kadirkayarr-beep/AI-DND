@@ -18,6 +18,7 @@ list of names from one campaign.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
@@ -27,6 +28,10 @@ KEY = "npc_statements"
 SCHEMA_VERSION = 1
 KEEP_PER_NPC = 40
 MAX_REFERENCES = 60
+MAX_RESTATED_TURNS = 5
+COMMITMENT_STATUSES = frozenset({"open", "fulfilled", "broken", "cancelled", "closed"})
+_RECIPIENT = "player"  # one player per session; the recipient is part of a promise's identity
+_FILLER = frozenset({"evet", "hayir", "tamam", "dedim", "dedi", "dediydim", "demistim", "soyledim", "ya", "yani", "iste"})
 
 # folded noun stem -> place kind (tavern is the existing venue kind; others are
 # local_places kinds; "generic" places have no catalogue content).
@@ -464,20 +469,42 @@ def record(world: dict[str, Any], npc: dict[str, Any], player_text: str, shown_t
                 if ref:
                     entry["reference_ids"].append(ref["id"])
         for kind, commitment_text in _commitments(folded, folded_player):
+            objects = _objects(folded_player if commitment_text == "request" else folded,
+                               drop=(*[p for _, p in _REQUEST_PATTERNS], *[p for _, p in _COMMIT_PATTERNS]))
+            destination = (_destination(world, [folded, folded_player], npc_id, turn, settlement)
+                           if kind in {"escort", "show", "meet"} else None)
+            scope = {"kind": kind, "objects": objects, "destination": destination}
+            scope_key = _scope_key(npc_id, _RECIPIENT, scope)
+            # W07: while the same promise is still open, a restatement belongs to it; it is not a new debt.
+            # no scope content at all (no objects, no place): nothing identifies the promise, so never merge it
+            has_scope = bool(scope_key and (objects or destination))
+            existing = next((c for c in state["commitments"]
+                             if c.get("status") == "open" and _commitment_scope_key(c) == scope_key), None) if has_scope else None
+            if existing is not None:
+                existing["restatements"] = int(existing.get("restatements", 0)) + 1
+                existing["restated_turns"] = [*existing.get("restated_turns", []), turn][-MAX_RESTATED_TURNS:]
+                existing["last_restated_quote"] = words[:240]
+                entry["commitment_ids"].append(existing["id"])
+                continue
             number = state["next_commitment"]
             state["next_commitment"] = number + 1
+            origin_event_id = f"statement:{npc_id}:{turn}:{number:04d}"
             commitment = {
                 "id": f"commit_{number:04d}",
                 "npc_id": npc_id,
                 "kind": kind,
-                "objects": _objects(folded_player if commitment_text == "request" else folded,
-                                    drop=(*[p for _, p in _REQUEST_PATTERNS], *[p for _, p in _COMMIT_PATTERNS])),
-                "destination": _destination(world, [folded, folded_player], npc_id, turn, settlement)
-                if kind in {"escort", "show", "meet"} else None,
+                "objects": objects,
+                "destination": destination,
                 "quote": words[:240],
                 "player": str(player_text or "")[:240],
                 "turn": turn,
                 "status": "open",
+                "identity": commitment_identity(npc_id, _RECIPIENT, scope, origin_event_id),
+                "scope_key": scope_key,
+                "origin_event_id": origin_event_id,
+                "restatements": 0,
+                "restated_turns": [],
+                "history": [{"status": "open", "event_id": origin_event_id, "turn": turn}],
             }
             state["commitments"].append(commitment)
             entry["commitment_ids"].append(commitment["id"])
@@ -585,8 +612,66 @@ def resolve_reference(world: dict[str, Any], ref_id: str, location_id: str) -> N
 def fulfil(world: dict[str, Any], commitment_id: str, how: str) -> None:
     for commitment in ensure(world)["commitments"]:
         if commitment.get("id") == commitment_id:
-            commitment["status"] = "fulfilled"
-            commitment["fulfilled_by"] = how
+            if commitment.get("status") == "open":
+                transition_commitment(world, commitment_id, "fulfilled", f"fulfilled:{how}")
+                commitment["fulfilled_by"] = how  # a broken/cancelled/earlier-fulfilled promise keeps its own reason
+
+
+def transition_commitment(world: dict[str, Any], commitment_id: str, status: str, reason_event_id: str) -> None:
+    """Close an open promise with a reason event; its history is appended to, never erased. Closed states are final."""
+    if status not in COMMITMENT_STATUSES:
+        raise ValueError("Unknown commitment status.")
+    if not isinstance(reason_event_id, str) or not reason_event_id.strip():
+        raise ValueError("A commitment transition needs a reason event.")
+    commitment = next((c for c in ensure(world)["commitments"] if c.get("id") == commitment_id), None)
+    if commitment is None:
+        raise ValueError("Unknown commitment.")
+    current = commitment.get("status", "open")
+    if current == status:
+        return
+    if current != "open" or status == "open":
+        raise ValueError("A closed commitment cannot change status.")
+    turn = int(world.get("flags", {}).get("turn_index", 0) or 0) if isinstance(world.get("flags"), dict) else 0
+    commitment["status"] = status
+    commitment["closed_by_event_id"] = reason_event_id
+    commitment["closed_turn"] = turn
+    commitment.setdefault("history", []).append({"status": status, "event_id": reason_event_id, "turn": turn})
+
+
+_CASE_ENDINGS = ("lar", "ler", "yi", "yı", "yu", "yü", "ya", "ye", "in", "ın", "un", "ün", "i", "ı", "u", "ü", "e", "a")
+
+
+def _strip_case(word: str) -> str:
+    """Drop one Turkish case/plural ending so "fener"/"feneri" agree; the stem keeps at least 3 letters."""
+    for ending in _CASE_ENDINGS:
+        if word.endswith(ending) and len(word) - len(ending) >= 3:
+            return word[:-len(ending)]
+    return word
+
+
+def _scope_key(speaker_id: str, recipient_id: str, scope: dict[str, Any]) -> str:
+    destination = scope.get("destination") if isinstance(scope.get("destination"), dict) else {}
+    where = str(destination.get("ref_id") or destination.get("location_id") or destination.get("place_kind") or "")
+    # What was promised = its content words (stemmed to 5 letters so "fener"/"feneri" agree; discourse filler such as
+    # "evet", "dedim ya" never counts) AND the place. A bare place kind ("a tavern") is not enough to call two promises one.
+    content = ",".join(sorted({
+        _strip_case(str(item)) for item in scope.get("objects") or [] if str(item) not in _FILLER}))
+    parts = [str(speaker_id), str(recipient_id), str(scope.get("kind")), content, where]
+    return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
+def _commitment_scope_key(commitment: dict[str, Any]) -> str:
+    # saves from before W07 carry no scope_key; derive it from the same fields
+    return commitment.get("scope_key") or _scope_key(
+        commitment.get("npc_id"), _RECIPIENT,
+        {"kind": commitment.get("kind"), "objects": commitment.get("objects"),
+         "destination": commitment.get("destination")})
+
+
+def commitment_identity(speaker_id: str, recipient_id: str, scope: dict[str, Any], origin_event_id: str) -> str:
+    """Stable id of one promise: who promised whom, what scope, and from which origin event."""
+    return "promise:" + hashlib.sha1(
+        f"{_scope_key(speaker_id, recipient_id, scope)}\x1f{origin_event_id}".encode("utf-8")).hexdigest()[:16]
 
 
 def legacy_entry_supports(entry_text: str, claim: str) -> bool:

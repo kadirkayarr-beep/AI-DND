@@ -181,6 +181,26 @@ class ControlledShopSetupOllamaClient(FakeOllamaClient):
 
 
 class CapturingConversationContextClient(ControlledVenueOllamaClient):
+    model_provenance = "scripted_test_double"  # never reported as a real model result
+
+    PROFILE_TOPICS = (
+        (("şu an ne yapıyorsun",), "current_activity"),
+        (("neden buraya geldin", "arıyorsun"), "reason_for_being_here"),
+        (("mesleğin", "ne iş yapıyorsun"), "occupation"),
+        (("nereli", "nereden geldin"), "origin"),
+    )
+
+    @classmethod
+    def profile_field_for_message(cls, message, focus=None):
+        """The profile field this packet asks about, from the packet itself (message, then its own focus)."""
+        folded = str(message).casefold()
+        for phrases, field in cls.PROFILE_TOPICS:
+            if any(phrase in folded for phrase in phrases):
+                return field
+        if isinstance(focus, dict) and ("neden" in folded or "niye" in folded):
+            return focus.get("predicate")
+        return None
+
     def __init__(self):
         super().__init__(intent="narrative")
         self.message_batches = []
@@ -209,17 +229,21 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
                 reply = self.conversation_replies.pop(0)
             line = reply.get("narration")
             if line is None:
-                # A faithful model answers from the profile fact the classifier chose.
+                # W02: a faithful model answers from the CURRENT packet (the player's message and this packet's focus),
+                # never from state left by an earlier request.
                 user = next(m["content"] for m in reversed(messages) if m.get("role") == "user")
                 marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
-                facts = []
+                facts, focus = [], None
                 if marker in user:
                     context, _ = json.JSONDecoder().raw_decode(user.split(marker, 1)[1].lstrip())
                     facts = context.get("shareable_profile_facts") or []
+                    focus = context.get("conversation_focus")
+                current_message = user.rsplit("Current player message: ", 1)[-1].splitlines()[0] if "Current player message: " in user else ""
+                wanted = self.profile_field_for_message(current_message, focus)
                 line = next(
                     (fact["value"] for fact in facts
-                     if isinstance(fact, dict)
-                     and fact.get("field") == getattr(self, "last_profile_field", None)
+                     if isinstance(fact, dict) and wanted is not None
+                     and fact.get("field") == wanted
                      and isinstance(fact.get("value"), str)),
                     "Bu konuda doğrulanmış bir bilgi yok.",
                 )
@@ -8566,6 +8590,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.world_state["npcs"].append(target)
         with patch.object(session.rng, "randint", side_effect=[20, 1]):
             session.start_combat(target)
+        # W01: the projection only shows a name for an NPC that is still in the world (a missing id fails closed),
+        # so the scripted second attacker is a canonical, player-known NPC like the real flow.
+        session.world_state["npcs"].append({
+            "id": "npc_archer", "name": "Archer", "location": session.world_state["location"],
+            "combat_status": "active", "current_hp": 10, "max_hp": 10, "armor_class": 10, "memory": []})
         received_target_ids = []
 
         def attack_turn(_message, *, target_id=None):

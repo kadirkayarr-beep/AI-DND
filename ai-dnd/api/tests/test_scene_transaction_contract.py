@@ -84,7 +84,14 @@ class SceneTransactionContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.marks(created["session_id"], table["id"]), [])
         saved = self.store.get_campaign(created["campaign_id"]).payload["engine_save"]["world_state"]
         self.assertNotIn(table["id"], saved.get("feature_marks", {}))
-        again = await self.post(created, f'/item mark {table["id"]} "eski iz"', str(uuid4()))
+        # W10 / R02: the rolled-back action is still unresolved, so a brand-new action id is refused with 409
+        # (unresolved_action, not_applied); the retry of the SAME action id is the supported path and applies once.
+        blocked = await self.post(created, f'/item mark {table["id"]} "eski iz"', str(uuid4()))
+        self.assertEqual(blocked.status_code, 409, blocked.text)
+        self.assertEqual(blocked.json()["detail"]["code"], "unresolved_action")
+        self.assertIs(blocked.json()["detail"]["not_applied"], True)
+        self.assertEqual(self.marks(created["session_id"], table["id"]), [])
+        again = await self.post(created, f'/item mark {table["id"]} "eski iz"', action_id)
         self.assertEqual(again.status_code, 200, again.text)
         self.assertEqual(len(self.marks(created["session_id"], table["id"])), 1)
 

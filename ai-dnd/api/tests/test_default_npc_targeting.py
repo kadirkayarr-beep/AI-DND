@@ -354,9 +354,12 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         visible = response.json()["narration"]
-        self.assertIn("kilitli", visible)
+        # W03 / Rev2 5.5 (D4 assertion updated to the approved meaning, not deleted): the NPC's own words stay the NPC's
+        # (a speaker may be wrong); the system neither rewrites them nor reveals a lock the player does not know. The
+        # world truth is unchanged: the door is still locked, so "içerisi açık" is only attributed speech.
+        self.assertIn("içerisi açık", visible)
+        self.assertNotIn("kilitli", visible, "an unknown lock is not disclosed as a correction")
         self.assertNotIn("iyi bir seçenek olabilir", visible)
-        self.assertNotIn("açık", visible)
 
     async def test_combined_name_and_place_recommendation_is_grounded_over_http(self):
         _, session, turn_url, tavern_id, guard = (
