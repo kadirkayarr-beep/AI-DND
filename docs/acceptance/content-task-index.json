@@ -2,7 +2,7 @@
  "blocking_entries": 738,
  "entries": 728,
  "leaves": 4739,
- "leaves_with_missing_test_owner": 3104,
+ "leaves_with_missing_test_owner": 3103,
  "manifest": "content/manifest/phb2024.json",
  "open_scope_items": 10,
  "schema_version": 1,
@@ -117251,7 +117251,7 @@
    "source_id": "openscope:appendix-b-creature-stat-blocks",
    "status": "OPEN",
    "test_owner": "ai-dnd/api/tests/test_roadmap_c09.py",
-   "test_owner_exists": false
+   "test_owner_exists": true
   },
   {
    "behavior": "enumerate",
