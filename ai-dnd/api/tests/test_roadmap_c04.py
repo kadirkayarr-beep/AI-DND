@@ -13,7 +13,10 @@ import unittest
 from pathlib import Path
 
 import game
-from api.dnd_2024_rules import ARMOR_CLASS_RULES, ARMOR_NAME_ALIASES, calculate_derived_stats, get_equipment_armor_and_shield
+from api.dnd_2024_rules import (
+    ARMOR_CLASS_RULES, ARMOR_NAME_ALIASES, CharacterCreationError, calculate_derived_stats, get_equipment_armor_and_shield,
+    CLASS_DEFINITIONS,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 ORACLE = json.loads((ROOT / "content" / "rules" / "phb2024" / "weapons_armor.json").read_text(encoding="utf-8"))
@@ -54,9 +57,17 @@ class WeaponTableTests(unittest.TestCase):
             for key in want:
                 if got[key] != want[key]:
                     problems.append(f"{name}.{key}: engine {got[key]!r} != book {want[key]!r}")
-            if (weapon.get("weight_lb") or 0) != book["weight_lb"]:  # the book shows no weight for the Sling
+            if weapon.get("weight_lb") != book["weight_lb"]:  # Sling: the source table states no weight (None == None, not a verified 0)
                 problems.append(f"{name}.weight: engine {weapon.get('weight_lb')!r} != book {book['weight_lb']!r}")
         self.assertEqual(problems, [])
+
+    def test_source_gaps_are_explicit_not_defaulted(self):
+        sling = ORACLE["weapons"]["Sling"]
+        self.assertEqual((sling["weight_lb"], sling["weight_status"]), (None, "NOT_STATED_IN_SOURCE_TABLE"))
+        self.assertIsNone(game.WEAPONS["Sling"].get("weight_lb"), "the engine does not invent a weight either")
+        self.assertEqual(ORACLE["weapons"]["Lance"]["two_handed_condition"], "unless mounted")
+        # engine effect: no mounted rules exist, so the Lance is always two-handed (restrictive, never lets it be one-handed on foot)
+        self.assertIn("two-handed", game.WEAPONS["Lance"]["properties"])
 
     def test_every_mastery_is_a_book_mastery_and_legacy_names_stay(self):
         self.assertEqual({w["mastery"] for w in ORACLE["weapons"].values()}, set(ORACLE["mastery_properties"]))
@@ -107,8 +118,47 @@ class ArmorTableTests(unittest.TestCase):
             self.assertEqual(get_equipment_armor_and_shield([f"1x {label}"])[0], expected, label)
         self.assertEqual(get_equipment_armor_and_shield(["Longsword", "Shield"]), (None, True))
         self.assertEqual(get_equipment_armor_and_shield(["Chain Mail", "Shield"]), ("Chain Mail", True))
-        self.assertEqual(get_equipment_armor_and_shield(["Chain Mail", "Leather Armor"])[0], "Chain Mail", "highest base AC wins")
+        for pair in (["Chain Mail", "Leather Armor"], ["Plate Armor", "Padded Armor"], ["Zincir Zırh", "Deri Zırh"]):
+            with self.assertRaises(CharacterCreationError, msg=pair):  # carried != worn: never silently pick one suit
+                get_equipment_armor_and_shield(pair)
+        self.assertEqual(get_equipment_armor_and_shield(["Zincir Zırh", "Chain Mail"])[0], "Chain Mail", "same suit under two labels")
+        self.assertEqual(get_equipment_armor_and_shield(["Studded Leather Armor", "Shield"]), ("Studded Leather Armor", True))
         self.assertEqual(ARMOR_NAME_ALIASES["Zincir Zırh"], "Chain Mail")
+
+
+class CreationPackagesAndKernelTests(unittest.TestCase):
+    def test_every_shipped_starting_package_names_at_most_one_suit(self):
+        for cls, definition in CLASS_DEFINITIONS.items():
+            for package in definition.get("equipment_packages", []):
+                armor, _shield = get_equipment_armor_and_shield(package["items"])  # must not raise
+                self.assertTrue(armor is None or armor in ARMOR_CLASS_RULES, (cls, package["id"]))
+
+    def test_book_weapons_and_armor_go_through_the_c08_kernel_with_the_owner_rules(self):
+        import equipment_rules
+
+        def world_with(name, weapon_id=None):
+            item = {"item_id": "item_000001", "name": name}
+            if weapon_id:
+                item["weapon_id"] = weapon_id
+            return {"location": "inn", "flags": {"turn_index": 0}, "inventory": [item], "equipment": {"main_hand": None, "off_hand": None},
+                    "currency": {"player": 0}, "item_sequence": 1, "npcs": [], "ground_items_by_location": {"inn": []}}
+
+        for name, book in ORACLE["weapons"].items():
+            w = world_with(name, game.WEAPONS[name]["weapon_id"])
+            delta = equipment_rules.resolve_item_use(w, "item_000001", {"use": "equip", "hand": "main_hand"})
+            if "two-handed" in book["properties"]:
+                self.assertEqual((delta["status"], delta["reason"]), ("rejected", "two_handed_owner_required"), name)
+                self.assertEqual(w["equipment"]["main_hand"], None, name)
+            else:
+                self.assertEqual(delta["status"], "applied", name)
+                self.assertEqual(w["equipment"]["main_hand"], "item_000001", name)
+        for name in list(ORACLE["armor"]) + ["Shield"]:
+            w = world_with(name)
+            moved = equipment_rules.inventory_transfer(w, "player", "ground", "item_000001")
+            self.assertEqual((moved["status"], moved["reason"]), ("rejected", "armor_owner_required"), name)
+            self.assertEqual(w["inventory"][0]["item_id"], "item_000001", name)
+            worn = equipment_rules.resolve_item_use(w, "item_000001", {"use": "equip", "hand": "off_hand"})
+            self.assertEqual(worn["status"], "rejected", name)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,8 @@
    238,
    342
   ],
-  "note": "values and pages only, no book text; OCR text layer: fields the OCR made unreadable are null with a *_status; printed page = PDF page + 1"
+  "note": "values and pages only, no book text; OCR text layer: fields the OCR made unreadable are null with a *_status; printed page = PDF page + 1",
+  "image_verification": "five entries re-read from the embedded page scan (850x1100 JPEG, extracted with pypdf, no third party); all other entries are OCR-derived, ~250 independently re-read by review"
  },
  "spells": {
   "Acid Splash": {
@@ -1106,7 +1107,7 @@
   },
   "Clairvoyance": {
    "level": 3,
-   "level_status": "LEVEL_FROM_CLASS_LISTS_PDF_61_71_142",
+   "level_status": "IMAGE_VERIFIED",
    "school": "Divination",
    "classes": [
     "Bard",
@@ -1122,10 +1123,23 @@
     "s": true,
     "m": true
    },
-   "concentration": null,
-   "duration": null,
+   "concentration": true,
+   "duration": "Concentration, up to 10 minutes",
    "pdf_page": 249,
-   "duration_status": "BLOCKED_OCR_UNREADABLE"
+   "duration_status": "OK",
+   "image_verified": {
+    "pdf_page": 249,
+    "printed_page": 250,
+    "fields": [
+     "level",
+     "school",
+     "classes",
+     "casting_time",
+     "range",
+     "components",
+     "duration"
+    ]
+   }
   },
   "Clone": {
    "level": 8,
@@ -2301,8 +2315,8 @@
    "duration_status": "OK"
   },
   "Divine Favor": {
-   "level": null,
-   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "level": 1,
+   "level_status": "IMAGE_VERIFIED",
    "school": "Transmutation",
    "classes": [
     "Paladin"
@@ -2318,11 +2332,24 @@
    "concentration": false,
    "duration": "1 minute",
    "pdf_page": 264,
-   "duration_status": "OK"
+   "duration_status": "OK",
+   "image_verified": {
+    "pdf_page": 264,
+    "printed_page": 265,
+    "fields": [
+     "level",
+     "school",
+     "classes",
+     "casting_time",
+     "range",
+     "components",
+     "duration"
+    ]
+   }
   },
   "Divine Smite": {
    "level": 1,
-   "level_status": "LEVEL_FROM_UPCAST_TEXT",
+   "level_status": "IMAGE_VERIFIED",
    "school": "Evocation",
    "classes": [
     "Paladin"
@@ -2338,7 +2365,20 @@
    "concentration": false,
    "duration": "Instantaneous",
    "pdf_page": 264,
-   "duration_status": "OK"
+   "duration_status": "OK",
+   "image_verified": {
+    "pdf_page": 264,
+    "printed_page": 265,
+    "fields": [
+     "level",
+     "school",
+     "classes",
+     "casting_time",
+     "range",
+     "components",
+     "duration"
+    ]
+   }
   },
   "Divine Word": {
    "level": 7,
@@ -6794,8 +6834,8 @@
    "duration_status": "OK"
   },
   "Slow": {
-   "level": null,
-   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "level": 3,
+   "level_status": "IMAGE_VERIFIED",
    "school": "Transmutation",
    "classes": [
     "Bard",
@@ -6813,7 +6853,20 @@
    "concentration": true,
    "duration": "Concentration, up to 1 minute",
    "pdf_page": 317,
-   "duration_status": "OK"
+   "duration_status": "OK",
+   "image_verified": {
+    "pdf_page": 317,
+    "printed_page": 318,
+    "fields": [
+     "level",
+     "school",
+     "classes",
+     "casting_time",
+     "range",
+     "components",
+     "duration"
+    ]
+   }
   },
   "Sorcerous Burst": {
    "level": 0,
@@ -7505,8 +7558,8 @@
    "duration_status": "OK"
   },
   "Tasha's Hideous Laughter": {
-   "level": null,
-   "level_status": "BLOCKED_OCR_LEVEL_AMBIGUOUS",
+   "level": 1,
+   "level_status": "IMAGE_VERIFIED",
    "school": "Enchantment",
    "classes": [
     "Bard",
@@ -7524,7 +7577,20 @@
    "concentration": true,
    "duration": "Concentration, up to 1 minute",
    "pdf_page": 330,
-   "duration_status": "OK"
+   "duration_status": "OK",
+   "image_verified": {
+    "pdf_page": 330,
+    "printed_page": 331,
+    "fields": [
+     "level",
+     "school",
+     "classes",
+     "casting_time",
+     "range",
+     "components",
+     "duration"
+    ]
+   }
   },
   "Telekinesis": {
    "level": 5,
@@ -8441,6 +8507,13 @@
    "duration": "10 minutes",
    "pdf_page": 342,
    "duration_status": "OK"
+  }
+ },
+ "engine_only_not_in_phb2024": {
+  "Chaos Bolt": {
+   "engine_location": "api/dnd_2024_rules.py SPELLS_CATALOG Sorcerer spells_level_1",
+   "in_phb2024_pages_238_342": false,
+   "provenance": "not in the PHB 2024 spell pages; no approved local source, kept as a working legacy creation option (not deleted, not counted among the 391)"
   }
  }
 }

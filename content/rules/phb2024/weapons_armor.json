@@ -8,7 +8,8 @@
    217,
    218
   ],
-  "note": "values only, no book text; printed page = PDF page + 1; cost in copper (1 GP=100 CP, 1 SP=10 CP)"
+  "note": "values only, no book text; printed page = PDF page + 1; cost in copper (1 GP=100 CP, 1 SP=10 CP)",
+  "image_verification": "PDF 214 weapons table re-read from the page scan: Sling weight shows a dash (no weight stated); Lance reads 'Two-Handed (unless mounted)'; all weights/costs/damage/mastery spot-read OK"
  },
  "weapons": {
   "Club": {
@@ -247,9 +248,11 @@
     "type": "bullet"
    },
    "mastery": "slow",
-   "weight_lb": 0,
+   "weight_lb": null,
    "cost_cp": 10,
-   "pdf_page": 214
+   "pdf_page": 214,
+   "weight_status": "NOT_STATED_IN_SOURCE_TABLE",
+   "weight_source_value": "—"
   },
   "Battleaxe": {
    "category": "martial",
@@ -367,7 +370,8 @@
    "mastery": "topple",
    "weight_lb": 6,
    "cost_cp": 1000,
-   "pdf_page": 214
+   "pdf_page": 214,
+   "two_handed_condition": "unless mounted"
   },
   "Longsword": {
    "category": "martial",

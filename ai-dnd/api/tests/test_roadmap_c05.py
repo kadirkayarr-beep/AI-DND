@@ -22,8 +22,9 @@ ORACLE = json.loads((ROOT / "content" / "rules" / "phb2024" / "spells.json").rea
 ROWS = {r["name"]: r for r in manifest_rows() if r["category"] == "spell"}
 CLASSES = {"Bard", "Cleric", "Druid", "Paladin", "Ranger", "Sorcerer", "Warlock", "Wizard"}
 SCHOOLS = {"Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"}
-BLOCKED_LEVEL = {"Divine Favor", "Slow", "Tasha's Hideous Laughter"}  # OCR printed the level digit as 'J'; no second reading exists
-LEGACY_ENGINE_ONLY = {"Chaos Bolt"}  # in the creation catalog, not in the PHB 2024 spell pages (source not in the approved local scope)
+BLOCKED_LEVEL: set[str] = set()  # the three OCR "Level J" entries were re-read from the page scan (IMAGE_VERIFIED)
+RAW = json.loads((ROOT / "content" / "rules" / "phb2024" / "spells.json").read_text(encoding="utf-8"))
+LEGACY_ENGINE_ONLY = set(RAW["engine_only_not_in_phb2024"])  # in the creation catalog, not in the PHB 2024 spell pages (source not in the approved local scope)
 
 
 class OracleShapeTests(unittest.TestCase):
@@ -59,7 +60,7 @@ class OracleShapeTests(unittest.TestCase):
         for s in ORACLE.values():
             counts[s["level"]] = counts.get(s["level"], 0) + 1
         self.assertEqual(sum(counts.values()), 391)
-        self.assertEqual(counts.get(None), 3)
+        self.assertIsNone(counts.get(None))
         self.assertTrue(all(counts.get(level, 0) > 0 for level in range(10)))
 
     def test_cantrips_are_level_zero_and_never_ritual_slots(self):
@@ -99,6 +100,24 @@ class SpotChecksFromTheBookTests(unittest.TestCase):
                              (level, school, classes, casting, ritual, duration), name)
         self.assertEqual(ORACLE["Aid"]["components"], {"v": True, "s": True, "m": True})
         self.assertEqual(ORACLE["Magic Missile"]["components"], {"v": True, "s": True, "m": False})
+
+
+class ImageVerifiedTests(unittest.TestCase):
+    def test_the_formerly_unreadable_fields_were_read_from_the_page_scan(self):
+        want = {"Divine Favor": (1, "Concentration" not in "1 minute"), "Slow": (3, True), "Tasha's Hideous Laughter": (1, True), "Clairvoyance": (3, True)}
+        for name, (level, concentration) in want.items():
+            s = ORACLE[name]
+            self.assertEqual((s["level"], s["level_status"], s["concentration"] is not None), (level, "IMAGE_VERIFIED", True), name)
+            self.assertEqual(s["image_verified"]["printed_page"], s["pdf_page"] + 1, name)
+        self.assertEqual((ORACLE["Clairvoyance"]["duration"], ORACLE["Clairvoyance"]["concentration"]), ("Concentration, up to 10 minutes", True))
+        self.assertEqual(ORACLE["Divine Favor"]["duration"], "1 minute")
+        self.assertFalse(ORACLE["Divine Favor"]["concentration"])
+        self.assertEqual(sum(1 for s in ORACLE.values() if "image_verified" in s), 5)
+
+    def test_engine_only_spell_has_its_own_provenance_record(self):
+        record = RAW["engine_only_not_in_phb2024"]["Chaos Bolt"]
+        self.assertFalse(record["in_phb2024_pages_238_342"])
+        self.assertNotIn("Chaos Bolt", ORACLE)
 
 
 class EngineAgreementTests(unittest.TestCase):

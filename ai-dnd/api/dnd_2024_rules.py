@@ -1023,13 +1023,15 @@ def get_equipment_armor_and_shield(
         return None, False
 
     joined = " ".join(equipment_choices).casefold()
-    # Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor"); when several different
-    # armors remain, the highest base AC wins (deterministic; a character wears one suit).
+    # Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor"). The labels are CARRIED
+    # equipment, not a worn-armor selection: two different suits cannot both be worn and nothing says which one is, so the
+    # creation request is refused instead of picking one (a carried suit must never raise AC, PHB p.219: one suit at a time).
     found = [alias for alias in ARMOR_NAME_ALIASES if alias.casefold() in joined]
     found = [a for a in found if not any(a != b and a.casefold() in b.casefold() for b in found)]
-    armor = (
-        max((ARMOR_NAME_ALIASES[a] for a in found), key=lambda name: ARMOR_CLASS_RULES[name]["base_ac"]) if found else None
-    )
+    suits = {ARMOR_NAME_ALIASES[a] for a in found}
+    if len(suits) > 1:
+        raise CharacterCreationError("Equipment lists more than one suit of armor; only one can be worn.")
+    armor = next(iter(suits), None)
     has_shield = any(token in joined for token in SHIELD_ITEM_TOKENS)
     return armor, has_shield
 
