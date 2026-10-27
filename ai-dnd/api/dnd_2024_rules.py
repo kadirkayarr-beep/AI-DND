@@ -573,6 +573,20 @@ SPECIES_DEFINITIONS = {
 }
 
 
+# C02: source-backed additions beside the existing fields (PHB 2024 chapter 4; values pinned in
+# content/rules/phb2024/origins.json). Existing `size`, `tool` and `feat` stay as they were: nothing that works is removed.
+_SPECIES_SIZE_CHOICES = {"Aasimar": ["Medium", "Small"], "Human": ["Medium", "Small"], "Tiefling": ["Medium", "Small"]}
+for _name, _species in SPECIES_DEFINITIONS.items():
+    _species.setdefault("size_options", list(_SPECIES_SIZE_CHOICES.get(_name, [_species["size"].split(" ")[0]])))
+_BACKGROUND_FEAT_LISTS = {"Acolyte": "Cleric", "Guide": "Druid", "Sage": "Wizard"}  # Magic Initiate spell lists
+_BACKGROUND_TOOL_CHOICES = {
+    "Artisan": "artisan_tools", "Entertainer": "musical_instrument", "Guard": "gaming_set", "Noble": "gaming_set",
+    "Soldier": "gaming_set",
+}  # category ids (PHB: "choose one kind of ...")
+for _name, _background in BACKGROUND_DEFINITIONS.items():
+    _background.setdefault("feat_variant", _BACKGROUND_FEAT_LISTS.get(_name))
+    _background.setdefault("tool_choice", _BACKGROUND_TOOL_CHOICES.get(_name))
+
 # ============================================================================
 # CLASSES (2024 PHB)
 # ============================================================================
@@ -966,23 +980,36 @@ SPELLS_CATALOG = {
 # AUTHORITATIVE CATALOG ACCESSOR
 # ============================================================================
 
+# PHB 2024 armor table (PDF 218; values in content/rules/phb2024/weapons_armor.json, pinned by test_roadmap_c04).
+# `min_strength` (speed penalty) and `stealth_disadvantage` are recorded here; applying them in play is a later C04 leaf.
+def _armor(category, base_ac, mode, min_strength=None, stealth=False):
+    rule = {"base_ac": base_ac, "dexterity_mode": mode, "category": category, "min_strength": min_strength,
+            "stealth_disadvantage": stealth}
+    if mode == "capped":
+        rule["max_dexterity_bonus"] = 2
+    return rule
+
+
 ARMOR_CLASS_RULES = {
-    "Chain Mail": {"base_ac": 16, "dexterity_mode": "none"},
-    "Scale Mail": {
-        "base_ac": 14,
-        "dexterity_mode": "capped",
-        "max_dexterity_bonus": 2,
-    },
-    "Leather Armor": {"base_ac": 11, "dexterity_mode": "full"},
+    "Padded Armor": _armor("light", 11, "full", stealth=True),
+    "Leather Armor": _armor("light", 11, "full"),
+    "Studded Leather Armor": _armor("light", 12, "full"),
+    "Hide Armor": _armor("medium", 12, "capped"),
+    "Chain Shirt": _armor("medium", 13, "capped"),
+    "Scale Mail": _armor("medium", 14, "capped", stealth=True),
+    "Breastplate": _armor("medium", 14, "capped"),
+    "Half Plate Armor": _armor("medium", 15, "capped", stealth=True),
+    "Ring Mail": _armor("heavy", 14, "none", stealth=True),
+    "Chain Mail": _armor("heavy", 16, "none", 13, True),
+    "Splint Armor": _armor("heavy", 17, "none", 15, True),
+    "Plate Armor": _armor("heavy", 18, "none", 15, True),
 }
 
 ARMOR_NAME_ALIASES = {
     "Zincir Zırh": "Chain Mail",
-    "Chain Mail": "Chain Mail",
     "Pul Zırh": "Scale Mail",
-    "Scale Mail": "Scale Mail",
     "Deri Zırh": "Leather Armor",
-    "Leather Armor": "Leather Armor",
+    **{name: name for name in ARMOR_CLASS_RULES},
 }
 
 SHIELD_ITEM_TOKENS = ("kalkan", "shield")
@@ -996,13 +1023,12 @@ def get_equipment_armor_and_shield(
         return None, False
 
     joined = " ".join(equipment_choices).casefold()
-    armor = next(
-        (
-            canonical_name
-            for alias, canonical_name in ARMOR_NAME_ALIASES.items()
-            if alias.casefold() in joined
-        ),
-        None,
+    # Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor"); when several different
+    # armors remain, the highest base AC wins (deterministic; a character wears one suit).
+    found = [alias for alias in ARMOR_NAME_ALIASES if alias.casefold() in joined]
+    found = [a for a in found if not any(a != b and a.casefold() in b.casefold() for b in found)]
+    armor = (
+        max((ARMOR_NAME_ALIASES[a] for a in found), key=lambda name: ARMOR_CLASS_RULES[name]["base_ac"]) if found else None
     )
     has_shield = any(token in joined for token in SHIELD_ITEM_TOKENS)
     return armor, has_shield

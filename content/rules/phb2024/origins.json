@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "task": "C02",
+  "source": {
+    "book": "Player's Handbook",
+    "edition": "2024",
+    "file_name": "D&D 5e - Players Handbook 2024.pdf",
+    "sha256": "f2ea73369a6c4afbf6a7047249f06e5c51af503d9e42f87fe7a9c2c50aefafea",
+    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
+    "page_rule": "pdf_page as in the manifest; printed page = pdf page + 1; values were read from the page text, no book text is stored here"
+  },
+  "rules": {
+    "background_ability_scores": "A background lists three abilities: raise one by 2 and another by 1, or raise all three by 1; no score above 20 (PDF 176)",
+    "species_parts": "creature type, size, speed, special traits (PDF 176)"
+  },
+  "backgrounds": {
+    "Acolyte": {"pdf_page": 177, "abilities": ["intelligence", "wisdom", "charisma"], "feat": "Magic Initiate", "feat_variant": "Cleric", "skills": ["Insight", "Religion"], "tool": "Calligrapher's Supplies", "tool_choice": null},
+    "Artisan": {"pdf_page": 177, "abilities": ["strength", "dexterity", "intelligence"], "feat": "Crafter", "feat_variant": null, "skills": ["Investigation", "Persuasion"], "tool": null, "tool_choice": "artisan_tools"},
+    "Charlatan": {"pdf_page": 178, "abilities": ["dexterity", "constitution", "charisma"], "feat": "Skilled", "feat_variant": null, "skills": ["Deception", "Sleight of Hand"], "tool": "Forgery Kit", "tool_choice": null},
+    "Criminal": {"pdf_page": 178, "abilities": ["dexterity", "constitution", "intelligence"], "feat": "Alert", "feat_variant": null, "skills": ["Sleight of Hand", "Stealth"], "tool": "Thieves' Tools", "tool_choice": null},
+    "Entertainer": {"pdf_page": 179, "abilities": ["strength", "dexterity", "charisma"], "feat": "Musician", "feat_variant": null, "skills": ["Acrobatics", "Performance"], "tool": null, "tool_choice": "musical_instrument"},
+    "Farmer": {"pdf_page": 179, "abilities": ["strength", "constitution", "wisdom"], "feat": "Tough", "feat_variant": null, "skills": ["Animal Handling", "Nature"], "tool": "Carpenter's Tools", "tool_choice": null},
+    "Guard": {"pdf_page": 180, "abilities": ["strength", "intelligence", "wisdom"], "feat": "Alert", "feat_variant": null, "skills": ["Athletics", "Perception"], "tool": null, "tool_choice": "gaming_set"},
+    "Guide": {"pdf_page": 180, "abilities": ["dexterity", "constitution", "wisdom"], "feat": "Magic Initiate", "feat_variant": "Druid", "skills": ["Stealth", "Survival"], "tool": "Cartographer's Tools", "tool_choice": null},
+    "Hermit": {"pdf_page": 181, "abilities": ["constitution", "wisdom", "charisma"], "feat": "Healer", "feat_variant": null, "skills": ["Medicine", "Religion"], "tool": "Herbalism Kit", "tool_choice": null},
+    "Merchant": {"pdf_page": 181, "abilities": ["constitution", "intelligence", "charisma"], "feat": "Lucky", "feat_variant": null, "skills": ["Animal Handling", "Persuasion"], "tool": "Navigator's Tools", "tool_choice": null},
+    "Noble": {"pdf_page": 182, "abilities": ["strength", "intelligence", "charisma"], "feat": "Skilled", "feat_variant": null, "skills": ["History", "Persuasion"], "tool": null, "tool_choice": "gaming_set"},
+    "Sage": {"pdf_page": 182, "abilities": ["constitution", "intelligence", "wisdom"], "feat": "Magic Initiate", "feat_variant": "Wizard", "skills": ["Arcana", "History"], "tool": "Calligrapher's Supplies", "tool_choice": null},
+    "Sailor": {"pdf_page": 183, "abilities": ["strength", "dexterity", "wisdom"], "feat": "Tavern Brawler", "feat_variant": null, "skills": ["Acrobatics", "Perception"], "tool": "Navigator's Tools", "tool_choice": null},
+    "Scribe": {"pdf_page": 183, "abilities": ["dexterity", "intelligence", "wisdom"], "feat": "Skilled", "feat_variant": null, "skills": ["Investigation", "Perception"], "tool": "Calligrapher's Supplies", "tool_choice": null},
+    "Soldier": {"pdf_page": 184, "abilities": ["strength", "dexterity", "constitution"], "feat": "Savage Attacker", "feat_variant": null, "skills": ["Athletics", "Intimidation"], "tool": null, "tool_choice": "gaming_set"},
+    "Wayfarer": {"pdf_page": 184, "abilities": ["dexterity", "wisdom", "charisma"], "feat": "Lucky", "feat_variant": null, "skills": ["Insight", "Stealth"], "tool": "Thieves' Tools", "tool_choice": null}
+  },
+  "species": {
+    "Aasimar": {"pdf_page": 185, "size": ["Medium", "Small"], "speed": 30, "darkvision": 60},
+    "Dragonborn": {"pdf_page": 186, "size": ["Medium"], "speed": 30, "darkvision": 60},
+    "Dwarf": {"pdf_page": 187, "size": ["Medium"], "speed": 30, "darkvision": 120},
+    "Elf": {"pdf_page": 188, "size": ["Medium"], "speed": 30, "darkvision": 60},
+    "Gnome": {"pdf_page": 190, "size": ["Small"], "speed": 30, "darkvision": 60},
+    "Goliath": {"pdf_page": 191, "size": ["Medium"], "speed": 35, "darkvision": 0},
+    "Halfling": {"pdf_page": 192, "size": ["Small"], "speed": 30, "darkvision": 0},
+    "Human": {"pdf_page": 193, "size": ["Medium", "Small"], "speed": 30, "darkvision": 0},
+    "Orc": {"pdf_page": 194, "size": ["Medium"], "speed": 30, "darkvision": 120},
+    "Tiefling": {"pdf_page": 195, "size": ["Medium", "Small"], "speed": 30, "darkvision": 60}
+  },
+  "species_notes": {
+    "Elf": "the Wood Elf lineage raises Speed to 35 feet and the Drow lineage raises Darkvision to 120 feet (PDF 189); lineage choice is a C02 leaf of its own",
+    "Dwarf": "Dwarven Toughness: Hit Point maximum +1 and +1 again at each level (PDF 187)",
+    "Human": "Skillful (one skill) and Versatile (an Origin feat) are traits (PDF 193)"
+  },
+  "legacy": {
+    "decision": "Half-Elf and Half-Orc are deliberately retained 2014 options; they are not entries of the 2024 Player's Handbook (content/manifest/legacy-compatibility.json)",
+    "Half-Elf": {"source": "SRD 5.1 (2016), citation recorded by the existing resolver", "oracle_status": "BLOCKED_SOURCE_NOT_LOCAL", "reason": "the SRD source is not in the user-approved local source scope; no value is asserted from memory"},
+    "Half-Orc": {"source": "SRD 5.1 (2016), citation recorded by the existing resolver", "oracle_status": "BLOCKED_SOURCE_NOT_LOCAL", "reason": "the SRD source is not in the user-approved local source scope; no value is asserted from memory"}
+  }
+}
