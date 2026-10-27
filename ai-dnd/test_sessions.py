@@ -2536,6 +2536,8 @@ class SessionTests(unittest.TestCase):
                         active_celestial_form="heavenly_wings",
                         celestial_revelation_turns_remaining=10,
                         movement_effect={"kind": "flight", "speed_ft": 35},
+                        # K03: activation records the effect's clock (60 s) in the versioned optional field
+                        effect_clock={"version": 1, "remaining_s": {"celestial_revelation": 60}, "last_event": {}},
                     )
                 assert_isolated(expected)
 
@@ -2683,6 +2685,7 @@ class SessionTests(unittest.TestCase):
                     ),
                     active_celestial_form="necrotic_shroud",
                     celestial_revelation_turns_remaining=10,
+                    effect_clock={"version": 1, "remaining_s": {"celestial_revelation": 60}, "last_event": {}},
                     bonus_action_used_round=before[eligible_index][
                         "world_state"]["combat"]["round"],
                 )

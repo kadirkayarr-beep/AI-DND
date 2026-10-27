@@ -34,6 +34,8 @@ import action_economy
 import initiative
 import weapon_attack
 import effect_targeting
+import effect_lifecycle
+import event_order
 import interaction_adventure
 import npc_statements
 from weapon_catalog import WEAPONS
@@ -1722,6 +1724,8 @@ CELESTIAL_REVELATION_FORMS = (
 # K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
 # "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
 # K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
+# K04: the recorded order of simultaneous due items (technical decision record, see event_order.py).
+RULE_ORDER = event_order.DEFAULT_RULE_ORDER
 INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
 NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(
     "necrotic_shroud", 10, "PHB 2024 p.185 (PDF) Aasimar: Necrotic Shroud", excludes_allies=True)
@@ -1763,8 +1767,10 @@ def _validate_species_trait_state(value, species, proficiency_bonus=2):
         raise ValueError("Kayıt tür yetenekleri geçersiz.")
     limits = _new_species_trait_state(species, proficiency_bonus)
     expected = set(limits)
-    if set(value) != expected:
+    if set(value) - {"effect_clock"} != expected:  # K03: optional, versioned; older saves lack it
         raise ValueError("Kayıt tür yetenek alanları geçersiz.")
+    if "effect_clock" in value:
+        effect_lifecycle.validate_clock(value["effect_clock"])
     integer_fields = (
         "healing_hands_uses_remaining",
         "celestial_revelation_uses_remaining",
@@ -4115,6 +4121,12 @@ def _finish_species_player_turn():
         state["large_form_turns_remaining"] -= 1
         if state["large_form_turns_remaining"] == 0:
             effects.append({"trait": "large_form", "expired": True})
+    if "effect_clock" in state:  # K03: this turn boundary owns the combat decrement; keep the clock seconds in step
+        effect_lifecycle.sync_from_turns(state)
+        for effect in effects:
+            if effect.get("expired") and effect.get("trait") in effect_lifecycle.TIMED_EFFECTS:
+                state["effect_clock"]["remaining_s"].pop(effect["trait"], None)
+                state["effect_clock"]["last_event"].pop(effect["trait"], None)
     state["movement_budget_ft"] = 0
     state["movement_effect"] = None
     return effects
@@ -4210,6 +4222,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         state["celestial_revelation_uses_remaining"] -= 1
         state["active_celestial_form"] = form
         state["celestial_revelation_turns_remaining"] = 10
+        effect_lifecycle.start_effect(state, "celestial_revelation")
         if form == "heavenly_wings":
             state["movement_effect"] = {
                 "kind": "flight",
@@ -4261,6 +4274,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["large_form_uses_remaining"] -= 1
         state["large_form_turns_remaining"] = 100
+        effect_lifecycle.start_effect(state, "large_form")
         if combat["active"]:
             resources = action_economy.ensure(_session())["player"]
             resources["movement_available"] = max(
@@ -6614,7 +6628,8 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
     if "campaign_time" not in world:
         return campaign_time.advance(world, seconds, reason, source, observation=observation)
     before = campaign_time.public_time(world)
-    remaining, elapsed, known, death_results = seconds, 0, [], []
+    event_order.require_complete(RULE_ORDER)  # K04: never discover a gap after the clock has already moved
+    remaining, elapsed, known, death_results, effect_events = seconds, 0, [], [], []
     while True:
         death = ensure_death_state()
         now = world["campaign_time"]["elapsed_seconds"]
@@ -6640,14 +6655,33 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
         elapsed += result["elapsed_seconds"]
         remaining -= result["elapsed_seconds"]
         known.extend(result["player_known_events"])
+        # K03: timed effects consume the ACTUAL elapsed seconds of this step, once per (source, step start).
+        def settle_effects(elapsed_step=result["elapsed_seconds"], step_start=now):
+            effect_events.extend(effect_lifecycle.advance_effects(
+                _session(), elapsed_step, f"{source}@{step_start}",
+                "round" if reason == "combat_round" else "clock"))
+
+        # K04: when the death/recovery timer is due at the same moment, the recorded rule order decides which runs first.
+        step_end = world["campaign_time"]["elapsed_seconds"]
+        due_kind = (None if deadline is None or step_end < deadline
+                    else "regeneration" if death["stable"] else "death")
+        effects_first = due_kind is None or event_order.order_due_events(
+            [{"event_id": "effects", "kind": "effect_expiry", "at": step_end},
+             {"event_id": "death-timer", "kind": due_kind, "at": step_end}], RULE_ORDER,
+        )[0]["event_id"] == "effects"
+        if effects_first:
+            settle_effects()
         if supplies:
             import equipment_economy
             condition_death = equipment_economy.process_supply_days(_session(), now)
             if condition_death:
                 death_results.extend(condition_death["death_results"])
+                if not effects_first:
+                    settle_effects()  # the step's time has passed; deferred effects must still consume it
                 return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
                             remaining_seconds=remaining, player_known_events=known,
-                            death_results=death_results, condition_death=True, interrupted=True)
+                            death_results=death_results, condition_death=True, interrupted=True,
+                            effect_events=effect_events)
         now = world["campaign_time"]["elapsed_seconds"]
         if deadline is not None and now >= deadline:
             if death["stable"]:
@@ -6662,15 +6696,18 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
                 if save and save.get("death_resolution", {}).get("rolled_back"):
                     return dict(result, elapsed_seconds=0, requested_seconds=seconds,
                                 remaining_seconds=seconds, death_results=death_results,
-                                player_known_events=[], after=campaign_time.public_time(world))
+                                player_known_events=[], after=campaign_time.public_time(world),
+                                effect_events=effect_events)
                 if _session().character["current_hp"] == 0 and not death["dead"] and not death["stable"]:
                     death["noncombat_next_save_at"] = deadline + 6
+        if not effects_first:
+            settle_effects()
         if remaining == 0 or result["interrupted"] or ensure_death_state()["dead"]:
             break
     adventure_play.settle_session(_session())
     return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
                 remaining_seconds=remaining, before=before, player_known_events=known,
-                death_results=death_results)
+                death_results=death_results, effect_events=effect_events)
 
 
 def commit_location_change(location_id, turn_index=None):

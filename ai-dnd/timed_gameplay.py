@@ -7,6 +7,7 @@ import math
 import copy
 
 import campaign_time as clock
+import effect_lifecycle
 import living_world
 from scheduled_events import process_events, pending_events
 
@@ -262,11 +263,11 @@ def _advance(session, seconds, reason, observation=None):
     if reason == "travel_stage":
         return advance_walking(session, seconds, observation)
     before_elapsed = session.world_state["campaign_time"]["elapsed_seconds"]
-    result = clock.advance(
-        session.world_state, seconds, reason,
-        f"turn:{session.world_state.get('flags', {}).get('turn_index', 0)}",
-        observation=observation,
-    )
+    source = f"turn:{session.world_state.get('flags', {}).get('turn_index', 0)}"
+    result = clock.advance(session.world_state, seconds, reason, source, observation=observation)
+    # K03: timed effects consume the ACTUAL elapsed seconds of this step (the player's wait/sleep/task path).
+    result["effect_events"] = effect_lifecycle.advance_effects(
+        session, result["elapsed_seconds"], f"{source}@{before_elapsed}", "clock")
     import equipment_economy
     equipment_economy.process_supply_days(session, before_elapsed)
     return result
@@ -278,7 +279,7 @@ def advance_walking(session, seconds, observation=None):
     from api.core_resolution import resolve_saving_throw
     world = session.world_state
     before = clock.public_time(world)
-    elapsed, known, saves, death_results = 0, [], [], []
+    elapsed, known, saves, death_results, effect_events = 0, [], [], [], []
     interrupted = False
     while elapsed < seconds:
         time = world["campaign_time"]
@@ -289,10 +290,11 @@ def advance_walking(session, seconds, observation=None):
             effort = world["travel_effort"] = {"day": day, "walking_seconds": 0, "checks": []}
         amount = min(seconds - elapsed, clock.DAY - absolute % clock.DAY,
                      3600 - effort["walking_seconds"] % 3600)
-        advance = clock.advance(world, amount, "travel_stage",
-                               f"turn:{world.get('flags', {}).get('turn_index', 0)}",
-                               observation=observation)
+        source = f"turn:{world.get('flags', {}).get('turn_index', 0)}"
+        advance = clock.advance(world, amount, "travel_stage", source, observation=observation)
         actual = advance["elapsed_seconds"]
+        effect_events.extend(effect_lifecycle.advance_effects(
+            session, actual, f"{source}@{time['elapsed_seconds'] - actual}", "clock"))
         effort["walking_seconds"] += actual
         elapsed += actual
         known.extend(advance["player_known_events"])
@@ -325,7 +327,7 @@ def advance_walking(session, seconds, observation=None):
     return {"before": before, "after": clock.public_time(world),
             "requested_seconds": seconds, "elapsed_seconds": elapsed,
             "player_known_events": known, "interrupted": interrupted,
-            "extended_travel_saves": saves, "death_results": death_results}
+            "extended_travel_saves": saves, "death_results": death_results, "effect_events": effect_events}
 
 
 def reacquire_tracking(session):
