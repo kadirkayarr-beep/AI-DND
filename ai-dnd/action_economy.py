@@ -44,13 +44,23 @@ def conditions(session, actor):
     return {str(name).lower() for name in names}
 
 
-def can_act(session, actor):
+# K07 (release_v2 glossary): Speed is 0 only under these conditions. Incapacitated (and Stunned, which only grants Incapacitated)
+# prevents actions, Bonus Actions and Reactions but NOT movement.
+SPEED_ZERO_CONDITIONS = {"unconscious", "dead", "paralyzed", "petrified", "grappled", "restrained"}
+
+
+def present(session, actor):
+    """Alive, active and on the scene: the part of `can_act` that is not a condition."""
     data = actor_data(session, actor)
     status = (session.world_state.get("player_combat_status", "active")
               if actor == "player" else data.get("combat_status", "active"))
     return (data.get("current_hp", 0) > 0 and status == "active"
             and not (actor == "player" and session.world_state.get("death_state", {}).get("dead", False))
-            and (actor == "player" or data.get("location") == session.world_state["location"])
+            and (actor == "player" or data.get("location") == session.world_state["location"]))
+
+
+def can_act(session, actor):
+    return (present(session, actor)
             and not conditions(session, actor) & {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"})
 
 
@@ -58,10 +68,8 @@ def speed(session, actor):
     outside_player = actor == "player" and not session.world_state.get("combat", {}).get("active")
     data = session.character if outside_player else actor_data(session, actor)
     active_conditions = weapon_attack.conditions(session, actor, data) if outside_player else conditions(session, actor)
-    capable = (data.get("current_hp", 0) > 0 and not active_conditions & {
-        "incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"
-    }) if outside_player else can_act(session, actor)
-    if not capable or active_conditions & {"grappled", "restrained"}:
+    able_to_move = (data.get("current_hp", 0) > 0) if outside_player else present(session, actor)
+    if not able_to_move or active_conditions & SPEED_ZERO_CONDITIONS:
         return 0
     value = int(data.get("speed_ft", 30 if actor == "player" else 0))
     if actor == "player":
@@ -235,8 +243,8 @@ def grant(session, actor, source, allowed_action_types, quantity=1, *,
     })
 
 
-def validate_actor(session, actor="player", reaction=False):
-    if not can_act(session, actor):
+def validate_actor(session, actor="player", reaction=False, movement=False):
+    if not (present(session, actor) if movement else can_act(session, actor)):
         fail("actor_cannot_act", "Authoritative actor condition prevents this action.")
     if not reaction and session.world_state["combat"]["current_actor_id"] != actor:
         fail("out_of_turn", "Actor is not the current participant.")
@@ -460,7 +468,7 @@ def target(session, identity):
 
 
 def move(session, actor, distance):
-    validate_actor(session, actor)
+    validate_actor(session, actor, movement=True)  # moving is not an action: Incapacitated/Stunned may move, Speed 0 is the limit
     if type(distance) is not int or distance < 1:
         fail("invalid_movement", "Movement needs a positive integer distance in feet.")
     r = ensure(session)[actor]
@@ -631,7 +639,7 @@ def projection(session):
             "bonus_rules": bonus_rules(session, actor),
             "reaction_available": able and not r["reaction_spent"],
             "effective_movement_available": movement_limit(session, actor),
-            "movement_remaining": max(0, movement_limit(session, actor) - r["movement_used"]) if able and speed(session, actor) else 0,
+            "movement_remaining": max(0, movement_limit(session, actor) - r["movement_used"]) if present(session, actor) and speed(session, actor) else 0,
             "legal_actions": [],
         }
         for kind in sorted(ACTION_TYPES):

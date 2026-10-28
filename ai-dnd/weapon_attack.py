@@ -360,8 +360,9 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         disadvantage.extend(sorted(aconditions & {"blinded", "poisoned", "prone", "restrained"}))
     if "grappled" in aconditions and attacker.get("grappled_by") != target:
         disadvantage.append("grappled_other_target")
-    if tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed"}:
-        advantage.extend("target_" + name for name in sorted(tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed"}))
+    if tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed", "petrified"}:
+        advantage.extend("target_" + name for name in sorted(
+            tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed", "petrified"}))
     if "prone" in tconditions:
         (advantage if distance <= 5 else disadvantage).append("target_prone")
     if "invisible" in aconditions:
@@ -575,7 +576,7 @@ def save(session, target, abilities, dc, chosen=None, *, effect_context=None):
     if ability not in abilities:
         fail("invalid_save_choice", "Invalid target saving throw ability.")
     status = conditions(session, target, defender)
-    if ability in {"strength", "dexterity"} and status & {"unconscious", "paralyzed", "stunned"}:
+    if ability in {"strength", "dexterity"} and status & {"unconscious", "paralyzed", "stunned", "petrified"}:
         result = {"ability": ability, "dc": dc, "outcome": "FAILURE", "automatic_failure": True}
     else:
         modifier = integer(defender.get(ability + "_mod", 0), "saving throw modifier")
@@ -588,7 +589,7 @@ def save(session, target, abilities, dc, chosen=None, *, effect_context=None):
             adjustment = total - modifier - 2 * exhaustion(defender)
         result = resolve_saving_throw(roll_fn=session.roll_d20, ability=ability, dc=dc,
                                     ability_modifier=modifier, circumstantial_modifier=adjustment,
-                                    advantage=bool(dodging))
+                                    advantage=bool(dodging), disadvantage=ability == "dexterity" and "restrained" in status)
     block = defender.get("monster_stat_block") or {}
     if (target != "player" and result["outcome"] == "FAILURE" and effect_context
             and session.world_state.get("combat", {}).get("active")

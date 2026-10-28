@@ -385,7 +385,10 @@ class ActionEconomyTests(unittest.TestCase):
         for condition in ("incapacitated", "unconscious"):
             s, npc = ready()
             s.character["conditions"] = [condition]
-            for command in [{"kind": "move", "distance_ft": 5}, {"kind": "dash"},
+            # K07 release_v2: Incapacitated prevents actions, Bonus Actions and Reactions but not movement; Speed 0
+            # (Unconscious) does. So a move is refused for Unconscious only.
+            moves = [{"kind": "move", "distance_ft": 5}] if condition == "unconscious" else []
+            for command in moves + [{"kind": "dash"},
                             {"kind": "attack", "target_id": npc["id"]},
                             {"kind": "species", "ability": "adrenaline_rush"}]:
                 before = copy.deepcopy((s.character, s.world_state))

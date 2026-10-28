@@ -729,7 +729,7 @@
         "pdf_page": 372,
         "printed_page": 373,
         "also": {
-          "text": "Hit Point Dice glossary PDF 367 (printed 368); Long Rest PDF 369 (printed 370): 'all spent Hit Point Dice' return; interrupted Long Rest after at least 1 hour gives the benefits of a Short Rest PDF 370 (printed 371); class Hit Dice: Fighter D10 PDF 90, Sorcerer D6 PDF 138; text also re-checked against K07 release_v2 glossary.md (Hit Point Dice PDF 367, Long Rest PDF 369-370, Short Rest PDF 372) - source package audit pending"
+          "text": "Hit Point Dice glossary PDF 367 (printed 368); Long Rest PDF 369 (printed 370): 'all spent Hit Point Dice' return; interrupted Long Rest after at least 1 hour gives the benefits of a Short Rest PDF 370 (printed 371); class Hit Dice: Fighter D10 PDF 90, Sorcerer D6 PDF 138; text also re-checked against K07 release_v2 glossary.md (Hit Point Dice PDF 367, Long Rest PDF 369-370, Short Rest PDF 372) - K07 release_v2 independent source audit completed (user report 2026-10-28)"
         },
         "text": "Short Rest: spend Hit Point Dice, roll the die + Constitution modifier per die, at least 1 HP, may spend another after each roll; an interrupted Short Rest confers no benefits",
         "verified_from": "page scan image"
@@ -743,38 +743,144 @@
         {
           "id": "01",
           "kind": "normal",
-          "input": {"who": "fighter", "current_hp": 3, "steps": [{"op": "spend", "roll": 4}, {"op": "short_rest"}, {"op": "spend", "roll": 4}, {"op": "remaining"}, {"op": "spend", "roll": 4}]},
-          "expected": ["refused", "ok", 6, 0, "refused"]
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "spend", "roll": 4}, {"op": "short_rest"}, {"op": "spend", "roll": 4}, {"op": "remaining"}, {"op": "spend", "roll": 4}]},
+          "expected": ["refused:no_window", "ok", 6, 0, "refused:no_dice"]
         },
         {
           "id": "02",
           "kind": "boundary",
-          "input": {"who": "fighter", "current_hp": 3, "constitution": -3, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 1}]},
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": -3, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 1}]},
           "expected": ["ok", 1]
         },
         {
           "id": "03",
           "kind": "boundary",
-          "input": {"who": "fighter", "current_hp": 11, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 10}]},
+          "input": {"who": "fighter", "current_hp": 11, "max_hp": 12, "constitution": 2, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 10}]},
           "expected": ["ok", 1]
         },
         {
           "id": "04",
           "kind": "interaction",
-          "input": {"who": "sorcerer", "current_hp": 2, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "long_rest"}, {"op": "remaining"}]},
+          "input": {"who": "sorcerer", "current_hp": 2, "max_hp": 14, "constitution": 2, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "long_rest"}, {"op": "remaining"}]},
           "expected": ["ok", 5, 1, 5, 0, "ok", 2]
         },
         {
           "id": "05",
           "kind": "negative",
-          "input": {"who": "fighter", "current_hp": 3, "steps": [{"op": "interrupt_after", "seconds": 1200}, {"op": "short_rest"}, {"op": "spend", "roll": 4}]},
-          "expected": ["interrupted", "refused"]
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 1200}, {"op": "short_rest"}, {"op": "spend", "roll": 4}]},
+          "expected": ["interrupted", "refused:no_window"]
         },
         {
           "id": "06",
           "kind": "interaction",
-          "input": {"who": "fighter", "current_hp": 3, "steps": [{"op": "interrupt_after", "seconds": 3700}, {"op": "long_rest"}, {"op": "spend", "roll": 4}]},
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 3700}, {"op": "long_rest"}, {"op": "spend", "roll": 4}]},
           "expected": ["interrupted", 6]
+        },
+        {
+          "id": "07",
+          "kind": "negative",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 1200}, {"op": "long_rest"}, {"op": "spend", "roll": 4}]},
+          "expected": ["interrupted", "refused:no_window"]
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.conditions_speed_actions_attacks_saves",
+      "family": "conditions",
+      "source_ref": {
+        "pdf_page": 368,
+        "printed_page": 369,
+        "also": {
+          "text": "K07 release_v2 glossary.md, PDF ordinal / printed: Incapacitated 368/369, Paralyzed 370/371, Petrified 371/372, Restrained 372/373, Grappled 366/367, Stunned 375/376, Unconscious 376/[?] (use the PDF ordinal), Exhaustion 365/366, Speed 373/374"
+        },
+        "text": "Speed is 0 only under Grappled, Paralyzed, Petrified, Restrained, Unconscious; Incapacitated (and Stunned, which only grants Incapacitated) prevents actions, Bonus Actions and Reactions but not movement; Exhaustion reduces Speed by 5 ft per level; Petrified: attacks against it have Advantage, Strength and Dexterity saves fail automatically; Restrained: Disadvantage on Dexterity saves",
+        "verified_from": "release_v2 source package (independent source audit completed per user report)"
+      },
+      "engine_resolvers": [
+        "action_economy.speed",
+        "action_economy.move",
+        "action_economy.consume_action",
+        "weapon_attack.resolve",
+        "weapon_attack.save"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {"conditions": ["incapacitated"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [30, "ok", "actor_cannot_act"]
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {"conditions": ["stunned"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [30, "ok", "actor_cannot_act"]
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {"conditions": ["paralyzed"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "04",
+          "kind": "normal",
+          "input": {"conditions": ["petrified"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "05",
+          "kind": "normal",
+          "input": {"conditions": ["unconscious"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "06",
+          "kind": "normal",
+          "input": {"conditions": ["grappled"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "ok"]
+        },
+        {
+          "id": "07",
+          "kind": "normal",
+          "input": {"conditions": ["restrained"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "ok"]
+        },
+        {
+          "id": "08",
+          "kind": "interaction",
+          "input": {"conditions": ["incapacitated", "grappled"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "09",
+          "kind": "boundary",
+          "input": {"conditions": ["incapacitated"], "exhaustion": 2, "steps": [{"op": "speed"}, {"op": "move", "feet": 20}, {"op": "move", "feet": 5}]},
+          "expected": [20, "ok", "movement_unavailable"]
+        },
+        {
+          "id": "10",
+          "kind": "normal",
+          "input": {"target_conditions": ["petrified"], "steps": [{"op": "attack_advantage"}]},
+          "expected": [["target_petrified"]]
+        },
+        {
+          "id": "11",
+          "kind": "interaction",
+          "input": {"target_conditions": ["petrified"], "steps": [{"op": "save", "ability": "strength", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "dexterity", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "wisdom", "dc": 10, "rolls": [20]}]},
+          "expected": ["auto_fail", "auto_fail", "SUCCESS"]
+        },
+        {
+          "id": "12",
+          "kind": "boundary",
+          "input": {"target_conditions": ["restrained"], "steps": [{"op": "save", "ability": "dexterity", "dc": 10, "rolls": [18, 4]}, {"op": "save", "ability": "strength", "dc": 10, "rolls": [18, 4]}]},
+          "expected": ["FAILURE", "SUCCESS"]
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {"target_conditions": ["incapacitated"], "steps": [{"op": "save", "ability": "strength", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "dexterity", "dc": 10, "rolls": [20]}]},
+          "expected": ["SUCCESS", "SUCCESS"]
         }
       ]
     }
@@ -785,10 +891,10 @@
     {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
     {"family": "hit_points", "rule": "death_saves_and_stable", "status": "OPEN"},
     {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
-    {"family": "state", "rule": "conditions", "status": "OPEN"},
     {"family": "state", "rule": "long_rest_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: no ability-score restoration, no 16-hour spacing between Long Rests (PDF 369); Hit Point Dice are covered by K07.hit_dice_short_and_long_rest"},
     {"family": "state", "rule": "short_rest_other_benefits", "status": "OPEN", "reason": "not covered: features that recharge on a Short Rest (species Short Rest features are not given after an interrupted Long Rest), damage after the rest other than via the HP guard, a level applied between the rest and the spend, Hit Dice display in the UI, interruptions by walking/exertion (PDF 370); Hit Point Dice spending is covered by K07.hit_dice_short_and_long_rest"},
     {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
-    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; the effects of Dodge, Disengage, Help, Hide, Ready, Search, Study are not covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; ENGINE DIVERGENCE to settle in the conditions family: action_economy.speed() returns 0 while Incapacitated, but Incapacitated alone does not zero Speed in the 2024 rules"}
+    {"family": "conditions", "rule": "conditions_other_effects", "status": "OPEN", "reason": "not oracle-covered: Charmed, Deafened, Frightened (movement and line of sight), Invisible, Blinded auto-fail on sight checks, Prone crawling and standing cost, Unconscious dropping items, Exhaustion D20 penalty and death at level 6, Dodge losing benefits on Incapacitated/Speed 0 (engine checks can_act and speed, untested here), Concentration broken by Incapacitated, Dehydration/Malnutrition exhaustion removal, outside-combat movement still blocked for Incapacitated/Stunned by exploration._busy (Speed is correct there, journeys are not), a Grapple ending when the grappler is Incapacitated (not modelled); sources: K07 release_v2 (scope_and_exceptions.json unsupported list applies)"},
+    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; the effects of Dodge, Disengage, Help, Hide, Ready, Search, Study are not covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"}
   ]
 }

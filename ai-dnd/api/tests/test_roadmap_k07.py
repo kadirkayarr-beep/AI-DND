@@ -75,7 +75,7 @@ class NumericRuleOracleTests(unittest.TestCase):
 
     def test_an_open_rule_family_cannot_be_evaluated_as_if_it_passed(self):
         with self.assertRaises(rule_oracles.OpenRule):
-            rule_oracles.evaluate_rule_case("K07.conditions#01", ORACLES)
+            rule_oracles.evaluate_rule_case("K07.death_saves_and_stable#01", ORACLES)  # a family that is still OPEN
 
 
 if __name__ == "__main__":

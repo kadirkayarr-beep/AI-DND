@@ -163,7 +163,7 @@ def _hit_dice_rests(case):
     from api.tests.test_roadmap_k07_hit_dice import fighter, sorcerer
     given = case["input"]
     session = fighter() if given["who"] == "fighter" else sorcerer(2)
-    session.character["current_hp"] = given["current_hp"]
+    session.character["current_hp"], session.character["max_hp"] = given["current_hp"], given["max_hp"]
     if "constitution" in given:
         session.character["modifiers"]["constitution"] = given["constitution"]
     results = []
@@ -182,12 +182,48 @@ def _hit_dice_rests(case):
                 results.append(hit_dice.remaining(session.character))
             else:
                 raise KeyError(op)
-        except ValueError:
-            results.append("refused")
+        except ValueError as error:
+            known = {"yeni bitirmiş": "no_window", "kalmadı": "no_dice", "en yüksek": "full_hp", "Çatışma": "combat"}
+            results.append(next((f"refused:{code}" for text, code in known.items() if text in str(error)), "refused:unclassified"))
+    return results
+
+
+def _conditions(case):
+    """Real owners: `action_economy` (Speed, movement, actions) and `weapon_attack` (attack-roll sources, saves)."""
+    from unittest.mock import patch
+    import action_economy as ae
+    import weapon_attack as attack
+    from api.tests.test_weapon_attack import armed, resolve
+    from combat_lifecycle import CombatRequestError
+    given = case["input"]
+    session, enemy = armed()
+    session.character.update(speed_ft=given.get("speed_ft", 30), conditions=list(given.get("conditions", [])),
+                             exhaustion=given.get("exhaustion", 0))
+    enemy["conditions"] = list(given.get("target_conditions", []))
+    results = []
+    for step in given["steps"]:
+        op = step["op"]
+        if op == "speed":
+            results.append(ae.speed(session, "player"))
+        elif op in ("move", "action"):
+            try:
+                ae.move(session, "player", step["feet"]) if op == "move" else ae.consume_action(session, "player", "attack", "action")
+                results.append("ok")
+            except CombatRequestError as error:
+                results.append(error.code)
+        elif op == "attack_advantage":
+            results.append(sorted(resolve(session, enemy, rolls=(10, 15))["advantage_sources"]))
+        elif op == "save":
+            with patch.object(session, "roll_d20", side_effect=list(step["rolls"])):
+                outcome = attack.save(session, enemy["id"], [step["ability"]], step["dc"], step["ability"])
+            results.append("auto_fail" if outcome.get("automatic_failure") else outcome["outcome"])
+        else:
+            raise KeyError(op)
     return results
 
 
 DISPATCH = {
+    "K07.conditions_speed_actions_attacks_saves": _conditions,
     "K07.hit_dice_short_and_long_rest": _hit_dice_rests,
     "K07.saving_throw_and_skill_list": _saving_throw_and_skill_list,
     "K07.turn_resource_budgets": _turn_resource_budgets,
