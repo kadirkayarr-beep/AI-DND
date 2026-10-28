@@ -191,6 +191,106 @@
           "expected": "rejected"
         }
       ]
+    },
+    {
+      "leaf_id": "K07.long_rest_hp_exhaustion_duration",
+      "family": "state",
+      "source_ref": {
+        "pdf_page": 369,
+        "printed_page": 370,
+        "text": "Long Rest (Rules Glossary): at least 8 hours; needs at least 1 Hit Point to start; regain all lost HP; Exhaustion level decreases by 1; not possible during combat (rolling Initiative interrupts). Engine note: the 0 HP refusal comes from the generic require_player_can_act guard (not a Long Rest rule); the combat refusal is an interpretation of rolling Initiative interrupting a rest",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "game.resolve_species_trait_action"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 2,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 1
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 2,
+            "elapsed_seconds": 28799
+          },
+          "expected": {
+            "status": "rejected"
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "hp": 20,
+            "max_hp": 20,
+            "exhaustion": 0,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 0
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "hp": 1,
+            "max_hp": 20,
+            "exhaustion": 1,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 0
+          }
+        },
+        {
+          "id": "05",
+          "kind": "negative",
+          "input": {
+            "hp": 0,
+            "max_hp": 20,
+            "exhaustion": 0,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "rejected"
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 3,
+            "elapsed_seconds": 28800,
+            "combat_active": true
+          },
+          "expected": {
+            "status": "rejected"
+          }
+        }
+      ]
     }
   ],
   "open_leaves": [
@@ -201,6 +301,8 @@
     {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
     {"family": "combat_order", "rule": "action_bonus_reaction_move_budgets", "status": "OPEN"},
     {"family": "state", "rule": "conditions", "status": "OPEN"},
-    {"family": "state", "rule": "rest_and_resources", "status": "OPEN"}
+    {"family": "state", "rule": "long_rest_hit_dice_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: the engine has no Hit Point Dice resource (all spent Hit Dice regained), no ability-score restoration, no 16-hour spacing between Long Rests (PDF 369)"},
+    {"family": "state", "rule": "short_rest", "status": "OPEN", "reason": "not covered: 1 hour minimum, spending Hit Point Dice to heal, features that recharge on a Short Rest"},
+    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"}
   ]
 }

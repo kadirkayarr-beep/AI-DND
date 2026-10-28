@@ -78,7 +78,22 @@ def _proficiency_bonus_by_level(case):
         return "rejected"
 
 
+def _long_rest(case):
+    from api.tests.test_species_traits import make_session
+    given = case["input"]
+    session = make_session("Human", level=1)
+    session.character.update(max_hp=given["max_hp"], current_hp=given["hp"], exhaustion=given["exhaustion"])
+    if given.get("combat_active"):
+        session.world_state["combat"]["active"] = True
+    try:
+        session.resolve_species_trait_action("long_rest", elapsed_seconds=given["elapsed_seconds"])
+    except ValueError:
+        return {"status": "rejected"}
+    return {"status": "completed", "hp": session.character["current_hp"], "exhaustion": session.character.get("exhaustion", 0)}
+
+
 DISPATCH = {
+    "K07.long_rest_hp_exhaustion_duration": _long_rest,
     "K07.proficiency_bonus_by_level": _proficiency_bonus_by_level,
     "K07.ability_modifier": _ability_modifier,
     "K07.advantage_disadvantage": _advantage_disadvantage,
