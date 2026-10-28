@@ -99,7 +99,51 @@ def _long_rest(case):
     return {"status": "completed", "hp": session.character["current_hp"], "exhaustion": session.character.get("exhaustion", 0)}
 
 
+def _turn_resource_budgets(case):
+    """Run the steps against the REAL combat owner (`action_economy`) in a started encounter on the player's turn."""
+    import action_economy
+    from api.tests.test_death_system import make_session, start_test_combat
+    from combat_lifecycle import CombatRequestError
+    session = make_session()
+    start_test_combat(session)
+    results = []
+    for step in case["input"]["steps"]:
+        op = step["op"]
+        try:
+            if op == "action_names":
+                results.append(sorted(name.capitalize() for name in action_economy.ACTION_TYPES - {"feature"}))
+                continue
+            if op == "consume":
+                action_economy.consume_action(session, "player", step["kind"], step["resource"])
+            elif op == "grant_bonus":
+                action_economy.grant(session, "player", "oracle_feature", [step.get("kind", "disengage")], resource="bonus")
+            elif op == "set_speed":
+                session.character["speed_ft"] = step["feet"]
+            elif op == "move":
+                action_economy.move(session, "player", step["feet"])
+            elif op == "dash":
+                action_economy.dash(session, "player")
+            elif op == "begin_turn":
+                action_economy.begin_turn(session, "player")
+            elif op == "begin_round":
+                action_economy.begin_round(session)
+            elif op == "spend_reaction":
+                action_economy.ensure(session)["player"]["reaction_spent"] = True
+            elif op == "reaction_spent":
+                results.append(action_economy.ensure(session)["player"]["reaction_spent"])
+                continue
+            elif op == "incapacitate":
+                session.character["conditions"] = ["incapacitated"]
+            else:
+                raise KeyError(op)
+            results.append("ok")
+        except CombatRequestError as error:
+            results.append(error.code)
+    return results
+
+
 DISPATCH = {
+    "K07.turn_resource_budgets": _turn_resource_budgets,
     "K07.long_rest_hp_exhaustion_duration": _long_rest,
     "K07.proficiency_bonus_by_level": _proficiency_bonus_by_level,
     "K07.ability_modifier": _ability_modifier,

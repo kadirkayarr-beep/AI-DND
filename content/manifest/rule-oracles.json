@@ -294,6 +294,382 @@
           }
         }
       ]
+    },
+    {
+      "leaf_id": "K07.turn_resource_budgets",
+      "family": "combat_order",
+      "source_ref": {
+        "pdf_page": 14,
+        "printed_page": 15,
+        "also": {
+          "pdf_page": 24,
+          "printed_page": 25,
+          "text": "Breaking Up Your Move"
+        },
+        "text": "Actions list (12 actions); Dash gives extra movement equal to Speed; a Bonus Action only when a feature grants one and only one per turn, anything that deprives you of taking actions also prevents a Bonus Action; a Reaction cannot be taken again until the start of your next turn; movement can be split around actions",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "action_economy.consume_action",
+        "action_economy.move",
+        "action_economy.dash",
+        "action_economy.begin_turn",
+        "action_economy.begin_round"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "steps": [
+              {
+                "op": "action_names"
+              }
+            ]
+          },
+          "expected": [
+            [
+              "Attack",
+              "Dash",
+              "Disengage",
+              "Dodge",
+              "Help",
+              "Hide",
+              "Influence",
+              "Magic",
+              "Ready",
+              "Search",
+              "Study",
+              "Utilize"
+            ]
+          ]
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "03",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "bonus_action_spent"
+          ]
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "06",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "spend_reaction"
+              },
+              {
+                "op": "begin_round"
+              },
+              {
+                "op": "reaction_spent"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "reaction_spent"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            true,
+            "ok",
+            false
+          ]
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "set_speed",
+                "feet": 30
+              },
+              {
+                "op": "move",
+                "feet": 10
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "move",
+                "feet": 20
+              },
+              {
+                "op": "move",
+                "feet": 5
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "movement_unavailable"
+          ]
+        },
+        {
+          "id": "08",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "set_speed",
+                "feet": 25
+              },
+              {
+                "op": "move",
+                "feet": 25
+              },
+              {
+                "op": "dash"
+              },
+              {
+                "op": "move",
+                "feet": 25
+              },
+              {
+                "op": "move",
+                "feet": 5
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "movement_unavailable"
+          ]
+        },
+        {
+          "id": "09",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "dash"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "10",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "incapacitate"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "actor_cannot_act",
+            "actor_cannot_act"
+          ]
+        },
+        {
+          "id": "11",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "12",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus",
+                "kind": "disengage"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        }
+      ]
     }
   ],
   "open_leaves": [
@@ -302,10 +678,10 @@
     {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
     {"family": "hit_points", "rule": "death_saves_and_stable", "status": "OPEN"},
     {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
-    {"family": "combat_order", "rule": "action_bonus_reaction_move_budgets", "status": "OPEN"},
     {"family": "state", "rule": "conditions", "status": "OPEN"},
     {"family": "state", "rule": "long_rest_hit_dice_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: the engine has no Hit Point Dice resource (all spent Hit Dice regained), no ability-score restoration, no 16-hour spacing between Long Rests (PDF 369)"},
     {"family": "state", "rule": "short_rest", "status": "OPEN", "reason": "not covered: 1 hour minimum, spending Hit Point Dice to heal, features that recharge on a Short Rest"},
-    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"}
+    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
+    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; the effects of Dodge, Disengage, Help, Hide, Ready, Search, Study are not covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; ENGINE DIVERGENCE to settle in the conditions family: action_economy.speed() returns 0 while Incapacitated, but Incapacitated alone does not zero Speed in the 2024 rules"}
   ]
 }
