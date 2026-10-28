@@ -84,11 +84,18 @@ def _long_rest(case):
     session = make_session("Human", level=1)
     session.character.update(max_hp=given["max_hp"], current_hp=given["hp"], exhaustion=given["exhaustion"])
     if given.get("combat_active"):
-        session.world_state["combat"]["active"] = True
+        from api.tests.test_death_system import start_test_combat  # a REAL started encounter, not a hand-set flag
+        start_test_combat(session)
+        if not session.world_state["combat"]["active"]:
+            raise AssertionError("fixture failed to start combat")
     try:
         session.resolve_species_trait_action("long_rest", elapsed_seconds=given["elapsed_seconds"])
-    except ValueError:
-        return {"status": "rejected"}
+    except ValueError as error:
+        # the refusal must come for the EXPECTED reason: an unknown message is reported as such and fails the case
+        known = {"süresi geçersiz": "duration_invalid", "Çatışma sırasında": "combat_active",
+                 "Bilinçsiz karakter": "player_cannot_act", "Ölü karakter": "player_cannot_act"}
+        reason = next((code for text, code in known.items() if text in str(error)), "unclassified: " + str(error))
+        return {"status": "rejected", "reason": reason}
     return {"status": "completed", "hp": session.character["current_hp"], "exhaustion": session.character.get("exhaustion", 0)}
 
 
