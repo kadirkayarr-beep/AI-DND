@@ -49,6 +49,24 @@ class NumericRuleOracleTests(unittest.TestCase):
                     self.assertEqual(game.get_modifier(score), modifier)
                     self.assertEqual(dnd_2024_rules.get_modifier(score), modifier)
 
+    def test_proficiency_bonus_is_the_published_table_for_every_character_level(self):
+        from api import dnd_2024_rules
+        table = {**{n: 2 for n in range(1, 5)}, **{n: 3 for n in range(5, 9)}, **{n: 4 for n in range(9, 13)},
+                 **{n: 5 for n in range(13, 17)}, **{n: 6 for n in range(17, 21)}}
+        for level, bonus in table.items():
+            self.assertEqual(dnd_2024_rules.proficiency_bonus_for_level(level), bonus, level)
+        for bad in (0, -1, 21, 30, True, 2.0, "3", None):
+            with self.assertRaises(ValueError, msg=bad):
+                dnd_2024_rules.proficiency_bonus_for_level(bad)
+
+    def test_the_other_engine_owners_use_the_one_resolver(self):
+        import xp
+        import character_progression
+        from api import dnd_2024_rules
+        for level in range(1, 21):
+            self.assertEqual(xp.proficiency_bonus_for(level), dnd_2024_rules.proficiency_bonus_for_level(level))
+        self.assertIs(character_progression.proficiency_bonus_for_level, dnd_2024_rules.proficiency_bonus_for_level)
+
     def test_a_wrong_expectation_is_detected_not_absorbed(self):
         broken = {**ORACLES, "leaves": [
             dict(leaf, cases=[dict(case, expected=(case["expected"] + 1) if isinstance(case["expected"], int) else case["expected"])
@@ -57,7 +75,7 @@ class NumericRuleOracleTests(unittest.TestCase):
 
     def test_an_open_rule_family_cannot_be_evaluated_as_if_it_passed(self):
         with self.assertRaises(rule_oracles.OpenRule):
-            rule_oracles.evaluate_rule_case("K07.proficiency_bonus_by_level#01", ORACLES)
+            rule_oracles.evaluate_rule_case("K07.conditions#01", ORACLES)
 
 
 if __name__ == "__main__":

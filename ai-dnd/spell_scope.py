@@ -9,7 +9,7 @@ import initiative
 import spatial_rules
 import weapon_attack as attacks
 from api.core_resolution import resolve_attack_roll
-from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
+from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
 
 CATALOG = {
     "Fire Bolt": (0, 120, 10, "fire"),
@@ -161,7 +161,7 @@ def _cast(session, spell_id, target_id, slot_level):
     if level and character_level != 1 and not character_progression.has_table(character):
         fail("unsupported_spell_progression", "Only sourced level-one slot progression is supported.")
     pb = character["proficiency_bonus"]
-    if type(character_level) is not int or not 1 <= character_level <= 20 or pb != 2 + (character_level - 1) // 4:
+    if type(character_level) is not int or not 1 <= character_level <= 20 or pb != proficiency_bonus_for_level(character_level):
         fail("unsupported_spell_progression", "Authoritative level/proficiency state is inconsistent.")
     ability = CLASS_DEFINITIONS[character["class"]]["spellcasting_ability"]
     score = character.get(ability)

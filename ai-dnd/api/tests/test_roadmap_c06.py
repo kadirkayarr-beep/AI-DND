@@ -61,7 +61,7 @@ class OracleTests(unittest.TestCase):
         self.assertEqual(sorted(int(k) for k in rows), list(range(1, 21)))
         for level in range(1, 21):
             row = rows[str(level)]
-            self.assertEqual(row["proficiency_bonus"], 2 + (level - 1) // 4, level)
+            self.assertEqual(row["proficiency_bonus"], (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6)[level - 1], level)
             self.assertEqual(row["sorcery_points"], None if level == 1 else level, level)
         # rows read by eye from the page scan (PDF 139), independent of the parser
         self.assertEqual((rows["1"]["cantrips"], rows["1"]["prepared_spells"], rows["1"]["slots"]), (4, 2, {"1": 2}))

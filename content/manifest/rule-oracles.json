@@ -64,10 +64,136 @@
         {"id": "03", "kind": "boundary", "input": {"temp": 0, "damage": 4, "hp": 20}, "expected": {"temp": 0, "hp": 16}},
         {"id": "04", "kind": "boundary", "input": {"temp": 5, "damage": 5, "hp": 20}, "expected": {"temp": 0, "hp": 20}}
       ]
+    },
+    {
+      "leaf_id": "K07.proficiency_bonus_by_level",
+      "family": "proficiency",
+      "source_ref": {
+        "pdf_page": 12,
+        "printed_page": 13,
+        "text": "Proficiency Bonus table: Up to 4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6 (character levels; the table also lists CR 21-30 for monsters, not a character level)",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "api.dnd_2024_rules.proficiency_bonus_for_level"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "boundary",
+          "input": {
+            "level": 1
+          },
+          "expected": 2
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "level": 2
+          },
+          "expected": 2
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "level": 4
+          },
+          "expected": 2
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "level": 5
+          },
+          "expected": 3
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "level": 8
+          },
+          "expected": 3
+        },
+        {
+          "id": "06",
+          "kind": "boundary",
+          "input": {
+            "level": 9
+          },
+          "expected": 4
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "level": 12
+          },
+          "expected": 4
+        },
+        {
+          "id": "08",
+          "kind": "boundary",
+          "input": {
+            "level": 13
+          },
+          "expected": 5
+        },
+        {
+          "id": "09",
+          "kind": "boundary",
+          "input": {
+            "level": 16
+          },
+          "expected": 5
+        },
+        {
+          "id": "10",
+          "kind": "boundary",
+          "input": {
+            "level": 17
+          },
+          "expected": 6
+        },
+        {
+          "id": "11",
+          "kind": "boundary",
+          "input": {
+            "level": 20
+          },
+          "expected": 6
+        },
+        {
+          "id": "12",
+          "kind": "negative",
+          "input": {
+            "level": 0
+          },
+          "expected": "rejected"
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {
+            "level": 21
+          },
+          "expected": "rejected"
+        },
+        {
+          "id": "14",
+          "kind": "negative",
+          "input": {
+            "level": true
+          },
+          "expected": "rejected"
+        }
+      ]
     }
   ],
   "open_leaves": [
-    {"family": "proficiency", "rule": "proficiency_bonus_by_level", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: the engine stores proficiency_bonus on the character and has no level-to-bonus resolver; PHB p.12 table (levels 1-4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6)"},
     {"family": "save", "rule": "saving_throw_and_skill_list", "status": "OPEN", "reason": "no covered leaf yet (save proficiency, skill-to-ability map)"},
     {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "several sources of one kind collapse to one state before roll_d20; not covered"},
     {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},

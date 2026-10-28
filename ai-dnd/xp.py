@@ -15,7 +15,6 @@ from quest_catalog import find_quest
 
 
 MAX_LEVEL = 4
-PROFICIENCY_BONUS = 2
 MAX_GRANT = 100_000
 MAX_STORED_XP = 1_000_000_000
 MAX_AWARD_IDS = 10_000  # Bounded long-campaign receipts; old save IDs remain valid.
@@ -47,6 +46,12 @@ FIXED_HP_BY_CLASS = {
 
 _AWARD_ID = re.compile(r"^(quest|combat):\S{1,180}$")
 _DEFEATED = frozenset({"unconscious", "defeated", "dead"})
+
+
+def proficiency_bonus_for(level: int) -> int:
+    """The one Proficiency Bonus resolver (K07 leaf): kept here as a name for the XP/level code."""
+    from api.dnd_2024_rules import proficiency_bonus_for_level
+    return proficiency_bonus_for_level(level)
 
 
 def level_for_xp(xp: int) -> int:
@@ -143,7 +148,7 @@ def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, even
     character["current_hp"] = current_hp
     level = max(level, min(stored_level, 20))  # XP never demotes a character created above the XP-earned cap (C06)
     character["level"] = level
-    character["proficiency_bonus"] = 2 + (level - 1) // 4
+    character["proficiency_bonus"] = proficiency_bonus_for(level)
     return {
         "previous_level": min(stored_level, 20),
         "new_level": level,
@@ -224,12 +229,12 @@ def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, An
     if applied is None:
         if level != level_for_xp(xp) or level > MAX_LEVEL:
             raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
-        if player.get("proficiency_bonus") != PROFICIENCY_BONUS:
+        if player.get("proficiency_bonus") != proficiency_bonus_for(level):
             raise ValueError("Kayıt ustalık bonusu geçersiz.")
     else:  # C06: a level reached through applied class-table choices may be ahead of the XP-earned level, never behind it
         if type(level) is not int or type(applied) is not int or not level_for_xp(xp) <= level <= 20 or not 1 <= applied <= level:
             raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
-        if player.get("proficiency_bonus") != 2 + (level - 1) // 4:
+        if player.get("proficiency_bonus") != proficiency_bonus_for(level):
             raise ValueError("Kayıt ustalık bonusu geçersiz.")
     for key, limit in (("species", 40), ("origin_feat", 40)):
         if key not in player or player.get(key) is None:

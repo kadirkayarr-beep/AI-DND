@@ -1015,6 +1015,13 @@ ARMOR_NAME_ALIASES = {
 SHIELD_ITEM_TOKENS = ("kalkan", "shield")
 
 
+def proficiency_bonus_for_level(level: int) -> int:
+    """PHB 2024 Proficiency Bonus table for a CHARACTER level (PDF 12, printed 13): 1-4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6."""
+    if type(level) is not int or not 1 <= level <= 20:
+        raise ValueError("Character level must be an integer from 1 to 20.")
+    return (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6)[level - 1]
+
+
 def get_equipment_armor_and_shield(
     equipment_choices: list[str] | None,
 ) -> tuple[str | None, bool]:

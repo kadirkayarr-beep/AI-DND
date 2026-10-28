@@ -80,7 +80,7 @@ class SpellEngineTests(unittest.TestCase):
             for cls, spell, d20 in (("Sorcerer", "Fire Bolt", 12), ("Cleric", "Sacred Flame", 1)):
                 with self.subTest(level=level, spell=spell):
                     s, e = caster(cls=cls)
-                    s.character.update(level=level, proficiency_bonus=2 + (level - 1) // 4)
+                    s.character.update(level=level, proficiency_bonus={4: 2, 5: 3, 11: 4, 17: 6}[level])
                     with patch("game.roll_d20", return_value=d20), patch.object(s.rng, "randint", return_value=1) as dice:
                         result = spell_scope.cast(s, spell, e["id"])
                     self.assertEqual(result["damage"], count)

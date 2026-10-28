@@ -70,7 +70,16 @@ def _temp_hp_lost_first(case):
     return {"temp": result["temporary_hp_after"], "hp": session.character["current_hp"]}
 
 
+def _proficiency_bonus_by_level(case):
+    from api import dnd_2024_rules
+    try:
+        return dnd_2024_rules.proficiency_bonus_for_level(case["input"]["level"])
+    except ValueError:
+        return "rejected"
+
+
 DISPATCH = {
+    "K07.proficiency_bonus_by_level": _proficiency_bonus_by_level,
     "K07.ability_modifier": _ability_modifier,
     "K07.advantage_disadvantage": _advantage_disadvantage,
     "K07.expertise_once": _expertise_once,

@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from api.dnd_2024_rules import proficiency_bonus_for_level
+
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
 _cache: dict[str, dict[str, Any] | None] = {}
 MAX_SUPPORTED_LEVEL = 2  # highest level whose slots are all level 1 (Sorcerer table)
@@ -180,7 +182,7 @@ def apply_level_choices(session: Any, preview: Any, choices: Any) -> dict[str, A
         changes.append({"kind": "hit_points", "gain": gain})
     new_character["level"] = max(new_character["level"], to_level)
     new_character["progression_level"] = to_level
-    new_character["proficiency_bonus"] = 2 + (new_character["level"] - 1) // 4
+    new_character["proficiency_bonus"] = proficiency_bonus_for_level(new_character["level"])
     new_character["spells"] = list(state["prepared"])
     new_character["spell_slots_remaining"] = copy.deepcopy(state["slots"])
     if "metamagic" in choices:
