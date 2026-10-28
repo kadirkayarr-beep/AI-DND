@@ -142,7 +142,21 @@ def _turn_resource_budgets(case):
     return results
 
 
+def _saving_throw_and_skill_list(case):
+    import game
+    from api import dnd_2024_rules
+    given = case["input"]
+    if given["op"] == "skill_abilities":  # both engine copies of the table are run, never assumed equal
+        if given["owner"] == "rules":
+            return {skill: data["ability"] for skill, data in dnd_2024_rules.SKILL_DEFINITIONS.items()}
+        return dict(game.SKILLS)
+    if given["op"] == "class_saves":
+        return {name: sorted(data["saving_throws"]) for name, data in dnd_2024_rules.CLASS_DEFINITIONS.items()}
+    return dnd_2024_rules.calculate_derived_stats(given["class"], "Human", given["scores"])["saving_throw_mods"]
+
+
 DISPATCH = {
+    "K07.saving_throw_and_skill_list": _saving_throw_and_skill_list,
     "K07.turn_resource_budgets": _turn_resource_budgets,
     "K07.long_rest_hp_exhaustion_duration": _long_rest,
     "K07.proficiency_bonus_by_level": _proficiency_bonus_by_level,

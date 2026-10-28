@@ -670,10 +670,61 @@
           ]
         }
       ]
+    },
+    {
+      "leaf_id": "K07.saving_throw_and_skill_list",
+      "family": "save",
+      "source_ref": {
+        "pdf_page": 13,
+        "printed_page": 14,
+        "also": {
+          "text": "each class's Core Traits table, Saving Throw Proficiencies row (PDF pages: Barbarian 50, Bard 58, Cleric 68, Druid 78, Fighter 90, Monk 100, Paladin 108, Ranger 118, Rogue 128, Sorcerer 138, Warlock 152, Wizard 164; printed = PDF + 1)"
+        },
+        "text": "Skills table (18 skills with their ability); Saving Throw Proficiencies: a proficient save adds the Proficiency Bonus to saves of that ability; each class gives proficiency in two saving throws",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "api.dnd_2024_rules.SKILL_DEFINITIONS",
+        "game.SKILLS",
+        "api.dnd_2024_rules.CLASS_DEFINITIONS",
+        "api.dnd_2024_rules.calculate_derived_stats"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {"op": "skill_abilities", "owner": "rules"},
+          "expected": {"Acrobatics": "dexterity", "Animal Handling": "wisdom", "Arcana": "intelligence", "Athletics": "strength", "Deception": "charisma", "History": "intelligence", "Insight": "wisdom", "Intimidation": "charisma", "Investigation": "intelligence", "Medicine": "wisdom", "Nature": "intelligence", "Perception": "wisdom", "Performance": "charisma", "Persuasion": "charisma", "Religion": "intelligence", "Sleight of Hand": "dexterity", "Stealth": "dexterity", "Survival": "wisdom"}
+        },
+        {
+          "id": "02",
+          "kind": "interaction",
+          "input": {"op": "skill_abilities", "owner": "game"},
+          "expected": {"Acrobatics": "dexterity", "Animal Handling": "wisdom", "Arcana": "intelligence", "Athletics": "strength", "Deception": "charisma", "History": "intelligence", "Insight": "wisdom", "Intimidation": "charisma", "Investigation": "intelligence", "Medicine": "wisdom", "Nature": "intelligence", "Perception": "wisdom", "Performance": "charisma", "Persuasion": "charisma", "Religion": "intelligence", "Sleight of Hand": "dexterity", "Stealth": "dexterity", "Survival": "wisdom"}
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {"op": "class_saves"},
+          "expected": {"Barbarian": ["constitution", "strength"], "Bard": ["charisma", "dexterity"], "Cleric": ["charisma", "wisdom"], "Druid": ["intelligence", "wisdom"], "Fighter": ["constitution", "strength"], "Monk": ["dexterity", "strength"], "Paladin": ["charisma", "wisdom"], "Ranger": ["dexterity", "strength"], "Rogue": ["dexterity", "intelligence"], "Sorcerer": ["charisma", "constitution"], "Warlock": ["charisma", "wisdom"], "Wizard": ["intelligence", "wisdom"]}
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {"op": "save_modifiers", "class": "Barbarian", "scores": {"strength": 15, "dexterity": 14, "constitution": 13, "intelligence": 10, "wisdom": 10, "charisma": 8}},
+          "expected": {"strength": 4, "dexterity": 2, "constitution": 3, "intelligence": 0, "wisdom": 0, "charisma": -1}
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {"op": "save_modifiers", "class": "Wizard", "scores": {"strength": 15, "dexterity": 14, "constitution": 13, "intelligence": 10, "wisdom": 10, "charisma": 8}},
+          "expected": {"strength": 2, "dexterity": 2, "constitution": 1, "intelligence": 2, "wisdom": 2, "charisma": -1}
+        }
+      ]
     }
   ],
   "open_leaves": [
-    {"family": "save", "rule": "saving_throw_and_skill_list", "status": "OPEN", "reason": "no covered leaf yet (save proficiency, skill-to-ability map)"},
+    {"family": "save", "rule": "skill_proficiency_choices_and_save_total_in_play", "status": "OPEN", "reason": "class skill-choice counts/options, background skills, and the saving-throw total applied during play (saving_bonus, feat/species adders, exhaustion) are not oracle-covered; the creation save modifiers cover only the level-1 Proficiency Bonus of 2 (higher levels belong to C06); Sorcerer saves were read in C06 and are also run here"},
     {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "several sources of one kind collapse to one state before roll_d20; not covered"},
     {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
     {"family": "hit_points", "rule": "death_saves_and_stable", "status": "OPEN"},
