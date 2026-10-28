@@ -112,7 +112,7 @@ class ShortRestTests(unittest.TestCase):
         s = fighter()
         s.resolve_species_trait_action("short_rest")
         s.advance_campaign_time(60, "explicit_wait")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "yeni bitirmiş"):
             spend(s, 5)
         self.assertEqual(hit_dice.spent(s.character), 0)
 
@@ -122,7 +122,7 @@ class ShortRestTests(unittest.TestCase):
         result = s.resolve_species_trait_action("short_rest")
         self.assertFalse(result["effects"]["rest_completed"])
         self.assertNotIn("hit_dice", result["effects"])
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "yeni bitirmiş"):
             spend(s, 5)
         self.assertEqual((s.character["current_hp"], hit_dice.spent(s.character)), (3, 0))
 
@@ -152,7 +152,7 @@ class ShortRestTests(unittest.TestCase):
         event(late, "rest-stop", 3700, 5400, behavior="FORCED", summary="Binadan çıkman gerekiyor.")
         result = late.resolve_species_trait_action("long_rest")
         self.assertFalse(result["effects"]["rest_completed"])
-        self.assertTrue(result["effects"]["short_rest_benefits"])
+        self.assertTrue(result["effects"]["short_rest_hit_dice"])
         self.assertTrue(result["effects"]["hit_dice"]["can_spend"])
         self.assertEqual(spend(late, 4)["effects"]["remaining"], 0)
         early = fighter()
@@ -162,12 +162,22 @@ class ShortRestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "yeni bitirmiş"):
             spend(early, 4)
 
+    def test_the_one_hour_boundary_of_an_interrupted_long_rest_is_inclusive(self):
+        for start, opens in ((3600, True), (3599, False)):
+            with self.subTest(interrupted_at=start):
+                s = fighter()
+                event(s, "rest-stop", start, start + 600, behavior="FORCED", summary="Binadan çıkman gerekiyor.")
+                result = s.resolve_species_trait_action("long_rest")
+                self.assertEqual(result["effects"]["time_result"]["elapsed_seconds"], start)
+                self.assertEqual("hit_dice" in result["effects"], opens)
+
     def test_no_dice_can_be_spent_in_combat(self):
         from api.tests.test_death_system import start_test_combat
         s = fighter()
         s.resolve_species_trait_action("short_rest")
         start_test_combat(s)
-        with self.assertRaises(ValueError):
+        self.assertFalse(hit_dice.summary(s)["can_spend"])  # the combat clause of the window, not only the spend refusal
+        with self.assertRaisesRegex(ValueError, "Çatışma"):
             spend(s, 5)
 
 

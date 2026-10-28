@@ -1606,6 +1606,10 @@ class SessionTests(unittest.TestCase):
                         world, 3600, "short_rest",
                         f"turn:{world.get('flags', {}).get('turn_index', 0)}",
                     )
+                    # K07: a finished Short Rest opens the Hit Point Dice spending window at the rest-end second.
+                    snapshot["player"]["hit_dice"] = {
+                        "spent": 0, "window_second": world["campaign_time"]["elapsed_seconds"],
+                        "hp": snapshot["player"]["current_hp"]}
                 rng_before = [session.rng.getstate() for session in sessions]
                 rng_default = game._DEFAULT_SESSION.rng.getstate()
                 rng_module = random.getstate()
@@ -1742,6 +1746,9 @@ class SessionTests(unittest.TestCase):
                                 adrenaline_rush_uses_remaining=fixtures[index][0],
                                 movement_budget_ft=0, movement_effect=None,
                             )
+                            snapshot["player"]["hit_dice"] = {
+                                "spent": 0, "window_second": world["campaign_time"]["elapsed_seconds"],
+                                "hp": snapshot["player"]["current_hp"]}
                     rng_before = [session.rng.getstate() for session in sessions]
                     rng_default = game._DEFAULT_SESSION.rng.getstate()
                     rng_module = random.getstate()
@@ -1891,6 +1898,7 @@ class SessionTests(unittest.TestCase):
                             f"turn:{world.get('flags', {}).get('turn_index', 0)}",
                         )
                         if index != interrupted_index:
+                            snapshot["player"]["hit_dice"] = {"spent": 0, "window_second": None, "hp": None}  # K07 Long Rest
                             snapshot["player"]["current_hp"] = fixtures[index][2]
                             world["spellcasting_v1"]["slots"] = copy.deepcopy(
                                 spell_scope.CLASS_DEFINITIONS[fixtures[index][0]][

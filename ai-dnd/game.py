@@ -4270,7 +4270,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 # PHB 2024 Long Rest (PDF 370): rested at least 1 hour before the interruption -> the benefits of a Short Rest.
                 # Only the Hit Point Dice window is given here; species Short Rest features are not (HANDOFF).
                 import hit_dice
-                interrupted_effects["short_rest_benefits"] = True
+                interrupted_effects["short_rest_hit_dice"] = True  # only the Hit Dice part of the Short Rest benefits
                 interrupted_effects["hit_dice"] = hit_dice.open_window(_session())
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
