@@ -2053,6 +2053,7 @@ export const SpeciesTraitActionInputAction = {
   choose_giant_ancestry: 'choose_giant_ancestry',
   short_rest: 'short_rest',
   long_rest: 'long_rest',
+  spend_hit_die: 'spend_hit_die',
 } as const;
 
 /**

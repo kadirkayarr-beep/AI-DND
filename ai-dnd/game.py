@@ -1954,6 +1954,8 @@ def _player_state_for_save():
         saved["progression_level"] = character["progression_level"]
     if character.get("metamagic"):
         saved["metamagic"] = list(character["metamagic"])
+    if "hit_dice" in character:  # K07: spent Hit Point Dice and the open Short Rest window (additive, absent in older saves)
+        saved["hit_dice"] = dict(character["hit_dice"])
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -2157,6 +2159,8 @@ def _validate_save_payload(payload):
                                   or any(not isinstance(m, str) or not 0 < len(m) <= 40 for m in player["metamagic"])
                                   or len(set(player["metamagic"])) != len(player["metamagic"])):
         raise ValueError("Kayıt metamagic seçimleri geçersiz.")
+    import hit_dice
+    hit_dice.validate_saved(player)
 
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
@@ -2535,6 +2539,9 @@ def load_game(path):
         character.update(copy.deepcopy(player.get("origin_choices") or {}))
         character.pop("progression_level", None)
         character.pop("metamagic", None)
+        character.pop("hit_dice", None)
+        if "hit_dice" in player:
+            character["hit_dice"] = dict(player["hit_dice"])
         if "progression_level" in player:
             character["progression_level"] = player["progression_level"]
         if player.get("metamagic"):
@@ -4258,9 +4265,16 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
                     "refreshed": {}, "time_advance": rest_time}
         if rest_time.get("interrupted"):
+            interrupted_effects = {"time_result": rest_time, "rest_completed": False}
+            if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
+                # PHB 2024 Long Rest (PDF 370): rested at least 1 hour before the interruption -> the benefits of a Short Rest.
+                # Only the Hit Point Dice window is given here; species Short Rest features are not (HANDOFF).
+                import hit_dice
+                interrupted_effects["short_rest_benefits"] = True
+                interrupted_effects["hit_dice"] = hit_dice.open_window(_session())
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
-                "effects": {"time_result": rest_time, "rest_completed": False},
+                "effects": interrupted_effects,
             }
     character = _session().character
     species = character.get("species", character.get("race"))
@@ -4479,6 +4493,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         state["movement_budget_ft"] = 0
         state["movement_effect"] = None
         effects = {"adrenaline_rush_uses_refreshed": refreshed}
+        import hit_dice
+        effects["hit_dice"] = hit_dice.open_window(_session())  # K07: the player spends dice one request at a time
         message = (
             "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
             if species == "Orc"
@@ -4503,6 +4519,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
         }
         heal_player(character["max_hp"] - character["current_hp"])
+        import hit_dice
+        hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
         _session().world_state["player_combat_status"] = "active"
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
@@ -4518,6 +4536,13 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         import spell_scope
         spell_scope.restore_slots(_session())
         message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
+
+    elif action == "spend_hit_die":
+        import hit_dice
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında Hit Point Dice harcanamaz.")
+        effects = hit_dice.spend(_session(), heal_player)
+        message = f"Bir Hit Point Die harcandı; {effects['healing']} can puanı yenilendi."
 
     else:
         raise ValueError("Bilinmeyen tür yeteneği.")

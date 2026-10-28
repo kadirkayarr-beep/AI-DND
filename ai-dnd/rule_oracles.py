@@ -155,7 +155,40 @@ def _saving_throw_and_skill_list(case):
     return dnd_2024_rules.calculate_derived_stats(given["class"], "Human", given["scores"])["saving_throw_mods"]
 
 
+def _hit_dice_rests(case):
+    """Drive the REAL rest owners (`resolve_species_trait_action`) for a created character; one result per step."""
+    from unittest.mock import patch
+    import hit_dice
+    from api.tests.test_campaign_time_edges import event
+    from api.tests.test_roadmap_k07_hit_dice import fighter, sorcerer
+    given = case["input"]
+    session = fighter() if given["who"] == "fighter" else sorcerer(2)
+    session.character["current_hp"] = given["current_hp"]
+    if "constitution" in given:
+        session.character["modifiers"]["constitution"] = given["constitution"]
+    results = []
+    for step in given["steps"]:
+        op = step["op"]
+        try:
+            if op == "interrupt_after":
+                event(session, "oracle-interruption", step["seconds"], step["seconds"] + 600, behavior="FORCED", summary="Interruption.")
+            elif op in ("short_rest", "long_rest"):
+                done = session.resolve_species_trait_action(op)["effects"].get("rest_completed", True)
+                results.append("ok" if done else "interrupted")
+            elif op == "spend":
+                with patch.object(session.rng, "randint", return_value=step["roll"]):
+                    results.append(session.resolve_species_trait_action("spend_hit_die")["effects"]["healing"])
+            elif op == "remaining":
+                results.append(hit_dice.remaining(session.character))
+            else:
+                raise KeyError(op)
+        except ValueError:
+            results.append("refused")
+    return results
+
+
 DISPATCH = {
+    "K07.hit_dice_short_and_long_rest": _hit_dice_rests,
     "K07.saving_throw_and_skill_list": _saving_throw_and_skill_list,
     "K07.turn_resource_budgets": _turn_resource_budgets,
     "K07.long_rest_hp_exhaustion_duration": _long_rest,

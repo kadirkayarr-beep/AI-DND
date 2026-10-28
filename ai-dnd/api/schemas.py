@@ -458,6 +458,7 @@ class SpeciesTraitActionRequest(BaseModel):
         "choose_giant_ancestry",
         "short_rest",
         "long_rest",
+        "spend_hit_die",
     ]
     form: Literal[
         "heavenly_wings", "inner_radiance", "necrotic_shroud"
