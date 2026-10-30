@@ -1046,6 +1046,10 @@ def get_equipment_armor_and_shield(
     return armor, has_shield
 
 
+# Valid as a kept saved record, not offered at creation: the engine has no owner for its effect yet.
+UNOFFERED_FIGHTING_STYLES = ("Protection",)
+
+
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,

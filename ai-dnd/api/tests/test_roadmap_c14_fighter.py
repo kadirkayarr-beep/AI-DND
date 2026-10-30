@@ -319,6 +319,16 @@ class SavedState(unittest.TestCase):
             with self.subTest(field), self.assertRaises(ValueError):
                 cp.validate_saved(player, {})
 
+    def test_fighter_applied_rules_are_its_own(self):
+        from class_progression.base import ClassProgression
+        from class_progression.fighter import HANDLER
+        self.assertIsNot(type(HANDLER).validate_applied, ClassProgression.validate_applied)
+        with self.assertRaises(ValueError):
+            HANDLER.validate_applied({"subclass_id": "champion"}, {}, 2)
+        with self.assertRaises(ValueError):
+            HANDLER.validate_applied({}, {}, 3)
+        HANDLER.validate_applied({"subclass_id": "champion"}, {}, 3)
+
     def test_a_null_style_stays_legal_for_other_classes_and_legacy_fighters(self):
         cp.validate_saved({"class": "Barbarian", "level": 1, "fighting_style": None}, {})
         cp.validate_saved({"class": "Fighter", "level": 1, "fighting_style": None}, {})

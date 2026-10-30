@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import character_progression as core
+from api.dnd_2024_rules import UNOFFERED_FIGHTING_STYLES
 from combat_lifecycle import CombatRequestError
 
 KEY = "fighter_uses"
@@ -32,8 +33,8 @@ DUELING_DAMAGE_BONUS = 2
 GREAT_WEAPON_MINIMUM = 3
 
 # Every Fighting Style feat of the book: a stored one is a valid record. Only the applied ones are offered at creation.
-KNOWN_STYLES = frozenset({"Archery", "Blind Fighting", "Defense", "Dueling", "Great Weapon Fighting", "Interception", "Protection",
-                          "Thrown Weapon Fighting", "Two-Weapon Fighting", "Unarmed Fighting"})
+KNOWN_STYLES = frozenset({"Archery", "Blind Fighting", "Defense", "Dueling", "Great Weapon Fighting", "Interception",
+                          "Thrown Weapon Fighting", "Two-Weapon Fighting", "Unarmed Fighting", *UNOFFERED_FIGHTING_STYLES})
 APPLIED_STYLES = frozenset({"Archery", "Defense", "Dueling", "Great Weapon Fighting", "Two-Weapon Fighting"})
 
 
