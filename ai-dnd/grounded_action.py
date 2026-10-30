@@ -1134,6 +1134,40 @@ def _campaign_hour(world) -> int | None:
         return None
 
 
+_PUBLIC_HOURS = {"tavern": (7, 24), "shop": (8, 19)}
+
+
+def _in_public_hours(world, kind: str) -> bool:
+    hour = _campaign_hour(world)
+    if not isinstance(hour, int):
+        return True
+    start, end = _PUBLIC_HOURS[kind]
+    return start <= hour < end
+
+
+def public_door_state(world, door_id: str, kind: str) -> dict[str, bool]:
+    """A public house stands open in its hours; outside them it is shut until they return."""
+    if _in_public_hours(world, kind):
+        return {"open": True, "locked": False}
+    _memory(world).setdefault("shut_for_hours", {})[door_id] = kind
+    return {"open": False, "locked": True}
+
+
+def reopen_public_doors(world) -> None:
+    """A door shut only for the hour opens with the hour. No other lock is touched."""
+    state = world.get(KEY)
+    shut = state.get("shut_for_hours") if isinstance(state, dict) else None
+    if not isinstance(shut, dict):
+        return
+    for door_id, kind in list(shut.items()):
+        if not _in_public_hours(world, kind):
+            continue
+        del shut[door_id]
+        door = next((d for d in world.get("doors", []) if isinstance(d, dict) and d.get("id") == door_id), None)
+        if door is not None and door.get("locked"):
+            door.update(open=True, locked=False)
+
+
 def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
                   provenance: dict[str, Any], noun: str | None = None) -> dict[str, Any] | None:
     import local_places
@@ -1177,12 +1211,12 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
         }
         locations[location_id] = record
         if spec["door"]:
-            hour = _campaign_hour(world)
-            open_hours = spec["door"] == "shop" and isinstance(hour, int) and 8 <= hour < 19
+            door_id = f"venue-door:{location_id}"
+            state = (public_door_state(world, door_id, "shop") if spec["door"] == "shop"
+                     else {"open": False, "locked": True})
             world.setdefault("doors", []).append({
-                "id": f"venue-door:{location_id}", "name": f"{name} Kapısı", "location": settlement,
-                "description": f"{name} sokağa açılan kapısı.", "open": False,
-                "locked": not open_hours or _seed(world, location_id, "door") % 4 == 0, "broken": False,
+                "id": door_id, "name": f"{name} Kapısı", "location": settlement,
+                "description": f"{name} sokağa açılan kapısı.", **state, "broken": False,
             })
         return record
     if not name:
@@ -1206,22 +1240,13 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
     }
     locations[location_id] = record
     # The door's state is Python's, not what anyone said about the place.
-    hour = None
-    try:
-        import campaign_time
-        public = campaign_time.public_time(world)
-        hour = public.get("hour") if isinstance(public, dict) else None
-    except Exception:
-        hour = None
-    business = isinstance(hour, int) and 10 <= hour < 23
-    locked = not business or _seed(world, location_id, "door") % 5 == 0
+    door_id = f"venue-door:{location_id}"
     world.setdefault("doors", []).append({
-        "id": f"venue-door:{location_id}",
+        "id": door_id,
         "name": f"{name} Kapısı",
         "location": settlement,
         "description": f"{name} sokağa açılan kapısı.",
-        "open": False,
-        "locked": locked,
+        **public_door_state(world, door_id, "tavern"),
         "broken": False,
     })
     return record
@@ -1446,7 +1471,7 @@ def _do_knock(run: _Run, step) -> dict[str, Any]:
         roll = _seed(run.world, key, "answer") % 100
         if door.get("locked"):
             answers[key] = _pick(run.world, (
-                "İçeriden boğuk bir ses geliyor: “Kapalıyız! Akşamüstü gel.” Sonra ayak sesleri uzaklaşıyor.",
+                "İçeriden boğuk bir ses geliyor: “Kapalıyız! Sabah gel.” Sonra ayak sesleri uzaklaşıyor.",
                 "Bir süre bekliyorsun. İçeriden ne bir ses ne bir ayak sesi geliyor.",
                 "Üst kattaki bir kepenk aralanıyor, biri aşağı bakıp başını sallıyor ve kepengi geri kapatıyor.",
             ), key) if roll < 70 else "Bir süre bekliyorsun; içeriden yanıt gelmiyor."
@@ -2152,7 +2177,7 @@ def _search_open_place(run, step, settlement, *, move, how):
             continue
         return _found_place(run, record, how=how, move=move, step=step)
     return _receipt("search", "completed", None, found=False, reason="no_confirmed_open_place",
-                    text="Arıyorsun ama şu an açık olduğunu doğrulayabildiğin bir yer bulamıyorsun.")
+                    text="Arıyorsun ama şu an açık bir yer göremiyorsun.")
 
 
 def _search_place_kind(run, step, settlement, noun, kind, *, move, how):

@@ -14994,16 +14994,17 @@ def _ensure_local_tavern(parent_location_id, *, open_for_entry=False):
     }
     locations[location_id] = record
     # New venues only. An already saved han does not gain a door later.
+    import grounded_action
+    door_id = _venue_door_id(location_id)
     world_state.setdefault("doors", []).append({
-        "id": _venue_door_id(location_id),
+        "id": door_id,
         "name": f"{name} Kapısı",
         "location": parent_location_id,
-        "description": (
-            f"{name} sokağa açılan kapısı. "
-            + ("Girişi açık." if open_for_entry else "Kapalı ve kilitli.")
+        "description": f"{name} sokağa açılan kapısı.",
+        **(
+            {"open": True, "locked": False} if open_for_entry
+            else grounded_action.public_door_state(world_state, door_id, "tavern")
         ),
-        "open": bool(open_for_entry),
-        "locked": not open_for_entry,
         "broken": False,
     })
     return record
@@ -15527,8 +15528,14 @@ def _promote_scene_referent(referent, location_id):
     return npc
 
 
+def _reopen_public_doors():
+    import grounded_action
+    grounded_action.reopen_public_doors(_session().world_state)
+
+
 def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     """Resolve ordinary local actions and materialize before scoped lore lookup."""
+    _reopen_public_doors()
     world_state = _session().world_state
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     anchored_structure = living_world.is_anchored_structure_inquiry(player_input)
@@ -16638,6 +16645,7 @@ def _dispatch_player_turn(
     check_feature=None, check_evidence=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
+    _reopen_public_doors()
     owner_reply = _owner_module_reply(player_input, interaction_mode)
     if owner_reply is not None:
         return {

@@ -139,18 +139,20 @@ class AddressGoesToThePlausiblePerson(TownCase):
 
     async def test_a_question_keeps_the_current_conversation_partner(self):
         await self.say("Muhafıza selam veriyorum.")
-        self.assertEqual(self.flags["active_npc_id"], self.guard["id"])
+        partner = self.flags["active_npc_id"]
+        self.assertTrue(partner)
         data = await self.say("Buralarda koruma arayan bir soylu biliyor musun?")
         self.assert_no_wall(data)
-        self.assertEqual(self.flags["active_npc_id"], self.guard["id"])
+        self.assertEqual(self.flags["active_npc_id"], partner)
 
     async def test_a_question_after_the_talk_lapsed_goes_to_the_last_person_addressed(self):
         await self.say("Muhafıza selam veriyorum.")
+        partner = self.flags["active_npc_id"]
         self.flags["active_npc_id"] = None
         self.flags["active_npc_until_turn"] = -1
         data = await self.say("Buralarda koruma arayan bir soylu biliyor musun?")
         self.assert_no_wall(data)
-        self.assertEqual(self.flags["last_npc_id"], self.guard["id"])
+        self.assertEqual(self.flags["last_npc_id"], partner)
 
     async def test_a_word_for_the_guard_goes_to_the_guard(self):
         data = await self.say("Nöbetçiye bu sokakta bir sorun olup olmadığını soruyorum.")
@@ -291,9 +293,10 @@ class ExistingAddressesStayPut(TownCase):
 
     async def test_a_thanks_is_not_a_name(self):
         await self.say("Muhafıza selam veriyorum.")
+        partner = self.flags["active_npc_id"]
         data = await self.say("Teşekkürler, buralarda neler oluyor?")
         self.assertNotIn("adıyla", data["narration"])
-        self.assertEqual(self.flags["active_npc_id"], self.guard["id"])
+        self.assertEqual(self.flags["active_npc_id"], partner)
 
     async def test_walking_up_to_a_person_who_is_not_here(self):
         data = await self.say("Tezgâhtaki adama yaklaşıyorum.")

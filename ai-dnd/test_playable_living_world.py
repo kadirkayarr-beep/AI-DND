@@ -1125,7 +1125,11 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(tavern["parent_location_id"], self.root_location)
         self.assertEqual(tavern["exit_location_id"], self.root_location)
         self.assertEqual(tavern["reality_layer"], "PROCEDURAL_LOCAL_FICTION")
-        self.assertIn("kapalı ve kilitli", search["direct_result"]["direct_response"])
+        self.assertIn("kapısı açık", search["direct_result"]["direct_response"])
+        next(
+            item for item in self.world["doors"]
+            if item.get("id") == f"venue-door:{tavern_id}"
+        ).update(locked=True, open=False)
         self.world["flags"]["turn_index"] += 1
 
         blocked = self.session.plan_living_world_turn("Enter the tavern.")
@@ -1286,6 +1290,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
             item for item in self.world["doors"]
             if item.get("id") == f"venue-door:{tavern_id}"
         )
+        door.update(locked=True, open=False)
         before_door = {
             key: door.get(key) for key in ("open", "locked", "broken")
         }
@@ -2299,9 +2304,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
             if door.get("id") == game._venue_door_id(tavern_id)
         ]
         self.assertEqual(len(doors), 1)
-        self.assertTrue(doors[0]["locked"])
-        self.assertFalse(doors[0]["open"])
+        self.assertFalse(doors[0]["locked"])
+        self.assertTrue(doors[0]["open"])
         self.assertEqual(doors[0]["location"], self.root_location)
+        doors[0].update(locked=True, open=False)
 
         self._force_athletics(1)
         with patch("game.ollama.chat", side_effect=AssertionError("model")):

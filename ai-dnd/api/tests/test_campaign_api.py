@@ -93,8 +93,8 @@ async def create_city_with_locked_tavern(test_case):
         item for item in session.world_state["doors"]
         if item.get("id") == f"venue-door:{tavern_id}"
     )
-    test_case.assertTrue(door["locked"])
-    test_case.assertFalse(door["open"])
+    # The fixture is about a locked inn; an inn found by day is not locked by itself.
+    door.update(locked=True, open=False)
     return city_id, session_id, session, turn_url, tavern_id, door
 
 
@@ -4189,8 +4189,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         venue_id, venue = venues[0]
         door_id = f"venue-door:{venue_id}"
         door = next(item for item in session.world_state["doors"] if item.get("id") == door_id)
-        self.assertTrue(door["locked"])
-        self.assertFalse(door["open"])
+        door.update(locked=True, open=False)
         elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
 
         action_results = []
