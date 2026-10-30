@@ -18,7 +18,10 @@ class CheckpointBlockers(unittest.TestCase):
     def test_merchant_search_preserves_unknown_identity(self):
         for text in ('Bir tüccar arıyorum.', 'tüccar bul'):
             with self.subTest(text=text):
+                # A search finds a merchant who is already there; it no longer creates one.
                 s, _ = self.fresh()
+                merchant, _ = s._ensure_local_merchant('forest')
+                merchant['name_known_to_player'] = False
                 with patch('game.ollama.chat', side_effect=AssertionError('No model needed')):
                     r = s.run_player_turn(text)
                 n = next(n for n in s.world_state['npcs'] if n['id'] == r['action_result']['target_id'])
