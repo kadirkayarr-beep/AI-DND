@@ -44,6 +44,9 @@ def _class_weapon_proficiencies(character_class: str, raw_level: int, applied_le
     if (type(raw_level) is not int or type(applied_level) is not int
             or applied_level not in (1, 2) or not applied_level <= raw_level <= 20):
         raise CharacterCreationError("Weapon proficiency level is invalid.")
+    if character_class == "Rogue":
+        import character_progression
+        return list(character_progression.for_class("Rogue").class_weapon_proficiencies)
     categories = {"Simple": "simple", "Martial": "martial"}
     source = CLASS_DEFINITIONS[character_class]["weapon_proficiencies"]
     if source != ["Simple", "Martial"]:
@@ -654,7 +657,7 @@ def configure_character(
         if getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) not in (4, 5, 6):
             raise CharacterCreationError("Weapon proficiency requires save format4–6.")
         weapon_proficiencies = _class_weapon_proficiencies(character_class, level, level)
-    elif character_class == "Fighter" and getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) in (4, 5, 6):
+    elif character_class in ("Fighter", "Rogue") and getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) in (4, 5, 6):
         # A loaded older format keeps its stored shape; Fighter creation there stays as it was.
         weapon_proficiencies = _class_weapon_proficiencies(character_class, level, level)
     # Recreation must not inherit an earlier character's weapon entitlement.
@@ -683,7 +686,7 @@ def configure_character(
             "proficient_skills": list(proficient_skills),
             "expertise_skills": list(expertise_skills or []),
             "species_bonus_skills": list(species_bonus_skills or []),
-            "proficient_tools": list(proficient_tools),
+            "proficient_tools": list(dict.fromkeys([*proficient_tools, *(["Thieves' Tools"] if character_class == "Rogue" else [])])),
             "origin_feat": origin_feat,
             "species_bonus_feat": species_bonus_feat,
             "origin_feats": origin_feats,

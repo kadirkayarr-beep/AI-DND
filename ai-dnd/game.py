@@ -454,7 +454,6 @@ CLASS_SKILL_OPTIONS = {
         "Intimidation",
         "Investigation",
         "Perception",
-        "Performance",
         "Persuasion",
         "Sleight of Hand",
         "Stealth"
@@ -2080,6 +2079,8 @@ def _player_state_for_save():
         saved["hit_dice"] = dict(character["hit_dice"])
     if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
         saved["fighter_uses"] = dict(character["fighter_uses"])
+    if "uncanny_dodge_off" in character:  # additive: the player turned Uncanny Dodge off
+        saved["uncanny_dodge_off"] = character["uncanny_dodge_off"]
     if character.get("fighting_style") is not None:  # additive: the style keeps applying after a load
         saved["fighting_style"] = character["fighting_style"]
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
@@ -2746,6 +2747,9 @@ def load_game(path):
         character.pop("fighter_uses", None)
         if "fighter_uses" in player:
             character["fighter_uses"] = dict(player["fighter_uses"])
+        character.pop("uncanny_dodge_off", None)
+        if "uncanny_dodge_off" in player:
+            character["uncanny_dodge_off"] = player["uncanny_dodge_off"]
         if "fighting_style" in player:
             character["fighting_style"] = player["fighting_style"]
         if "progression_level" in player:

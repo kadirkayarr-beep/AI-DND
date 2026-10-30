@@ -764,7 +764,7 @@ CLASS_DEFINITIONS = {
         "primary_ability": "dexterity",
         "saving_throws": ["dexterity", "intelligence"],
         "skill_count": 4,
-        "skill_options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"],
+        "skill_options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Persuasion", "Sleight of Hand", "Stealth"],
         "expertise_progression": [{"level": 1, "choices": 2}, {"level": 6, "choices": 2}],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple", "Martial (Finesse/Light)"],
@@ -1053,12 +1053,13 @@ UNOFFERED_FIGHTING_STYLES = ("Protection",)
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
-                                       sorcerer_starting_creation_options)
+                                       rogue_starting_creation_options, sorcerer_starting_creation_options)
 
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
         "fighter_starting_creation": fighter_starting_creation_options(),
+        "rogue_starting_creation": rogue_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),
