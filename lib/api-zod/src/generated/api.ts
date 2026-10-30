@@ -19,57 +19,80 @@ export const getGameSessionLevelUpResponseTargetLevelDefault = 4;
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 
 
@@ -98,43 +121,60 @@ export const GetGameSessionLevelUpResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })).optional(),
   "capacity": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
@@ -161,57 +201,80 @@ export const applyGameSessionLevelUpBodyChoicesOneCantripsMax = 1;
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin = 2;
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMax = 2;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightConstitutionMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMin = 2;
 export const applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMax = 2;
@@ -228,57 +291,80 @@ export const applyGameSessionLevelUpBodyChoicesFourPreparedSpellsMax = 2;
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin = 2;
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin = 2;
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin = 2;
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin = 2;
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin = 2;
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMax = 2;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightConstitutionMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOneonePreparedSpellsMax = 1;
 
@@ -292,57 +378,80 @@ export const applyGameSessionLevelUpBodyChoicesOnethreePreparedSpellsMax = 1;
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMin = 2;
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMin = 2;
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMax = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMax = 2;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixStrengthMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMax = 2;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightConstitutionMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneConstitutionMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoCharismaMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveWisdomMax = 1;
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyGameSessionLevelUpBodyChoicesOnefourPreparedSpellsMax = 1;
 
@@ -361,43 +470,60 @@ export const ApplyGameSessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict(),zod.object({
@@ -417,43 +543,60 @@ export const ApplyGameSessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict(),zod.object({
@@ -476,43 +619,60 @@ export const ApplyGameSessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMin).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict(),zod.object({
@@ -16383,332 +16543,470 @@ export const GetCharacterOptionsResponse = zod.object({
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 
 
@@ -16739,43 +17037,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 }))
 }),
@@ -16813,43 +17128,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -16881,43 +17213,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -16957,43 +17306,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -17027,43 +17393,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -17095,43 +17478,60 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -17278,57 +17678,80 @@ export const createCampaignBodyCharacterOneLevelChoicesOne4CantripsMax = 1;
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax = 2;
@@ -17336,222 +17759,314 @@ export const createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax = 2
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix2PreparedSpellsMax = 1;
 
@@ -17565,57 +18080,80 @@ export const createCampaignBodyCharacterOneLevelChoicesSix4PreparedSpellsMax = 1
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMin = 2;
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMin = 2;
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMax = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMax = 2;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixStrengthMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMax = 2;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightConstitutionMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneConstitutionMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoCharismaMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveWisdomMax = 1;
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createCampaignBodyCharacterOneLevelChoicesSix5PreparedSpellsMax = 1;
 
@@ -17661,43 +18199,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -17716,43 +18271,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -17768,43 +18340,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -17820,43 +18409,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -17872,43 +18478,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -17930,43 +18553,60 @@ export const CreateCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -21915,332 +22555,470 @@ export const GetLegacyCharacterOptionsResponse = zod.object({
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 
 
@@ -22271,43 +23049,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 }))
 }),
@@ -22345,43 +23140,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -22413,43 +23225,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -22489,43 +23318,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponsePaladinStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -22559,43 +23405,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -22627,43 +23490,60 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -27331,57 +28211,80 @@ export const getLegacySessionLevelUpResponseTargetLevelDefault = 4;
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMin = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMax = 2;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMin = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMax = 2;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMin = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMax = 2;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMin = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMax = 2;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
-
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMin = 2;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMax = 2;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenDexterityMax = 1;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightConstitutionMax = 1;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineIntelligenceMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroStrengthMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroWisdomMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneStrengthMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneCharismaMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoDexterityMax = 1;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeDexterityMax = 1;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourDexterityMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourWisdomMax = 1;
 
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
-
-export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveDexterityMax = 1;
 
 export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixConstitutionMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenWisdomMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightConstitutionMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightCharismaMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineWisdomMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroCharismaMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneWisdomMax = 1;
+
+export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneCharismaMax = 1;
 
 
 
@@ -27410,43 +28313,60 @@ export const GetLegacySessionLevelUpResponse = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMin).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneCharismaMax)
 })])
 })).optional(),
   "capacity": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
@@ -27474,57 +28394,80 @@ export const applyLegacySessionLevelUpBodyChoicesOneCantripsMax = 1;
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin = 2;
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMax = 2;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightConstitutionMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesTwoPreparedSpellsMin = 2;
 export const applyLegacySessionLevelUpBodyChoicesTwoPreparedSpellsMax = 2;
@@ -27541,57 +28484,80 @@ export const applyLegacySessionLevelUpBodyChoicesFourPreparedSpellsMax = 2;
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin = 2;
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMax = 2;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightConstitutionMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOneonePreparedSpellsMax = 1;
 
@@ -27605,57 +28571,80 @@ export const applyLegacySessionLevelUpBodyChoicesOnethreePreparedSpellsMax = 1;
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMin = 2;
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMin = 2;
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMax = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMax = 2;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixStrengthMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMax = 2;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightConstitutionMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneConstitutionMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneStrengthMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoCharismaMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourDexterityMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourIntelligenceMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourWisdomMax = 1;
 
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourCharismaMax = 1;
-
-export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveWisdomMax = 1;
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveDexterityMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharismaMax = 1;
 
 export const applyLegacySessionLevelUpBodyChoicesOnefourPreparedSpellsMax = 1;
 
@@ -27674,43 +28663,60 @@ export const ApplyLegacySessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOneAsiIncreaseTwooneCharismaMax)
 })])
 })
 }),zod.object({
@@ -27730,43 +28736,60 @@ export const ApplyLegacySessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMin).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesSevenAsiIncreaseTwooneCharismaMax)
 })])
 })
 }),zod.object({
@@ -27789,43 +28812,60 @@ export const ApplyLegacySessionLevelUpBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneStrengthMax)
 }),zod.object({
-  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwoDexterityMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseThreeConstitutionMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFourIntelligenceMax)
 }),zod.object({
-  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseFiveWisdomMax)
 }),zod.object({
-  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSixCharismaMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseSevenDexterityMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseEightConstitutionMax)
 }),zod.object({
   "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseNineIntelligenceMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnezeroWisdomMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneoneCharismaMax)
 }),zod.object({
-  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnetwoConstitutionMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnethreeIntelligenceMax)
 }),zod.object({
-  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefourWisdomMax)
 }),zod.object({
-  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharismaMax)
 })])
 })
 }),zod.object({
@@ -27891,57 +28931,80 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4CantripsMax = 1
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax = 2;
@@ -27949,222 +29012,314 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsM
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix2PreparedSpellsMax = 1;
 
@@ -28178,57 +29333,80 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4PreparedSpellsM
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMin = 2;
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMin = 2;
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMax = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMax = 2;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixStrengthMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMax = 2;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightConstitutionMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneConstitutionMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneStrengthMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoCharismaMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourDexterityMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourIntelligenceMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourWisdomMax = 1;
 
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourCharismaMax = 1;
-
-export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveWisdomMax = 1;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveDexterityMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneCharismaMax = 1;
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesSix5PreparedSpellsMax = 1;
 
@@ -28274,43 +29452,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -28329,43 +29524,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -28381,43 +29593,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -28433,43 +29662,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -28485,43 +29731,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -28543,43 +29806,60 @@ export const CreateLegacyCampaignBody = zod.object({
   "increase": zod.union([zod.object({
   "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneStrengthMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoConstitutionMax)
+  "dexterity": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwoDexterityMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeIntelligenceMax)
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseThreeConstitutionMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourWisdomMax)
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFourIntelligenceMax)
 }).strict(),zod.object({
-  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveCharismaMax)
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseFiveWisdomMax)
 }).strict(),zod.object({
-  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixStrengthMax),
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixConstitutionMax)
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSixCharismaMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenStrengthMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenIntelligenceMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseSevenDexterityMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightStrengthMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightWisdomMax)
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseEightConstitutionMax)
 }).strict(),zod.object({
   "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineStrengthMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineCharismaMax)
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseNineIntelligenceMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroConstitutionMax),
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroIntelligenceMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnezeroWisdomMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneConstitutionMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneWisdomMax)
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneoneCharismaMax)
 }).strict(),zod.object({
-  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnetwoConstitutionMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax),
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeWisdomMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnethreeIntelligenceMax)
 }).strict(),zod.object({
-  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourIntelligenceMax),
-  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourCharismaMax)
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefourWisdomMax)
 }).strict(),zod.object({
-  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveWisdomMax),
+  "dexterity": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveDexterityMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesSix4AsiIncreaseTwooneCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),

@@ -1401,14 +1401,20 @@ components:
         increase:
           anyOf:
           - $ref: '#/components/schemas/LevelUpStrengthIncrease'
+          - $ref: '#/components/schemas/LevelUpDexterityIncrease'
           - $ref: '#/components/schemas/LevelUpConIncrease'
           - $ref: '#/components/schemas/LevelUpIntelligenceIncrease'
           - $ref: '#/components/schemas/LevelUpWisdomIncrease'
           - $ref: '#/components/schemas/LevelUpCharismaIncrease'
+          - $ref: '#/components/schemas/LevelUpStrengthDexterityIncrease'
           - $ref: '#/components/schemas/LevelUpStrengthConstitutionIncrease'
           - $ref: '#/components/schemas/LevelUpStrengthIntelligenceIncrease'
           - $ref: '#/components/schemas/LevelUpStrengthWisdomIncrease'
           - $ref: '#/components/schemas/LevelUpStrengthCharismaIncrease'
+          - $ref: '#/components/schemas/LevelUpDexterityConstitutionIncrease'
+          - $ref: '#/components/schemas/LevelUpDexterityIntelligenceIncrease'
+          - $ref: '#/components/schemas/LevelUpDexterityWisdomIncrease'
+          - $ref: '#/components/schemas/LevelUpDexterityCharismaIncrease'
           - $ref: '#/components/schemas/LevelUpConstitutionIntelligenceIncrease'
           - $ref: '#/components/schemas/LevelUpConstitutionWisdomIncrease'
           - $ref: '#/components/schemas/LevelUpConstitutionCharismaIncrease'
@@ -1693,6 +1699,108 @@ components:
       - wisdom
       - charisma
       title: LevelUpWisdomCharismaIncrease
+      type: object
+    LevelUpDexterityIncrease:
+      additionalProperties: false
+      properties:
+        dexterity:
+          maximum: 2
+          minimum: 2
+          title: Dexterity
+          type: integer
+      required:
+      - dexterity
+      title: LevelUpDexterityIncrease
+      type: object
+    LevelUpStrengthDexterityIncrease:
+      additionalProperties: false
+      properties:
+        strength:
+          maximum: 1
+          minimum: 1
+          title: Strength
+          type: integer
+        dexterity:
+          maximum: 1
+          minimum: 1
+          title: Dexterity
+          type: integer
+      required:
+      - strength
+      - dexterity
+      title: LevelUpStrengthDexterityIncrease
+      type: object
+    LevelUpDexterityConstitutionIncrease:
+      additionalProperties: false
+      properties:
+        dexterity:
+          maximum: 1
+          minimum: 1
+          title: Dexterity
+          type: integer
+        constitution:
+          maximum: 1
+          minimum: 1
+          title: Constitution
+          type: integer
+      required:
+      - dexterity
+      - constitution
+      title: LevelUpDexterityConstitutionIncrease
+      type: object
+    LevelUpDexterityIntelligenceIncrease:
+      additionalProperties: false
+      properties:
+        dexterity:
+          maximum: 1
+          minimum: 1
+          title: Dexterity
+          type: integer
+        intelligence:
+          maximum: 1
+          minimum: 1
+          title: Intelligence
+          type: integer
+      required:
+      - dexterity
+      - intelligence
+      title: LevelUpDexterityIntelligenceIncrease
+      type: object
+    LevelUpDexterityWisdomIncrease:
+      additionalProperties: false
+      properties:
+        dexterity:
+          maximum: 1
+          minimum: 1
+          title: Dexterity
+          type: integer
+        wisdom:
+          maximum: 1
+          minimum: 1
+          title: Wisdom
+          type: integer
+      required:
+      - dexterity
+      - wisdom
+      title: LevelUpDexterityWisdomIncrease
+      type: object
+    LevelUpDexterityCharismaIncrease:
+      additionalProperties: false
+      properties:
+        dexterity:
+          maximum: 1
+          minimum: 1
+          title: Dexterity
+          type: integer
+        charisma:
+          maximum: 1
+          minimum: 1
+          title: Charisma
+          type: integer
+      required:
+      - dexterity
+      - charisma
+      title: LevelUpDexterityCharismaIncrease
       type: object
     LevelUpConIncrease:
       additionalProperties: false

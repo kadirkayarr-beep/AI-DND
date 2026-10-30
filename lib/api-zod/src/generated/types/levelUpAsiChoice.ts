@@ -10,11 +10,17 @@ import type { LevelUpConIncrease } from './levelUpConIncrease';
 import type { LevelUpConstitutionCharismaIncrease } from './levelUpConstitutionCharismaIncrease';
 import type { LevelUpConstitutionIntelligenceIncrease } from './levelUpConstitutionIntelligenceIncrease';
 import type { LevelUpConstitutionWisdomIncrease } from './levelUpConstitutionWisdomIncrease';
+import type { LevelUpDexterityCharismaIncrease } from './levelUpDexterityCharismaIncrease';
+import type { LevelUpDexterityConstitutionIncrease } from './levelUpDexterityConstitutionIncrease';
+import type { LevelUpDexterityIncrease } from './levelUpDexterityIncrease';
+import type { LevelUpDexterityIntelligenceIncrease } from './levelUpDexterityIntelligenceIncrease';
+import type { LevelUpDexterityWisdomIncrease } from './levelUpDexterityWisdomIncrease';
 import type { LevelUpIntelligenceCharismaIncrease } from './levelUpIntelligenceCharismaIncrease';
 import type { LevelUpIntelligenceIncrease } from './levelUpIntelligenceIncrease';
 import type { LevelUpIntelligenceWisdomIncrease } from './levelUpIntelligenceWisdomIncrease';
 import type { LevelUpStrengthCharismaIncrease } from './levelUpStrengthCharismaIncrease';
 import type { LevelUpStrengthConstitutionIncrease } from './levelUpStrengthConstitutionIncrease';
+import type { LevelUpStrengthDexterityIncrease } from './levelUpStrengthDexterityIncrease';
 import type { LevelUpStrengthIncrease } from './levelUpStrengthIncrease';
 import type { LevelUpStrengthIntelligenceIncrease } from './levelUpStrengthIntelligenceIncrease';
 import type { LevelUpStrengthWisdomIncrease } from './levelUpStrengthWisdomIncrease';
@@ -23,5 +29,5 @@ import type { LevelUpWisdomIncrease } from './levelUpWisdomIncrease';
 
 export interface LevelUpAsiChoice {
   feat: 'Ability Score Improvement';
-  increase: LevelUpStrengthIncrease | LevelUpConIncrease | LevelUpIntelligenceIncrease | LevelUpWisdomIncrease | LevelUpCharismaIncrease | LevelUpStrengthConstitutionIncrease | LevelUpStrengthIntelligenceIncrease | LevelUpStrengthWisdomIncrease | LevelUpStrengthCharismaIncrease | LevelUpConstitutionIntelligenceIncrease | LevelUpConstitutionWisdomIncrease | LevelUpConstitutionCharismaIncrease | LevelUpIntelligenceWisdomIncrease | LevelUpIntelligenceCharismaIncrease | LevelUpWisdomCharismaIncrease;
+  increase: LevelUpStrengthIncrease | LevelUpDexterityIncrease | LevelUpConIncrease | LevelUpIntelligenceIncrease | LevelUpWisdomIncrease | LevelUpCharismaIncrease | LevelUpStrengthDexterityIncrease | LevelUpStrengthConstitutionIncrease | LevelUpStrengthIntelligenceIncrease | LevelUpStrengthWisdomIncrease | LevelUpStrengthCharismaIncrease | LevelUpDexterityConstitutionIncrease | LevelUpDexterityIntelligenceIncrease | LevelUpDexterityWisdomIncrease | LevelUpDexterityCharismaIncrease | LevelUpConstitutionIntelligenceIncrease | LevelUpConstitutionWisdomIncrease | LevelUpConstitutionCharismaIncrease | LevelUpIntelligenceWisdomIncrease | LevelUpIntelligenceCharismaIncrease | LevelUpWisdomCharismaIncrease;
 }

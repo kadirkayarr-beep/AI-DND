@@ -31,6 +31,14 @@ export interface LevelUpStrengthIncrease {
   strength: number;
 }
 
+export interface LevelUpDexterityIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  dexterity: number;
+}
+
 export interface LevelUpConIncrease {
   /**
      * @minimum 2
@@ -61,6 +69,19 @@ export interface LevelUpCharismaIncrease {
      * @maximum 2
      */
   charisma: number;
+}
+
+export interface LevelUpStrengthDexterityIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  dexterity: number;
 }
 
 export interface LevelUpStrengthConstitutionIncrease {
@@ -108,6 +129,58 @@ export interface LevelUpStrengthCharismaIncrease {
      * @maximum 1
      */
   strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  charisma: number;
+}
+
+export interface LevelUpDexterityConstitutionIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  dexterity: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  constitution: number;
+}
+
+export interface LevelUpDexterityIntelligenceIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  dexterity: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  intelligence: number;
+}
+
+export interface LevelUpDexterityWisdomIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  dexterity: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  wisdom: number;
+}
+
+export interface LevelUpDexterityCharismaIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  dexterity: number;
   /**
      * @minimum 1
      * @maximum 1
@@ -195,7 +268,7 @@ export interface LevelUpWisdomCharismaIncrease {
 
 export interface LevelUpAsiChoice {
   feat: 'Ability Score Improvement';
-  increase: LevelUpStrengthIncrease | LevelUpConIncrease | LevelUpIntelligenceIncrease | LevelUpWisdomIncrease | LevelUpCharismaIncrease | LevelUpStrengthConstitutionIncrease | LevelUpStrengthIntelligenceIncrease | LevelUpStrengthWisdomIncrease | LevelUpStrengthCharismaIncrease | LevelUpConstitutionIntelligenceIncrease | LevelUpConstitutionWisdomIncrease | LevelUpConstitutionCharismaIncrease | LevelUpIntelligenceWisdomIncrease | LevelUpIntelligenceCharismaIncrease | LevelUpWisdomCharismaIncrease;
+  increase: LevelUpStrengthIncrease | LevelUpDexterityIncrease | LevelUpConIncrease | LevelUpIntelligenceIncrease | LevelUpWisdomIncrease | LevelUpCharismaIncrease | LevelUpStrengthDexterityIncrease | LevelUpStrengthConstitutionIncrease | LevelUpStrengthIntelligenceIncrease | LevelUpStrengthWisdomIncrease | LevelUpStrengthCharismaIncrease | LevelUpDexterityConstitutionIncrease | LevelUpDexterityIntelligenceIncrease | LevelUpDexterityWisdomIncrease | LevelUpDexterityCharismaIncrease | LevelUpConstitutionIntelligenceIncrease | LevelUpConstitutionWisdomIncrease | LevelUpConstitutionCharismaIncrease | LevelUpIntelligenceWisdomIncrease | LevelUpIntelligenceCharismaIncrease | LevelUpWisdomCharismaIncrease;
 }
 
 export interface LevelUpChoices {
