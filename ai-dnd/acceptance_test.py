@@ -95,9 +95,7 @@ print("LIVE END-TO-END ACCEPTANCE TEST - 20 SCENARIOS")
 print("="*80)
 
 game_hash_before = hash_file(GAME_FILE)
-backup_hash = hash_file(PROJECT_DIR / 'game_backup.py')
 print(f"game.py hash: {game_hash_before}")
-print(f"game_backup.py hash: {backup_hash}")
 
 results = []
 contradictions = 0
@@ -709,7 +707,6 @@ print(f"\nTOTAL: {passed_count}/{total} PASS")
 
 game_hash_after = hash_file(GAME_FILE)
 print(f"\nGame integrity: game.py hash {'UNCHANGED' if game_hash_after == game_hash_before else 'CHANGED'} ({game_hash_after})")
-print(f"Backup integrity: game_backup.py hash {'UNCHANGED' if hash_file(PROJECT_DIR / 'game_backup.py') == backup_hash else 'CHANGED'}")
 
 print(f"\nContradictions (narrator vs mechanical): {contradictions}")
 print(f"State issues (duplicates, leaks): {state_issues}")
