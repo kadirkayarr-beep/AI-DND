@@ -13,7 +13,9 @@ import action_economy as economy
 import barbarian_rage
 import fighter_features
 import paladin_features
+import monk_features
 import character_progression
+import rogue_features
 import initiative
 import spatial_rules
 from combat_lifecycle import CombatRequestError
@@ -27,6 +29,8 @@ CHOICES = frozenset({
     "mode", "ability", "grip", "mastery", "push_ft", "cleave_target_id",
     "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id", "reckless_attack",
     "sacred_weapon", "radiant_damage",
+    "cunning_strike", "cunning_strike_move_ft",
+    "stunning_strike", "open_hand_technique",
 })
 
 
@@ -203,7 +207,11 @@ def rules_for(session, actor, data, weapon):
         held = _held_weapon_profiles(session, actor, data, weapon["equipment_after"]) if "equipment_after" in weapon else []
         for key, values in fighter_features.attack_rules(data, weapon, len(held)).items():
             rules.setdefault(key, []).extend(values)
-    allowed = {"ability", "damage_die", "damage_dice", "damage_modifier",
+        if monk_features.monk_level(data) is not None:
+            hands_held = monk_features.held_profiles(session, weapon.get("equipment_after"))
+            for key, value in monk_features.attack_rules(data, session.world_state, weapon, hands_held).items():
+                rules.setdefault(key, value)
+    allowed = {"ability", "damage_die", "damage_dice", "damage_modifier", "dexterous_attacks",
                "attack_modifiers", "damage_modifiers", "additional_damage",
                "advantage_sources", "disadvantage_sources", "mastery_overrides"}
     if set(rules) - allowed:
@@ -340,7 +348,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             fail("invalid_combat_target", "Attack identities must be distinct participants.")
         if origin == "action":
             economy.attack_permission(session, actor)
-        elif origin in {"continuation", "light", "nick", "cleave"}:
+        elif origin in {"continuation", "light", "nick", "cleave", "martial_arts", "flurry"}:
             economy.validate_actor(session, actor, reaction=
                                    economy._execution.get() == (id(session), "monster_capability", actor))
         elif origin == "reaction":
@@ -445,7 +453,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     ability = rules.get("ability", "strength" if weapon["kind"] == "melee" else "dexterity")
     requested_ability = choice.get("ability")
     if requested_ability:
-        if requested_ability not in ({"strength", "dexterity"} if "finesse" in props else {ability}):
+        if requested_ability not in ({"strength", "dexterity"} if "finesse" in props or rules.get("dexterous_attacks") else {ability}):
             fail("invalid_attack_ability", "The weapon/feature does not permit that ability.")
         ability = requested_ability
     if ability not in {"strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"}:
@@ -469,6 +477,9 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         bonus = ability_mod + (pb if proficient else 0) + weapon["magic_attack_bonus"] + attack_adjustment
     advantage = list(rules.get("advantage_sources", []))
     disadvantage = list(rules.get("disadvantage_sources", []))
+    if actor == "player":
+        advantage.extend(rogue_features.attack_advantage(session, target))
+    rogue_features.check_choice(session, actor, choice, defender)
     for names in (advantage, disadvantage):
         if any(not isinstance(source, str) or not source for source in names):
             fail("invalid_attack_state", "Attack advantage sources require provenance.")
@@ -538,6 +549,8 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             disadvantage.append("sap")
         if effect["kind"] == "vex" and effect["source_actor"] == actor and effect["target_id"] == target:
             advantage.append("vex")
+        if effect["kind"] == monk_features.OPENING_EFFECT and effect["target_id"] == target:
+            advantage.append(monk_features.OPENING_EFFECT)
     mastery = None
     if not unarmed and not profile:
         eligible = weapon["weapon_id"] in attacker.get("weapon_masteries", [])
@@ -590,6 +603,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         if choice.get("shove_option", "prone") not in {"prone", "push"}:
             fail("invalid_shove_choice", "Choose Prone or a 5-foot push.")
     special = unarmed and unarmed_option != "damage"
+    monk_features.check_attack_choice(session, actor, choice, weapon, origin, special)
     if choice.get("reckless_attack"):
         state = reckless_state(session, actor)
         if special or not state["available"]:
@@ -798,14 +812,22 @@ def boundary(session, actor, event):
         counter += 1
         if actor in resources:
             resources[actor]["attack_turn_counter"] = counter
+    rogue_features.turn_boundary(session, actor, event, counter)
     effects = session.world_state.get("attack_effects", [])
-    effects[:] = [e for e in effects if not (e["source_actor"] == actor
-                 and e["expires_boundary"] == event and counter >= e["expires_turn"])]
+    ending = [e for e in effects if e["source_actor"] == actor and e["expires_boundary"] == event and counter >= e["expires_turn"]]
+    effects[:] = [e for e in effects if e not in ending]
+    for entry in ending:
+        monk_features.effect_ended(session, entry)
 
 
 def slow_penalty(session, actor):
     return 10 if any(e["kind"] == "slow" and e["target_id"] == actor
                      for e in session.world_state.get("attack_effects", [])) else 0
+
+
+def speed_halved(session, actor):
+    return any(e["kind"] == monk_features.SLOW_EFFECT and e["target_id"] == actor
+               for e in session.world_state.get("attack_effects", []))
 
 
 def resolve(session, actor, target, weapon_id=None, choice=None, *, origin="action", profile=None):
@@ -844,6 +866,8 @@ def _resolve(session, c):
             advantage=bool(c["advantage_sources"]), disadvantage=bool(c["disadvantage_sources"]),
             actor_id=actor, target_id=target)
         hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
+        if actor == "player":
+            rogue_features.spend_steady_aim(session)
         threshold = fighter_features.critical_threshold(attacker) if actor == "player" else 20
         critical = bool(hit and (resolution["selected_roll"] >= threshold or (
             c["spatial"]["distance_ft"] <= 5 and set(c["target_conditions"]) & {"unconscious", "paralyzed"})))
@@ -852,6 +876,7 @@ def _resolve(session, c):
         barbarian_rage.observe_enemy_roll_or_save(session, target)
     graze = not hit and not c["auto_miss"] and c["mastery"] == "graze"
     damage_rolls, components, species_effects, additional_effects = [], [], [], []
+    sneak = None
     if hit and not special:
         modifier = c["rules"].get("damage_modifier", c["ability_modifier"])
         integer(modifier, "damage modifier")
@@ -896,6 +921,12 @@ def _resolve(session, c):
             raw = max(0, session.roll_damage(extra.get("damage_die", 0), count, extra.get("modifier", 0), rolls=rolls))
             damage_rolls.append({"source": extra["source"], "die": extra.get("damage_die", 0), "count": count, "rolls": rolls})
             components.append({"damage_type": extra["damage_type"], "raw_damage": raw})
+        sneak = rogue_features.sneak_attack(session, c, critical) if actor == "player" else None
+        if sneak:
+            rolls = []
+            raw = session.roll_damage(sneak["die"], sneak["count"], sneak["surprising_strikes"], rolls=rolls)
+            damage_rolls.append({"source": "sneak_attack", "die": sneak["die"], "count": sneak["count"], "rolls": rolls})
+            components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
         if actor == "player":
             _, species_effects = session._apply_species_on_hit_effects(defender, critical=critical)
             for entry in species_effects:
@@ -914,6 +945,11 @@ def _resolve(session, c):
     if target == "player":
         reduced, flat_effects = session._reduce_attack_damage_to_player(sum(grouped.values()))
         species_effects.extend(flat_effects)
+        reduced, dodged = rogue_features.uncanny_dodge(session, c, hit, reduced)
+        additional_effects.extend(dodged)
+        deflected = None
+        if hit:
+            reduced, deflected = monk_features.deflect_attacks(session, c, reduced, grouped)
         remaining_reduction = sum(grouped.values()) - reduced
         for kind in grouped:
             applied = min(grouped[kind], remaining_reduction)
@@ -930,6 +966,9 @@ def _resolve(session, c):
         hp_result = session._apply_attack_damage_to_player(damage, critical, hit or graze)
         species_effects.extend(hp_result["species_effects"])
         hp_after = session.character["current_hp"]
+        if deflected:
+            additional_effects.append(deflected)
+            additional_effects.extend(monk_features.redirect(session, c, deflected, damage, max(raw_grouped, key=raw_grouped.get)))
     else:
         hp_after = session.apply_npc_damage(defender, damage)
         hp_result = {"hp_damage": damage, "death_resolution": None}
@@ -988,10 +1027,13 @@ def _resolve(session, c):
     if not special:
         effects[:] = [e for e in effects if not (
             (e["kind"] == "sap" and e["target_id"] == actor)
+            or (e["kind"] == monk_features.OPENING_EFFECT and e["target_id"] == target)
             or (e["kind"] == "vex" and e["source_actor"] == actor and e["target_id"] == target))]
         # A newly granted Vex belongs to this hit, not the previous attack.
         if hit and mastery == "vex" and damage > 0:
             effect(session, "vex", actor, target)
+        if hit:
+            additional_effects.extend(monk_features.after_hit(session, c, defender))
     combat = session.world_state["combat"]
     if combat["active"]:
         sequence = turn_state(session, actor)
@@ -1043,6 +1085,7 @@ def _resolve(session, c):
         "resulting_position": mastery_result if mastery_result and mastery_result["kind"] == "push" else None,
         "species_effects": species_effects, **{k: v for k, v in hp_result.items() if k != "species_effects"},
     }
+    rogue_features.after_attack(session, c, result, sneak)
     for event in ("after_attack", "after_damage", "after_mastery"):
         # Notifications, not unvalidated mutation commands.
         hook(session, event, result)
@@ -1093,9 +1136,9 @@ def natural_choice(session, text):
     identity = "unarmed" if unarmed else selected[0] if selected else None
     if identity is None:
         held = _held_weapon_profiles(session, "player", getattr(session, "character", {}))
-        if not held:
+        if not held and monk_features.monk_level(getattr(session, "character", {})) is None:
             fail("no_weapon", "Specify an available held weapon or Unarmed Strike.")
-        identity = held[0]["weapon_id"]
+        identity = held[0]["weapon_id"] if held else "unarmed"
     choice = {}
     if re.search(r"iki elim|two.hand", normalized):
         choice["grip"] = 2

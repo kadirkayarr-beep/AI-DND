@@ -30,6 +30,8 @@ from class_progression.barbarian import (  # noqa: F401
 )
 from class_progression.fighter import fighter_starting_creation_options  # noqa: F401
 from class_progression.paladin import paladin_starting_creation_options  # noqa: F401
+from class_progression.rogue import rogue_starting_creation_options  # noqa: F401
+from class_progression.monk import monk_starting_creation_options  # noqa: F401
 from class_progression.sorcerer import sorcerer_starting_creation_options  # noqa: F401
 
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
@@ -375,6 +377,7 @@ def validate_saved(player: dict[str, Any], world: dict[str, Any], *, saved: bool
     _validate_asi_choice_storage(player, saved=saved)
     for each in registered():
         each.validate_class_fields(player)
+        each.validate_class_world(player, world)
     handler = for_class(player.get("class"))
     handler.validate_state(player, world)
     if not any(field in player for field in ("progression_level", "metamagic", "subclass_id")):
@@ -463,7 +466,7 @@ def create_at_level(session: Any, spec: dict[str, Any], level: int = 1, level_ch
             raise ValueError(f"choices_required_for_levels_{','.join(missing)}")
     snapshot = session._capture_runtime_snapshot()
     try:
-        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice", "fighter_uses", "paladin_uses"):
+        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice", "fighter_uses", "paladin_uses", "monk_state", "uncanny_dodge_off"):
             session.character.pop(field, None)
         configure_character(session, mode="custom", **spec)
         if level >= 4:

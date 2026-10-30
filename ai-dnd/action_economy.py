@@ -7,6 +7,7 @@ import copy
 import re
 import weapon_attack
 import character_progression
+import rogue_features
 import spatial_rules
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -72,6 +73,8 @@ def speed(session, actor):
     able_to_move = (data.get("current_hp", 0) > 0) if outside_player else present(session, actor)
     if not able_to_move or active_conditions & SPEED_ZERO_CONDITIONS:
         return 0
+    if actor == "player" and "steady_aim" in session.world_state.get("combat", {}).get("turn_resources", {}).get("player", {}):
+        return 0  # Rogue Steady Aim: validated when saved, ended by the turn boundary
     value = int(data.get("speed_ft", 30 if actor == "player" else 0))
     if actor == "player":
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
@@ -80,6 +83,8 @@ def speed(session, actor):
     value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    if weapon_attack.speed_halved(session, actor):
+        value //= 2
     return max(0, value)
 
 
@@ -213,6 +218,7 @@ def begin_turn(session, actor):
     r = ensure(session)[actor]
     weapon_attack.boundary(session, actor, "begin")
     r.pop("weapon_sequence", None)
+    r.pop("steady_aim", None)
     r["base_action_spent"] = False
     r["bonus_action_spent"] = False
     r["reaction_spent"] = False
@@ -729,6 +735,8 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
         if type(limit) is not int or limit < 1:
             fail("invalid_attack_allowance", "Invalid server-defined attacks-per-Action.")
     npc = target(session, identity)
+    import monk_features
+    weapon_id = monk_features.default_weapon(session, weapon_id or session.world_state.get("equipment", {}).get("main_hand"))
     selected = weapon_id or session.world_state.get("equipment", {}).get("main_hand")
     weapon, data = session.find_weapon_in_inventory(selected)
     if any(isinstance(item, dict) and item.get("item_id") == selected for item in session.world_state["inventory"]):
@@ -850,6 +858,12 @@ def _execute(session, command, action_id=None, session_id=None):
         import paladin_features
         if not paladin_features.native_command(command):
             fail("invalid_paladin_command", "Lay On Hands, Divine Smite and Divine Sense require one exact typed Bonus Action step.")
+    if any(step.get("kind") in {"cunning_action", "steady_aim", "uncanny_dodge"} for step in steps if isinstance(step, dict)):
+        if not rogue_features.native_command(command):
+            fail("invalid_rogue_command", "Cunning Action, Steady Aim and Uncanny Dodge require one exact typed step.")
+    import monk_features
+    if any(step.get("kind") in monk_features.STEP_KINDS for step in steps if isinstance(step, dict)) and not monk_features.native_command(command):
+        fail("invalid_monk_command", "A Monk feature requires one exact typed step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -861,11 +875,13 @@ def _execute(session, command, action_id=None, session_id=None):
             kind = step["kind"]
             if step.get("reckless_attack") is not None and (kind not in {"attack", "continue_attack", "react"} or type(step["reckless_attack"]) is not bool):
                 fail("invalid_attack_choice", "Reckless Attack requires an attack and strict boolean.")
+            if (step.get("cunning_strike") is not None or step.get("cunning_strike_move_ft") is not None) and kind not in {"attack", "continue_attack"}:
+                fail("invalid_attack_choice", "Cunning Strike is chosen on an attack step.")
             if step.get("metamagic") is not None and (kind != "magic" or step.get("ability") != "Magic Missile" or step["metamagic"] != "quickened_spell"):
                 fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
             if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot", "divine_smite"}:
                 fail("invalid_spell_slot_choice", "Only a Magic action can select a spell slot.")
-            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind", "lay_on_hands", "divine_smite", "divine_sense"}:
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind", "lay_on_hands", "divine_smite", "divine_sense", "cunning_action", "steady_aim"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
@@ -897,11 +913,14 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind in {"attack", "continue_attack"}:
                 results.append(attack_step(
                     session, step.get("target_id"), kind == "continue_attack",
-                    weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
+                    weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}), **monk_features.step_choice(step),
                             **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {}),
-                            **{name: step[name] for name in ("sacred_weapon", "radiant_damage") if step.get(name) is not None}},
+                            **{name: step[name] for name in ("sacred_weapon", "radiant_damage") if step.get(name) is not None},
+                            **rogue_features.step_choice(step)},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
+            elif kind in monk_features.STEP_KINDS:
+                results.append({"kind": kind, "result": monk_features.run_step(session, step)})
             elif kind == "species":
                 with executing(session):
                     try:
@@ -925,6 +944,11 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append({"kind": kind, "result": paladin_features.cast_divine_smite(session, step.get("slot_level"))})
             elif kind == "divine_sense":
                 results.append({"kind": kind, "result": paladin_features.activate_divine_sense(session)})
+            elif kind in {"cunning_action", "steady_aim", "uncanny_dodge"}:
+                results.append({"kind": kind, "result": (
+                    rogue_features.cunning_action(session, step["cunning_option"]) if kind == "cunning_action"
+                    else rogue_features.steady_aim(session) if kind == "steady_aim"
+                    else rogue_features.set_uncanny_dodge(session, step["uncanny_dodge_enabled"]))})
             elif kind == "convert_spell_slot":
                 import sorcery_points
                 results.append({"kind": kind, "result": sorcery_points.convert_slot(session, step.get("slot_level"))})
@@ -966,6 +990,7 @@ def _execute(session, command, action_id=None, session_id=None):
 
 def resolved_narration(session, results):
     """Read completed steps only; never resolve mechanics or rewrite history."""
+    import monk_features
     import spell_scope
     narration_parts = []
     for step in results:
@@ -996,6 +1021,14 @@ def resolved_narration(session, results):
             narration_parts.append(f"Bonus Action ile Divine Smite: hedef {result['damage']} Radiant hasar alır.")
         elif step["kind"] == "divine_sense":
             narration_parts.append(f"Bonus Action ile Divine Sense açarsın; kalan Channel Divinity: {step['result']['uses_remaining']}.")
+        elif step["kind"] == "cunning_action":
+            narration_parts.append(f"Bonus Action ile Cunning Action: {step['result']['option']}.")
+        elif step["kind"] == "steady_aim":
+            narration_parts.append("Bonus Action ile Steady Aim: sonraki saldırı zarında Advantage; bu tur Hızın 0.")
+        elif step["kind"] == "uncanny_dodge":
+            narration_parts.append("Uncanny Dodge açık." if step["result"]["enabled"] else "Uncanny Dodge kapalı; Reaction sende kalır.")
+        elif step["kind"] in monk_features.STEP_KINDS:
+            narration_parts.append(monk_features.narration(session, step))
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
             narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")
@@ -1011,6 +1044,7 @@ def resolved_narration(session, results):
             narration_parts.append("Belirlediğin an için hazır bekliyorsun.")
         elif step["kind"] == "attack":
             narration_parts.append(session._combat_narration(step["result"]))
+            narration_parts.append(rogue_features.narration(step["result"]))
         elif step["kind"] == "species":
             narration_parts.append(step["result"].get("message", ""))
         elif step["kind"] in {"end_turn", "react", "decline_reaction"}:

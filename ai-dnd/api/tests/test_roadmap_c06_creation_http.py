@@ -91,6 +91,15 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(c['class'], 'Fighter')
         self.assertIn('Second Wind', ' '.join(c['progression_effects_pending']))
 
+    async def test_a_random_slice_class_discloses_its_scope(self):
+        for name in ('Monk', 'Paladin', 'Rogue'):
+            with self.subTest(name=name), patch('game.CLASSES', (name,)):
+                response = await self.post_character({'mode': 'random'}, '/api/campaigns')
+                self.assertEqual(response.status_code, 200, response.text)
+                c = response.json()['state']['character']
+                self.assertEqual(c['class'], name)
+                self.assertTrue(c['progression_effects_pending'])
+
     async def test_default_random_and_explicit_levels_keep_legacy_shape(self):
         default = await self.http.post('/api/game/campaigns', json={})
         self.assertEqual(default.status_code, 200, default.text)
@@ -127,6 +136,8 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                             self.assertIn('Second Wind', ' '.join(c['progression_effects_pending']))
                         elif c['class'] == 'Paladin':  # the same for a random Paladin
                             self.assertIn('catalog-only', ' '.join(c['progression_effects_pending']))
+                        elif c['class'] in ('Monk', 'Rogue'):  # both disclose their scope from level 1 as well
+                            self.assertTrue(c['progression_effects_pending'])
                         else:
                             self.assertNotIn('progression_effects_pending', c)
 

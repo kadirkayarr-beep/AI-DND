@@ -262,6 +262,16 @@ export const FighterLevel3ChoicesValue = {
 } as const;
 export type FighterLevel3Choices = typeof FighterLevel3ChoicesValue;
 
+export const MonkLevel3ChoicesValue = {
+  subclass_id: 'open_hand',
+} as const;
+export type MonkLevel3Choices = typeof MonkLevel3ChoicesValue;
+
+export const RogueLevel3ChoicesValue = {
+  subclass_id: 'assassin',
+} as const;
+export type RogueLevel3Choices = typeof RogueLevel3ChoicesValue;
+
 export type PaladinLevel2ChoicesFightingStyle = typeof PaladinLevel2ChoicesFightingStyle[keyof typeof PaladinLevel2ChoicesFightingStyle];
 
 
@@ -324,7 +334,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -1258,6 +1268,111 @@ export interface PaladinState {
   prepared_spells: PaladinPreparedSpell[];
 }
 
+export interface RogueSneakAttackState {
+  /** @minimum 1 */
+  dice: number;
+  die: 6;
+  used_this_turn: boolean;
+}
+
+export interface RogueCunningActionState {
+  dash: FighterAvailability;
+  disengage: FighterAvailability;
+}
+
+export interface RogueSteadyAimState {
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+  active: boolean;
+}
+
+export type RogueCunningStrikeOptionId = typeof RogueCunningStrikeOptionId[keyof typeof RogueCunningStrikeOptionId];
+
+
+export const RogueCunningStrikeOptionId = {
+  poison: 'poison',
+  trip: 'trip',
+  withdraw: 'withdraw',
+} as const;
+
+export interface RogueCunningStrikeOption {
+  id: RogueCunningStrikeOptionId;
+  /** @minimum 1 */
+  cost: number;
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface RogueCunningStrikeState {
+  dc: number;
+  /** @minimum 0 */
+  withdraw_max_ft: number;
+  /** Combat participant ids that Trip refuses as larger than Large. */
+  trip_refused_targets: string[];
+  options: RogueCunningStrikeOption[];
+}
+
+export interface RogueUncannyDodgeState {
+  enabled: boolean;
+  reaction_available: boolean;
+}
+
+export interface RogueState {
+  /** @nullable */
+  subclass: string | null;
+  sneak_attack: RogueSneakAttackState;
+  cunning_action: RogueCunningActionState | null;
+  steady_aim: RogueSteadyAimState | null;
+  cunning_strike: RogueCunningStrikeState | null;
+  uncanny_dodge: RogueUncannyDodgeState | null;
+}
+
+export interface MonkFocusState {
+  /** @minimum 0 */
+  points_remaining: number;
+  /** @minimum 1 */
+  max_points: number;
+}
+
+export type MonkStateDeflectMode = typeof MonkStateDeflectMode[keyof typeof MonkStateDeflectMode] | null;
+
+
+export const MonkStateDeflectMode = {
+  off: 'off',
+  reduce: 'reduce',
+  redirect: 'redirect',
+} as const;
+
+export type MonkStateOpenHandTechniquesItem = typeof MonkStateOpenHandTechniquesItem[keyof typeof MonkStateOpenHandTechniquesItem];
+
+
+export const MonkStateOpenHandTechniquesItem = {
+  push: 'push',
+  topple: 'topple',
+} as const;
+
+export interface MonkState {
+  /** @minimum 2 */
+  martial_arts_die: number;
+  martial_arts_ready: boolean;
+  /** @minimum 0 */
+  movement_bonus_ft: number;
+  save_dc: number;
+  focus: MonkFocusState | null;
+  martial_arts_strike: FighterAvailability;
+  flurry_of_blows: FighterAvailability | null;
+  /** @minimum 0 */
+  flurry_strikes_remaining: number;
+  patient_defense: FighterAvailability | null;
+  step_of_the_wind: FighterAvailability | null;
+  uncanny_metabolism: FighterAvailability | null;
+  stunning_strike: FighterAvailability | null;
+  deflect_mode: MonkStateDeflectMode;
+  open_hand_techniques: MonkStateOpenHandTechniquesItem[];
+}
+
 /**
  * @nullable
  */
@@ -1332,6 +1447,8 @@ export interface GameCharacter {
   rage?: RageState;
   fighter?: FighterState;
   paladin?: PaladinState;
+  rogue?: RogueState;
+  monk?: MonkState;
   name: string;
   race: string;
   species?: string;
@@ -2051,6 +2168,16 @@ export const EconomyStepInputKind = {
   lay_on_hands: 'lay_on_hands',
   divine_smite: 'divine_smite',
   divine_sense: 'divine_sense',
+  cunning_action: 'cunning_action',
+  steady_aim: 'steady_aim',
+  uncanny_dodge: 'uncanny_dodge',
+  martial_arts_strike: 'martial_arts_strike',
+  flurry_of_blows: 'flurry_of_blows',
+  flurry_strike: 'flurry_strike',
+  patient_defense: 'patient_defense',
+  step_of_the_wind: 'step_of_the_wind',
+  uncanny_metabolism: 'uncanny_metabolism',
+  set_deflect_attacks: 'set_deflect_attacks',
 } as const;
 
 export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
@@ -2069,6 +2196,49 @@ export type EconomyStepInputMetamagic = typeof EconomyStepInputMetamagic[keyof t
 
 export const EconomyStepInputMetamagic = {
   quickened_spell: 'quickened_spell',
+} as const;
+
+export type EconomyStepInputCunningOption = typeof EconomyStepInputCunningOption[keyof typeof EconomyStepInputCunningOption] | null;
+
+
+export const EconomyStepInputCunningOption = {
+  dash: 'dash',
+  disengage: 'disengage',
+} as const;
+
+/**
+ * Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands.
+ */
+export type EconomyStepInputCunningStrike = typeof EconomyStepInputCunningStrike[keyof typeof EconomyStepInputCunningStrike] | null;
+
+
+export const EconomyStepInputCunningStrike = {
+  poison: 'poison',
+  trip: 'trip',
+  withdraw: 'withdraw',
+} as const;
+
+/**
+ * Open Hand Technique declared with an attack granted by Flurry of Blows.
+ */
+export type EconomyStepInputOpenHandTechnique = typeof EconomyStepInputOpenHandTechnique[keyof typeof EconomyStepInputOpenHandTechnique] | null;
+
+
+export const EconomyStepInputOpenHandTechnique = {
+  push: 'push',
+  topple: 'topple',
+} as const;
+
+/**
+ * Deflect Attacks setting for set_deflect_attacks.
+ */
+export type EconomyStepInputDeflectMode = typeof EconomyStepInputDeflectMode[keyof typeof EconomyStepInputDeflectMode] | null;
+
+
+export const EconomyStepInputDeflectMode = {
+  off: 'off',
+  reduce: 'reduce',
+  redirect: 'redirect',
 } as const;
 
 export type ReadyTriggerInputEvent = typeof ReadyTriggerInputEvent[keyof typeof ReadyTriggerInputEvent];
@@ -2135,6 +2305,16 @@ export interface EconomyStepInput {
   slot_level?: number | null;
   /** Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts. */
   metamagic?: EconomyStepInputMetamagic;
+  cunning_option?: EconomyStepInputCunningOption;
+  /** Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands. */
+  cunning_strike?: EconomyStepInputCunningStrike;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  cunning_strike_move_ft?: number | null;
+  /** @nullable */
+  uncanny_dodge_enabled?: boolean | null;
   /**
      * Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.
      * @nullable
@@ -2161,6 +2341,20 @@ export interface EconomyStepInput {
      * @nullable
      */
   radiant_damage?: boolean | null;
+  /**
+     * Monk Stunning Strike declared with an attack, before the roll; spent only on a hit.
+     * @nullable
+     */
+  stunning_strike?: boolean | null;
+  /** Open Hand Technique declared with an attack granted by Flurry of Blows. */
+  open_hand_technique?: EconomyStepInputOpenHandTechnique;
+  /**
+     * Patient Defense or Step of the Wind with its 1 Focus Point option.
+     * @nullable
+     */
+  spend_focus?: boolean | null;
+  /** Deflect Attacks setting for set_deflect_attacks. */
+  deflect_mode?: EconomyStepInputDeflectMode;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }
@@ -2849,6 +3043,20 @@ export interface FighterLevelChoices {
   '5'?: BarbarianLevel2Choices;
 }
 
+export interface MonkLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: MonkLevel3Choices;
+  '4'?: BarbarianLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
+export interface RogueLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: RogueLevel3Choices;
+  '4'?: BarbarianLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 export interface PaladinLevelChoices {
   '2': PaladinLevel2Choices;
   '3'?: PaladinLevel3Choices;
@@ -2902,7 +3110,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | PaladinLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -3205,11 +3413,51 @@ export interface PaladinStartingCreationOptions {
   level_5?: PaladinStartingLevel5Options | null;
 }
 
+export interface RogueStartingSubclassOption {
+  id: 'assassin';
+  name: string;
+}
+
+export interface RogueStartingLevel3Options {
+  subclass_options: RogueStartingSubclassOption[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface RogueStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianStartingLevel2Options;
+  level_3?: RogueStartingLevel3Options | null;
+  level_4?: BarbarianStartingLevel4Options | null;
+  level_5?: BarbarianStartingLevel5Options | null;
+}
+
+export interface MonkStartingSubclassOption {
+  id: 'open_hand';
+  name: string;
+}
+
+export interface MonkStartingLevel3Options {
+  subclass_options: MonkStartingSubclassOption[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface MonkStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianStartingLevel2Options;
+  level_3?: MonkStartingLevel3Options | null;
+  level_4?: BarbarianStartingLevel4Options | null;
+  level_5?: BarbarianStartingLevel5Options | null;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
   paladin_starting_creation?: PaladinStartingCreationOptions | null;
+  rogue_starting_creation?: RogueStartingCreationOptions | null;
+  monk_starting_creation?: MonkStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

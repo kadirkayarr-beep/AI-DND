@@ -5,6 +5,7 @@ Divine Smite 2d8 Radiant, +1d8 per slot level above 1, +1d8 against a Fiend or a
 Divinity two uses, one back on a Short Rest, all on a Long Rest; Divine Sense 10 minutes, 60 feet; Sacred Weapon Charisma modifier
 (minimum +1) for 10 minutes. Dice are deterministic; synthetic NPCs are unit fixtures.
 """
+import copy
 import random
 import unittest
 from pathlib import Path
@@ -688,6 +689,74 @@ class SharedOwners(unittest.TestCase):
     def test_other_classes_have_no_block(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter
         self.assertIsNone(features.projection(fighter()))
+
+
+class OtherClassesStayApart(unittest.TestCase):
+    """Written after the merge with Monk and Rogue: the saved fields, records, steps and attack choices of one class are refused on another."""
+
+    @staticmethod
+    def others():
+        from api.tests.test_roadmap_c15_monk import created as monk
+        from api.tests.test_roadmap_c18_rogue_features import created as rogue
+        return monk(5), rogue(5)
+
+    def test_paladin_uses_are_refused_on_a_monk_and_a_rogue(self):
+        for session in self.others():
+            session.character[features.KEY] = {"lay_on_hands_spent": 0, "channel_divinity_spent": 0, "free_smite_spent": 0,
+                                               "divine_sense_until": None, "sacred_weapon": None}
+            with self.subTest(session.character["class"]), self.assertRaises(ValueError):
+                cp.validate_saved(session.character, session.world_state)
+
+    def test_a_paladin_cannot_keep_monk_state_or_an_uncanny_flag(self):
+        cases = {"monk_state": {"focus_spent": 0, "metabolism_spent": False, "deflect": "off"}, "uncanny_dodge_off": True}
+        for field, value in cases.items():
+            session = created(5)
+            session.character[field] = value
+            with self.subTest(field), self.assertRaises(ValueError):
+                cp.validate_saved(session.character, session.world_state)
+
+    def test_rogue_world_records_are_refused_on_a_paladin(self):
+        """validate_class_world runs for every registered class, a Paladin included."""
+        session, npc = fight(5)
+        cp.validate_saved(session.character, session.world_state)  # the unforged state passes
+        resources = lambda world: world["combat"]["turn_resources"]["player"]
+        poison = {"kind": "cunning_poison", "source_actor": "player", "target_id": npc["id"], "dc": 14, "expires_turn": 11, "expires_boundary": "end"}
+        cases = {
+            "steady aim": lambda world: resources(world).update(steady_aim={"advantage": True}),
+            "sneak marker": lambda world: resources(world).update(sneak_attack_turn=[1, "player"]),
+            "poison": lambda world: world.setdefault("attack_effects", []).append(dict(poison)),
+        }
+        for name, change in cases.items():
+            forged = copy.deepcopy(session.world_state)
+            change(forged)
+            with self.subTest(name), self.assertRaises(ValueError):
+                cp.validate_saved(session.character, forged)
+
+    def test_paladin_steps_and_attack_choices_are_refused_on_a_monk_and_a_rogue(self):
+        for session in self.others():
+            session.world_state["equipment"] = {"main_hand": "shortsword", "off_hand": None}
+            npc = start_combat(session)
+            steps = (lay(healing_amount=5), smite(slot_level=1), SENSE,
+                     {"kind": "attack", "target_id": npc["id"], "sacred_weapon": True},
+                     {"kind": "attack", "target_id": npc["id"], "radiant_damage": True})
+            for each in steps:
+                with self.subTest(session.character["class"], step=each["kind"]):
+                    self.assertTrue(code_of(self, session, each))
+
+    def test_monk_and_rogue_steps_and_attack_choices_are_refused_on_a_paladin(self):
+        session, npc = fight(5)
+        steps = ({"kind": "attack", "target_id": npc["id"], "cunning_strike": "trip"},
+                 {"kind": "attack", "target_id": npc["id"], "stunning_strike": True},
+                 {"kind": "cunning_action", "resource": "bonus", "cunning_option": "dash"},
+                 {"kind": "steady_aim", "resource": "bonus"},
+                 {"kind": "uncanny_dodge", "uncanny_dodge_enabled": False},
+                 {"kind": "martial_arts_strike", "resource": "bonus", "target_id": npc["id"]},
+                 {"kind": "flurry_of_blows", "resource": "bonus", "target_id": npc["id"]},
+                 {"kind": "patient_defense", "resource": "bonus"},
+                 {"kind": "set_deflect_attacks", "deflect_mode": "reduce"})
+        for each in steps:
+            with self.subTest(step=each["kind"]):
+                self.assertTrue(code_of(self, session, each))
 
 
 if __name__ == "__main__":

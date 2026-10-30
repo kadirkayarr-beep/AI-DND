@@ -8,9 +8,11 @@
 import type { FighterState } from './fighterState';
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
+import type { MonkState } from './monkState';
 import type { PaladinState } from './paladinState';
 import type { PrimalKnowledgeCheck } from './primalKnowledgeCheck';
 import type { RageState } from './rageState';
+import type { RogueState } from './rogueState';
 import type { SpeciesTraitState } from './speciesTraitState';
 
 export interface GameCharacter {
@@ -18,6 +20,8 @@ export interface GameCharacter {
   rage?: RageState;
   fighter?: FighterState;
   paladin?: PaladinState;
+  rogue?: RogueState;
+  monk?: MonkState;
   name: string;
   race: string;
   species?: string;

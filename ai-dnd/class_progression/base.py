@@ -18,6 +18,9 @@ class ClassProgression:
     def validate_class_fields(self, player: dict[str, Any]) -> None:
         """Runs for EVERY registered class on EVERY character: refuse this class's own fields wherever they do not belong."""
 
+    def validate_class_world(self, player: dict[str, Any], world: Any) -> None:
+        """The same, for this class's own records inside world state."""
+
     def validate_state(self, player: dict[str, Any], world: dict[str, Any]) -> None:
         """Runs for this class before the applied level is checked."""
 
