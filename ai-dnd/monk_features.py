@@ -539,12 +539,11 @@ def step_choice(step: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_step(session: Any, step: dict[str, Any]) -> dict[str, Any]:
-    from initiative import atomic
+    """Rollback belongs to `action_economy.execute`, the only caller."""
     handlers = {"martial_arts_strike": _martial_arts_strike, "flurry_of_blows": _flurry, "flurry_strike": _flurry_strike,
                 "patient_defense": _patient_defense, "step_of_the_wind": _step_of_the_wind,
                 "uncanny_metabolism": _uncanny_metabolism, "set_deflect_attacks": _set_deflect}
-    with atomic(session):
-        return handlers[step["kind"]](session, step)
+    return handlers[step["kind"]](session, step)
 
 
 _STEP_FIELDS = {"martial_arts_strike": {"target_id", "stunning_strike", "open_hand_technique"},
@@ -639,7 +638,7 @@ def disclosure(level: int) -> dict[str, list[str]]:
             "Extra Attack: two attacks instead of one when taking the Attack action on your own turn (shared allowance owner)",
             "Stunning Strike: once per turn on a hit with a Monk weapon or Unarmed Strike, 1 Focus Point and a Constitution save; Stunned on a failure, or halved Speed and Advantage on the next attack roll on a success, until the start of your next turn",
         ])
-        pending.append("Stunning Strike is declared with the attack, before the roll, and costs nothing on a miss; it cannot be decided after seeing the hit")
+        pending.append("Stunning Strike is declared with the attack, before the roll, and costs nothing on a miss; it cannot be decided after seeing the hit; the panel offers it on the Attack action only, not on Flurry or the Bonus Action strike")
     return {"supported": supported, "pending": pending}
 
 
