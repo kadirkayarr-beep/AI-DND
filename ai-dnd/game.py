@@ -6045,9 +6045,15 @@ def _is_guard(npc):
     return bool(_GUARD_ROLE.search(living_world.normalize_text(npc.get("role", ""))))
 
 
+def _serves_at_a_counter(npc):
+    return bool(_COUNTER_ROLE.search(living_world.normalize_text(npc.get("role", ""))))
+
+
 def _words_fit_person(npc, text):
     """A plain word for what this person visibly is, beyond the shown label."""
-    return bool(_GUARD_WORD.search(text)) and _is_guard(npc)
+    return (bool(_GUARD_WORD.search(text)) and _is_guard(npc)) or (
+        any(word in text for word in _COUNTER_WORDS) and _serves_at_a_counter(npc)
+    )
 
 
 def most_plausible_addressee(people, player_input=""):
@@ -6083,6 +6089,63 @@ def _topic_place_name(world):
         return said.get("name")
     place = world.get("locations", {}).get(grounded_action.last_target_id(world))
     return place.get("name") if isinstance(place, dict) else None
+
+
+_LOCATED_PERSON = re.compile(
+    r"\b([^\W\d_]{3,}?)['’]?(?:daki|deki|taki|teki)\s+"
+    r"(?:adam|kad[ıi]n|ki[sş]i|gen[cç]|ya[sş]l[ıi]|[cç]ocuk|ihtiyar|o[gğ]lan|k[ıi]z)",
+    re.IGNORECASE,
+)
+_IN_REACH_WORDS = (
+    "yakin", "yan", "karsi", "sag", "sol", "on", "arka", "bura", "ora", "sura", "ileri",
+    "ote", "kose", "kapi", "sokak", "cadde", "meydan", "kalabalik", "uzak", "dis", "ic",
+)
+_COUNTER_WORDS = ("tezgah", "bar", "banko")
+_COUNTER_ROLE = re.compile(r"barmen|bartender|hanci|meyhaneci|tuccar|dukkan|satici|merchant|shopkeeper|garson")
+
+
+def _absent_described_person(player_input, people):
+    """The word for "the man at the counter", when no such place or person is here."""
+    match = _LOCATED_PERSON.search(str(player_input))
+    if match is None:
+        return None
+    stem = living_world.normalize_text(match.group(1))
+    if stem.startswith(_IN_REACH_WORDS):
+        return None
+    world_state = _session().world_state
+    here = world_state.get("location")
+    place = world_state.get("locations", {}).get(here)
+    seen = []
+    if isinstance(place, dict):
+        seen.extend(str(place.get(key) or "") for key in ("name", "description"))
+    for feature in world_state.get("features", []):
+        if isinstance(feature, dict) and feature.get("location") == here and not feature.get("hidden"):
+            seen.append(str(feature.get("name") or ""))
+            seen.extend(str(alias) for alias in feature.get("aliases", []) or [])
+    for npc in people:
+        seen.extend(str(npc.get(key) or "") for key in ("role", "appearance"))
+        if stem.startswith(_COUNTER_WORDS) and _serves_at_a_counter(npc):
+            return None
+    if any(stem in living_world.normalize_text(text) for text in seen):
+        return None
+    return match.group(1)
+
+
+def _absent_person_text(place_word):
+    people = active_npcs()[:3]
+    present = (
+        f" Yakında {living_world.public_scene_people(people)} var." if people else ""
+    )
+    word = place_word[:1].upper() + place_word[1:]
+    return f"{word} başında öyle birini göremiyorsun.{present}"
+
+
+def _is_plain_person_reference(words_before, target):
+    """"Kapıdaki adama" or "şu kadına" points at someone here; "kapüşonlu adama" describes one."""
+    if not re.match(r"(?:adam|kad[ıi]n|ki[sş]i)\w*$", target):
+        return False
+    previous = living_world.normalize_text(words_before).rsplit(" ", 1)[-1]
+    return previous in {"", "o", "su", "bu"} or previous.endswith(("daki", "deki", "taki", "teki"))
 
 
 def _settle_address(resolution, player_input):
@@ -6166,6 +6229,7 @@ def resolve_npc_reference(
     explicit_unresolved_reference = any(
         match.group("target") not in {"ona", "ondan", "onunla", "kendisine"}
         and not local_dialogue.is_nominal_speech_reference(player_input[match.start():])
+        and not _is_plain_person_reference(player_input.casefold()[:match.start()], match.group("target"))
         for match in re.finditer(
             r"\b(?P<target>[\wçğıöşü]+(?:['’](?:dan|den|tan|ten)|la|le|dan|den|tan|ten|a|e))\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
             player_input.casefold(),
@@ -6175,6 +6239,10 @@ def resolve_npc_reference(
     object_inspection = _is_object_inspection(player_input) and not re.search(
         r"\b(?:o adam|o kadin|ona|ondan|onunla|kendisine|sana|seni)\b", text
     )
+    if allow_active_fallback and not matches:
+        absent = _absent_described_person(player_input, available)
+        if absent:
+            return {"status": "none", "npc": None, "absent": absent}
     if allow_active_fallback and not matches and not explicit_unresolved_reference and not object_inspection and (
         force_dialogue
         or is_npc_dialogue_input(player_input)
@@ -15984,6 +16052,14 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             ):
                 # "Yakınımdaki birine yaklaşıyorum": any person will do, so pick one.
                 resolved_npc = most_plausible_addressee(active_npcs(), action_input)
+            elif action == "approach" and npc_resolution.get("absent"):
+                direct = {
+                    "action": "approach",
+                    "status": "unavailable",
+                    "success": False,
+                    "state_changes": [],
+                    "direct_response": _absent_person_text(npc_resolution["absent"]),
+                }
 
     if not combat.get("active") and not direct:
         if action == "presence" and current in world_state.get("locations", {}):
@@ -18096,6 +18172,12 @@ def _run_player_turn_internal(
                     or "Hangi hedefe saldırmak istiyorsun?",
                 )
             npc_resolution = _settle_address(npc_resolution, player_input)
+        if npc_resolution.get("absent") and interaction_mode != "ask_dm" and not combat["active"]:
+            return finish_turn(
+                {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []},
+                _absent_person_text(npc_resolution["absent"]),
+                is_final=True,
+            )
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
     if (
@@ -18206,7 +18288,7 @@ def _run_player_turn_internal(
     if unresolved_address and target_id is None and not combat["active"]:
         npc_target = None
         result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
-        return finish_turn(result, f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor. Kiminle konuşmak istiyorsun?", is_final=True)
+        return finish_turn(result, f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor.", is_final=True)
 
     if interaction_mode == "say" and npc_target is None:
         result = {

@@ -625,7 +625,9 @@ def unaddressed_work_answer(player_input: Any) -> tuple[str, str] | None:
 DISCOURSE_ADDRESSES = frozenset({
     "evet", "hayir", "peki", "tamam", "selam", "selamlar", "merhaba", "merhabalar",
     "gunaydin", "hey", "dostum", "bayim", "hanimefendi", "beyefendi", "affedersiniz",
-    "pardon", "usta", "lutfen", "ben",
+    "pardon", "usta", "lutfen", "ben", "olur", "tesekkurler", "tesekkur", "sagol", "sagolun",
+    "anladim", "anlasildi", "guzel", "iyi", "abi", "abla", "kardesim", "hocam", "efendim",
+    "ahbap", "yabanci", "bakin", "bakar", "hmm", "yani", "ee", "aferin",
 })
 
 

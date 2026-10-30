@@ -261,5 +261,45 @@ class WorldQuestionsReachThePerson(TownCase):
         self.assertEqual(references[0]["name"], inn["name"])
 
 
+class SomeoneWhoIsNotHere(TownCase):
+    async def test_a_man_at_a_counter_that_is_not_here_gets_a_plain_reply(self):
+        data = await self.say("Tezgâhtaki adama adını soruyorum.")
+        self.assert_no_wall(data)
+        self.assertIn("Tezgâh", data["narration"])
+        self.assertNotIn(self.other["name"], data["narration"])
+        self.assertNotIn(self.guard["name"], data["narration"])
+        self.assertFalse(self.flags.get("active_npc_id"))
+
+    async def test_the_counter_man_is_the_barkeep_when_there_is_one(self):
+        self.other["role"] = "Barmen"
+        self.other["role_known_to_player"] = True
+        data = await self.say("Tezgâhtaki adama adını soruyorum.")
+        self.assert_no_wall(data)
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+
+
+class ExistingAddressesStayPut(TownCase):
+    async def test_the_guard_at_the_door_is_not_an_absent_person(self):
+        data = await self.say("Kapıdaki adama selam veriyorum.")
+        self.assert_no_wall(data)
+        self.assertIn(self.flags["active_npc_id"], {self.other["id"], self.guard["id"]})
+
+    async def test_someone_next_to_me_is_not_an_absent_person(self):
+        data = await self.say("Yanımdaki adama adını soruyorum.")
+        self.assert_no_wall(data)
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+
+    async def test_a_thanks_is_not_a_name(self):
+        await self.say("Muhafıza selam veriyorum.")
+        data = await self.say("Teşekkürler, buralarda neler oluyor?")
+        self.assertNotIn("adıyla", data["narration"])
+        self.assertEqual(self.flags["active_npc_id"], self.guard["id"])
+
+    async def test_walking_up_to_a_person_who_is_not_here(self):
+        data = await self.say("Tezgâhtaki adama yaklaşıyorum.")
+        self.assert_no_wall(data)
+        self.assertIn("Tezgâh", data["narration"])
+
+
 if __name__ == "__main__":
     unittest.main()
