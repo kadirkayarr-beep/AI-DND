@@ -16,10 +16,14 @@ const draftN = (level, extra = {}) => ({ ...emptyStartingDraft(), startingLevel:
 const open = { available: true, reason: null };
 const ROGUE = () => ({ subclass: 'assassin', sneak_attack: { dice: 3, die: 6, used_this_turn: false },
   cunning_action: { dash: { ...open }, disengage: { ...open } }, steady_aim: { ...open, active: false },
-  cunning_strike: { dc: 14, withdraw_max_ft: 15, options: [{ id: 'poison', cost: 1, ...open }, { id: 'trip', cost: 1, ...open }, { id: 'withdraw', cost: 1, ...open }] },
+  cunning_strike: { dc: 14, withdraw_max_ft: 15, trip_refused_targets: [], options: [{ id: 'poison', cost: 1, ...open }, { id: 'trip', cost: 1, ...open }, { id: 'withdraw', cost: 1, ...open }] },
   uncanny_dodge: { enabled: true, reaction_available: true } });
 
-let helper, ui, controls, vite;
+const campaign_id = '11111111-1111-4111-8111-111111111111';
+const preview = (target, counts, extra = {}) => ({ session_id: 'session', campaign_id, revision: 7, status: 'ready', reason: null, class_name: 'Rogue', from_level: target - 1, target_level: target, choices_required: counts, capacity: null, prepared_spell_ids: [], cantrip_ids: [], supported_asi_choices: [], metamagic_options: [], subclass_options: [], effects_supported: ['Supported'], effects_pending: ['Pending'], ...extra });
+const action_id = '22222222-2222-4222-8222-222222222222';
+
+let helper, ui, controls, levelUp, panel, vite;
 before(async () => {
   helper = await import('../src/lib/rogue-starting-creation.ts');
   process.env.PORT ||= '4187'; process.env.BASE_PATH ||= '/';
@@ -27,6 +31,8 @@ before(async () => {
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   ui = await vite.ssrLoadModule('/src/components/rogue-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/rogue-controls.tsx');
+  levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
+  panel = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
 });
 after(async () => { await vite?.close(); });
 
@@ -65,12 +71,166 @@ test('fields send the exact bundle for each level and refuse anything unconfirme
   assert.equal(helper.rogueStartingCreationFields(draftN(3), undefined).ok, false);
 });
 
-test('generated validator accepts the exact creation bundle under the Rogue class', async () => {
-  const { CreateGameCampaignBody } = await import('../../../lib/api-zod/src/generated/api.ts').catch(() => ({}));
-  const zod = await import('../../../lib/api-zod/src/generated/api.ts');
-  const body = CreateGameCampaignBody ?? zod.CreateCampaignBody;
-  if (body) assert.ok(body.shape ?? body);
-  assert.ok(zod.PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [{ kind: 'attack', target_id: 'a', cunning_strike: 'trip' }] } }));
+test('generated validator keeps the exact creation bundle under the Rogue class and refuses a bad one', async () => {
+  const { CreateCampaignBody, PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
+  const source = helper.readRogueStartingCreationOptions(raw5());
+  for (const level of [2, 3, 4, 5]) {
+    const { fields } = helper.rogueStartingCreationFields(draftN(level), source);
+    const character = { mode: 'custom', class: 'Rogue', ...fields };
+    const parsed = CreateCampaignBody.parse({ character }).character;
+    assert.equal(parsed.starting_level, level);
+    assert.deepEqual(parsed.level_choices, fields.level_choices);
+  }
+  const { fields } = helper.rogueStartingCreationFields(draftN(5), source);
+  const forged = { ...fields, level_choices: { ...fields.level_choices, '3': { subclass_id: 'thief' } } };
+  assert.equal(CreateCampaignBody.safeParse({ character: { mode: 'custom', class: 'Rogue', ...forged } }).success, false);
+  assert.ok(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [{ kind: 'attack', target_id: 'a', cunning_strike: 'trip' }] } }));
+});
+
+function levelHarness(p) {
+  let draft = { cantrip: '', preparedSpell: '', confirmed: false }, sent;
+  const props = () => ({ preview: p, draft, onChange: d => draft = d, onConfirm: r => sent = r, onCancel: () => {} });
+  const tree = () => nodes(levelUp.LevelUpChoices(props()));
+  return { tree, get sent() { return sent; }, change: (id, value) => { const c = byId(tree(), id); assert.ok(c, id); c.props.onChange({ target: { value, checked: value } }); } };
+}
+const confirmButton = h => byId(h.tree(), 'button-confirm-level-up');
+
+test('level-up: Rogue empty steps 2 and 5 need explicit confirmation and pass the generated validator', async () => {
+  const { ApplyGameSessionLevelUpBody } = await import('../../../lib/api-zod/src/generated/api.ts');
+  for (const target of [2, 5]) {
+    const h = levelHarness(preview(target, {}));
+    assert.equal(confirmButton(h).props.disabled, true);
+    h.change('level-up-confirm-empty', true);
+    confirmButton(h).props.onClick();
+    assert.deepEqual(h.sent, { campaign_id, expected_revision: 7, target_level: target, choices: {} });
+    assert.deepEqual(ApplyGameSessionLevelUpBody.parse({ ...h.sent, action_id }).choices, {});
+  }
+});
+
+test('level-up: Rogue 3 sends the offered Assassin only after confirmation; an id outside the contract cannot be sent', async () => {
+  const assassin = preview(3, { subclass_id: 1 }, { subclass_options: [{ id: 'assassin', name: 'Assassin' }] });
+  const h = levelHarness(assassin);
+  assert.equal(confirmButton(h).props.disabled, true);
+  h.change('level-up-subclass', 'assassin');
+  assert.equal(confirmButton(h).props.disabled, true, 'a pick still needs the confirmation');
+  h.change('level-up-confirm-subclass', true);
+  confirmButton(h).props.onClick();
+  assert.deepEqual(h.sent, { campaign_id, expected_revision: 7, target_level: 3, choices: { subclass_id: 'assassin' } });
+  const { ApplyGameSessionLevelUpBody } = await import('../../../lib/api-zod/src/generated/api.ts');
+  assert.deepEqual(ApplyGameSessionLevelUpBody.parse({ ...h.sent, action_id }).choices, { subclass_id: 'assassin' });
+  const unknown = levelHarness(preview(3, { subclass_id: 1 }, { subclass_options: [{ id: 'thief', name: 'Thief' }] }));
+  unknown.change('level-up-subclass', 'thief');
+  unknown.change('level-up-confirm-subclass', true);
+  assert.equal(confirmButton(unknown).props.disabled, true);
+  confirmButton(unknown).props.onClick();
+  assert.equal(unknown.sent, undefined);
+  const notOffered = levelHarness(assassin);
+  notOffered.change('level-up-subclass', 'champion');
+  notOffered.change('level-up-confirm-subclass', true);
+  assert.equal(confirmButton(notOffered).props.disabled, true, 'a contract id the server did not offer stays unsent');
+});
+
+test('level-up: Rogue 4 sends only the server ASI, and other shapes show no confirm button', () => {
+  const h = levelHarness(preview(4, { asi: 1 }, { supported_asi_choices: structuredClone(ASI) }));
+  assert.equal(confirmButton(h).props.disabled, true);
+  h.tree().find(n => n.props?.testId === 'level-up-asi-choice').props.onChange(structuredClone(INT2));
+  assert.equal(confirmButton(h).props.disabled, true, 'a pick still needs the confirmation');
+  h.change('level-up-confirm-con', true);
+  confirmButton(h).props.onClick();
+  assert.deepEqual(h.sent.choices, { asi: INT2 });
+  for (const p of [preview(3, { subclass_id: 1, primal_knowledge_skill: 1 }), preview(4, { asi: 1, cantrips: 1 }), preview(5, { asi: 1 }), preview(3, {})])
+    assert.equal(confirmButton(levelHarness(p)), undefined, JSON.stringify(p.choices_required));
+});
+
+// The real ActionEconomyPanel source, extracted by AST and run with a small hook stand-in, as reckless-attack-ui does; the Rogue parts are real.
+const panelState = (rogue, resources = {}) => ({ character: { rogue }, spellcasting: null, combat: { active: true, combat_id: 'c', round: 2, current_turn_index: 0, current_actor_id: 'player', participant_records: [],
+  action_economy: { actors: { player: { base_action_spent: false, additional_actions: [], bonus_action_available: true, bonus_action_spent: false, bonus_rules: [], reaction_available: true, movement_remaining: 30, speed_ft: 30, ready: null, opportunity: null, attack_action: { remaining_attacks: 1 }, legal_actions: [{ kind: 'attack', legal: true, reason: null }], reckless_attack: null, ...resources } } } } });
+
+async function panelHarness(state) {
+  const ts = await import('typescript'), vm = await import('node:vm'), { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/components/action-economy-panel.tsx', import.meta.url), 'utf8');
+  const ast = ts.createSourceFile('panel.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const pick = name => ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name).getText(ast).replace(/^export /, '');
+  const code = ts.transpileModule([...['createQuickenedIntent', 'quickenedProjection', 'ActionEconomyPanel'].map(pick), 'globalThis.Panel = ActionEconomyPanel;'].join('\n'),
+    { compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  const slots = []; let cursor = 0; const sent = [];
+  const env = { FighterControl: 'FighterControl', RogueControl: 'RogueControl', CunningStrikeControl: 'CunningStrikeControl', RageControl: 'RageControl', MagicMissileControl: 'MagicMissileControl',
+    readRogueProjection: controls.readRogueProjection, cunningStrikeFields: controls.cunningStrikeFields, readRageProjection: panel.readRageProjection, createRecklessIntent: panel.createRecklessIntent, RecklessAttackControl: panel.RecklessAttackControl,
+    React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) },
+    useRef(value) { const index = cursor++; return slots[index] ??= { current: value }; },
+    useState(value) { const index = cursor++; if (!(index in slots)) slots[index] = value; return [slots[index], next => { slots[index] = typeof next === 'function' ? next(slots[index]) : next; }]; } };
+  vm.runInNewContext(code, env);
+  const props = { state, targetId: 'npc', sending: false, onCommand: (_, command) => sent.push(JSON.parse(JSON.stringify(command))) };
+  const flat = e => Array.isArray(e) ? e.flatMap(flat) : e && typeof e === 'object' ? [e, ...flat(e.props?.children)] : [];
+  const render = () => { cursor = 0; return flat(env.Panel(props)); };
+  const button = label => render().find(n => n.type === 'button' && n.props.children.includes(label));
+  const strike = () => render().find(n => n.type === 'CunningStrikeControl').props;
+  const settle = () => { props.sending = true; render(); props.sending = false; render(); };  // one send finishing, as the owner reports it
+  return { props, sent, render, button, strike, settle };
+}
+const ATTACK = 'Saldır · Action', CONTINUE = 'Attack Action devamı';
+
+test('panel: the picked strike travels on the attack and the pick is cleared once it is sent', async () => {
+  const h = await panelHarness(panelState(ROGUE()));
+  h.strike().onOptionChange('trip');
+  h.button(ATTACK).props.onClick();
+  assert.deepEqual(h.sent, [{ steps: [{ kind: 'attack', target_id: 'npc', cunning_strike: 'trip' }] }]);
+  assert.equal(h.strike().option, '');
+  h.settle();
+  h.strike().onOptionChange('withdraw');
+  h.strike().onDistanceChange('15');
+  h.button(CONTINUE).props.onClick();
+  assert.deepEqual(h.sent[1], { steps: [{ kind: 'continue_attack', target_id: 'npc', cunning_strike: 'withdraw', cunning_strike_move_ft: 15 }] });
+  assert.equal(h.strike().option, '');
+  assert.equal(h.strike().distance, '');
+});
+
+test('panel: a move or other step keeps the pick; an attack with no pick sends no strike field', async () => {
+  const h = await panelHarness(panelState(ROGUE()));
+  h.button(ATTACK).props.onClick();
+  assert.deepEqual(h.sent, [{ steps: [{ kind: 'attack', target_id: 'npc' }] }]);
+  h.settle();
+  h.strike().onOptionChange('trip');
+  h.button('Turu bitir').props.onClick();
+  assert.equal(h.strike().option, 'trip');
+});
+
+test('panel: both attack buttons are disabled while the pick cannot be sent, and enabled again once it can', async () => {
+  const h = await panelHarness(panelState(ROGUE()));
+  assert.equal(h.button(ATTACK).props.disabled, false);
+  h.strike().onOptionChange('withdraw');
+  assert.equal(h.button(ATTACK).props.disabled, true, 'Withdraw has no distance yet');
+  assert.equal(h.button(CONTINUE).props.disabled, true);
+  h.strike().onDistanceChange('20');
+  assert.equal(h.button(ATTACK).props.disabled, true, 'beyond half Speed');
+  h.strike().onDistanceChange('15');
+  assert.equal(h.button(ATTACK).props.disabled, false);
+  const used = ROGUE(); used.sneak_attack.used_this_turn = true;
+  h.props.state = panelState(used);
+  assert.equal(h.button(ATTACK).props.disabled, true, 'Sneak Attack already dealt');
+});
+
+test('panel: Trip on a target the server refuses disables the attack; another target or no pick is fine', async () => {
+  const large = ROGUE(); large.cunning_strike.trip_refused_targets = ['npc'];
+  const h = await panelHarness(panelState(large));
+  assert.equal(h.button(ATTACK).props.disabled, false);
+  h.strike().onOptionChange('trip');
+  assert.equal(h.button(ATTACK).props.disabled, true);
+  h.strike().onOptionChange('poison');
+  assert.equal(h.button(ATTACK).props.disabled, false, 'only Trip reads the target');
+  h.strike().onOptionChange('trip');
+  h.props.targetId = 'other';
+  assert.equal(h.button(ATTACK).props.disabled, false);
+});
+
+test('the picker marks Trip as refused for the selected target and says why', () => {
+  const large = ROGUE(); large.cunning_strike.trip_refused_targets = ['npc'];
+  const render = (targetId, option) => nodes(controls.CunningStrikeControl({ rogue: large, targetId, option, distance: '', disabled: false, onOptionChange: () => {}, onDistanceChange: () => {} }));
+  const trip = tree => tree.find(n => n.type === 'option' && n.props.value === 'trip');
+  assert.equal(trip(render('npc', '')).props.disabled, true);
+  assert.equal(trip(render('other', '')).props.disabled, false);
+  assert.ok(byId(render('npc', 'trip'), 'cunning-strike-refused'));
+  assert.equal(byId(render('other', 'trip'), 'cunning-strike-refused'), undefined);
 });
 
 test('starting components show the live levels and never default a choice', () => {
@@ -83,6 +243,7 @@ test('starting components show the live levels and never default a choice', () =
 test('projection reader refuses malformed blocks', () => {
   assert.ok(controls.readRogueProjection(ROGUE()));
   for (const change of [r => { r.sneak_attack.die = 8; }, r => { r.sneak_attack.dice = 0; }, r => { r.cunning_action = {}; },
+    r => { delete r.cunning_strike.trip_refused_targets; }, r => { r.cunning_strike.trip_refused_targets = [7]; },
     r => { r.cunning_strike.options[0].id = 'daze'; }, r => { r.uncanny_dodge = { enabled: 'yes', reaction_available: true }; }, r => { delete r.subclass; }]) {
     const value = ROGUE(); change(value);
     assert.equal(controls.readRogueProjection(value), null);
@@ -117,23 +278,28 @@ test('Cunning Action, Steady Aim and Uncanny Dodge send the exact typed steps an
 
 test('Cunning Strike fields go on the attack only when the pick can be sent', () => {
   const rogue = ROGUE();
-  assert.deepEqual(controls.cunningStrikeFields(rogue, '', ''), {});
-  assert.deepEqual(controls.cunningStrikeFields(rogue, 'trip', ''), { cunning_strike: 'trip' });
-  assert.deepEqual(controls.cunningStrikeFields(rogue, 'withdraw', '15'), { cunning_strike: 'withdraw', cunning_strike_move_ft: 15 });
-  assert.equal(controls.cunningStrikeFields(rogue, 'withdraw', '20'), null);
-  assert.equal(controls.cunningStrikeFields(rogue, 'withdraw', ''), null);
-  assert.equal(controls.cunningStrikeFields(rogue, 'withdraw', '2.5'), null);
-  assert.equal(controls.cunningStrikeFields(rogue, 'daze', ''), null);
-  assert.equal(controls.cunningStrikeFields(null, 'trip', ''), null);
+  const fields = (value, option, distance, target = 'npc') => controls.cunningStrikeFields(value, option, distance, target);
+  assert.deepEqual(fields(rogue, '', ''), {});
+  assert.deepEqual(fields(rogue, 'trip', ''), { cunning_strike: 'trip' });
+  assert.deepEqual(fields(rogue, 'withdraw', '15'), { cunning_strike: 'withdraw', cunning_strike_move_ft: 15 });
+  assert.equal(fields(rogue, 'withdraw', '20'), null);
+  assert.equal(fields(rogue, 'withdraw', ''), null);
+  assert.equal(fields(rogue, 'withdraw', '2.5'), null);
+  assert.equal(fields(rogue, 'daze', ''), null);
+  assert.equal(fields(null, 'trip', ''), null);
   const noKit = ROGUE(); noKit.cunning_strike.options[0] = { id: 'poison', cost: 1, available: false, reason: 'cunning_strike_kit_required' };
-  assert.equal(controls.cunningStrikeFields(noKit, 'poison', ''), null);
+  assert.equal(fields(noKit, 'poison', ''), null);
   const used = ROGUE(); used.sneak_attack.used_this_turn = true;
-  assert.equal(controls.cunningStrikeFields(used, 'trip', ''), null);
+  assert.equal(fields(used, 'trip', ''), null);
+  const huge = ROGUE(); huge.cunning_strike.trip_refused_targets = ['npc'];
+  assert.equal(fields(huge, 'trip', ''), null);
+  assert.deepEqual(fields(huge, 'trip', '', 'other'), { cunning_strike: 'trip' });
+  assert.deepEqual(fields(huge, 'poison', ''), { cunning_strike: 'poison' });
 });
 
 test('the Cunning Strike picker shows the options and hides once Sneak Attack was dealt', () => {
   const picks = [];
-  const render = (rogue, option) => nodes(controls.CunningStrikeControl({ rogue, option, distance: '', disabled: false, onOptionChange: value => picks.push(value), onDistanceChange: () => {} }));
+  const render = (rogue, option) => nodes(controls.CunningStrikeControl({ rogue, targetId: 'npc', option, distance: '', disabled: false, onOptionChange: value => picks.push(value), onDistanceChange: () => {} }));
   const tree = render(ROGUE(), '');
   assert.deepEqual(tree.filter(n => n.type === 'option').map(n => n.props.value), ['', 'poison', 'trip', 'withdraw']);
   byId(tree, 'cunning-strike-option').props.onChange({ target: { value: 'trip' } });

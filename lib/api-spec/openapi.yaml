@@ -4829,11 +4829,16 @@ components:
         withdraw_max_ft:
           type: integer
           minimum: 0
+        trip_refused_targets:
+          type: array
+          description: Combat participant ids that Trip refuses as larger than Large.
+          items:
+            type: string
         options:
           type: array
           items:
             $ref: '#/components/schemas/RogueCunningStrikeOption'
-      required: [dc, withdraw_max_ft, options]
+      required: [dc, withdraw_max_ft, trip_refused_targets, options]
     RogueUncannyDodgeState:
       type: object
       additionalProperties: false

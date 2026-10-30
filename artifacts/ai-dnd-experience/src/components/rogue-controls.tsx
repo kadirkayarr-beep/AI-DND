@@ -1,5 +1,5 @@
 import type { EconomyStepInput } from '@workspace/api-client-react';
-import { readRogueProjection } from '@/lib/rogue-projection';
+import { readRogueProjection, tripRefused } from '@/lib/rogue-projection';
 export { cunningStrikeFields, readRogueProjection } from '@/lib/rogue-projection';
 
 const STRIKE_LABELS: Record<string, string> = { poison: 'Poison', trip: 'Trip', withdraw: 'Withdraw' };
@@ -16,8 +16,8 @@ export function RogueStatus({ rogue }: { rogue: unknown }) {
 }
 
 /** The pick travels with the next attack; the server pays the die only if Sneak Attack lands. */
-export function CunningStrikeControl({ rogue, option, distance, disabled, onOptionChange, onDistanceChange }: {
-  rogue: unknown; option: string; distance: string; disabled: boolean;
+export function CunningStrikeControl({ rogue, targetId, option, distance, disabled, onOptionChange, onDistanceChange }: {
+  rogue: unknown; targetId: string; option: string; distance: string; disabled: boolean;
   onOptionChange: (option: string) => void; onDistanceChange: (distance: string) => void;
 }) {
   const value = readRogueProjection(rogue);
@@ -27,8 +27,13 @@ export function CunningStrikeControl({ rogue, option, distance, disabled, onOpti
     <label>Cunning Strike <select aria-label="Cunning Strike" data-testid="cunning-strike-option" className="bg-stone-900 border border-amber-100/20 rounded"
       value={option} disabled={disabled} onChange={event => onOptionChange(event.target.value)}>
       <option value="">Yok</option>
-      {strike.options.map(item => <option key={item.id} value={item.id} disabled={!item.available}>{STRIKE_LABELS[item.id]} · {item.cost}d{value.sneak_attack.die}{item.reason ? ` · ${item.reason}` : ''}</option>)}
+      {strike.options.map(item => {
+        const refused = tripRefused(value, item.id, targetId);
+        const reason = item.reason ?? (refused ? 'cunning_strike_target_too_large' : null);
+        return <option key={item.id} value={item.id} disabled={!item.available || refused}>{STRIKE_LABELS[item.id]} · {item.cost}d{value.sneak_attack.die}{reason ? ` · ${reason}` : ''}</option>;
+      })}
     </select></label>
+    {tripRefused(value, option, targetId) && <p role="status" data-testid="cunning-strike-refused">Bu hedefe Trip uygulanamaz: hedef Large boyutundan büyük.</p>}
     {option === 'withdraw' && <label>{' '}Mesafe (ft, en çok {strike.withdraw_max_ft}) <input aria-label="Withdraw mesafesi" data-testid="cunning-strike-distance" type="number" min="1" step="1"
       className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} disabled={disabled} onChange={event => onDistanceChange(event.target.value)} /></label>}
     <p>Saldırıdan önce seçilir. Sneak Attack gerçekleşirse zar düşülür ve etki hasardan hemen sonra olur; gerçekleşmezse bir şey harcanmaz.</p>

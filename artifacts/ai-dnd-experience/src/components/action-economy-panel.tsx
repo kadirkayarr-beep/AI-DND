@@ -144,7 +144,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
     projection: resources.reckless_attack, sending, attackEnabled, continueEnabled, reactionEnabled,
   });
   const rogue = readRogueProjection(state.character?.rogue);
-  const strike = cunningStrikeFields(rogue, cunningStrike, cunningDistance);
+  const strike = cunningStrikeFields(rogue, cunningStrike, cunningDistance, targetId);
   const send = (label: string, step: EconomyStepInput) => {
     const mode = step.kind === 'attack' ? 'attack' : step.kind === 'continue_attack' ? 'continue' : step.kind === 'react' ? 'reaction' : 'other';
     const enabled = step.kind === 'react' ? pending && resources.reaction_available : step.kind === 'decline_reaction' ? pending : !blocked;
@@ -195,7 +195,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
             <button type="button" className="action-suggestion" disabled={blocked}
               onClick={() => send('Turumu bitiriyorum.', { kind: 'end_turn' })}>Turu bitir</button>
           </div>
-          <CunningStrikeControl rogue={rogue} option={cunningStrike} distance={cunningDistance} disabled={blocked} onOptionChange={setCunningStrike} onDistanceChange={setCunningDistance} />
+          <CunningStrikeControl rogue={rogue} targetId={targetId} option={cunningStrike} distance={cunningDistance} disabled={blocked} onOptionChange={setCunningStrike} onDistanceChange={setCunningDistance} />
           <RogueControl rogue={rogue} blocked={blocked} onCommand={send} />
           <FighterControl fighter={state.character?.fighter} blocked={blocked} shift={tacticalShift} onShiftChange={setTacticalShift} onCommand={(label, step) => { setTacticalShift(''); send(label, step); }} />
           <RageControl rage={rage} confirmed={rageIntent.selected} blocked={blocked} onChange={value => { rageIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />

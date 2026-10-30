@@ -970,6 +970,7 @@ export const CreateGameSessionResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(createGameSessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -1833,6 +1834,7 @@ export const GetGameSessionStateResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(getGameSessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -2708,6 +2710,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -3590,6 +3593,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -4675,6 +4679,7 @@ export const PlayGameTurnResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(playGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -6143,6 +6148,7 @@ export const GetGameActionStatusResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -7598,6 +7604,7 @@ export const AbandonGameActionResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -8904,6 +8911,7 @@ export const UndoGameTurnResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(undoGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -9800,6 +9808,7 @@ export const AcceptGameQuestResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(acceptGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -10718,6 +10727,7 @@ export const CancelGameQuestResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(cancelGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -11625,6 +11635,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -12530,6 +12541,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(acceptLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -13449,6 +13461,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(cancelLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -14357,6 +14370,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -16489,6 +16503,7 @@ export const CreateCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(createCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -17673,6 +17688,7 @@ export const GetCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(getCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -18834,6 +18850,7 @@ export const ResumeCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resumeCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -20593,6 +20610,7 @@ export const CreateLegacySessionResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(createLegacySessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -21457,6 +21475,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(getLegacySessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -22537,6 +22556,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(playLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -23840,6 +23860,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(undoLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -25321,6 +25342,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(createLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -26507,6 +26529,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(getLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),
@@ -27669,6 +27692,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "cunning_strike": zod.union([zod.object({
   "dc": zod.number().int(),
   "withdraw_max_ft": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
   "options": zod.array(zod.object({
   "id": zod.enum(['poison', 'trip', 'withdraw']),
   "cost": zod.number().int().min(1),

@@ -1185,6 +1185,8 @@ export interface RogueCunningStrikeState {
   dc: number;
   /** @minimum 0 */
   withdraw_max_ft: number;
+  /** Combat participant ids that Trip refuses as larger than Large. */
+  trip_refused_targets: string[];
   options: RogueCunningStrikeOption[];
 }
 
