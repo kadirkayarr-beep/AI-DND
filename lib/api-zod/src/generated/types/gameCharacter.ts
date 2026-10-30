@@ -8,6 +8,7 @@
 import type { FighterState } from './fighterState';
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
+import type { MonkState } from './monkState';
 import type { PrimalKnowledgeCheck } from './primalKnowledgeCheck';
 import type { RageState } from './rageState';
 import type { SpeciesTraitState } from './speciesTraitState';
@@ -16,6 +17,7 @@ export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
   fighter?: FighterState;
+  monk?: MonkState;
   name: string;
   race: string;
   species?: string;

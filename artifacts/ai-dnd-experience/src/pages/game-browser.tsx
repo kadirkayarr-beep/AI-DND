@@ -4,6 +4,7 @@ import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
 import { RageStatus } from '@/components/rage-controls';
 import { FighterStatus } from '@/components/fighter-controls';
+import { MonkStatus } from '@/components/monk-controls';
 import { LevelUpControls, type LevelUpRequest } from '@/components/level-up-controls';
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
@@ -279,6 +280,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
       <RageStatus rage={character.rage} />
       <FighterStatus fighter={character.fighter} />
+      <MonkStatus monk={character.monk} />
       <StoredProgressionChoices character={character} />
       <CharacterIdentityNotes character={character} />
     </section>
