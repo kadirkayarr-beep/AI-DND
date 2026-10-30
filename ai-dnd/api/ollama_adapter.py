@@ -13,8 +13,8 @@ import game
 from api.model_phase import ModelFailure
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
-    PRODUCTION_LOCAL_MODEL,
     LocalModelName,
+    selected_local_model,
     validate_local_model,
 )
 from api.world_metadata import validate_world_metadata
@@ -128,7 +128,7 @@ class AuthenticatedOllamaAdapter:
         token = os.environ.get("OLLAMA_PROXY_TOKEN")
         if not host or not token:
             return None
-        model_name = validate_local_model(os.environ.get("AI_DND_OLLAMA_MODEL", PRODUCTION_LOCAL_MODEL))
+        model_name = selected_local_model()
         try:
             import ollama
 
@@ -210,7 +210,9 @@ class AuthenticatedOllamaAdapter:
         _logger.info("Ollama chat request started (model=%s)", self.model_name)
         try:
             prepared = _attach_world_metadata(kwargs)
-            prepared = {**prepared, "model": self.model_name}
+            # Ollama turns thinking on by itself for a model that has it, and the
+            # engine reads only message content. Off is valid for every model.
+            prepared = {"think": False, **prepared, "model": self.model_name}
             options = prepared.get("options")
             prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
             return self._client.chat(*args, **prepared)

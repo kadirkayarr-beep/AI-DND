@@ -34,7 +34,8 @@ from typing import Callable
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.auth import Principal
-from api.ollama_adapter import MODEL_NAME
+from api.local_model_config import selected_local_model
+from api.ollama_adapter import CONTEXT_WINDOW_TOKENS
 
 
 FIELDS = ("origin", "appearance", "personality", "backstory")
@@ -165,6 +166,7 @@ def local_ollama_provider(prompt: str) -> str:
     """One local chat. Credentials stay in the process environment."""
     import ollama
 
+    model = selected_local_model()
     host = os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
     token = os.environ.get("OLLAMA_PROXY_TOKEN")
     client_options: dict[str, object] = {"host": host, "timeout": 45}
@@ -172,7 +174,9 @@ def local_ollama_provider(prompt: str) -> str:
         client_options["headers"] = {"Authorization": f"Bearer {token}"}
     client = ollama.Client(**client_options)
     response = client.chat(
-        model=MODEL_NAME,
+        # Same tag and window as the game, so one suggestion does not load a
+        # second model or reload this one on a small graphics card.
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -180,7 +184,7 @@ def local_ollama_provider(prompt: str) -> str:
             },
             {"role": "user", "content": prompt},
         ],
-        options={"num_predict": 60, "temperature": 0.3},
+        options={"num_ctx": CONTEXT_WINDOW_TOKENS, "num_predict": 60, "temperature": 0.3},
         think=False,
     )
     message = response.get("message") if isinstance(response, dict) else getattr(response, "message", None)

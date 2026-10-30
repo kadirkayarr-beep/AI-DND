@@ -1,17 +1,28 @@
 """Trusted local model selection; no provider network or personal campaign data."""
 import os
+import re
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from api import identity_suggestion
+from api.local_model_config import PRODUCTION_LOCAL_MODEL, SUPPORTED_LOCAL_MODELS, selected_local_model
 from api.main import create_app
-from api.ollama_adapter import CONTEXT_WINDOW_TOKENS, AuthenticatedOllamaAdapter, RequiredModelUnavailableError
+from api.ollama_adapter import (
+    CONTEXT_WINDOW_TOKENS,
+    MAX_MODEL_CALLS_PER_TURN,
+    AuthenticatedOllamaAdapter,
+    RequiredModelUnavailableError,
+)
 from api.schemas import TurnRequest
 
 NINE = 'qwen3.5:9b-q4_K_M'
 FOUR = 'qwen3.5:4b-q4_K_M'
+GEMMA = 'gemma4:e4b'
+START_LOCAL = Path(__file__).resolve().parents[3] / 'start_local.ps1'
 
 
 class RecordingClient:
@@ -35,21 +46,21 @@ class LocalModelSelectionTests(unittest.TestCase):
         adapter.chat(model='qwen3:8b', messages=[])
         self.assertEqual(client.requests[0]['model'], 'qwen3:8b')
 
-    def test_running_game_defaults_to_the_9b_model(self):
+    def test_running_game_defaults_to_gemma(self):
         env = {'OLLAMA_HOST': 'http://127.0.0.1:9', 'OLLAMA_PROXY_TOKEN': 'fixture-not-secret'}
         with patch.dict(os.environ, env):
             os.environ.pop('AI_DND_OLLAMA_MODEL', None)
             with patch('ollama.Client'):
                 adapter = AuthenticatedOllamaAdapter.from_environment()
-        self.assertEqual(adapter.model_name, NINE)
+        self.assertEqual(adapter.model_name, GEMMA)
         # The engine keeps sending its fixed 'qwen3:8b' tag; the adapter maps it.
-        client = RecordingClient((NINE,))
+        client = RecordingClient((GEMMA,))
         mapped = AuthenticatedOllamaAdapter(client, model_name=adapter.model_name)
         mapped.chat(model='qwen3:8b', messages=[])
-        self.assertEqual(client.requests[0]['model'], NINE)
+        self.assertEqual(client.requests[0]['model'], GEMMA)
 
     def test_explicit_local_selection_is_actual_requested_tag(self):
-        for model in (FOUR, NINE):
+        for model in (FOUR, NINE, GEMMA):
             with self.subTest(model=model):
                 client = RecordingClient((model,))
                 adapter = AuthenticatedOllamaAdapter(client, model_name=model)
@@ -64,12 +75,53 @@ class LocalModelSelectionTests(unittest.TestCase):
                     'options': {'num_ctx': CONTEXT_WINDOW_TOKENS},
                 }])
 
+    def test_every_model_gets_the_same_call_shape(self):
+        # Capability-neutral on purpose: think off, the same window and the
+        # caller's schema and sampling untouched. Nothing branches on the tag.
+        schema = {'type': 'object', 'properties': {'intent': {'type': 'string'}}}
+        for model in SUPPORTED_LOCAL_MODELS:
+            with self.subTest(model=model):
+                client = RecordingClient((model,))
+                adapter = AuthenticatedOllamaAdapter(client, model_name=model)
+                adapter.chat(
+                    model='qwen3:8b', messages=[], format=schema,
+                    options={'temperature': 0.7, 'num_predict': 220},
+                )
+                self.assertEqual(client.requests, [{
+                    'model': model, 'messages': [], 'format': schema, 'think': False,
+                    'options': {'num_ctx': 8192, 'temperature': 0.7, 'num_predict': 220},
+                }])
+
+    def test_think_defaults_off_but_a_call_can_ask_for_it(self):
+        client = RecordingClient((GEMMA,))
+        adapter = AuthenticatedOllamaAdapter(client, model_name=GEMMA)
+        adapter.chat(model='qwen3:8b', messages=[])
+        adapter.chat(model='qwen3:8b', messages=[], think=True)
+        self.assertEqual([r['think'] for r in client.requests], [False, True])
+
+    def test_a_refused_model_call_is_not_retried_on_another_model(self):
+        class RefusingClient(RecordingClient):
+            def chat(self, *args, **kwargs):
+                super().chat(*args, **kwargs)
+                raise ConnectionError('refused')
+
+        client = RefusingClient((GEMMA,))
+        adapter = AuthenticatedOllamaAdapter(client, model_name=GEMMA)
+        with adapter.capture_model_failures() as failures:
+            with self.assertRaisesRegex(RuntimeError, 'Ollama request failed'):
+                adapter.chat(model='qwen3:8b', messages=[])
+        self.assertEqual([r['model'] for r in client.requests], [GEMMA])
+        self.assertEqual([str(f) for f in failures], ['ConnectionError'])
+
     def test_missing_selected_model_does_not_fall_back(self):
         client = RecordingClient()
         adapter = AuthenticatedOllamaAdapter(client, model_name=NINE)
         with self.assertRaises(RequiredModelUnavailableError):
             adapter.ensure_required_model()
         self.assertEqual(client.requests, [])
+        qwen_only = AuthenticatedOllamaAdapter(RecordingClient((NINE, FOUR)), model_name=GEMMA)
+        with self.assertRaises(RequiredModelUnavailableError):
+            qwen_only.ensure_required_model()
 
     def test_similar_alternative_tag_is_not_selected_tag(self):
         adapter = AuthenticatedOllamaAdapter(RecordingClient((NINE+'-other',)), model_name=NINE)
@@ -82,15 +134,18 @@ class LocalModelSelectionTests(unittest.TestCase):
             adapter.ensure_required_model()
 
     def test_two_generation_budget_is_preserved(self):
-        client = RecordingClient((NINE,))
-        adapter = AuthenticatedOllamaAdapter(client, model_name=NINE)
-        with adapter.capture_model_calls() as calls:
-            adapter.chat(model='qwen3:8b')
-            adapter.chat(model='qwen3:8b')
-            with self.assertRaisesRegex(RuntimeError, 'budget exhausted'):
-                adapter.chat(model='qwen3:8b')
-        self.assertEqual(calls, [NINE, NINE])
-        self.assertEqual(len(client.requests), 2)
+        self.assertEqual(MAX_MODEL_CALLS_PER_TURN, 2)
+        for model in (NINE, GEMMA):
+            with self.subTest(model=model):
+                client = RecordingClient((model,))
+                adapter = AuthenticatedOllamaAdapter(client, model_name=model)
+                with adapter.capture_model_calls() as calls:
+                    adapter.chat(model='qwen3:8b')
+                    adapter.chat(model='qwen3:8b')
+                    with self.assertRaisesRegex(RuntimeError, 'budget exhausted'):
+                        adapter.chat(model='qwen3:8b')
+                self.assertEqual(calls, [model, model])
+                self.assertEqual(len(client.requests), 2)
 
     def test_unexpected_engine_model_still_rejected(self):
         client = RecordingClient((NINE,))
@@ -133,6 +188,54 @@ class LocalModelSelectionTests(unittest.TestCase):
     def test_request_cannot_select_model(self):
         with self.assertRaises(ValidationError):
             TurnRequest(message='Merhaba', model=NINE)
+
+
+class IdentitySuggestionModelTests(unittest.TestCase):
+    """The one model call that goes around the adapter must not go around its choice."""
+
+    def provider_request(self, environ):
+        client = RecordingClient()
+        with patch.dict(os.environ, environ, clear=True), patch('ollama.Client', return_value=client):
+            self.assertEqual(identity_suggestion.local_ollama_provider('prompt'), 'ok')
+        self.assertEqual(len(client.requests), 1)
+        return client.requests[0]
+
+    def test_suggestion_uses_the_game_model_not_the_engine_tag(self):
+        self.assertEqual(self.provider_request({})['model'], PRODUCTION_LOCAL_MODEL)
+        self.assertEqual(self.provider_request({'AI_DND_OLLAMA_MODEL': FOUR})['model'], FOUR)
+
+    def test_suggestion_keeps_think_off_and_the_game_context_window(self):
+        request = self.provider_request({})
+        self.assertIs(request['think'], False)
+        self.assertEqual(request['options']['num_ctx'], CONTEXT_WINDOW_TOKENS)
+
+    def test_suggestion_refuses_an_unsupported_model(self):
+        client = RecordingClient()
+        with patch.dict(os.environ, {'AI_DND_OLLAMA_MODEL': 'wrong-model'}, clear=True):
+            with patch('ollama.Client', return_value=client), self.assertRaises(ValueError):
+                identity_suggestion.local_ollama_provider('prompt')
+        self.assertEqual(client.requests, [])
+
+    def test_selected_model_reads_the_environment_at_call_time(self):
+        with patch.dict(os.environ, {'AI_DND_OLLAMA_MODEL': NINE}, clear=True):
+            self.assertEqual(selected_local_model(), NINE)
+            os.environ['AI_DND_OLLAMA_MODEL'] = FOUR
+            self.assertEqual(selected_local_model(), FOUR)
+
+
+@unittest.skipUnless(
+    START_LOCAL.is_file(),
+    'start_local.ps1 is not in this tree: the guarded runs stage ai-dnd, content, tools and lib only',
+)
+class StartLocalModelTests(unittest.TestCase):
+    def test_launcher_default_and_allow_list_match_the_server(self):
+        text = START_LOCAL.read_text(encoding='utf-8')
+        default = re.search(r'\$requiredModel = if \(\$env:AI_DND_OLLAMA_MODEL\) \{ \$env:AI_DND_OLLAMA_MODEL \} else \{ "([^"]+)" \}', text)
+        allowed = re.search(r'\$requiredModel -cnotin @\(([^)]*)\)', text)
+        self.assertIsNotNone(default)
+        self.assertIsNotNone(allowed)
+        self.assertEqual(default.group(1), PRODUCTION_LOCAL_MODEL)
+        self.assertEqual(tuple(re.findall(r'"([^"]+)"', allowed.group(1))), SUPPORTED_LOCAL_MODELS)
 
 
 class LocalModelHttpTests(unittest.IsolatedAsyncioTestCase):

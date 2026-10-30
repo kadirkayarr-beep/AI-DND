@@ -542,6 +542,7 @@ export const HealthResponseModel = {
   'qwen3:8b': 'qwen3:8b',
   'qwen35:4b-q4_K_M': 'qwen3.5:4b-q4_K_M',
   'qwen35:9b-q4_K_M': 'qwen3.5:9b-q4_K_M',
+  'gemma4:e4b': 'gemma4:e4b',
 } as const;
 
 export interface HealthResponse {

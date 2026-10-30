@@ -9,8 +9,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "qwen3.5:9b-q4_K_M" }
-if ($requiredModel -cnotin @("qwen3:8b", "qwen3.5:4b-q4_K_M", "qwen3.5:9b-q4_K_M")) {
+$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "gemma4:e4b" }
+if ($requiredModel -cnotin @("qwen3:8b", "qwen3.5:4b-q4_K_M", "qwen3.5:9b-q4_K_M", "gemma4:e4b")) {
     Write-Host "NOT READY: unsupported AI_DND_OLLAMA_MODEL. No services were started."
     exit 1
 }

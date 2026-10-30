@@ -21,9 +21,10 @@ python -m uvicorn api.main:app --host 127.0.0.1 --port "${PORT:-8008}"
 Health: `GET /api/game/health` (also aliased as `/api/health`).
 
 The API reads `OLLAMA_HOST` and `OLLAMA_PROXY_TOKEN` from the server environment.
-It never returns them to clients. The default model remains `qwen3:8b`.
-For an isolated local comparison, the trusted server process may set
-`AI_DND_OLLAMA_MODEL` to `qwen3.5:4b-q4_K_M` or `qwen3.5:9b-q4_K_M`.
+It never returns them to clients. The running game selects `gemma4:e4b`; the
+engine's internal tag stays `qwen3:8b`, and the adapter translates it.
+For a local comparison, the trusted server process may set
+`AI_DND_OLLAMA_MODEL` to `qwen3:8b`, `qwen3.5:4b-q4_K_M` or `qwen3.5:9b-q4_K_M`.
 The selected tag must already be installed: there is no automatic download or
 fallback. Invalid configuration fails closed. HTTP clients cannot select models.
 Health metadata and request logs report the real selected tag; the historical
