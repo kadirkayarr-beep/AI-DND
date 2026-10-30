@@ -8,12 +8,15 @@ Second Wind's maximum and healing follow the APPLIED Fighter level; a level gran
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import character_progression as core
 from api.dnd_2024_rules import UNOFFERED_FIGHTING_STYLES
-from combat_lifecycle import CombatRequestError
+from combat_lifecycle import CombatRequestError, player_incapacitated
+
+logger = logging.getLogger(__name__)
 
 KEY = "fighter_uses"
 TACTICAL_MIND = "tactical_mind"
@@ -51,7 +54,10 @@ def fighter_level(character: Any) -> int | None:
 
 
 def second_wind_maximum(level: int) -> int:
-    value = core.table("Fighter")["levels"][str(level)]["second_wind"]
+    try:
+        value = core.table("Fighter")["levels"][str(level)]["second_wind"]
+    except (KeyError, TypeError) as error:
+        raise ValueError("Invalid Second Wind table value.") from error
     if type(value) is not int or value < 1:
         raise ValueError("Invalid Second Wind table value.")
     return value
@@ -97,16 +103,11 @@ def rest_recovery(session: Any, kind: str) -> None:
     character[KEY] = uses
 
 
-def _incapacitated(session: Any) -> bool:
-    import barbarian_rage
-    return barbarian_rage._incapacitated(session.character, session.world_state)
-
-
 def _turn_reason(session: Any, prefix: str) -> str | None:
     combat = session.world_state.get("combat", {})
     if not combat.get("active") or combat.get("current_actor_id") != "player":
         return f"{prefix}_current_combat_turn_required"
-    if _incapacitated(session):
+    if player_incapacitated(session.character, session.world_state):
         return f"{prefix}_incapacitated"
     if combat.get("turn_resources", {}).get("player", {}).get("opportunity"):
         return "reaction_pending"  # pure projection, no ensure() mutation
@@ -281,6 +282,7 @@ def native_command(command: Any) -> bool:
 
 
 def projection(session: Any) -> dict[str, Any] | None:
+    """The public block. Invalid saved state hides the controls, as Rage does, and leaves a log line; any other fault is a real error."""
     character = session.character
     try:
         level = fighter_level(character)
@@ -301,7 +303,8 @@ def projection(session: Any) -> dict[str, Any] | None:
                 "uses_remaining": action_surge_maximum(level) - uses["action_surge_spent"], "max_uses": action_surge_maximum(level),
                 "activate": {"available": surge_reason is None, "reason": surge_reason}},
         }
-    except (ValueError, KeyError, TypeError):
+    except ValueError as error:
+        logger.warning("Fighter controls hidden: %s", error)
         return None
 
 

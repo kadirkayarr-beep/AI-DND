@@ -6,11 +6,10 @@ explicit engine convention: exact outside seconds survive combat reentry.
 from dataclasses import dataclass
 import json
 
-from combat_lifecycle import CombatRequestError
+from combat_lifecycle import CombatRequestError, player_incapacitated
 
 KEY = 'rage_v1'
 PROOF = 'worn_armor_v1'
-INCAPACITATED = {'incapacitated','unconscious','dead','paralyzed','stunned','petrified'}
 
 
 def _format(session):
@@ -36,14 +35,6 @@ def capacity(character):
     if level is None:
         raise ValueError('Invalid Rage capacity level.')
     return 3 if level in (3,4,5) else 2
-
-
-def _incapacitated(character,world):
-    conditions=character.get('conditions',[])
-    if isinstance(conditions,dict):conditions=[k for k,v in conditions.items() if v]
-    names={str(c).lower() for c in conditions}
-    return (character.get('current_hp',0)<=0 or world.get('player_combat_status','active')!='active'
-            or bool(world.get('death_state',{}).get('dead')) or bool(names & INCAPACITATED))
 
 
 def _boundary(value):
@@ -76,7 +67,7 @@ def validate(world,character,engine_format,*,strict_active=False):
     if a['settled_at']>now:raise ValueError('Rage time is ahead of the canonical clock.')
     outside_expired=(not world.get('combat',{}).get('active')
                      and a['remaining_seconds']<=now-a['settled_at'])
-    if strict_active and (now>=a['started_at']+600 or outside_expired or _incapacitated(character,world)):
+    if strict_active and (now>=a['started_at']+600 or outside_expired or player_incapacitated(character,world)):
         raise ValueError('Expired or incapacitated Rage must be settled before saving.')
 
 
@@ -100,7 +91,7 @@ def active(session):
     if state is None or state['active'] is None:return False
     a=state['active'];now=session.world_state['campaign_time']['elapsed_seconds']
     outside=not session.world_state.get('combat',{}).get('active')
-    return (not _incapacitated(session.character,session.world_state)
+    return (not player_incapacitated(session.character,session.world_state)
             and now<a['started_at']+600
             and (not outside or a['remaining_seconds']>now-a['settled_at']))
 
@@ -109,7 +100,7 @@ def settle(session,*,combat_active=None):
     state=_state(session)
     if state is None or state['active'] is None:return
     a=state['active'];now=session.world_state['campaign_time']['elapsed_seconds']
-    if now>=a['started_at']+600 or _incapacitated(session.character,session.world_state):
+    if now>=a['started_at']+600 or player_incapacitated(session.character,session.world_state):
         state['active']=None;return
     mode=session.world_state.get('combat',{}).get('active',False) if combat_active is None else combat_active
     if not mode:a['remaining_seconds']-=now-a['settled_at']
@@ -146,7 +137,7 @@ def _reason(session,extend=False):
     if state is None:return 'rage_not_adopted'
     c=session.world_state.get('combat',{})
     if not c.get('active') or c.get('current_actor_id')!='player':return 'rage_current_combat_turn_required'
-    if _incapacitated(session.character,session.world_state):return 'rage_incapacitated'
+    if player_incapacitated(session.character,session.world_state):return 'rage_incapacitated'
     if 'concentration' in session.character:return 'rage_concentration_state_unsupported'
     r=c.get('turn_resources',{}).get('player',{})
     if r.get('opportunity'):return 'reaction_pending'  # pure projection, no ensure() mutation

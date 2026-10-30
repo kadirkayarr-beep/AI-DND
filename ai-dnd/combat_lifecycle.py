@@ -4,12 +4,24 @@ import re
 
 import living_world
 
+INCAPACITATED = {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"}
+
 
 class CombatRequestError(ValueError):
     def __init__(self, code, message, status_code=409):
         super().__init__(message)
         self.code = code
         self.status_code = status_code
+
+
+def player_incapacitated(character, world):
+    """The player cannot use a class feature: 0 HP, a non-active combat status, death, or a condition that stops action."""
+    conditions = character.get("conditions", [])
+    if isinstance(conditions, dict):
+        conditions = [name for name, present in conditions.items() if present]
+    names = {str(name).lower() for name in conditions}
+    return (character.get("current_hp", 0) <= 0 or world.get("player_combat_status", "active") != "active"
+            or bool(world.get("death_state", {}).get("dead")) or bool(names & INCAPACITATED))
 
 
 def registered_name_candidates(session):

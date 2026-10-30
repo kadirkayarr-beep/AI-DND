@@ -394,6 +394,51 @@ class TacticalMind(unittest.TestCase):
             features.tactical_mind_annotation(object(), action)
 
 
+class Projection(unittest.TestCase):
+    """Like Rage, invalid state hides the controls and any other fault is a real error; the hidden case leaves a log line."""
+
+    def test_invalid_saved_uses_hide_the_controls_and_log_why(self):
+        session = created(2)
+        session.character["fighter_uses"] = {"second_wind_spent": 9, "action_surge_spent": 0}
+        with self.assertLogs("fighter_features", "WARNING") as logged:
+            self.assertIsNone(features.projection(session))
+        self.assertIn("Fighter controls hidden", logged.output[0])
+
+    def test_a_broken_table_row_is_the_same_invalid_state(self):
+        session = created(2)
+        with patch.object(cp, "table", return_value={"levels": {}}), self.assertLogs("fighter_features", "WARNING"):
+            self.assertIsNone(features.projection(session))
+
+    def test_a_programming_fault_is_not_hidden(self):
+        session = created(2)
+        for fault in (TypeError, KeyError):
+            with patch.object(features, "_second_wind_reason", side_effect=fault("synthetic")), self.assertRaises(fault):
+                features.projection(session)
+
+    def test_a_healthy_fighter_logs_nothing(self):
+        with self.assertNoLogs("fighter_features", "WARNING"):
+            self.assertIsNotNone(features.projection(created(2)))
+
+
+class SharedIncapacitated(unittest.TestCase):
+    def test_rage_and_fighter_read_one_owner(self):
+        import barbarian_rage
+        import combat_lifecycle
+        self.assertIs(barbarian_rage.player_incapacitated, combat_lifecycle.player_incapacitated)
+        self.assertIs(features.player_incapacitated, combat_lifecycle.player_incapacitated)
+
+    def test_it_reads_hit_points_status_death_and_both_condition_shapes(self):
+        from combat_lifecycle import player_incapacitated as down
+        alive = {"current_hp": 5, "conditions": []}
+        self.assertFalse(down(alive, {}))
+        self.assertTrue(down({**alive, "current_hp": 0}, {}))
+        self.assertTrue(down(alive, {"player_combat_status": "unconscious"}))
+        self.assertTrue(down(alive, {"death_state": {"dead": True}}))
+        self.assertTrue(down({**alive, "conditions": ["Stunned"]}, {}))
+        self.assertTrue(down({**alive, "conditions": {"paralyzed": True}}, {}))
+        self.assertFalse(down({**alive, "conditions": {"paralyzed": False, "prone": True}}, {}))
+
+
 class ExtraAttack(unittest.TestCase):
     def test_applied_level_five_fighter_has_exactly_two_attacks(self):
         session, npc = fight(5)
