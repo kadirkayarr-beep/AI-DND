@@ -2311,7 +2311,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
 
         self._force_athletics(1)
         with patch("game.ollama.chat", side_effect=AssertionError("model")):
-            failed = self.session.run_player_turn("Kapıyı açmaya çalışıyorum.")
+            failed = self.session.run_player_turn("Kapıyı zorlayarak açmaya çalışıyorum.")
         self.assertEqual(failed["action_result"]["outcome"], "failure")
         self.assertFalse(doors[0]["open"])
         self.assertEqual(self.world["location"], self.root_location)
@@ -2337,7 +2337,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
             })}}
 
         with patch("game.ollama.chat", side_effect=contradict):
-            opened = self.session.run_player_turn("Kapıyı açmaya çalışıyorum.")
+            opened = self.session.run_player_turn("Kapıyı zorlayarak açmaya çalışıyorum.")
         self.assertEqual(opened["action_result"]["outcome"], "success")
         self.assertTrue(doors[0]["open"])
         self.assertFalse(doors[0]["locked"])

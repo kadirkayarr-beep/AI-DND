@@ -853,6 +853,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
                 # the movement step has actually placed the player at its target.
                 step["target"] = None
                 step["ambiguous"] = []
+                # "Hanın kapısını açıyorum": a door verb acts on that place's door.
+                if verb in {"knock", "open", "unlock", "force", "close"}:
+                    step["target"] = _prefer_side(step["target"], [], verb, binding["part"], cands)
                 step["door_by_default"] = True
         pending_condition = None
         # "Şu kapalı dükkânın kapısına": the kind of place named wins over a door
@@ -1583,6 +1586,7 @@ def _do_close(run: _Run, step) -> dict[str, Any]:
     if door_target is None:
         return _receipt("close", "blocked", None, reason="no_door", text="Kapatabileceğin bir kapı görmüyorsun.")
     door = door_target["record"]
+        run.game._mark_lock_seen(run.world, door)
     if door.get("broken"):
         return _receipt("close", "blocked", door_target, reason="door_broken", text="Kırık kapı kapanmıyor.")
     if not door.get("open"):
@@ -2597,9 +2601,9 @@ def _direct_door_step(step) -> bool:
         len(prefix) == 2 and _place_noun_in(prefix[:1]) is not None
         and _phrase_match_quality(["kapisi"], prefix[1:]) == 2
     )
-    # Generic "try opening" already belongs to the legacy Athletics owner.
-    # Admit direct opening / explicit lockpick means without stealing that check.
-    generic_door = generic_door and step["verb"] == "open" and (not info.get("attempt") or lockpick_prefix)
+    # "Kapıyı açmaya çalışıyorum" is the plain way to say it: no roll, the door
+    # answers. Forcing it has its own words and stays with its owner.
+    generic_door = generic_door and step["verb"] == "open"
     if not (named or implicit_entry or generic_door):
         return False
     form = _verb_of(tail[0], tail[1] if len(tail) > 1 else "")

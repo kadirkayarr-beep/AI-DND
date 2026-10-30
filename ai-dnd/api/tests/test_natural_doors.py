@@ -99,5 +99,74 @@ class AnInnIsNotALockedBox(DoorCase):
         self.assertEqual(self.world["doors"], before)
 
 
+class TryingADoorIsOpeningIt(DoorCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.inn = await self.find_inn()
+        self.door = self.door_of(self.inn)
+        grounded_action.note_near(self.world, self.door["id"])
+
+    async def attempt(self, text="Kapıyı açmaya çalışıyorum."):
+        rng_before = self.session.rng.getstate()
+        data = await self.say(text)
+        self.door = self.door_of(self.inn)
+        return data, rng_before == self.session.rng.getstate()
+
+    async def test_an_unlocked_door_opens_with_no_roll(self):
+        self.door.update(open=False, locked=False)
+        data, no_roll = await self.attempt()
+        self.assertTrue(no_roll)
+        self.assertTrue(self.door["open"])
+        self.assertIn("açılıyor", data["narration"])
+
+    async def test_a_locked_door_is_told_naturally_with_no_roll(self):
+        self.door.update(open=False, locked=True)
+        data, no_roll = await self.attempt()
+        self.assertTrue(no_roll)
+        self.assertFalse(self.door["open"])
+        self.assertTrue(self.door["locked"])
+        self.assertIn("kilitli", data["narration"])
+        self.assertNotIn("deneyebilirsin", data["narration"])
+        self.assertIn(self.door["id"], self.flags["known_locked_door_ids"])
+
+    async def test_the_inn_door_by_its_noun_works_the_same(self):
+        self.door.update(open=False, locked=False)
+        await self.attempt("Hanın kapısını açmaya çalışıyorum.")
+        self.assertTrue(self.door["open"])
+
+    async def test_forcing_it_is_still_a_real_attempt(self):
+        self.door.update(open=False, locked=True)
+        _, no_roll = await self.attempt("Kapıyı zorlayarak açmaya çalışıyorum.")
+        self.assertFalse(no_roll)
+
+
+class TheDoorFromInside(DoorCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.inn = await self.find_inn()
+        self.door = self.door_of(self.inn)
+        await self.say("Hana giriyorum.")
+        self.assertEqual(self.world["location"], self.inn["id"])
+
+    async def test_opening_it_from_inside_finds_it(self):
+        self.door_of(self.inn).update(open=False, locked=False)
+        data = await self.say("Kapıyı açıyorum.")
+        self.assertNotIn("görünmüyor", data["narration"])
+        self.assertTrue(self.door_of(self.inn)["open"])
+
+    async def test_trying_it_from_inside_finds_it(self):
+        data = await self.say("Kapıyı açmaya çalışıyorum.")
+        self.assertNotIn("görünmüyor", data["narration"])
+        self.assertIn("açık", data["narration"])
+
+    async def test_looking_at_it_from_inside_finds_it(self):
+        data = await self.say("Kapıyı inceliyorum.")
+        self.assertNotIn("göremiyorsun", data["narration"])
+
+    async def test_a_remark_about_a_door_is_no_door_operation(self):
+        data = await self.say("Kapı kilitliydi.")
+        self.assertNotIn("açıp kapatabileceğin", data["narration"])
+
+
 if __name__ == "__main__":
     unittest.main()

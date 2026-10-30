@@ -1201,7 +1201,7 @@ def deterministic_check_for_action(player_input):
     break_attempt = _affirmative_door_verb(normalized_text, r"kapiyi\s+", ("kir", "parcala", "yik"))
     force_attempt = (
         _affirmative_door_verb(normalized_text, r"", ("zorla",))
-        or any(term in text for term in ("iterek", "kırarak", "açmaya çalış"))
+        or any(term in text for term in ("iterek", "kırarak"))
     )
     if "?" in player_input:
         break_attempt = force_attempt = False
