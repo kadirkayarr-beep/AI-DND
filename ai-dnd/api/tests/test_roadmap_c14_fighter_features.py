@@ -433,6 +433,19 @@ def fixed_rolls(values):
     return roll
 
 
+class WeaponProficiency(unittest.TestCase):
+    """PDF 90: a Fighter is proficient with Simple and Martial weapons."""
+
+    def test_a_new_fighter_adds_proficiency_to_a_martial_and_a_simple_weapon(self):
+        for weapon in ("greatsword", "dagger", "longbow"):
+            session, npc = weapon_session("Defense", weapon=weapon)
+            self.assertTrue(swing(session, npc)["proficiency_applied"], weapon)
+
+    def test_every_start_keeps_the_grant_through_a_save(self):
+        for level in (1, 3, 5):
+            self.assertEqual(roundtrip(created(level))[0].character["weapon_proficiencies"], ["simple", "martial"])
+
+
 class Styles(unittest.TestCase):
     def test_catalog_offers_only_styles_with_an_effect(self):
         from api.dnd_2024_rules import CLASS_DEFINITIONS

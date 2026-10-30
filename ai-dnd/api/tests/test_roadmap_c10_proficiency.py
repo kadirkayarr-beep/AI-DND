@@ -54,7 +54,8 @@ class ProficiencyTests(unittest.TestCase):
         with self.assertRaises(ValueError):s.serialize_game_state()
 
     def test_grant_eligibility_is_separate_and_strict(self):
-        from api.character_creation import _barbarian_weapon_proficiencies as grant
+        from api.character_creation import _class_weapon_proficiencies
+        grant = lambda *levels: _class_weapon_proficiencies('Barbarian', *levels)
         for raw,applied in ((1,1),(2,2),(5,2)):
             self.assertEqual(grant(raw,applied),['simple','martial'])
         for raw,applied in ((True,1),('2',2),(1,2),(3,3),(2,True),(21,2)):

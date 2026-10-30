@@ -39,15 +39,15 @@ def _detect_armor_and_shield(equipment_choices: list[str] | None) -> tuple[str |
     return get_equipment_armor_and_shield(equipment_choices)
 
 
-def _barbarian_weapon_proficiencies(raw_level: int, applied_level: int) -> list[str]:
+def _class_weapon_proficiencies(character_class: str, raw_level: int, applied_level: int) -> list[str]:
     """Selected new-character grant, not load-time class inference or mastery."""
     if (type(raw_level) is not int or type(applied_level) is not int
             or applied_level not in (1, 2) or not applied_level <= raw_level <= 20):
-        raise CharacterCreationError("Barbarian weapon proficiency level is invalid.")
+        raise CharacterCreationError("Weapon proficiency level is invalid.")
     categories = {"Simple": "simple", "Martial": "martial"}
-    source = CLASS_DEFINITIONS["Barbarian"]["weapon_proficiencies"]
+    source = CLASS_DEFINITIONS[character_class]["weapon_proficiencies"]
     if source != ["Simple", "Martial"]:
-        raise CharacterCreationError("Unsupported Barbarian weapon proficiency source.")
+        raise CharacterCreationError("Unsupported weapon proficiency source.")
     return [categories[value] for value in source]
 
 
@@ -653,7 +653,10 @@ def configure_character(
     if character_class == "Barbarian":
         if getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) not in (4, 5, 6):
             raise CharacterCreationError("Weapon proficiency requires save format4–6.")
-        weapon_proficiencies = _barbarian_weapon_proficiencies(level, level)
+        weapon_proficiencies = _class_weapon_proficiencies(character_class, level, level)
+    elif character_class == "Fighter" and getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) in (4, 5, 6):
+        # A loaded older format keeps its stored shape; Fighter creation there stays as it was.
+        weapon_proficiencies = _class_weapon_proficiencies(character_class, level, level)
     # Recreation must not inherit an earlier character's weapon entitlement.
     session.character.pop("weapon_proficiencies", None)
     if weapon_proficiencies is not None:

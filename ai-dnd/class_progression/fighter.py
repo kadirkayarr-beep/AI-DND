@@ -154,6 +154,7 @@ class Fighter(ClassProgression):
             "Fighting Style: replacing the feat on a Fighter level, Protection (a kept legacy choice has no effect) and the feats not offered remain pending",
             "Dueling: a filled off hand counts as holding something, so a held Shield gets no bonus (hands record no shield identity)",
             "Fighter equipment packages are the existing catalog lists, not yet the PHB packages",
+            "Weapon proficiency: a Fighter created before this change keeps its stored proficiency list; it is not inferred on load",
         ]
         if level >= 2:
             supported.append("Action Surge: one additional non-Magic action on your own combat turn, one use back on a Short or Long Rest")
