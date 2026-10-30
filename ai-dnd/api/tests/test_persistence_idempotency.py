@@ -5050,6 +5050,15 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                   "campaign_history", "campaign_combat_history")
                 }
 
+        def without_last_played(rows):
+            with closing(self.store._connect()) as connection:
+                columns = [row[1] for row in connection.execute("PRAGMA table_info(campaigns)")]
+            played = columns.index("last_played_at")
+            return {
+                **rows,
+                "campaigns": [row[:played] + row[played + 1:] for row in rows["campaigns"]],
+            }
+
         barrier = threading.Barrier(2)
         committed_event = threading.Event()
         original_saves = [store.save_campaign for store in stores]
@@ -5170,6 +5179,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.status_code, 200, response.text)
                 sid = response.json()["session_id"]
                 restored = managers[loser].get(sid)
+                # An explicit resume stamps last_played_at and nothing else.
+                rows_after_resume = saved_rows()
+                self.assertEqual(without_last_played(rows_after_resume), without_last_played(committed["rows"]))
                 self.assertEqual(runtime_snapshot(restored)[:6], committed["runtime"][:6])
                 self.assertEqual(response.json()["history"], stored.history)
                 self.assertEqual(stores[loser].get_campaign(campaign_id).payload, stored.payload)
@@ -5182,7 +5194,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(retry.json()["detail"]["code"], "species_action_unavailable")
                     self.assertIn("16", retry.json()["detail"]["message"])
                     self.assertEqual(runtime_snapshot(restored), reopened)
-                    self.assertEqual(saved_rows(), committed["rows"])
+                    self.assertEqual(saved_rows(), rows_after_resume)
                     self.assertEqual(stores[loser].get_turn_action(campaign_id, action_ids[winner]), receipt)
                     self.assertIsNone(stores[loser].get_turn_action(campaign_id, action_ids[loser]))
                     waited = restored.game_session.advance_campaign_time(16 * 3600, "explicit_wait")
