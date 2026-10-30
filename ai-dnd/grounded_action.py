@@ -707,6 +707,16 @@ def note_near(world: dict[str, Any], target_id: str | None) -> None:
         state["last_target_id"] = target_id
 
 
+def note_last(world: dict[str, Any], target_id: str) -> None:
+    """Record what is now in play without moving the player to it."""
+    _memory(world)["last_target_id"] = target_id
+
+
+def last_target_id(world: dict[str, Any]) -> str | None:
+    state = world.get(KEY) if isinstance(world.get(KEY), dict) else {}
+    return state.get("last_target_id")
+
+
 def clear_near(world: dict[str, Any]) -> None:
     """The player changed location: no longer standing at anything (touches only existing state)."""
     state = world.get(KEY)

@@ -6074,6 +6074,17 @@ def most_plausible_addressee(people, player_input=""):
     return min(pool, key=lambda npc: (_is_guard(npc), distance(npc)))
 
 
+def _topic_place_name(world):
+    """The name of the place just talked about or found, if the talk is still on it."""
+    import grounded_action
+    import npc_statements
+    said = npc_statements.last_said_place(world)
+    if said:
+        return said.get("name")
+    place = world.get("locations", {}).get(grounded_action.last_target_id(world))
+    return place.get("name") if isinstance(place, dict) else None
+
+
 def _settle_address(resolution, player_input):
     """Several people could be meant by a line that is not an attack: pick one."""
     if resolution.get("status") != "ambiguous":
@@ -7850,6 +7861,7 @@ def _experimental_npc_dialogue_context(
 
 
 _FOLLOWUP_WORDS = frozenset({
+    "ismi", "adi",
     "neden", "niye", "nicin", "nasil", "yani", "peki", "onu", "bunu", "sunu",
     "hangisi", "demek",
 })
@@ -15688,6 +15700,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             root_location = _engine_location_parent(root_location)
         tavern = _ensure_local_tavern(root_location)
         if tavern:
+            grounded_action.note_last(world_state, tavern["id"])
             direct = {
                 "action": "local_search",
                 "status": "found",
@@ -18219,6 +18232,30 @@ def _run_player_turn_internal(
                 ):
                     interaction_adventure.retire_conversation_focus(world_state)
                     break
+
+    topic_name = (
+        _topic_place_name(world_state)
+        if local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
+        else None
+    )
+    if topic_name:
+        answer = (
+            f'{living_world.public_npc_name(npc_target)}, “{topic_name} derler,” diye yanıt verir.'
+            if npc_target else f"Adı {topic_name}."
+        )
+        if npc_target:
+            record_npc_interaction(npc_target, answer, player_input, npc_target)
+        return finish_turn(
+            {
+                "action": "dialogue" if npc_target else "query",
+                "status": "answered_smalltalk" if npc_target else "answered_from_campaign_state",
+                "success": True,
+                "npc_id": npc_target.get("id") if npc_target else None,
+                "state_changes": [],
+            },
+            answer,
+            safety_handling="python_scene_response",
+        )
 
     # An active conversation is not authority over the player's location.
     # Resolve only recognized location queries here; NPC dialogue, interaction

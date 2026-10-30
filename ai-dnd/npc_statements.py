@@ -338,6 +338,25 @@ def place_references(world: dict[str, Any], *, settlement_id: str | None = None)
     ]
 
 
+def last_said_place(world: dict[str, Any], *, max_age_turns: int = 6) -> dict[str, Any] | None:
+    """The place an NPC spoke of most recently, while it can still be the topic."""
+    state = view(world)
+    now = (world.get("flags") or {}).get("turn_index", 0)
+    newest = None
+    for statements in state["statements"].values():
+        for entry in reversed(statements):
+            turn = entry.get("turn")
+            if not entry.get("reference_ids") or type(turn) is not int:
+                continue
+            if now - turn <= max_age_turns and (newest is None or turn > newest["turn"]):
+                newest = entry
+            break
+    if newest is None:
+        return None
+    wanted = newest["reference_ids"][0]
+    return next((ref for ref in state["references"] if ref.get("id") == wanted), None)
+
+
 def _existing_location_named(world: dict[str, Any], name: str) -> str | None:
     target = fold(name)
     for location_id, location in world.get("locations", {}).items():

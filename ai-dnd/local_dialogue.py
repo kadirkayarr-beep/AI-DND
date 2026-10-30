@@ -517,6 +517,16 @@ def personal_question_kind(value: Any) -> str | None:
     return None
 
 
+def asks_the_name_of_a_topic(value: Any) -> bool:
+    """"İsmi nedir?", "Hanın adı ne?": a third-person name, not the addressee's."""
+    return bool(re.fullmatch(
+        r"(?:peki |ya |o zaman )?"
+        r"(?:(?:orasinin|oranin|onun|bunun|hanin|meyhanenin|tavernanin|yerin|mekanin|dukkanin) )?"
+        r"(?:ismi|adi)(?: ne| nedir| neydi)?(?: peki)?",
+        normalize_text(value),
+    ))
+
+
 def is_nominal_speech_reference(value: Any) -> bool:
     """An activity noun is not a command to address its mentioned participant.
 

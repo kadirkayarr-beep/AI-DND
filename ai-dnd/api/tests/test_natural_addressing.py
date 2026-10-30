@@ -194,6 +194,45 @@ class WorldQuestionsReachThePerson(TownCase):
         self.assertEqual(self.flags["active_npc_id"], self.other["id"])
         self.assertIn("speech", self.client.kinds)
 
+    async def test_a_name_question_keeps_the_inn_as_its_topic(self):
+        await self.say("Bu çevrede bir han var mı?")
+        data = await self.say("İsmi nedir?")
+        self.assert_no_wall(data)
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        self.assertIn(inn["name"], data["narration"])
+        self.assertNotIn(self.other["name"], data["narration"])
+        self.assertFalse(living_world.npc_name_known_to_player(self.other))
+
+    async def test_a_second_person_name_question_is_still_about_the_person(self):
+        await self.say("Bu çevrede bir han var mı?")
+        data = await self.say("Peki senin ismin nedir?")
+        self.assert_no_wall(data)
+        self.assertIn(self.other["name"], data["narration"])
+
+    async def test_the_inn_name_is_asked_again_with_the_noun(self):
+        await self.say("Bu çevrede bir han var mı?")
+        data = await self.say("Hanın ismi nedir?")
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        self.assertIn(inn["name"], data["narration"])
+        self.assertNotIn("Bulunduğun yer", data["narration"])
+
+    async def test_the_topic_fades_after_a_while(self):
+        await self.say("Bu çevrede bir han var mı?")
+        self.flags["turn_index"] += 12
+        data = await self.say("İsmi nedir?")
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        self.assertNotIn(inn["name"], data["narration"])
+        self.assertIn("speech", self.client.kinds)
+
+    async def test_the_topic_can_be_a_place_the_player_found_alone(self):
+        for npc in self.people:
+            npc["location"] = "elsewhere"
+        await self.say("Bu çevrede bir han var mı?")
+        data = await self.say("İsmi nedir?")
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        self.assertIn(inn["name"], data["narration"])
+
+
     async def test_why_was_the_door_locked_is_a_question_to_someone(self):
         before = copy.deepcopy(self.world["doors"])
         data = await self.say("Kapı niye kilitliydi?")
