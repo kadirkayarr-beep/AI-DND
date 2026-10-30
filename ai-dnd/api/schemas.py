@@ -103,7 +103,7 @@ class TurnRequest(BaseModel):
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     action_id: UUID | None = None
     combat_action: CombatActionInput | None = None
-    check_feature: Literal["primal_knowledge"] | None = None
+    check_feature: Literal["primal_knowledge", "tactical_mind"] | None = None
     combat_id: str | None = Field(default=None, min_length=1, max_length=128)
     combat_round: int | None = Field(default=None, ge=1, strict=True)
     combat_turn_index: int | None = Field(default=None, ge=0, strict=True)
@@ -115,7 +115,7 @@ class TurnRequest(BaseModel):
             self.interaction_mode != "do" or self.combat_action is not None
             or any(value is not None for value in fields)
         ):
-            raise ValueError("Primal Knowledge requires an ordinary Do check without combat context.")
+            raise ValueError("A check feature requires an ordinary Do check without combat context.")
         if any(v is not None for v in fields) and any(v is None for v in fields):
             raise ValueError("Combat context must include ID, round and turn index.")
         return self
@@ -333,15 +333,23 @@ class SkillCheckResult(BaseModel):
     action_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
-    check_feature: Literal["primal_knowledge"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    check_feature: Literal["primal_knowledge", "tactical_mind"] | None = Field(default=None, exclude_if=lambda value: value is None)
     original_ability: Literal["dexterity", "wisdom", "charisma"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    tactical_mind_roll: int | None = Field(default=None, ge=1, le=10, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def consistent_check_feature(self):
         # Historical receipts validate their public annotation here, never live Rage.
+        if self.check_feature != "tactical_mind" and self.tactical_mind_roll is not None:
+            raise ValueError("A Tactical Mind roll requires its check feature.")
         if self.check_feature is None:
             if self.original_ability is not None:
                 raise ValueError("Original ability requires a check feature.")
+            return self
+        if self.check_feature == "tactical_mind":
+            if (self.original_ability is not None or not self.action_id or not self.resolution_id
+                    or not self.resolution_id.startswith(self.action_id + ":skill_check:")):
+                raise ValueError("Invalid Tactical Mind check annotation.")
             return self
         originals = {"Acrobatics": "dexterity", "Intimidation": "charisma",
                      "Perception": "wisdom", "Stealth": "dexterity", "Survival": "wisdom"}

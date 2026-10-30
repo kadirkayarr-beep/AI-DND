@@ -221,6 +221,41 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["state"]["character"]["fighter"]["second_wind"]["uses_remaining"], 1)
 
+    async def checked(self, level, *, d20=5, d10=6, dc=None):
+        from api.tests.test_campaign_api import ControlledVenueOllamaClient
+        campaign, record = await self.create(level)
+        session = record.game_session
+        session.commit_location_change("tavern")
+        self.manager.save_campaign(campaign["campaign_id"])
+        narrator = ControlledVenueOllamaClient("narrative")
+        body = {"message": "Takla atıyorum", "interaction_mode": "do", "action_id": str(uuid4()), "check_feature": "tactical_mind"}
+        with patch("api.tests.test_campaign_api.FakeOllamaClient.chat", side_effect=narrator.chat), patch("game.roll_d20", return_value=d20), \
+                patch.object(session.rng, "randint", return_value=d10):
+            response = await self.http.post(f"/api/game/sessions/{campaign['session_id']}/turn", json=body)
+        return response, record
+
+    async def test_tactical_mind_reaches_the_real_check_and_is_annotated(self):
+        response, record = await self.checked(2, d20=1)
+        self.assertEqual(response.status_code, 200, response.text)
+        check = response.json()["skill_check_result"]
+        self.assertEqual(check["check_feature"], "tactical_mind")
+        self.assertEqual(check["tactical_mind_roll"], 6)
+        self.assertEqual(check["total"], check["d20"] + check["total_modifier"])
+        spent = record.game_session.character.get("fighter_uses", {}).get("second_wind_spent", 0)
+        self.assertEqual(spent, 1 if check["outcome"] == "success" else 0)
+
+    async def test_tactical_mind_is_refused_before_level_two_and_for_other_classes(self):
+        response, _ = await self.checked(1)
+        self.assertEqual((response.status_code, response.json()["detail"]["code"]), (400, "tactical_mind_not_available"))
+
+    def test_turn_request_keeps_the_do_only_rule(self):
+        from api.schemas import TurnRequest
+        TurnRequest.model_validate({"message": "x", "interaction_mode": "do", "check_feature": "tactical_mind"})
+        for bad in ({"message": "x", "check_feature": "tactical_mind"}, {"message": "x", "interaction_mode": "say", "check_feature": "tactical_mind"},
+                    {"message": "x", "interaction_mode": "do", "check_feature": "made_up"}):
+            with self.assertRaises(ValidationError):
+                TurnRequest.model_validate(bad)
+
     async def test_fresh_resume_keeps_the_applied_state(self):
         campaign, record = await self.create(3, "Archery")
         record.game_session.character["fighter_uses"] = {"second_wind_spent": 1, "action_surge_spent": 1}

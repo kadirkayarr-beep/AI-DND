@@ -826,14 +826,18 @@ def _perform_skill_check(
     check_evidence=None,
 ):
     import barbarian_rage
-    if check_feature is not None:
+    import fighter_features
+    tactical = check_feature == fighter_features.TACTICAL_MIND
+    primal = check_feature is not None and not tactical
+    if primal:
         barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
-    ability = "strength" if check_feature is not None else SKILLS[skill]
+    elif tactical:
+        fighter_features.require_tactical_mind(_session())
+    ability = "strength" if primal else SKILLS[skill]
     barbarian_rage.settle(_session())
-    if check_feature is not None:
+    if primal:
         barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
     rage_advantage = barbarian_rage.strength_advantage(_session(), "player", ability)
-    import fighter_features
     athlete_advantage = fighter_features.remarkable_athlete_check(_session().character, skill, ability)
     pace_advantage, pace_disadvantage = timed_gameplay.pace_effects(_session().world_state, skill)
     advantage = bool(advantage or pace_advantage or rage_advantage or athlete_advantage)
@@ -847,19 +851,28 @@ def _perform_skill_check(
         if is_proficient
         else 0
     )
-    resolution = resolve_skill_check(
-        roll_fn=roll_d20,
-        skill=skill,
-        ability=ability,
-        dc=dc,
-        ability_modifier=modifier,
-        proficiency_modifier=proficiency_modifier,
-        circumstantial_modifier=-2 * weapon_attack.exhaustion(_session().character),
-        proficient=is_proficient,
-        expertise=has_expertise,
-        advantage=advantage,
-        disadvantage=disadvantage,
-    )
+    def resolve(roll_fn, adjustment=0):
+        return resolve_skill_check(
+            roll_fn=roll_fn,
+            skill=skill,
+            ability=ability,
+            dc=dc,
+            ability_modifier=modifier,
+            proficiency_modifier=proficiency_modifier,
+            circumstantial_modifier=adjustment - 2 * weapon_attack.exhaustion(_session().character),
+            proficient=is_proficient,
+            expertise=has_expertise,
+            advantage=advantage,
+            disadvantage=disadvantage,
+        )
+    resolution = resolve(roll_d20)
+    tactical_mind_roll = None
+    if tactical and resolution["outcome"] != "SUCCESS":
+        # The same d20 faces, plus the feature's d10: the use is expended only if that makes the check succeed.
+        tactical_mind_roll = fighter_features.tactical_mind_roll(_session())
+        resolution = resolve(iter(resolution["raw_rolls"]).__next__, tactical_mind_roll)
+        if resolution["outcome"] == "SUCCESS":
+            fighter_features.spend_tactical_mind(_session())
     dice_rolls = resolution["raw_rolls"]
     dice = resolution["selected_roll"]
     total = resolution["total"]
@@ -876,14 +889,18 @@ def _perform_skill_check(
         "proficient": is_proficient,
         "expertise": has_expertise,
         "proficiency_bonus": proficiency_modifier,
-        "total_bonus": modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(_session().character),
+        "total_bonus": modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(_session().character) + (tactical_mind_roll or 0),
         "total": total,
         "dc": dc,
         "result": result,
         "resolution": resolution,
     }
 
-    if check_feature is not None and check_evidence is not None:
+    if tactical:
+        result_data["tactical_mind_roll"] = tactical_mind_roll
+        if check_evidence is not None:
+            check_evidence.append(fighter_features.record_tactical_mind(result_data))
+    elif check_feature is not None and check_evidence is not None:
         check_evidence.append(barbarian_rage.record_primal_knowledge(_session(), result_data))
     return result_data
 
@@ -13903,7 +13920,10 @@ def _is_explicitly_negated_attack(player_input):
     ))
 
 
-def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None):
+CHECK_FEATURES = ('primal_knowledge', 'tactical_mind')
+
+
+def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge'):
     """Pure opt-in admission, not a new normal-command or PHB restriction.
 
     Only bounded standalone immediate wording is supported. Other owners retain
@@ -13938,20 +13958,26 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'This wording or route does not support an immediate Primal Knowledge check.', 400)
     selected = deterministic_check_for_action(player_input)
     skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
-    barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
+    if check_feature == 'tactical_mind':
+        import fighter_features
+        fighter_features.require_tactical_mind(_session())
+        if skill not in SKILLS:
+            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was selected.', 400)
+    else:
+        barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
     return selected
 
 
 def execute_intent(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
     if check_feature is None:
         return _execute_intent_internal(intent, player_input, npc_target, target_id)
-    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+    if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:
         raise ValueError('Check evidence must be a caller-owned list.')
     if isinstance(intent, dict) and intent.get('intent') in {'travel', 'attack', 'combat'}:
         raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'The selected intent is not an immediate check.', 400)
-    primal_knowledge_check_admission(player_input, target_id=target_id)
+    primal_knowledge_check_admission(player_input, target_id=target_id, check_feature=check_feature)
     snapshot = _session()._capture_runtime_snapshot()
     evidence = []
     try:
@@ -14162,7 +14188,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             skill = inferred_skill
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
-        ability = "strength" if check_feature is not None else SKILLS[skill]
+        ability = "strength" if check_feature == 'primal_knowledge' else SKILLS[skill]
         trait_state = _species_trait_state()
         check_result = perform_skill_check(
             skill,
@@ -14186,6 +14212,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             "ability": check_result["ability"],
             "dice": check_result["dice"],
             **({"dice_rolls": check_result["dice_rolls"]} if check_feature is not None else {}),
+            **({"tactical_mind_roll": check_result["tactical_mind_roll"]} if check_feature == "tactical_mind" else {}),
             "modifier": check_result["modifier"],
             "proficiency_bonus": check_result["proficiency_bonus"],
             "expertise": check_result["expertise"],
@@ -16253,12 +16280,13 @@ def run_player_turn(
     if check_feature is None:
         return _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
                                 session_id, combat_action, interaction_mode)
-    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+    if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:
         raise ValueError('Check evidence must be a caller-owned list.')
     primal_knowledge_check_admission(player_input, interaction_mode=interaction_mode,
-                                     combat_action=combat_action, scene_plan=scene_plan, target_id=target_id)
+                                     combat_action=combat_action, scene_plan=scene_plan, target_id=target_id,
+                                     check_feature=check_feature)
     snapshot = _session()._capture_runtime_snapshot()
     evidence = []
     try:

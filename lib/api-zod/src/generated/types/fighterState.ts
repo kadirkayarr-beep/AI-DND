@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FighterActionSurgeState } from './fighterActionSurgeState';
+import type { FighterAvailability } from './fighterAvailability';
 import type { FighterSecondWindState } from './fighterSecondWindState';
 
 export interface FighterState {
   /** @nullable */
   fighting_style: string | null;
+  tactical_mind: FighterAvailability | null;
   second_wind: FighterSecondWindState;
   action_surge: FighterActionSurgeState | null;
 }

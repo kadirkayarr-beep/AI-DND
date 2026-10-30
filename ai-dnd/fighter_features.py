@@ -7,12 +7,17 @@ Second Wind's maximum and healing follow the APPLIED Fighter level; a level gran
 """
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
 from typing import Any
 
 import character_progression as core
 from combat_lifecycle import CombatRequestError
 
 KEY = "fighter_uses"
+TACTICAL_MIND = "tactical_mind"
+TACTICAL_MIND_LEVEL = 2
+TACTICAL_MIND_DIE = 10
 STYLE = "fighting_style"
 _FIELDS = {"second_wind_spent", "action_surge_spent"}
 SUBCLASS = "champion"
@@ -133,6 +138,66 @@ def _action_surge_reason(session: Any) -> str | None:
     return None
 
 
+def tactical_mind_reason(session: Any) -> str | None:
+    """The bounded route: an immediate out-of-combat check, with a Second Wind use left (the two features share that pool)."""
+    level = fighter_level(session.character)
+    if level is None or level < TACTICAL_MIND_LEVEL:
+        return "tactical_mind_not_available"
+    if session.world_state.get("combat", {}).get("active"):
+        return "tactical_mind_immediate_check_only"
+    if _uses(session.character)["second_wind_spent"] >= second_wind_maximum(level):
+        return "tactical_mind_uses_exhausted"
+    return None
+
+
+def require_tactical_mind(session: Any) -> None:
+    reason = tactical_mind_reason(session)
+    if reason:
+        raise CombatRequestError(reason, "Tactical Mind is unavailable: " + reason, 400)
+
+
+def tactical_mind_roll(session: Any) -> int:
+    return session.rng.randint(1, TACTICAL_MIND_DIE)
+
+
+def spend_tactical_mind(session: Any) -> None:
+    """Only a check the d10 turned into a success expends the use; healing never happens on this route."""
+    _spend(session.character, "second_wind_spent")
+
+
+@dataclass(frozen=True)
+class TacticalMindEvidence:
+    """At-roll in-process provenance, never a request, save or model field."""
+    action_id: str | None
+    resolution_id: str | None
+    skill: str
+    roll: int | None
+    resolution_json: str
+
+
+def _canonical(resolution: Any) -> str:
+    return json.dumps(resolution, sort_keys=True, separators=(",", ":"))
+
+
+def record_tactical_mind(result: dict[str, Any]) -> TacticalMindEvidence:
+    resolution = result["resolution"]
+    return TacticalMindEvidence(resolution["action_id"], resolution["resolution_id"], result["skill"],
+                                result["tactical_mind_roll"], _canonical(resolution))
+
+
+def tactical_mind_annotation(evidence: Any, action_result: Any) -> dict[str, Any]:
+    """Verify a completed live roll; a feature label alone never authorizes the extra d10 in a public result."""
+    if type(evidence) is not TacticalMindEvidence or type(action_result) is not dict:
+        raise ValueError("Missing trusted Tactical Mind roll evidence.")
+    resolution = action_result.get("resolution")
+    if (not evidence.action_id or not evidence.resolution_id or action_result.get("action") != "skill_check"
+            or action_result.get("skill") != evidence.skill or action_result.get("action_id") != evidence.action_id
+            or action_result.get("resolution_id") != evidence.resolution_id
+            or action_result.get("tactical_mind_roll") != evidence.roll or _canonical(resolution) != evidence.resolution_json):
+        raise ValueError("Tactical Mind evidence does not match the completed roll.")
+    return {"check_feature": TACTICAL_MIND, **({"tactical_mind_roll": evidence.roll} if evidence.roll is not None else {})}
+
+
 def _heal(session: Any, amount: int) -> int:
     return session.heal_player(amount)
 
@@ -223,9 +288,11 @@ def projection(session: Any) -> dict[str, Any] | None:
         validate_saved(character)
         uses = _uses(character)
         wind_reason, surge_reason = _second_wind_reason(session), _action_surge_reason(session)
+        mind_reason = tactical_mind_reason(session)
         maximum = second_wind_maximum(level)
         return {
             "fighting_style": character.get(STYLE),
+            "tactical_mind": None if level < TACTICAL_MIND_LEVEL else {"available": mind_reason is None, "reason": mind_reason},
             "second_wind": {"uses_remaining": maximum - uses["second_wind_spent"], "max_uses": maximum, "die": SECOND_WIND_DIE,
                             "level_bonus": level, "activate": {"available": wind_reason is None, "reason": wind_reason},
                             "tactical_shift": level >= TACTICAL_SHIFT_LEVEL},

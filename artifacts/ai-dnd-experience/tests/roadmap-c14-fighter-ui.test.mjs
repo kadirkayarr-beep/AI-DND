@@ -14,7 +14,7 @@ const raw3 = () => ({ ...raw2(), supported_starting_levels: [1, 2, 3], level_3: 
 const raw4 = () => ({ ...raw3(), supported_starting_levels: [1, 2, 3, 4], level_4: { supported_asi_choices: structuredClone(ASI), effects_supported: ['ASI supported'], effects_pending: ['Higher-start equipment pending'] } });
 const raw5 = () => ({ ...raw4(), supported_starting_levels: [1, 2, 3, 4, 5], level_5: { effects_supported: ['Extra Attack supported'], effects_pending: ['Higher-start equipment pending'] } });
 const draftN = (level, extra = {}) => ({ ...emptyStartingDraft(), startingLevel: level, subclassId: level >= 3 ? 'champion' : '', ...(level >= 4 ? { level4Asi: structuredClone(STR2), level4ConConfirmed: true } : {}), ...extra });
-const FIGHTER = () => ({ fighting_style: 'Defense', second_wind: { uses_remaining: 2, max_uses: 3, die: 10, level_bonus: 5, activate: { available: true, reason: null }, tactical_shift: true }, action_surge: { uses_remaining: 1, max_uses: 1, activate: { available: true, reason: null } } });
+const FIGHTER = () => ({ fighting_style: 'Defense', tactical_mind: { available: true, reason: null }, second_wind: { uses_remaining: 2, max_uses: 3, die: 10, level_bonus: 5, activate: { available: true, reason: null }, tactical_shift: true }, action_surge: { uses_remaining: 1, max_uses: 1, activate: { available: true, reason: null } } });
 const campaign_id = '11111111-1111-4111-8111-111111111111';
 const preview = (target, counts, extra = {}) => ({ session_id: 'session', campaign_id, revision: 7, status: 'ready', reason: null, class_name: 'Fighter', from_level: target - 1, target_level: target, choices_required: counts, capacity: null, prepared_spell_ids: [], cantrip_ids: [], supported_asi_choices: [], metamagic_options: [], subclass_options: [], effects_supported: ['Supported'], effects_pending: ['Weapon Mastery pending'], ...extra });
 
@@ -196,6 +196,26 @@ test('Second Wind and Action Surge send the exact typed steps and respect the se
   const lowTree = tree(low); assert.equal(byId(lowTree, 'button-action-surge'), undefined); assert.equal(byId(lowTree, 'fighter-tactical-shift'), undefined);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
   for (const step of sent) assert.deepEqual(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0].kind, step.kind);
+});
+
+test('Tactical Mind is one optional consent shown only from the server projection', async () => {
+  const state = (fighter, combat = false) => ({ combat: { active: combat }, character: { fighter } });
+  const available = controls.tacticalMindAvailable;
+  assert.equal(available(state(FIGHTER()), { interaction_mode: 'do', target_id: null }), true);
+  assert.equal(available(state(FIGHTER()), { interaction_mode: 'say', target_id: null }), false);
+  assert.equal(available(state(FIGHTER()), { interaction_mode: 'do', target_id: 'npc' }), false);
+  assert.equal(available(state(FIGHTER(), true), { interaction_mode: 'do', target_id: null }), false);
+  assert.equal(available(state(FIGHTER()), { interaction_mode: 'do', target_id: null }, { steps: [] }), false);
+  const spent = FIGHTER(); spent.tactical_mind = { available: false, reason: 'tactical_mind_uses_exhausted' };
+  assert.equal(available(state(spent), { interaction_mode: 'do', target_id: null }), false);
+  const low = FIGHTER(); low.tactical_mind = null;
+  assert.equal(render(React.createElement(controls.TacticalMindControl, { state: state(low), mode: 'do', targetId: null, checked: false, blocked: false, onChange: () => {} })), '');
+  let chosen;
+  const tree = nodes(controls.TacticalMindControl({ state: state(FIGHTER()), mode: 'do', targetId: null, checked: false, blocked: false, onChange: value => chosen = value }));
+  byId(tree, 'tactical-mind-confirm').props.onChange({ target: { checked: true } });
+  assert.equal(chosen, true);
+  const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
+  assert.equal(PlayGameTurnBody.parse({ message: 'x', interaction_mode: 'do', check_feature: 'tactical_mind' }).check_feature, 'tactical_mind');
 });
 
 test('Tactical Shift distance is sent only when the server offers it and the value is a positive whole number', () => {

@@ -473,7 +473,9 @@ def serialize_skill_check_result(
         if type(check_evidence) is not list or len(check_evidence) != 1:
             raise SkillCheckResultSerializationError("Invalid skill-check evidence.")
         try:
-            annotation = barbarian_rage.primal_knowledge_annotation(check_evidence[0], action_result)
+            annotation = (fighter_features.tactical_mind_annotation(check_evidence[0], action_result)
+                          if type(check_evidence[0]) is fighter_features.TacticalMindEvidence
+                          else barbarian_rage.primal_knowledge_annotation(check_evidence[0], action_result))
             if outcome != str(resolution.get("outcome", "")).lower():
                 raise ValueError("Feature outcome does not match the completed resolution.")
         except ValueError:
@@ -532,7 +534,8 @@ def serialize_skill_check_result(
         if tool in character.get("proficient_tools", []) and not proficient:
             expected_proficiency_modifier = character_proficiency_bonus
     import weapon_attack
-    total_modifier = ability_modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(character)
+    total_modifier = (ability_modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(character)
+                      + annotation.get("tactical_mind_roll", 0))
     if (
         d20 < 1
         or d20 > 20

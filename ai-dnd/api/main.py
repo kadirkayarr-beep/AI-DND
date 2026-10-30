@@ -1151,6 +1151,7 @@ def create_app(
                     session.primal_knowledge_check_admission(
                         request.message, interaction_mode=effective_mode,
                         combat_action=request.combat_action, target_id=request.target_id,
+                        check_feature=request.check_feature,
                     )
                 except combat_lifecycle.CombatRequestError as error:
                     raise refuse_before_commit(error.status_code, error.code, str(error)) from None

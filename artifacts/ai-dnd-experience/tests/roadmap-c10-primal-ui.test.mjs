@@ -45,7 +45,7 @@ function harness({ sessionStorage = storage(), transport, refresh } = {}) {
   intent.sync({ key: JSON.stringify(['owner', 'campaign', 'session', 'do']), available: true });
   const env = {
     ...gateInjection(), reconcileState, ReconciliationError, RETRY_MESSAGE, closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, askServer, settlePending, unresolvedActionFrom, transcriptFollowsBottom, getTurnInteractionMetadata,
-    ...controls, primalKnowledgeIntent: intent, redrawPrimalKnowledge() {},
+    ...controls, primalKnowledgeIntent: intent, redrawPrimalKnowledge() {}, tacticalMindIntent: controls.createPrimalKnowledgeIntent(), tacticalMindAvailable: () => false,
     currentAccountOwner: () => 'owner', LOCAL_OWNER: 'local', campaignId: 'campaign', sessionId: 'session', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: structuredClone(state),
     pendingAmbientActionRef: { current: null }, turnLifetime: createActionLifetime(), undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() }, inFlightSessionsRef: { current: new Set() }, activeSessionRef: { current: 'session' },
     messageRef: { current: 'Takla atıyorum' }, entries: [], wasAtBottom: { current: true }, currentAuthEpoch: () => 1,
@@ -131,7 +131,7 @@ test('actual parent lifetime clears consent on owner, campaign, session, mode, u
   const end = component.body.statements.findIndex(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === '[ambientActionResult, setAmbientActionResult]'));
   assert.ok(start >= 0 && end > start, 'real parent consent owner');
   const executable=ts.transpileModule('globalThis.draw=()=>{'+component.body.statements.slice(start,end).map(n=>n.getText(ast)).join('\n')+';return primalKnowledgeIntent;};', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
-  let owner='owner'; const ref={current:null}; const env={...controls, useRef:()=>ref,useState:()=>[0,()=>{}],currentAccountOwner:()=>owner,LOCAL_OWNER:'local',campaignId:'campaign',sessionId:'session',interactionMode:'do',state:structuredClone(state),conversationTargetId:'',combatTargetId:'',getTurnInteractionMetadata};
+  let owner='owner'; const refs=[{current:null},{current:null}]; let refIndex=0; const env={...controls, tacticalMindAvailable:()=>false, useRef:()=>refs[refIndex++%2],useState:()=>[0,()=>{}],currentAccountOwner:()=>owner,LOCAL_OWNER:'local',campaignId:'campaign',sessionId:'session',interactionMode:'do',state:structuredClone(state),conversationTargetId:'',combatTargetId:'',getTurnInteractionMetadata};
   vm.runInNewContext(executable,env);
   assert.equal(env.draw().selected,false);
   for (const change of ['owner','campaignId','sessionId','interactionMode','projection','combat']) {

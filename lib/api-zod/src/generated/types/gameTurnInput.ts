@@ -14,7 +14,7 @@ import type { GameTurnInputInteractionMode } from './gameTurnInputInteractionMod
  */
 export interface GameTurnInput {
   /**
-     * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+     * Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.
      * @nullable
      */
   check_feature?: GameTurnInputCheckFeature;

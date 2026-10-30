@@ -248,8 +248,8 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_factory_openapi_preserves_option_and_annotated_result_fields(self):
         schema=self.app.openapi()['components']['schemas']
-        self.assertEqual(schema['TurnRequest']['properties']['check_feature']['anyOf'][0]['const'],'primal_knowledge')
-        self.assertEqual(schema['SkillCheckResult']['properties']['check_feature']['anyOf'][0]['const'],'primal_knowledge')
+        self.assertIn('primal_knowledge',schema['TurnRequest']['properties']['check_feature']['anyOf'][0]['enum'])
+        self.assertIn('primal_knowledge',schema['SkillCheckResult']['properties']['check_feature']['anyOf'][0]['enum'])
         self.assertIn('original_ability',schema['SkillCheckResult']['properties'])
         self.assertNotIn('check_evidence',json.dumps(schema))
 

@@ -7,7 +7,7 @@
  */
 
 /**
- * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+ * Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.
  * @nullable
  */
 export type GameTurnInputCheckFeature = typeof GameTurnInputCheckFeature[keyof typeof GameTurnInputCheckFeature] | null;
@@ -15,4 +15,5 @@ export type GameTurnInputCheckFeature = typeof GameTurnInputCheckFeature[keyof t
 
 export const GameTurnInputCheckFeature = {
   primal_knowledge: 'primal_knowledge',
+  tactical_mind: 'tactical_mind',
 } as const;

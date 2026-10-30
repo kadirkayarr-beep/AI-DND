@@ -11,4 +11,5 @@ export type SkillCheckResultCheckFeature = typeof SkillCheckResultCheckFeature[k
 
 export const SkillCheckResultCheckFeature = {
   primal_knowledge: 'primal_knowledge',
+  tactical_mind: 'tactical_mind',
 } as const;

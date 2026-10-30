@@ -1,27 +1,7 @@
-import type { EconomyStepInput, FighterAvailability, FighterState } from '@workspace/api-client-react';
-
-const SECOND_WIND_DIE = 10;
-
-function whole(value: unknown, minimum: number): value is number {
-  return Number.isSafeInteger(value) && Number(value) >= minimum;
-}
-function availability(value: FighterAvailability | undefined): boolean {
-  return !!value && typeof value.available === 'boolean' && (value.reason === null || typeof value.reason === 'string');
-}
-
-/** Read-only projection validation; class name and inventory never stand in for it. A malformed block shows nothing. */
-export function readFighterProjection(value: unknown): FighterState | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const raw = value as FighterState;
-  const wind = raw.second_wind;
-  const surge = raw.action_surge;
-  if (!wind || !whole(wind.max_uses, 1) || !whole(wind.uses_remaining, 0) || wind.uses_remaining > wind.max_uses
-    || wind.die !== SECOND_WIND_DIE || !whole(wind.level_bonus, 1) || !availability(wind.activate) || typeof wind.tactical_shift !== 'boolean'
-    || (raw.fighting_style !== null && typeof raw.fighting_style !== 'string')) return null;
-  if (surge !== null && (!surge || !whole(surge.max_uses, 1) || !whole(surge.uses_remaining, 0) || surge.uses_remaining > surge.max_uses
-    || !availability(surge.activate))) return null;
-  return raw;
-}
+import type { EconomyStepInput, FighterState, GameState } from '@workspace/api-client-react';
+import type { InteractionMode } from '@/lib/action-suggestions';
+import { readFighterProjection, tacticalMindAvailable } from '@/lib/fighter-projection';
+export { readFighterProjection, tacticalMindAvailable } from '@/lib/fighter-projection';
 
 /** The typed step for Second Wind; a Tactical Shift distance is sent only when the server says it exists. Null means do not send. */
 export function secondWindStep(fighter: FighterState, shift: string): EconomyStepInput | null {
@@ -29,6 +9,22 @@ export function secondWindStep(fighter: FighterState, shift: string): EconomySte
   const distance = Number(shift);
   if (!fighter.second_wind.tactical_shift || !Number.isSafeInteger(distance) || distance < 1) return null;
   return { kind: 'second_wind', resource: 'bonus', distance_ft: distance };
+}
+
+export function TacticalMindControl({ state, mode, targetId, checked, blocked, onChange }: {
+  state: GameState; mode: InteractionMode; targetId: string | null; checked: boolean; blocked: boolean; onChange: (checked: boolean) => void;
+}) {
+  const projection = readFighterProjection(state.character.fighter)?.tactical_mind;
+  if (!projection) return null;
+  const available = tacticalMindAvailable(state, { interaction_mode: mode, target_id: targetId });
+  return <div className="story-meta" style={{ flex: '0 0 100%', minWidth: 0 }} data-testid="tactical-mind-control">
+    <label><input type="checkbox" data-testid="tactical-mind-confirm" checked={available && checked} disabled={blocked || !available}
+      onChange={event => { if (!blocked && available) onChange(event.target.checked); }} />{' '}
+      Bu kontrol başarısız olursa Tactical Mind kullan
+    </label>
+    <p>Başarısız kontrole 1d10 eklenir; kullanım yalnız kontrol başarıya dönerse Second Wind havuzundan harcanır. Yalnız anlık, hedefsiz Yap kontrolleri; seçim zarı görmeden yapılır.</p>
+    {!available && <p role="status" data-testid="tactical-mind-unavailable">{projection.reason ?? 'Bu hamlede seçilemez.'}</p>}
+  </div>;
 }
 
 export function FighterStatus({ fighter }: { fighter: unknown }) {

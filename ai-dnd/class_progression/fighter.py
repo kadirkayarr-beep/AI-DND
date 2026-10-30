@@ -157,7 +157,8 @@ class Fighter(ClassProgression):
         ]
         if level >= 2:
             supported.append("Action Surge: one additional non-Magic action on your own combat turn, one use back on a Short or Long Rest")
-            pending.append("Tactical Mind: shares the Second Wind uses; its check route remains pending")
+            supported.append("Tactical Mind: shares the Second Wind uses; chosen before an immediate untargeted Do check, a failed check adds 1d10 and only a check that then succeeds spends the use")
+            pending.append("Tactical Mind: choosing after seeing the failure, combat checks, targeted, timed and model-only check routes remain unsupported (engine scope, not a PHB restriction)")
         if level >= 3:
             supported.extend(["Selected Champion Improved Critical: a weapon or Unarmed Strike attack roll of 19 that hits is a Critical Hit",
                               "Selected Champion Remarkable Athlete: Advantage on Initiative and Strength (Athletics) checks"])

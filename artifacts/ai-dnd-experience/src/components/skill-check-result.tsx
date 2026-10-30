@@ -45,6 +45,7 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
   const primalKnowledge = result.check_feature === 'primal_knowledge' && result.ability === 'strength'
     && result.original_ability && ABILITY_ABBREVIATIONS[result.original_ability];
   const featureAbilityLabel = primalKnowledge ? 'Kuvvet (Primal Knowledge)' : null;
+  const tacticalMind = result.check_feature === 'tactical_mind' ? availableNumber(result.tactical_mind_roll) : undefined;
   const difficultyLabel = DIFFICULTY_LABELS[result.difficulty];
   const rolls = Array.isArray(result.d20_rolls)
     ? result.d20_rolls.map(availableNumber).filter((roll): roll is number => roll !== undefined)
@@ -56,6 +57,7 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
   const accessibleSummary = [
     skillLabel,
     ...(featureAbilityLabel ? [featureAbilityLabel, `Asıl yetenek ${primalKnowledge}`] : []),
+    ...(tacticalMind === undefined ? [] : [`Tactical Mind +${tacticalMind}`]),
     outcome?.label ?? 'Sonuç bilgisi yok',
     ...(d20 === undefined ? [] : [`D20 ${d20}`]),
     ...(total === undefined ? [] : [`Toplam ${total}`]),

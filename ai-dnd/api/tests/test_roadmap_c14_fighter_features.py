@@ -15,6 +15,7 @@ import fighter_features as features
 import game
 import initiative
 import weapon_attack as attacks
+from api.core_resolution import resolution_action_scope
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c14_fighter import created, earn, earned, roundtrip
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
@@ -283,6 +284,99 @@ class TacticalShift(unittest.TestCase):
         self.assertEqual(caught.exception.code, "tactical_shift_not_available")
 
 
+class TacticalMind(unittest.TestCase):
+    """PDF 90: on a failed ability check, spend a Second Wind use to add 1d10; a check that still fails spends nothing."""
+
+    def check(self, session, dc, d10=6, d20=5, skill="Acrobatics"):
+        character = session.character
+        evidence = []
+        with patch("game.roll_d20", return_value=d20), patch.object(session.rng, "randint", return_value=d10) as rolled:
+            result = session.perform_skill_check(skill, dc, character["modifiers"], character["proficient_skills"],
+                                                 character["proficiency_bonus"], check_feature="tactical_mind", check_evidence=evidence)
+        return result, evidence, rolled
+
+    def plain_total(self, session, skill="Acrobatics"):
+        character = session.character
+        with patch("game.roll_d20", return_value=5):
+            return session.perform_skill_check(skill, 10, character["modifiers"], character["proficient_skills"], character["proficiency_bonus"])["total"]
+
+    def spent(self, session):
+        return (session.character.get("fighter_uses") or {}).get("second_wind_spent", 0)
+
+    def test_a_failed_check_that_the_d10_turns_into_a_success_spends_a_use(self):
+        session = created(2)
+        base = self.plain_total(session)
+        result, evidence, rolled = self.check(session, base + 4, d10=6)
+        rolled.assert_called_once_with(1, 10)
+        self.assertEqual((result["total"], result["tactical_mind_roll"], result["resolution"]["outcome"]), (base + 6, 6, "SUCCESS"))
+        self.assertEqual(result["result"], "BAŞARILI")
+        self.assertEqual(self.spent(session), 1)
+        self.assertEqual(len(evidence), 1)
+
+    def test_a_check_that_still_fails_spends_nothing(self):
+        session = created(2)
+        base = self.plain_total(session)
+        result, _, _ = self.check(session, base + 7, d10=6)
+        self.assertEqual((result["total"], result["tactical_mind_roll"], result["resolution"]["outcome"]), (base + 6, 6, "FAILURE"))
+        self.assertEqual(self.spent(session), 0)
+
+    def test_a_check_that_succeeds_rolls_and_spends_nothing(self):
+        session = created(2)
+        result, _, rolled = self.check(session, self.plain_total(session))
+        rolled.assert_not_called()
+        self.assertIsNone(result["tactical_mind_roll"])
+        self.assertEqual(self.spent(session), 0)
+
+    def test_the_d10_replaces_the_healing(self):
+        session = created(2)
+        wound(session)
+        hp = session.character["current_hp"]
+        self.check(session, self.plain_total(session) + 4)
+        self.assertEqual(session.character["current_hp"], hp)
+
+    def test_it_shares_the_second_wind_pool(self):
+        session = created(2)
+        base = self.plain_total(session)
+        self.check(session, base + 1)
+        self.check(session, base + 1)
+        self.assertEqual(features.projection(session)["second_wind"]["uses_remaining"], 0)
+        self.assertEqual(features.projection(session)["tactical_mind"]["reason"], "tactical_mind_uses_exhausted")
+        with self.assertRaises(CombatRequestError) as caught:
+            self.check(session, base + 1)
+        self.assertEqual(caught.exception.code, "tactical_mind_uses_exhausted")
+
+    def test_it_needs_level_two_and_no_active_combat(self):
+        with self.assertRaises(CombatRequestError) as caught:
+            self.check(created(1), 30)
+        self.assertEqual(caught.exception.code, "tactical_mind_not_available")
+        self.assertIsNone(features.projection(created(1))["tactical_mind"])
+        session, _ = fight(2)
+        with self.assertRaises(CombatRequestError) as caught:
+            self.check(session, 30)
+        self.assertEqual(caught.exception.code, "tactical_mind_immediate_check_only")
+
+    def test_a_failure_after_the_roll_restores_everything(self):
+        session = created(2)
+        base = self.plain_total(session)
+        before = session._capture_runtime_snapshot()
+        with patch.object(features, "record_tactical_mind", side_effect=ValueError("synthetic")), self.assertRaises(ValueError):
+            self.check(session, base + 1)
+        self.assertEqual(session._capture_runtime_snapshot(), before)
+
+    def test_annotation_refuses_a_result_that_does_not_match_the_evidence(self):
+        session = created(2)
+        dc = self.plain_total(session) + 4
+        with resolution_action_scope("5df78dbd-3908-4a4d-bd91-1888fe1ccc0c"):
+            result, evidence, _ = self.check(session, dc)
+        action = {"action": "skill_check", "skill": result["skill"], "action_id": result["resolution"]["action_id"],
+                  "resolution_id": result["resolution"]["resolution_id"], "resolution": result["resolution"], "tactical_mind_roll": 6}
+        self.assertEqual(features.tactical_mind_annotation(evidence[0], action), {"check_feature": "tactical_mind", "tactical_mind_roll": 6})
+        with self.assertRaises(ValueError):
+            features.tactical_mind_annotation(evidence[0], {**action, "tactical_mind_roll": 7})
+        with self.assertRaises(ValueError):
+            features.tactical_mind_annotation(object(), action)
+
+
 class ExtraAttack(unittest.TestCase):
     def test_applied_level_five_fighter_has_exactly_two_attacks(self):
         session, npc = fight(5)
@@ -442,6 +536,12 @@ class Champion(unittest.TestCase):
 
     def test_critical_move_stays_pending_and_disclosed(self):
         self.assertIn("Remarkable Athlete: the half-Speed move after a Critical Hit", " ".join(cp.progression_effects_pending("Fighter", 3)))
+
+    def test_level_two_discloses_the_tactical_mind_scope(self):
+        supported = " ".join(cp.progression_disclosure("Fighter", 2)["supported"])
+        self.assertIn("Tactical Mind", supported)
+        self.assertIn("shares the Second Wind uses", supported)
+        self.assertNotIn("Tactical Mind", " ".join(cp.progression_disclosure("Fighter", 1)["supported"]))
 
 
 if __name__ == "__main__":

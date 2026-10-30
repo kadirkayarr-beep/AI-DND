@@ -1,5 +1,6 @@
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
+import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
 import { RageStatus } from '@/components/rage-controls';
 import { FighterStatus } from '@/components/fighter-controls';
@@ -697,6 +698,8 @@ function StoryColumn({
   onEndConversation,
   primalKnowledgeOptIn,
   onPrimalKnowledgeChange,
+  tacticalMindOptIn,
+  onTacticalMindChange,
   onSubmit,
   onKeyboardSubmit,
   onEconomyCommand,
@@ -734,6 +737,8 @@ function StoryColumn({
   onEndConversation: () => void;
   primalKnowledgeOptIn: boolean;
   onPrimalKnowledgeChange: (checked: boolean) => void;
+  tacticalMindOptIn: boolean;
+  onTacticalMindChange: (checked: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyboardSubmit: () => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
@@ -882,6 +887,7 @@ function StoryColumn({
               </label>
             )}
             <PrimalKnowledgeControl state={state} mode={interactionMode} targetId={getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId).target_id} checked={primalKnowledgeOptIn} blocked={sending} onChange={onPrimalKnowledgeChange} />
+            <TacticalMindControl state={state} mode={interactionMode} targetId={getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId).target_id} checked={tacticalMindOptIn} blocked={sending} onChange={onTacticalMindChange} />
           </div>
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
           <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleMessageKeyDown} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
@@ -1429,11 +1435,18 @@ export default function GameBrowser() {
   const primalKnowledgeRef = useRef<ReturnType<typeof createPrimalKnowledgeIntent> | null>(null);
   if (!primalKnowledgeRef.current) primalKnowledgeRef.current = createPrimalKnowledgeIntent();
   const primalKnowledgeIntent = primalKnowledgeRef.current;
+  const tacticalMindRef = useRef<ReturnType<typeof createPrimalKnowledgeIntent> | null>(null);
+  if (!tacticalMindRef.current) tacticalMindRef.current = createPrimalKnowledgeIntent();
+  const tacticalMindIntent = tacticalMindRef.current;
   const [, redrawPrimalKnowledge] = useState(0);
   // Sync during render so no effect gap (or switch away and back) can resurrect consent.
   primalKnowledgeIntent.sync({
     key: JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId, interactionMode]),
     available: primalKnowledgeAvailable(state, getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId)),
+  });
+  tacticalMindIntent.sync({
+    key: JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId, interactionMode]),
+    available: tacticalMindAvailable(state, getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId)),
   });
   const [ambientActionResult, setAmbientActionResult] = useState<AmbientEventResult | null>(null);
   const [ambientActionRequest, setAmbientActionRequest] = useState<AmbientEventActionRequest | null>(null);
@@ -1834,6 +1847,7 @@ export default function GameBrowser() {
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
     );
     // Fresh consent is scoped again at dispatch. A stored retry never consults current controls.
+    if (!stored) tacticalMindIntent.sync({ key: JSON.stringify([ownerId, campaignId, sessionId, mode]), available: tacticalMindAvailable(state, fresh, combatAction) });
     if (!stored) primalKnowledgeIntent.sync({
       key: JSON.stringify([ownerId, campaignId, sessionId, mode]),
       available: primalKnowledgeAvailable(state, fresh, combatAction),
@@ -1848,7 +1862,7 @@ export default function GameBrowser() {
         combat_turn_index: state.combat.current_turn_index,
       } : {}),
       ...(fresh?.target_id ? { target_id: fresh.target_id } : {}),
-      ...(primalKnowledgeIntent.selected ? { check_feature: 'primal_knowledge' } : {}),
+      ...(primalKnowledgeIntent.selected ? { check_feature: 'primal_knowledge' } : tacticalMindIntent.selected ? { check_feature: 'tactical_mind' } : {}),
     };
     let key: ReturnType<typeof createIntentKey>;
     try {
@@ -1861,7 +1875,7 @@ export default function GameBrowser() {
     }
     // Consume only a newly recorded command. Unknown outcomes keep their original request in pending storage;
     // retry/refusal/recovery must not consume consent belonging to an unrelated later draft.
-    if (!stored) { primalKnowledgeIntent.choose(false); redrawPrimalKnowledge(value => value + 1); }
+    if (!stored) { primalKnowledgeIntent.choose(false); tacticalMindIntent.choose(false); redrawPrimalKnowledge(value => value + 1); }
     const actionId = key.actionId;
     const trimmed = String(request.message ?? '');
     const metadata = { interaction_mode: request.interaction_mode as InteractionMode };
@@ -2247,9 +2261,11 @@ export default function GameBrowser() {
                 readingPreferences={readingPreferences}
                 setReadingPreferences={setReadingPreferences}
                 composerOpen={composerOpen}
-                setComposerOpen={(open) => { if (!open) { primalKnowledgeIntent.choose(false); redrawPrimalKnowledge(value => value + 1); } setComposerOpen(open); }}
+                setComposerOpen={(open) => { if (!open) { primalKnowledgeIntent.choose(false); tacticalMindIntent.choose(false); redrawPrimalKnowledge(value => value + 1); } setComposerOpen(open); }}
                 message={message}
                 setMessage={setMessage}
+                tacticalMindOptIn={tacticalMindIntent.selected}
+                onTacticalMindChange={(checked) => { tacticalMindIntent.choose(checked); redrawPrimalKnowledge(value => value + 1); }}
                 primalKnowledgeOptIn={primalKnowledgeIntent.selected}
                 onPrimalKnowledgeChange={(checked) => { primalKnowledgeIntent.choose(checked); redrawPrimalKnowledge(value => value + 1); }}
                 interactionMode={interactionMode}

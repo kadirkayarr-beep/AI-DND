@@ -13,6 +13,11 @@ import type { SkillCheckResultOutcome } from './skillCheckResultOutcome';
 
 export interface SkillCheckResult {
   check_feature?: SkillCheckResultCheckFeature;
+  /**
+     * @minimum 1
+     * @maximum 10
+     */
+  tactical_mind_roll?: number;
   original_ability?: SkillCheckResultOriginalAbility;
   /**
      * @minLength 1

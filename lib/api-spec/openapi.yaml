@@ -1903,8 +1903,8 @@ components:
       properties:
         check_feature:
           type: [string, 'null']
-          enum: [primal_knowledge, null]
-          description: Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+          enum: [primal_knowledge, tactical_mind, null]
+          description: Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.
         combat_action:
           anyOf:
           - $ref: '#/components/schemas/CombatActionInput'
@@ -2713,7 +2713,11 @@ components:
       properties:
         check_feature:
           type: string
-          enum: [primal_knowledge]
+          enum: [primal_knowledge, tactical_mind]
+        tactical_mind_roll:
+          type: integer
+          minimum: 1
+          maximum: 10
         original_ability:
           type: string
           enum: [dexterity, wisdom, charisma]
@@ -4733,13 +4737,17 @@ components:
       properties:
         fighting_style:
           type: [string, 'null']
+        tactical_mind:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
         second_wind:
           $ref: '#/components/schemas/FighterSecondWindState'
         action_surge:
           anyOf:
           - $ref: '#/components/schemas/FighterActionSurgeState'
           - type: 'null'
-      required: [fighting_style, second_wind, action_surge]
+      required: [fighting_style, tactical_mind, second_wind, action_surge]
     RageState:
       type: object
       additionalProperties: false

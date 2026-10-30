@@ -915,6 +915,10 @@ export const CreateGameSessionResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -1733,6 +1737,10 @@ export const GetGameSessionStateResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -2563,6 +2571,10 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -3400,6 +3412,10 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -3758,7 +3774,7 @@ export const playGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{
 
 
 export const PlayGameTurnBody = zod.object({
-  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
+  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
   "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
@@ -4134,6 +4150,8 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeat
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
+
 export const playGameTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playGameTurnResponseSkillCheckResultOneD20Max = 20;
@@ -4433,6 +4451,10 @@ export const PlayGameTurnResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -5139,7 +5161,8 @@ export const PlayGameTurnResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(playGameTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -5551,6 +5574,8 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEn
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
+
 export const getGameActionStatusResponseResponseTwoSkillCheckResultOneSkillMax = 40;
 
 export const getGameActionStatusResponseResponseTwoSkillCheckResultOneD20Max = 20;
@@ -5853,6 +5878,10 @@ export const GetGameActionStatusResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -6559,7 +6588,8 @@ export const GetGameActionStatusResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoSkillCheckResultOneTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getGameActionStatusResponseResponseTwoSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -6958,6 +6988,8 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnem
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
+
 export const abandonGameActionResponseResponseTwoSkillCheckResultOneSkillMax = 40;
 
 export const abandonGameActionResponseResponseTwoSkillCheckResultOneD20Max = 20;
@@ -7260,6 +7292,10 @@ export const AbandonGameActionResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -7966,7 +8002,8 @@ export const AbandonGameActionResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoSkillCheckResultOneTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(abandonGameActionResponseResponseTwoSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -8520,6 +8557,10 @@ export const UndoGameTurnResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -9371,6 +9412,10 @@ export const AcceptGameQuestResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -10244,6 +10289,10 @@ export const CancelGameQuestResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -11106,6 +11155,10 @@ export const ResolveAmbientEventActionResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -11966,6 +12019,10 @@ export const AcceptLegacyQuestResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -12840,6 +12897,10 @@ export const CancelLegacyQuestResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -13703,6 +13764,10 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -15227,6 +15292,8 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const createCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const createCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const createCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -15558,6 +15625,10 @@ export const CreateCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -15879,7 +15950,8 @@ export const CreateCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(createCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(createCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -16353,6 +16425,8 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountM
 export const getCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const getCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const getCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const getCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -16694,6 +16768,10 @@ export const GetCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -17015,7 +17093,8 @@ export const GetCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(getCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -17476,6 +17555,8 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const resumeCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resumeCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const resumeCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const resumeCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -17807,6 +17888,10 @@ export const ResumeCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -18128,7 +18213,8 @@ export const ResumeCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -19397,6 +19483,10 @@ export const CreateLegacySessionResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -20216,6 +20306,10 @@ export const GetLegacySessionStateResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -20569,7 +20663,7 @@ export const playLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f
 
 
 export const PlayLegacyTurnBody = zod.object({
-  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
+  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
   "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
@@ -20945,6 +21039,8 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDe
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
+
 export const playLegacyTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playLegacyTurnResponseSkillCheckResultOneD20Max = 20;
@@ -21244,6 +21340,10 @@ export const PlayLegacyTurnResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -21950,7 +22050,8 @@ export const PlayLegacyTurnResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(playLegacyTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -22501,6 +22602,10 @@ export const UndoLegacyTurnResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -23497,6 +23602,8 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const createLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -23828,6 +23935,10 @@ export const CreateLegacyCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -24149,7 +24260,8 @@ export const CreateLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -24625,6 +24737,8 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequired
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const getLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -24966,6 +25080,10 @@ export const GetLegacyCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -25287,7 +25405,8 @@ export const GetLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -25749,6 +25868,8 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
+
 export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
 
 export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
@@ -26080,6 +26201,10 @@ export const ResumeLegacyCampaignResponse = zod.object({
 }).optional(),
   "fighter": zod.object({
   "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
   "second_wind": zod.object({
   "uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
   "max_uses": zod.number().int().min(1),
@@ -26401,7 +26526,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
-  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
+  "tactical_mind_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax).optional(),
   "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),

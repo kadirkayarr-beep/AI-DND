@@ -1134,6 +1134,7 @@ export interface FighterActionSurgeState {
 export interface FighterState {
   /** @nullable */
   fighting_style: string | null;
+  tactical_mind: FighterAvailability | null;
   second_wind: FighterSecondWindState;
   action_surge: FighterActionSurgeState | null;
 }
@@ -1877,7 +1878,7 @@ export interface GameSession {
 }
 
 /**
- * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+ * Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.
  * @nullable
  */
 export type GameTurnInputCheckFeature = typeof GameTurnInputCheckFeature[keyof typeof GameTurnInputCheckFeature] | null;
@@ -1885,6 +1886,7 @@ export type GameTurnInputCheckFeature = typeof GameTurnInputCheckFeature[keyof t
 
 export const GameTurnInputCheckFeature = {
   primal_knowledge: 'primal_knowledge',
+  tactical_mind: 'tactical_mind',
 } as const;
 
 /**
@@ -2032,7 +2034,7 @@ export interface CombatActionInput {
  */
 export interface GameTurnInput {
   /**
-     * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+     * Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.
      * @nullable
      */
   check_feature?: GameTurnInputCheckFeature;
@@ -2331,6 +2333,7 @@ export type SkillCheckResultCheckFeature = typeof SkillCheckResultCheckFeature[k
 
 export const SkillCheckResultCheckFeature = {
   primal_knowledge: 'primal_knowledge',
+  tactical_mind: 'tactical_mind',
 } as const;
 
 export type SkillCheckResultOriginalAbility = typeof SkillCheckResultOriginalAbility[keyof typeof SkillCheckResultOriginalAbility];
@@ -2375,6 +2378,11 @@ export const SkillCheckResultOutcome = {
 
 export interface SkillCheckResult {
   check_feature?: SkillCheckResultCheckFeature;
+  /**
+     * @minimum 1
+     * @maximum 10
+     */
+  tactical_mind_roll?: number;
   original_ability?: SkillCheckResultOriginalAbility;
   /**
      * @minLength 1
