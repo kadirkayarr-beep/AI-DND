@@ -1328,8 +1328,8 @@ components:
           - $ref: '#/components/schemas/BarbarianLevel3Choices'
           - $ref: '#/components/schemas/BarbarianLevel4Choices'
           - $ref: '#/components/schemas/FighterLevel3Choices'
-          - $ref: '#/components/schemas/RogueLevel3Choices'
           - $ref: '#/components/schemas/MonkLevel3Choices'
+          - $ref: '#/components/schemas/RogueLevel3Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -5827,8 +5827,8 @@ components:
           - $ref: '#/components/schemas/SorcererLevelChoices'
           - $ref: '#/components/schemas/BarbarianLevelChoices'
           - $ref: '#/components/schemas/FighterLevelChoices'
-          - $ref: '#/components/schemas/RogueLevelChoices'
           - $ref: '#/components/schemas/MonkLevelChoices'
+          - $ref: '#/components/schemas/RogueLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -6133,6 +6133,7 @@ components:
         rogue_starting_creation:
           anyOf:
           - $ref: '#/components/schemas/RogueStartingCreationOptions'
+          - type: 'null'
         monk_starting_creation:
           anyOf:
           - $ref: '#/components/schemas/MonkStartingCreationOptions'

@@ -392,9 +392,9 @@ export const ApplyGameSessionLevelUpBody = zod.object({
 }).strict(),zod.object({
   "subclass_id": zod.literal("champion")
 }).strict(),zod.object({
-  "subclass_id": zod.literal("assassin")
-}).strict(),zod.object({
   "subclass_id": zod.literal("open_hand")
+}).strict(),zod.object({
+  "subclass_id": zod.literal("assassin")
 }).strict()])
 }).strict()
 
@@ -15882,7 +15882,7 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
 }),zod.null()]).optional(),
-  "rogue_starting_creation": zod.object({
+  "rogue_starting_creation": zod.union([zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
   "choices": zod.record(zod.string(), zod.never().optional()),
@@ -15949,7 +15949,7 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "effects_supported": zod.array(zod.string()),
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
-}).optional(),
+}),zod.null()]).optional(),
   "monk_starting_creation": zod.union([zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
@@ -16622,7 +16622,7 @@ export const CreateCampaignBody = zod.object({
 }).strict(),zod.object({
   "2": zod.record(zod.string(), zod.never().optional()),
   "3": zod.object({
-  "subclass_id": zod.literal("assassin")
+  "subclass_id": zod.literal("open_hand")
 }).strict().optional(),
   "4": zod.object({
   "asi": zod.object({
@@ -16674,7 +16674,7 @@ export const CreateCampaignBody = zod.object({
 }).strict(),zod.object({
   "2": zod.record(zod.string(), zod.never().optional()),
   "3": zod.object({
-  "subclass_id": zod.literal("open_hand")
+  "subclass_id": zod.literal("assassin")
 }).strict().optional(),
   "4": zod.object({
   "asi": zod.object({
@@ -20972,7 +20972,7 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
 }),zod.null()]).optional(),
-  "rogue_starting_creation": zod.object({
+  "rogue_starting_creation": zod.union([zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
   "choices": zod.record(zod.string(), zod.never().optional()),
@@ -21039,7 +21039,7 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "effects_supported": zod.array(zod.string()),
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
-}).optional(),
+}),zod.null()]).optional(),
   "monk_starting_creation": zod.union([zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
@@ -26017,7 +26017,7 @@ export const CreateLegacyCampaignBody = zod.object({
 }).strict(),zod.object({
   "2": zod.record(zod.string(), zod.never().optional()),
   "3": zod.object({
-  "subclass_id": zod.literal("assassin")
+  "subclass_id": zod.literal("open_hand")
 }).strict().optional(),
   "4": zod.object({
   "asi": zod.object({
@@ -26069,7 +26069,7 @@ export const CreateLegacyCampaignBody = zod.object({
 }).strict(),zod.object({
   "2": zod.record(zod.string(), zod.never().optional()),
   "3": zod.object({
-  "subclass_id": zod.literal("open_hand")
+  "subclass_id": zod.literal("assassin")
 }).strict().optional(),
   "4": zod.object({
   "asi": zod.object({

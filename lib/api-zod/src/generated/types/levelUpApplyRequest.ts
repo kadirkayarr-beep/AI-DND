@@ -26,5 +26,5 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | RogueLevel3Choices | MonkLevel3Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices;
 }

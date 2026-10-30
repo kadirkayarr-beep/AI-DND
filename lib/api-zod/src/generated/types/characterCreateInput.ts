@@ -26,7 +26,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | RogueLevelChoices | MonkLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40

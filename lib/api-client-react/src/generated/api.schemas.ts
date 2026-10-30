@@ -262,15 +262,15 @@ export const FighterLevel3ChoicesValue = {
 } as const;
 export type FighterLevel3Choices = typeof FighterLevel3ChoicesValue;
 
-export const RogueLevel3ChoicesValue = {
-  subclass_id: 'assassin',
-} as const;
-export type RogueLevel3Choices = typeof RogueLevel3ChoicesValue;
-
 export const MonkLevel3ChoicesValue = {
   subclass_id: 'open_hand',
 } as const;
 export type MonkLevel3Choices = typeof MonkLevel3ChoicesValue;
+
+export const RogueLevel3ChoicesValue = {
+  subclass_id: 'assassin',
+} as const;
+export type RogueLevel3Choices = typeof RogueLevel3ChoicesValue;
 
 export interface LevelUpApplyRequest {
   action_id: string;
@@ -282,7 +282,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | RogueLevel3Choices | MonkLevel3Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -2890,16 +2890,16 @@ export interface FighterLevelChoices {
   '5'?: BarbarianLevel2Choices;
 }
 
-export interface RogueLevelChoices {
+export interface MonkLevelChoices {
   '2': BarbarianLevel2Choices;
-  '3'?: RogueLevel3Choices;
+  '3'?: MonkLevel3Choices;
   '4'?: BarbarianLevel4Choices;
   '5'?: BarbarianLevel2Choices;
 }
 
-export interface MonkLevelChoices {
+export interface RogueLevelChoices {
   '2': BarbarianLevel2Choices;
-  '3'?: MonkLevel3Choices;
+  '3'?: RogueLevel3Choices;
   '4'?: BarbarianLevel4Choices;
   '5'?: BarbarianLevel2Choices;
 }
@@ -2950,7 +2950,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | RogueLevelChoices | MonkLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -3249,7 +3249,7 @@ export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
-  rogue_starting_creation?: RogueStartingCreationOptions;
+  rogue_starting_creation?: RogueStartingCreationOptions | null;
   monk_starting_creation?: MonkStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;

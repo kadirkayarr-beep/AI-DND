@@ -25,7 +25,7 @@ export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
-  rogue_starting_creation?: RogueStartingCreationOptions;
+  rogue_starting_creation?: RogueStartingCreationOptions | null;
   monk_starting_creation?: MonkStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
