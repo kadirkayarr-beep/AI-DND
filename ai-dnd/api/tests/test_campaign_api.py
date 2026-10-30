@@ -1523,6 +1523,84 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "An NPC recommendation is attributed speech, not a world-state mutation.",
         )
 
+    async def test_addressed_npc_may_voice_unverified_rumour_as_attributed_speech_without_changing_world(self):
+        # Decision (minimal blocking, repair over reject): an addressed NPC may
+        # voice an unverified rumour as attributed speech. The speech carries no
+        # operation, so it changes no locations, NPC ids, NPC knowledge or lore
+        # authority. Only the narrator-owned stage_direction is lore-gated.
+        city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        marek = {
+            "id": "npc_marek_rumour_speech",
+            "name": "Marek",
+            "role": "resident",
+            "location": city_id,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "personal_profile": {
+                "schema_version": local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,
+                "occupation": "Şehir arşivinde geçici kâtiplik yapıyorum.",
+                "current_activity": "Eski liman kayıtlarını tasnif ediyorum.",
+                "mood": "İyiyim.",
+                "recent_activity": "Sabah pazardan yeşil iplik aldım.",
+                "origin": "Kuzeydeki küçük bir yerleşimden geldim.",
+                "reason_for_being_here": "Arşivde kayıp yük kayıtlarını bulmaya geldim.",
+                "personal_detail": "Notlarımı mavi kapaklı bir defterde tutarım.",
+                "immediate_goal": "Bugün tasnifi bitirmek.",
+            },
+            "personality": "",
+            "appearance": "",
+            "relationship": "neutral",
+            "knowledge": [],
+            "memory": [],
+            "combat_status": "active",
+            "current_hp": 12,
+            "status": "active",
+        }
+        session.world_state.setdefault("npcs", []).append(marek)
+        client = CapturingConversationContextClient()
+        greeting = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, şu an ne yapıyorsun?",
+            "interaction_mode": "say",
+            "action_id": str(uuid.uuid4()),
+            "target_id": marek["id"],
+        })
+        self.assertEqual(greeting.status_code, 200, greeting.text)
+        world_before = {
+            "locations": copy.deepcopy(session.world_state["locations"]),
+            "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
+            "marek_knowledge": copy.deepcopy(marek["knowledge"]),
+            "lore_authority": copy.deepcopy(
+                getattr(session, "lore_authority_context", None)
+            ),
+        }
+        batches_before = len(client.message_batches)
+        client.conversation_replies = [{
+            "narration": "Marek, “Limanda bir söylenti dolaşıyor: Neverwinter'ı gizlice bir ejderha yönetiyormuş, ama ben görmedim,” der.",
+        }]
+        response = await self.post_scene_turn(turn_url, client, {
+            "message": "Marek, Neverwinter neden gizlice bir ejderha tarafından yönetiliyor?",
+            "interaction_mode": "say",
+            "action_id": str(uuid.uuid4()),
+            "target_id": marek["id"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        narration = response.json()["narration"]
+        self.assertEqual(
+            len(client.message_batches), batches_before + 1,
+            "The addressed NPC answers through one speech packet.",
+        )
+        self.assertIn("söylenti", narration.casefold(), narration)
+        self.assertIn("ejderha", narration.casefold(), narration)
+        self.assertEqual(
+            world_before,
+            {
+                "locations": session.world_state["locations"],
+                "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
+                "marek_knowledge": marek["knowledge"],
+                "lore_authority": getattr(session, "lore_authority_context", None),
+            },
+            "A rumour voiced as attributed speech must not become world state.",
+        )
+
     async def test_activity_why_does_not_inherit_unrelated_profile_purpose(self):
         city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
         activity = "Sabah yeşil iplik aldım."
