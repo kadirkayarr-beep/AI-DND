@@ -21,4 +21,6 @@ export const SpeciesTraitActionInputAction = {
   long_rest: 'long_rest',
   spend_hit_die: 'spend_hit_die',
   second_wind: 'second_wind',
+  lay_on_hands: 'lay_on_hands',
+  divine_sense: 'divine_sense',
 } as const;

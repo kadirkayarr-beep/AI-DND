@@ -8,6 +8,7 @@
 import type { FighterState } from './fighterState';
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
+import type { PaladinState } from './paladinState';
 import type { PrimalKnowledgeCheck } from './primalKnowledgeCheck';
 import type { RageState } from './rageState';
 import type { SpeciesTraitState } from './speciesTraitState';
@@ -16,6 +17,7 @@ export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
   fighter?: FighterState;
+  paladin?: PaladinState;
   name: string;
   race: string;
   species?: string;

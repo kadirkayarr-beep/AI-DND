@@ -1328,6 +1328,10 @@ components:
           - $ref: '#/components/schemas/BarbarianLevel3Choices'
           - $ref: '#/components/schemas/BarbarianLevel4Choices'
           - $ref: '#/components/schemas/FighterLevel3Choices'
+          - $ref: '#/components/schemas/PaladinLevel2Choices'
+          - $ref: '#/components/schemas/PaladinLevel3Choices'
+          - $ref: '#/components/schemas/PaladinLevel4Choices'
+          - $ref: '#/components/schemas/PaladinLevel5Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1656,6 +1660,12 @@ components:
     LevelUpPreviewResponse:
       properties:
         primal_knowledge_skill_options:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+        fighting_style_options:
           anyOf:
           - type: array
             items:
@@ -1994,6 +2004,9 @@ components:
           - extend_rage
           - second_wind
           - action_surge
+          - lay_on_hands
+          - divine_smite
+          - divine_sense
         resource:
           type: string
           enum:
@@ -2041,6 +2054,27 @@ components:
           - 'null'
           description: Explicit first-own-turn attack-roll decision; only attack,
             continue_attack or attack react. Omission preserves legacy behavior.
+        healing_amount:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          description: Lay On Hands only.
+        remove_poisoned:
+          type:
+          - boolean
+          - 'null'
+          description: Lay On Hands only.
+        sacred_weapon:
+          type:
+          - boolean
+          - 'null'
+          description: Expend Channel Divinity on this attack of the Attack action (Oath of Devotion).
+        radiant_damage:
+          type:
+          - boolean
+          - 'null'
+          description: This hit with the active Sacred Weapon deals Radiant damage.
         trigger:
           anyOf:
           - $ref: '#/components/schemas/ReadyTriggerInput'
@@ -2564,6 +2598,17 @@ components:
           - long_rest
           - spend_hit_die
           - second_wind
+          - lay_on_hands
+          - divine_sense
+        healing_amount:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+        remove_poisoned:
+          type:
+          - boolean
+          - 'null'
         form:
           type:
           - string
@@ -4731,6 +4776,132 @@ components:
         activate:
           $ref: '#/components/schemas/FighterAvailability'
       required: [uses_remaining, max_uses, activate]
+    PaladinLayOnHandsState:
+      type: object
+      additionalProperties: false
+      properties:
+        pool_remaining:
+          type: integer
+          minimum: 0
+        pool_maximum:
+          type: integer
+          minimum: 5
+        poison_cost:
+          type: integer
+          const: 5
+        activate:
+          $ref: '#/components/schemas/FighterAvailability'
+      required: [pool_remaining, pool_maximum, poison_cost, activate]
+    PaladinSmiteState:
+      type: object
+      additionalProperties: false
+      properties:
+        activate:
+          $ref: '#/components/schemas/FighterAvailability'
+        target_id:
+          type: [string, 'null']
+        free_cast_available:
+          type: boolean
+        slot_levels:
+          type: array
+          items:
+            type: integer
+      required: [activate, target_id, free_cast_available, slot_levels]
+    PaladinChannelDivinityState:
+      type: object
+      additionalProperties: false
+      properties:
+        uses_remaining:
+          type: integer
+          minimum: 0
+        max_uses:
+          type: integer
+          minimum: 1
+      required: [uses_remaining, max_uses]
+    PaladinDetectedCreature:
+      type: object
+      additionalProperties: false
+      properties:
+        target_id:
+          type: string
+        creature_type:
+          type: string
+        distance_ft:
+          type: integer
+      required: [target_id, creature_type, distance_ft]
+    PaladinDivineSenseState:
+      type: object
+      additionalProperties: false
+      properties:
+        active:
+          type: boolean
+        remaining_seconds:
+          type: [integer, 'null']
+        detected:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaladinDetectedCreature'
+        activate:
+          $ref: '#/components/schemas/FighterAvailability'
+      required: [active, remaining_seconds, detected, activate]
+    PaladinSacredWeaponState:
+      type: object
+      additionalProperties: false
+      properties:
+        active:
+          type: boolean
+        weapon_id:
+          type: [string, 'null']
+        remaining_seconds:
+          type: [integer, 'null']
+        attack_bonus:
+          type: integer
+          minimum: 1
+        start:
+          $ref: '#/components/schemas/FighterAvailability'
+      required: [active, weapon_id, remaining_seconds, attack_bonus, start]
+    PaladinPreparedSpell:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        castable:
+          type: boolean
+      required: [id, castable]
+    PaladinState:
+      type: object
+      additionalProperties: false
+      properties:
+        fighting_style:
+          type: [string, 'null']
+        lay_on_hands:
+          $ref: '#/components/schemas/PaladinLayOnHandsState'
+        divine_smite:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinSmiteState'
+          - type: 'null'
+        channel_divinity:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinChannelDivinityState'
+          - type: 'null'
+        divine_sense:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinDivineSenseState'
+          - type: 'null'
+        sacred_weapon:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinSacredWeaponState'
+          - type: 'null'
+        always_prepared:
+          type: array
+          items:
+            type: string
+        prepared_spells:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaladinPreparedSpell'
+      required: [fighting_style, lay_on_hands, divine_smite, channel_divinity, divine_sense, sacred_weapon, always_prepared, prepared_spells]
     FighterState:
       type: object
       additionalProperties: false
@@ -4796,6 +4967,8 @@ components:
           $ref: '#/components/schemas/RageState'
         fighter:
           $ref: '#/components/schemas/FighterState'
+        paladin:
+          $ref: '#/components/schemas/PaladinState'
         name:
           type: string
         race:
@@ -5601,6 +5774,7 @@ components:
           - $ref: '#/components/schemas/SorcererLevelChoices'
           - $ref: '#/components/schemas/BarbarianLevelChoices'
           - $ref: '#/components/schemas/FighterLevelChoices'
+          - $ref: '#/components/schemas/PaladinLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -5902,6 +6076,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/FighterStartingCreationOptions'
           - type: 'null'
+        paladin_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinStartingCreationOptions'
+          - type: 'null'
         races:
           additionalProperties: true
           type: object
@@ -6138,6 +6316,206 @@ components:
           type: string
           enum: [Animal Handling, Athletics, Intimidation, Nature, Perception, Survival]
       required: [subclass_id, primal_knowledge_skill]
+    PaladinLevel2Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spells:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        fighting_style:
+          type: string
+          enum: [Archery, Defense, Dueling, Great Weapon Fighting, Two-Weapon Fighting, Blessed Warrior]
+        cantrips:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+      required: [prepared_spells, fighting_style]
+    PaladinLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spells:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        subclass_id:
+          type: string
+          const: oath_of_devotion
+      required: [prepared_spells, subclass_id]
+    PaladinLevel4Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spells:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        asi:
+          $ref: '#/components/schemas/LevelUpAsiChoice'
+      required: [prepared_spells, asi]
+    PaladinLevel5Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spells:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+      required: [prepared_spells]
+    PaladinLevelChoices:
+      type: object
+      additionalProperties: false
+      properties:
+        '2':
+          $ref: '#/components/schemas/PaladinLevel2Choices'
+        '3':
+          $ref: '#/components/schemas/PaladinLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/PaladinLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/PaladinLevel5Choices'
+      required:
+      - '2'
+      title: PaladinLevelChoices
+    PaladinStartingSubclassOption:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          const: oath_of_devotion
+        name:
+          type: string
+      required: [id, name]
+    PaladinStartingLevel2Options:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spell_count:
+          type: integer
+        prepared_spell_ids:
+          type: array
+          items:
+            type: string
+        fighting_style_options:
+          type: array
+          items:
+            type: string
+        blessed_warrior_cantrip_count:
+          type: integer
+        blessed_warrior_cantrip_ids:
+          type: array
+          items:
+            type: string
+        effects_supported:
+          type: array
+          items:
+            type: string
+        effects_pending:
+          type: array
+          items:
+            type: string
+      required: [prepared_spell_count, prepared_spell_ids, fighting_style_options, blessed_warrior_cantrip_count, blessed_warrior_cantrip_ids, effects_supported, effects_pending]
+    PaladinStartingLevel3Options:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spell_count:
+          type: integer
+        prepared_spell_ids:
+          type: array
+          items:
+            type: string
+        subclass_options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaladinStartingSubclassOption'
+        effects_supported:
+          type: array
+          items:
+            type: string
+        effects_pending:
+          type: array
+          items:
+            type: string
+      required: [prepared_spell_count, prepared_spell_ids, subclass_options, effects_supported, effects_pending]
+    PaladinStartingLevel4Options:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spell_count:
+          type: integer
+        prepared_spell_ids:
+          type: array
+          items:
+            type: string
+        supported_asi_choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/LevelUpAsiChoice'
+        effects_supported:
+          type: array
+          items:
+            type: string
+        effects_pending:
+          type: array
+          items:
+            type: string
+      required: [prepared_spell_count, prepared_spell_ids, supported_asi_choices, effects_supported, effects_pending]
+    PaladinStartingLevel5Options:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared_spell_count:
+          type: integer
+        prepared_spell_ids:
+          type: array
+          items:
+            type: string
+        effects_supported:
+          type: array
+          items:
+            type: string
+        effects_pending:
+          type: array
+          items:
+            type: string
+      required: [prepared_spell_count, prepared_spell_ids, effects_supported, effects_pending]
+    PaladinStartingCreationOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        supported_starting_levels:
+          type: array
+          items:
+            type: integer
+        level_2:
+          $ref: '#/components/schemas/PaladinStartingLevel2Options'
+        level_3:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinStartingLevel3Options'
+          - type: 'null'
+        level_4:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinStartingLevel4Options'
+          - type: 'null'
+        level_5:
+          anyOf:
+          - $ref: '#/components/schemas/PaladinStartingLevel5Options'
+          - type: 'null'
+      required: [supported_starting_levels, level_2]
     FighterLevel3Choices:
       type: object
       additionalProperties: false

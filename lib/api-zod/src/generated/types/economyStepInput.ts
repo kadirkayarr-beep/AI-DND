@@ -44,6 +44,27 @@ export interface EconomyStepInput {
      * @nullable
      */
   reckless_attack?: boolean | null;
+  /**
+     * Lay On Hands only.
+     * @minimum 1
+     * @nullable
+     */
+  healing_amount?: number | null;
+  /**
+     * Lay On Hands only.
+     * @nullable
+     */
+  remove_poisoned?: boolean | null;
+  /**
+     * Expend Channel Divinity on this attack of the Attack action (Oath of Devotion).
+     * @nullable
+     */
+  sacred_weapon?: boolean | null;
+  /**
+     * This hit with the active Sacred Weapon deals Radiant damage.
+     * @nullable
+     */
+  radiant_damage?: boolean | null;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }

@@ -4501,7 +4501,7 @@ def _finish_species_player_turn():
     return effects
 
 
-def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None):
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None):
     require_player_can_act()
     if action in {"short_rest", "long_rest"}:
         import barbarian_rage
@@ -4828,6 +4828,16 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         import fighter_features
         effects = fighter_features.second_wind_outside_combat(_session())
         message = f"Second Wind kullanıldı; {effects['healing']} can puanı yenilendi."
+
+    elif action == "lay_on_hands":
+        import paladin_features
+        effects = paladin_features.lay_on_hands_outside_combat(_session(), healing_amount, remove_poisoned)
+        message = f"Lay On Hands kullanıldı; {effects['healing']} can puanı yenilendi, havuzda {effects['pool_remaining']} kaldı."
+
+    elif action == "divine_sense":
+        import paladin_features
+        effects = paladin_features.divine_sense_outside_combat(_session())
+        message = f"Divine Sense açıldı; kalan Channel Divinity: {effects['uses_remaining']}."
 
     else:
         raise ValueError("Bilinmeyen tür yeteneği.")

@@ -38,7 +38,7 @@ class EconomyStepInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["attack", "continue_attack", "move", "dash", "ready", "react", "decline_reaction", "end_turn", "species",
                   "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize", "convert_spell_slot", "activate_rage", "extend_rage",
-                  "second_wind", "action_surge"]
+                  "second_wind", "action_surge", "lay_on_hands", "divine_smite", "divine_sense"]
     resource: Literal["action", "bonus"] = "action"
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     distance_ft: int | None = Field(default=None, gt=0, strict=True)
@@ -50,9 +50,24 @@ class EconomyStepInput(BaseModel):
     slot_level: int | None = Field(default=None, ge=1, le=9, strict=True)
     reckless_attack: StrictBool | None = None
     metamagic: Literal["quickened_spell"] | None = None
+    healing_amount: int | None = Field(default=None, gt=0, strict=True)
+    remove_poisoned: StrictBool | None = None
+    sacred_weapon: StrictBool | None = None
+    radiant_damage: StrictBool | None = None
 
     @model_validator(mode="after")
     def slot_selection_requires_magic(self):
+        if self.kind in {"lay_on_hands", "divine_smite", "divine_sense"}:
+            allowed = {"lay_on_hands": {"healing_amount", "remove_poisoned"}, "divine_smite": {"slot_level"}, "divine_sense": set()}[self.kind]
+            if self.resource != "bonus" or "resource" not in self.model_fields_set or self.model_fields_set - {"kind", "resource"} - allowed:
+                raise ValueError("This Paladin feature requires one explicit Bonus Action and only its own fields.")
+            if self.kind == "lay_on_hands" and (self.remove_poisoned is False or (self.healing_amount is None and not self.remove_poisoned)):
+                raise ValueError("Lay On Hands needs Hit Points to restore, removing Poisoned, or both.")
+            return self
+        if self.healing_amount is not None or self.remove_poisoned is not None:
+            raise ValueError("Only Lay On Hands takes these fields.")
+        if (self.sacred_weapon is not None or self.radiant_damage is not None) and self.kind not in {"attack", "continue_attack"}:
+            raise ValueError("Sacred Weapon choices belong on an attack of the Attack action.")
         if self.kind in {"activate_rage", "extend_rage"}:
             if self.resource != "bonus" or self.model_fields_set != {"kind", "resource"}:
                 raise ValueError("Rage requires one explicit Bonus Action and no other step fields.")
@@ -90,6 +105,8 @@ class CombatActionInput(BaseModel):
             raise ValueError("Rage must be submitted as one explicit step.")
         if any(step.kind in {"second_wind", "action_surge"} for step in self.steps) and len(self.steps) != 1:
             raise ValueError("Second Wind and Action Surge must be submitted as one explicit step.")
+        if any(step.kind in {"lay_on_hands", "divine_smite", "divine_sense"} for step in self.steps) and len(self.steps) != 1:
+            raise ValueError("Lay On Hands, Divine Smite and Divine Sense must be submitted as one explicit step.")
         if any(step.kind == "convert_spell_slot" for step in self.steps) and len(self.steps) != 1:
             raise ValueError("Slot conversion must be submitted as one explicit step.")
         return self
@@ -537,12 +554,16 @@ class SpeciesTraitActionRequest(BaseModel):
         "long_rest",
         "spend_hit_die",
         "second_wind",
+        "lay_on_hands",
+        "divine_sense",
     ]
     form: Literal[
         "heavenly_wings", "inner_radiance", "necrotic_shroud"
     ] | None = None
     ancestry: Literal["cloud", "fire", "frost", "hill", "stone", "storm"] | None = None
     armed: bool | None = None
+    healing_amount: int | None = Field(default=None, gt=0, strict=True)
+    remove_poisoned: StrictBool | None = None
     action_id: UUID | None = None
 
     @field_validator("action_id")
@@ -560,6 +581,8 @@ class SpeciesTraitActionRequest(BaseModel):
             raise ValueError("Choose one Giant Ancestry.")
         if self.action != "arm_giant_ancestry" and self.armed is not None:
             raise ValueError("The armed flag is only valid for Giant Ancestry.")
+        if (self.action == "lay_on_hands") != (self.healing_amount is not None or self.remove_poisoned is True) or self.remove_poisoned is False:
+            raise ValueError("Lay On Hands needs Hit Points to restore, removing Poisoned, or both, and nothing else takes them.")
         return self
 
 
@@ -742,6 +765,45 @@ class FighterLevelChoices(BaseModel):
     level_5: BarbarianLevel2Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
 
 
+class PaladinLevel2Choices(BaseModel):
+    """Cantrips exist only with Blessed Warrior: exactly two, and the step owner checks them against the Cleric list."""
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=1, max_length=1)
+    fighting_style: Literal["Archery", "Defense", "Dueling", "Great Weapon Fighting", "Two-Weapon Fighting", "Blessed Warrior"]
+    cantrips: list[StrictStr] = Field(default_factory=lambda: None, min_length=2, max_length=2, exclude_if=lambda value: value is None)
+
+    @model_validator(mode="after")
+    def cantrips_follow_the_option(self):
+        if (self.fighting_style == "Blessed Warrior") != (self.cantrips is not None):
+            raise ValueError("Blessed Warrior takes exactly two cantrips and a Fighting Style feat takes none.")
+        return self
+
+
+class PaladinLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=1, max_length=1)
+    subclass_id: Literal["oath_of_devotion"]
+
+
+class PaladinLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
+
+
+class PaladinLevel5Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=1, max_length=1)
+
+
+class PaladinLevelChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: PaladinLevel2Choices = Field(alias="2")
+    level_3: PaladinLevel3Choices = Field(default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None)
+    level_4: PaladinLevel4Choices = Field(default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None)
+    level_5: PaladinLevel5Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
+
+
 class BarbarianLevelChoices(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
     level_2: BarbarianLevel2Choices = Field(alias="2")
@@ -768,7 +830,7 @@ class CharacterCreateInput(BaseModel):
 
     mode: Literal["custom", "random"]
     starting_level: int = Field(default=1, ge=1, le=5, strict=True)
-    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | None = None
+    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | PaladinLevelChoices | None = None
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
@@ -826,6 +888,9 @@ class CharacterCreateInput(BaseModel):
                     shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
                     if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, FighterLevelChoices)):
                         raise ValueError("Fighter supports only the exact level2 to level5 choice bundle for its starting level.")
+                elif self.character_class == "Paladin":
+                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, PaladinLevelChoices):
+                        raise ValueError("Paladin supports only the exact level2 to level5 choice bundle for its starting level.")
                 elif self.character_class == "Sorcerer":
                     if not isinstance(self.level_choices, SorcererLevelChoices):
                         raise ValueError("Sorcerer requires its own per-level choices.")
@@ -1013,12 +1078,65 @@ class FighterStartingCreationOptions(BaseModel):
     level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class PaladinStartingLevel2Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    fighting_style_options: list[str]
+    blessed_warrior_cantrip_count: int
+    blessed_warrior_cantrip_ids: list[str]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class PaladinStartingSubclassOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: Literal["oath_of_devotion"]
+    name: str
+
+
+class PaladinStartingLevel3Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    subclass_options: list[PaladinStartingSubclassOption]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class PaladinStartingLevel4Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class PaladinStartingLevel5Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class PaladinStartingCreationOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: PaladinStartingLevel2Options
+    level_3: PaladinStartingLevel3Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_4: PaladinStartingLevel4Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_5: PaladinStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
 class CharacterCreationCatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     sorcerer_starting_creation: SorcererStartingCreationOptions | None = None
     barbarian_starting_creation: BarbarianStartingCreationOptions | None = None
     fighter_starting_creation: FighterStartingCreationOptions | None = None
+    paladin_starting_creation: PaladinStartingCreationOptions | None = None
     races: dict[str, Any]
     classes: dict[str, Any]
     backgrounds: dict[str, Any]
@@ -1150,12 +1268,12 @@ class LevelUpApplyRequest(BaseModel):
     campaign_id: UUID
     expected_revision: int = Field(strict=True, ge=0)
     target_level: int = Field(strict=True, ge=2, le=5)
-    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices
+    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices
 
     @model_validator(mode="after")
     def choices_match_target(self):
-        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices),
-                    4: (LevelUpChoices, BarbarianLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices)}[self.target_level]
+        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices, PaladinLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices, PaladinLevel3Choices),
+                    4: (LevelUpChoices, BarbarianLevel4Choices, PaladinLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices, PaladinLevel5Choices)}[self.target_level]
         if not isinstance(self.choices, expected):
             raise ValueError("Level-up choice shape does not match target level.")
         return self
@@ -1180,6 +1298,7 @@ class LevelUpPreviewResponse(BaseModel):
     metamagic_options: list[str] = Field(default_factory=list)
     subclass_options: list[SorcererSubclassOption] = Field(default_factory=list)
     primal_knowledge_skill_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
+    fighting_style_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
     effects_supported: list[str] = Field(default_factory=list)
     choices_required: dict[str, int] = Field(default_factory=dict)
     cantrip_ids: list[str] = Field(default_factory=list)

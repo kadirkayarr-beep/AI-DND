@@ -16,6 +16,13 @@ export interface SpeciesTraitActionInput {
      */
   action_id?: string | null;
   action: SpeciesTraitActionInputAction;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  healing_amount?: number | null;
+  /** @nullable */
+  remove_poisoned?: boolean | null;
   /** @nullable */
   form?: SpeciesTraitActionInputForm;
   /** @nullable */

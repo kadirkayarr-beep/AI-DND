@@ -262,6 +262,58 @@ export const FighterLevel3ChoicesValue = {
 } as const;
 export type FighterLevel3Choices = typeof FighterLevel3ChoicesValue;
 
+export type PaladinLevel2ChoicesFightingStyle = typeof PaladinLevel2ChoicesFightingStyle[keyof typeof PaladinLevel2ChoicesFightingStyle];
+
+
+export const PaladinLevel2ChoicesFightingStyle = {
+  Archery: 'Archery',
+  Defense: 'Defense',
+  Dueling: 'Dueling',
+  Great_Weapon_Fighting: 'Great Weapon Fighting',
+  'Two-Weapon_Fighting': 'Two-Weapon Fighting',
+  Blessed_Warrior: 'Blessed Warrior',
+} as const;
+
+export interface PaladinLevel2Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  prepared_spells: string[];
+  fighting_style: PaladinLevel2ChoicesFightingStyle;
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  cantrips?: string[];
+}
+
+export interface PaladinLevel3Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  prepared_spells: string[];
+  subclass_id: 'oath_of_devotion';
+}
+
+export interface PaladinLevel4Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  prepared_spells: string[];
+  asi: LevelUpAsiChoice;
+}
+
+export interface PaladinLevel5Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  prepared_spells: string[];
+}
+
 export interface LevelUpApplyRequest {
   action_id: string;
   campaign_id: string;
@@ -272,7 +324,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -313,6 +365,7 @@ export interface SorcererSubclassOption {
 
 export interface LevelUpPreviewResponse {
   primal_knowledge_skill_options?: string[] | null;
+  fighting_style_options?: string[] | null;
   session_id: string;
   campaign_id: string | null;
   revision: number | null;
@@ -1139,6 +1192,72 @@ export interface FighterState {
   action_surge: FighterActionSurgeState | null;
 }
 
+export interface PaladinLayOnHandsState {
+  /** @minimum 0 */
+  pool_remaining: number;
+  /** @minimum 5 */
+  pool_maximum: number;
+  poison_cost: 5;
+  activate: FighterAvailability;
+}
+
+export interface PaladinSmiteState {
+  activate: FighterAvailability;
+  /** @nullable */
+  target_id: string | null;
+  free_cast_available: boolean;
+  slot_levels: number[];
+}
+
+export interface PaladinChannelDivinityState {
+  /** @minimum 0 */
+  uses_remaining: number;
+  /** @minimum 1 */
+  max_uses: number;
+}
+
+export interface PaladinDetectedCreature {
+  target_id: string;
+  creature_type: string;
+  distance_ft: number;
+}
+
+export interface PaladinDivineSenseState {
+  active: boolean;
+  /** @nullable */
+  remaining_seconds: number | null;
+  detected: PaladinDetectedCreature[];
+  activate: FighterAvailability;
+}
+
+export interface PaladinSacredWeaponState {
+  active: boolean;
+  /** @nullable */
+  weapon_id: string | null;
+  /** @nullable */
+  remaining_seconds: number | null;
+  /** @minimum 1 */
+  attack_bonus: number;
+  start: FighterAvailability;
+}
+
+export interface PaladinPreparedSpell {
+  id: string;
+  castable: boolean;
+}
+
+export interface PaladinState {
+  /** @nullable */
+  fighting_style: string | null;
+  lay_on_hands: PaladinLayOnHandsState;
+  divine_smite: PaladinSmiteState | null;
+  channel_divinity: PaladinChannelDivinityState | null;
+  divine_sense: PaladinDivineSenseState | null;
+  sacred_weapon: PaladinSacredWeaponState | null;
+  always_prepared: string[];
+  prepared_spells: PaladinPreparedSpell[];
+}
+
 /**
  * @nullable
  */
@@ -1212,6 +1331,7 @@ export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
   fighter?: FighterState;
+  paladin?: PaladinState;
   name: string;
   race: string;
   species?: string;
@@ -1928,6 +2048,9 @@ export const EconomyStepInputKind = {
   extend_rage: 'extend_rage',
   second_wind: 'second_wind',
   action_surge: 'action_surge',
+  lay_on_hands: 'lay_on_hands',
+  divine_smite: 'divine_smite',
+  divine_sense: 'divine_sense',
 } as const;
 
 export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
@@ -2017,6 +2140,27 @@ export interface EconomyStepInput {
      * @nullable
      */
   reckless_attack?: boolean | null;
+  /**
+     * Lay On Hands only.
+     * @minimum 1
+     * @nullable
+     */
+  healing_amount?: number | null;
+  /**
+     * Lay On Hands only.
+     * @nullable
+     */
+  remove_poisoned?: boolean | null;
+  /**
+     * Expend Channel Divinity on this attack of the Attack action (Oath of Devotion).
+     * @nullable
+     */
+  sacred_weapon?: boolean | null;
+  /**
+     * This hit with the active Sacred Weapon deals Radiant damage.
+     * @nullable
+     */
+  radiant_damage?: boolean | null;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }
@@ -2594,6 +2738,8 @@ export const SpeciesTraitActionInputAction = {
   long_rest: 'long_rest',
   spend_hit_die: 'spend_hit_die',
   second_wind: 'second_wind',
+  lay_on_hands: 'lay_on_hands',
+  divine_sense: 'divine_sense',
 } as const;
 
 /**
@@ -2630,6 +2776,13 @@ export interface SpeciesTraitActionInput {
      */
   action_id?: string | null;
   action: SpeciesTraitActionInputAction;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  healing_amount?: number | null;
+  /** @nullable */
+  remove_poisoned?: boolean | null;
   /** @nullable */
   form?: SpeciesTraitActionInputForm;
   /** @nullable */
@@ -2696,6 +2849,13 @@ export interface FighterLevelChoices {
   '5'?: BarbarianLevel2Choices;
 }
 
+export interface PaladinLevelChoices {
+  '2': PaladinLevel2Choices;
+  '3'?: PaladinLevel3Choices;
+  '4'?: PaladinLevel4Choices;
+  '5'?: PaladinLevel5Choices;
+}
+
 /**
  * @nullable
  */
@@ -2742,7 +2902,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | PaladinLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -2999,10 +3159,57 @@ export interface FighterStartingCreationOptions {
   level_5?: BarbarianStartingLevel5Options | null;
 }
 
+export interface PaladinStartingLevel2Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  fighting_style_options: string[];
+  blessed_warrior_cantrip_count: number;
+  blessed_warrior_cantrip_ids: string[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface PaladinStartingSubclassOption {
+  id: 'oath_of_devotion';
+  name: string;
+}
+
+export interface PaladinStartingLevel3Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  subclass_options: PaladinStartingSubclassOption[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface PaladinStartingLevel4Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface PaladinStartingLevel5Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface PaladinStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: PaladinStartingLevel2Options;
+  level_3?: PaladinStartingLevel3Options | null;
+  level_4?: PaladinStartingLevel4Options | null;
+  level_5?: PaladinStartingLevel5Options | null;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
+  paladin_starting_creation?: PaladinStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

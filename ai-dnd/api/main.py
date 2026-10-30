@@ -2042,6 +2042,8 @@ def create_app(
                     form=request.form,
                     ancestry=request.ancestry,
                     armed=request.armed,
+                    **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
+                       if request.action == "lay_on_hands" else {}),
                 )
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
@@ -2330,7 +2332,7 @@ def create_app(
         import spell_scope
         cls = character.get("class")
         applied = character.get("progression_level", 1)
-        ceiling = {"Sorcerer": 5, "Barbarian": 5, "Fighter": 5}.get(cls, 2)
+        ceiling = {"Sorcerer": 5, "Barbarian": 5, "Fighter": 5, "Paladin": 5}.get(cls, 2)
         valid_applied = type(applied) is int and 1 <= applied <= ceiling
         target = min(applied + 1, ceiling) if valid_applied else ceiling
         result = dict(session_id=session_id, campaign_id=record.campaign_id,
@@ -2339,7 +2341,7 @@ def create_app(
                       class_name=cls, from_level=applied if valid_applied else None)
         if record.campaign_id is None:
             result["reason"] = "campaign_persistence_required"
-        elif cls not in {"Sorcerer", "Barbarian", "Fighter"}:
+        elif cls not in {"Sorcerer", "Barbarian", "Fighter", "Paladin"}:
             result["reason"] = "selected_progression_not_supported"
         elif not valid_applied:
             result["reason"] = "previous_progression_state_invalid"
@@ -2391,6 +2393,10 @@ def create_app(
                         result["subclass_options"] = preview.get("subclass_options", [])
                         if cls == "Barbarian":
                             result["primal_knowledge_skill_options"] = preview.get("primal_knowledge_skill_options", [])
+                    if cls == "Paladin":
+                        result["prepared_spell_ids"] = preview.get("prepared_spell_ids", [])
+                        if target == 2:
+                            result.update(fighting_style_options=preview.get("fighting_style_options"), cantrip_ids=preview.get("blessed_warrior_cantrip_ids", []))
         return LevelUpPreviewResponse.model_validate(result).model_dump(mode="json")
 
     @application.get("/api/game/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
@@ -2473,12 +2479,13 @@ def create_app(
             choices = request.choices.model_dump(mode="json")
             if request.target_level in (3, 4, 5):
                 from api.schemas import (BarbarianLevel2Choices, BarbarianLevel3Choices, FighterLevel3Choices, SorcererLevel3Choices,
-                                         BarbarianLevel4Choices, LevelUpChoices, LevelUpFiveChoices)
+                                         BarbarianLevel4Choices, LevelUpChoices, LevelUpFiveChoices, PaladinLevel3Choices,
+                                         PaladinLevel4Choices, PaladinLevel5Choices)
                 expected_choices = {
-                    3: {"Barbarian": BarbarianLevel3Choices, "Fighter": FighterLevel3Choices, "Sorcerer": SorcererLevel3Choices},
-                    4: {"Barbarian": BarbarianLevel4Choices, "Fighter": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices},
+                    3: {"Barbarian": BarbarianLevel3Choices, "Fighter": FighterLevel3Choices, "Paladin": PaladinLevel3Choices, "Sorcerer": SorcererLevel3Choices},
+                    4: {"Barbarian": BarbarianLevel4Choices, "Fighter": BarbarianLevel4Choices, "Paladin": PaladinLevel4Choices, "Sorcerer": LevelUpChoices},
                     # Barbarian 5 has no choices: the same empty strict object as Barbarian 2 (no new schema).
-                    5: {"Barbarian": BarbarianLevel2Choices, "Fighter": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices},
+                    5: {"Barbarian": BarbarianLevel2Choices, "Fighter": BarbarianLevel2Choices, "Paladin": PaladinLevel5Choices, "Sorcerer": LevelUpFiveChoices},
                 }[request.target_level][session.character["class"]]
                 if not isinstance(request.choices, expected_choices):
                     raise refusal(409, "level_up_choice_class_mismatch")

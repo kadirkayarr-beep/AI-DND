@@ -608,7 +608,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         if pair(session, target, second)["distance_ft"] > 5:
             fail("invalid_cleave_target", "Second target must be within 5 feet of the first.")
         # Validate the complete second attack before committing the first.
-        prepare(session, actor, second, weapon_id, {k: v for k, v in choice.items() if k not in {"cleave_target_id", "reckless_attack"}},
+        prepare(session, actor, second, weapon_id, {k: v for k, v in choice.items() if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}},
                 origin="cleave", profile=profile)
     if choice.get("push_ft") is not None:
         integer(choice["push_ft"], "push choice", 0)
@@ -1051,7 +1051,7 @@ def _resolve(session, c):
     if hit and c["choice"].get("cleave_target_id"):
         sequence = turn_state(session, actor)
         sequence["cleave_used"] = True
-        second_choice = {k: v for k, v in c["choice"].items() if k not in {"cleave_target_id", "reckless_attack"}}
+        second_choice = {k: v for k, v in c["choice"].items() if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}}
         result["cleave_attack"] = resolve(session, actor, c["choice"]["cleave_target_id"],
                                          weapon["weapon_id"], second_choice, origin="cleave")
     history = session.world_state.setdefault("attack_results", [])
