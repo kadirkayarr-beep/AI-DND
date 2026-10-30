@@ -1,7 +1,7 @@
 """Paladin 1-5 effects through the existing owners: Lay On Hands, Divine Smite, Channel Divinity, Divine Sense, Sacred Weapon, styles, spells.
 
-Numbers were read from the page renders (PHB 2024 PDF 108-110, 112/113, 264): Lay On Hands 5 x Paladin level, 5 points remove Poisoned;
-Divine Smite 2d8 Radiant, +1d8 per slot level above 1, +1d8 against a Fiend or an Undead, one cast without a slot per Long Rest; Channel
+Numbers were read from the page renders (PHB 2024 PDF 108-110, 112/113, 264, 363): Lay On Hands 5 x Paladin level, 5 points remove Poisoned;
+Divine Smite 2d8 Radiant, +1d8 per slot level above 1, +1d8 against a Fiend or an Undead, one cast without a slot per Long Rest, all dice doubled on a Critical Hit; Channel
 Divinity two uses, one back on a Short Rest, all on a Long Rest; Divine Sense 10 minutes, 60 feet; Sacred Weapon Charisma modifier
 (minimum +1) for 10 minutes. Dice are deterministic; synthetic NPCs are unit fixtures.
 """

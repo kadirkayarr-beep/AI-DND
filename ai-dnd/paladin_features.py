@@ -1,7 +1,7 @@
 """Paladin 1-5 feature effects on the existing owners; it holds rules and spent counters, not a budget or a resource system.
 
 Values only (PHB 2024 PDF 108 Lay On Hands, PDF 109 Paladin's Smite and Channel Divinity, PDF 110 Divine Sense, PDF 112/113 Oath of
-Devotion, PDF 264 Divine Smite). `character["paladin_uses"]` is additive, like `hit_dice` and `fighter_uses`: a save without it spent
+Devotion, PDF 264 Divine Smite, PDF 363 Critical Hit). `character["paladin_uses"]` is additive, like `hit_dice` and `fighter_uses`: a save without it spent
 nothing. Pools follow the APPLIED Paladin level; a level granted by XP alone changes nothing here.
 Bonus Actions come from action_economy, slots from spell_scope's state, damage from weapon_attack.mitigate and the NPC damage owner.
 """
