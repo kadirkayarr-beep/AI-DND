@@ -13923,6 +13923,13 @@ def _is_explicitly_negated_attack(player_input):
 CHECK_FEATURES = ('primal_knowledge', 'tactical_mind')
 
 
+def _immediate_check_refusal(check_feature, message):
+    """The route refusal in the chosen feature's own name; `{feature}` in a message is that name."""
+    code, name = (('tactical_mind_immediate_check_only', 'Tactical Mind') if check_feature == 'tactical_mind'
+                  else ('primal_knowledge_immediate_check_only', 'Primal Knowledge'))
+    return combat_lifecycle.CombatRequestError(code, message.format(feature=name), 400)
+
+
 def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge'):
     """Pure opt-in admission, not a new normal-command or PHB restriction.
 
@@ -13931,7 +13938,7 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
     """
     import barbarian_rage
     if interaction_mode != 'do' or combat_action is not None or target_id is not None:
-        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'Use Primal Knowledge only for an immediate Do check.', 400)
+        raise _immediate_check_refusal(check_feature, 'Use {feature} only for an immediate Do check.')
     world = _session().world_state
     text = _normalize_turkish_typos(player_input) if type(player_input) is str else ''
     simple = re.fullmatch(
@@ -13955,14 +13962,14 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
             or any(event.get('decision_status') == 'PENDING' for event in timed_gameplay.pending_events(world))
             or adventure_play.inside_hideout(world)
             or (isinstance(scene_plan, dict) and scene_plan.get('direct_result') is not None)):
-        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'This wording or route does not support an immediate Primal Knowledge check.', 400)
+        raise _immediate_check_refusal(check_feature, 'This wording or route does not support an immediate {feature} check.')
     selected = deterministic_check_for_action(player_input)
     skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
     if check_feature == 'tactical_mind':
         import fighter_features
         fighter_features.require_tactical_mind(_session())
         if skill not in SKILLS:
-            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was selected.', 400)
+            raise _immediate_check_refusal(check_feature, 'No supported immediate check was selected.')
     else:
         barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
     return selected
@@ -13976,7 +13983,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None, *, che
     if check_evidence is not None and type(check_evidence) is not list:
         raise ValueError('Check evidence must be a caller-owned list.')
     if isinstance(intent, dict) and intent.get('intent') in {'travel', 'attack', 'combat'}:
-        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'The selected intent is not an immediate check.', 400)
+        raise _immediate_check_refusal(check_feature, 'The selected intent is not an immediate check.')
     primal_knowledge_check_admission(player_input, target_id=target_id, check_feature=check_feature)
     snapshot = _session()._capture_runtime_snapshot()
     evidence = []
@@ -13984,7 +13991,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None, *, che
         result = _execute_intent_internal(intent, player_input, npc_target, target_id,
                                           check_feature=check_feature, check_evidence=evidence)
         if result.get('action') != 'skill_check' or len(evidence) != 1:
-            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+            raise _immediate_check_refusal(check_feature, 'No supported immediate check was resolved.')
     except Exception:
         _session()._restore_runtime_snapshot(snapshot)
         raise
@@ -16294,7 +16301,7 @@ def run_player_turn(
                                   session_id, combat_action, interaction_mode,
                                   check_feature=check_feature, check_evidence=evidence)
         if result.get('action_result', {}).get('action') != 'skill_check' or len(evidence) != 1:
-            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+            raise _immediate_check_refusal(check_feature, 'No supported immediate check was resolved.')
     except IntentInfrastructureError as error:
         # Preserve the API's retryable 503 path, not a permanent feature refusal.
         _session()._restore_runtime_snapshot(snapshot)

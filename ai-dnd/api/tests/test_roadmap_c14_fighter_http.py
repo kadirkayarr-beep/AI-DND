@@ -248,6 +248,14 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
         response, _ = await self.checked(1)
         self.assertEqual((response.status_code, response.json()["detail"]["code"]), (400, "tactical_mind_not_available"))
 
+    async def test_tactical_mind_on_an_unsupported_wording_is_refused_with_its_own_code(self):
+        campaign, record = await self.create(2)
+        record.game_session.commit_location_change("tavern")
+        self.manager.save_campaign(campaign["campaign_id"])
+        body = {"message": "Bir saat bekliyorum", "interaction_mode": "do", "action_id": str(uuid4()), "check_feature": "tactical_mind"}
+        response = await self.http.post(f"/api/game/sessions/{campaign['session_id']}/turn", json=body)
+        self.assertEqual((response.status_code, response.json()["detail"]["code"]), (400, "tactical_mind_immediate_check_only"))
+
     def test_turn_request_keeps_the_do_only_rule(self):
         from api.schemas import TurnRequest
         TurnRequest.model_validate({"message": "x", "interaction_mode": "do", "check_feature": "tactical_mind"})

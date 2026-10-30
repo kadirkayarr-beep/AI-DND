@@ -356,6 +356,22 @@ class TacticalMind(unittest.TestCase):
             self.check(session, 30)
         self.assertEqual(caught.exception.code, "tactical_mind_immediate_check_only")
 
+    def test_a_route_refusal_names_tactical_mind_not_primal_knowledge(self):
+        session = created(2)
+        for intent, text, extra in (({"intent": "unknown"}, "Merhaba", {}), ({"intent": "travel"}, "Takla atıyorum", {}),
+                                    ({"intent": "unknown"}, "Takla atıyorum", {"target_id": "npc_001"})):
+            before = session._capture_runtime_snapshot()
+            with self.assertRaises(CombatRequestError) as caught:
+                session.execute_intent(intent, text, check_feature="tactical_mind", **extra)
+            self.assertEqual(caught.exception.code, "tactical_mind_immediate_check_only", text)
+            self.assertNotIn("Primal Knowledge", str(caught.exception))
+            self.assertEqual(session._capture_runtime_snapshot(), before)
+
+    def test_primal_knowledge_keeps_its_own_refusal_code(self):
+        with self.assertRaises(CombatRequestError) as caught:
+            created(2).execute_intent({"intent": "unknown"}, "Merhaba", check_feature="primal_knowledge")
+        self.assertEqual(caught.exception.code, "primal_knowledge_immediate_check_only")
+
     def test_a_failure_after_the_roll_restores_everything(self):
         session = created(2)
         base = self.plain_total(session)
