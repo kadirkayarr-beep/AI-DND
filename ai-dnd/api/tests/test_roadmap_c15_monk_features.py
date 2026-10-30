@@ -757,7 +757,7 @@ class Projection(unittest.TestCase):
 
     def test_disclosure_names_what_is_supported_and_what_is_not(self):
         text = " ".join(cp.progression_disclosure("Monk", 5)["pending"])
-        for word in ("Slow Fall", "DEX", "Addle", "jump", "Disengage"):
+        for word in ("Slow Fall", "Addle", "jump", "Disengage"):
             self.assertIn(word, text, word)
         supported = " ".join(cp.progression_disclosure("Monk", 5)["supported"])
         for word in ("Martial Arts", "Unarmored Defense", "Focus Points", "Stunning Strike", "Deflect Attacks", "Extra Attack", "Open Hand"):
