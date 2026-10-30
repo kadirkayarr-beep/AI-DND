@@ -31,13 +31,22 @@ class NewClass(ClassProgression):
 
 class ClassRegistry(unittest.TestCase):
     def test_every_listed_module_is_registered_under_its_class_name(self):
-        self.assertEqual(class_progression.CLASS_MODULES, ("barbarian", "sorcerer"))
-        self.assertEqual({handler.name for handler in class_progression.registered()}, {"Barbarian", "Sorcerer"})
+        self.assertLessEqual({"barbarian", "sorcerer"}, set(class_progression.CLASS_MODULES))
+        self.assertLessEqual({"Barbarian", "Sorcerer"}, {handler.name for handler in class_progression.registered()})
+        self.assertEqual(len(class_progression.registered()), len(class_progression.CLASS_MODULES))
         for name in ("Barbarian", "Sorcerer"):
             self.assertIs(class_progression.for_class(name), class_progression._REGISTRY[name])
 
+    def test_registration_refuses_a_duplicate_or_a_non_string_class_name(self):
+        for name in ("Barbarian", None, 7, ""):
+            with self.subTest(name), patch.dict(class_progression._REGISTRY):
+                handler = ClassProgression()
+                handler.name = name
+                with self.assertRaises(ValueError):
+                    class_progression._register(handler)
+
     def test_unregistered_and_malformed_classes_get_the_level_one_defaults(self):
-        for name in ("Fighter", "", None, 7, ["Barbarian"]):
+        for name in ("Wizard", "", None, 7, ["Barbarian"]):
             handler = class_progression.for_class(name)
             self.assertEqual(handler.supported_level, 1)
             self.assertFalse(handler.selected_asi)
@@ -57,6 +66,21 @@ class ClassRegistry(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unearned Newclass field"):
                 cp.validate_saved({"class": "Sorcerer", "newclass_field": 1}, {})
 
+    def test_a_tabled_class_without_applied_rules_refuses_subclass_and_metamagic_claims(self):
+        with patch.dict(class_progression._REGISTRY, {"Newclass": NewClass()}), patch.object(cp, "table", return_value={"levels": {}}):
+            for claim in ({"subclass_id": "x"}, {"metamagic": ["quickened_spell"]}):
+                with self.subTest(claim), self.assertRaisesRegex(ValueError, "ilerleme"):
+                    cp.validate_saved({"class": "Newclass", "level": 1, "progression_level": 1, **claim}, {})
+            cp.validate_saved({"class": "Newclass", "level": 1, "progression_level": 1}, {})
+
+    def test_a_misspelt_disclosure_keyword_is_refused_and_other_class_keywords_are_ignored(self):
+        with self.assertRaisesRegex(TypeError, "rage_adoptd"):
+            cp.progression_disclosure("Barbarian", 2, rage_adoptd=False)
+        with self.assertRaisesRegex(TypeError, "rage_adoptd"):
+            cp.progression_effects_pending("Barbarian", 2, rage_adoptd=False)
+        self.assertEqual(cp.progression_disclosure("Barbarian", 2, points_adopted=False, rage_adopted=False),
+                         cp.progression_disclosure("Barbarian", 2, rage_adopted=False))
+
     def test_moved_names_stay_readable_on_character_progression(self):
         from class_progression import barbarian, sorcerer
         for name in ("BARBARIAN_SKILLS", "EXTRA_ATTACK_ATTACKS", "FAST_MOVEMENT_FT", "_barbarian_asi_options",
@@ -72,14 +96,14 @@ class ClassRegistry(unittest.TestCase):
                 for name in fresh:
                     sys.modules.pop(name, None)
                 importlib.import_module(first)
-                self.assertEqual(len(sys.modules["class_progression"].registered()), 2)
+                self.assertLessEqual({"Barbarian", "Sorcerer"}, {h.name for h in sys.modules["class_progression"].registered()})
                 self.assertIs(sys.modules["character_progression"].berserker_eligible,
                               sys.modules["class_progression.barbarian"].berserker_eligible)
 
     def test_the_shared_flow_has_no_class_name_branch(self):
         source = Path(cp.__file__).read_text(encoding="utf-8")
         strings = [node.value for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Constant)]
-        self.assertFalse({"Barbarian", "Sorcerer"} & {value for value in strings if isinstance(value, str)})
+        self.assertFalse({"Barbarian", "Fighter", "Sorcerer"} & {value for value in strings if isinstance(value, str)})
 
 
 if __name__ == "__main__":

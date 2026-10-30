@@ -17,7 +17,9 @@ class ClassProgression:
         """Runs for this class before the applied level is checked."""
 
     def validate_applied(self, player: dict[str, Any], world: dict[str, Any], applied: int) -> None:
-        """Runs for this class after the applied level was admitted against its table."""
+        """Runs for this class after the applied level was admitted against its table. A class without its own rules claims nothing."""
+        if player.get("metamagic") or "subclass_id" in player:
+            raise ValueError("Kayıt bu sınıf için doğrulanmamış ilerleme seçimi iddia ediyor.")
 
     def validate_asi_storage(self, player: dict[str, Any], *, saved: bool) -> None:
         """Class extra after a stored ordinary ASI record was admitted."""

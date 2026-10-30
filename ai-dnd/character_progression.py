@@ -11,6 +11,7 @@ the class names other modules and tests read from here.
 from __future__ import annotations
 
 import copy
+import inspect
 import json
 from pathlib import Path
 from typing import Any
@@ -122,7 +123,17 @@ def _preview(status: str, reason: str | None = None, **extra: Any) -> dict[str, 
 
 
 def progression_disclosure(class_name: str, level: int, **adopted: Any) -> dict[str, list[str]]:
-    """Pure supported/pending view. Capability facts never adopt resources."""
+    """Pure supported/pending view. Capability facts never adopt resources.
+
+    A keyword some registered class declares is passed on (another class ignores it); any other keyword is a typo and refused,
+    because a swallowed flag would claim the default disclosure.
+    """
+    known = {parameter.name for handler in (*registered(), for_class(class_name))
+             for parameter in inspect.signature(handler.disclosure).parameters.values()
+             if parameter.kind is inspect.Parameter.KEYWORD_ONLY}
+    unknown = sorted(set(adopted) - known)
+    if unknown:
+        raise TypeError(f"Unknown disclosure keyword: {', '.join(unknown)}")
     return for_class(class_name).disclosure(level, **adopted)
 
 
