@@ -83,10 +83,11 @@ class GuardedRunnerTests(unittest.TestCase):
                     summary_text, encoding="utf-8")
             return {"status": "PASS", "exitCode": 0}
 
-        with mock.patch.object(guarded_runner.platform_runner, "run_gate",
-                               side_effect=synthetic_gate):
+        # Under the guard the temp dir is not below /tmp; the base check is not the subject here.
+        with mock.patch.object(guarded_runner, "SCRATCH_BASE", self.root.parent.resolve()),                 mock.patch.object(guarded_runner.platform_runner, "run_gate",
+                                  side_effect=synthetic_gate):
             result = self.run_gate("api.tests.fixtures.b06_guard_target.GuardedTarget")
-        self.assertEqual(calls, 2)
+        self.assertEqual(calls, 2, result)
         return result
 
     @guard_bound(CHILD_PROCESS)
@@ -238,14 +239,12 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 0)
         self.assertEqual(result["status"], "FAIL")
 
-    @guard_bound(CHILD_PROCESS)
     def test_missing_summary_does_not_pass_and_keeps_process_exit_code(self):
         result = self.run_gate_with_summary(None)
         self.assertEqual(result["target"]["exitCode"], 0)
         self.assertIsNone(result["testMethodsRun"])
         self.assertEqual(result["status"], "FAIL")
 
-    @guard_bound(CHILD_PROCESS)
     def test_malformed_summary_does_not_pass_and_keeps_process_exit_code(self):
         result = self.run_gate_with_summary("{not-json")
         self.assertEqual(result["target"]["exitCode"], 0)
@@ -302,7 +301,7 @@ class GuardedRunnerTests(unittest.TestCase):
                 result = self.run_gate(
                     "api.tests.fixtures.b06_guard_target.GuardedTarget."
                     "test_guard_blocks_synthetic_private_path_and_network")
-        self.assertEqual(calls, 2)
+        self.assertEqual(calls, 2, result)
         self.assertEqual(result["status"], "BLOCKED")
         self.assertEqual(result["guard"]["status"], "PASS")
         self.assertEqual(result["target"]["status"], "FAIL")
@@ -336,9 +335,11 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["guard"]["status"], "PASS")
         self.assertEqual((result["target"]["status"], result["target"]["exitCode"]), ("FAIL", None))
 
-    @guard_bound(CHILD_PROCESS)
     def test_source_identity_git_environment_drops_caller_secrets(self):
-        with mock.patch.dict(os.environ, {"B06_SECRET_SENTINEL": "synthetic-only"}):
+        # The checkout's .git entry is not the subject (and is not readable under the guard).
+        stub_git_dir = REPO.resolve() / "stub-git-dir"
+        with mock.patch.object(source_identity, "_git_context",
+                               return_value=(REPO.resolve(), stub_git_dir)),                 mock.patch.dict(os.environ, {"B06_SECRET_SENTINEL": "synthetic-only"}):
             with mock.patch.object(source_identity.subprocess, "run") as run:
                 run.return_value.returncode = 0
                 run.return_value.stdout = str(REPO.resolve()).encode()
@@ -365,13 +366,11 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(source_identity.git_root(REPO), REPO.resolve())
         self.assertEqual(source_identity.ref_sha(REPO, "HEAD"), expected_head)
 
-    @guard_bound(CHILD_PROCESS)
     def test_source_identity_git_context_overrides_caller_git_routing(self):
-        marker = (REPO / ".git").read_text(encoding="utf-8").strip()
-        admin = Path(marker.removeprefix("gitdir: ").strip())
-        if not admin.is_absolute():
-            admin = (REPO / admin).resolve()
-        with mock.patch.object(source_identity.subprocess, "run") as run:
+        # A stub context stands in for the checkout's .git entry, which the guard denies.
+        admin = REPO.resolve() / "stub-git-dir"
+        with mock.patch.object(source_identity, "_git_context",
+                               return_value=(REPO.resolve(), admin)),                 mock.patch.object(source_identity.subprocess, "run") as run:
             run.return_value.returncode = 0
             run.return_value.stdout = str(REPO.resolve()).encode()
             with mock.patch.object(source_identity.subprocess, "check_output",
@@ -383,7 +382,7 @@ class GuardedRunnerTests(unittest.TestCase):
                          "GIT_CONFIG_GLOBAL": "/tmp/private-gitconfig",
                          "GITHUB_TOKEN": "synthetic-secret"})
         child_env = call.call_args.kwargs["env"]
-        self.assertEqual(Path(child_env["GIT_DIR"]), admin.resolve())
+        self.assertEqual(Path(child_env["GIT_DIR"]), admin)
         self.assertEqual(Path(child_env["GIT_WORK_TREE"]), REPO.resolve())
         self.assertEqual(child_env["GIT_CONFIG_GLOBAL"], os.devnull)
         self.assertNotIn("GITHUB_TOKEN", child_env)
