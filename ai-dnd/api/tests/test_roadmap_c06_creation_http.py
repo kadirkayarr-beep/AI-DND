@@ -83,6 +83,14 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(restored.world_state['spellcasting_v1'], record.game_session.world_state['spellcasting_v1'])
                 self.assertEqual(restored.world_state['equipment'], record.game_session.world_state['equipment'])
 
+    async def test_a_random_fighter_discloses_its_scope(self):
+        with patch('game.CLASSES', ('Fighter',)):
+            response = await self.post_character({'mode': 'random'}, '/api/campaigns')
+        self.assertEqual(response.status_code, 200, response.text)
+        c = response.json()['state']['character']
+        self.assertEqual(c['class'], 'Fighter')
+        self.assertIn('Second Wind', ' '.join(c['progression_effects_pending']))
+
     async def test_default_random_and_explicit_levels_keep_legacy_shape(self):
         default = await self.http.post('/api/game/campaigns', json={})
         self.assertEqual(default.status_code, 200, default.text)
@@ -115,7 +123,10 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                         self.assertIn('known-unarmored Barbarian 1–2', ' '.join(c['progression_effects_pending']))
                     else:
                         self.assertNotIn('rage', c)
-                        self.assertNotIn('progression_effects_pending', c)
+                        if c['class'] == 'Fighter':  # the random class can be a Fighter, whose scope is always disclosed
+                            self.assertIn('Second Wind', ' '.join(c['progression_effects_pending']))
+                        else:
+                            self.assertNotIn('progression_effects_pending', c)
 
     async def test_malformed_requests_and_direct_manager_never_publish(self):
         cases = []
