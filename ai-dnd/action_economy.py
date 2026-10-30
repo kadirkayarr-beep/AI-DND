@@ -311,8 +311,8 @@ def quickened_cast_budget(session):
         resources["bonus_grants"][:] = [g for g in resources["bonus_grants"] if g is not transient]
 
 
-def consume_rage_bonus(session):
-    """Only the separately validated Rage feature calls this budget owner."""
+def consume_feature_bonus(session):
+    """Only a separately validated class feature (Rage, Second Wind) calls this budget owner."""
     validate_actor(session)
     r = ensure(session)["player"]
     if r["bonus_action_spent"]:
@@ -706,7 +706,7 @@ def movement_limit(session, actor):
 
 
 def attacks_per_action(session, actor):
-    """Attacks one Attack action allows: the engine hook, raised (never lowered) by the applied Barbarian Extra Attack."""
+    """Attacks one Attack action allows: the engine hook, raised (never lowered) by an applied class Extra Attack."""
     data = actor_data(session, actor)
     value = data.get("attacks_per_action", 1)
     if actor == "player" and type(value) is int and value >= 1:
@@ -842,6 +842,10 @@ def _execute(session, command, action_id=None, session_id=None):
         import barbarian_rage
         if not barbarian_rage.native_command(command):
             fail("invalid_rage_command", "Rage requires one exact typed Bonus Action step.")
+    if any(step.get("kind") in {"second_wind", "action_surge"} for step in steps if isinstance(step, dict)):
+        import fighter_features
+        if not fighter_features.native_command(command):
+            fail("invalid_fighter_command", "Second Wind and Action Surge require one exact typed step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -857,7 +861,7 @@ def _execute(session, command, action_id=None, session_id=None):
                 fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
             if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot"}:
                 fail("invalid_spell_slot_choice", "Only a Magic action can select a spell slot.")
-            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage"}:
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
@@ -900,6 +904,12 @@ def _execute(session, command, action_id=None, session_id=None):
                 import barbarian_rage
                 result = barbarian_rage.activate(session) if kind == "activate_rage" else barbarian_rage.extend(session)
                 results.append({"kind": kind, "result": result})
+            elif kind == "second_wind":
+                import fighter_features
+                results.append({"kind": kind, "result": fighter_features.activate_second_wind(session, step.get("distance_ft"))})
+            elif kind == "action_surge":
+                import fighter_features
+                results.append({"kind": kind, "result": fighter_features.activate_action_surge(session)})
             elif kind == "convert_spell_slot":
                 import sorcery_points
                 results.append({"kind": kind, "result": sorcery_points.convert_slot(session, step.get("slot_level"))})
@@ -956,6 +966,12 @@ def resolved_narration(session, results):
                     if step["kind"] == "activate_rage"
                     else "Bonus Action ile Rage süreni uzatırsın; ek kullanım harcanmaz."
                 )
+        elif step["kind"] == "second_wind":
+            result = step["result"]
+            moved = f" ve {result['moved_ft']} feet ilerlersin" if result["moved_ft"] else ""
+            narration_parts.append(f"Bonus Action ile Second Wind kullanırsın: {result['healing']} can puanı kazanırsın{moved}; kalan kullanım: {result['uses_remaining']}.")
+        elif step["kind"] == "action_surge":
+            narration_parts.append("Action Surge ile bu tur bir ek eylem kazanırsın (Magic eylemi hariç).")
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
             narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")

@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import action_economy as economy
 import barbarian_rage
+import fighter_features
 import character_progression
 import initiative
 import spatial_rules
@@ -196,6 +197,9 @@ def rules_for(session, actor, data, weapon):
                 rules[key] = value
             else:
                 fail("invalid_attack_state", "Conflicting authoritative feature overrides.")
+    if actor == "player":
+        for key, values in fighter_features.attack_rules(data, weapon).items():
+            rules.setdefault(key, []).extend(values)
     allowed = {"ability", "damage_die", "damage_dice", "damage_modifier",
                "attack_modifiers", "damage_modifiers", "additional_damage",
                "advantage_sources", "disadvantage_sources", "mastery_overrides"}
@@ -821,7 +825,8 @@ def _resolve(session, c):
             advantage=bool(c["advantage_sources"]), disadvantage=bool(c["disadvantage_sources"]),
             actor_id=actor, target_id=target)
         hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
-        critical = bool(hit and (resolution["selected_roll"] == 20 or (
+        threshold = fighter_features.critical_threshold(attacker) if actor == "player" else 20
+        critical = bool(hit and (resolution["selected_roll"] >= threshold or (
             c["spatial"]["distance_ft"] <= 5 and set(c["target_conditions"]) & {"unconscious", "paralyzed"})))
     # Observe the actual roll/save, including misses, before damage can close combat.
     if actor == "player":
@@ -831,7 +836,7 @@ def _resolve(session, c):
     if hit and not special:
         modifier = c["rules"].get("damage_modifier", c["ability_modifier"])
         integer(modifier, "damage modifier")
-        if c["origin"] in {"light", "nick", "cleave"}:
+        if c["origin"] in {"light", "nick", "cleave"} and not (actor == "player" and fighter_features.light_attack_keeps_modifier(attacker, c["origin"])):
             modifier = min(0, modifier)
         fixed = weapon.get("fixed_damage")
         if fixed is not None and not c["unarmed"]:
@@ -846,7 +851,12 @@ def _resolve(session, c):
             count = c["damage_dice"] * (2 if critical else 1)
             rolls = []
             raw = max(0, session.roll_damage(die, count, modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus, rolls=rolls))
-            damage_rolls.append({"source": "weapon", "die": die, "count": count, "rolls": rolls})
+            entry = {"source": "weapon", "die": die, "count": count, "rolls": rolls}
+            counted = fighter_features.great_weapon_rolls(attacker, weapon, c["mode"], rolls) if actor == "player" else None
+            if counted is not None:
+                raw += sum(counted) - sum(rolls)
+                entry.update(rolls=counted, natural_rolls=rolls)
+            damage_rolls.append(entry)
         components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
         sequence = sequence_snapshot(session, actor)
         if (actor == "player" and c["ability"] == "strength"

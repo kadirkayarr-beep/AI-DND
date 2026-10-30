@@ -188,7 +188,7 @@ def activate(session):
         settle(session)
         reason=_reason(session)
         if reason:raise CombatRequestError(reason,'Rage activation is unavailable: '+reason)
-        action_economy.consume_rage_bonus(session)
+        action_economy.consume_feature_bonus(session)
         state=_state(session);now=session.world_state['campaign_time']['elapsed_seconds']
         state['remaining']-=1
         state['active']={'started_at':now,'remaining_seconds':12,'settled_at':now,
@@ -203,7 +203,7 @@ def extend(session):
         settle(session)
         reason=_reason(session,True)
         if reason:raise CombatRequestError(reason,'Rage extension is unavailable: '+reason)
-        action_economy.consume_rage_bonus(session)
+        action_economy.consume_feature_bonus(session)
         a=_state(session)['active'];a['remaining_seconds']=12;a['last_extended_turn']=_turn(session)
         return {'active':True,'uses_remaining':_state(session)['remaining'],'remaining_seconds':12}
 

@@ -1,7 +1,8 @@
 """Source-backed PHB 2024 class progression TABLES for ten classes (Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger,
 Rogue, Warlock, Wizard) -- a DATA ORACLE only.
 
-The tables live in `content/rules/phb2024/class_tables/<class>.json` and use the same shape as the `classes/` files
+The tables live in `content/rules/phb2024/class_tables/<class>.json` (a class that gained real progression moves to `classes/`,
+see MOVED_TO_CLASSES) and use the same shape as the `classes/` files
 (`source`, `levels` -> "1".."20" with `proficiency_bonus`, `features` and class columns, `subclass_options`).  They are kept
 in a SEPARATE directory on purpose: `character_progression.table()` treats every file in `classes/` as "this class has a
 progression table" (creation, level-up, spell scope), so putting these files there would change gameplay behaviour.  This
@@ -19,6 +20,7 @@ from typing import Any
 from api.dnd_2024_rules import proficiency_bonus_for_level
 
 TABLE_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "class_tables"
+MOVED_TO_CLASSES = {"Fighter"}  # progression owns these files now; the oracle reads the one file, never a copy
 CLASSES = ("Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Warlock", "Wizard")
 
 # Class-specific columns per class (besides proficiency_bonus and features). Columns that may be null (em dash) are listed too.
@@ -42,12 +44,16 @@ MAX_SLOT_LEVEL = {"Bard": 9, "Cleric": 9, "Druid": 9, "Wizard": 9, "Paladin": 5,
 _cache: dict[str, dict[str, Any] | None] = {}
 
 
+def table_path(class_name: str) -> Path:
+    return (TABLE_DIR.parent / "classes" if class_name in MOVED_TO_CLASSES else TABLE_DIR) / f"{class_name.lower()}.json"
+
+
 def table(class_name: Any) -> dict[str, Any] | None:
     """A detached copy of the class table, or None for a class outside CLASSES or a missing file."""
     if not isinstance(class_name, str) or class_name not in CLASSES:
         return None
     if class_name not in _cache:
-        path = TABLE_DIR / f"{class_name.lower()}.json"
+        path = table_path(class_name)
         _cache[class_name] = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
     return copy.deepcopy(_cache[class_name])
 

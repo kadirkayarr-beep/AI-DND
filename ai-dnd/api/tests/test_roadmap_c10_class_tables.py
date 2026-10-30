@@ -150,6 +150,7 @@ ORACLE = {
                                 slots=[slot_map(t) for t in FULL_SLOTS])),
 }
 CLASSES = tuple(ORACLE)
+NOT_PROGRESSED = tuple(name for name in CLASSES if name != "Fighter")  # Fighter's table moved to classes/ with real progression (C14)
 
 
 def oracle_row(name, level):
@@ -173,7 +174,7 @@ def differences(name, data):
 
 
 def load(name):
-    return json.loads((TABLE_DIR / f"{name.lower()}.json").read_text(encoding="utf-8"))
+    return json.loads(class_tables.table_path(name).read_text(encoding="utf-8"))
 
 
 class TableOracleTests(unittest.TestCase):
@@ -181,7 +182,7 @@ class TableOracleTests(unittest.TestCase):
         self.assertEqual(class_tables.CLASSES, CLASSES)
         for name in CLASSES:
             with self.subTest(name):
-                self.assertTrue((TABLE_DIR / f"{name.lower()}.json").is_file(), "missing data file")
+                self.assertTrue(class_tables.table_path(name).is_file(), "missing data file")
                 self.assertEqual(class_tables.table(name), load(name))
         self.assertIsNone(class_tables.table("Barbarian"))
         self.assertIsNone(class_tables.table("Sorcerer"))
@@ -206,7 +207,8 @@ class TableOracleTests(unittest.TestCase):
                 self.assertEqual(src["verification"]["level"], "dual-source+render-read")
                 self.assertTrue(src["verification"]["package_file"].endswith(f"{name.lower()}_1_20.md"))
                 self.assertEqual(src["unverified_cells"], [], "no cell is unverified; a null is an em dash")
-                self.assertEqual(src["scope"], "progression table only; no feature effects, spell lists or choices")
+                if name != "Fighter":  # Fighter's table moved to classes/ and states its progression scope
+                    self.assertEqual(src["scope"], "progression table only; no feature effects, spell lists or choices")
 
     def test_features_per_level_and_distinct_names(self):
         for name in CLASSES:
@@ -378,21 +380,21 @@ class MutationTests(unittest.TestCase):
 class NoGameplayChangeTests(unittest.TestCase):
     """The new data must not make any class appear supported for creation or level-up."""
 
-    def test_classes_directory_still_holds_only_barbarian_and_sorcerer(self):
-        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "sorcerer.json"])
+    def test_classes_directory_holds_only_the_classes_with_real_progression(self):
+        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "fighter.json", "sorcerer.json"])
 
     def test_progression_engine_still_has_no_table_and_level_one_support_for_the_ten_classes(self):
-        for name in CLASSES:
+        for name in NOT_PROGRESSED:
             with self.subTest(name):
                 self.assertIsNone(cp.table(name))
                 self.assertFalse(cp.has_table({"class": name}))
                 self.assertEqual(cp._supported_level(name), 1)
                 self.assertIsNone(cp.capacity({"class": name, "level": 3}))
-        self.assertEqual((cp._supported_level("Sorcerer"), cp._supported_level("Barbarian")), (5, 5))
+        self.assertEqual((cp._supported_level("Sorcerer"), cp._supported_level("Barbarian"), cp._supported_level("Fighter")), (5, 5, 5))
 
     def test_level_up_and_creation_stay_blocked_for_the_ten_classes(self):
         import game
-        for name in CLASSES:
+        for name in NOT_PROGRESSED:
             with self.subTest(name):
                 session = game.create_session(seed=3)
                 session.character["class"] = name
@@ -402,10 +404,10 @@ class NoGameplayChangeTests(unittest.TestCase):
                     cp.create_at_level(session, {"character_class": name}, 2)
                 self.assertIn(str(caught.exception), {"starting_level_class_not_supported", "class_table_not_available"})
 
-    def test_public_creation_catalog_offers_starting_levels_only_for_sorcerer_and_barbarian(self):
+    def test_public_creation_catalog_offers_starting_levels_only_for_the_progressed_classes(self):
         catalog = get_character_creation_catalog()
         self.assertEqual(sorted(k for k in catalog if k.endswith("_starting_creation")),
-                         ["barbarian_starting_creation", "sorcerer_starting_creation"])
+                         ["barbarian_starting_creation", "fighter_starting_creation", "sorcerer_starting_creation"])
         self.assertEqual(catalog["sorcerer_starting_creation"]["supported_starting_levels"], [1, 2, 3, 4, 5])
         blob = json.dumps(catalog, sort_keys=True)
         self.assertNotIn("class_tables", blob)
@@ -413,7 +415,7 @@ class NoGameplayChangeTests(unittest.TestCase):
 
     def test_data_files_hold_no_book_prose(self):
         for name in CLASSES:
-            text = (TABLE_DIR / f"{name.lower()}.json").read_text(encoding="utf-8")
+            text = class_tables.table_path(name).read_text(encoding="utf-8")
             data = json.loads(text)
             names = {f for row in data["levels"].values() for f in row["features"]}
             self.assertTrue(all(len(f) <= 48 for f in names), name)

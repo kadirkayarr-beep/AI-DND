@@ -99,7 +99,6 @@ class CharacterCreation2024Tests(unittest.TestCase):
                 "Defense",
                 "Dueling",
                 "Great Weapon Fighting",
-                "Protection",
                 "Two-Weapon Fighting",
             },
         )

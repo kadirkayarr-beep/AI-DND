@@ -85,6 +85,9 @@ def settings(session, actor, *, notify_features=True):
     if not isinstance(rules, dict):
         raise ValueError("Invalid authoritative Initiative rules.")
     contributions = [rules]
+    if actor == "player":
+        import fighter_features
+        contributions.append(fighter_features.initiative_rules(data))
     if notify_features:
         contributions.extend(notify(session, "ON_INITIATIVE_ROLL", {"actor_id": actor}))
     modifiers, advantages, disadvantages = [], [], []

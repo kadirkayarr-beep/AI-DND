@@ -833,8 +833,10 @@ def _perform_skill_check(
     if check_feature is not None:
         barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
     rage_advantage = barbarian_rage.strength_advantage(_session(), "player", ability)
+    import fighter_features
+    athlete_advantage = fighter_features.remarkable_athlete_check(_session().character, skill, ability)
     pace_advantage, pace_disadvantage = timed_gameplay.pace_effects(_session().world_state, skill)
-    advantage = bool(advantage or pace_advantage or rage_advantage)
+    advantage = bool(advantage or pace_advantage or rage_advantage or athlete_advantage)
     disadvantage = bool(disadvantage or pace_disadvantage)
     modifier = modifiers[ability]
     is_proficient = skill in proficient_skills
@@ -2059,6 +2061,10 @@ def _player_state_for_save():
         saved["subclass_id"] = copy.deepcopy(character["subclass_id"])
     if "hit_dice" in character:  # K07: spent Hit Point Dice and the open Short Rest window (additive, absent in older saves)
         saved["hit_dice"] = dict(character["hit_dice"])
+    if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
+        saved["fighter_uses"] = dict(character["fighter_uses"])
+    if character.get("fighting_style") is not None:  # additive: the style keeps applying after a load
+        saved["fighting_style"] = character["fighting_style"]
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -2720,6 +2726,11 @@ def load_game(path):
         character.pop("hit_dice", None)
         if "hit_dice" in player:
             character["hit_dice"] = dict(player["hit_dice"])
+        character.pop("fighter_uses", None)
+        if "fighter_uses" in player:
+            character["fighter_uses"] = dict(player["fighter_uses"])
+        if "fighting_style" in player:
+            character["fighting_style"] = player["fighting_style"]
         if "progression_level" in player:
             character["progression_level"] = player["progression_level"]
         if player.get("metamagic"):
@@ -4471,6 +4482,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
     if action in {"short_rest", "long_rest"}:
         import barbarian_rage
         barbarian_rage.prepare_restore(_session())
+        import character_progression
+        character_progression.prepare_rest(_session())
         if action == "long_rest":
             import sorcery_points
             sorcery_points.prepare_restore(_session())
@@ -4504,6 +4517,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 # interrupted Long Rest after an hour grants one, not all uses.
                 import barbarian_rage
                 barbarian_rage.restore(_session(), "short_rest")
+                character_progression.rest_recovery(_session(), "short_rest")
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
                 "effects": interrupted_effects,
@@ -4729,6 +4743,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         effects["hit_dice"] = hit_dice.open_window(_session())  # K07: the player spends dice one request at a time
         import barbarian_rage
         barbarian_rage.restore(_session(), "short_rest")
+        character_progression.rest_recovery(_session(), "short_rest")
         message = (
             "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
             if species == "Orc"
@@ -4774,6 +4789,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         sorcery_points.restore(_session())
         import barbarian_rage
         barbarian_rage.restore(_session(), "long_rest")
+        character_progression.rest_recovery(_session(), "long_rest")
         _session().world_state["last_long_rest_completed_at"] = _session().world_state["campaign_time"]["elapsed_seconds"]
         message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
 
@@ -4783,6 +4799,11 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             raise ValueError("Çatışma sırasında Hit Point Dice harcanamaz.")
         effects = hit_dice.spend(_session(), heal_player)
         message = f"Bir Hit Point Die harcandı; {effects['healing']} can puanı yenilendi."
+
+    elif action == "second_wind":
+        import fighter_features
+        effects = fighter_features.second_wind_outside_combat(_session())
+        message = f"Second Wind kullanıldı; {effects['healing']} can puanı yenilendi."
 
     else:
         raise ValueError("Bilinmeyen tür yeteneği.")

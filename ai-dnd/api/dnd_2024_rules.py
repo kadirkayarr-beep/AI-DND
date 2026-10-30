@@ -680,7 +680,7 @@ CLASS_DEFINITIONS = {
         "primary_ability": "strength",
         "saving_throws": ["strength", "constitution"],
         "skill_count": 2,
-        "skill_options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"],
+        "skill_options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Persuasion", "Perception", "Survival"],
         "armor_proficiencies": ["Light", "Medium", "Heavy", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
         "features": ["Dövüş Stili (Fighting Style)", "İkinci Nefes (Second Wind)", "Silah Ustalığı (Weapon Mastery)"],
@@ -690,7 +690,6 @@ CLASS_DEFINITIONS = {
             {"id": "Defense", "name_tr": "Savunma (+1 Zırh Sınıfı Bonusu)"},
             {"id": "Dueling", "name_tr": "Düello (Tek Elle Silah Kullanırken +2 Hasar)"},
             {"id": "Great Weapon Fighting", "name_tr": "Büyük Silah Dövüşü (İki Elle Silah Zarlarında 1 ve 2'leri Yenile)"},
-            {"id": "Protection", "name_tr": "Koruma (Yanındaki Müttefike Yapılan Saldırıyı Zorlaştır)"},
             {"id": "Two-Weapon Fighting", "name_tr": "Çift Silah Dövüşü (Bonus Eylem Saldırısına Yetenek Bonusunu Ekle)"},
         ],
         "equipment_packages": [
@@ -1049,11 +1048,13 @@ def get_equipment_armor_and_shield(
 
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
-    from character_progression import sorcerer_starting_creation_options, barbarian_starting_creation_options
+    from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
+                                       sorcerer_starting_creation_options)
 
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
+        "fighter_starting_creation": fighter_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),

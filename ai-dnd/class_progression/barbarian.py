@@ -9,7 +9,8 @@ import copy
 from typing import Any
 
 import character_progression as core
-from class_progression.base import ClassProgression
+from class_progression import noncaster
+from class_progression.base import ClassProgression, EXTRA_ATTACK_ATTACKS  # noqa: F401
 
 
 BARBARIAN_SKILLS = ("Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival")
@@ -198,37 +199,18 @@ def _barbarian_four_prerequisite(session) -> str | None:
         core._validate_con_caches(character)
         if type(character.get("armor_class")) is not int or character["armor_class"] < 0:
             return "previous_barbarian_armor_class_invalid"
-        options = core._barbarian_asi_options(session)
-        if not options:
-            return "no_supported_asi_choices"
-        increase = options[0]["increase"]
-        projected = core._project_selected_asi_hp(character, 4, {"increase": increase})
-        context = core._score_context(character, saved=False)
-        for change in projected["feat_delta"]["changes"]:
-            context["scores"][change["ability"]] = change["to"]
-        context.update(level=max(character["level"], 4), applied_level=4, asi_choices=core._selected_asi_record(increase))
-        check = core._check_detached_asi_consistency(**context)
-        if not check["consistent"]:
-            return check["reason"]
+        return noncaster.asi_consistency_problem(character, core._barbarian_asi_options(session))
     except (ValueError, KeyError, TypeError):
         return "previous_level_three_state_invalid"
     return None
 
 
 FAST_MOVEMENT_FT = 10  # Barbarian Fast Movement, features table level 5 (+10 ft Speed)
-EXTRA_ATTACK_ATTACKS = 2  # Barbarian Extra Attack, features table level 5 (two attacks instead of one)
 
 
 def barbarian_level_five_applied(character: Any) -> bool:
-    """The only source of level-5 Barbarian features: applied level 5 of the selected Berserker.
-
-    Cheap on purpose (Speed and attack allowance read it often); the retained choices behind it are admitted by `validate_saved`
-    on every save, restore and level-up, so a numeric XP level 5 or a forged field never reaches here with a valid state.
-    """
-    return (isinstance(character, dict) and character.get("class") == "Barbarian"
-            and type(character.get("level")) is int and type(character.get("progression_level")) is int
-            and character["progression_level"] == 5 and character["level"] >= 5
-            and character.get("subclass_id") == "berserker")
+    """The only source of level-5 Barbarian features: applied level 5 of the selected Berserker (the shared entitlement)."""
+    return HANDLER.extra_attack_applied(character)
 
 
 def fast_movement_bonus_ft(character: Any, world: Any) -> int:
@@ -292,32 +274,6 @@ def _check_level_choices(session, preview, choices):
     return None
 
 
-def _apply_barbarian_two(session, preview):
-    import spell_scope
-    character = session.character
-    new_character = copy.deepcopy(character)
-    to_level = preview["to_level"]
-    changes = []
-    if not preview["hit_points"]["already_applied"]:
-        gain = preview["hit_points"]["gain"]
-        new_character["max_hp"] += gain
-        if new_character["current_hp"] > 0:
-            new_character["current_hp"] += gain
-        changes.append({"kind": "hit_points", "gain": gain})
-    new_character["level"] = max(new_character["level"], to_level)
-    new_character["progression_level"] = to_level
-    new_character["proficiency_bonus"] = core.proficiency_bonus_for_level(new_character["level"])
-    try:
-        spell_scope.validate(session.world_state.get("spellcasting_v1"), new_character)
-        core.validate_saved(new_character, session.world_state)
-    except ValueError:
-        return core._reject("resulting_state_invalid")
-    character.clear()
-    character.update(new_character)
-    changes.append({"kind": "level", "from": preview["from_level"], "to": to_level})
-    return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
-
-
 def _apply_barbarian_three(session, preview, choices):
     snapshot = session._capture_runtime_snapshot()
     try:
@@ -354,83 +310,14 @@ def _apply_barbarian_three(session, preview, choices):
         "effects_pending": list(preview["effects_pending"])}
 
 
-def _apply_barbarian_five(session, preview):
-    """Atomic noncaster level 5: XP already paid Hit Points and Proficiency Bonus; no choice, Rage refill or new resource."""
-    snapshot = session._capture_runtime_snapshot()
-    had_format = "_persisted_engine_format" in session.__dict__
-    previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-    try:
-        character = copy.deepcopy(session.character)
-        character["progression_level"] = 5
-        session.character.clear()
-        session.character.update(character)
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        core.validate_saved(session.character, session.world_state)
-        session._validate_save_payload(session.serialize_game_state())
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        if had_format:
-            session._persisted_engine_format = previous_format
-        else:
-            session.__dict__.pop("_persisted_engine_format", None)
-        return core._reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None, "changes": [{"kind": "level", "from": 4, "to": 5}],
-            "effects_pending": list(preview["effects_pending"])}
-
-
-def _apply_barbarian_four(session, preview, choices):
-    """Atomic noncaster ASI; no Rage/Hit Dice refill and no caster fabrication."""
-    projection = core._project_selected_asi_hp(session.character, 4, {"increase": choices["asi"]["increase"]})
-    if projection["status"] != "projected":
-        return core._reject(projection["reason"])
-    snapshot = session._capture_runtime_snapshot()
-    had_format = "_persisted_engine_format" in session.__dict__
-    previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-    try:
-        character = copy.deepcopy(session.character)
-        old_con_modifier = (character["constitution"] - 10) // 2
-        base = projection["unpaid_base_gain"]
-        character["max_hp"] += base
-        if character["current_hp"] > 0:
-            character["current_hp"] += base
-        character.update(level=max(4, character["level"]), progression_level=4,
-                         asi_choices=core._selected_asi_record(choices["asi"]["increase"]))
-        core._apply_asi_score_delta(character, projection["feat_delta"])
-        con_delta = character["constitution_mod"] - old_con_modifier
-        if con_delta:
-            # Choice admission checked the old canonical total, never guesses
-            # whether inventory armor/shields are worn or contributing extras.
-            character["armor_class"] += con_delta
-        session.character.clear()
-        session.character.update(character)
-        session.set_player_max_hp(projection["resulting_maximum"])
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        core.validate_saved(session.character, session.world_state)
-        # Full canonical serialized admission follows combat synchronization.
-        session._validate_save_payload(session.serialize_game_state())
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        if had_format:
-            session._persisted_engine_format = previous_format
-        else:
-            session.__dict__.pop("_persisted_engine_format", None)
-        return core._reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None,
-            "changes": [{"kind": "level", "from": 3, "to": 4},
-                        {"kind": "hit_points", "gain": base},
-                        {"kind": "maximum_hit_points", "gain": projection["retroactive_max_gain"]},
-                        {"kind": "asi", "feat_delta": projection["feat_delta"]}],
-            "effects_pending": list(preview["effects_pending"])}
-
-
 class Barbarian(ClassProgression):
     name = "Barbarian"
     supported_level = 5
     selected_asi = True
+    extra_attack_level = 5
+
+    def progression_path_verified(self, character):
+        return character.get("subclass_id") == "berserker"
 
     def validate_class_fields(self, player):
         _validate_primal_knowledge(player)
@@ -487,9 +374,6 @@ class Barbarian(ClassProgression):
     def adoption(self, world):
         return {"rage_adopted": "rage_v1" in world}
 
-    def attacks_per_attack_action(self, character):
-        return EXTRA_ATTACK_ATTACKS if barbarian_level_five_applied(character) else 1
-
     def speed_bonus_ft(self, character, world):
         return fast_movement_bonus_ft(character, world)
 
@@ -528,10 +412,10 @@ class Barbarian(ClassProgression):
         if preview["to_level"] == 3:
             return _apply_barbarian_three(session, preview, choices)
         if preview["to_level"] == 5:
-            return _apply_barbarian_five(session, preview)
+            return noncaster.apply_earned_final_step(session, preview)
         if preview["to_level"] == 4:
-            return _apply_barbarian_four(session, preview, choices)
-        return _apply_barbarian_two(session, preview)
+            return noncaster.apply_asi_step(session, preview, choices, armor_class_has_con=True)
+        return noncaster.apply_plain_step(session, preview)
 
     def validate_start_choices(self, level, level_choices):
         if level > 5:

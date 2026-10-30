@@ -28,6 +28,7 @@ from class_progression.barbarian import (  # noqa: F401
     EXTRA_ATTACK_ATTACKS,
     FAST_MOVEMENT_FT,
 )
+from class_progression.fighter import fighter_starting_creation_options  # noqa: F401
 from class_progression.sorcerer import sorcerer_starting_creation_options  # noqa: F401
 
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
@@ -288,6 +289,16 @@ def fast_movement_bonus_ft(character: Any, world: Any) -> int:
     return _handler_of(character).speed_bonus_ft(character, world)
 
 
+def prepare_rest(session: Any) -> None:
+    """Refuse a rest over invalid class state before the clock moves (the existing rest owner calls this)."""
+    _handler_of(session.character).prepare_rest(session)
+
+
+def rest_recovery(session: Any, kind: str) -> None:
+    """Class feature recovery when a rest finished (the existing rest owner calls this)."""
+    _handler_of(session.character).rest_recovery(session, kind)
+
+
 def _handler_of(character: Any) -> Any:
     return for_class(character.get("class") if isinstance(character, dict) else None)
 
@@ -442,7 +453,7 @@ def create_at_level(session: Any, spec: dict[str, Any], level: int = 1, level_ch
             raise ValueError(f"choices_required_for_levels_{','.join(missing)}")
     snapshot = session._capture_runtime_snapshot()
     try:
-        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice"):
+        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice", "fighter_uses"):
             session.character.pop(field, None)
         configure_character(session, mode="custom", **spec)
         if level >= 4:
