@@ -48,13 +48,17 @@ def data_for(session, actor):
     return matches[0]
 
 
-def incapacitated(data):
+def condition_names(data):
     names = data.get("conditions", [])
     if isinstance(names, dict):
         names = [k for k, v in names.items() if v]
     if not isinstance(names, (list, set, tuple)):
         raise ValueError("Invalid authoritative Initiative conditions.")
-    return bool({str(k).lower() for k in names} & INCAPACITATING
+    return {str(k).lower() for k in names}
+
+
+def incapacitated(data):
+    return bool(condition_names(data) & INCAPACITATING
                 or data.get("combat_status") == "unconscious" or data.get("current_hp", 1) <= 0)
 
 
@@ -103,6 +107,12 @@ def settings(session, actor, *, notify_features=True):
             if not isinstance(sources, list) or any(not isinstance(s, str) or not s.strip() for s in sources):
                 raise ValueError("Invalid Initiative roll source.")
             dest.extend(sources)
+    # PHB2024 Exhaustion affects every D20 Test, including Initiative checks.
+    # Reuse the existing condition validator; import locally to avoid module initialization cycles.
+    from weapon_attack import exhaustion
+    exhaustion_level = exhaustion(data)
+    if exhaustion_level:
+        modifiers.append({"source": "exhaustion_2024", "value": -2 * exhaustion_level})
     if len({m["source"] for m in modifiers}) != len(modifiers):
         raise ValueError("Duplicate Initiative modifier source.")
     surprised = data.get("surprised_at_combat_start", False)
@@ -112,6 +122,8 @@ def settings(session, actor, *, notify_features=True):
         disadvantages.append("surprise_2024")
     if incapacitated(data):
         disadvantages.append("incapacitated_2024")
+    if "invisible" in condition_names(data):
+        advantages.append("invisible_2024")
     group = data.get("initiative_group_id")
     block = data.get("stat_block_id")
     if group is not None and (actor == "player" or not isinstance(group, str) or not group.strip()

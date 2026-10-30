@@ -28,4 +28,7 @@ export const EconomyStepInputKind = {
   search: 'search',
   study: 'study',
   utilize: 'utilize',
+  convert_spell_slot: 'convert_spell_slot',
+  activate_rage: 'activate_rage',
+  extend_rage: 'extend_rage',
 } as const;

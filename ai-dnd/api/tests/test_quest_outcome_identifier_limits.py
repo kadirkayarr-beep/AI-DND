@@ -22,7 +22,7 @@ from api.session_manager import SessionManager
 
 
 from api.auth import FixedAuthenticator
-from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 SPEC_PATH = Path(__file__).resolve().parents[3] / "lib/api-spec/openapi.yaml"
 OUTCOME_SCHEMA = yaml.safe_load(SPEC_PATH.read_text())["components"]["schemas"]["QuestOutcome"]
 QUEST_ID = "quest." + "q" * 114
@@ -224,7 +224,7 @@ class NoModelClient:
 
 class QuestOutcomeIdentifierApiTests(OutcomeAssertions, unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.manager = SessionManager()
+        self.manager = TestPlayerSessionManager()
         adapter = AuthenticatedOllamaAdapter(NoModelClient())
         self.enterContext(adapter.engine_binding())
         self.http = httpx.AsyncClient(

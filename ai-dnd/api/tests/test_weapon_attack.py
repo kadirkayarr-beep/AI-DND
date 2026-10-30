@@ -188,7 +188,7 @@ class WeaponTests(unittest.TestCase):
                                if npc["id"] == n["id"])
         expected_target["current_hp"] = 100 - damage
         expected_world["combat"]["turn_resources"]["player"]["weapon_sequence"] = {
-            "attacks": 1, "light_weapon_ids": [], "light_used": False,
+            "attacks": 1, "attack_rolls": 1, "light_weapon_ids": [], "light_used": False,
             "cleave_used": False, "loading_origins": [],
             "active_action_key": "action:0", "action_index": 1,
         }

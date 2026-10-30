@@ -107,7 +107,8 @@ class HttpEvidenceTests(unittest.TestCase):
                        "action_economy": {"actors": {"commoner": budget}}},
             "bounded_encounter": {"visible_opponent": near},
         }
-        dash = {"action": "monster_dash"}
+        # The verifier asserts the real dash event shape.
+        dash = {"action": "monster_dash", "status": "resolved", "outcome": "dash"}
         started = {"state": state, "events": [dash]}
         attack = {"action": "enemy_attack", "target_id": "player",
                   "weapon_id": "commoner_club", "attack_bonus": 2,

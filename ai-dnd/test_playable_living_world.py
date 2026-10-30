@@ -1025,10 +1025,16 @@ class PlayableLivingWorldTests(unittest.TestCase):
             self.assertEqual(result["action_result"]["action"], "dialogue")
             self.assertEqual(result["action_result"]["status"], "conversation_started")
             self.assertEqual(result["action_result"]["npc_id"], npc["id"])
-            self.assertIn("Seni dinliyorum", result["narration"])
             self.assertEqual(
                 result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
             )
+        # The first opening is the plain line; a repeat varies instead of echoing it.
+        self.assertIn("Seni dinliyorum", first["narration"])
+        self.assertIn(
+            second["narration"],
+            [line.format(name="Marek") for line in game._CONVERSATION_OPENINGS],
+        )
+        self.assertNotEqual(first["narration"], second["narration"])
         self.assertEqual(self.world["flags"]["active_npc_id"], npc["id"])
 
     def test_local_place_question_to_orin_uses_current_scene_not_verification_fallback(self):

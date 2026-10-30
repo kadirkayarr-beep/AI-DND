@@ -3,6 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 import game
+from api.tests.speech_double import reply, routed_chat, speech_packet
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 class EmptyNarrationSourceRegression(unittest.TestCase):
@@ -25,9 +26,10 @@ class EmptyNarrationSourceRegression(unittest.TestCase):
                                 "topic_relation": "new",
                                 "candidate_evidence_ids": [],
                             }},
-            "narration": narration
         }
-        with patch("game.ollama.chat", return_value={"message": {"content": json.dumps(payload)}}) as provider:
+        # The default NPC route asks for one structured speech packet.
+        chat = routed_chat({"intent": reply(payload), "speech": speech_packet(narration)})
+        with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(message, interaction_mode="say")
         self.assertEqual(provider.call_count, 1)
         self.assertTrue(result["narration"].strip())

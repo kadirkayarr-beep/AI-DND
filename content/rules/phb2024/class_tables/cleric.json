@@ -1,0 +1,372 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "class": "Cleric",
+  "features_table": {
+   "pdf_page": 69,
+   "printed_page": 70
+  },
+  "verification": {
+   "level": "dual-source+render-read",
+   "package_label": "TAM_GORSEL (package author's narrow visual check; not independent)",
+   "package": "AI-DND-C06-PHB-KAYNAK-20261030 (local, never copied into the repo)",
+   "package_file": "ilerleme/cleric_1_20.md",
+   "release": "kaynak_paketler/Cleric/release_v1",
+   "dual_source": "package ilerleme table equals the older accepted release table in the archive PHB_20261028_e7d6b0bd/Cleric_20261028/release_v1/cleric.md cell for cell (script comparison, 0 differences)",
+   "render_read": "all numeric and feature cells re-read by an AI visual pass of the release render pdf069.png on 2026-10-30; not human certification",
+   "ocr_suspects_on_page": "none: PDF ordinal absent from SAYISAL_OCR_ADAYLARI.json (641 items) and SUPHELI_SAYFALAR.json; OCR_DUZELTME_KAYDI covers other pages",
+   "printed_page_basis": "footer read on the render",
+   "subclass_names_basis": "class intro sentence in the accepted release text (not re-read on the render)",
+   "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
+  },
+  "unverified_cells": [],
+  "scope": "progression table only; no feature effects, spell lists or choices"
+ },
+ "levels": {
+  "1": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Spellcasting",
+    "Divine Order"
+   ],
+   "channel_divinity": null,
+   "cantrips": 3,
+   "prepared_spells": 4,
+   "slots": {
+    "1": 2
+   }
+  },
+  "2": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Channel Divinity"
+   ],
+   "channel_divinity": 2,
+   "cantrips": 3,
+   "prepared_spells": 5,
+   "slots": {
+    "1": 3
+   }
+  },
+  "3": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Cleric Subclass"
+   ],
+   "channel_divinity": 2,
+   "cantrips": 3,
+   "prepared_spells": 6,
+   "slots": {
+    "1": 4,
+    "2": 2
+   }
+  },
+  "4": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "channel_divinity": 2,
+   "cantrips": 4,
+   "prepared_spells": 7,
+   "slots": {
+    "1": 4,
+    "2": 3
+   }
+  },
+  "5": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Sear Undead"
+   ],
+   "channel_divinity": 2,
+   "cantrips": 4,
+   "prepared_spells": 9,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 2
+   }
+  },
+  "6": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Subclass feature"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 4,
+   "prepared_spells": 10,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3
+   }
+  },
+  "7": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Blessed Strikes"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 4,
+   "prepared_spells": 11,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 1
+   }
+  },
+  "8": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 4,
+   "prepared_spells": 12,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 2
+   }
+  },
+  "9": {
+   "proficiency_bonus": 4,
+   "features": [],
+   "channel_divinity": 3,
+   "cantrips": 4,
+   "prepared_spells": 14,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 1
+   }
+  },
+  "10": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Divine Intervention"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 15,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2
+   }
+  },
+  "11": {
+   "proficiency_bonus": 4,
+   "features": [],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 16,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1
+   }
+  },
+  "12": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 16,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1
+   }
+  },
+  "13": {
+   "proficiency_bonus": 5,
+   "features": [],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 17,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1
+   }
+  },
+  "14": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Improved Blessed Strikes"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 17,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1
+   }
+  },
+  "15": {
+   "proficiency_bonus": 5,
+   "features": [],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 18,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1
+   }
+  },
+  "16": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 18,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1
+   }
+  },
+  "17": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Subclass feature"
+   ],
+   "channel_divinity": 3,
+   "cantrips": 5,
+   "prepared_spells": 19,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "18": {
+   "proficiency_bonus": 6,
+   "features": [],
+   "channel_divinity": 4,
+   "cantrips": 5,
+   "prepared_spells": 20,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 1,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "19": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Epic Boon"
+   ],
+   "channel_divinity": 4,
+   "cantrips": 5,
+   "prepared_spells": 21,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 2,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "20": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Greater Divine Intervention"
+   ],
+   "channel_divinity": 4,
+   "cantrips": 5,
+   "prepared_spells": 22,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 2,
+    "7": 2,
+    "8": 1,
+    "9": 1
+   }
+  }
+ },
+ "subclass_levels": [
+  3,
+  6,
+  17
+ ],
+ "asi_levels": [
+  4,
+  8,
+  12,
+  16
+ ],
+ "epic_boon_level": 19,
+ "subclass_options": {
+  "phb2024:subclass:cleric:life-domain": {
+   "name": "Life Domain"
+  },
+  "phb2024:subclass:cleric:light-domain": {
+   "name": "Light Domain"
+  },
+  "phb2024:subclass:cleric:trickery-domain": {
+   "name": "Trickery Domain"
+  },
+  "phb2024:subclass:cleric:war-domain": {
+   "name": "War Domain"
+  }
+ }
+}

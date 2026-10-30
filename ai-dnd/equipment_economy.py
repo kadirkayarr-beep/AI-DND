@@ -37,8 +37,161 @@ def containers(world):
     for box in world.get("containers", []):
         if isinstance(box, dict) and "contents" in box:
             yield f'container:{box.get("id")}', box["contents"]
+    surfaces = world.get("surface_items", {})
+    if isinstance(surfaces, dict):
+        for feature_id, items in surfaces.items():
+            yield f"surface:{feature_id}", items
     if world.get("ground_items"):
         yield "legacy_ground", world["ground_items"]
+
+
+SURFACE_ITEM_LIMIT = 8
+SURFACE_MARK_LIMIT = 4
+SURFACE_MARK_TEXT_LIMIT = 120
+
+
+def _surface_feature(world, feature_id):
+    """A surface is a visible feature of the player's current location."""
+    import living_world
+    for feature in living_world.visible_features(world, world.get("location")):
+        if feature.get("id") == feature_id:
+            return feature
+    fail("surface_not_available")
+
+
+def _surface_holding(world, item_id):
+    """Feature id of a visible surface that holds this item, else None."""
+    for feature_id, items in (world.get("surface_items") or {}).items():
+        if any(isinstance(i, dict) and i.get("item_id") == item_id for i in items):
+            try:
+                _surface_feature(world, feature_id)
+            except EquipmentError:
+                continue
+            return feature_id
+    return None
+
+
+def _valid_mark_text(text):
+    return (isinstance(text, str) and bool(text.strip())
+            and len(text) <= SURFACE_MARK_TEXT_LIMIT
+            and len(text.splitlines()) == 1 and text.isprintable())
+
+
+def _prune_surfaces(world):
+    surfaces = world.get("surface_items")
+    if isinstance(surfaces, dict):
+        for feature_id in [k for k, v in surfaces.items() if not v]:
+            del surfaces[feature_id]
+
+
+def _validate_surfaces(world):
+    feature_ids = {f.get("id") for f in world.get("features", []) if isinstance(f, dict)}
+    surfaces = world.get("surface_items", {})
+    if not isinstance(surfaces, dict):
+        fail("invalid_surface_items")
+    for feature_id, items in surfaces.items():
+        if (feature_id not in feature_ids or not isinstance(items, list) or not items
+                or len(items) > SURFACE_ITEM_LIMIT
+                or any(not isinstance(i, dict) for i in items)):
+            fail("invalid_surface_items")
+    marks = world.get("feature_marks", {})
+    if not isinstance(marks, dict):
+        fail("invalid_feature_marks")
+    seen = set()
+    for feature_id, entries in marks.items():
+        if (feature_id not in feature_ids or not isinstance(entries, list) or not entries
+                or len(entries) > SURFACE_MARK_LIMIT):
+            fail("invalid_feature_marks")
+        for mark in entries:
+            if (not isinstance(mark, dict) or set(mark) != {"mark_id", "text", "turn"}
+                    or not isinstance(mark["mark_id"], str) or mark["mark_id"] in seen
+                    or not _valid_mark_text(mark["text"])
+                    or type(mark["turn"]) is not int or mark["turn"] < 0):
+                fail("invalid_feature_marks")
+            seen.add(mark["mark_id"])
+    sequence = world.get("feature_mark_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        fail("invalid_feature_marks")
+
+
+def apply_scheduled_surface_effect(world, effect, location_id, event_id):
+    """One approved small table event (called only by scheduled_events._occur).
+
+    Everything is checked before anything is mutated, so a refused effect leaves
+    the world untouched. The acting NPC must be present and alive in the event's
+    location and the feature must belong to it. Only that NPC gets a
+    `witnessed:<event_id>` note; the player gets nothing. Returns True if applied.
+    """
+    import relationships
+    npc = next((n for n in world.get("npcs", [])
+                if isinstance(n, dict) and n.get("id") == effect["npc_id"]), None)
+    feature = next((f for f in world.get("features", [])
+                    if isinstance(f, dict) and f.get("id") == effect["feature_id"]), None)
+    if (npc is None or feature is None or npc.get("location") != location_id
+            or feature.get("location") != location_id or not npc_can_act(npc)):
+        return False
+    reason = f"witnessed:{event_id}"
+    try:
+        # Prove the note will fit BEFORE anything moves, so a refusal is clean.
+        relationships.note({"relationships": copy.deepcopy(world.get("relationships") or {})},
+                           npc["id"], 0, reason)
+    except ValueError:
+        return False
+    feature_id = effect["feature_id"]
+    if effect["kind"] == "mark_remove":
+        marks = (world.get("feature_marks") or {}).get(feature_id) or []
+        target = next((m for m in marks if m.get("mark_id") == effect["mark_id"]), None)
+        if target is None:
+            return False
+        marks.remove(target)
+        if not marks:
+            del world["feature_marks"][feature_id]
+    else:
+        shelf = (world.get("surface_items") or {}).get(feature_id) or []
+        item = next((i for i in shelf if isinstance(i, dict) and i.get("item_id") == effect["item_id"]), None)
+        if item is None or "inventory" in npc and not isinstance(npc["inventory"], list):
+            return False
+        move(world, item, shelf, npc.setdefault("inventory", []), "ground")
+        _prune_surfaces(world)
+    relationships.note(world, npc["id"], 0, reason)
+    return True
+
+
+def resolve_table_absence(world, location_id, event_id):
+    """Apply one armed absence: the oldest mark, otherwise the first item.
+
+    The acting NPC is the first one who can still act in this place. Returns
+    False before any mutation when nobody can act or the table is already clear.
+    """
+    npc = next((record for record in world.get("npcs", [])
+                if isinstance(record, dict) and record.get("location") == location_id
+                and npc_can_act(record)), None)
+    if npc is None:
+        return False
+    features = [feature for feature in world.get("features", [])
+                if isinstance(feature, dict) and feature.get("location") == location_id
+                and isinstance(feature.get("id"), str)]
+    marks = []
+    for feature in features:
+        for mark in (world.get("feature_marks") or {}).get(feature["id"]) or []:
+            if isinstance(mark, dict) and isinstance(mark.get("mark_id"), str):
+                turn = mark.get("turn", 0)
+                marks.append((turn if type(turn) is int else 0, mark["mark_id"], feature["id"]))
+    if marks:
+        _, mark_id, feature_id = min(marks)
+        return apply_scheduled_surface_effect(world, {
+            "kind": "mark_remove", "feature_id": feature_id,
+            "mark_id": mark_id, "npc_id": npc["id"],
+        }, location_id, event_id)
+    for feature in sorted(features, key=lambda record: record["id"]):
+        item = next((record for record in (world.get("surface_items") or {}).get(feature["id"]) or []
+                     if isinstance(record, dict) and isinstance(record.get("item_id"), str)), None)
+        if item is not None:
+            return apply_scheduled_surface_effect(world, {
+                "kind": "surface_item_custody", "feature_id": feature["id"],
+                "item_id": item["item_id"], "npc_id": npc["id"],
+            }, location_id, event_id)
+    return False
 
 
 def item_transfers(before, after):
@@ -111,6 +264,7 @@ def validate_world(world):
     if (not isinstance(claimed, list) or any(not isinstance(x, str) for x in claimed)
             or len(set(claimed)) != len(claimed)):
         fail("invalid_reward_receipts")
+    _validate_surfaces(world)
 
 
 def sync_equipment_identities(world):
@@ -286,12 +440,17 @@ def npc_at(world, identity):
     if len(found) != 1:
         fail("npc_unknown")
     npc = found[0]
-    if (npc.get("location") != world["location"] or npc.get("alive") is False
-            or npc.get("dead") or npc.get("current_hp", 1) <= 0
-            or npc.get("state") in {"dead", "unconscious", "removed"}
-            or npc.get("combat_status") in {"dead", "unconscious", "defeated"}):
+    if npc.get("location") != world["location"] or not npc_can_act(npc):
         fail("npc_unavailable")
     return npc
+
+
+def npc_can_act(npc):
+    """One liveness rule for trades and for scheduled table events."""
+    return not (npc.get("alive") is False
+                or npc.get("dead") or npc.get("current_hp", 1) <= 0
+                or npc.get("state") in {"dead", "unconscious", "removed"}
+                or npc.get("combat_status") in {"dead", "unconscious", "defeated"})
 
 
 def clear_equipment(world, actor, item):
@@ -481,6 +640,13 @@ def _apply(world, operation, args):
         ground = world.get("ground_items_by_location", {}).get(world["location"], [])
         lines.extend(f'Yerde: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
                      for i in ground)
+        for feature_id, shelf in (world.get("surface_items") or {}).items():
+            try:
+                surface = _surface_feature(world, feature_id)
+            except EquipmentError:
+                continue
+            lines.extend(f'{surface["name"]}: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
+                         for i in shelf if isinstance(i, dict))
         for shop in world.get("shops", []):
             if shop.get("location") != world["location"]:
                 continue
@@ -520,11 +686,42 @@ def _apply(world, operation, args):
             if identity not in world.get("claimed_item_rewards", []):
                 lines.append(f'Ödül kaydı: /item reward {identity} ({reward.get("currency_cp", 0)} CP; tamamlanma gerekli)')
         return "\n".join(lines)
+    if operation == "place" and len(args) == 2:
+        item = one(inventory, args[0])
+        feature = _surface_feature(world, args[1])
+        shelf = world.setdefault("surface_items", {}).setdefault(feature["id"], [])
+        if len(shelf) >= SURFACE_ITEM_LIMIT:
+            fail("surface_full")
+        move(world, item, inventory, shelf, "player")
+        return f'{item["name"]} [{item["item_id"]}] şuraya bırakıldı: {feature["name"]}.'
+    if operation == "mark" and len(args) >= 2:
+        feature = _surface_feature(world, args[0])
+        text = " ".join(args[1:]).strip()
+        if not _valid_mark_text(text):
+            fail("invalid_mark_text")
+        entries = world.setdefault("feature_marks", {}).setdefault(feature["id"], [])
+        if len(entries) >= SURFACE_MARK_LIMIT:
+            fail("mark_limit_reached")
+        used = {m["mark_id"] for ms in world["feature_marks"].values() for m in ms}
+        # Monotonic: a removed mark's id is never handed to a newer mark.
+        number = world.get("feature_mark_sequence", 0) + 1
+        while f"mark_{number:03d}" in used:
+            number += 1
+        world["feature_mark_sequence"] = number
+        entries.append({"mark_id": f"mark_{number:03d}", "text": text,
+                        "turn": world.get("flags", {}).get("turn_index", 0)})
+        return f'İz kaydedildi: {feature["name"]}.'
     if operation in {"drop", "take"} and len(args) == 1:
         ground = world.setdefault("ground_items_by_location", {}).setdefault(world["location"], [])
         source, destination = (inventory, ground) if operation == "drop" else (ground, inventory)
+        if operation == "take" and not any(
+                isinstance(i, dict) and i.get("item_id") == args[0] for i in ground):
+            holder = _surface_holding(world, args[0])
+            if holder is not None:
+                source = world["surface_items"][holder]
         item = one(source, args[0])
         move(world, item, source, destination, "player" if operation == "drop" else "ground")
+        _prune_surfaces(world)
     elif operation == "equip" and len(args) == 2:
         item, hand = one(inventory, args[0]), args[1]
         weapon = lookup(item.get("weapon_id"))
@@ -708,3 +905,21 @@ def legacy_sword_move(session, dropping):
         world.clear()
         world.update(before)
         return "Python durumu: Eşya kimliğini belirtmelisin; envanter değişmedi."
+
+
+def validate_worn_armor(world, character, engine_format):
+    """Selected new-creation known-unarmored fact, not a general armor owner."""
+    if 'worn_armor_v1' not in world:
+        return
+    proof = world['worn_armor_v1']
+    if (type(engine_format) is not int or engine_format not in (4, 5, 6)
+            or character.get('class') != 'Barbarian'
+            or type(proof) is not dict or set(proof) != {'version', 'armor_id'}
+            or type(proof['version']) is not int or proof['version'] != 1
+            or proof['armor_id'] is not None):
+        fail('invalid_worn_armor_provenance')
+
+
+def initialize_unarmored_proof(session):
+    """Called only by verified new-character equipment selection, never load."""
+    session.world_state['worn_armor_v1'] = {'version': 1, 'armor_id': None}

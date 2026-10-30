@@ -1,4 +1,4 @@
-import { defineConfig, InputTransformerFn } from "orval";
+import { defineConfig, InputTransformerFn, type ZodOptions } from "orval";
 import path from "path";
 
 const root = path.resolve(__dirname, "..", "..");
@@ -11,6 +11,31 @@ const titleTransformer: InputTransformerFn = (config) => {
   config.info.title = "Api";
 
   return config;
+};
+
+// Orval8.30 drops strictness for zero-property objects. Its supported `never`
+// value schema emits an empty JSON record: accepts {} and rejects JSON-valued keys.
+// Orval emits optional never; non-JSON undefined-valued own keys are outside wire scope.
+// This is Zod-only input lowering; published OpenAPI remains additionalProperties:false.
+const levelUpZodTransformer: InputTransformerFn = (config) => {
+  const transformed = titleTransformer(config);
+  const empty = transformed.components?.schemas?.BarbarianLevel2Choices;
+  if (!empty || "$ref" in empty || empty.additionalProperties !== false
+      || Object.keys(empty.properties ?? {}).length !== 0) {
+    throw new Error("Expected strict empty BarbarianLevel2Choices component");
+  }
+  empty.additionalProperties = { type: "never" } as never;
+  return transformed;
+};
+
+// Orval 8.30 normalizes omitted operation-level coerce entries to false.
+// Share the inherited values explicitly when adding only request strictness;
+// the Zod version remains output-level because operation version is unsupported.
+const sharedZodCoerce: ZodOptions["coerce"] = {
+  query: ['boolean', 'number', 'string'],
+  param: ['boolean', 'number', 'string'],
+  body: ['bigint', 'date'],
+  response: ['bigint', 'date'],
 };
 
 export default defineConfig({
@@ -44,7 +69,7 @@ export default defineConfig({
     input: {
       target: "./openapi.yaml",
       override: {
-        transformer: titleTransformer,
+        transformer: levelUpZodTransformer,
       },
     },
     output: {
@@ -56,17 +81,22 @@ export default defineConfig({
       clean: true,
       prettier: true,
       override: {
+        operations: {
+          playGameTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
+          playLegacyTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
+          createCampaign: { zod: { strict: { body: true } } },
+          createLegacyCampaign: { zod: { strict: { body: true } } },
+          // Empty noncaster choices must not swallow invalid objects in the union.
+          applyGameSessionLevelUp: { zod: {
+            strict: { body: true },
+          } },
+        },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no
           // zod dependency, so orval >= 8.23 falls back to Zod 4 syntax while
           // the catalog installs zod 3. Pin to match the catalog.
           version: 3,
-          coerce: {
-            query: ['boolean', 'number', 'string'],
-            param: ['boolean', 'number', 'string'],
-            body: ['bigint', 'date'],
-            response: ['bigint', 'date'],
-          },
+          coerce: sharedZodCoerce,
         },
         useDates: true,
         useBigInt: true,

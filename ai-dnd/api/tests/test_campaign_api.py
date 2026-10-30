@@ -45,6 +45,7 @@ from api.persistence.campaign_models import (
 )
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.speech_double import bare_speech
 from api.tests.auth_fixture import TEST_PLAYER
 
 
@@ -95,6 +96,34 @@ async def create_city_with_locked_tavern(test_case):
     test_case.assertTrue(door["locked"])
     test_case.assertFalse(door["open"])
     return city_id, session_id, session, turn_url, tavern_id, door
+
+
+def _first_json(text):
+    """First JSON value in `text`; the prompt block after it is not part of the context."""
+    return json.JSONDecoder().raw_decode(text.lstrip())[0]
+
+
+def _first_json_text(text):
+    """The exact text of the first JSON value in `text` (the context block)."""
+    body = text.lstrip()
+    _, end = json.JSONDecoder().raw_decode(body)
+    return body[:end]
+
+
+class PublicDetailSpeechClient:
+    """Answers the single structured speech call with a fixed public detail."""
+
+    def __init__(self, line):
+        self.line = line
+        self.calls = 0
+
+    def list(self):
+        return {"models": [{"model": "qwen3:8b"}]}
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        return {"message": {"content": json.dumps(
+            {"spoken_text": self.line, "stage_direction": ""}, ensure_ascii=False)}}
 
 
 class FakeOllamaClient:
@@ -152,6 +181,26 @@ class ControlledShopSetupOllamaClient(FakeOllamaClient):
 
 
 class CapturingConversationContextClient(ControlledVenueOllamaClient):
+    model_provenance = "scripted_test_double"  # never reported as a real model result
+
+    PROFILE_TOPICS = (
+        (("şu an ne yapıyorsun",), "current_activity"),
+        (("neden buraya geldin", "arıyorsun"), "reason_for_being_here"),
+        (("mesleğin", "ne iş yapıyorsun"), "occupation"),
+        (("nereli", "nereden geldin"), "origin"),
+    )
+
+    @classmethod
+    def profile_field_for_message(cls, message, focus=None):
+        """The profile field this packet asks about, from the packet itself (message, then its own focus)."""
+        folded = str(message).casefold()
+        for phrases, field in cls.PROFILE_TOPICS:
+            if any(phrase in folded for phrase in phrases):
+                return field
+        if isinstance(focus, dict) and ("neden" in folded or "niye" in folded):
+            return focus.get("predicate")
+        return None
+
     def __init__(self):
         super().__init__(intent="narrative")
         self.message_batches = []
@@ -165,6 +214,42 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
         messages = copy.deepcopy(kwargs.get("messages", []))
         schema = kwargs.get("format", {})
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        if "spoken_text" in properties:
+            # Default NPC route: one structured speech packet. The scripted reply's
+            # narration is the line; there is no classifier proposal on this route.
+            self.message_batches.append(messages)
+            classifier_keys = {"conversation", "interaction", "operation", "quote",
+                               "include_interaction", "include_conversation",
+                               "include_narration"}
+            reply = {}
+            if self.conversation_replies and not (
+                classifier_keys & set(self.conversation_replies[0])
+            ):
+                # Classifier proposals stay queued for a classifier-route turn.
+                reply = self.conversation_replies.pop(0)
+            line = reply.get("narration")
+            if line is None:
+                # W02: a faithful model answers from the CURRENT packet (the player's message and this packet's focus),
+                # never from state left by an earlier request.
+                user = next(m["content"] for m in reversed(messages) if m.get("role") == "user")
+                marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+                facts, focus = [], None
+                if marker in user:
+                    context, _ = json.JSONDecoder().raw_decode(user.split(marker, 1)[1].lstrip())
+                    facts = context.get("shareable_profile_facts") or []
+                    focus = context.get("conversation_focus")
+                current_message = user.rsplit("Current player message: ", 1)[-1].splitlines()[0] if "Current player message: " in user else ""
+                wanted = self.profile_field_for_message(current_message, focus)
+                line = next(
+                    (fact["value"] for fact in facts
+                     if isinstance(fact, dict) and wanted is not None
+                     and fact.get("field") == wanted
+                     and isinstance(fact.get("value"), str)),
+                    "Bu konuda doğrulanmış bir bilgi yok.",
+                )
+            return {"message": {"content": json.dumps(
+                {"spoken_text": bare_speech(line), "stage_direction": ""},
+                ensure_ascii=False)}}
         if "intent" in properties:
             self.intent_schemas.append(copy.deepcopy(schema))
             self.message_batches.append(messages)
@@ -238,6 +323,8 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
             }
             reply = self.conversation_replies.pop(0) if self.conversation_replies else {}
             proposal = reply.get("conversation", proposal)
+            chosen = (proposal.get("candidate_evidence_ids") or [None])[0]
+            self.last_profile_field = chosen.rsplit(":", 1)[-1] if chosen else None
             if reply.get("include_interaction", True):
                 if isinstance(reply.get("interaction"), dict):
                     packet["interaction"] = copy.deepcopy(reply["interaction"])
@@ -400,6 +487,11 @@ class RecordedStoneworkOllamaClient(FakeOllamaClient):
 
 
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
+    def _without_intent_guard(self):
+        """Race tests below exercise the lower optimistic-revision layer with several sessions on one campaign.
+        The play-turn intent guard (test_roadmap_r02_intents) would refuse their concurrent distinct ids first."""
+        self.enterContext(patch.object(SessionManager, "claim_action_intent", return_value={"outcome": "claimed"}))
+
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.store = CampaignStore(
@@ -659,6 +751,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             if npc.get("id") == marek["id"]
         )
         self.assertEqual(current_marek["memory"], memory_before_failed_save)
+        # The failed focus save is unresolved (rolled back, but the commit boundary is unknown), so a different move is
+        # refused until the player retries it or gives it up. Giving it up is the real, owner-authenticated player flow:
+        # the server writes a durable refusal (no receipt exists) and answers not_applied.
+        refused_other = await say("neden kilitli")
+        self.assertEqual(refused_other.status_code, 409, refused_other.text)
+        self.assertEqual(refused_other.json()["detail"]["unresolved_action_id"], failed_focus_action_id)
+        abandoned = await self.http.post(
+            f"/api/game/sessions/{session_id}/actions/{failed_focus_action_id}/abandon"
+        )
+        self.assertEqual(abandoned.json()["state"], "not_applied", abandoned.text)
         calls_before_replay = len(client.message_batches)
         replay = await say("Buralarda han var mı Marek?", tavern_action_id)
         self.assertEqual(replay.status_code, 200, replay.text)
@@ -732,9 +834,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for item in reversed(batch)
             if marker in item.get("content", "")
         )
-        scene_context = json.loads(
-            message.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
-        )
+        scene_context = _first_json(message.split(marker, 1)[1])
         def latest_scene_context():
             latest = next(
                 item["content"]
@@ -742,9 +842,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 for item in reversed(batch)
                 if marker in item.get("content", "")
             )
-            return json.loads(
-                latest.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
-            )
+            return _first_json(latest.split(marker, 1)[1])
 
         focus_in_model_context = scene_context["conversation_focus"]
         self.assertEqual(scene_context["addressee"]["npc_id"], marek["id"])
@@ -820,7 +918,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             short_scene["conversation_focus"]["subject_id"], door["id"]
         )
-        self.assertEqual(short_scene["addressee"]["npc_id"], marek["id"])
+        # The speech context carries the speaker id at the top level.
+        self.assertEqual(short_scene["npc_id"], marek["id"])
 
         other_topic = await say("Marek, bugün hava nasıl?")
         self.assertEqual(other_topic.status_code, 200, other_topic.text)
@@ -962,7 +1061,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         context_text = json.dumps(messages, ensure_ascii=False)
         marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         payload = next(
-            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            _first_json_text(item["content"].split(marker, 1)[1])
             for item in messages
             if marker in item.get("content", "")
         )
@@ -1069,7 +1168,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         changed_messages = client.message_batches[-1]
         changed_payload = next(
-            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            _first_json_text(item["content"].split(marker, 1)[1])
             for item in changed_messages
             if marker in item.get("content", "")
         )
@@ -1207,9 +1306,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 for item in client.message_batches[-1]
                 if marker in item.get("content", "")
             )
-            return json.loads(
-                content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
-            )["conversation_focus"]
+            return _first_json(content.split(marker, 1)[1])["conversation_focus"]
 
         first = await say("Buralarda han var mı Marek?")
         self.assertEqual(first.status_code, 200, first.text)
@@ -1280,9 +1377,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for item in client.message_batches[-1]
             if marker in item.get("content", "")
         )
-        scene = json.loads(
-            content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
-        )
+        scene = _first_json(content.split(marker, 1)[1])
         self.assertIsNone(scene["conversation_focus"])
         self.assertNotEqual(
             (scene["conversation_focus"] or {}).get("subject_id"), door["id"]
@@ -1463,7 +1558,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         messages = client.message_batches[-1]
         scene_text = next(
-            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            _first_json_text(item["content"].split(marker, 1)[1])
             for item in messages
             if marker in item.get("content", "")
         )
@@ -1534,7 +1629,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 for item in messages
                 if marker in item.get("content", "")
             )
-            raw = content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            raw = json.dumps(_first_json(content.split(marker, 1)[1]))
             return json.loads(raw), json.dumps(messages, ensure_ascii=False)
 
         direct = await post("Marek, neden buraya geldin?")
@@ -4336,9 +4431,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(entered.status_code, 200, entered.text)
             self.assertEqual(len(entry_plans), 1)
-            direct = entry_plans[0].get("direct_result")
-            self.assertIsInstance(direct, dict)
-            self.assertEqual(direct.get("action"), "enter")
+            # Entry is resolved by the grounded-action owner: blocked at the door,
+            # bound to the venue the failed break referred to.
+            direct = engine_results[-1]
+            self.assertEqual(direct.get("action"), "grounded_action")
             self.assertEqual(direct.get("status"), "blocked")
             self.assertIs(direct.get("success"), False)
             self.assertEqual(direct.get("target_id"), venue_id)
@@ -4865,19 +4961,32 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     entry_plans.append(copy.deepcopy(result))
                 return result
 
-            with patch.object(session, "plan_living_world_turn", new=capture_plan):
-                retry = await self.http.post(
-                    turn_url,
-                    json={
-                        "message": "İçeri giriyorum.",
-                        "action_id": str(uuid.uuid4()),
-                    },
-                )
+            retry_results = []
+            real_retry_turn = session.run_player_turn
+
+            @wraps(real_retry_turn)
+            def capture_retry(*args, **kwargs):
+                result = real_retry_turn(*args, **kwargs)
+                retry_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            # The failed save was rolled back but whether the commit reached the disk is unknown, so the id stays
+            # unresolved: a DIFFERENT uuid is refused (and changes nothing), the SAME id is the safe retry.
+            other = await self.http.post(
+                turn_url, json={"message": "İçeri giriyorum.", "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(other.status_code, 409, other.text)
+            self.assertEqual(other.json()["detail"]["code"], "unresolved_action")
+            self.assertEqual(other.json()["detail"]["unresolved_action_id"], failed_entry_body["action_id"])
+            self.assertEqual(session.serialize_game_state(), before_entry)
+            with patch.object(session, "plan_living_world_turn", new=capture_plan),                     patch.object(session, "run_player_turn", new=capture_retry):
+                retry = await self.http.post(turn_url, json=failed_entry_body)
             self.assertEqual(retry.status_code, 200, retry.text)
             self.assertEqual(retry.json()["state"]["location"], city_id)
             self.assertEqual(len(entry_plans), 1)
-            direct = entry_plans[0].get("direct_result")
-            self.assertIsInstance(direct, dict)
+            # Entry is resolved by the grounded-action owner and stays blocked.
+            direct = retry_results[-1]
+            self.assertEqual(direct.get("action"), "grounded_action")
             self.assertEqual(direct.get("status"), "blocked")
             self.assertEqual(direct.get("target_id"), venue_id)
             self.assertEqual(
@@ -7476,6 +7585,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json()["detail"], {
                     "code": "engine_error",
                     "message": "The game turn could not be completed.",
+                    "not_applied": True,
                 })
                 self.assertEqual(rejections, ["Ölü karakter eylem gerçekleştiremez."])
                 self.assertEqual(
@@ -7658,6 +7768,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(response.json()["detail"], {
                             "code": "engine_error",
                             "message": "The game turn could not be completed.",
+                            "not_applied": True,
                         })
                         # Positive HP rejects during real death-state validation,
                         # before the zero-HP dead-action gate or any lore answer.
@@ -7794,6 +7905,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json()["detail"], {
                     "code": "engine_error",
                     "message": "The game turn could not be completed.",
+                    "not_applied": True,
                 })
                 self.assertEqual(rejections, ["Bilinçsiz karakter eylem gerçekleştiremez."])
                 self.assertEqual(
@@ -8478,6 +8590,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.world_state["npcs"].append(target)
         with patch.object(session.rng, "randint", side_effect=[20, 1]):
             session.start_combat(target)
+        # W01: the projection only shows a name for an NPC that is still in the world (a missing id fails closed),
+        # so the scripted second attacker is a canonical, player-known NPC like the real flow.
+        session.world_state["npcs"].append({
+            "id": "npc_archer", "name": "Archer", "location": session.world_state["location"],
+            "combat_status": "active", "current_hp": 10, "max_hp": 10, "armor_class": 10, "memory": []})
         received_target_ids = []
 
         def attack_turn(_message, *, target_id=None):
@@ -10244,6 +10361,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(receipt_rows(), committed_receipts)
 
     async def test_stale_city_cannot_overwrite_merchant_discovery_but_can_replay(self):
+        self._without_intent_guard()
         city_id = "fr:city:neverwinter"
         created_response = await self.http.post(
             "/api/game/campaigns",
@@ -10696,6 +10814,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_first_merchant_save_race_timeout_drains_worker_before_teardown(self):
+        self._without_intent_guard()
         worker_entered = threading.Event()
         release_worker = threading.Event()
         worker_finished = threading.Event()
@@ -10798,6 +10917,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
         post_save_receipt_error=None,
     ):
+        self._without_intent_guard()
         if changed_payload:
             self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
@@ -11581,6 +11701,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=False)
 
     async def _assert_recovered_merchant_timeout_cleanup(self, *, timeout_winner):
+        self._without_intent_guard()
         worker_entered = threading.Event()
         release_worker = threading.Event()
         worker_finished = threading.Event()
@@ -11681,6 +11802,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def _assert_recovered_merchant_search_save_race(
         self, *, shared_action, changed_payload=False, paused_receipt_error=None,
     ):
+        self._without_intent_guard()
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
             "/api/game/campaigns",
@@ -13846,9 +13968,22 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             reopened_store.get_turn_action(campaign_id, body["action_id"])
                         )
                         before = reopened_store.get_campaign(campaign_id)
-                        response = await http.post(
-                            f"/api/game/sessions/{session_id}/turn", json=body
-                        )
+                        speech_client = None
+                        if profile_field == "personal_detail":
+                            # "Peki sen, ..." is two clauses: the NPC speaks its public
+                            # detail through the one structured speech call.
+                            speech_client = PublicDetailSpeechClient(
+                                npc["personal_profile"]["personal_detail"]
+                            )
+                        with patch.object(
+                            reopened_app.state.ollama_adapter, "_client",
+                            speech_client or reopened_app.state.ollama_adapter._client,
+                        ):
+                            response = await http.post(
+                                f"/api/game/sessions/{session_id}/turn", json=body
+                            )
+                        if speech_client is not None:
+                            self.assertEqual(speech_client.calls, 1)
                         self.assertEqual(response.status_code, 200, response.text)
                         turn = response.json()
                         self.assertEqual(turn["action_id"], body["action_id"])
@@ -13869,6 +14004,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(action["status"], "answered_from_campaign_state")
                             self.assertEqual(action["query_type"], "npc_identity")
                             self.assertIn(npc["role"], narration)
+                        elif profile_field == "personal_detail":
+                            self.assertEqual(action["action"], "dialogue")
+                            self.assertEqual(action["status"], "experimental_attributed_speech")
+                            self.assertEqual(
+                                narration,
+                                f'{npc["name"]}: “{npc["personal_profile"][profile_field]}”',
+                            )
                         else:
                             self.assertEqual(action["action"], "dialogue")
                             self.assertEqual(action["status"], "answered_personal_question")

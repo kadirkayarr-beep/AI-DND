@@ -1,0 +1,294 @@
+{
+  "model": "qwen3.5:9b-q4_K_M",
+  "method": "same settings and scene per old/new comparison, keep all outputs; human rubric, no model judge",
+  "cases": [
+    {
+      "id": "warm_identity",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Selam, ismin nedir?",
+      "criterion": "Correct name; natural introduction, not mandatory occupation paragraph.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_day",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Günün nasıl geçiyor?",
+      "criterion": "Relevant daily answer; no unsupported elapsed game event.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_job",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Burada iş bulabilir miyim?",
+      "criterion": "Concrete playable offer, relevant refusal or useful direction; not counter scratch.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_place",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Buralarda bir han var mı?",
+      "criterion": "Existing or atomically prepared real destination with exact name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_followup",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "İsmi nedir?",
+      "criterion": "Resolve last mentioned inn, not NPC name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_two_part",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Adın ne, burada ne iş yapıyorsun?",
+      "criterion": "Address both subjects naturally, not a generic greeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_disagreement",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Bence bu hiç mantıklı değil.",
+      "criterion": "Personality-consistent disagreement, not arbitrary hostility.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "warm_return",
+      "persona": {
+        "id": "warm",
+        "temperament": "Sıcakkanlı, meraklı ve ölçülü esprili."
+      },
+      "role": "bartender",
+      "input": "Yeniden merhaba, geçen konuşmamıza devam edelim.",
+      "criterion": "Same NPC and established relationship; no forced first meeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_identity",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Selam, ismin nedir?",
+      "criterion": "Correct name; natural introduction, not mandatory occupation paragraph.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_day",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Günün nasıl geçiyor?",
+      "criterion": "Relevant daily answer; no unsupported elapsed game event.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_job",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Burada iş bulabilir miyim?",
+      "criterion": "Concrete playable offer, relevant refusal or useful direction; not counter scratch.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_place",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Buralarda bir han var mı?",
+      "criterion": "Existing or atomically prepared real destination with exact name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_followup",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "İsmi nedir?",
+      "criterion": "Resolve last mentioned inn, not NPC name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_two_part",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Adın ne, burada ne iş yapıyorsun?",
+      "criterion": "Address both subjects naturally, not a generic greeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_disagreement",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Bence bu hiç mantıklı değil.",
+      "criterion": "Personality-consistent disagreement, not arbitrary hostility.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "reserved_return",
+      "persona": {
+        "id": "reserved",
+        "temperament": "Temkinli, kısa konuşan ve dürüst."
+      },
+      "role": "bartender",
+      "input": "Yeniden merhaba, geçen konuşmamıza devam edelim.",
+      "criterion": "Same NPC and established relationship; no forced first meeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_identity",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Selam, ismin nedir?",
+      "criterion": "Correct name; natural introduction, not mandatory occupation paragraph.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_day",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Günün nasıl geçiyor?",
+      "criterion": "Relevant daily answer; no unsupported elapsed game event.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_job",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Burada iş bulabilir miyim?",
+      "criterion": "Concrete playable offer, relevant refusal or useful direction; not counter scratch.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_place",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Buralarda bir han var mı?",
+      "criterion": "Existing or atomically prepared real destination with exact name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_followup",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "İsmi nedir?",
+      "criterion": "Resolve last mentioned inn, not NPC name.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_two_part",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Adın ne, burada ne iş yapıyorsun?",
+      "criterion": "Address both subjects naturally, not a generic greeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_disagreement",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Bence bu hiç mantıklı değil.",
+      "criterion": "Personality-consistent disagreement, not arbitrary hostility.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    },
+    {
+      "id": "formal_return",
+      "persona": {
+        "id": "formal",
+        "temperament": "Resmî, ayrıntıcı ve sorumluluk sahibi."
+      },
+      "role": "bartender",
+      "input": "Yeniden merhaba, geçen konuşmamıza devam edelim.",
+      "criterion": "Same NPC and established relationship; no forced first meeting.",
+      "repetitions": 3,
+      "status": "not_run_live"
+    }
+  ]
+}

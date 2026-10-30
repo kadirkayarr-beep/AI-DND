@@ -88,7 +88,7 @@ VERBS: tuple[tuple[str, str], ...] = (
     ("climb", r"(?:tirman)"),
     # Pushing a door ("itip açmaya çalışıyorum") is trying to open it, not forcing it.
     ("open", r"(?:ac(?!ik|il)|kaldir|cevir|bastir|it(?=iyor|ip|erek|mek|meye|eyim|er))"),
-    ("force", r"(?:zorla|kir(?!m?iz|li|ik)|omuzla|tekmele|parcala|yik(?=iyor|ip|mak|maya))"),
+    ("force", r"(?:zorla|zorlu(?=yor)|kir(?!m?iz|li|ik)|omuzla|tekmele|parcala|yik(?=iyor|ip|mak|maya))"),
     ("close", r"(?:kapat|kapa(?=yor|r|di|mak|maya))"),
     ("read", r"(?:oku(?!l))"),
     ("touch", r"(?:dokun|yokla|elle|cek(?=iyor|ip|mek|meye|erek))"),
@@ -200,7 +200,7 @@ def split_clauses(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     return merged, speech
 
 
-def _registered_target_name_covers(tokens: list[str], index: int, cands) -> bool:
+def _registered_target_name_covers(tokens: list[str], index: int, cands, *, strict=False) -> bool:
     """Do not read a conditional-looking token as grammar inside a known name."""
     for candidate in cands or ():
         for name in candidate.get("names", ()) if isinstance(candidate, dict) else ():
@@ -210,10 +210,14 @@ def _registered_target_name_covers(tokens: list[str], index: int, cands) -> bool
             low = max(0, index - len(words) + 1)
             high = min(index, len(tokens) - len(words))
             for start in range(low, high + 1):
-                if all(
-                    token_matches(word, tokens[start + offset])
-                    for offset, word in enumerate(words)
-                ):
+                matches = (
+                    _condition_name_phrase_matches(words, tokens[start:start + len(words)])
+                    if strict else all(
+                        token_matches(word, tokens[start + offset])
+                        for offset, word in enumerate(words)
+                    )
+                )
+                if matches:
                     return True
     return False
 
@@ -769,10 +773,25 @@ def plan(session, player_input: str) -> dict[str, Any]:
             verb_for_bind = "search"
         else:
             verb_for_bind = verb
-        binding = bind(goal_tokens, cands, world=world, verb=verb_for_bind)
+        binding_candidates = cands
+        if verb in {"go", "approach", "enter"} and _place_noun_in(goal_tokens):
+            # "Damaia ile hana": the explicitly named companion is not the
+            # destination. This is binding only, not consent or an escort grant.
+            companion_ids = {
+                candidate["id"] for candidate in cands if candidate["kind"] == "npc"
+                and any(
+                    goal_tokens[index:index + len(name.split()) + 1] == [*name.split(), "ile"]
+                    for name in candidate["names"] if name
+                    for index in range(len(goal_tokens))
+                )
+            }
+            binding_candidates = [candidate for candidate in cands
+                                  if candidate["id"] not in companion_ids]
+        binding = bind(goal_tokens, binding_candidates, world=world, verb=verb_for_bind)
         condition_binding = _condition_target_binding(pending_condition, cands, world)
+        effective_verb = "search" if purpose and purpose["verb"] == "search" else verb
         step = {
-            "verb": "search" if purpose and purpose["verb"] in {"search"} else verb,
+            "verb": effective_verb,
             "method": verb if purpose else None,
             "negated": info["negated"],
             "attempt": info["attempt"],
@@ -791,6 +810,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
             "other": any(t in {"baska", "diger", "farkli"} for t in tokens),
             "detail": _detail_in(goal_tokens),
             "place_noun": _place_noun_in(goal_tokens),
+            "requires_open_place": effective_verb == "search" and bool(_place_noun_in(goal_tokens))
+                and any(t in {"acik", "acilmis"} for t in goal_tokens)
+                and not any(t in {"olmayan", "degil"} for t in goal_tokens),
             "not_now": info.get("not_now", False),
         }
         if step["place_noun"]:
@@ -902,8 +924,19 @@ def _foreign_object(tokens, verb_index, step, cands) -> str | None:
     if verb_index is None:
         return None
     index = verb_index - 1
-    while index >= 0 and (_ADVERBS.match(tokens[index]) or _CONDITION_WORD.match(tokens[index])):
-        index -= 1
+    # Instrument/manner phrases modify the act, not its direct object. Keep
+    # looking left so "kitabı maymuncukla açıyorum" still belongs to the book,
+    # never to a nearby door. This does not grant possession of any tool.
+    while index >= 0:
+        word = tokens[index]
+        if _ADVERBS.match(word) or _CONDITION_WORD.match(word):
+            index -= 1
+        elif word == "ile" and index > 1:
+            index -= 2
+        elif index > 0 and re.fullmatch(r"[a-z]{3,}(?:yla|yle|la|le)", word):
+            index -= 1
+        else:
+            break
     if index < 0:
         return None
     word = tokens[index]
@@ -915,7 +948,10 @@ def _foreign_object(tokens, verb_index, step, cands) -> str | None:
         return None
     for cand in cands:
         names = [n for n in cand["names"] if n] + [n for n in cand["nouns"] if n]
-        if any(token_matches(w, word) for n in names for w in n.split()):
+        # A fuzzy name hit is not evidence that an explicit object belongs to
+        # this resolver. E.g. "dalı" must not become the door of Dalia Hanı.
+        # Keep exact names and grammatical case endings, not typo distance.
+        if any(_condition_name_phrase_matches([w], [word]) for n in names for w in n.split()):
             return None
     return word
 
@@ -1300,7 +1336,7 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
     inside = f" İçeride {', '.join(people)} var." if people else " İçerisi sessiz."
     description = record.get("description") or ""
     return _receipt("enter", "completed", place,
-                    text=f"{prefix}{opened}{record.get('name')} içine giriyorsun. {description}{inside}".strip())
+                    text=f"{prefix}{opened}Kapıdan içeri giriyorsun. {record.get('name')} içindesin. {description}{inside}".strip())
 
 
 def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
@@ -1476,7 +1512,13 @@ def _open_container(run: _Run, step, key: str) -> dict[str, Any]:
 
 
 def _do_open(run: _Run, step) -> dict[str, Any]:
-    if step.get("part") == "lock":
+    tokens = step.get("tokens") or []
+    uses_lockpick = "maymuncukla" in tokens or any(
+        tokens[i:i + 2] == ["maymuncuk", "ile"] for i in range(len(tokens) - 1)
+    )
+    if step.get("part") == "lock" or (
+        uses_lockpick and (step.get("target") or {}).get("kind") == "door"
+    ):
         return _do_unlock(run, step)
     target = step.get("target")
     if step.get("detail") in _CONTAINERS and (target is None or target["kind"] == "feature"):
@@ -1533,10 +1575,21 @@ def _do_unlock(run: _Run, step) -> dict[str, Any]:
     improvised = next((label for label in labels if _IMPROVISED.search(fold(label))), None)
     policy = _lock_policy(door)
     if not tools and not improvised:
+        # The first refusal is the plain line; repeating the same attempt at the
+        # same door rotates through other wordings instead of echoing it.
+        words = policy["words"]
+        refusals = (
+            f"Kilide eğilip bakıyorsun: {words} bir kilit. Elinde maymuncuk ya da "
+            "ince bir alet yok; dilini çıplak parmakla oynatamıyorsun. Kapıyı çalabilir, "
+            "zorlayabilir ya da başka bir giriş arayabilirsin.",
+            f"Elinde maymuncuk ya da ince bir alet yok; kilitle bir kez daha uğraşsan da "
+            f"bu {words} kilit çıplak elle oynamaz.",
+            "Elinde maymuncuk ya da ince bir alet yok, bu yüzden kilitten bir şey çıkmaz. "
+            "Kapıyı çalmayı, zorlamayı ya da başka bir giriş aramayı deneyebilirsin.",
+        )
+        refusal = refusals[run.game._variation_index(("unlock_blocked", door.get("id")), len(refusals))]
         return _receipt("unlock", "blocked", door_target, reason="tools_required", door_state=_door_public(door),
-                        text=f"Kilide eğilip bakıyorsun: {policy['words']} bir kilit. Elinde maymuncuk ya da "
-                             "ince bir alet yok; dilini çıplak parmakla oynatamıyorsun. Kapıyı çalabilir, "
-                             "zorlayabilir ya da başka bir giriş arayabilirsin.")
+                        text=refusal)
     time_result = run.spend(policy["seconds"])
     if time_result.get("interrupted"):
         return _receipt("unlock", "blocked", door_target, reason="interrupted", text="Kilitle uğraşırken bir şey seni durduruyor.")
@@ -1769,7 +1822,56 @@ def _open_feature(run: _Run, target) -> dict[str, Any]:
     return _receipt("open", "blocked", target, reason="feature_closed", text=f"{feature.get('name')} {state}; açılmıyor.")
 
 
+def _quoted_pieces(value: str) -> list[str]:
+    """Quoted spans. A lone apostrophe in a name is not a quote."""
+    pairs = {'"': '"', "“": "”", "‘": "’", "'": "'"}
+    pieces: list[str] = []
+    index = 0
+    while index < len(value):
+        opening = value[index]
+        closing = pairs.get(opening)
+        if closing is None or (
+            opening in {"'", "‘"}
+            and index > 0
+            and (value[index - 1].isalnum() or value[index - 1] == "_")
+        ):
+            index += 1
+            continue
+        end = index + 1
+        while end < len(value):
+            if value[end] == closing:
+                next_char = value[end + 1] if end + 1 < len(value) else ""
+                if closing in {"'", "’"} and next_char and (next_char.isalnum() or next_char == "_"):
+                    end += 1
+                    continue
+                break
+            end += 1
+        if end == len(value):
+            index += 1
+        else:
+            piece = value[index + 1:end].strip()
+            if piece:
+                pieces.append(piece)
+            index = end + 1
+    return pieces
+
+
+def _readable_note(session, player_input: str) -> str | None:
+    """The words of a note the player is reading, when they are already in the sentence."""
+    import combat_lifecycle
+    if not combat_lifecycle.quoted_report(session, player_input):
+        return None
+    outside = living_world._text_outside_quotes(player_input)
+    if not re.search(r"\boku(?!l)", fold(outside)):
+        return None
+    note = " ".join(_quoted_pieces(player_input)).strip()
+    return note[:200] if note else None
+
+
 def _do_read(run: _Run, step) -> dict[str, Any]:
+    note = step.get("quoted_note")
+    if isinstance(note, str) and note.strip():
+        return _receipt("read", "completed", None, text=f"Notta şunlar yazıyor: “{note.strip()}”")
     target = step.get("target")
     if target is None and step.get("detail") in {"tabela", "ilan", "afis"}:
         return _observe_detail(run, step, step["detail"])
@@ -1915,11 +2017,12 @@ def _do_leave(run: _Run, step) -> dict[str, Any]:
 
 
 # --- searching ----------------------------------------------------------------
-def _places_of_kind(run: _Run, settlement: str, kind: str) -> list[str]:
+def _places_of_kind(run: _Run, settlement: str, kind: str, *, noun: str | None = None) -> list[str]:
     return [
         lid for lid, rec in run.world.get("locations", {}).items()
         if isinstance(rec, dict) and rec.get("parent_location_id") == settlement
-        and (rec.get("scene_kind") == kind or rec.get("place_kind") == kind)
+        and (rec.get("scene_kind") == kind or rec.get("place_kind") == kind
+             or (kind == "generic" and noun is not None and rec.get("generic_noun") == noun))
     ]
 
 
@@ -1939,6 +2042,8 @@ def _do_search(run: _Run, step, *, move: bool = False) -> dict[str, Any]:
     text = " ".join(tokens)
     method = step.get("method")
     how = "Tabelaları takip ederek " if method == "inspect" or any(t.startswith("tabela") for t in step.get("tokens", [])) else ""
+    if step.get("requires_open_place"):
+        return _search_open_place(run, step, settlement, move=move, how=how)
     if target and target["kind"] in {"reference", "place"} and not (step.get("other") and target["kind"] == "place"):
         record = _place_target(run, target)
         if record:
@@ -2002,6 +2107,44 @@ def _claim_contrast(run: _Run, ref, record) -> str:
     return ""
 
 
+def _search_open_place(run, step, settlement, *, move, how):
+    """Search saved observable access, without inventing hours or opening doors."""
+    noun, kind = step["place_noun"]
+    target = step.get("target")
+    if step.get("named") and target:
+        # A named search must not substitute another venue or materialize a rumour.
+        ids = [target["id"]] if target["kind"] == "place" else []
+    else:
+        # An unbound description may include an unknown proper name ("Zümrüt
+        # Dükkânı"). Do not discard that constraint and substitute any shop.
+        # Only a plain generic request may enumerate other saved venues.
+        words = step.get("goal_tokens") or []
+        words = re.sub(r"\bsu an\b", " ", " ".join(words)).split()
+        plain_generic = all(
+            _ADVERBS.fullmatch(word) or word in {"acilmis", "bsr", "hala"}
+            or npc_statements.place_kind_of(word) or _verb_of(word, "")
+            for word in words
+        )
+        ids = _places_of_kind(run, settlement, kind, noun=noun) if settlement and plain_generic else []
+    spent = run.spend(600)
+    if spent.get("interrupted"):
+        return _receipt("search", "blocked", None, reason="interrupted", text="Ararken bir şey yolunu kesiyor.")
+    near = run.memory.get("near_target_id")
+    for place_id in ids:
+        record = run.location(place_id)
+        door = run.door_for(place_id)
+        if (not record or record.get("hidden") or record.get("discovered") is False
+                or not door or door.get("hidden") or door.get("discovered") is False
+                or door.get("open") is not True or door.get("locked") is not False
+                or door.get("broken") is True):
+            continue
+        if step.get("other") and (place_id == run.here or near in {place_id, door.get("id")}):
+            continue
+        return _found_place(run, record, how=how, move=move, step=step)
+    return _receipt("search", "completed", None, found=False, reason="no_confirmed_open_place",
+                    text="Arıyorsun ama şu an açık olduğunu doğrulayabildiğin bir yer bulamıyorsun.")
+
+
 def _search_place_kind(run, step, settlement, noun, kind, *, move, how):
     other = step.get("other")
     refs = [r for r in npc_statements.place_references(run.world, settlement_id=settlement)
@@ -2020,7 +2163,7 @@ def _search_place_kind(run, step, settlement, noun, kind, *, move, how):
             if contrast:
                 result["text"] = f"{result['text']} {contrast}"
             return result
-    known = [lid for lid in _places_of_kind(run, settlement, kind) if lid != run.here]
+    known = [lid for lid in _places_of_kind(run, settlement, kind, noun=noun) if lid != run.here]
     visited_or_known = set(known) | {run.here}
     if known and not other:
         return _found_place(run, run.location(known[0]), how=how, move=move, step=step)
@@ -2302,6 +2445,16 @@ def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> l
 # ---------------------------------------------------------------------------
 # Public helpers used by older pipeline exits.
 # ---------------------------------------------------------------------------
+def enter_existing_place(session, location_id):
+    """Shared entry mechanics; the caller retains turn bookkeeping and receipt shape."""
+    run = _Run(session, "")
+    record = run.location(location_id)
+    if record is None:
+        return None
+    target = {"id": location_id, "kind": "place", "label": record.get("name"), "record": record}
+    return _enter(run, target)
+
+
 def clarification_text(session) -> str:
     cands = candidates(session)
     people = [c["label"] for c in cands if c["kind"] == "npc"][:4]
@@ -2336,6 +2489,17 @@ def place_hint(session, location_id: str) -> str | None:
 # ---------------------------------------------------------------------------
 # The turn
 # ---------------------------------------------------------------------------
+def _do_sit(run: _Run, step) -> dict[str, Any]:
+    """Sit through the single sit owner; a refusal is an obstacle, not progress."""
+    clause = " ".join(step.get("tokens") or []) or run.text
+    result = run.session.resolve_scene_seating(clause)
+    if result.get("success"):
+        seat = {"id": result.get("target_id"), "name": result.get("target_name")}
+        return _receipt("sit", "completed", seat, text=result.get("direct_response"))
+    reason = "ambiguous_seat" if result.get("status") == "clarification" else "no_seat"
+    return _receipt("sit", "blocked", None, reason=reason, text=result.get("direct_response"))
+
+
 HANDLERS = {
     "approach": lambda run, s: _do_move(run, s, "approach"),
     "go": lambda run, s: _do_move(run, s, "go"),
@@ -2354,10 +2518,60 @@ HANDLERS = {
     "listen": _do_listen,
     "touch": _do_touch,
     "wait": lambda run, s: _receipt("wait", "completed", None, text="Olduğun yerde bekliyorsun."),
+    "sit": _do_sit,
     "climb": _do_climb,
 }
 
 _LOOK_AROUND = re.compile(r"\b(?:etraf\w*|cevre\w*|sahne\w*|sag\w*\s+sol\w*)\b")
+
+
+def _direct_door_step(step) -> bool:
+    """Admit a complete current door command, not merely a noun-bound target."""
+    target = step.get("target") or {}
+    if target.get("kind") != "door" or step.get("verb") not in {"open", "enter", "force"}:
+        return False
+    if any(step.get(key) for key in ("negated", "reported", "not_now", "question", "condition")):
+        return False
+    tokens = step.get("tokens") or []
+    info = _read_clause({"tokens": tokens, "asked": False}, [target])
+    index = info.get("verb_index")
+    if index is None or info.get("verb") != step["verb"]:
+        return False
+    prefix, tail = tokens[:index], tokens[index:]
+    if step.get("foreign_object"):
+        return False
+    # A means of opening is not part of the registered door name. Possession
+    # and success are checked by the existing unlock owner, not this parser.
+    lockpick_prefix = prefix[-1:] == ["maymuncukla"] or prefix[-2:] == ["maymuncuk", "ile"]
+    if step["verb"] == "open":
+        if prefix[-1:] == ["maymuncukla"]:
+            prefix = prefix[:-1]
+        elif prefix[-2:] == ["maymuncuk", "ile"]:
+            prefix = prefix[:-2]
+    named = any(
+        len(name.split()) == len(prefix)
+        and _phrase_match_quality(name.split(), prefix) == 2
+        for name in target.get("names", ()) if name
+    )
+    implicit_entry = step["verb"] == "enter" and prefix in (["iceri"], ["icine"], ["iceriye"])
+    generic_door = (
+        len(prefix) == 1 and _phrase_match_quality(["kapi"], prefix) == 2
+    ) or (
+        len(prefix) == 2 and _place_noun_in(prefix[:1]) is not None
+        and _phrase_match_quality(["kapisi"], prefix[1:]) == 2
+    )
+    # Generic "try opening" already belongs to the legacy Athletics owner.
+    # Admit direct opening / explicit lockpick means without stealing that check.
+    generic_door = generic_door and step["verb"] == "open" and (not info.get("attempt") or lockpick_prefix)
+    if not (named or implicit_entry or generic_door):
+        return False
+    form = _verb_of(tail[0], tail[1] if len(tail) > 1 else "")
+    if not form or form[1]:
+        return False
+    return (len(tail) == 1 and not form[2]) or (
+        len(tail) == 2 and form[2] and info.get("attempt")
+        and bool(_ATTEMPT_WORD.fullmatch(tail[1]))
+    )
 
 
 def _owned_single_step(step, conditional_seen: bool = False) -> bool:
@@ -2371,6 +2585,8 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
     if verb == "wander":
         return True  # walking the streets: something real and saved turns up
     if verb == "search":
+        if step.get("requires_open_place"):
+            return True
         # Searching for a rumoured place, "another" one, a back way in: ours.
         # A plain search of the surroundings stays an Investigation check, and
         # a search for a known place keeps the existing local_search receipt.
@@ -2383,6 +2599,8 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # the lock or a part of the door, observed once, consistently
     if verb == "unlock" or (verb == "open" and step.get("part") == "lock"):
         return True  # "kilidi açmaya çalışıyorum": tools, a roll, or a concrete obstacle
+    if not conditional_seen and _direct_door_step(step):
+        return True
     if verb in {"go", "approach"} and step.get("outside"):
         return True
     if verb in {"go", "approach"} and kind is None and (step.get("place_noun") or (None, ""))[1] == "generic":
@@ -2489,6 +2707,11 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         return defer
     if session.character.get("current_hp", 0) <= 0 or world.get("player_combat_status") not in (None, "active"):
         return defer
+    note = _readable_note(session, player_input)
+    if note:
+        run = _Run(session, player_input)
+        step = {"verb": "read", "target": None, "negated": False, "quoted_note": note}
+        return "execute", (run, [step], {"steps": [step]})
     p = plan(session, player_input)
     if p["steps"] and p["steps"][0].get("not_now"):
         return defer  # "dün kırmayı denedim", "hedefim araştırmak": told, not done now
@@ -2528,7 +2751,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             return defer  # a named venue door already has its owner and contract
     except Exception:
         pass
-    if first["target"] is None and first["place_noun"] and not first["other"] \
+    if first["target"] is None and first["place_noun"] and not first["other"] and not first.get("requires_open_place") \
             and first["verb"] in {"search", "go", "enter", "wander"}:
         kind = first["place_noun"][1]
         settlement = _settlement(world)
@@ -2588,7 +2811,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             options = [c for c in p["candidates"] if c["kind"] in {"npc", "place", "door", "feature", "reference"}]
             return "clarify", (run, options[:4])
         return defer  # nothing to bind: older owners (people, travel) keep it
-    if steps[0]["ambiguous"]:
+    if steps[0]["ambiguous"] and not (steps[0].get("requires_open_place") and not steps[0].get("named")):
         return "clarify", (run, steps[0]["ambiguous"])
     return "execute", (run, steps, p)
 

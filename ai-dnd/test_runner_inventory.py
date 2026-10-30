@@ -35,6 +35,14 @@ class RunnerInventoryTests(unittest.TestCase):
             "test_startup.py", "test_sessions.py", "test_playable_living_world.py",
             "test_persistence.py", "test_combat.py", "test_combat_v2_authoritative.py",
             "api/tests/test_death_bounded.py", "api/tests/test_initiative.py",
+            "api/tests/test_intent_response_consistency.py",
+            "api/tests/test_local_model_selection.py",
+            "api/tests/test_npc_speech_identity_inflection.py",
+            "api/tests/test_npc_speech_question_boundary.py",
+            "api/tests/test_npc_player_address.py",
+            "api/tests/test_grounded_foreign_object_boundary.py",
+    "api/tests/test_grounded_instrument_target.py",
+    "api/tests/test_npc_scene_places.py",
             "test_local_exploration.py", "test_held_weapon.py", "test_monster_sense.py",
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
@@ -78,8 +86,8 @@ class RunnerInventoryTests(unittest.TestCase):
                                     for call in execute.call_args_list))
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
                             if len(call.args[0]) == 5]
-                self.assertEqual(len(receipts), 2)
-                self.assertEqual(len(set(receipts)), 2)
+                self.assertEqual(len(receipts), 10)
+                self.assertEqual(len(set(receipts)), 10)
                 self.assertTrue(all(not path.parent.exists() for path in receipts))
 
     def test_api_completion_evidence_must_be_valid_and_cannot_override_failure(self):

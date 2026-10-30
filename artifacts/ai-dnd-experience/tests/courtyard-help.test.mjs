@@ -41,11 +41,8 @@ test('help is absent without the current observable living encounter', () => {
   for (const change of changes) { const s=state(); change(s);
     assert.equal(Help({state:s, disabled:false, onDraft(){throw Error('must not act');}}), null); }
 });
-test('story wiring only fills editable input and focuses it; no turn submit', async () => {
+test('courtyard draft callback is connected to the experimental world control, with browser outcome covered separately', async () => {
   const source = await readFile('src/pages/game-browser.tsx', 'utf8');
-  const wiring = source.match(/<CourtyardHelp[\s\S]*?\}\} \/>/)?.[0];
-  assert.ok(wiring); assert.match(wiring, /setMessage\(text\)/);
-  assert.match(wiring, /setInteractionMode\('do'\)/);
-  assert.match(wiring, /messageInputRef.current\?\.focus/);
-  assert.doesNotMatch(wiring, /submitTurn|onSubmit|onExplorationCommand|onEconomyCommand/);
+  assert.match(source, /<CourtyardHelp state=\{state\} disabled=\{sending\} onDraft=\{\(text\) => onDraft\(text, 'do'\)\} \/>/);
+  assert.match(source, /setComposerOpen\(true\)/);
 });

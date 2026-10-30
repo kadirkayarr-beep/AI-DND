@@ -41,7 +41,7 @@ _ROWS = [
     ("Battleaxe", "martial", "melee", (1, 8), "slashing", "versatile", "topple", 4, 10, {"versatile": 10}),
     ("Flail", "martial", "melee", (1, 8), "bludgeoning", "", "sap", 2, 10, {}),
     ("Glaive", "martial", "melee", (1, 10), "slashing", "heavy reach two-handed", "graze", 6, 20, {}),
-    ("Greataxe", "martial", "melee", (1, 12), "slashing", "heavy two-handed", "cleave", 7, 30, {}),
+    ("Greataxe", "martial", "melee", (1, 12), "slashing", "heavy two-handed", "cleave", 7, 30, {"aliases": ["Büyük Balta (Greataxe)"]}),
     ("Greatsword", "martial", "melee", (2, 6), "slashing", "heavy two-handed", "graze", 6, 50, {}),
     ("Halberd", "martial", "melee", (1, 10), "slashing", "heavy reach two-handed", "cleave", 6, 20, {}),
     ("Lance", "martial", "melee", (1, 10), "piercing", "heavy reach two-handed", "topple", 6, 10, {}),

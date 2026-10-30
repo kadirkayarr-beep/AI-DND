@@ -7,6 +7,7 @@ import math
 import copy
 
 import campaign_time as clock
+import effect_lifecycle
 import living_world
 from scheduled_events import process_events, pending_events
 
@@ -262,11 +263,11 @@ def _advance(session, seconds, reason, observation=None):
     if reason == "travel_stage":
         return advance_walking(session, seconds, observation)
     before_elapsed = session.world_state["campaign_time"]["elapsed_seconds"]
-    result = clock.advance(
-        session.world_state, seconds, reason,
-        f"turn:{session.world_state.get('flags', {}).get('turn_index', 0)}",
-        observation=observation,
-    )
+    source = f"turn:{session.world_state.get('flags', {}).get('turn_index', 0)}"
+    result = clock.advance(session.world_state, seconds, reason, source, observation=observation)
+    # K03: timed effects consume the ACTUAL elapsed seconds of this step (the player's wait/sleep/task path).
+    result["effect_events"] = effect_lifecycle.advance_effects(
+        session, result["elapsed_seconds"], f"{source}@{before_elapsed}", "clock")
     import equipment_economy
     equipment_economy.process_supply_days(session, before_elapsed)
     return result
@@ -278,7 +279,7 @@ def advance_walking(session, seconds, observation=None):
     from api.core_resolution import resolve_saving_throw
     world = session.world_state
     before = clock.public_time(world)
-    elapsed, known, saves, death_results = 0, [], [], []
+    elapsed, known, saves, death_results, effect_events = 0, [], [], [], []
     interrupted = False
     while elapsed < seconds:
         time = world["campaign_time"]
@@ -289,10 +290,11 @@ def advance_walking(session, seconds, observation=None):
             effort = world["travel_effort"] = {"day": day, "walking_seconds": 0, "checks": []}
         amount = min(seconds - elapsed, clock.DAY - absolute % clock.DAY,
                      3600 - effort["walking_seconds"] % 3600)
-        advance = clock.advance(world, amount, "travel_stage",
-                               f"turn:{world.get('flags', {}).get('turn_index', 0)}",
-                               observation=observation)
+        source = f"turn:{world.get('flags', {}).get('turn_index', 0)}"
+        advance = clock.advance(world, amount, "travel_stage", source, observation=observation)
         actual = advance["elapsed_seconds"]
+        effect_events.extend(effect_lifecycle.advance_effects(
+            session, actual, f"{source}@{time['elapsed_seconds'] - actual}", "clock"))
         effort["walking_seconds"] += actual
         elapsed += actual
         known.extend(advance["player_known_events"])
@@ -325,7 +327,7 @@ def advance_walking(session, seconds, observation=None):
     return {"before": before, "after": clock.public_time(world),
             "requested_seconds": seconds, "elapsed_seconds": elapsed,
             "player_known_events": known, "interrupted": interrupted,
-            "extended_travel_saves": saves, "death_results": death_results}
+            "extended_travel_saves": saves, "death_results": death_results, "effect_events": effect_events}
 
 
 def reacquire_tracking(session):
@@ -375,11 +377,15 @@ def _venue_entry_door(world, origin, destination):
 
 
 def _blocked_venue_result(door):
+    door_id = door.get("id")
+    target_id = door_id.removeprefix("venue-door:") if isinstance(door_id, str) and door_id.startswith("venue-door:") else None
     return _result(
         "travel",
         f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
         status="blocked",
         success=False,
+        target_id=target_id,
+        door_id=door_id,
     )
 
 
@@ -735,6 +741,43 @@ def resolve_pending(session, normalized):
                    status="pending_decision", success=False)
 
 
+def explicit_wait_request(text):
+    """A current player wait, not quoted speech, a question or a later clause."""
+    if not isinstance(text, str) or any(mark in text for mark in ('?', '"', '“', '”', '«', '»')):
+        return False
+    normalized = clock.normalize(text)
+    if not re.search(r"\b(?:bekle|bekliyorum|bekleyeyim|bekleyelim)[.! ]*$", normalized):
+        return False
+    # The grounding parser intentionally merges verb-less fragments into their
+    # neighbour. Preserve source boundaries here: a bare wait must not absorb
+    # another sentence (including an unrecognized declined/past action).
+    boundary_text = re.sub(r"(?<=\d)[.,](?=\d)", "", text)
+    parts = [part for part in re.split(
+        r"[.!?;,\n]+|\b(?:ve|sonra|ardından|ardindan|ama|fakat)\b",
+        boundary_text, flags=re.IGNORECASE) if part.strip()]
+    if len(parts) != 1:
+        return False
+    import grounded_action
+    clauses, speech = grounded_action.split_clauses(text)
+    if speech or len(clauses) != 1:
+        return False
+    clause = grounded_action._read_clause(clauses[0])
+    return not any(clause.get(key) for key in
+                   ("question", "reported", "conditional", "negated", "not_now"))
+
+
+def input_route_markers(world, normalized):
+    """Pure recognition shared by the timed owner and immediate-check admission."""
+    journey = world.get("journey")
+    movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
+    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
+    passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
+    task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
+    if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
+        task = True
+    return movement, wait, task, passive_observation
+
+
 def resolve_input(session, text):
     """Narrow deterministic player-intent grammar before model interpretation."""
     normalized = clock.normalize(text)
@@ -748,12 +791,7 @@ def resolve_input(session, text):
     if re.search(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir)\b", normalized):
         return None
     journey = world.get("journey")
-    movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
-    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
-    passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
-    task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
-    if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
-        task = True
+    movement, wait, task, passive_observation = input_route_markers(world, normalized)
     if not (movement or wait or task or passive_observation):
         return None
     if session.ensure_combat_state()["active"]:
@@ -788,7 +826,16 @@ def resolve_input(session, text):
         if "sabaha kadar" in normalized:
             duration = clock.until_morning(world)
         if duration is None:
-            return None  # Existing atmosphere-only wait remains unchanged.
+            if (wait and not any(mark in text for mark in ('?', '"', '“', '”', '«', '»'))
+                    and re.search(r"\b(?:han\w*|dukkan\w*|magaza\w*|kapi\w*)\b.{0,80}\bacilana kadar\b", normalized)):
+                # There is no venue-opening schedule to turn this condition
+                # into a duration. Do not advance time or invent an unlock.
+                return _result("wait", "Ne zaman açılacağı bilinmiyor. Kaç dakika veya saat beklemek istediğini belirt.",
+                               status="clarification", success=False)
+            if explicit_wait_request(text):
+                return _result("wait", "Kaç dakika veya saat beklemek istediğini belirt.",
+                               status="clarification", success=False)
+            return None  # Non-action atmosphere remains with its existing owner.
         if "uyu" in normalized and duration >= 8 * 3600:
             rest = session.resolve_species_trait_action("long_rest", elapsed_seconds=duration)
             return _result("rest", rest["message"], rest["effects"]["time_result"])

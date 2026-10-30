@@ -11,6 +11,20 @@ import "@/index.css";
 
 const CAMPAIGN_ID = "fixture-campaign";
 const SESSION_ID = "fixture-session";
+const cacheFailureFixture = new URLSearchParams(window.location.search).get("cache") === "blocked";
+const combatFixture = new URLSearchParams(window.location.search).get("combat") === "1";
+const emptyStateFixture = new URLSearchParams(window.location.search).get("empty-state") === "1";
+if (new URLSearchParams(window.location.search).get("touch") === "1") {
+  Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 1 });
+}
+let fixtureHp = 12;
+
+// This override is scoped to this disposable fixture page, never the app.
+if (cacheFailureFixture) {
+  Storage.prototype.setItem = () => {
+    throw new DOMException("Synthetic fixture quota failure", "QuotaExceededError");
+  };
+}
 
 type HistoryEntry = {
   player_message: string;
@@ -73,7 +87,7 @@ const state = () => ({
     ambient_event: null,
     opening: "Avlu kapısı kapalı.",
     player_position: { location_id: "courtyard", kind: "standing", target_id: null },
-    npcs: [{ id: "npc-marek", name: "Marek", role: "Hancı", appearance: "Eşikte bekliyor." }],
+    npcs: emptyStateFixture ? [] : [{ id: "npc-marek", name: "Marek", role: "Hancı", appearance: "Eşikte bekliyor." }],
     features: [],
     referents: [],
   },
@@ -100,7 +114,7 @@ const state = () => ({
     level: 1,
     proficiency_bonus: 2,
     max_hp: 12,
-    current_hp: 12,
+    current_hp: fixtureHp,
     armor_class: 13,
     cantrips: [],
     spells: [],
@@ -114,7 +128,7 @@ const state = () => ({
     slot_turn: ["fixture-slot-marker", 2, 1],
   },
   inventory: ["Kısa kılıç"],
-  npcs: [{
+  npcs: emptyStateFixture ? [] : [{
     id: "npc-marek", name: "Marek", role: "Hancı", location: "courtyard",
     appearance: "Eşikte bekliyor.", relationship: null,
     max_hp: null, current_hp: null, armor_class: null, combat_status: null,
@@ -123,9 +137,9 @@ const state = () => ({
   features: [],
   doors: [],
   combat: {
-    active: true,
-    status: "active",
-    round: 1,
+    active: combatFixture,
+    status: combatFixture ? "active" : "inactive",
+    round: emptyStateFixture ? 0 : 1,
     initiative_order: ["player", "npc-guard"],
     current_turn_index: 0,
     current_actor_id: "player",
@@ -136,7 +150,7 @@ const state = () => ({
         id: "player",
         kind: "player",
         name: "Riven",
-        current_hp: 12,
+        current_hp: fixtureHp,
         max_hp: 12,
         armor_class: 13,
         status: "active",
@@ -183,6 +197,7 @@ const session = () => ({
 let holdArmed = false;
 let releaseHold: (() => void) | null = null;
 let failNext = false;
+const apiRequests: { path: string; method: string }[] = [];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -198,6 +213,7 @@ function pathOf(input: RequestInfo | URL) {
 
 window.fetch = async (input, init) => {
   const path = pathOf(input);
+  apiRequests.push({ path, method: init?.method ?? "GET" });
   if (!path.startsWith("/api/")) {
     throw new Error(`UI fixture blocked a non-API request: ${path}`);
   }
@@ -234,6 +250,7 @@ window.fetch = async (input, init) => {
       });
     }
     const message = body.message ?? "";
+    if (cacheFailureFixture) fixtureHp = Math.max(1, fixtureHp - 1);
     history.push({
       player_message: message,
       narration: `Yankı: ${message}`,
@@ -261,6 +278,8 @@ type FixtureWindow = Window & {
     holdNext: () => void;
     release: () => void;
     failNext: () => void;
+    apiRequests: { path: string; method: string }[];
+    stateSnapshot: () => string;
   };
 };
 
@@ -278,6 +297,18 @@ fixtureWindow.__playFixture = {
   },
   failNext: () => {
     failNext = true;
+  },
+  apiRequests,
+  stateSnapshot: () => {
+    const current = state();
+    return JSON.stringify({
+      location: current.location,
+      campaign_time: current.campaign_time,
+      exploration: current.exploration,
+      journey: current.journey,
+      combat: current.combat,
+      turn_index: current.turn_index,
+    });
   },
 };
 

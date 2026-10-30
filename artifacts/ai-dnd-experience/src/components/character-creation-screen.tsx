@@ -1,3 +1,9 @@
+import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
+import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
+import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
+import { readBarbarianStartingCreationOptions, barbarianStartingCreationFields, pruneBarbarianDraft } from '@/lib/barbarian-starting-creation';
+import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
+import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions, validateStartingDraft, startingCreationFields } from '@/lib/sorcerer-starting-creation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import {
   ArrowLeft,
@@ -304,6 +310,23 @@ export function CharacterCreationScreen({
   // Spell choices
   const [selectedCantrips, setSelectedCantrips] = useState<string[]>([]);
   const [selectedSpells, setSelectedSpells] = useState<string[]>([]);
+  const [startingDraft, setStartingDraft] = useState(emptyStartingDraft);
+  const startingMetadata = useMemo(
+    () => readStartingCreationOptions(propCatalog?.sorcerer_starting_creation),
+    [propCatalog?.sorcerer_starting_creation],
+  );
+  const barbarianStartingMetadata = useMemo(
+    () => readBarbarianStartingCreationOptions(propCatalog?.barbarian_starting_creation),
+    [propCatalog?.barbarian_starting_creation],
+  );
+  const startingValidation = characterClass === 'Barbarian'
+    ? barbarianStartingCreationFields(startingDraft, barbarianStartingMetadata)
+    : validateStartingDraft(characterClass, startingDraft, selectedSpells, startingMetadata, selectedCantrips);
+  useEffect(() => {
+    // Sorcerer metadata must never rewrite another class's draft (a Berserker pick is not a Sorcerer subclass).
+    if (characterClass === 'Sorcerer') setStartingDraft(draft => pruneStartingDraft(draft, selectedSpells, startingMetadata, selectedCantrips));
+  }, [characterClass, selectedSpells, selectedCantrips, startingMetadata, startingDraft]);
+
 
   // Campaign start state
   const [settingId, setSettingId] = useState('');
@@ -404,6 +427,7 @@ export function CharacterCreationScreen({
     setSelectedExpertiseSkills([]);
     setSelectedCantrips([]);
     setSelectedSpells([]);
+    setStartingDraft(emptyStartingDraft());
     setFightingStyle('');
     setEquipmentPackage('');
   }, [characterClass]);
@@ -437,6 +461,10 @@ export function CharacterCreationScreen({
     }
     return result;
   }, [baseScores, calculatedBackgroundBonuses]);
+
+  useEffect(() => {
+    setStartingDraft(draft => draft.level4ConConfirmed ? { ...draft, level4ConConfirmed: false } : draft);
+  }, [species, background, finalAbilityScores]);
 
   const modifiers = useMemo<Record<AbilityKey, number>>(() => {
     const result: Record<AbilityKey, number> = {} as any;
@@ -515,6 +543,11 @@ export function CharacterCreationScreen({
     speciesData,
   ]);
 
+  // A Primal Knowledge pick the character now owns (species/background/class change) or the source no longer offers is cleared, never submitted.
+  useEffect(() => {
+    if (characterClass === 'Barbarian') setStartingDraft(draft => pruneBarbarianDraft(draft, barbarianStartingMetadata, derivedStats.allSkills));
+  }, [characterClass, barbarianStartingMetadata, derivedStats.allSkills]);
+
   // Point Buy calculation
   const pointBuyRemaining = useMemo(() => {
     let spent = 0;
@@ -570,7 +603,7 @@ export function CharacterCreationScreen({
   const isStepValid = (stepId: StepId): boolean => {
     switch (stepId) {
       case 'class':
-        return Boolean(characterClass);
+        return Boolean(characterClass) && (startingDraft.startingLevel === 1 || (characterClass === 'Sorcerer' && !!startingMetadata) || (characterClass === 'Barbarian' && !!barbarianStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)));
       case 'background':
         return Boolean(background);
       case 'species':
@@ -601,6 +634,7 @@ export function CharacterCreationScreen({
         );
       }
       case 'choices': {
+        if (!startingValidation.ok) return false;
         if (!isSkillsValid || !isExpertiseValid) return false;
         if (characterClass === 'Fighter' && !fightingStyle) return false;
         if (classData?.is_spellcaster) {
@@ -630,7 +664,7 @@ export function CharacterCreationScreen({
   const getStepValidationHint = (stepId: StepId): string => {
     switch (stepId) {
       case 'class':
-        return 'İlerlemek için bir sınıf seçin.';
+        return startingDraft.startingLevel > 1 && !(characterClass === 'Barbarian' ? barbarianStartingMetadata : startingMetadata) ? 'Seviye kataloğunu yeniden deneyin veya seviye 1 seçin.' : 'İlerlemek için bir sınıf seçin.';
       case 'background':
         return 'İlerlemek için bir geçmiş (background) seçin.';
       case 'species':
@@ -659,6 +693,7 @@ export function CharacterCreationScreen({
         return '';
       }
       case 'choices': {
+        if (!startingValidation.ok) return startingValidation.message;
         if (selectedClassSkills.length !== requiredClassSkillCount) {
           return `Sınıfın için ${requiredClassSkillCount} beceri seçmelisin (${selectedClassSkills.length}/${requiredClassSkillCount} seçildi).`;
         }
@@ -738,7 +773,13 @@ export function CharacterCreationScreen({
       starting_location_id: selectedLocation.entity_id,
     };
 
+    const progression = characterClass === 'Barbarian'
+      ? barbarianStartingCreationFields(startingDraft, barbarianStartingMetadata, derivedStats.allSkills)
+      : startingCreationFields(characterClass, startingDraft, selectedSpells, startingMetadata, selectedCantrips);
+    if (!progression.ok) return;
+
     const characterInput: CharacterCreateInput = {
+      ...progression.fields,
       mode: 'custom',
       name: name.trim(),
       race: species, // legacy compatibility
@@ -983,7 +1024,7 @@ export function CharacterCreationScreen({
         <section className="cc-content">
           <div className="cc-intro">
             <div>
-              <div className="cc-label">Karakter Defteri · Seviye 1</div>
+              <div className="cc-label">Karakter Defteri · Seviye {startingDraft.startingLevel}</div>
               <h1 className="cc-display">Karakterini Yarat.</h1>
               <p className="cc-literary">Her karar sana ait; kurallar ve zarlar yolunu belirleyecek.</p>
             </div>
@@ -998,7 +1039,7 @@ export function CharacterCreationScreen({
               >
                 <Dice5 size={14} /> Rastgele Karakterle Macera Oluştur
               </button>
-              <p id="random-creation-help">Rastgele bir karakter seçilir ve yeni macera kaydedilir.</p>
+              <p id="random-creation-help">Rastgele bir karakter seçilir ve yeni macera kaydedilir. Başlangıç seviyesi: 1.</p>
             </div>
           </div>
 
@@ -1024,6 +1065,14 @@ export function CharacterCreationScreen({
 
           <form className="cc-main-form" onSubmit={handleSubmit}>
             <div className="cc-step-stage">
+            {characterClass === 'Sorcerer' && startingDraft.startingLevel > 1 && !startingMetadata && currentStep !== 'class' && (
+              <StartingLevelControl draft={startingDraft} metadata={startingMetadata} disabled={creating} onRetry={onRetryOptions}
+                onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />
+            )}
+            {characterClass === 'Barbarian' && startingDraft.startingLevel > 1 && !barbarianStartingMetadata && currentStep !== 'class' && (
+              <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata} disabled={creating} onRetry={onRetryOptions}
+                onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />
+            )}
             {/* STEP 1: CLASS */}
             {currentStep === 'class' && (
               <section className="cc-step-panel">
@@ -1065,6 +1114,10 @@ export function CharacterCreationScreen({
                     );
                   })}
                 </div>
+                {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
+                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                {characterClass === 'Barbarian' && <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata}
+                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
               </section>
             )}
 
@@ -1686,6 +1739,10 @@ export function CharacterCreationScreen({
                     {requiredSpellsCount > 0 && (
                       <div className="cc-sub-section">
                         <SpellSelectionHeading characterClass={characterClass} selectedCount={selectedSpells.length} requiredCount={requiredSpellsCount} />
+                        {characterClass === 'Sorcerer' && startingDraft.startingLevel > 1 && (
+                          <StaleInitialSpellChoices selectedSpells={selectedSpells} metadata={startingMetadata} disabled={creating}
+                            onRemove={id => setSelectedSpells(selected => selected.filter(value => value !== id))} />
+                        )}
                         <div className="cc-checkbox-grid">
                           {((availableSpellsForClass.level_1 ?? []) as any[]).map((sp) => {
                             const spellId = getSpellOptionId(sp);
@@ -1717,6 +1774,13 @@ export function CharacterCreationScreen({
                     )}
                   </>
                 )}
+                {characterClass === 'Sorcerer' && <StartingLevelChoices draft={startingDraft} metadata={startingMetadata}
+                  initialSpells={selectedSpells} initialCantrips={selectedCantrips} disabled={creating}
+                  spellLabels={Object.fromEntries(availableSpellsForClass.level_1.map((spell: { id: string; name_tr?: string; name?: string }) => [spell.id, spell.name_tr ?? spell.name ?? spell.id]))}
+                  onChange={draft => setStartingDraft(pruneStartingDraft(draft, selectedSpells, startingMetadata, selectedCantrips))} />}
+                {characterClass === 'Barbarian' && startingDraft.startingLevel >= 3 && <BarbarianStartingChoices draft={startingDraft}
+                  metadata={barbarianStartingMetadata} ownedSkills={derivedStats.allSkills} disabled={creating}
+                  onChange={setStartingDraft} />}
               </section>
             )}
 
@@ -1725,7 +1789,7 @@ export function CharacterCreationScreen({
               <section className="cc-step-panel">
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 6</div>
-                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2>
+                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} />
                   <p className="cc-literary">Karakterinin macera yolculuğuna başlarken kuşanacağı silah, zırh ve teçhizatı seç.</p>
                 </div>
 
@@ -2086,7 +2150,7 @@ export function CharacterCreationScreen({
                     <div>
                       <h2 className="cc-sheet-name">{name || 'İsimsiz Kahraman'}</h2>
                       <div className="cc-sheet-subtitle">
-                        {speciesData?.name_tr ?? species} · {characterClass ? presentedClassName(characterClass, classData?.name_tr) : ''} · Seviye 1
+                        {speciesData?.name_tr ?? species} · {characterClass ? presentedClassName(characterClass, classData?.name_tr) : ''} · Seviye {startingDraft.startingLevel}
                       </div>
                       <div className="cc-sheet-meta">
                         <span>Geçmiş: <strong>{backgroundData?.name_tr ?? background}</strong></span>
@@ -2099,7 +2163,7 @@ export function CharacterCreationScreen({
                     <div className="cc-sheet-vital-badges">
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">Can Puanı</span>
-                        <strong className="cc-vital-val">{derivedStats.hp}</strong>
+                        <strong className="cc-vital-val"><StartingHitPoints level={startingDraft.startingLevel} hitPoints={derivedStats.hp} /></strong>
                       </div>
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">Zırh Sınıfı</span>
@@ -2107,7 +2171,7 @@ export function CharacterCreationScreen({
                       </div>
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">İnisiyatif</span>
-                        <strong className="cc-vital-val">{formatModifier(derivedStats.initiative)}</strong>
+                        <strong className="cc-vital-val"><StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.initiative)} /></strong>
                       </div>
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">Hız</span>
@@ -2124,8 +2188,8 @@ export function CharacterCreationScreen({
                       return (
                         <div key={key} className="cc-sheet-ability-box">
                           <span className="cc-sheet-ability-title">{ABILITY_NAMES_TR[key].short}</span>
-                          <span className="cc-sheet-ability-mod">{formatModifier(mod)}</span>
-                          <small className="cc-sheet-ability-score">{total}</small>
+                          <span className="cc-sheet-ability-mod"><StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(mod)} fromLevel={(startingDraft.level4Asi ? Object.hasOwn(startingDraft.level4Asi.increase, key) : key === 'constitution') ? 4 : Infinity} /></span>
+                          <small className="cc-sheet-ability-score"><StartingDerivedValue level={startingDraft.startingLevel} value={total} fromLevel={(startingDraft.level4Asi ? Object.hasOwn(startingDraft.level4Asi.increase, key) : key === 'constitution') ? 4 : Infinity} /></small>
                         </div>
                       );
                     })}
@@ -2185,8 +2249,8 @@ export function CharacterCreationScreen({
                         <>
                           <div className="cc-sheet-sec-title">Büyü Defteri</div>
                           <div className="cc-spell-stats">
-                            <span>Büyü Kurtulma DC: <strong>{derivedStats.spellSaveDc}</strong></span>
-                            <span>Büyü Saldırı Bonusu: <strong>{formatModifier(derivedStats.spellAttackBonus ?? 0)}</strong></span>
+                            <span>Büyü Kurtulma DC: <strong><StartingDerivedValue level={startingDraft.startingLevel} value={derivedStats.spellSaveDc} /></strong></span>
+                            <span>Büyü Saldırı Bonusu: <strong><StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.spellAttackBonus ?? 0)} /></strong></span>
                           </div>
                           {selectedCantrips.length > 0 && (
                             <div className="cc-sheet-pills mt-2">
@@ -2204,7 +2268,25 @@ export function CharacterCreationScreen({
                         </>
                       )}
 
-                      <div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
+                      {characterClass === 'Sorcerer' && startingDraft.startingLevel > 1 && <div className="cc-sub-section">
+                        <h3>Kaydedilecek seviye seçimleri</h3>
+                        <p>2. seviye ek büyüler: {startingDraft.level2Prepared.join(', ')}</p>
+                        <p>Metamagic seçimleri: {startingDraft.metamagic.join(', ')}</p>
+                        {startingDraft.startingLevel >= 3 && <>
+                          <p>3. seviye ek büyüler: {startingDraft.level3Prepared.join(', ')}</p>
+                          <p>Alt sınıf seçimi: {startingMetadata?.level_3.subclass_options.find(option => option.id === startingDraft.subclassId)?.name ?? startingDraft.subclassId}</p>
+                        </>}
+                        {startingDraft.startingLevel >= 4 && <>
+                          <p>4. seviye ek büyü: {startingDraft.level4Prepared?.join(', ')}</p>
+                          <p>4. seviye ek cantrip: {startingDraft.level4Cantrips?.join(', ')}</p>
+                          <p>Ability Score Improvement: {asiChoiceLabel(sourceAsiChoice(startingMetadata?.level_4?.supported_asi_choices, startingDraft.level4Asi, startingDraft.level4ConConfirmed))} (sunucu uygular)</p>
+                          <p>Ek başlangıç serveti veya büyülü eşya seçimi uygulanmaz.</p>
+                        </>}
+                        {startingDraft.startingLevel === 5 && <p>5. seviye ek büyüler: {startingDraft.level5Prepared?.join(', ')}</p>}
+                        <ProgressionEffectsNotice effects={startingMetadata?.effects_pending_by_level[String(startingDraft.startingLevel) as '1' | '2' | '3' | '4' | '5']} />
+                      </div>}
+                      {characterClass === 'Barbarian' && startingDraft.startingLevel > 1 && <BarbarianStartingSummary draft={startingDraft} metadata={barbarianStartingMetadata} />}
+                      <StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} /><div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
                       <ul className="cc-sheet-items">
                         {classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage)?.items?.map((it: string) => (
                           <li key={it}>{it}</li>
@@ -2264,12 +2346,12 @@ export function CharacterCreationScreen({
                 {abilityMethod && (
                   <div className="cc-summary-scores">
                     {ABILITY_KEYS.map((key) => (
-                      <span key={key}>{ABILITY_NAMES_TR[key].short} {finalAbilityScores[key]} ({formatModifier(modifiers[key])})</span>
+                      <span key={key}>{ABILITY_NAMES_TR[key].short} <StartingDerivedValue level={startingDraft.startingLevel} value={`${finalAbilityScores[key]} (${formatModifier(modifiers[key])})`} fromLevel={(startingDraft.level4Asi ? Object.hasOwn(startingDraft.level4Asi.increase, key) : key === 'constitution') ? 4 : Infinity} /></span>
                     ))}
                   </div>
                 )}
                 {abilityMethod && (
-                  <p className="cc-summary-note">Can {derivedStats.hp}. Zırh {derivedStats.ac}. İnisiyatif {formatModifier(derivedStats.initiative)}. Hız {derivedStats.speed}.</p>
+                  <p className="cc-summary-note">Can <StartingHitPoints level={startingDraft.startingLevel} hitPoints={derivedStats.hp} />. Zırh {derivedStats.ac}. İnisiyatif <StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.initiative)} />. Hız {derivedStats.speed}.</p>
                 )}
                 {derivedStats.allSkills.length > 0 && (
                   <p className="cc-summary-note">Beceriler: {derivedStats.allSkills.join(', ')}.</p>

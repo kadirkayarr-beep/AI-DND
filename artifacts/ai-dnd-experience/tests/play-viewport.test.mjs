@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
-import { focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import ts from 'typescript';
+import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 
 process.env.PORT ||= '4183';
 process.env.BASE_PATH ||= '/';
@@ -64,6 +65,29 @@ test('keyboard inset is the covered bottom and never negative', () => {
   assert.equal(keyboardInset(800, 900, 20), 0);
 });
 
+test('keyboard recovery respects the clipping container as well as the viewport', () => {
+  assert.equal(clippedControlOverflow(580, 500, 640), 80);
+  assert.equal(clippedControlOverflow(580, 700, 430), 150);
+  assert.equal(clippedControlOverflow(420, 500, 640), 0);
+  assert.equal(clippedControlOverflow(580, Number.NaN, 640), 0);
+});
+
+test('a validated own turn preserves the reader position and marks a new response when needed', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let submit = '';
+  const visit = node => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === 'submitTurn') submit = node.getText(ast);
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  const guard = submit.indexOf('if (!startedOperation) return;');
+  const send = submit.indexOf('void playGameTurn(');
+  assert.ok(guard >= 0 && send > guard);
+  assert.match(submit, /const wasFollowingResponse = transcriptFollowsBottom\(wasAtBottom\.current\)/);
+  assert.match(submit, /setNewResponseEntryIndex\(wasFollowingResponse \? null : next\.length - 1\)/);
+});
+
 test('transcript keeps player then narration order, the recorded roll, and a focus-free result cue', () => {
   const html = renderTranscript([
     { kind: 'player', text: 'Kapıya bakıyorum.' },
@@ -75,7 +99,8 @@ test('transcript keeps player then narration order, the recorded roll, and a foc
   assert.match(html, /Kapıya bakıyorum\./);
   assert.match(html, /Kapı kilitli\./);
   assert.match(html, /D20 8/);
-  assert.match(html, /BAŞARISIZ/);
+  assert.match(html, /Başarısız/);
+  assert.doesNotMatch(html, /DC\s*\d/i);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /Yeni sonuç geldi\. 2/);
   assert.doesNotMatch(html, /autofocus|tabIndex=\{0\}|focus\(\)/);
@@ -119,16 +144,49 @@ test('the play screen fixture renders GameBrowser and does not touch auth', asyn
 
 test('this package keeps the mode buttons and the existing turn submission path', async () => {
   const page = await readFile('src/pages/game-browser.tsx', 'utf8');
-  assert.match(page, /data-testid="interaction-mode-selector"/);
-  assert.match(page, /data-testid=\{`button-mode-\$\{mode\}`\}/);
-  assert.match(page, /\['say', 'SÖYLE'\]/);
-  assert.match(page, /\['do', 'YAP'\]/);
-  assert.match(page, /\['ask_dm', 'ANLATICIYA SOR'\]/);
+  assert.match(page, /data-testid="interaction-mode-picker"/);
+  assert.match(page, /data-testid="select-interaction-mode"/);
+  assert.match(page, /<option value="do">Yap<\/option>/);
+  assert.match(page, /<option value="say">Söyle<\/option>/);
+  assert.match(page, /<option value="ask_dm">Anlatıcıya Sor<\/option>/);
   assert.match(page, /getTurnInteractionMetadata\(/);
   assert.match(page, /action_id: actionId/);
   assert.match(page, /submitTurn\(message, undefined, interactionMode\)/);
-  assert.match(page, /setInteractionMode\(suggestion\.mode\)/);
+  assert.match(page, /onDraft=\{\(text, mode = 'do', targetId\) =>/);
+  assert.match(page, /setInteractionMode\(mode\)/);
   assert.match(page, /event\.key === 'Escape'/);
   assert.match(page, /getElementById\('player-message'\)/);
   assert.doesNotMatch(page, /interaction_mode:\s*undefined/);
+});
+
+
+test('the final composer rule cannot cover the bounded story and scene regions', async () => {
+  const css = await readFile('src/index.css', 'utf8');
+  const rules = [...css.matchAll(/\.play-shell \.command-box\s*\{([^}]*)\}/g)];
+  assert.ok(rules.length > 0);
+  const positions = [...rules.at(-1)[1].matchAll(/(?:^|;)\s*position\s*:\s*([^;]+)/g)];
+  assert.equal(positions.at(-1)?.[1].trim(), 'static');
+  assert.match(css, /\.play-shell \.story-scene-context\s*\{[^}]*overflow-y:\s*auto/s);
+  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(page, /className="story-scene-context"[^>]*aria-label="Sahne bilgileri"/);
+});
+
+test('overflow stays inside the main region and the mobile composer can wrap', async () => {
+  const css = await readFile('src/index.css', 'utf8');
+  const main = [...css.matchAll(/\.play-shell \.app-main\.workspace-grid\s*\{([^}]*)\}/g)].at(-1)[1];
+  assert.match(main, /overflow:\s*auto/);
+  const form = [...css.matchAll(/\.play-shell \.command-form\s*\{([^}]*)\}/g)].at(-1)[1];
+  assert.match(form, /display:\s*flex/);
+  assert.match(form, /flex-wrap:\s*wrap/);
+  assert.match(css, /\.play-shell \.app-header\s*\{[^}]*max-height:\s*20dvh[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.play-shell \.session-footnote\s*\{[^}]*max-height:\s*3\.5rem[^}]*overflow:\s*auto/s);
+});
+
+
+test('transcript follow-bottom ends at the answer rather than a decorative tail', () => {
+  const html = renderTranscript([{ kind: 'narration', text: 'Son cevap tamamen okunmalı.' }]);
+  assert.match(html, /aria-description="Anlatı ve oyuncunun özgün sözleri tek akışta"/);
+  assert.doesNotMatch(html, /class="reader-note"/,
+    'a trailing note must not push a short answer above the small transcript viewport');
+  assert.match(html, /Son cevap tamamen okunmalı\.<\/p><\/div><\/div><\/div><button/);
 });

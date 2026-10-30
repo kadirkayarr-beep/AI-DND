@@ -1,0 +1,92 @@
+{
+ "schema_version": 1,
+ "manifest_id": "legacy-compatibility",
+ "kept_separate_from": "phb2024",
+ "reason": "Half-Elf and Half-Orc are deliberately retained legacy options; they are not entries of the 2024 Player's Handbook",
+ "rows": [
+  {
+   "id": "species|legacy:species:half-elf|legacy-2014",
+   "category": "species",
+   "subcategory": null,
+   "name": "Half-Elf",
+   "source_id": "legacy:species:half-elf",
+   "source_version": "legacy-2014",
+   "legacy": true,
+   "source": {
+    "book": "Systems Reference Document 5.1 (2016)",
+    "kind": "citation recorded by the existing resolver, not re-read in B04",
+    "citation_location": "ai-dnd/api/dnd_2024_rules.py:506",
+    "page_reference_status": "NOT_READ_IN_B04",
+    "phb2024_text_mentions_pdf_pages": [],
+    "distinct_from": "phb2024"
+   },
+   "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
+   "status": "INVENTORIED",
+   "resolver": {
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
+    "existing_line": 498,
+    "scanned": [
+     "ai-dnd/api/dnd_2024_rules.py",
+     "ai-dnd/spell_scope.py"
+    ]
+   },
+   "proposed_owner": "C02",
+   "dependencies": [],
+   "lifecycle": {
+    "visible": "NOT_ASSESSED",
+    "create": "NOT_ASSESSED",
+    "select": "NOT_ASSESSED",
+    "use": "NOT_ASSESSED",
+    "advance": "NOT_ASSESSED",
+    "save_load": "NOT_ASSESSED"
+   },
+   "lifecycle_basis": "not assessed in B04",
+   "leaf_task_ids": [],
+   "evidence_ids": [],
+   "acceptance_id": "N01"
+  },
+  {
+   "id": "species|legacy:species:half-orc|legacy-2014",
+   "category": "species",
+   "subcategory": null,
+   "name": "Half-Orc",
+   "source_id": "legacy:species:half-orc",
+   "source_version": "legacy-2014",
+   "legacy": true,
+   "source": {
+    "book": "Systems Reference Document 5.1 (2016)",
+    "kind": "citation recorded by the existing resolver, not re-read in B04",
+    "citation_location": "ai-dnd/api/dnd_2024_rules.py:524",
+    "page_reference_status": "NOT_READ_IN_B04",
+    "phb2024_text_mentions_pdf_pages": [],
+    "distinct_from": "phb2024"
+   },
+   "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
+   "status": "INVENTORIED",
+   "resolver": {
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
+    "existing_line": 516,
+    "scanned": [
+     "ai-dnd/api/dnd_2024_rules.py",
+     "ai-dnd/spell_scope.py"
+    ]
+   },
+   "proposed_owner": "C02",
+   "dependencies": [],
+   "lifecycle": {
+    "visible": "NOT_ASSESSED",
+    "create": "NOT_ASSESSED",
+    "select": "NOT_ASSESSED",
+    "use": "NOT_ASSESSED",
+    "advance": "NOT_ASSESSED",
+    "save_load": "NOT_ASSESSED"
+   },
+   "lifecycle_basis": "not assessed in B04",
+   "leaf_task_ids": [],
+   "evidence_ids": [],
+   "acceptance_id": "N01"
+  }
+ ]
+}

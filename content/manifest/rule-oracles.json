@@ -1,0 +1,2049 @@
+{
+  "version": 1,
+  "task": "K07",
+  "note": "Oracle values are written by hand from the cited PHB 2024 lines (not read back from the engine). Only the leaves listed in `leaves` are covered; every family in `open_leaves` is OPEN and must never be reported complete.",
+  "source": {
+    "file": "D&D 5e - Players Handbook 2024.pdf",
+    "sha256": "f2ea73369a6c4afbf6a7047249f06e5c51af503d9e42f87fe7a9c2c50aefafea",
+    "page_basis": "PDF page index (printed page = PDF page + 1)"
+  },
+  "leaves": [
+    {
+      "leaf_id": "K07.charmed_attack_charmer",
+      "family": "conditions",
+      "source_ref": {
+        "pdf_page": 362,
+        "text": "Charmed: cannot attack charmer. Existing canonical charmed_by identity only. Harmful spells/abilities, social checks and unknown-source provenance remain OPEN."
+      },
+      "engine_resolvers": [
+        "weapon_attack.prepare",
+        "weapon_attack.resolve"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "conditions": [
+              "charmed"
+            ],
+            "source": "target"
+          },
+          "expected": {
+            "status": "charmed_target_forbidden",
+            "unchanged": true
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "conditions": [
+              "charmed"
+            ],
+            "source": "other"
+          },
+          "expected": {
+            "status": "allowed",
+            "unchanged": false
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "conditions": [
+              "charmed"
+            ],
+            "source": "missing"
+          },
+          "expected": {
+            "status": "allowed",
+            "unchanged": false
+          }
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "conditions": [],
+            "source": "target"
+          },
+          "expected": {
+            "status": "allowed",
+            "unchanged": false
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "conditions": {
+              "charmed": false
+            },
+            "source": "target"
+          },
+          "expected": {
+            "status": "allowed",
+            "unchanged": false
+          }
+        },
+        {
+          "id": "06",
+          "kind": "normal",
+          "input": {
+            "conditions": {
+              "charmed": true
+            },
+            "source": "target"
+          },
+          "expected": {
+            "status": "charmed_target_forbidden",
+            "unchanged": true
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.invisible_attack_explicit_sight_exception",
+      "family": "conditions",
+      "source_ref": {
+        "pdf_page": 369,
+        "text": "Invisible attack benefits do not apply against creature that can see it. Explicit trusted directional sight premises, not ordinary line of sight or detected/located. Special-sense production remains OPEN."
+      },
+      "engine_resolvers": [
+        "weapon_attack.pair",
+        "weapon_attack.prepare",
+        "weapon_attack.resolve"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "player_conditions": [
+              "invisible"
+            ],
+            "target_conditions": [],
+            "sight": {
+              "target_sees_attacker": true
+            }
+          },
+          "expected": {
+            "invisible_advantage": false,
+            "invisible_disadvantage": false,
+            "raw": [
+              3
+            ],
+            "selected": 3
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "player_conditions": [],
+            "target_conditions": [
+              "invisible"
+            ],
+            "sight": {
+              "attacker_sees_target": true
+            }
+          },
+          "expected": {
+            "invisible_advantage": false,
+            "invisible_disadvantage": false,
+            "raw": [
+              3
+            ],
+            "selected": 3
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "player_conditions": [
+              "invisible"
+            ],
+            "target_conditions": [],
+            "sight": {}
+          },
+          "expected": {
+            "invisible_advantage": true,
+            "invisible_disadvantage": false,
+            "raw": [
+              3,
+              17
+            ],
+            "selected": 17
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "player_conditions": [],
+            "target_conditions": [
+              "invisible"
+            ],
+            "sight": {}
+          },
+          "expected": {
+            "invisible_advantage": false,
+            "invisible_disadvantage": true,
+            "raw": [
+              3,
+              17
+            ],
+            "selected": 3
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "player_conditions": [
+              "invisible",
+              "poisoned"
+            ],
+            "target_conditions": [],
+            "sight": {
+              "target_sees_attacker": true
+            }
+          },
+          "expected": {
+            "invisible_advantage": false,
+            "invisible_disadvantage": false,
+            "raw": [
+              3,
+              17
+            ],
+            "selected": 3
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "player_conditions": [
+              "invisible"
+            ],
+            "target_conditions": [
+              "invisible"
+            ],
+            "sight": {
+              "target_sees_attacker": true,
+              "attacker_sees_target": false
+            }
+          },
+          "expected": {
+            "invisible_advantage": false,
+            "invisible_disadvantage": true,
+            "raw": [
+              3,
+              17
+            ],
+            "selected": 3
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.advantage_disadvantage_source_aggregation.weapon_and_initiative",
+      "family": "d20_test",
+      "source_ref": {
+        "pdf_page": 11,
+        "text": "Playing the Game: same-kind sources never stack; opposing kinds cancel regardless of count. Eligible-source fixture premises, not class/feature eligibility acceptance."
+      },
+      "engine_resolvers": [
+        "weapon_attack.resolve",
+        "initiative.settings",
+        "initiative.roll_actor",
+        "api.core_resolution.roll_d20"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "advantage_sources": [],
+            "disadvantage_sources": []
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": []
+            },
+            "initiative": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": []
+            }
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "advantage_sources": [
+              "a",
+              "b",
+              "c"
+            ],
+            "disadvantage_sources": []
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 17,
+              "advantage": [
+                "a",
+                "b",
+                "c"
+              ],
+              "disadvantage": []
+            },
+            "initiative": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 17,
+              "advantage": [
+                "a",
+                "b",
+                "c"
+              ],
+              "disadvantage": []
+            }
+          }
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {
+            "advantage_sources": [],
+            "disadvantage_sources": [
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "initiative": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": [
+                "x",
+                "y",
+                "z"
+              ]
+            }
+          }
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "advantage_sources": [
+              "a",
+              "b",
+              "c"
+            ],
+            "disadvantage_sources": [
+              "x"
+            ]
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a",
+                "b",
+                "c"
+              ],
+              "disadvantage": [
+                "x"
+              ]
+            },
+            "initiative": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a",
+                "b",
+                "c"
+              ],
+              "disadvantage": [
+                "x"
+              ]
+            }
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "advantage_sources": [
+              "a"
+            ],
+            "disadvantage_sources": [
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a"
+              ],
+              "disadvantage": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "initiative": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a"
+              ],
+              "disadvantage": [
+                "x",
+                "y",
+                "z"
+              ]
+            }
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "advantage_sources": [
+              "a",
+              "b"
+            ],
+            "disadvantage_sources": [
+              "x",
+              "y"
+            ]
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a",
+                "b"
+              ],
+              "disadvantage": [
+                "x",
+                "y"
+              ]
+            },
+            "initiative": {
+              "raw": [
+                3
+              ],
+              "selected": 3,
+              "advantage": [
+                "a",
+                "b"
+              ],
+              "disadvantage": [
+                "x",
+                "y"
+              ]
+            }
+          }
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "advantage_sources": [
+              "a",
+              "a",
+              "b"
+            ],
+            "disadvantage_sources": []
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 17,
+              "advantage": [
+                "a",
+                "b"
+              ],
+              "disadvantage": []
+            },
+            "initiative": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 17,
+              "advantage": [
+                "a",
+                "b"
+              ],
+              "disadvantage": []
+            }
+          }
+        },
+        {
+          "id": "08",
+          "kind": "boundary",
+          "input": {
+            "advantage_sources": [],
+            "disadvantage_sources": [
+              "x",
+              "x",
+              "y"
+            ]
+          },
+          "expected": {
+            "weapon": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": [
+                "x",
+                "y"
+              ]
+            },
+            "initiative": {
+              "raw": [
+                3,
+                17
+              ],
+              "selected": 3,
+              "advantage": [],
+              "disadvantage": [
+                "x",
+                "y"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.initiative_exhaustion_penalty",
+      "family": "combat_order",
+      "source_ref": {
+        "pdf_page": 365,
+        "text": "Exhaustion D20 penalty; Initiative is Dexterity check in Playing the Game. K07 release_v2. Death at6/removal are not covered by this leaf."
+      },
+      "engine_resolvers": [
+        "initiative.settings",
+        "initiative.roll_actor",
+        "weapon_attack.exhaustion"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "level": 0,
+            "conditions": [],
+            "surprised": false,
+            "rolls": [
+              10,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              10
+            ],
+            "total": 12,
+            "modifiers": []
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "level": 1,
+            "conditions": [],
+            "surprised": false,
+            "rolls": [
+              10,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              10
+            ],
+            "total": 10,
+            "modifiers": [
+              {
+                "source": "exhaustion_2024",
+                "value": -2
+              }
+            ]
+          }
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {
+            "level": 2,
+            "conditions": [],
+            "surprised": false,
+            "rolls": [
+              10,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              10
+            ],
+            "total": 8,
+            "modifiers": [
+              {
+                "source": "exhaustion_2024",
+                "value": -4
+              }
+            ]
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "level": 5,
+            "conditions": [],
+            "surprised": false,
+            "rolls": [
+              10,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              10
+            ],
+            "total": 2,
+            "modifiers": [
+              {
+                "source": "exhaustion_2024",
+                "value": -10
+              }
+            ]
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "level": 2,
+            "conditions": [
+              "invisible"
+            ],
+            "surprised": false,
+            "rolls": [
+              3,
+              17,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3,
+              17
+            ],
+            "total": 15,
+            "modifiers": [
+              {
+                "source": "exhaustion_2024",
+                "value": -4
+              }
+            ]
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "level": 2,
+            "conditions": [
+              "invisible"
+            ],
+            "surprised": true,
+            "rolls": [
+              10,
+              1
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              10
+            ],
+            "total": 8,
+            "modifiers": [
+              {
+                "source": "exhaustion_2024",
+                "value": -4
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.long_rest_start_spacing",
+      "family": "state",
+      "source_ref": {
+        "pdf_page": 369,
+        "text": "Long Rest: wait at least16 hours after finishing before starting another. K07 release_v2. Legacy absent completion history stays unknown, first recorded rest permitted."
+      },
+      "engine_resolvers": [
+        "game.resolve_species_trait_action",
+        "game._validate_long_rest_history",
+        "game.advance_campaign_time"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "wait": 0,
+            "short_rest": false,
+            "duration": 28800
+          },
+          "expected": {
+            "status": "spacing_refused",
+            "clock": 28800,
+            "completed_at": 28800
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "wait": 57599,
+            "short_rest": false,
+            "duration": 28800
+          },
+          "expected": {
+            "status": "spacing_refused",
+            "clock": 86399,
+            "completed_at": 28800
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "wait": 57600,
+            "short_rest": false,
+            "duration": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "clock": 115200,
+            "completed_at": 115200
+          }
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "wait": 0,
+            "short_rest": false,
+            "duration": 86400
+          },
+          "expected": {
+            "status": "spacing_refused",
+            "clock": 28800,
+            "completed_at": 28800
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "wait": 0,
+            "short_rest": true,
+            "duration": 28800
+          },
+          "expected": {
+            "status": "spacing_refused",
+            "clock": 32400,
+            "completed_at": 28800
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.initiative_invisible",
+      "family": "combat_order",
+      "source_ref": {
+        "pdf_page": 369,
+        "text": "Invisible Initiative advantage; Incapacitated PDF368; surprise Chapter1. K07 release_v2, no attack-visibility exception applied to Initiative."
+      },
+      "engine_resolvers": [
+        "game.start_combat",
+        "initiative.settings",
+        "initiative.roll_actor",
+        "api.core_resolution.roll_d20"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "conditions": [
+              "invisible"
+            ],
+            "surprised": false,
+            "rolls": [
+              20,
+              3,
+              17
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3,
+              17
+            ],
+            "total": 17,
+            "advantage_sources": [
+              "invisible_2024"
+            ],
+            "disadvantage_sources": []
+          }
+        },
+        {
+          "id": "02",
+          "kind": "interaction",
+          "input": {
+            "conditions": [
+              "invisible"
+            ],
+            "surprised": true,
+            "rolls": [
+              20,
+              3,
+              17
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3
+            ],
+            "total": 3,
+            "advantage_sources": [
+              "invisible_2024"
+            ],
+            "disadvantage_sources": [
+              "surprise_2024"
+            ]
+          }
+        },
+        {
+          "id": "03",
+          "kind": "interaction",
+          "input": {
+            "conditions": [
+              "invisible",
+              "incapacitated"
+            ],
+            "surprised": false,
+            "rolls": [
+              20,
+              3,
+              17
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3
+            ],
+            "total": 3,
+            "advantage_sources": [
+              "invisible_2024"
+            ],
+            "disadvantage_sources": [
+              "incapacitated_2024"
+            ]
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "conditions": [
+              "invisible",
+              "incapacitated"
+            ],
+            "surprised": true,
+            "rolls": [
+              20,
+              3,
+              17
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3
+            ],
+            "total": 3,
+            "advantage_sources": [
+              "invisible_2024"
+            ],
+            "disadvantage_sources": [
+              "incapacitated_2024",
+              "surprise_2024"
+            ]
+          }
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "conditions": {
+              "invisible": false
+            },
+            "surprised": false,
+            "rolls": [
+              20,
+              3,
+              17
+            ]
+          },
+          "expected": {
+            "raw_rolls": [
+              3
+            ],
+            "total": 3,
+            "advantage_sources": [],
+            "disadvantage_sources": []
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.dodge_benefits_loss",
+      "family": "conditions",
+      "source_ref": {
+        "pdf_page": 365,
+        "text": "Dodge benefits and loss; K07 release_v2 glossary. Incapacitated PDF368, Restrained PDF372, Speed PDF373. Bounded observation, not all Dodge implementation."
+      },
+      "engine_resolvers": [
+        "weapon_attack.prepare",
+        "weapon_attack.save",
+        "action_economy.can_act",
+        "action_economy.speed"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "conditions": [],
+            "speed_ft": 30,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": true,
+            "save_roll_count": 2,
+            "save_outcome": "SUCCESS"
+          }
+        },
+        {
+          "id": "02",
+          "kind": "interaction",
+          "input": {
+            "conditions": [
+              "incapacitated"
+            ],
+            "speed_ft": 30,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": false,
+            "save_roll_count": 1,
+            "save_outcome": "FAILURE"
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "conditions": [],
+            "speed_ft": 0,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": false,
+            "save_roll_count": 1,
+            "save_outcome": "FAILURE"
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "conditions": [],
+            "speed_ft": 1,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": true,
+            "save_roll_count": 2,
+            "save_outcome": "SUCCESS"
+          }
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {
+            "conditions": [
+              "grappled"
+            ],
+            "speed_ft": 30,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": false,
+            "save_roll_count": 1,
+            "save_outcome": "FAILURE"
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "conditions": [
+              "restrained"
+            ],
+            "speed_ft": 30,
+            "sees_attacker": true,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": false,
+            "save_roll_count": 2,
+            "save_outcome": "FAILURE"
+          }
+        },
+        {
+          "id": "07",
+          "kind": "interaction",
+          "input": {
+            "conditions": [],
+            "speed_ft": 30,
+            "sees_attacker": false,
+            "rolls": [
+              1,
+              20
+            ]
+          },
+          "expected": {
+            "attack_dodge_source": false,
+            "save_roll_count": 2,
+            "save_outcome": "SUCCESS"
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.ability_modifier",
+      "family": "ability",
+      "source_ref": {"pdf_page": 37, "text": "Ability Scores and Modifiers table"},
+      "engine_resolvers": ["game.get_modifier", "api.dnd_2024_rules.get_modifier"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"score": 10}, "expected": 0},
+        {"id": "02", "kind": "boundary", "input": {"score": 9}, "expected": -1},
+        {"id": "03", "kind": "boundary", "input": {"score": 11}, "expected": 0},
+        {"id": "04", "kind": "boundary", "input": {"score": 12}, "expected": 1},
+        {"id": "05", "kind": "boundary", "input": {"score": 1}, "expected": -5},
+        {"id": "06", "kind": "boundary", "input": {"score": 8}, "expected": -1},
+        {"id": "07", "kind": "boundary", "input": {"score": 30}, "expected": 10},
+        {"id": "08", "kind": "boundary", "input": {"score": 29}, "expected": 9},
+        {"id": "09", "kind": "boundary", "input": {"score": 20}, "expected": 5}
+      ]
+    },
+    {
+      "leaf_id": "K07.advantage_disadvantage",
+      "family": "d20_test",
+      "source_ref": {"pdf_page": 11, "text": "both Advantage and Disadvantage: neither, roll one d20 (the boolean engine API cannot express several sources of one kind; that aggregation is a separate OPEN rule)"},
+      "engine_resolvers": ["api.core_resolution.roll_d20"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"advantage": false, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 1, "selected": 7}},
+        {"id": "02", "kind": "normal", "input": {"advantage": true, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 2, "selected": 15}},
+        {"id": "03", "kind": "normal", "input": {"advantage": false, "disadvantage": true, "rolls": [7, 15]}, "expected": {"rolled": 2, "selected": 7}},
+        {"id": "04", "kind": "interaction", "input": {"advantage": true, "disadvantage": true, "rolls": [7, 15]}, "expected": {"rolled": 1, "selected": 7}},
+        {"id": "05", "kind": "boundary", "input": {"advantage": true, "disadvantage": false, "rolls": [1, 20]}, "expected": {"rolled": 2, "selected": 20}},
+        {"id": "06", "kind": "boundary", "input": {"advantage": false, "disadvantage": true, "rolls": [20, 1]}, "expected": {"rolled": 2, "selected": 1}},
+        {"id": "07", "kind": "boundary", "input": {"advantage": true, "disadvantage": true, "rolls": [20, 1]}, "expected": {"rolled": 1, "selected": 20}}
+      ]
+    },
+    {
+      "leaf_id": "K07.expertise_once",
+      "family": "proficiency",
+      "source_ref": {"pdf_page": 366, "text": "Expertise doubles the Proficiency Bonus for the check; p.12: the bonus can be multiplied only once, never stacked"},
+      "engine_resolvers": ["game.perform_skill_check"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"proficiency_bonus": 3, "proficient": false, "expertise": false}, "expected": 0},
+        {"id": "02", "kind": "normal", "input": {"proficiency_bonus": 3, "proficient": true, "expertise": false}, "expected": 3},
+        {"id": "03", "kind": "interaction", "input": {"proficiency_bonus": 3, "proficient": true, "expertise": true}, "expected": 6},
+        {"id": "04", "kind": "boundary", "input": {"proficiency_bonus": 6, "proficient": true, "expertise": true}, "expected": 12},
+        {"id": "05", "kind": "boundary", "input": {"proficiency_bonus": 2, "proficient": false, "expertise": true}, "expected": 0}
+      ]
+    },
+    {
+      "leaf_id": "K07.temp_hp_lost_first",
+      "family": "hit_points",
+      "source_ref": {"pdf_page": 28, "text": "Temporary Hit Points are lost first; leftover damage carries to Hit Points (5 temp + 7 damage = 2 HP lost)"},
+      "engine_resolvers": ["game._apply_attack_damage_to_player"],
+      "cases": [
+        {"id": "01", "kind": "normal", "input": {"temp": 5, "damage": 7, "hp": 20}, "expected": {"temp": 0, "hp": 18}},
+        {"id": "02", "kind": "boundary", "input": {"temp": 5, "damage": 3, "hp": 20}, "expected": {"temp": 2, "hp": 20}},
+        {"id": "03", "kind": "boundary", "input": {"temp": 0, "damage": 4, "hp": 20}, "expected": {"temp": 0, "hp": 16}},
+        {"id": "04", "kind": "boundary", "input": {"temp": 5, "damage": 5, "hp": 20}, "expected": {"temp": 0, "hp": 20}}
+      ]
+    },
+    {
+      "leaf_id": "K07.death_saves_and_stable.temp_hp_at_zero",
+      "family": "hit_points",
+      "source_ref": {"pdf_page": 28, "text": "If you have 0 Hit Points, receiving Temporary Hit Points doesn't restore you to consciousness. Only true healing can save you."},
+      "engine_resolvers": ["game._apply_player_damage", "game.grant_temporary_hit_points"],
+      "cases": [
+        {"id": "01", "kind": "boundary", "input": {"max_hp": 20, "damage": 20, "temporary_hit_points": 5, "successes": 1, "failures": 1}, "expected": {"temporary_hit_points": 5, "hp": 0, "status": "unconscious", "successes": 1, "failures": 1, "stable": false, "dead": false}}
+      ]
+    },
+    {
+      "leaf_id": "K07.death_saves_and_stable.core",
+      "family": "hit_points",
+      "source_ref": {"pdf_page": 28, "text": "Death Saving Throws and Stabilizing a Character: 10+ succeeds; 1 causes two failures; 20 regains 1 HP; third success stabilizes; third failure kills; damage at 0 HP causes failure (two on a Critical Hit, death at HP maximum); successful DC 10 Wisdom (Medicine) stabilizes; Stable creatures remain unconscious, resume saves if damaged, and regain 1 HP after 1d4 hours."},
+      "engine_resolvers": ["game._resolve_player_death_turn", "game._apply_player_damage", "game.attempt_player_stabilization", "game.stabilize_player"],
+      "cases": [
+        {"id": "01", "kind": "interaction", "input": {"op": "death_save", "rolls": [10, 9]}, "expected": {"outcomes": ["success", "failure"], "successes": 1, "failures": 1, "stable": false, "dead": false, "hp": 0, "status": "unconscious"}},
+        {"id": "02", "kind": "boundary", "input": {"op": "death_save", "rolls": [1]}, "expected": {"outcomes": ["natural_1"], "successes": 0, "failures": 2, "stable": false, "dead": false, "hp": 0, "status": "unconscious"}},
+        {"id": "03", "kind": "boundary", "input": {"op": "death_save", "rolls": [20]}, "expected": {"outcomes": ["revived"], "successes": 0, "failures": 0, "stable": false, "dead": false, "hp": 1, "status": "active"}},
+        {"id": "04", "kind": "boundary", "input": {"op": "death_save", "rolls": [10], "successes": 2}, "expected": {"outcomes": ["stable"], "successes": 0, "failures": 0, "stable": true, "dead": false, "hp": 0, "status": "unconscious"}},
+        {"id": "05", "kind": "boundary", "input": {"op": "death_save", "rolls": [9], "failures": 2}, "expected": {"outcomes": ["dead"], "successes": 0, "failures": 3, "stable": false, "dead": true, "hp": 0, "status": "dead"}},
+        {"id": "06", "kind": "normal", "input": {"op": "damage", "damage": 1, "critical": false}, "expected": {"failures": 1, "dead": false, "status": "unconscious"}},
+        {"id": "07", "kind": "boundary", "input": {"op": "damage", "damage": 1, "critical": true}, "expected": {"failures": 2, "dead": false, "status": "unconscious"}},
+        {"id": "08", "kind": "boundary", "input": {"op": "damage", "damage": 20, "critical": false}, "expected": {"dead": true, "status": "dead"}},
+        {"id": "09", "kind": "boundary", "input": {"op": "medicine", "roll": 9}, "expected": {"success": false, "stable": false, "successes": 0, "failures": 0, "hp": 0, "status": "unconscious"}},
+        {"id": "10", "kind": "boundary", "input": {"op": "medicine", "roll": 10}, "expected": {"success": true, "stable": true, "successes": 0, "failures": 0, "hp": 0, "status": "unconscious"}},
+        {"id": "11", "kind": "interaction", "input": {"op": "stable_damage", "damage": 1}, "expected": {"failures": 1, "stable": false, "dead": false, "status": "unconscious"}},
+        {"id": "12", "kind": "boundary", "input": {"op": "recovery", "hours": 2}, "expected": {"hp": 1, "stable": false, "status": "active"}},
+        {"id": "13", "kind": "interaction", "input": {"op": "death_save", "rolls": [9], "constitution": 20}, "expected": {"outcomes": ["failure"], "successes": 0, "failures": 1, "stable": false, "dead": false, "hp": 0, "status": "unconscious", "constitution_save_bonus": 7}},
+        {"id": "14", "kind": "boundary", "input": {"op": "stable_no_save"}, "expected": {"result": null, "stable": true, "successes": 0, "failures": 0, "hp": 0, "status": "unconscious"}}
+      ]
+    },
+    {
+      "leaf_id": "K07.proficiency_bonus_by_level",
+      "family": "proficiency",
+      "source_ref": {
+        "pdf_page": 12,
+        "printed_page": 13,
+        "text": "Proficiency Bonus table: Up to 4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6 (character levels; the table also lists CR 21-30 for monsters, not a character level)",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "api.dnd_2024_rules.proficiency_bonus_for_level"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "boundary",
+          "input": {
+            "level": 1
+          },
+          "expected": 2
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "level": 2
+          },
+          "expected": 2
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "level": 4
+          },
+          "expected": 2
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "level": 5
+          },
+          "expected": 3
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "level": 8
+          },
+          "expected": 3
+        },
+        {
+          "id": "06",
+          "kind": "boundary",
+          "input": {
+            "level": 9
+          },
+          "expected": 4
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "level": 12
+          },
+          "expected": 4
+        },
+        {
+          "id": "08",
+          "kind": "boundary",
+          "input": {
+            "level": 13
+          },
+          "expected": 5
+        },
+        {
+          "id": "09",
+          "kind": "boundary",
+          "input": {
+            "level": 16
+          },
+          "expected": 5
+        },
+        {
+          "id": "10",
+          "kind": "boundary",
+          "input": {
+            "level": 17
+          },
+          "expected": 6
+        },
+        {
+          "id": "11",
+          "kind": "boundary",
+          "input": {
+            "level": 20
+          },
+          "expected": 6
+        },
+        {
+          "id": "12",
+          "kind": "negative",
+          "input": {
+            "level": 0
+          },
+          "expected": "rejected"
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {
+            "level": 21
+          },
+          "expected": "rejected"
+        },
+        {
+          "id": "14",
+          "kind": "negative",
+          "input": {
+            "level": true
+          },
+          "expected": "rejected"
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.long_rest_hp_exhaustion_duration",
+      "family": "state",
+      "source_ref": {
+        "pdf_page": 369,
+        "printed_page": 370,
+        "text": "Long Rest (Rules Glossary): at least 8 hours; needs at least 1 Hit Point to start; regain all lost HP; Exhaustion level decreases by 1; not possible during combat (rolling Initiative interrupts). Engine note: the 0 HP refusal comes from the generic require_player_can_act guard (not a Long Rest rule); the combat refusal is an interpretation of rolling Initiative interrupting a rest",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "game.resolve_species_trait_action"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 2,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 1
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 2,
+            "elapsed_seconds": 28799
+          },
+          "expected": {
+            "status": "rejected",
+            "reason": "duration_invalid"
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "hp": 20,
+            "max_hp": 20,
+            "exhaustion": 0,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 0
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "hp": 1,
+            "max_hp": 20,
+            "exhaustion": 1,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "completed",
+            "hp": 20,
+            "exhaustion": 0
+          }
+        },
+        {
+          "id": "05",
+          "kind": "negative",
+          "input": {
+            "hp": 0,
+            "max_hp": 20,
+            "exhaustion": 0,
+            "elapsed_seconds": 28800
+          },
+          "expected": {
+            "status": "rejected",
+            "reason": "player_cannot_act"
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "hp": 5,
+            "max_hp": 20,
+            "exhaustion": 3,
+            "elapsed_seconds": 28800,
+            "combat_active": true
+          },
+          "expected": {
+            "status": "rejected",
+            "reason": "combat_active"
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.turn_resource_budgets",
+      "family": "combat_order",
+      "source_ref": {
+        "pdf_page": 14,
+        "printed_page": 15,
+        "also": {
+          "pdf_page": 24,
+          "printed_page": 25,
+          "text": "Breaking Up Your Move"
+        },
+        "text": "Actions list (12 actions); Dash gives extra movement equal to Speed; a Bonus Action only when a feature grants one and only one per turn, anything that deprives you of taking actions also prevents a Bonus Action; a Reaction cannot be taken again until the start of your next turn; movement can be split around actions",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "action_economy.consume_action",
+        "action_economy.move",
+        "action_economy.dash",
+        "action_economy.begin_turn",
+        "action_economy.begin_round"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "steps": [
+              {
+                "op": "action_names"
+              }
+            ]
+          },
+          "expected": [
+            [
+              "Attack",
+              "Dash",
+              "Disengage",
+              "Dodge",
+              "Help",
+              "Hide",
+              "Influence",
+              "Magic",
+              "Ready",
+              "Search",
+              "Study",
+              "Utilize"
+            ]
+          ]
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "03",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "bonus_action_spent"
+          ]
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "06",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "spend_reaction"
+              },
+              {
+                "op": "begin_round"
+              },
+              {
+                "op": "reaction_spent"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "reaction_spent"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            true,
+            "ok",
+            false
+          ]
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "set_speed",
+                "feet": 30
+              },
+              {
+                "op": "move",
+                "feet": 10
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "move",
+                "feet": 20
+              },
+              {
+                "op": "move",
+                "feet": 5
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "movement_unavailable"
+          ]
+        },
+        {
+          "id": "08",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "set_speed",
+                "feet": 25
+              },
+              {
+                "op": "move",
+                "feet": 25
+              },
+              {
+                "op": "dash"
+              },
+              {
+                "op": "move",
+                "feet": 25
+              },
+              {
+                "op": "move",
+                "feet": 5
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "movement_unavailable"
+          ]
+        },
+        {
+          "id": "09",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              },
+              {
+                "op": "dash"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        },
+        {
+          "id": "10",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "incapacitate"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "actor_cannot_act",
+            "actor_cannot_act"
+          ]
+        },
+        {
+          "id": "11",
+          "kind": "interaction",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "action"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "12",
+          "kind": "boundary",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              },
+              {
+                "op": "begin_turn"
+              },
+              {
+                "op": "grant_bonus"
+              },
+              {
+                "op": "consume",
+                "kind": "disengage",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "ok"
+          ]
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {
+            "steps": [
+              {
+                "op": "grant_bonus",
+                "kind": "disengage"
+              },
+              {
+                "op": "consume",
+                "kind": "attack",
+                "resource": "bonus"
+              }
+            ]
+          },
+          "expected": [
+            "ok",
+            "action_unavailable"
+          ]
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.saving_throw_and_skill_list",
+      "family": "save",
+      "source_ref": {
+        "pdf_page": 13,
+        "printed_page": 14,
+        "also": {
+          "text": "each class's Core Traits table, Saving Throw Proficiencies row (PDF pages: Barbarian 50, Bard 58, Cleric 68, Druid 78, Fighter 90, Monk 100, Paladin 108, Ranger 118, Rogue 128, Sorcerer 138, Warlock 152, Wizard 164; printed = PDF + 1)"
+        },
+        "text": "Skills table (18 skills with their ability); Saving Throw Proficiencies: a proficient save adds the Proficiency Bonus to saves of that ability; each class gives proficiency in two saving throws",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "api.dnd_2024_rules.SKILL_DEFINITIONS",
+        "game.SKILLS",
+        "api.dnd_2024_rules.CLASS_DEFINITIONS",
+        "api.dnd_2024_rules.calculate_derived_stats"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {"op": "skill_abilities", "owner": "rules"},
+          "expected": {"Acrobatics": "dexterity", "Animal Handling": "wisdom", "Arcana": "intelligence", "Athletics": "strength", "Deception": "charisma", "History": "intelligence", "Insight": "wisdom", "Intimidation": "charisma", "Investigation": "intelligence", "Medicine": "wisdom", "Nature": "intelligence", "Perception": "wisdom", "Performance": "charisma", "Persuasion": "charisma", "Religion": "intelligence", "Sleight of Hand": "dexterity", "Stealth": "dexterity", "Survival": "wisdom"}
+        },
+        {
+          "id": "02",
+          "kind": "interaction",
+          "input": {"op": "skill_abilities", "owner": "game"},
+          "expected": {"Acrobatics": "dexterity", "Animal Handling": "wisdom", "Arcana": "intelligence", "Athletics": "strength", "Deception": "charisma", "History": "intelligence", "Insight": "wisdom", "Intimidation": "charisma", "Investigation": "intelligence", "Medicine": "wisdom", "Nature": "intelligence", "Perception": "wisdom", "Performance": "charisma", "Persuasion": "charisma", "Religion": "intelligence", "Sleight of Hand": "dexterity", "Stealth": "dexterity", "Survival": "wisdom"}
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {"op": "class_saves"},
+          "expected": {"Barbarian": ["constitution", "strength"], "Bard": ["charisma", "dexterity"], "Cleric": ["charisma", "wisdom"], "Druid": ["intelligence", "wisdom"], "Fighter": ["constitution", "strength"], "Monk": ["dexterity", "strength"], "Paladin": ["charisma", "wisdom"], "Ranger": ["dexterity", "strength"], "Rogue": ["dexterity", "intelligence"], "Sorcerer": ["charisma", "constitution"], "Warlock": ["charisma", "wisdom"], "Wizard": ["intelligence", "wisdom"]}
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {"op": "save_modifiers", "class": "Barbarian", "scores": {"strength": 15, "dexterity": 14, "constitution": 13, "intelligence": 10, "wisdom": 10, "charisma": 8}},
+          "expected": {"strength": 4, "dexterity": 2, "constitution": 3, "intelligence": 0, "wisdom": 0, "charisma": -1}
+        },
+        {
+          "id": "05",
+          "kind": "interaction",
+          "input": {"op": "save_modifiers", "class": "Wizard", "scores": {"strength": 15, "dexterity": 14, "constitution": 13, "intelligence": 10, "wisdom": 10, "charisma": 8}},
+          "expected": {"strength": 2, "dexterity": 2, "constitution": 1, "intelligence": 2, "wisdom": 2, "charisma": -1}
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.hit_dice_short_and_long_rest",
+      "family": "state",
+      "source_ref": {
+        "pdf_page": 372,
+        "printed_page": 373,
+        "also": {
+          "text": "Hit Point Dice glossary PDF 367 (printed 368); Long Rest PDF 369 (printed 370): 'all spent Hit Point Dice' return; interrupted Long Rest after at least 1 hour gives the benefits of a Short Rest PDF 370 (printed 371); class Hit Dice: Fighter D10 PDF 90, Sorcerer D6 PDF 138; text also re-checked against K07 release_v2 glossary.md (Hit Point Dice PDF 367, Long Rest PDF 369-370, Short Rest PDF 372) - K07 release_v2 independent source audit completed (user report 2026-10-28)"
+        },
+        "text": "Short Rest: spend Hit Point Dice, roll the die + Constitution modifier per die, at least 1 HP, may spend another after each roll; an interrupted Short Rest confers no benefits",
+        "verified_from": "page scan image"
+      },
+      "engine_resolvers": [
+        "game.resolve_species_trait_action(short_rest)",
+        "game.resolve_species_trait_action(spend_hit_die)",
+        "game.resolve_species_trait_action(long_rest)"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "spend", "roll": 4}, {"op": "short_rest"}, {"op": "spend", "roll": 4}, {"op": "remaining"}, {"op": "spend", "roll": 4}]},
+          "expected": ["refused:no_window", "ok", 6, 0, "refused:no_dice"]
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": -3, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 1}]},
+          "expected": ["ok", 1]
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {"who": "fighter", "current_hp": 11, "max_hp": 12, "constitution": 2, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 10}]},
+          "expected": ["ok", 1]
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {"who": "sorcerer", "current_hp": 2, "max_hp": 14, "constitution": 2, "steps": [{"op": "short_rest"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "spend", "roll": 3}, {"op": "remaining"}, {"op": "long_rest"}, {"op": "remaining"}]},
+          "expected": ["ok", 5, 1, 5, 0, "ok", 2]
+        },
+        {
+          "id": "05",
+          "kind": "negative",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 1200}, {"op": "short_rest"}, {"op": "spend", "roll": 4}]},
+          "expected": ["interrupted", "refused:no_window"]
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 3700}, {"op": "long_rest"}, {"op": "spend", "roll": 4}]},
+          "expected": ["interrupted", 6]
+        },
+        {
+          "id": "07",
+          "kind": "negative",
+          "input": {"who": "fighter", "current_hp": 3, "max_hp": 12, "constitution": 2, "steps": [{"op": "interrupt_after", "seconds": 1200}, {"op": "long_rest"}, {"op": "spend", "roll": 4}]},
+          "expected": ["interrupted", "refused:no_window"]
+        }
+      ]
+    },
+    {
+      "leaf_id": "K07.conditions_speed_actions_attacks_saves",
+      "family": "conditions",
+      "source_ref": {
+        "pdf_page": 368,
+        "printed_page": 369,
+        "also": {
+          "text": "K07 release_v2 glossary.md, PDF ordinal / printed: Incapacitated 368/369, Paralyzed 370/371, Petrified 371/372, Restrained 372/373, Grappled 366/367, Stunned 375/376, Unconscious 376/[?] (use the PDF ordinal), Exhaustion 365/366, Speed 373/374"
+        },
+        "text": "Speed is 0 only under Grappled, Paralyzed, Petrified, Restrained, Unconscious; Incapacitated (and Stunned, which only grants Incapacitated) prevents actions, Bonus Actions and Reactions but not movement; Exhaustion reduces Speed by 5 ft per level; Petrified: attacks against it have Advantage, Strength and Dexterity saves fail automatically; Restrained: Disadvantage on Dexterity saves",
+        "verified_from": "release_v2 source package (independent source audit completed per user report)"
+      },
+      "engine_resolvers": [
+        "action_economy.speed",
+        "action_economy.move",
+        "action_economy.consume_action",
+        "weapon_attack.resolve",
+        "weapon_attack.save"
+      ],
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {"conditions": ["incapacitated"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [30, "ok", "actor_cannot_act"]
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {"conditions": ["stunned"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [30, "ok", "actor_cannot_act"]
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {"conditions": ["paralyzed"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "04",
+          "kind": "normal",
+          "input": {"conditions": ["petrified"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "05",
+          "kind": "normal",
+          "input": {"conditions": ["unconscious"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "06",
+          "kind": "normal",
+          "input": {"conditions": ["grappled"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "ok"]
+        },
+        {
+          "id": "07",
+          "kind": "normal",
+          "input": {"conditions": ["restrained"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "ok"]
+        },
+        {
+          "id": "08",
+          "kind": "interaction",
+          "input": {"conditions": ["incapacitated", "grappled"], "steps": [{"op": "speed"}, {"op": "move", "feet": 10}, {"op": "action"}]},
+          "expected": [0, "movement_unavailable", "actor_cannot_act"]
+        },
+        {
+          "id": "09",
+          "kind": "boundary",
+          "input": {"conditions": ["incapacitated"], "exhaustion": 2, "steps": [{"op": "speed"}, {"op": "move", "feet": 20}, {"op": "move", "feet": 5}]},
+          "expected": [20, "ok", "movement_unavailable"]
+        },
+        {
+          "id": "10",
+          "kind": "normal",
+          "input": {"target_conditions": ["petrified"], "steps": [{"op": "attack_advantage"}]},
+          "expected": [["target_petrified"]]
+        },
+        {
+          "id": "11",
+          "kind": "interaction",
+          "input": {"target_conditions": ["petrified"], "steps": [{"op": "save", "ability": "strength", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "dexterity", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "wisdom", "dc": 10, "rolls": [20]}]},
+          "expected": ["auto_fail", "auto_fail", "SUCCESS"]
+        },
+        {
+          "id": "12",
+          "kind": "boundary",
+          "input": {"target_conditions": ["restrained"], "steps": [{"op": "save", "ability": "dexterity", "dc": 10, "rolls": [18, 4]}, {"op": "save", "ability": "strength", "dc": 10, "rolls": [18, 4]}]},
+          "expected": ["FAILURE", "SUCCESS"]
+        },
+        {
+          "id": "13",
+          "kind": "negative",
+          "input": {"target_conditions": ["incapacitated"], "steps": [{"op": "save", "ability": "strength", "dc": 10, "rolls": [20]}, {"op": "save", "ability": "dexterity", "dc": 10, "rolls": [20]}]},
+          "expected": ["SUCCESS", "SUCCESS"]
+        }
+      ]
+    }
+  ],
+  "open_leaves": [
+    {"family": "save", "rule": "skill_proficiency_choices_and_save_total_in_play", "status": "OPEN", "reason": "class skill-choice counts/options, background skills, and the saving-throw total applied during play (saving_bonus, feat/species adders, exhaustion) are not oracle-covered; the creation save modifiers cover only the level-1 Proficiency Bonus of 2 (higher levels belong to C06); Sorcerer saves were read in C06 and are also run here"},
+    {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "eligible weapon/Initiative source aggregation covered by K07.advantage_disadvantage_source_aggregation.weapon_and_initiative; skill/save/spell source routing and source eligibility remain OPEN"},
+    {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
+    {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
+    {"family": "state", "rule": "long_rest_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: no ability-score restoration; 16-hour start spacing covered by K07.long_rest_start_spacing (PDF369), legacy absent completion history is unknown; Hit Point Dice are covered by K07.hit_dice_short_and_long_rest"},
+    {"family": "state", "rule": "short_rest_other_benefits", "status": "OPEN", "reason": "not covered: features that recharge on a Short Rest (species Short Rest features are not given after an interrupted Long Rest), damage after the rest other than via the HP guard, a level applied between the rest and the spend, Hit Dice display in the UI, interruptions by walking/exertion (PDF 370); Hit Point Dice spending is covered by K07.hit_dice_short_and_long_rest"},
+    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
+    {"family": "conditions", "rule": "conditions_other_effects", "status": "OPEN", "reason": "not oracle-covered: Charmed effects beyond attacks against known canonical charmer (K07.charmed_attack_charmer), Deafened, Frightened (movement and line of sight), Invisible effects beyond Initiative advantage and explicit directed sight attack exception (covered by K07.initiative_invisible and K07.invisible_attack_explicit_sight_exception); special-sense sight production remains OPEN, Blinded auto-fail on sight checks, Prone crawling and standing cost, Unconscious dropping items, Exhaustion D20 penalties beyond Initiative (covered by K07.initiative_exhaustion_penalty) and death at level 6, Concentration broken by Incapacitated, Dehydration/Malnutrition exhaustion removal, outside-combat movement still blocked for Incapacitated/Stunned by exploration._busy (Speed is correct there, journeys are not), a Grapple ending when the grappler is Incapacitated (not modelled); sources: K07 release_v2 (scope_and_exceptions.json unsupported list applies)"},
+    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; Dodge benefits/loss are covered by K07.dodge_benefits_loss; its activation/expiry and the effects of Disengage, Help, Hide, Ready, Search, Study are not oracle-covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"}
+  ]
+}

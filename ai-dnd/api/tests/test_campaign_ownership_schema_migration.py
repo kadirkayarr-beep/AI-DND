@@ -26,6 +26,7 @@ _STABLE_CAMPAIGN_COLUMNS = (
     "character_race", "character_class", "character_level", "location",
     "payload_json", "revision",
 )
+_V5_TURN_ACTION_COLUMNS = "campaign_id, action_id, request_hash, response_json, created_at"
 _RELATED_TABLES = (
     "campaign_history",
     "campaign_combat_history",
@@ -203,7 +204,10 @@ def _stable_snapshot(path: Path) -> dict[str, list[tuple]]:
         ),
     }
     for table in _RELATED_TABLES:
-        snapshot[table] = _rows(path, f"SELECT * FROM {table} ORDER BY campaign_id")
+        # The v5 schema's own columns: R04 (66410ae) later ADDS nullable receipt columns to campaign_turn_actions, so a
+        # `SELECT *` would show those new trailing NULLs. The migration must keep every ORIGINAL column byte-stable.
+        selected = _V5_TURN_ACTION_COLUMNS if table == "campaign_turn_actions" else "*"
+        snapshot[table] = _rows(path, f"SELECT {selected} FROM {table} ORDER BY campaign_id")
     return snapshot
 
 
@@ -265,6 +269,11 @@ class CampaignOwnershipSchemaMigrationTests(unittest.TestCase):
     def _assert_migrated(self, payloads: dict[str, str], before: dict[str, list[tuple]]) -> None:
         self.assertEqual(_rows(self.path, "PRAGMA user_version"), [(6,)])
         self.assertEqual(_stable_snapshot(self.path), before)
+        # legacy receipt rows get NULL in the columns R04 added: nothing is invented for rows written before the migration
+        self.assertEqual(
+            _rows(self.path, "SELECT base_revision, committed_revision, result_digest FROM campaign_turn_actions"),
+            [(None, None, None)] * len(before["campaign_turn_actions"]),
+        )
         self.assertEqual(
             [row[0] for row in _ownership(self.path)],
             sorted(payloads),

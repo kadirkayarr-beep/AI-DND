@@ -1,0 +1,821 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "pdf_pages": [
+   212,
+   213,
+   214,
+   217,
+   218
+  ],
+  "note": "values only, no book text; printed page = PDF page + 1; cost in copper (1 GP=100 CP, 1 SP=10 CP)",
+  "image_verification": "PDF 214 weapons table re-read from the page scan: Sling weight shows a dash (no weight stated); Lance reads 'Two-Handed (unless mounted)'; all weights/costs/damage/mastery spot-read OK"
+ },
+ "weapons": {
+  "Club": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d4",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "light"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "slow",
+   "weight_lb": 2,
+   "cost_cp": 10,
+   "pdf_page": 214
+  },
+  "Dagger": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d4",
+   "damage_type": "piercing",
+   "properties": [
+    "finesse",
+    "light",
+    "thrown"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "nick",
+   "weight_lb": 1,
+   "cost_cp": 200,
+   "pdf_page": 214
+  },
+  "Greatclub": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "push",
+   "weight_lb": 10,
+   "cost_cp": 20,
+   "pdf_page": 214
+  },
+  "Handaxe": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "slashing",
+   "properties": [
+    "light",
+    "thrown"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "vex",
+   "weight_lb": 2,
+   "cost_cp": 500,
+   "pdf_page": 214
+  },
+  "Javelin": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "piercing",
+   "properties": [
+    "thrown"
+   ],
+   "thrown_range": "30/120",
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "slow",
+   "weight_lb": 2,
+   "cost_cp": 50,
+   "pdf_page": 214
+  },
+  "Light Hammer": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d4",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "light",
+    "thrown"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "nick",
+   "weight_lb": 2,
+   "cost_cp": 200,
+   "pdf_page": 214
+  },
+  "Mace": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "bludgeoning",
+   "properties": [],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 4,
+   "cost_cp": 500,
+   "pdf_page": 214
+  },
+  "Quarterstaff": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "versatile"
+   ],
+   "thrown_range": null,
+   "versatile_damage": "1d8",
+   "ammunition": null,
+   "mastery": "topple",
+   "weight_lb": 4,
+   "cost_cp": 20,
+   "pdf_page": 214
+  },
+  "Sickle": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d4",
+   "damage_type": "slashing",
+   "properties": [
+    "light"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "nick",
+   "weight_lb": 2,
+   "cost_cp": 100,
+   "pdf_page": 214
+  },
+  "Spear": {
+   "category": "simple",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "piercing",
+   "properties": [
+    "thrown",
+    "versatile"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": "1d8",
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 3,
+   "cost_cp": 100,
+   "pdf_page": 214
+  },
+  "Dart": {
+   "category": "simple",
+   "kind": "ranged",
+   "damage": "1d4",
+   "damage_type": "piercing",
+   "properties": [
+    "finesse",
+    "thrown"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "vex",
+   "weight_lb": 0.25,
+   "cost_cp": 5,
+   "pdf_page": 214
+  },
+  "Light Crossbow": {
+   "category": "simple",
+   "kind": "ranged",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "loading",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "80/320",
+    "type": "bolt"
+   },
+   "mastery": "slow",
+   "weight_lb": 5,
+   "cost_cp": 2500,
+   "pdf_page": 214
+  },
+  "Shortbow": {
+   "category": "simple",
+   "kind": "ranged",
+   "damage": "1d6",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "80/320",
+    "type": "arrow"
+   },
+   "mastery": "vex",
+   "weight_lb": 2,
+   "cost_cp": 2500,
+   "pdf_page": 214
+  },
+  "Sling": {
+   "category": "simple",
+   "kind": "ranged",
+   "damage": "1d4",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "ammunition"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "30/120",
+    "type": "bullet"
+   },
+   "mastery": "slow",
+   "weight_lb": null,
+   "cost_cp": 10,
+   "pdf_page": 214,
+   "weight_status": "NOT_STATED_IN_SOURCE_TABLE",
+   "weight_source_value": "—"
+  },
+  "Battleaxe": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "slashing",
+   "properties": [
+    "versatile"
+   ],
+   "thrown_range": null,
+   "versatile_damage": "1d10",
+   "ammunition": null,
+   "mastery": "topple",
+   "weight_lb": 4,
+   "cost_cp": 1000,
+   "pdf_page": 214
+  },
+  "Flail": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "bludgeoning",
+   "properties": [],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 2,
+   "cost_cp": 1000,
+   "pdf_page": 214
+  },
+  "Glaive": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d10",
+   "damage_type": "slashing",
+   "properties": [
+    "heavy",
+    "reach",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "graze",
+   "weight_lb": 6,
+   "cost_cp": 2000,
+   "pdf_page": 214
+  },
+  "Greataxe": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d12",
+   "damage_type": "slashing",
+   "properties": [
+    "heavy",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "cleave",
+   "weight_lb": 7,
+   "cost_cp": 3000,
+   "pdf_page": 214
+  },
+  "Greatsword": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "2d6",
+   "damage_type": "slashing",
+   "properties": [
+    "heavy",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "graze",
+   "weight_lb": 6,
+   "cost_cp": 5000,
+   "pdf_page": 214
+  },
+  "Halberd": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d10",
+   "damage_type": "slashing",
+   "properties": [
+    "heavy",
+    "reach",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "cleave",
+   "weight_lb": 6,
+   "cost_cp": 2000,
+   "pdf_page": 214
+  },
+  "Lance": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d10",
+   "damage_type": "piercing",
+   "properties": [
+    "heavy",
+    "reach",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "topple",
+   "weight_lb": 6,
+   "cost_cp": 1000,
+   "pdf_page": 214,
+   "two_handed_condition": "unless mounted"
+  },
+  "Longsword": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "slashing",
+   "properties": [
+    "versatile"
+   ],
+   "thrown_range": null,
+   "versatile_damage": "1d10",
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 3,
+   "cost_cp": 1500,
+   "pdf_page": 214
+  },
+  "Maul": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "2d6",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "heavy",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "topple",
+   "weight_lb": 10,
+   "cost_cp": 1000,
+   "pdf_page": 214
+  },
+  "Morningstar": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 4,
+   "cost_cp": 1500,
+   "pdf_page": 214
+  },
+  "Pike": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d10",
+   "damage_type": "piercing",
+   "properties": [
+    "heavy",
+    "reach",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "push",
+   "weight_lb": 18,
+   "cost_cp": 500,
+   "pdf_page": 214
+  },
+  "Rapier": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [
+    "finesse"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "vex",
+   "weight_lb": 2,
+   "cost_cp": 2500,
+   "pdf_page": 214
+  },
+  "Scimitar": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "slashing",
+   "properties": [
+    "finesse",
+    "light"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "nick",
+   "weight_lb": 3,
+   "cost_cp": 2500,
+   "pdf_page": 214
+  },
+  "Shortsword": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d6",
+   "damage_type": "piercing",
+   "properties": [
+    "finesse",
+    "light"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "vex",
+   "weight_lb": 2,
+   "cost_cp": 1000,
+   "pdf_page": 214
+  },
+  "Trident": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [
+    "thrown",
+    "versatile"
+   ],
+   "thrown_range": "20/60",
+   "versatile_damage": "1d10",
+   "ammunition": null,
+   "mastery": "topple",
+   "weight_lb": 4,
+   "cost_cp": 500,
+   "pdf_page": 214
+  },
+  "Warhammer": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "bludgeoning",
+   "properties": [
+    "versatile"
+   ],
+   "thrown_range": null,
+   "versatile_damage": "1d10",
+   "ammunition": null,
+   "mastery": "push",
+   "weight_lb": 5,
+   "cost_cp": 1500,
+   "pdf_page": 214
+  },
+  "War Pick": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [
+    "versatile"
+   ],
+   "thrown_range": null,
+   "versatile_damage": "1d10",
+   "ammunition": null,
+   "mastery": "sap",
+   "weight_lb": 2,
+   "cost_cp": 500,
+   "pdf_page": 214
+  },
+  "Whip": {
+   "category": "martial",
+   "kind": "melee",
+   "damage": "1d4",
+   "damage_type": "slashing",
+   "properties": [
+    "finesse",
+    "reach"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": null,
+   "mastery": "slow",
+   "weight_lb": 3,
+   "cost_cp": 200,
+   "pdf_page": 214
+  },
+  "Blowgun": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "loading"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "25/100",
+    "type": "needle"
+   },
+   "mastery": "vex",
+   "weight_lb": 1,
+   "cost_cp": 1000,
+   "pdf_page": 214
+  },
+  "Hand Crossbow": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1d6",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "light",
+    "loading"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "30/120",
+    "type": "bolt"
+   },
+   "mastery": "vex",
+   "weight_lb": 3,
+   "cost_cp": 7500,
+   "pdf_page": 214
+  },
+  "Heavy Crossbow": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1d10",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "heavy",
+    "loading",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "100/400",
+    "type": "bolt"
+   },
+   "mastery": "push",
+   "weight_lb": 18,
+   "cost_cp": 5000,
+   "pdf_page": 214
+  },
+  "Longbow": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1d8",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "heavy",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "150/600",
+    "type": "arrow"
+   },
+   "mastery": "slow",
+   "weight_lb": 2,
+   "cost_cp": 5000,
+   "pdf_page": 214
+  },
+  "Musket": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1d12",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "loading",
+    "two-handed"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "40/120",
+    "type": "bullet"
+   },
+   "mastery": "slow",
+   "weight_lb": 10,
+   "cost_cp": 50000,
+   "pdf_page": 214
+  },
+  "Pistol": {
+   "category": "martial",
+   "kind": "ranged",
+   "damage": "1d10",
+   "damage_type": "piercing",
+   "properties": [
+    "ammunition",
+    "loading"
+   ],
+   "thrown_range": null,
+   "versatile_damage": null,
+   "ammunition": {
+    "range": "30/90",
+    "type": "bullet"
+   },
+   "mastery": "vex",
+   "weight_lb": 3,
+   "cost_cp": 25000,
+   "pdf_page": 214
+  }
+ },
+ "armor": {
+  "Padded Armor": {
+   "category": "light",
+   "base_ac": 11,
+   "dexterity": "full",
+   "min_strength": null,
+   "stealth_disadvantage": true,
+   "weight_lb": 8,
+   "cost_cp": 500,
+   "pdf_page": 218
+  },
+  "Leather Armor": {
+   "category": "light",
+   "base_ac": 11,
+   "dexterity": "full",
+   "min_strength": null,
+   "stealth_disadvantage": false,
+   "weight_lb": 10,
+   "cost_cp": 1000,
+   "pdf_page": 218
+  },
+  "Studded Leather Armor": {
+   "category": "light",
+   "base_ac": 12,
+   "dexterity": "full",
+   "min_strength": null,
+   "stealth_disadvantage": false,
+   "weight_lb": 13,
+   "cost_cp": 4500,
+   "pdf_page": 218
+  },
+  "Hide Armor": {
+   "category": "medium",
+   "base_ac": 12,
+   "dexterity": "capped2",
+   "min_strength": null,
+   "stealth_disadvantage": false,
+   "weight_lb": 12,
+   "cost_cp": 1000,
+   "pdf_page": 218
+  },
+  "Chain Shirt": {
+   "category": "medium",
+   "base_ac": 13,
+   "dexterity": "capped2",
+   "min_strength": null,
+   "stealth_disadvantage": false,
+   "weight_lb": 20,
+   "cost_cp": 5000,
+   "pdf_page": 218
+  },
+  "Scale Mail": {
+   "category": "medium",
+   "base_ac": 14,
+   "dexterity": "capped2",
+   "min_strength": null,
+   "stealth_disadvantage": true,
+   "weight_lb": 45,
+   "cost_cp": 5000,
+   "pdf_page": 218
+  },
+  "Breastplate": {
+   "category": "medium",
+   "base_ac": 14,
+   "dexterity": "capped2",
+   "min_strength": null,
+   "stealth_disadvantage": false,
+   "weight_lb": 20,
+   "cost_cp": 40000,
+   "pdf_page": 218
+  },
+  "Half Plate Armor": {
+   "category": "medium",
+   "base_ac": 15,
+   "dexterity": "capped2",
+   "min_strength": null,
+   "stealth_disadvantage": true,
+   "weight_lb": 40,
+   "cost_cp": 75000,
+   "pdf_page": 218
+  },
+  "Ring Mail": {
+   "category": "heavy",
+   "base_ac": 14,
+   "dexterity": "none",
+   "min_strength": null,
+   "stealth_disadvantage": true,
+   "weight_lb": 40,
+   "cost_cp": 3000,
+   "pdf_page": 218
+  },
+  "Chain Mail": {
+   "category": "heavy",
+   "base_ac": 16,
+   "dexterity": "none",
+   "min_strength": 13,
+   "stealth_disadvantage": true,
+   "weight_lb": 55,
+   "cost_cp": 7500,
+   "pdf_page": 218
+  },
+  "Splint Armor": {
+   "category": "heavy",
+   "base_ac": 17,
+   "dexterity": "none",
+   "min_strength": 15,
+   "stealth_disadvantage": true,
+   "weight_lb": 60,
+   "cost_cp": 20000,
+   "pdf_page": 218
+  },
+  "Plate Armor": {
+   "category": "heavy",
+   "base_ac": 18,
+   "dexterity": "none",
+   "min_strength": 15,
+   "stealth_disadvantage": true,
+   "weight_lb": 65,
+   "cost_cp": 150000,
+   "pdf_page": 218
+  }
+ },
+ "shield": {
+  "ac_bonus": 2,
+  "weight_lb": 6,
+  "cost_cp": 1000,
+  "pdf_page": 218
+ },
+ "mastery_properties": [
+  "cleave",
+  "graze",
+  "nick",
+  "push",
+  "sap",
+  "slow",
+  "topple",
+  "vex"
+ ]
+}

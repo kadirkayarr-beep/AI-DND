@@ -20,6 +20,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
+from api import action_contract, failure_policy, runtime_recovery
 from api.auth import (
     AuthenticationError,
     FailClosedAuthenticator,
@@ -85,7 +86,7 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
     CampaignStaleError,
 )
-from api.persistence.campaign_store import StartupCampaignStore
+from api.persistence.campaign_store import CampaignStore, StartupCampaignStore
 from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import (
     CharacterCreationOptions,
@@ -121,6 +122,7 @@ from api.serializers import (
     serialize_skill_check_result,
     serialize_session_state,
 )
+from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult
 from api.session_manager import SessionManager, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
@@ -149,23 +151,71 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     session._restore_runtime_snapshot(snapshot["runtime"])
 
 
-def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
-    """Restore the pre-turn snapshot or close the session if that restore fails."""
+def _commit_already_durable(
+    manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any],
+) -> bool | None:
+    """After a failed autosave: True only if THIS action's receipt is durably stored with this exact result.
+
+    A lost commit acknowledgement leaves the database on the new revision. Rolling the live runtime back then would
+    split memory from storage, so the runtime stays on the committed state and the caller answers "unconfirmed",
+    never success and never "not applied". If the lookup itself fails the answer is UNKNOWN (None): the caller must not
+    guess in either direction.
+    """
     try:
-        _restore_session(session, snapshot)
-    except Exception as restore_error:
+        stored = manager.get_turn_action(record, action_id)
+    except Exception:
+        return None
+    return (
+        stored is not None
+        and stored["request_hash"] == request_hash
+        and action_contract.result_digest(stored["response"]) == action_contract.result_digest(response_payload)
+    )
+
+
+def _raise_if_commit_unconfirmed(
+    manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any] | None,
+    error: Exception, adopt: Any = None,
+) -> None:
+    """Keep the live runtime on the committed revision when the database already holds this action's receipt.
+
+    `adopt` brings the rest of the live record (narrative memory, history caches, undo checkpoint) to the stored state.
+    """
+    if response_payload is None or isinstance(error, CampaignStaleError):
+        return  # Stale: the check runs inside the transaction before anything is written, provably not committed.
+    durable = _commit_already_durable(manager, record, action_id, request_hash, response_payload)
+    if durable is None:
+        # Neither "committed" nor "rolled back" can be claimed, and rolling the runtime back could split it from storage.
+        # The safe stance is the quarantine: the session closes, durable truth is what a restart resumes (R05/R06).
         record.usable = False
-        _logger.critical(
-            "Session restore failed (error_type=%s); session closed",
-            type(restore_error).__name__,
+        _logger.critical("Campaign autosave failed and its receipt could not be reconciled; session closed")
+        decision = failure_policy.classify_failure(failure_policy.ActionPhase.RECONCILIATION, "unknown", error)
+        raise HTTPException(status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown")) from None
+    if not durable:
+        return
+    if adopt is not None:
+        adopt()
+    _logger.error("Campaign autosave committed but was not acknowledged (error_type=%s)", type(error).__name__)
+    decision = failure_policy.classify_failure(failure_policy.ActionPhase.COMMIT_UNKNOWN, "unknown", error)
+    raise HTTPException(
+        status_code=decision.status_code,
+        detail=decision.detail(commit_status="committed_unconfirmed"),
+    ) from None
+
+
+def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
+    """Restore the pre-turn snapshot; close the session unless the restore is VERIFIED (R05).
+
+    A restore that raises, or that returns without leaving the snapshot's state, is a double fault: the runtime may be
+    dirty, so every route refuses it and nothing from it is ever saved. Only restore_trusted_runtime reopens it.
+    """
+    if not runtime_recovery.restore_trusted_runtime(
+        record, snapshot, restore=lambda target, trusted: _restore_session(target, trusted),
+    ):
+        _logger.critical("Session restore could not be verified; session closed")
+        decision = failure_policy.classify_failure(
+            failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "quarantined", RuntimeError("restore not verified"),
         )
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "session_restore_failed",
-                "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
-            },
-        ) from None
+        raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
 
 
 def _turn_outcome(action_result: Any) -> TurnOutcome | None:
@@ -544,6 +594,13 @@ def create_app(
         ]
         return JSONResponse(status_code=422, content={"detail": safe_errors})
 
+    def ensure_usable(record: Any) -> None:
+        if not getattr(record, "usable", True):
+            decision = failure_policy.classify_failure(
+                failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "quarantined", RuntimeError("session closed"),
+            )
+            raise HTTPException(status_code=decision.status_code, detail=decision.detail())
+
     def get_record(session_id: str):
         try:
             record = manager.get(session_id)
@@ -552,14 +609,7 @@ def create_app(
                 status_code=404,
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
-        if not getattr(record, "usable", True):
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "session_restore_failed",
-                    "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
-                },
-            )
+        ensure_usable(record)
         return record
 
     def campaign_http_exception(error: CampaignError) -> HTTPException:
@@ -607,11 +657,20 @@ def create_app(
             },
         )
 
+    def action_archived_error() -> HTTPException:
+        # R08: the action WAS applied; only its stored reply was archived. It is refused, never re-run, never treated as new.
+        return HTTPException(status_code=409, detail={
+            "code": "action_archived",
+            "message": "This action was already applied; its stored reply was archived and it will not be run again.",
+        })
+
     def replay_action_response(
-        response: dict[str, Any],
+        response: dict[str, Any] | None,
         response_model: type[BaseModel],
         session_id: str,
     ) -> dict[str, Any]:
+        if response is None:
+            raise action_archived_error()
         # Validate the stored contract before replacing session identity: an
         # incomplete receipt must not be repaired or reach response serialization.
         try:
@@ -634,7 +693,7 @@ def create_app(
     @application.get("/api/health", response_model=HealthResponse)
     def health(response: Response) -> HealthResponse:
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
-        return HealthResponse()
+        return HealthResponse(model=adapter.model_name if adapter is not None else MODEL_NAME)
 
     @application.post("/api/logout", status_code=204)
     @application.post("/api/game/logout", status_code=204)
@@ -762,7 +821,7 @@ def create_app(
             campaign_id, session_id, record, metadata = manager.create_campaign(
                 request.name,
                 character=(
-                    request.character.model_dump()
+                    request.character.model_dump(by_alias=True, exclude_none=True)
                     if request.character is not None
                     else None
                 ),
@@ -885,6 +944,72 @@ def create_app(
             )
         return redact_sensitive_values(state)
 
+    def action_status_payload(record: Any, session_id: str, action_id: str, state: str) -> dict[str, Any]:
+        payload: dict[str, Any] = {"action_id": action_id, "state": state}
+        if state == "applied":
+            receipt = manager.get_turn_action(record, action_id) or {}
+            stored = receipt.get("response")
+            payload["response"] = None
+            if isinstance(stored, dict):
+                try:
+                    payload["response"] = replay_action_response(stored, TurnResponse, session_id)
+                except HTTPException:
+                    payload["response"] = None  # a receipt of another command kind: applied, but not a turn reply
+        elif state == "not_applied":
+            refused = manager.get_refused_action(record, action_id)
+            payload["detail"] = refused["detail"] if refused else None
+        elif state == "open":
+            payload["processing"] = record.turn_lock.locked()
+        return payload
+
+    @application.get(
+        "/api/game/sessions/{session_id}/actions/unresolved",
+        response_model=dict[str, Any],
+    )
+    def read_unresolved_action(session_id: str) -> dict[str, Any]:
+        record = get_record(session_id)
+        if record.revoked:
+            raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+        try:
+            return {"unresolved": manager.unresolved_action(record)}
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.get(
+        "/api/game/sessions/{session_id}/actions/{action_id}",
+        response_model=dict[str, Any],
+    )
+    def read_action_status(session_id: str, action_id: str) -> dict[str, Any]:
+        record = get_record(session_id)
+        if record.revoked:
+            raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+        try:
+            return action_status_payload(record, session_id, action_id, manager.action_state(record, action_id))
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.post(
+        "/api/game/sessions/{session_id}/actions/{action_id}/abandon",
+        response_model=dict[str, Any],
+    )
+    def abandon_action(session_id: str, action_id: str) -> dict[str, Any]:
+        """Player-initiated close of an action id; the answer comes from the stored receipt or refusal only."""
+        record = get_record(session_id)
+        if not record.turn_lock.acquire(timeout=2.0):
+            # A turn of this session is running: its outcome is not known yet, so the identity is kept.
+            return {"action_id": action_id, "state": "processing"}
+        try:
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            try:
+                result = manager.abandon_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            payload = action_status_payload(record, session_id, action_id, result["state"])
+        finally:
+            record.turn_lock.release()
+        return payload
+
     @application.post(
         "/api/game/sessions/{session_id}/turn",
         response_model=TurnResponse,
@@ -904,6 +1029,8 @@ def create_app(
             hash_payload["interaction_mode"] = request.interaction_mode
         if request.combat_action is not None:
             hash_payload["combat_action"] = request.combat_action.model_dump(exclude_none=True)
+        if request.check_feature is not None:
+            hash_payload["check_feature"] = request.check_feature
         if request.combat_id is not None:
             hash_payload.update(combat_id=request.combat_id, combat_round=request.combat_round,
                                 combat_turn_index=request.combat_turn_index)
@@ -919,9 +1046,38 @@ def create_app(
         import bounded_encounter
         import authored_dungeon
         import exploration
+        if not record.revoked:
+            # Before waiting for the turn lock: only one action per campaign may be unresolved at a time, and a
+            # different id is refused atomically against the stored intents, not against browser memory.
+            try:
+                claim = manager.claim_action_intent(record, action_id, request_hash)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if claim["outcome"] == "hash_conflict":
+                raise HTTPException(status_code=409, detail={
+                    "code": "action_id_conflict",
+                    "message": "This action ID was already used for a different turn.",
+                })
+            if claim["outcome"] == "conflict":
+                detail = {
+                    "code": "unresolved_action",
+                    "message": "An earlier action of this campaign is still unresolved.",
+                    "unresolved_action_id": claim["unresolved_action_id"],
+                    "not_applied": True,
+                }
+                try:
+                    durable = manager.record_refused_action(record, action_id, request_hash, 409, detail)
+                except Exception:
+                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
+                    durable = False
+                if not durable:
+                    detail.pop("not_applied")
+                raise HTTPException(status_code=409, detail=detail)
         with record.turn_lock:
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            # A request that queued behind a failing one must not run on a runtime that failure just quarantined (R05).
+            ensure_usable(record)
             try:
                 previous_action = manager.get_turn_action(record, action_id)
             except CampaignError as error:
@@ -938,7 +1094,43 @@ def create_app(
                 return replay_action_response(
                     previous_action["response"], TurnResponse, session_id,
                 )
-            require_current(record)
+            try:
+                refused = manager.get_refused_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if refused is not None:
+                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different turn.",
+                        },
+                    )
+                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+
+            def refuse_before_commit(status_code: int, code: str, message: str) -> HTTPException:
+                """Close this action id for good after a refusal raised before any effect.
+
+                The not_applied claim is made only when the refusal record is durably stored under the turn
+                lock; otherwise the same refusal is returned without that claim.
+                """
+                detail = {"code": code, "message": message, "not_applied": True}
+                try:
+                    durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
+                except Exception:
+                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
+                    durable = False
+                if not durable:
+                    detail = {"code": code, "message": message}
+                return HTTPException(status_code=status_code, detail=detail)
+
+            try:
+                manager.assert_current(record)
+            except CampaignError as error:
+                # An intent that was claimed earlier stays open (it may be running in another session); only the same
+                # id with the same payload, or the player's server-proven abandon, closes it.
+                raise campaign_http_exception(error) from None
             if isinstance(session, game.GameSession):
                 try:
                     combat_lifecycle.validate_request(
@@ -949,15 +1141,28 @@ def create_app(
                         combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
                     )
                 except combat_lifecycle.CombatRequestError as error:
-                    raise HTTPException(status_code=error.status_code,
-                                        detail={"code": error.code, "message": str(error)}) from None
+                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
                 except ValueError:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "invalid_combat_state", "message": "Combat state is invalid."
-                    }) from None
+                    raise refuse_before_commit(409, "invalid_combat_state", "Combat state is invalid.") from None
+            # Pure opt-in admission precedes adapter preflight and every mutating
+            # scene/lore planner. Ordinary turns retain their existing order.
+            if request.check_feature is not None:
+                try:
+                    session.primal_knowledge_check_admission(
+                        request.message, interaction_mode=effective_mode,
+                        combat_action=request.combat_action, target_id=request.target_id,
+                    )
+                except combat_lifecycle.CombatRequestError as error:
+                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+            check_evidence = [] if request.check_feature is not None else None
             import spell_scope
+            import sorcery_points
+            slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
+                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+            )
             if isinstance(session, game.GameSession) and (
                 session.character.get("current_hp", 1) <= 0
+                or slot_conversion
                 or spell_scope.explicit_request(
                     request.message,
                     request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
@@ -996,12 +1201,13 @@ def create_app(
                     },
                 ) from None
             except RequiredModelUnavailableError:
-                _logger.warning("Required model qwen3:8b is unavailable.")
+                selected_model = adapter.model_name if adapter is not None else MODEL_NAME
+                _logger.warning("Required model %s is unavailable.", selected_model)
                 raise HTTPException(
                     status_code=503,
                     detail={
                         "code": "model_unavailable",
-                        "message": "Required model qwen3:8b is unavailable.",
+                        "message": f"Required model {selected_model} is unavailable.",
                     },
                 ) from None
 
@@ -1033,6 +1239,7 @@ def create_app(
                         narrative_memory_snapshot
                     )
                     record.lore_authority = lore_authority_snapshot
+                    session.campaign_lore_state = lore_authority_snapshot
                 except HTTPException:
                     raise
                 except Exception as restore_error:
@@ -1068,7 +1275,7 @@ def create_app(
                     )
                 effective_target_id = (
                     None
-                    if effective_mode == "ask_dm"
+                    if effective_mode == "ask_dm" or slot_conversion
                     else request.target_id
                 )
                 plan_kwargs = {"target_id": effective_target_id}
@@ -1083,7 +1290,10 @@ def create_app(
                         ).parameters
                     if "interaction_mode" in plan_parameters:
                         plan_kwargs["interaction_mode"] = effective_mode
-                scene_plan = session.plan_living_world_turn(
+                # Exact resource-only conversion has no scene/reference authority.
+                # Its display label or a retained UI target must not focus an NPC,
+                # materialize a place, or alter an existing conversation first.
+                scene_plan = None if slot_conversion else session.plan_living_world_turn(
                     narrative_player_message,
                     **plan_kwargs,
                 )
@@ -1142,6 +1352,8 @@ def create_app(
                                             game.run_player_turn
                                         ).parameters
                                     run_kwargs = {}
+                                    if request.check_feature is not None:
+                                        run_kwargs.update(check_feature=request.check_feature, check_evidence=check_evidence)
                                     if request.combat_action is not None:
                                         run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
                                     if "scene_plan" in run_parameters:
@@ -1181,16 +1393,22 @@ def create_app(
                     type(error).__name__,
                     exc_info=True,
                 )
+                from dialogue_runtime import DialogueResponseError, DialogueProviderError
+                if isinstance(error, DialogueProviderError):
+                    raise HTTPException(status_code=503, detail={
+                        "code": "ollama_unavailable",
+                        "message": "Ollama request failed; the turn was not committed.",
+                    }) from None
+                if isinstance(error, DialogueResponseError):
+                    raise HTTPException(status_code=503, detail={
+                        "code": "invalid_dialogue_response",
+                        "message": "NPC yanıtı işlenemedi; hamle kaydedilmedi. Yeniden deneyebilirsin.",
+                    }) from None
+                # The snapshot was restored above (a failed restore raised session_restore_failed
+                # and never reaches here), so these refusals are "certainly never applied".
                 if isinstance(error, combat_lifecycle.CombatRequestError):
-                    raise HTTPException(status_code=error.status_code,
-                                        detail={"code": error.code, "message": str(error)}) from None
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "engine_error",
-                        "message": "The game turn could not be completed.",
-                    },
-                ) from None
+                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+                raise refuse_before_commit(500, "engine_error", "The game turn could not be completed.") from None
             finally:
                 session.lore_authority_context = previous_lore_context
 
@@ -1237,25 +1455,13 @@ def create_app(
             if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
                 restore_turn_snapshot()
                 _logger.error("Engine exceeded the per-turn model-call limit.")
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "engine_error",
-                        "message": "The game turn exceeded its model-call limit.",
-                    },
-                ) from None
+                raise refuse_before_commit(500, "engine_error", "The game turn exceeded its model-call limit.") from None
 
             narration = result.get("narration") if isinstance(result, dict) else None
             if not isinstance(narration, str) or not narration.strip():
                 restore_turn_snapshot()
                 _logger.error("Engine returned an invalid turn result.")
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "engine_error",
-                        "message": "The game turn returned an invalid response.",
-                    },
-                ) from None
+                raise refuse_before_commit(500, "engine_error", "The game turn returned an invalid response.") from None
 
             action_result = (
                 result.get("action_result")
@@ -1316,6 +1522,7 @@ def create_app(
                 )
             except Exception as error:
                 _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = narrative_memory_snapshot
@@ -1324,13 +1531,7 @@ def create_app(
                     "Engine lore evidence failed validation (error_type=%s)",
                     type(error).__name__,
                 )
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "engine_error",
-                        "message": "Campaign lore evidence could not be verified.",
-                    },
-                ) from None
+                raise refuse_before_commit(500, "engine_error", "Campaign lore evidence could not be verified.") from None
             try:
                 staged_narrative_memory = (
                     copy.deepcopy(record.narrative_memory)
@@ -1353,6 +1554,7 @@ def create_app(
                 )
             except Exception as error:
                 _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = narrative_memory_snapshot
@@ -1361,17 +1563,12 @@ def create_app(
                     "Narrative continuity update failed (error_type=%s)",
                     type(error).__name__,
                 )
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "narrative_memory_error",
-                        "message": "Campaign continuity could not be updated safely.",
-                    },
-                ) from None
+                raise refuse_before_commit(500, "narrative_memory_error", "Campaign continuity could not be updated safely.") from None
             try:
                 skill_check_result = serialize_skill_check_result(
                     action_result,
                     session,
+                    **({"check_evidence": check_evidence} if request.check_feature is not None else {}),
                 )
                 combat_result = serialize_combat_result(action_result, session)
                 combat_history_entry = serialize_combat_history_entry(
@@ -1417,6 +1614,7 @@ def create_app(
                 )
             except Exception as error:
                 _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = narrative_memory_snapshot
@@ -1425,35 +1623,17 @@ def create_app(
                     _logger.error(
                         "Engine returned an invalid skill-check result."
                     )
-                    raise HTTPException(
-                        status_code=500,
-                        detail={
-                            "code": "engine_error",
-                            "message": "The skill-check result could not be verified safely.",
-                        },
-                    ) from None
+                    raise refuse_before_commit(500, "engine_error", "The skill-check result could not be verified safely.") from None
                 if isinstance(error, CombatResultSerializationError):
                     _logger.error(
                         "Engine returned an invalid combat result or history entry."
                     )
-                    raise HTTPException(
-                        status_code=500,
-                        detail={
-                            "code": "engine_error",
-                            "message": "The combat result could not be verified safely.",
-                        },
-                    ) from None
+                    raise refuse_before_commit(500, "engine_error", "The combat result could not be verified safely.") from None
                 _logger.error(
                     "Campaign journal update failed (error_type=%s)",
                     type(error).__name__,
                 )
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "journal_error",
-                        "message": "The campaign journal could not be updated safely.",
-                    },
-                ) from None
+                raise refuse_before_commit(500, "journal_error", "The campaign journal could not be updated safely.") from None
             record.lore_authority = staged_lore_authority
             response = TurnResponse(
                 session_id=session_id,
@@ -1492,6 +1672,10 @@ def create_app(
                     },
                 )
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
                 session.campaign_lore_state = lore_authority_snapshot
@@ -1516,8 +1700,22 @@ def create_app(
                             "code": "action_id_conflict",
                             "message": "This action ID was already used for a different action.",
                         }) from None
+                # A storage failure after a complete rollback is deliberately NOT closed. Closing it would be provably safe
+                # (the refusal blocks a later receipt insert in its own transaction), but the product contract, pinned by
+                # many tests, is "retry with the same id commits once" (receipt replay if it did). So the id stays
+                # unresolved: the same id is the safe retry, a different UUID is blocked until then, and the player's
+                # server-proven abandon is the explicit way out. Cost: a transient disk error blocks other ids meanwhile.
+                decision = failure_policy.classify_failure(
+                    failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
+                )
+                if decision.code in ("campaign_stale", "campaign_storage_unavailable"):
+                    raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
                 raise campaign_http_exception(error) from None
             except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
                 session.campaign_lore_state = lore_authority_snapshot
@@ -1529,13 +1727,11 @@ def create_app(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
                 )
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "persistence_error",
-                        "message": "The campaign turn could not be saved safely.",
-                    },
-                ) from None
+                # Same product rule as above (retry with the same id stays possible), so no never-applied claim here.
+                decision = failure_policy.classify_failure(
+                    failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
+                )
+                raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
 
             safety_code = (
                 action_result.get("infrastructure_code")
@@ -1550,7 +1746,7 @@ def create_app(
             )
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
-                MODEL_NAME,
+                adapter.model_name if adapter is not None else MODEL_NAME,
                 len(model_calls),
                 narrative_frame.diagnostics.get("scene_type", "unavailable"),
                 narrative_frame.diagnostics.get("estimated_tokens", "unavailable"),
@@ -1605,6 +1801,8 @@ def create_app(
         with record.turn_lock:
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            # A request that queued behind a failing one must not run on a runtime that failure just quarantined (R05).
+            ensure_usable(record)
             try:
                 previous = manager.get_turn_action(record, action_id)
             except CampaignError as error:
@@ -1635,6 +1833,7 @@ def create_app(
             current_journal = copy.deepcopy(record.journal)
             current_memory = copy.deepcopy(record.narrative_memory)
             current_lore = record.lore_authority
+            payload = None
             try:
                 _restore_session(session, checkpoint["snapshot"])
                 session.world_metadata = copy.deepcopy(checkpoint["world_metadata"])
@@ -1670,6 +1869,10 @@ def create_app(
                     },
                 )
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
                 _rollback_session(record, session, current)
                 session.world_metadata = current_metadata
                 record.journal = current_journal
@@ -1677,7 +1880,11 @@ def create_app(
                 record.lore_authority = current_lore
                 session.campaign_lore_state = current_lore
                 raise campaign_http_exception(error) from None
-            except Exception:
+            except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
                 _rollback_session(record, session, current)
                 session.world_metadata = current_metadata
                 record.journal = current_journal
@@ -1784,6 +1991,7 @@ def create_app(
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
+            ensure_usable(record)
             session = record.game_session
             try:
                 previous = manager.get_turn_action(record, action_id)
@@ -1799,6 +2007,19 @@ def create_app(
                 return replay_action_response(
                     previous["response"], SpeciesTraitCommandResult, session_id,
                 )
+            # Same contract as play_turn, after receipt replay and before any engine work: a stored refusal (the
+            # player's abandon writes one for any request body) answers instead of the engine; another body is a conflict.
+            try:
+                refused = manager.get_refused_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if refused is not None:
+                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
             require_current(record)
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
@@ -1813,6 +2034,7 @@ def create_app(
                 record.narrative_memory = memory_snapshot
                 record.lore_authority = lore_snapshot
 
+            response_payload = None
             try:
                 result = session.resolve_species_trait_action(
                     request.action,
@@ -1845,6 +2067,7 @@ def create_app(
                     },
                 ) from None
             except CampaignError as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
                 if isinstance(error, CampaignStaleError):
                     # The winning receipt may only become visible at save time.
@@ -1860,7 +2083,8 @@ def create_app(
                             "message": "This action ID was already used for a different action.",
                         }) from None
                 raise campaign_http_exception(error) from None
-            except Exception:
+            except Exception as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
                 raise
 
@@ -1928,6 +2152,8 @@ def create_app(
             if previous is not None:
                 if previous["request_hash"] != request_hash:
                     return response_for("REJECTED", "action_id_conflict")
+                if previous.get("archived"):
+                    raise action_archived_error()
                 try:
                     if "legacy_ambient_result" in previous:
                         prior = previous["legacy_ambient_result"]
@@ -2005,7 +2231,7 @@ def create_app(
                 status = transition.get("status")
                 transition_id = transition.get("transition_id")
                 if status != "APPLIED":
-                    _restore_session(session, snapshot)
+                    _rollback_session(record, session, snapshot)
                     record.journal = journal_snapshot
                     canonical_event_id = None
                     if status == "ALREADY_APPLIED" and isinstance(
@@ -2070,15 +2296,16 @@ def create_app(
                 })
                 return response_payload
             except Exception as error:
+                # R05: a restore that fails or cannot be verified quarantines the session; it is never just logged.
+                closed: HTTPException | None = None
                 try:
-                    _restore_session(session, snapshot)
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Ambient-event rollback failed (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                    _rollback_session(record, session, snapshot)
+                except HTTPException as quarantine:
+                    closed = quarantine
                 finally:
                     record.journal = journal_snapshot
+                if closed is not None:
+                    raise closed from None
                 _logger.error(
                     "Ambient-event result could not be persisted (error_type=%s)",
                     type(error).__name__,
@@ -2090,6 +2317,204 @@ def create_app(
                         "message": "The event result could not be saved safely.",
                     },
                 ) from None
+
+    def level_up_projection(record: Any, session_id: str) -> dict[str, Any]:
+        """Public earned eligibility only; core/save choices ahead of XP remain legal."""
+        import character_progression as progression
+        import xp
+        from api.dnd_2024_rules import SPELLS_CATALOG
+        session = record.game_session
+        character = session.character
+        token = getattr(session, "_campaign_persistence_version", None)
+        import spell_scope
+        cls = character.get("class")
+        applied = character.get("progression_level", 1)
+        ceiling = {"Sorcerer": 5, "Barbarian": 5}.get(cls, 2)
+        valid_applied = type(applied) is int and 1 <= applied <= ceiling
+        target = min(applied + 1, ceiling) if valid_applied else ceiling
+        result = dict(session_id=session_id, campaign_id=record.campaign_id,
+                      revision=token[1] if isinstance(token, tuple) and len(token) == 2 else None,
+                      status="blocked", reason=None, target_level=target,
+                      class_name=cls, from_level=applied if valid_applied else None)
+        if record.campaign_id is None:
+            result["reason"] = "campaign_persistence_required"
+        elif cls not in {"Sorcerer", "Barbarian"}:
+            result["reason"] = "selected_progression_not_supported"
+        elif not valid_applied:
+            result["reason"] = "previous_progression_state_invalid"
+        elif applied == ceiling:
+            result["reason"] = "target_not_above_applied_level"
+        elif (type(character.get("xp")) is not int or character["xp"] < dict(xp.LEVEL_THRESHOLDS)[target]
+              or type(character.get("level")) is not int or not target <= character["level"] <= xp.MAX_LEVEL):
+            result["reason"] = "level_not_earned"
+        else:
+            try:
+                progression.validate_saved(character, session.world_state)
+                if cls == "Sorcerer":
+                    state = session.world_state.get("spellcasting_v1")
+                    if type(state) is not dict:
+                        raise ValueError("Prior spell state required")
+                    spell_scope.validate(state, character)
+                    cap = progression.capacity(character)
+                    if (len(state["cantrips"]) != cap["cantrips"] or len(state["prepared"]) != cap["prepared_spells"]
+                            or character.get("cantrips") != state["cantrips"] or character.get("spells") != state["prepared"]):
+                        raise ValueError("Prior complete spell choices required")
+                    # The world counter is authoritative; independently bound the lagging mirror.
+                    spell_scope.validate({**state, "slots": character.get("spell_slots_remaining")}, character)
+            except (ValueError, KeyError, TypeError):
+                result["reason"] = "previous_progression_state_invalid"
+                return LevelUpPreviewResponse.model_validate(result).model_dump(mode="json")
+            preview = progression.preview_level_up(session, target)
+            result.update(status=preview["status"], reason=preview["reason"])
+            if preview["status"] == "ready":
+                result.update(choices_required=preview["choices_required"], capacity=preview["capacity"],
+                              effects_pending=preview["effects_pending"], effects_supported=preview.get("effects_supported", []))
+                if cls == "Sorcerer":
+                    metadata = progression.sorcerer_starting_creation_options()
+                    if not metadata:
+                        result.update(status="blocked", reason="progression_options_unavailable")
+                    else:
+                        options = metadata[f"level_{target}"]
+                        result.update(
+                            supported_asi_choices=preview.get("supported_asi_choices", []),
+                            cantrip_ids=[s["id"] for s in SPELLS_CATALOG["Sorcerer"]["cantrips"] if target == 4 and s["id"] not in state["cantrips"]],
+                            prepared_spell_ids=[identity for identity in options["prepared_spell_ids"] if identity not in state["prepared"]],
+                            metamagic_options=[identity for identity in options.get("metamagic_options", []) if identity not in character.get("metamagic", [])],
+                            subclass_options=options.get("subclass_options", []),
+                        )
+                else:
+                    result["effects_supported"] = preview.get("effects_supported", [])
+                    if target == 4:
+                        result["supported_asi_choices"] = preview.get("supported_asi_choices", [])
+                    if target == 3:
+                        result["subclass_options"] = preview.get("subclass_options", [])
+                        result["primal_knowledge_skill_options"] = preview.get("primal_knowledge_skill_options", [])
+        return LevelUpPreviewResponse.model_validate(result).model_dump(mode="json")
+
+    @application.get("/api/game/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
+                     operation_id="getGameSessionLevelUp")
+    @application.get("/api/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
+                     include_in_schema=False)
+    def preview_earned_level_up(session_id: str) -> dict[str, Any]:
+        record = get_record(session_id)
+        with record.turn_lock:
+            record = get_record(session_id)
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            require_current(record)
+            return level_up_projection(record, session_id)
+
+    @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
+                      operation_id="applyGameSessionLevelUp")
+    @application.post("/api/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
+                      include_in_schema=False)
+    def apply_earned_level_up(session_id: str, request: LevelUpApplyRequest) -> dict[str, Any]:
+        import character_progression as progression
+        record = get_record(session_id)
+        if record.campaign_id is None:
+            raise HTTPException(status_code=409, detail={"code": "campaign_persistence_required"})
+        action_id = str(request.action_id)
+        request_hash = hashlib.sha256(json.dumps(
+            {"command": "level_up", **request.model_dump(mode="json", exclude={"action_id"})},
+            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+
+        def refusal(status_code: int, code: str) -> HTTPException:
+            detail = {"code": code, "message": "Seviye seçimi uygulanmadı.", "not_applied": True}
+            try:
+                durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
+            except Exception:
+                durable = False
+            if not durable:
+                detail.pop("not_applied")
+            return HTTPException(status_code=status_code, detail=detail)
+
+        try:
+            claim = manager.claim_action_intent(record, action_id, request_hash)
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+        if claim["outcome"] == "hash_conflict":
+            raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+        if claim["outcome"] == "conflict":
+            error = refusal(409, "unresolved_action")
+            error.detail["unresolved_action_id"] = claim["unresolved_action_id"]
+            raise error
+        with record.turn_lock:
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            ensure_usable(record)
+            try:
+                previous = manager.get_turn_action(record, action_id)
+                if previous is not None:
+                    if previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+                    return replay_action_response(previous["response"], LevelUpCommandResult, session_id)
+                refused = manager.get_refused_action(record, action_id)
+                if refused is not None:
+                    if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+                    raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+                manager.assert_current(record)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if str(request.campaign_id) != record.campaign_id:
+                raise refusal(409, "level_up_campaign_mismatch")
+            public = level_up_projection(record, session_id)
+            if request.expected_revision != public["revision"]:
+                raise refusal(409, "level_up_preview_stale")
+            if public["status"] != "ready":
+                raise refusal(409, public["reason"] or "level_up_unavailable")
+            if request.target_level != public["target_level"]:
+                raise refusal(409, "level_up_preview_stale")
+            session = record.game_session
+            preview = progression.preview_level_up(session, request.target_level)
+            choices = request.choices.model_dump(mode="json")
+            if request.target_level in (3, 4, 5):
+                from api.schemas import (BarbarianLevel2Choices, BarbarianLevel3Choices, SorcererLevel3Choices, BarbarianLevel4Choices,
+                                         LevelUpChoices, LevelUpFiveChoices)
+                expected_choices = {
+                    3: {"Barbarian": BarbarianLevel3Choices, "Sorcerer": SorcererLevel3Choices},
+                    4: {"Barbarian": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices},
+                    # Barbarian 5 has no choices: the same empty strict object as Barbarian 2 (no new schema).
+                    5: {"Barbarian": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices},
+                }[request.target_level][session.character["class"]]
+                if not isinstance(request.choices, expected_choices):
+                    raise refusal(409, "level_up_choice_class_mismatch")
+            # Validate before entering the mutation transaction; failures are durable refusals.
+            problem = progression._check_choices(session, preview, choices)
+            if problem:
+                raise refusal(409, problem)
+            snapshot = _capture_session(session)
+            had_format = "_persisted_engine_format" in session.__dict__
+            previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
+            response_payload = None
+            try:
+                result = progression.apply_level_choices(session, preview, choices)
+                if result["status"] != "applied":
+                    raise ValueError("Validated level choices could not be applied.")
+                response_payload = redact_sensitive_values(LevelUpCommandResult(
+                    session_id=session_id, action_id=action_id,
+                    state=serialize_session_state(session, record.journal, record.lore_authority), result=result,
+                ).model_dump(mode="json"))
+                manager.save_campaign_locked(record, turn_action_receipt={
+                    "action_id": action_id, "request_hash": request_hash, "response": response_payload,
+                    "public_state": serialize_session_state(session, record.journal, record.lore_authority),
+                })
+            except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
+                if had_format:
+                    session._persisted_engine_format = previous_format
+                else:
+                    session.__dict__.pop("_persisted_engine_format", None)
+                _rollback_session(record, session, snapshot)
+                if isinstance(error, CampaignError):
+                    raise campaign_http_exception(error) from None
+                raise HTTPException(status_code=500, detail={"code": "level_up_failed", "message": "Seviye seçimi güvenle kaydedilemedi."}) from None
+            record.undo_checkpoint = None
+            return response_payload
 
     return application
 

@@ -1,0 +1,625 @@
+"""Transcript replay baseline for NPC conversation and door actions.
+
+Replays a real player session (Quenna / Orryn Hanı) through the HTTP turn
+endpoint with a scripted model and records, per turn, who produced the result:
+the deterministic engine, the model, or a fallback. Diagnostic only: it asserts
+harness integrity, never that a known defect is absent. Records and a summary
+are written when NPC_STAGE_A_EVIDENCE_DIR is set. Not live Qwen.
+"""
+
+from __future__ import annotations
+
+import copy
+import json
+import os
+from pathlib import Path
+import sys
+import unittest
+import uuid
+from unittest.mock import patch
+
+AI_DND_DIR = Path(__file__).resolve().parents[2]
+if str(AI_DND_DIR) not in sys.path:
+    sys.path.insert(0, str(AI_DND_DIR))
+
+import living_world
+from api.tests.speech_double import bare_speech, speech_packet
+from api.tests import test_campaign_api
+from api.tests.test_campaign_api import create_city_with_locked_tavern
+from api.tests.test_npc_dialogue_stage_a_diagnostic import (
+    PROTECTED_FIELDS,
+    StageADiagnosticTests,
+)
+
+LORE_REFUSAL_MARKER = "hiçbir söz sağlam görünmüyor"
+CLARIFICATION_MARKER = "seçemedim"
+NO_CHANGE_MARKER = "çevrede şimdilik belirgin bir değişiklik olmuyor"
+
+# NPC lines taken from the transcript, keyed by a substring of the player text.
+QUENNA_REPLIES = [
+    ("ismin nedir", "Quenna: “Ben Quenna. Kent sakini olarak buradayım. Bir fırında yardımcı olarak çalışıyorum.”"),
+    ("quenna ile konuşmak", "Quenna: “Neden tekrar soruyorsun? İsmim Quenna, işte buradayım.”"),
+    ("günün nasıl", "Quenna: “Günler... kuru ekmek ve un kokusuyla geçer genelde. İşten döndüğümde biraz nefes almak için pencere kenarına oturuyorum.”"),
+    ("han varmı", "Quenna: “Han mı arıyorsun? Evet, şehir merkezinde birkaç tane var. Bazen oraları doldurup boşaltırım ama ben fırın işlerimi bitirince eve dönerim.”"),
+    ("en yakın han", "Quenna: “Şehrin girişine doğru, büyük taş kapının hemen yanındaki sokakta. Ama dikkat et; orası kalabalık olur, özellikle öğlen yemeğinde.”"),
+]
+QUENNA_OPENING = "Yakındaki kişi: “Hadi bakalım, sana ne işin var? İşlerimi bitirip biraz dinleniyordum.”"
+DEFAULT_NARRATION = "Sahne sakin; kimse sana aldırmıyor."
+
+
+class TranscriptModel(test_campaign_api.FakeOllamaClient):
+    def __init__(self):
+        self.calls = 0
+        self.dialogue_next = False
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        schema = kwargs.get("format", {})
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        messages = kwargs.get("messages", [])
+        prompt = next(
+            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), ""
+        )
+        player_text = prompt.rsplit("Current player message: ", 1)[-1].splitlines()[0] \
+            if "Current player message: " in prompt else prompt
+        folded = player_text.casefold()
+        dialogue = self.dialogue_next
+        packet = {
+            "intent": "dialogue" if dialogue else "narrative",
+            "action": "dialogue" if dialogue else "narrative",
+            "target": {"type": "none", "reference": ""},
+            "completion": "unclear" if dialogue else "completed",
+            "confidence": 1.0,
+        }
+        if "intent" in properties and "narration" not in properties:
+            return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+        narration = next(
+            (text for key, text in QUENNA_REPLIES if key in folded),
+            QUENNA_OPENING if dialogue else DEFAULT_NARRATION,
+        )
+        packet.update({
+            "narration": narration,
+            "world_updates": {},
+            "lore_claims": [],
+            "interaction": {"operation": "none", "quote": player_text, "conversation": None},
+        })
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
+def classify(record, earlier_narrations):
+    telemetry = record.get("telemetry") or {}
+    narration = record["narration"]
+    folded = narration.casefold()
+    generic_text = LORE_REFUSAL_MARKER in folded or NO_CHANGE_MARKER in folded
+    if telemetry.get("fallback_reason") or generic_text:
+        owner = "fallback"
+    elif record.get("model_chat_calls", 0) > 0:
+        owner = "model"
+    else:
+        owner = "deterministic"
+    return {
+        "owner": owner,
+        "generic": generic_text or bool(telemetry.get("fallback_reason")),
+        "clarification": CLARIFICATION_MARKER in narration
+        or record.get("action_status") == "clarification",
+        "repeat": bool(narration) and narration in earlier_narrations,
+    }
+
+
+class ReplayHarness(unittest.IsolatedAsyncioTestCase):
+    """Shared setup and per-turn recording; holds no tests of its own."""
+
+    asyncSetUp = StageADiagnosticTests.asyncSetUp
+    _write_evidence = StageADiagnosticTests._write_evidence
+    post_scene_turn = StageADiagnosticTests.post_scene_turn
+
+    async def _turn(self, label, session, turn_url, model, message, mode="do"):
+        protected_before = {k: copy.deepcopy(session.character.get(k)) for k in PROTECTED_FIELDS}
+        calls_before = model.calls
+        captured = {}
+        real_turn = session.run_player_turn
+
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            captured["result"] = copy.deepcopy(result)
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(turn_url, model, {
+                "message": message,
+                "interaction_mode": mode,
+                "action_id": str(uuid.uuid4()),
+            })
+        body = response.json() if response.status_code == 200 else {}
+        outcome = body.get("turn_outcome") or {}
+        result = captured.get("result") or {}
+        evidence = result.get("_engine_event_evidence") or {}
+        record = {
+            "step": label,
+            "input": message,
+            "interaction_mode": mode,
+            "http_status": response.status_code,
+            "narration": body.get("narration", ""),
+            "action": outcome.get("action"),
+            "action_status": outcome.get("status"),
+            "npc_id": (result.get("action_result") or {}).get("npc_id"),
+            "active_npc_id_after": session.world_state.get("flags", {}).get("active_npc_id"),
+            "telemetry": evidence.get("telemetry"),
+            "model_chat_calls": model.calls - calls_before,
+            "model_reply": getattr(model, "last_reply", None) if model.calls > calls_before else None,
+            "protected_fields_unchanged": all(
+                session.character.get(k) == v for k, v in protected_before.items()
+            ),
+        }
+        earlier = {r["narration"] for r in self.records}
+        record.update(classify(record, earlier))
+        self.records.append(record)
+        return record
+
+    def _write_summary(self):
+        directory = os.environ.get("NPC_STAGE_A_EVIDENCE_DIR")
+        total = len(self.records) or 1
+        summary = {
+            "turns": len(self.records),
+            "by_owner": {
+                owner: sum(1 for r in self.records if r["owner"] == owner)
+                for owner in ("deterministic", "model", "fallback")
+            },
+            "generic_rate": round(sum(r["generic"] for r in self.records) / total, 3),
+            "clarification_rate": round(sum(r["clarification"] for r in self.records) / total, 3),
+            "repeat_rate": round(sum(r["repeat"] for r in self.records) / total, 3),
+        }
+        print("REPLAY_SUMMARY=" + json.dumps(summary, ensure_ascii=False))
+        for r in self.records:
+            print(
+                f"{r['step']:<34} owner={r['owner']:<13} generic={int(r['generic'])} "
+                f"clar={int(r['clarification'])} repeat={int(r['repeat'])} | {r['narration'][:90]}"
+            )
+        if directory:
+            target = Path(directory)
+            target.mkdir(parents=True, exist_ok=True)
+            (target / f"{self._testMethodName}.summary.json").write_text(
+                json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+
+class TranscriptReplayBaseline(ReplayHarness):
+    async def test_quenna_hidden_name_conversation(self):
+        _city, _sid, session, turn_url, _tavern, _door = \
+            await create_city_with_locked_tavern(self)
+        # Looking around places one unnamed person and one guard, as in the real
+        # session. Give that person Quenna's identity, name hidden.
+        model = TranscriptModel()
+        self.addCleanup(self._write_summary)
+        await self._turn(
+            "Q1 look around", session, turn_url, model, "Çevreyi gözlemliyorum."
+        )
+        person = next(
+            (npc for npc in session.world_state["npcs"]
+             if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"),
+            None,
+        )
+        self.assertIsNotNone(person, [
+            {k: npc.get(k) for k in ("id", "name", "role", "name_known_to_player",
+                                     "role_known_to_player", "hidden", "location")}
+            for npc in session.world_state["npcs"] if isinstance(npc, dict)
+        ])
+        person["name"] = "Quenna"
+        person["name_known_to_player"] = False
+        person["role_known_to_player"] = False
+        steps = [
+            ("Q2 talk to the nearby person", "Yakındaki kişi ile konuşmak istiyorum.", "do", True),
+            ("Q2b same, say mode", "Yakındaki kişi ile konuşmak istiyorum.", "say", True),
+            ("Q3 ask the name", "Selamlar, ismin nedir?", "say", True),
+            ("Q4 end conversation", "Konuşmayı bitiriyorum.", "do", False),
+            ("Q5 reopen by name", "Quenna ile konuşmak istiyorum.", "do", True),
+            ("Q6 how is your day", "Günün nasıl geçiyor?", "do", True),
+            ("Q7 is there an inn", "Buralarda han varmı?", "say", True),
+            ("Q8 where is the nearest inn", "En yakın han nerede?", "say", True),
+        ]
+        for label, message, mode, dialogue in steps:
+            model.dialogue_next = dialogue
+            await self._turn(label, session, turn_url, model, message, mode)
+        for record in self.records:
+            self.assertEqual(record["http_status"], 200, record)
+            self.assertTrue(record["protected_fields_unchanged"], record)
+        by_step = {record["step"].split(" ", 1)[0]: record for record in self.records}
+        # Typing the public label back must address that person and keep focus.
+        self.assertEqual(by_step["Q2"]["action_status"], "conversation_started", by_step["Q2"])
+        self.assertTrue(by_step["Q2"]["npc_id"], by_step["Q2"])
+        self.assertEqual(by_step["Q2"]["active_npc_id_after"], by_step["Q2"]["npc_id"])
+        self.assertIn("Quenna", by_step["Q3"]["narration"], by_step["Q3"])
+        self.assertFalse(any(r["generic"] for r in self.records), self.records)
+
+    async def test_inn_door_and_lockpick_loop(self):
+        _city, _sid, session, turn_url, tavern_id, door = \
+            await create_city_with_locked_tavern(self)
+        inn = session.world_state["locations"][tavern_id].get("name", "Han")
+        door_name = door.get("name") or f"{inn} Kapısı"
+        model = TranscriptModel()
+        self.addCleanup(self._write_summary)
+        steps = [
+            ("D1 look around", "Çevreyi gözlemliyorum."),
+            ("D2 look around again", "Çevreyi gözlemliyorum."),
+            ("D3 go to the inn", "Hana doğru gidiyorum"),
+            ("D3b go to the inn by name", f"{inn} yoluna çıkıp oraya gidiyorum"),
+            ("D4 knock", f"{inn} kapısını tıklatıyorum belki açarlar"),
+            ("D5 circle for another entrance", "Hanın etrafında dolaşıyorum, açık pencere kapı arıyorum."),
+            ("D6 look around at the inn", "Çevreyi gözlemliyorum."),
+            ("D7 try to open", f"{inn} kapısını açmaya çalışıyorum"),
+            ("D8 inspect door", "Kapıyı dikkatlice inceliyorum"),
+            ("D9 inventory", "Envanterimde neler var?"),
+            ("D10 lockpick vague", "Kilidi maymuncukla açmayı deniyorum"),
+            ("D11 lockpick vague repeat", "Kilidi maymuncukla açmayı deniyorum"),
+            ("D12 lockpick with inn", "Han kapısı kilidi maymuncukla açmayı deniyorum"),
+            ("D13 lockpick exact name", f"{door_name} kilidini maymuncukla açmayı deniyorum"),
+        ]
+        for label, message in steps:
+            await self._turn(label, session, turn_url, model, message)
+        stuck = [r for r in self.records if r["step"].startswith(("D10", "D11", "D12", "D13"))]
+        # Recorded as a defect tag, not asserted: the player never reaches a lock check.
+        print("LOCKPICK_LOOP_UNRESOLVED=" + str(all(r["clarification"] or r["generic"] for r in stuck)))
+        for record in self.records:
+            self.assertEqual(record["http_status"], 200, record)
+            self.assertTrue(record["protected_fields_unchanged"], record)
+
+
+SWEEP_INPUTS = (
+    # greetings and small talk
+    "Selam!", "Merhaba, nasılsın?", "İyi günler.", "Günaydın, bugün hava güzel.",
+    "Nasıl gidiyor işler?", "Bugün neler yaptın?", "Seni daha önce görmüş müydüm?",
+    "Teşekkür ederim.", "Sağ ol, çok yardımcı oldun.", "Kolay gelsin.",
+    # who / what
+    "Adın nedir?", "Burada ne iş yapıyorsun?", "Kimsin sen?", "Nerelisin?",
+    "Burada uzun zamandır mı yaşıyorsun?", "Ailen var mı?",
+    # place and directions
+    "Buralarda yemek yiyebileceğim bir yer var mı?", "En yakın han nerede?",
+    "Bu şehir nasıl bir yer?", "Pazar ne zaman açılıyor?", "Kuzey kapısına nasıl giderim?",
+    "Buralarda tehlikeli bir yer var mı?",
+    # rumours and requests
+    "Son zamanlarda duyduğun bir haber var mı?", "Bana bir tavsiyen var mı?",
+    "Bana yardım edebilir misin?", "Bir şey satın almak istiyorum.", "Bu çanta kaça?",
+    "Geceyi geçirecek bir yer arıyorum.", "Burada çalışacak bir iş var mı?",
+    # follow-ups and short replies
+    "Neden?", "Peki sonra ne oldu?", "Emin misin?", "Anladım.", "Devam et.",
+    "Tamam, o zaman gideyim.", "Hoşça kal.",
+    # mildly pushy or odd
+    "Bana biraz altın verebilir misin?", "Bir sır söyler misin?", "Hiç korktun mu?",
+    "Sana güvenebilir miyim?",
+)
+SWEEP_OPENERS = (
+    "Hmm, düşüneyim", "Bak şimdi", "Doğrusunu istersen", "Şöyle diyeyim",
+    "Açıkçası", "Dur bakayım", "Madem sordun", "Kısaca söyleyeyim",
+)
+SWEEP_CLOSERS = (
+    "elimden geldiğince yardımcı olurum", "burada işler hep böyle yürür",
+    "ben de yeni yeni öğreniyorum", "sabahtan beri aklımda bu var",
+    "bildiğim kadarını anlatırım", "sakin sakin konuşalım",
+)
+
+
+def sweep_reply(index):
+    """A different harmless in-character line per turn, so repetition never trips."""
+    opener = SWEEP_OPENERS[index % len(SWEEP_OPENERS)]
+    closer = SWEEP_CLOSERS[index % len(SWEEP_CLOSERS)]
+    return f"Yakındaki kişi: “{opener}; {closer}.”"
+
+
+class SweepModel(TranscriptModel):
+    """Answers every turn with one harmless, in-character line that never repeats."""
+
+    def __init__(self):
+        super().__init__()
+        self.index = 0
+
+    def chat(self, *args, **kwargs):
+        schema = kwargs.get("format", {})
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        response = super().chat(*args, **kwargs)
+        if "narration" in properties or "narration" in response["message"]["content"]:
+            packet = json.loads(response["message"]["content"])
+            packet["narration"] = sweep_reply(self.index)
+            self.last_reply = packet["narration"]
+            self.index += 1
+            response = {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+        return response
+
+
+class BenignReplySweep(ReplayHarness):
+    """How often does the engine block a perfectly harmless NPC reply?"""
+
+    async def test_benign_reply_acceptance_sweep(self):
+        _city, _sid, session, turn_url, _tavern, _door = \
+            await create_city_with_locked_tavern(self)
+        model = SweepModel()
+        self.addCleanup(self._write_summary)
+        await self._turn("S00 look", session, turn_url, model, "Çevreyi gözlemliyorum.")
+        person = next(
+            npc for npc in session.world_state["npcs"]
+            if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"
+        )
+        for index, message in enumerate(SWEEP_INPUTS, start=1):
+            # Re-establish the addressee each time so every input is judged alone.
+            session.world_state["flags"]["active_npc_id"] = person["id"]
+            session.world_state["flags"]["last_npc_id"] = person["id"]
+            session.world_state["flags"]["active_npc_until_turn"] = (
+                session.world_state["flags"].get("turn_index", 0) + 8
+            )
+            model.dialogue_next = True
+            await self._turn(f"S{index:02d} {message[:24]}", session, turn_url, model, message, "say")
+        blocked = [
+            r for r in self.records[1:]
+            if r["generic"] or r["clarification"] or r["owner"] == "fallback"
+        ]
+        print(f"SWEEP_BLOCKED={len(blocked)}/{len(self.records) - 1}")
+        for record in blocked:
+            reason = (record.get("telemetry") or {}).get("fallback_reason")
+            print(f"BLOCKED {record['step']!r} status={record['action_status']} reason={reason} | reply={record.get('model_reply')!r}")
+        for record in self.records:
+            self.assertEqual(record["http_status"], 200, record)
+            self.assertTrue(record["protected_fields_unchanged"], record)
+
+
+class QwenShapedModel(TranscriptModel):
+    """Answers like the live Qwen: one packet holding intent, a helper
+    conversation proposal that does not resolve, and a good reply."""
+
+    def __init__(self, reply, operation="none", fault="reply_as_quote", meaning="other",
+                 intent="narrative", query_type=None):
+        super().__init__()
+        self.reply = reply
+        self.operation = operation
+        self.meaning = meaning
+        # The live model fills query_type on turns that ask nothing (S26, S35).
+        self.intent = intent
+        self.query_type = query_type
+        # reply_as_quote: the model writes its own answer into interaction.quote
+        # (live S04). bad_evidence: it cites evidence ids that do not exist (S15).
+        self.fault = fault
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        messages = kwargs.get("messages", [])
+        prompt = next(
+            (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), ""
+        )
+        quote = prompt.rsplit("Current player message: ", 1)[-1].splitlines()[0] \
+            if "Current player message: " in prompt else prompt
+        properties = (kwargs.get("format") or {}).get("properties", {})
+        if "spoken_text" in properties:
+            # Default NPC route: the helper-proposal faults below cannot occur in a
+            # speech-only packet, so the good reply must simply be kept.
+            return speech_packet(bare_speech(self.reply))
+        shown_quote = self.reply if self.fault == "reply_as_quote" else quote
+        evidence = (
+            ["npc-profile:npc_001:v1:origin", "conversation_candidates"]
+            if self.fault == "bad_evidence" else []
+        )
+        packet = {
+            "intent": self.intent, "action": self.intent,
+            "target": {"type": "none", "reference": ""},
+            "completion": "unclear", "confidence": 1.0,
+            "interaction": {
+                "operation": self.operation, "quote": shown_quote,
+                "conversation": {
+                    "addressee_id": "npc_001", "subject_phrase": quote,
+                    "subject_role": "world_entity", "meaning": self.meaning,
+                    "topic_relation": "new", "candidate_evidence_ids": evidence,
+                },
+                "thread_id": None, "evidence_id": None, "steps": [], "candidates": [],
+            },
+            "narration": self.reply,
+            "world_updates": {}, "lore_claims": [],
+        }
+        if self.query_type:
+            packet["query_type"] = self.query_type
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
+class ProposalSalvage(ReplayHarness):
+    """A good reply must survive an unusable helper proposal (live Qwen S04, S15)."""
+
+    async def _say_to_hidden_person(self, model, message):
+        _city, _sid, session, turn_url, _tavern, _door = \
+            await create_city_with_locked_tavern(self)
+        await self._turn("P0 look", session, turn_url, model, "Çevreyi gözlemliyorum.")
+        person = next(
+            npc for npc in session.world_state["npcs"]
+            if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"
+        )
+        flags = session.world_state["flags"]
+        flags["active_npc_id"] = flags["last_npc_id"] = person["id"]
+        flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 8
+        return await self._turn("P1 say", session, turn_url, model, message, "say")
+
+    async def test_plain_speech_keeps_the_reply(self):
+        for fault in ("reply_as_quote", "bad_evidence"):
+            with self.subTest(fault=fault):
+                self.records.clear()
+                reply = "Yakındaki kişi: “Günaydın, hava gerçekten güzel. Ne yapmayı düşünüyorsun?”"
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault=fault), "Günaydın, bugün hava güzel."
+                )
+                self.assertNotEqual(
+                    (record["telemetry"] or {}).get("fallback_reason"),
+                    "INVALID_CONVERSATION_PROPOSAL", record,
+                )
+                self.assertIn("hava gerçekten güzel", record["narration"], record)
+
+    async def test_a_model_query_type_on_a_non_question_is_ignored(self):
+        # Live qwen answered "Tamam, o zaman gideyim." with query_type=location and
+        # the engine replied "Bulunduğun yer: Neverwinter." to a statement.
+        reply = "Yakındaki kişi: “İyi yolculuklar, yolun açık olsun.”"
+        for message in ("Tamam, o zaman gideyim.", "Bir şey satın almak istiyorum."):
+            with self.subTest(message=message):
+                self.records.clear()
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault="clean", intent="query", query_type="location"),
+                    message,
+                )
+                self.assertNotIn("Bulunduğun yer", record["narration"], record)
+
+    async def test_a_real_location_question_is_still_answered(self):
+        reply = "Yakındaki kişi: “Neverwinter’dasın.”"
+        for message in ("Neredeyim?", "Şu an nerede bulunuyorum"):
+            with self.subTest(message=message):
+                self.records.clear()
+                record = await self._say_to_hidden_person(
+                    QwenShapedModel(reply, fault="clean", intent="query", query_type="location"),
+                    message,
+                )
+                self.assertEqual(record["action"], "query", record)
+
+    async def test_a_factual_reading_without_evidence_is_still_vetoed(self):
+        # personal_purpose needs profile evidence; an invented answer must not stand.
+        reply = "Yakındaki kişi: “Buraya gizli bir hazineyi aramak için geldim.”"
+        record = await self._say_to_hidden_person(
+            QwenShapedModel(reply, meaning="personal_purpose"), "Buraya neden geldin?"
+        )
+        self.assertNotIn("gizli bir hazine", record["narration"], record)
+
+    async def test_a_real_operation_is_still_vetoed(self):
+        # A promise/trade packet with an unusable conversation must not be kept.
+        reply = "Yakındaki kişi: “Tamam, sana yüz altın veririm.”"
+        record = await self._say_to_hidden_person(
+            QwenShapedModel(reply, operation="promise"), "Bana yüz altın vereceğine söz ver."
+        )
+        self.assertNotIn("yüz altın veririm", record["narration"], record)
+
+
+class InteriorBaseline(ReplayHarness):
+    """Entering a venue must put someone and something in it (creativity metric)."""
+
+    async def test_entering_the_inn_is_not_empty(self):
+        from api.tests.test_campaign_api import unlock_venue_door
+
+        _city, _sid, session, turn_url, tavern_id, _door = \
+            await create_city_with_locked_tavern(self)
+        unlock_venue_door(session.world_state, tavern_id)
+        model = TranscriptModel()
+        self.addCleanup(self._write_summary)
+        # Route to the door is random in a fresh world; stand inside directly.
+        self.assertTrue(session.commit_location_change(tavern_id))
+        look = await self._turn("I1 look around inside", session, turn_url, model, "Çevreyi gözlemliyorum.")
+        people = [
+            npc for npc in session.world_state["npcs"]
+            if isinstance(npc, dict) and npc.get("location") == tavern_id
+        ]
+        print(f"INTERIOR_PEOPLE={len(people)} look={look['narration'][:140]!r}")
+        self.assertEqual(session.world_state.get("location"), tavern_id)
+        self.assertTrue(people, "the inn is empty")
+        self.assertNotIn("İçerisi sessiz", look["narration"], look)
+
+
+class NarrationGuardUnitTests(unittest.TestCase):
+    """False positives and repair leftovers seen with the live qwen3.5:9b."""
+
+    def setUp(self):
+        import game
+        self.game = game
+        self.session = game.GameSession()
+        self.session.character["name"] = "Tester"
+        self.token = game._ACTIVE_SESSION.set(self.session)
+        self.addCleanup(game._ACTIVE_SESSION.reset, self.token)
+        world = self.session.world_state
+        self.npc = {
+            "id": "npc_n", "name": "Nissa", "role": "Fırıncı", "location": world["location"],
+            "name_known_to_player": True, "role_known_to_player": True, "status": "active",
+            "combat_status": "active", "current_hp": 8, "memory": [], "knowledge": [],
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION", "personal_profile": {},
+        }
+        world["npcs"].append(self.npc)
+
+    def decide(self, text, player_input="Pazar ne zaman açılıyor?"):
+        return self.game._narration_safety_decision(
+            text, player_input, self.npc, {"action": "dialogue", "status": "resolved"}
+        )
+
+    def test_a_common_sentence_opener_is_not_a_person_name(self):
+        for quote in ("'{}'", "“{}”", '"{}"'):
+            with self.subTest(quote=quote):
+                body = ("Pazar? Her sabah erken açılıyor, ama tam zamanı bilmem. "
+                        "Belki muhafızlardan birine sormak daha iyi olur.")
+                self.assertFalse(self.decide("Nissa: " + quote.format(body))["unsafe"])
+
+    def test_a_real_unregistered_name_is_still_caught(self):
+        decision = self.decide("Garrick yaklaşır ve sana bakar.", "Merhaba")
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+
+    def test_speech_after_a_colon_starts_a_sentence(self):
+        # Live 9b: "...karşılık verir: 'Amin olsun!" read "Amin" as a person's name.
+        for opener in ("'", "“"):
+            with self.subTest(opener=opener):
+                closer = "'" if opener == "'" else "”"
+                text = ("Yakındaki kişi başını eğerek karşılık verir: "
+                        f"{opener}Amin olsun! Güneşli günlerde her şey kolaylaşır.{closer} der.")
+                self.assertFalse(self.decide(text, "Kolay gelsin.")["unsafe"])
+
+    def test_lore_repair_never_cuts_a_quoted_utterance_in_half(self):
+        ws = self.session.world_state
+        text = ("Kapıda bekçi durur. Nissa der ki: 'Brom adlı kişi burada. Ama şimdi gitti.' "
+                "Sonra sessizlik olur.")
+        repaired = self.game._repair_unsupported_lore_narration(text, [], {}, ws)
+        self.assertEqual(repaired, "Kapıda bekçi durur.")
+        for fragment in ("Ama şimdi gitti", "Sonra sessizlik"):
+            self.assertNotIn(fragment, repaired or "")
+
+    def test_repair_drops_a_dangling_closing_quote(self):
+        trim = self.game._trim_dangling_quote
+        self.assertEqual(
+            trim("O zaman rahat nefes alırız.' Fırının kokusu havada asılı duruyor."),
+            "Fırının kokusu havada asılı duruyor.",
+        )
+        self.assertEqual(
+            trim("Yolculuğunuz bol şanslı olsun.'\nArka planda muhafızlar nöbette."),
+            "Arka planda muhafızlar nöbette.",
+        )
+
+    def test_balanced_text_is_left_alone(self):
+        trim = self.game._trim_dangling_quote
+        for text in ("Nissa: 'Merhaba. Nasılsın?' diye sorar.",
+                     "Nissa, “Merhaba.” der. Fırın sıcak.",
+                     "Nissa'nın fırını sıcak. Kimse yok.",
+                     "Yalnızca bir cümle.'"):
+            with self.subTest(text=text):
+                self.assertEqual(trim(text), text)
+
+
+class LoreGuardRepairUnitTests(unittest.TestCase):
+    def test_generic_npc_label_is_not_a_new_entity(self):
+        import game
+
+        for label in ("Yakındaki kişi", "Bir muhafız", "Bir yaşlı kadın"):
+            sentence = f"{label}: “Hadi bakalım, sana ne işin var?”"
+            self.assertFalse(
+                game._has_unregistered_narrative_entity(sentence, {"marek"}, {"marek"}),
+                sentence,
+            )
+
+    def test_unregistered_name_in_speech_is_still_caught(self):
+        import game
+
+        self.assertTrue(game._has_unregistered_narrative_entity(
+            "Yakındaki kişi: “Brom adlı kişi burada.”", {"marek"}, {"marek"}
+        ))
+
+    def test_repair_keeps_supported_sentences_and_drops_only_the_bad_one(self):
+        import game
+
+        narration = "Rüzgâr hafifçe eser. Yolda Brom adlı kişi var. Sokak sessizdir."
+        repaired = game._repair_unsupported_lore_narration(narration, [], {}, {})
+        self.assertIsNotNone(repaired)
+        self.assertIn("Rüzgâr hafifçe eser.", repaired)
+        self.assertIn("Sokak sessizdir.", repaired)
+        self.assertNotIn("Brom", repaired)
+
+    def test_repair_gives_up_when_nothing_usable_remains(self):
+        import game
+
+        self.assertIsNone(game._repair_unsupported_lore_narration(
+            "Yolda Brom adlı kişi var.", [], {}, {}
+        ))
+
+
+if __name__ == "__main__":
+    unittest.main()

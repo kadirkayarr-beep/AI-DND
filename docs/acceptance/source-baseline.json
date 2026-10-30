@@ -1,0 +1,22 @@
+{
+  "candidate_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+  "requires_python": ">=3.13",
+  "entrypoints": [
+    "ai-dnd/api/main.py",
+    "artifacts/ai-dnd-experience/src/App.tsx"
+  ],
+  "lockfiles": {
+    "pnpm-lock.yaml": "66c82a6b50d378797e6d371d00e06bf3b0d460d11e486351a725cd52d1fe49f6",
+    "uv.lock": "a202519f1511c017afdd5ea84394c9e5b4579531242e568ff3520714beaa1c22"
+  },
+  "test_commands": {
+    "api": "cd ai-dnd && python -m unittest api.tests.test_roadmap_<id> -v",
+    "ui": "node --experimental-strip-types --test artifacts/ai-dnd-experience/tests/roadmap-<id>.test.mjs",
+    "ui_scripts": {
+      "typecheck": "tsc -p tsconfig.json --noEmit",
+      "build": "vite build --config vite.config.ts",
+      "test:ui": "node --experimental-strip-types --test tests/play-screen-ui-regression.test.mjs"
+    }
+  },
+  "lint": "UNCONFIGURED"
+}

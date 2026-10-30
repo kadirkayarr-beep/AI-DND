@@ -1,0 +1,329 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "class": "Warlock",
+  "features_table": {
+   "pdf_page": 153,
+   "printed_page": 154
+  },
+  "verification": {
+   "level": "dual-source+render-read",
+   "package_label": "TAM_GORSEL (package author's narrow visual check; not independent)",
+   "package": "AI-DND-C06-PHB-KAYNAK-20261030 (local, never copied into the repo)",
+   "package_file": "ilerleme/warlock_1_20.md",
+   "release": "kaynak_paketler/Warlock/release_v1",
+   "dual_source": "package ilerleme table equals the older accepted release table in the archive PHB_20261028_e7d6b0bd/Warlock_20261028/release_v1/warlock.md cell for cell (script comparison, 0 differences)",
+   "render_read": "all numeric and feature cells re-read by an AI visual pass of the release render pdf153.png on 2026-10-30; not human certification",
+   "ocr_suspects_on_page": "none: PDF ordinal absent from SAYISAL_OCR_ADAYLARI.json (641 items) and SUPHELI_SAYFALAR.json; OCR_DUZELTME_KAYDI covers other pages",
+   "printed_page_basis": "derived as ordinal+1 (footer not legible on the render)",
+   "subclass_names_basis": "class intro sentence read on the page render",
+   "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
+  },
+  "unverified_cells": [],
+  "scope": "progression table only; no feature effects, spell lists or choices"
+ },
+ "levels": {
+  "1": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Eldritch Invocations",
+    "Pact Magic"
+   ],
+   "eldritch_invocations": 1,
+   "cantrips": 2,
+   "prepared_spells": 2,
+   "pact_slots": {
+    "count": 1,
+    "level": 1
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "2": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Magical Cunning"
+   ],
+   "eldritch_invocations": 3,
+   "cantrips": 2,
+   "prepared_spells": 3,
+   "pact_slots": {
+    "count": 2,
+    "level": 1
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "3": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Warlock Subclass"
+   ],
+   "eldritch_invocations": 3,
+   "cantrips": 2,
+   "prepared_spells": 4,
+   "pact_slots": {
+    "count": 2,
+    "level": 2
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "4": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "eldritch_invocations": 3,
+   "cantrips": 3,
+   "prepared_spells": 5,
+   "pact_slots": {
+    "count": 2,
+    "level": 2
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "5": {
+   "proficiency_bonus": 3,
+   "features": [],
+   "eldritch_invocations": 5,
+   "cantrips": 3,
+   "prepared_spells": 6,
+   "pact_slots": {
+    "count": 2,
+    "level": 3
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "6": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Subclass feature"
+   ],
+   "eldritch_invocations": 5,
+   "cantrips": 3,
+   "prepared_spells": 7,
+   "pact_slots": {
+    "count": 2,
+    "level": 3
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "7": {
+   "proficiency_bonus": 3,
+   "features": [],
+   "eldritch_invocations": 6,
+   "cantrips": 3,
+   "prepared_spells": 8,
+   "pact_slots": {
+    "count": 2,
+    "level": 4
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "8": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "eldritch_invocations": 6,
+   "cantrips": 3,
+   "prepared_spells": 9,
+   "pact_slots": {
+    "count": 2,
+    "level": 4
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "9": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Contact Patron"
+   ],
+   "eldritch_invocations": 7,
+   "cantrips": 3,
+   "prepared_spells": 10,
+   "pact_slots": {
+    "count": 2,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "10": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Subclass feature"
+   ],
+   "eldritch_invocations": 7,
+   "cantrips": 4,
+   "prepared_spells": 10,
+   "pact_slots": {
+    "count": 2,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "11": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Mystic Arcanum (level 6 spell)"
+   ],
+   "eldritch_invocations": 7,
+   "cantrips": 4,
+   "prepared_spells": 11,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": 6
+  },
+  "12": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "eldritch_invocations": 8,
+   "cantrips": 4,
+   "prepared_spells": 11,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "13": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Mystic Arcanum (level 7 spell)"
+   ],
+   "eldritch_invocations": 8,
+   "cantrips": 4,
+   "prepared_spells": 12,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": 7
+  },
+  "14": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Subclass feature"
+   ],
+   "eldritch_invocations": 8,
+   "cantrips": 4,
+   "prepared_spells": 12,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "15": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Mystic Arcanum (level 8 spell)"
+   ],
+   "eldritch_invocations": 9,
+   "cantrips": 4,
+   "prepared_spells": 13,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": 8
+  },
+  "16": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "eldritch_invocations": 9,
+   "cantrips": 4,
+   "prepared_spells": 13,
+   "pact_slots": {
+    "count": 3,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "17": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Mystic Arcanum (level 9 spell)"
+   ],
+   "eldritch_invocations": 9,
+   "cantrips": 4,
+   "prepared_spells": 14,
+   "pact_slots": {
+    "count": 4,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": 9
+  },
+  "18": {
+   "proficiency_bonus": 6,
+   "features": [],
+   "eldritch_invocations": 10,
+   "cantrips": 4,
+   "prepared_spells": 14,
+   "pact_slots": {
+    "count": 4,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "19": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Epic Boon"
+   ],
+   "eldritch_invocations": 10,
+   "cantrips": 4,
+   "prepared_spells": 15,
+   "pact_slots": {
+    "count": 4,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  },
+  "20": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Eldritch Master"
+   ],
+   "eldritch_invocations": 10,
+   "cantrips": 4,
+   "prepared_spells": 15,
+   "pact_slots": {
+    "count": 4,
+    "level": 5
+   },
+   "mystic_arcanum_spell_level": null
+  }
+ },
+ "subclass_levels": [
+  3,
+  6,
+  10,
+  14
+ ],
+ "asi_levels": [
+  4,
+  8,
+  12,
+  16
+ ],
+ "epic_boon_level": 19,
+ "subclass_options": {
+  "phb2024:subclass:warlock:archfey-patron": {
+   "name": "Archfey Patron"
+  },
+  "phb2024:subclass:warlock:celestial-patron": {
+   "name": "Celestial Patron"
+  },
+  "phb2024:subclass:warlock:fiend-patron": {
+   "name": "Fiend Patron"
+  },
+  "phb2024:subclass:warlock:great-old-one-patron": {
+   "name": "Great Old One Patron"
+  }
+ }
+}

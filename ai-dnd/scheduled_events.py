@@ -9,6 +9,9 @@ BEHAVIORS = {"NON_INTERRUPTIVE", "INTERRUPTIVE", "OBSERVABLE", "FORCED"}
 EXTENSIONS = {"dependencies", "priority", "causal_group", "requires_decision",
               "decision_status", "player_decision", "combat_npc_id",
               "route_destination", "followups", "aftermath_visible"}
+# Approved small table events (Phase 5): effect kind -> its identifying field.
+# Item and mark mutation is owned by equipment_economy, never done here.
+SURFACE_EFFECTS = {"mark_remove": "mark_id", "surface_item_custody": "item_id"}
 
 
 def validate_events(events, world):
@@ -64,6 +67,29 @@ def validate_events(events, world):
                     effect[k] not in world.get("locations", {}) for k in ("origin", "destination")
                 ):
                     raise ValueError("Scheduled route obstacle is invalid.")
+            elif effect.get("kind") in SURFACE_EFFECTS:
+                keys = SURFACE_EFFECTS[effect["kind"]]
+                if (set(effect) != {"kind", "feature_id", "npc_id", keys}
+                        or any(not isinstance(effect[k], str) or not effect[k] for k in effect)
+                        or len(event["event_id"]) > 140
+                        or not any(isinstance(f, dict) and f.get("id") == effect["feature_id"]
+                                   and f.get("location") == event["location_id"]
+                                   for f in world.get("features", []))
+                        or not any(isinstance(n, dict) and n.get("id") == effect["npc_id"]
+                                   for n in world.get("npcs", []))):
+                    raise ValueError("Scheduled surface effect is invalid.")
+                # Cause stays server-side: these events are never public or loud.
+                if (event["visibility"] != "hidden" or event["behavior"] != "NON_INTERRUPTIVE"
+                        or event.get("aftermath_visible", False)
+                        or event.get("requires_decision", False)):
+                    raise ValueError("Scheduled surface effect must stay hidden.")
+            elif effect.get("kind") == "table_absence":
+                if set(effect) != {"kind"}:
+                    raise ValueError("Scheduled surface effect is invalid.")
+                if (event["visibility"] != "hidden" or event["behavior"] != "NON_INTERRUPTIVE"
+                        or event.get("aftermath_visible", False)
+                        or event.get("requires_decision", False)):
+                    raise ValueError("Scheduled surface effect must stay hidden.")
             else:
                 raise ValueError("Unsupported scheduled effect.")
         result = event["canonical_result"]
@@ -140,6 +166,66 @@ def register_event(world, *, event_id, window_start, window_end, location_id,
     return event
 
 
+ABSENCE_WINDOW = 86400
+
+
+def _table_absence(event):
+    effects = event.get("effects") or []
+    return (len(effects) == 1 and isinstance(effects[0], dict)
+            and effects[0].get("kind") == "table_absence")
+
+
+def _location_has_table_change(world, location_id):
+    feature_ids = {
+        feature.get("id") for feature in world.get("features", [])
+        if isinstance(feature, dict) and feature.get("location") == location_id
+        and isinstance(feature.get("id"), str)
+    }
+    marks = world.get("feature_marks") or {}
+    surfaces = world.get("surface_items") or {}
+    return any(marks.get(feature_id) for feature_id in feature_ids) or any(
+        surfaces.get(feature_id) for feature_id in feature_ids)
+
+
+def arm_table_absence(world, location_id):
+    """Arm one hidden table change for a place the player is leaving.
+
+    Nothing is armed when the place has no mark and no surface item, or when a
+    pending absence for that place already exists. The world does not change
+    until the player arrives back inside the window.
+    """
+    if not isinstance(location_id, str) or location_id not in world.get("locations", {}):
+        return None
+    events = world.get("scheduled_events", [])
+    if any(event.get("status") == "PENDING" and event.get("location_id") == location_id
+           and _table_absence(event) for event in events):
+        return None
+    if not _location_has_table_change(world, location_id):
+        return None
+    clock = world.get("campaign_time") or {}
+    now = clock.get("elapsed_seconds", 0)
+    if type(now) is not int or now < 0:
+        now = 0
+    used = []
+    for event in events:
+        identity = event.get("event_id", "")
+        if isinstance(identity, str) and identity.startswith("absence:"):
+            suffix = identity.split(":", 1)[1]
+            if suffix.isdigit():
+                used.append(int(suffix))
+    sequence = world.get("table_absence_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    number = max([sequence, *used]) + 1
+    world["table_absence_sequence"] = number
+    return register_event(
+        world, event_id=f"absence:{number}", window_start=now,
+        window_end=now + ABSENCE_WINDOW, location_id=location_id,
+        effects=[{"kind": "table_absence"}], visibility="hidden",
+        behavior="NON_INTERRUPTIVE", aftermath_visible=False, summary="", aftermath="",
+    )
+
+
 def _eligible(event, world):
     return all(world.get("flags", {}).get(key) == value for key, value in event["prerequisites"].items())
 
@@ -160,6 +246,17 @@ def _occur(event, world, at):
             world.setdefault("blocked_travel_routes", {}).setdefault(effect["origin"], {})[
                 effect["destination"]
             ] = effect["blocked"]
+        elif effect["kind"] == "table_absence":
+            import equipment_economy
+            if not equipment_economy.resolve_table_absence(
+                    world, event["location_id"], event["event_id"]):
+                event["status"] = "EXPIRED"
+                event["encounter_status"] = "MISSED"
+                return
+        elif effect["kind"] in SURFACE_EFFECTS:
+            import equipment_economy
+            equipment_economy.apply_scheduled_surface_effect(
+                world, effect, event["location_id"], event["event_id"])
     event["status"] = "OCCURRED"
     event["canonical_result"] = {"resolved_at": at, "effects_applied": len(event["effects"])}
     for definition in event.get("followups", []):
@@ -273,6 +370,11 @@ def process_events(world, old, now, *, observation=None, resolution=None,
             identity = event["event_id"]
             if identity in processed or identity in blocked or event["status"] != "PENDING":
                 continue
+            if _table_absence(event) and type(now) is int and now >= event["window_end"]:
+                event["status"] = "EXPIRED"
+                event["encounter_status"] = "MISSED"
+                processed.add(identity)
+                continue
             if not _in_player_horizon(event, world):
                 continue
             dependencies = [by_id[d] for d in event.get("dependencies", [])]
@@ -297,6 +399,17 @@ def process_events(world, old, now, *, observation=None, resolution=None,
                         and event["window_start"] <= limit < event["window_end"])
             if observed and not decision:
                 at = max(limit, dep_time)
+            if _table_absence(event):
+                arrived = (observation and observation.get("kind") == "arrival"
+                           and observation.get("location_id") == event["location_id"]
+                           and _local(event, world)
+                           and event["window_start"] <= now < event["window_end"]
+                           and type(now) is int and now <= limit)
+                if not arrived:
+                    continue
+                at = now
+                decision = False
+                observed = False
             if at <= limit:
                 candidates.append((at, -event.get("priority", 0), event.get("causal_group", ""),
                                    event["location_id"], identity, event, decision, observed))
@@ -332,6 +445,7 @@ def process_events(world, old, now, *, observation=None, resolution=None,
             or (not active and event.get("aftermath_visible", event["visibility"] == "public"))
         ):
             _observe(event, limit, known, decision=active and _decision_required(event))
+    known.extend(process_npc_routines(world,limit))
     if resolution is not None:
         resolution.update(stop_at=limit, interrupted=not unconscious and bool(
             [e for e in pending_events(world) if e.get("decision_status") == "PENDING"]
@@ -397,3 +511,75 @@ def visible_npcs(world):
             for e in world.get("scheduled_events", [])
         )
     )]
+
+def register_npc_routine(world,npc_id,stops):
+    """A daily schedule on the existing NPC, resolved by the game clock only."""
+    npc=next((n for n in world.get('npcs',[]) if n.get('id')==npc_id),None)
+    if npc is None or not isinstance(stops,list) or not 1<=len(stops)<=8:
+        raise ValueError('Invalid NPC routine.')
+    required={'start_second','end_second','location_id','activity'}
+    expected=0
+    for stop in stops:
+        if (not isinstance(stop,dict) or set(stop)!=required
+                or type(stop['start_second']) is not int or type(stop['end_second']) is not int
+                or stop['start_second']!=expected or not expected<stop['end_second']<=86400
+                or stop['location_id'] not in world.get('locations',{})
+                or not isinstance(stop['activity'],str) or not 1<=len(stop['activity'])<=240):
+            raise ValueError('Invalid NPC routine stop.')
+        expected=stop['end_second']
+    if expected!=86400: raise ValueError('NPC routine must cover one complete day.')
+    baseline=[e.get('event_id') for e in world.get('scheduled_events',[]) if e.get('status')=='OCCURRED' and any(f.get('npc_id')==npc_id and f.get('kind') in {'npc_location','npc_hostility'} for f in e.get('effects',[]))]
+    npc['daily_routine']={'version':1,'stops':copy.deepcopy(stops),'event_baseline':baseline}
+
+
+def process_npc_routines(world,elapsed):
+    """Resolve final schedule position, including large jumps; never OS time."""
+    clock=world.get('campaign_time')
+    if not isinstance(clock,dict) or world.get('combat',{}).get('active'): return []
+    second=(clock['start_second']+elapsed)%86400
+    known=[]
+    flags=world.get('flags',{});turn=flags.get('turn_index',0)
+    pinned=set()
+    for q in world.get('quests',[]):
+        if q.get('status') in {'AVAILABLE','DISCOVERED','ACTIVE','BLOCKED','accepted'}:
+            pinned.add(q.get('giver_npc_id'))
+            b=q.get('bindings') or {};pinned.update((b.get('source_npc_id'),b.get('target_npc_id')))
+    for npc in world.get('npcs',[]):
+        routine=npc.get('daily_routine')
+        if not isinstance(routine,dict) or routine.get('version')!=1: continue
+        controlling=next((e for e in world.get('scheduled_events',[]) if e.get('status')=='OCCURRED' and e.get('event_id') not in routine.get('event_baseline',[]) and any(f.get('npc_id')==npc.get('id') and f.get('kind') in {'npc_location','npc_hostility'} for f in e.get('effects',[]))),None)
+        if controlling is not None: routine['suspended_by_event']=controlling.get('event_id') or 'scripted'
+        if routine.get('suspended_by_event'): continue
+        if npc.get('combat_status') in {'dead','defeated','unconscious'} or npc.get('current_hp',1)<=0 or npc.get('id') in pinned: continue
+        if npc.get('id')==flags.get('active_npc_id') and npc.get('location')==world.get('location') and flags.get('active_npc_until_turn',-1)>=turn: continue
+        stop=next((s for s in routine['stops'] if s['start_second']<=second<s['end_second']),None)
+        if stop is None or stop['location_id'] not in world.get('locations',{}): continue
+        visible_before=any(n is npc for n in visible_npcs(world))
+        old=npc.get('location');activity=npc.get('personal_profile',{}).get('current_activity')
+        if old==stop['location_id'] and activity==stop['activity']: continue
+        npc['location']=stop['location_id'];npc.setdefault('personal_profile',{})['current_activity']=stop['activity']
+        journey=world.get('journey') or {}
+        observable=(world.get('player_combat_status')!='unconscious' and (not journey or journey.get('status')=='ARRIVED'))
+        visible_after=any(n is npc for n in visible_npcs(world))
+        if observable and (visible_before if world.get('location')==old else visible_after) and old!=npc['location'] and world.get('location') in {old,npc['location']} and not npc.get('hidden') and npc.get('discovered') is not False:
+            import living_world
+            verb='buradan ayrılıyor' if world.get('location')==old else 'buraya geliyor'
+            known.append({'summary':f"{living_world.public_npc_name(npc)} {verb}.",'window_start':elapsed,'window_end':elapsed+1,'status':'OCCURRED','event_kind':'npc_routine'})
+    return known
+
+
+def ensure_default_npc_routines(world):
+    """Seed modest work/rest schedules using only already registered places."""
+    import dialogue_runtime
+    if not dialogue_runtime.is_enabled(world): return
+    for npc in world.get('npcs',[]):
+        if 'daily_routine' in npc or npc.get('hostile') or npc.get('combat_status') in {'dead','defeated'}: continue
+        work=npc.get('place_role_of') or npc.get('location')
+        record=world.get('locations',{}).get(work)
+        if not isinstance(record,dict): continue
+        rest=record.get('parent_location_id') or work
+        if rest not in world['locations']: rest=work
+        register_npc_routine(world,npc['id'],[
+          {'start_second':0,'end_second':8*3600,'location_id':rest,'activity':'Dinleniyor.'},
+          {'start_second':8*3600,'end_second':22*3600,'location_id':work,'activity':'Günlük işleriyle ilgileniyor.'},
+          {'start_second':22*3600,'end_second':86400,'location_id':rest,'activity':'Dinleniyor.'}])

@@ -43,3 +43,8 @@ Read these first:
 - Campaign / play UI: `artifacts/ai-dnd-experience`
 - `artifacts/ai-dnd-web`: session surface only; no campaign features
 - `artifacts/api-server`: not the game API
+
+
+## Yeni izole serbest diyalog adayı
+
+Güncel kapsam, temiz kampanya, doğrulama ve arşiv durumu: [Oynanabilir diyalog rehberi](ai-dnd/docs/PLAYABLE_DIALOGUE.md). `free_v1` yalnız yeni kampanyada seçilir. Bu adayın hazırlanması canlı kabul, push veya merge anlamına gelmez.

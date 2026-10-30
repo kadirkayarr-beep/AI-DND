@@ -5,6 +5,328 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+export type LevelUpAppliedResultChangesItem = { [key: string]: unknown };
+
+export interface LevelUpAppliedResult {
+  status: 'applied';
+  /** @nullable */
+  reason?: null;
+  changes: LevelUpAppliedResultChangesItem[];
+  effects_pending: string[];
+}
+
+export interface LevelUpFiveChoices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  prepared_spells: string[];
+}
+
+export interface LevelUpStrengthIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  strength: number;
+}
+
+export interface LevelUpConIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  constitution: number;
+}
+
+export interface LevelUpIntelligenceIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  intelligence: number;
+}
+
+export interface LevelUpWisdomIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  wisdom: number;
+}
+
+export interface LevelUpCharismaIncrease {
+  /**
+     * @minimum 2
+     * @maximum 2
+     */
+  charisma: number;
+}
+
+export interface LevelUpStrengthConstitutionIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  constitution: number;
+}
+
+export interface LevelUpStrengthIntelligenceIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  intelligence: number;
+}
+
+export interface LevelUpStrengthWisdomIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  wisdom: number;
+}
+
+export interface LevelUpStrengthCharismaIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  strength: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  charisma: number;
+}
+
+export interface LevelUpConstitutionIntelligenceIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  constitution: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  intelligence: number;
+}
+
+export interface LevelUpConstitutionWisdomIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  constitution: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  wisdom: number;
+}
+
+export interface LevelUpConstitutionCharismaIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  constitution: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  charisma: number;
+}
+
+export interface LevelUpIntelligenceWisdomIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  intelligence: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  wisdom: number;
+}
+
+export interface LevelUpIntelligenceCharismaIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  intelligence: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  charisma: number;
+}
+
+export interface LevelUpWisdomCharismaIncrease {
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  wisdom: number;
+  /**
+     * @minimum 1
+     * @maximum 1
+     */
+  charisma: number;
+}
+
+export interface LevelUpAsiChoice {
+  feat: 'Ability Score Improvement';
+  increase: LevelUpStrengthIncrease | LevelUpConIncrease | LevelUpIntelligenceIncrease | LevelUpWisdomIncrease | LevelUpCharismaIncrease | LevelUpStrengthConstitutionIncrease | LevelUpStrengthIntelligenceIncrease | LevelUpStrengthWisdomIncrease | LevelUpStrengthCharismaIncrease | LevelUpConstitutionIntelligenceIncrease | LevelUpConstitutionWisdomIncrease | LevelUpConstitutionCharismaIncrease | LevelUpIntelligenceWisdomIncrease | LevelUpIntelligenceCharismaIncrease | LevelUpWisdomCharismaIncrease;
+}
+
+export interface LevelUpChoices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  prepared_spells: string[];
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  cantrips: string[];
+  asi: LevelUpAsiChoice;
+}
+
+export interface SorcererLevel2Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  prepared_spells: string[];
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  metamagic: string[];
+}
+
+export interface SorcererLevel3Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  prepared_spells: string[];
+  subclass_id: string;
+}
+
+export interface BarbarianLevel2Choices { [key: string]: unknown }
+
+export type BarbarianLevel3ChoicesPrimalKnowledgeSkill = typeof BarbarianLevel3ChoicesPrimalKnowledgeSkill[keyof typeof BarbarianLevel3ChoicesPrimalKnowledgeSkill];
+
+
+export const BarbarianLevel3ChoicesPrimalKnowledgeSkill = {
+  Animal_Handling: 'Animal Handling',
+  Athletics: 'Athletics',
+  Intimidation: 'Intimidation',
+  Nature: 'Nature',
+  Perception: 'Perception',
+  Survival: 'Survival',
+} as const;
+
+export interface BarbarianLevel3Choices {
+  subclass_id: 'berserker';
+  primal_knowledge_skill: BarbarianLevel3ChoicesPrimalKnowledgeSkill;
+}
+
+export interface BarbarianLevel4Choices {
+  asi: LevelUpAsiChoice;
+}
+
+export interface LevelUpApplyRequest {
+  action_id: string;
+  campaign_id: string;
+  /** @minimum 0 */
+  expected_revision: number;
+  /**
+     * @minimum 2
+     * @maximum 5
+     */
+  target_level: number;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices;
+}
+
+export type LevelUpCommandResultState = { [key: string]: unknown };
+
+export interface LevelUpCommandResult {
+  session_id: string;
+  action_id: string;
+  state: LevelUpCommandResultState;
+  result: LevelUpAppliedResult;
+}
+
+export type LevelUpPreviewResponseStatus = typeof LevelUpPreviewResponseStatus[keyof typeof LevelUpPreviewResponseStatus];
+
+
+export const LevelUpPreviewResponseStatus = {
+  ready: 'ready',
+  blocked: 'blocked',
+} as const;
+
+export type LevelUpPreviewResponseTargetLevel = typeof LevelUpPreviewResponseTargetLevel[keyof typeof LevelUpPreviewResponseTargetLevel];
+
+
+export const LevelUpPreviewResponseTargetLevel = {
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+  NUMBER_4: 4,
+  NUMBER_5: 5,
+} as const;
+
+export type LevelUpPreviewResponseChoicesRequired = {[key: string]: number};
+
+export type LevelUpPreviewResponseCapacity = { [key: string]: unknown } | null;
+
+export interface SorcererSubclassOption {
+  id: string;
+  name: string;
+}
+
+export interface LevelUpPreviewResponse {
+  primal_knowledge_skill_options?: string[] | null;
+  session_id: string;
+  campaign_id: string | null;
+  revision: number | null;
+  status: LevelUpPreviewResponseStatus;
+  reason: string | null;
+  target_level?: LevelUpPreviewResponseTargetLevel;
+  class_name?: string | null;
+  from_level?: number | null;
+  metamagic_options?: string[];
+  subclass_options?: SorcererSubclassOption[];
+  effects_supported?: string[];
+  choices_required?: LevelUpPreviewResponseChoicesRequired;
+  cantrip_ids?: string[];
+  prepared_spell_ids?: string[];
+  supported_asi_choices?: LevelUpAsiChoice[];
+  capacity?: LevelUpPreviewResponseCapacity;
+  effects_pending?: string[];
+}
+
 export interface CampaignDeleteResult {
   campaign_id: string;
   deleted: boolean;
@@ -77,6 +399,8 @@ export type HealthResponseModel = typeof HealthResponseModel[keyof typeof Health
 
 export const HealthResponseModel = {
   'qwen3:8b': 'qwen3:8b',
+  'qwen35:4b-q4_K_M': 'qwen3.5:4b-q4_K_M',
+  'qwen35:9b-q4_K_M': 'qwen3.5:9b-q4_K_M',
 } as const;
 
 export interface HealthResponse {
@@ -722,6 +1046,60 @@ export interface GameLocation {
   exit_location_id: string | null;
 }
 
+export type PrimalKnowledgeCheckSkillsItem = typeof PrimalKnowledgeCheckSkillsItem[keyof typeof PrimalKnowledgeCheckSkillsItem];
+
+
+export const PrimalKnowledgeCheckSkillsItem = {
+  Acrobatics: 'Acrobatics',
+  Intimidation: 'Intimidation',
+  Perception: 'Perception',
+  Stealth: 'Stealth',
+  Survival: 'Survival',
+} as const;
+
+export interface PrimalKnowledgeCheck {
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+  /**
+     * @minItems 5
+     * @maxItems 5
+     */
+  skills: PrimalKnowledgeCheckSkillsItem[];
+}
+
+export type RageStateMaxUses = typeof RageStateMaxUses[keyof typeof RageStateMaxUses];
+
+
+export const RageStateMaxUses = {
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export interface RageAvailability {
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface RageState {
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  uses_remaining: number;
+  max_uses: RageStateMaxUses;
+  active: boolean;
+  /**
+     * @minimum 1
+     * @maximum 12
+     * @nullable
+     */
+  remaining_seconds: number | null;
+  activate: RageAvailability;
+  extend: RageAvailability;
+}
+
 /**
  * @nullable
  */
@@ -792,6 +1170,8 @@ export interface SpeciesTraitState {
 export type GameCharacterSpellSlotsRemaining = {[key: string]: number};
 
 export interface GameCharacter {
+  primal_knowledge_check?: PrimalKnowledgeCheck;
+  rage?: RageState;
   name: string;
   race: string;
   species?: string;
@@ -831,6 +1211,14 @@ export interface GameCharacter {
   species_bonus_skills?: string[];
   origin_feats?: string[];
   level: number;
+  /** Canonical applied progression level, not an unapplied XP level. */
+  progression_level?: number;
+  /** Selected Metamagic options only; effects are not implemented. */
+  metamagic?: string[];
+  /** Selected subclass ID only; subclass effects and grants remain pending. */
+  subclass_id?: string;
+  /** Informative pending effects at the applied level; not spendable resources. */
+  progression_effects_pending?: string[];
   proficiency_bonus: number;
   max_hp: number;
   current_hp: number;
@@ -845,12 +1233,54 @@ export interface GameCharacter {
   xp: number;
 }
 
+export type SpellSlotConversionOptionSlotLevel = typeof SpellSlotConversionOptionSlotLevel[keyof typeof SpellSlotConversionOptionSlotLevel];
+
+
+export const SpellSlotConversionOptionSlotLevel = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export type SpellSlotConversionOptionPointsGained = typeof SpellSlotConversionOptionPointsGained[keyof typeof SpellSlotConversionOptionPointsGained];
+
+
+export const SpellSlotConversionOptionPointsGained = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_3: 3,
+} as const;
+
+export interface SpellSlotConversionOption {
+  slot_level: SpellSlotConversionOptionSlotLevel;
+  points_gained: SpellSlotConversionOptionPointsGained;
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface SpellSlotConversion {
+  options: SpellSlotConversionOption[];
+}
+
+export interface SorceryPoints {
+  /** @minimum 0 */
+  current: number;
+  /**
+     * @minimum 2
+     * @maximum 5
+     */
+  max: number;
+}
+
 export type GameSpellcastingSlots = {[key: string]: number};
 
 /**
  * Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.
  */
 export interface GameSpellcasting {
+  convert_spell_slot?: SpellSlotConversion;
+  sorcery_points?: SorceryPoints;
   cantrips: string[];
   prepared: string[];
   slots: GameSpellcastingSlots;
@@ -1406,6 +1836,17 @@ export interface GameSession {
 }
 
 /**
+ * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+ * @nullable
+ */
+export type GameTurnInputCheckFeature = typeof GameTurnInputCheckFeature[keyof typeof GameTurnInputCheckFeature] | null;
+
+
+export const GameTurnInputCheckFeature = {
+  primal_knowledge: 'primal_knowledge',
+} as const;
+
+/**
  * @nullable
  */
 export type GameTurnInputInteractionMode = typeof GameTurnInputInteractionMode[keyof typeof GameTurnInputInteractionMode] | null;
@@ -1439,6 +1880,9 @@ export const EconomyStepInputKind = {
   search: 'search',
   study: 'study',
   utilize: 'utilize',
+  convert_spell_slot: 'convert_spell_slot',
+  activate_rage: 'activate_rage',
+  extend_rage: 'extend_rage',
 } as const;
 
 export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
@@ -1447,6 +1891,16 @@ export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typ
 export const EconomyStepInputResource = {
   action: 'action',
   bonus: 'bonus',
+} as const;
+
+/**
+ * Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.
+ */
+export type EconomyStepInputMetamagic = typeof EconomyStepInputMetamagic[keyof typeof EconomyStepInputMetamagic] | null;
+
+
+export const EconomyStepInputMetamagic = {
+  quickened_spell: 'quickened_spell',
 } as const;
 
 export type ReadyTriggerInputEvent = typeof ReadyTriggerInputEvent[keyof typeof ReadyTriggerInputEvent];
@@ -1505,6 +1959,19 @@ export interface EconomyStepInput {
   ability?: string | null;
   /** @nullable */
   form?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 9
+     * @nullable
+     */
+  slot_level?: number | null;
+  /** Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts. */
+  metamagic?: EconomyStepInputMetamagic;
+  /**
+     * Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.
+     * @nullable
+     */
+  reckless_attack?: boolean | null;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }
@@ -1521,6 +1988,11 @@ export interface CombatActionInput {
  * The message must contain at least one non-whitespace character.
  */
 export interface GameTurnInput {
+  /**
+     * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+     * @nullable
+     */
+  check_feature?: GameTurnInputCheckFeature;
   combat_action?: CombatActionInput | null;
   /**
      * @minLength 1
@@ -1557,6 +2029,40 @@ export interface GameTurnInput {
      */
   action_id?: string | null;
 }
+
+export type UnresolvedGameActionUnresolvedState = typeof UnresolvedGameActionUnresolvedState[keyof typeof UnresolvedGameActionUnresolvedState];
+
+
+export const UnresolvedGameActionUnresolvedState = {
+  open: 'open',
+} as const;
+
+export type UnresolvedGameActionUnresolved = {
+  action_id: string;
+  state: UnresolvedGameActionUnresolvedState;
+  created_at: string;
+} | null;
+
+export interface UnresolvedGameAction {
+  unresolved: UnresolvedGameActionUnresolved;
+}
+
+export type GameActionStatusState = typeof GameActionStatusState[keyof typeof GameActionStatusState];
+
+
+export const GameActionStatusState = {
+  applied: 'applied',
+  not_applied: 'not_applied',
+  open: 'open',
+  unknown: 'unknown',
+  processing: 'processing',
+} as const;
+
+/**
+ * The stored refusal body of a not_applied action
+ * @nullable
+ */
+export type GameActionStatusDetail = { [key: string]: unknown } | null;
 
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
 
@@ -1777,6 +2283,22 @@ export interface CombatHistoryEntry {
   result: CombatTurnResult;
 }
 
+export type SkillCheckResultCheckFeature = typeof SkillCheckResultCheckFeature[keyof typeof SkillCheckResultCheckFeature];
+
+
+export const SkillCheckResultCheckFeature = {
+  primal_knowledge: 'primal_knowledge',
+} as const;
+
+export type SkillCheckResultOriginalAbility = typeof SkillCheckResultOriginalAbility[keyof typeof SkillCheckResultOriginalAbility];
+
+
+export const SkillCheckResultOriginalAbility = {
+  dexterity: 'dexterity',
+  wisdom: 'wisdom',
+  charisma: 'charisma',
+} as const;
+
 export type SkillCheckResultAbility = typeof SkillCheckResultAbility[keyof typeof SkillCheckResultAbility];
 
 
@@ -1809,6 +2331,8 @@ export const SkillCheckResultOutcome = {
 } as const;
 
 export interface SkillCheckResult {
+  check_feature?: SkillCheckResultCheckFeature;
+  original_ability?: SkillCheckResultOriginalAbility;
   /**
      * @minLength 1
      * @maxLength 40
@@ -1879,12 +2403,12 @@ export interface QuestOutcome {
 export interface LevelUpResult {
   /**
      * @minimum 1
-     * @maximum 4
+     * @maximum 5
      */
   previous_level: number;
   /**
      * @minimum 1
-     * @maximum 4
+     * @maximum 5
      */
   new_level: number;
   /** @minimum 1 */
@@ -1918,6 +2442,20 @@ export interface GameTurnResult {
   level_up: LevelUpResult | null;
   /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
+}
+
+export interface GameActionStatus {
+  action_id: string;
+  state: GameActionStatusState;
+  /** The stored turn reply of an applied action; null when the receipt belongs to another command kind */
+  response?: null | GameTurnResult;
+  /**
+     * The stored refusal body of a not_applied action
+     * @nullable
+     */
+  detail?: GameActionStatusDetail;
+  /** True while a turn of this session holds the turn lock */
+  processing?: boolean;
 }
 
 export interface GameTurnUndoInput {
@@ -2003,6 +2541,7 @@ export const SpeciesTraitActionInputAction = {
   choose_giant_ancestry: 'choose_giant_ancestry',
   short_rest: 'short_rest',
   long_rest: 'long_rest',
+  spend_hit_die: 'spend_hit_die',
 } as const;
 
 /**
@@ -2084,6 +2623,20 @@ export const CharacterCreateInputMode = {
   random: 'random',
 } as const;
 
+export interface SorcererLevelChoices {
+  '2'?: SorcererLevel2Choices;
+  '3'?: SorcererLevel3Choices;
+  '4'?: LevelUpChoices;
+  '5'?: LevelUpFiveChoices;
+}
+
+export interface BarbarianLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: BarbarianLevel3Choices;
+  '4'?: BarbarianLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 /**
  * @nullable
  */
@@ -2125,6 +2678,12 @@ export type CharacterCreateInputBackgroundAbilityBonuses = { [key: string]: unkn
  */
 export interface CharacterCreateInput {
   mode: CharacterCreateInputMode;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  starting_level?: number;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -2257,9 +2816,52 @@ export interface CampaignStartOptionsResponse {
   settings: CampaignStartSettingOption[];
 }
 
+export interface SorcererStartingLevel4Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  cantrip_count: number;
+  cantrip_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+}
+
+export interface SorcererStartingLevel5Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+}
+
 export interface CharacterCreationOptions {
   races: string[];
   classes: string[];
+}
+
+export interface SorcererStartingLevel2Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  metamagic_count: number;
+  metamagic_options: string[];
+}
+
+export interface SorcererStartingLevel3Options {
+  prepared_spell_count: number;
+  prepared_spell_ids: string[];
+  subclass_options: SorcererSubclassOption[];
+}
+
+export interface SorcererEffectsPendingByLevel {
+  '1': string[];
+  '2': string[];
+  '3': string[];
+  '4': string[];
+  '5': string[];
+}
+
+export interface SorcererStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: SorcererStartingLevel2Options;
+  level_3: SorcererStartingLevel3Options;
+  level_4: SorcererStartingLevel4Options;
+  level_5: SorcererStartingLevel5Options;
+  effects_pending_by_level: SorcererEffectsPendingByLevel;
 }
 
 export type CharacterCreationCatalogResponseRaces = { [key: string]: unknown };
@@ -2280,7 +2882,46 @@ export type CharacterCreationCatalogResponseSkills = { [key: string]: unknown };
 
 export type CharacterCreationCatalogResponseEquipmentRules = { [key: string]: unknown };
 
+export interface BarbarianStartingLevel2Options {
+  choices: BarbarianLevel2Choices;
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface BarbarianStartingSubclassOption {
+  id: 'berserker';
+  name: string;
+}
+
+export interface BarbarianStartingLevel3Options {
+  subclass_options: BarbarianStartingSubclassOption[];
+  primal_knowledge_skill_options: string[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface BarbarianStartingLevel4Options {
+  supported_asi_choices: LevelUpAsiChoice[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface BarbarianStartingLevel5Options {
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface BarbarianStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianStartingLevel2Options;
+  level_3?: BarbarianStartingLevel3Options | null;
+  level_4?: BarbarianStartingLevel4Options | null;
+  level_5?: BarbarianStartingLevel5Options | null;
+}
+
 export interface CharacterCreationCatalogResponse {
+  sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
+  barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

@@ -1,0 +1,55 @@
+{
+  "ids": {
+    "open": "11111111-1111-4111-8111-111111111111",
+    "newer": "22222222-2222-4222-8222-222222222222",
+    "never_seen": "33333333-3333-4333-8333-333333333333"
+  },
+  "unresolved_action_refusal": {
+    "status": 409,
+    "body": {
+      "detail": {
+        "code": "unresolved_action",
+        "message": "An earlier action of this campaign is still unresolved.",
+        "unresolved_action_id": "11111111-1111-4111-8111-111111111111",
+        "not_applied": true
+      }
+    }
+  },
+  "unresolved_list": {
+    "status": 200,
+    "body": {
+      "unresolved": {
+        "action_id": "11111111-1111-4111-8111-111111111111",
+        "state": "open",
+        "created_at": "<timestamp>"
+      }
+    }
+  },
+  "status_open": {
+    "status": 200,
+    "body": {
+      "action_id": "11111111-1111-4111-8111-111111111111",
+      "state": "open",
+      "processing": false
+    }
+  },
+  "status_unknown": {
+    "status": 200,
+    "body": {
+      "action_id": "33333333-3333-4333-8333-333333333333",
+      "state": "unknown"
+    }
+  },
+  "abandon_not_applied": {
+    "status": 200,
+    "body": {
+      "action_id": "11111111-1111-4111-8111-111111111111",
+      "state": "not_applied",
+      "detail": {
+        "code": "action_abandoned",
+        "message": "This action was closed by the player and was not applied.",
+        "not_applied": true
+      }
+    }
+  }
+}

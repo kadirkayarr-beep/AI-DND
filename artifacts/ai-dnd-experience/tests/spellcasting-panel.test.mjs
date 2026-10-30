@@ -63,7 +63,7 @@ test('panel has no local state, requests, legality calculation or resource consu
   const source = await readFile('src/components/spellcasting-panel.tsx', 'utf8');
   assert.doesNotMatch(source, /useState|useReducer|localStorage|fetch\(|\.mutate|slots\s*\[.*\]\s*=|CLASS_DEFINITIONS/);
   const page = await readFile('src/pages/game-browser.tsx', 'utf8');
-  assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} \/>/);
+  assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} decisionScope=\{decisionScope\} conversionBlocked=\{conversionBlocked\} onCommand=\{onEconomyCommand\} \/>/);
   assert.match(page, /<SpellcastingPanel spellcasting=\{state\.spellcasting\} \/>/);
   assert.doesNotMatch(page, /spellcasting=\{\{|spell_slots_remaining|CLASS_DEFINITIONS|slots\s*\[.*\]\s*=/);
 });

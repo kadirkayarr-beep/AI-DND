@@ -1,4 +1,8 @@
+import { applyGameState, nextRevision } from '@/lib/game-state-gate';
 import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
+import { currentAccountOwner } from '@/lib/account-session';
+import { readPending } from '@/lib/pending-action';
+import { askServer } from '@/lib/action-recovery';
 import { useRef, useState } from 'react';
 import { playerAbilityMessage } from '@/lib/campaign-presentation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,6 +10,9 @@ import {
   getGetGameSessionStateQueryKey,
   resolveSpeciesTraitAction,
   getGameSessionState,
+  getGameActionStatus,
+  abandonGameAction,
+  getUnresolvedGameAction,
 } from '@workspace/api-client-react';
 import type {
   GameState,
@@ -118,6 +125,11 @@ export function SpeciesTraitControls({
   const notBusy = !sending && !retryInput;
   const send = (data: SpeciesTraitActionInput) => {
     if (busy.current) return;
+    // An unresolved play move in this campaign must be settled first; this path never overtakes it.
+    if (readPending(currentAccountOwner() ?? 'local', campaignId || sessionId)) {
+      setFailure('Önceki hamle henüz doğrulanamadı. Önce o hamleyi aynı kimlikle yeniden dene; tür yeteneği bundan sonra gönderilir.');
+      return;
+    }
     const operation = lifetime.begin();
     if (!operation) return;
     const request = pendingRequest.current ?? { ...data, action_id: data.action_id ?? stableTurnActionId(scope, JSON.stringify(data)) };
@@ -134,9 +146,10 @@ export function SpeciesTraitControls({
       if (!operation.isCurrent()) return;
       receiptReceived = true;
       const stateKey = getGetGameSessionStateQueryKey(sessionId);
+      const readRevision = nextRevision();
       const fresh = await reconcileState(queryClient, stateKey, operation, signal => getGameSessionState(sessionId, { signal }));
       if (!operation.isCurrent()) return;
-      queryClient.setQueryData(stateKey, fresh);
+      applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent });
       clearPendingTurnAction(scope, request.action_id!);
       try { window.sessionStorage.removeItem(retryKey); } catch { /* storage may be unavailable */ }
       pendingRequest.current = null;
@@ -159,6 +172,48 @@ export function SpeciesTraitControls({
       if (operation.isCurrent()) setSending(false);
       operation.close();
     });
+  };
+  // A stuck stored action (404/500/network left the retry key behind) is settled by the server's stored receipt or durable
+  // refusal only: applied -> reconcile state and clear; not_applied -> clear; anything else keeps the identity.
+  const settleWithServer = async (mode: 'check' | 'abandon', actionId: string) => {
+    if (busy.current) return;
+    const operation = lifetime.begin();
+    if (!operation) return;
+    busy.current = true;
+    setSending(true);
+    setFailure(null);
+    try {
+      const verdict = await askServer(
+        { status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction }, mode, sessionId, actionId,
+      );
+      if (!operation.isCurrent()) return;
+      if (verdict.kind === 'unresolved') {
+        setFailure(verdict.processing
+          ? 'Sunucu bu işlemi hâlâ işliyor; biraz sonra yeniden kontrol et. İşlem kimliği korunuyor.'
+          : 'Sunucuda bu işlem için henüz sonuç yok; bu, işlemin hiç uygulanmayacağı anlamına gelmez. Yeniden deneyebilir ya da vazgeçebilirsin.');
+        return;
+      }
+      if (verdict.kind === 'applied') {
+        const stateKey = getGetGameSessionStateQueryKey(sessionId);
+        const readRevision = nextRevision();
+        const fresh = await reconcileState(queryClient, stateKey, operation, signal => getGameSessionState(sessionId, { signal }));
+        if (!operation.isCurrent()) return;
+        applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent });
+        setFailure('Sunucu bu işlemin uygulandığını doğruladı; durum güncellendi.');
+      } else {
+        setFailure('Sunucu bu işlemin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Başka bir seçim yapabilirsin.');
+      }
+      clearPendingTurnAction(scope, actionId);
+      try { window.sessionStorage.removeItem(retryKey); } catch { /* no persisted retry */ }
+      pendingRequest.current = null;
+      setRetryInput(null);
+    } catch (error) {
+      if (operation.isCurrent()) setFailure(error instanceof Error && error.message === RETRY_MESSAGE ? RETRY_MESSAGE : 'Sunucudan yanıt alınamadı; bu bir iptal kanıtı değildir, işlem kimliği korunuyor.');
+    } finally {
+      busy.current = false;
+      if (operation.isCurrent()) setSending(false);
+      operation.close();
+    }
   };
   const ancestryLabel = ANCESTRIES.find(
     (ancestry) => ancestry.id === character.giant_ancestry,
@@ -348,6 +403,8 @@ export function SpeciesTraitControls({
       {failure && <p className="species-trait-feedback species-trait-feedback-error" role="alert">{failure}</p>}
       {storageUnavailable && <p role="status">Tarayıcı kaydı kullanılamıyor. Aynı işlem kimliği yalnız bu ekran açıkken korunur. Sonuç doğrulanana kadar sayfayı yenileme veya paneli kapatma; yeniden açılışta güvenli tekrar garanti edilemez.</p>}
       {retryInput && <button type="button" disabled={sending} onClick={() => send(retryInput)} data-testid="species-action-retry">Kaydedilen işlemi yeniden dene</button>}
+      {retryInput?.action_id && <button type="button" disabled={sending} onClick={() => void settleWithServer('check', retryInput.action_id!)} data-testid="species-action-check">Durumu sunucudan kontrol et</button>}
+      {retryInput?.action_id && <button type="button" disabled={sending} onClick={() => void settleWithServer('abandon', retryInput.action_id!)} data-testid="species-action-abandon">Bu işlemden vazgeç (sunucu doğrular)</button>}
       {feedback && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
           <strong>{playerAbilityMessage(feedback.result.message)}</strong>

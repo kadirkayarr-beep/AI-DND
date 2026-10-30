@@ -1,32 +1,101 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetGameSessionStateQueryKey, usePlayGameTurn } from '@workspace/api-client-react';
 import type { GameState } from '@workspace/api-client-react';
+import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import { currentAccountOwner } from '@/lib/account-session';
+import {
+  closePending,
+  createIntentKey,
+  readPending,
+  resumePending,
+  unresolvedElsewhere,
+  type CancelEvidence,
+} from '@/lib/pending-action';
+
+const WAIT_IN_COMBAT = 'Ölüm kurtarmasını bekliyorum.';
+const WAIT_OUT_OF_COMBAT = '1 saat bekle.';
+const HTTP_UNPROCESSABLE = 422;
+
+type StoredMove = NonNullable<ReturnType<typeof readPending>>;
+
+// The wait lives in the same owner+campaign slot as every play move, so it is durable across a reload and
+// every other mutation of the campaign sees it. It is told apart by its recorded kind, never by its text.
+function isWait(stored: StoredMove | null): stored is StoredMove {
+  return stored !== null && stored.kind === 'death_wait';
+}
+
+function cancelEvidence(error: unknown, stored: StoredMove): CancelEvidence | undefined {
+  const detail = (error as { data?: { detail?: { not_applied?: unknown; code?: unknown } }; status?: number } | null)?.data?.detail;
+  if (detail?.not_applied === true && typeof detail.code === 'string') return { kind: 'server_not_applied', code: detail.code };
+  const status = (error as { status?: number } | null)?.status;
+  if (status === HTTP_UNPROCESSABLE && typeof stored.request.message === 'string') return { kind: 'server_rejected', status };
+  return undefined;
+}
+
+function buttonLabel(resumable: boolean, running: boolean, inCombat: boolean): string {
+  if (running) return 'Zaman geçiyor…';
+  if (resumable) return 'Bekleyişin durumunu kontrol et';
+  return inCombat ? 'Durumun çözülmesini bekle' : 'Bir saat geçmesini bekle';
+}
 
 /** Requests passive time only. All rolls, recovery and returned state are server-owned. */
-export function DeathRecoveryControls({ state, sessionId }: { state: GameState; sessionId: string }) {
+export function DeathRecoveryControls({ state, sessionId, campaignId }: { state: GameState; sessionId: string; campaignId?: string }) {
   const queryClient = useQueryClient();
-  const [pending, setPending] = useState<{ action_id: string; message: string } | null>(null);
-  useEffect(() => { setPending(null); }, [sessionId]);
-  const turn = usePlayGameTurn({
-    mutation: {
-      onSuccess: result => {
-        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
-        setPending(null);
-      },
-    },
-  });
+  const [blocked, setBlocked] = useState(false);
+  const owner = currentAccountOwner() ?? 'local';
+  const scope = campaignId || sessionId;
+  const turn = usePlayGameTurn();
   if (state.character.current_hp !== 0 || state.death_state.status === 'dead') return null;
-  const message = state.combat.active ? 'Ölüm kurtarmasını bekliyorum.' : '1 saat bekle.';
+  const message = state.combat.active ? WAIT_IN_COMBAT : WAIT_OUT_OF_COMBAT;
+  const resumable = isWait(readPending(owner, scope));
+  const send = () => {
+    // Owner and scope are read at click time and bound, with the sent id, to this call's callbacks.
+    const sendOwner = currentAccountOwner() ?? 'local';
+    const sendScope = campaignId || sessionId;
+    const stored = readPending(sendOwner, sendScope);
+    // A different unresolved move (or a species action) is never resumed or overtaken by this button.
+    if ((stored && !isWait(stored)) || (!stored && unresolvedElsewhere(sendOwner, sendScope))) {
+      setBlocked(true);
+      return;
+    }
+    try {
+      const request = stored ? stored.request : { message };
+      const key = stored ? resumePending(stored.key, currentAuthEpoch()).key : createIntentKey(sendOwner, sendScope, request, 'death_wait');
+      const epoch = currentAuthEpoch();
+      // Only the slot entry with exactly the id this call sent may be closed by this call's answer.
+      const sameMove = () => {
+        const current = readPending(sendOwner, sendScope);
+        return current !== null && current.key.actionId === key.actionId ? current : null;
+      };
+      setBlocked(false);
+      turn.mutate({ sessionId, data: { ...request, action_id: key.actionId } as { message: string; action_id: string } }, {
+        onSuccess: () => {
+          // An answer from an old auth epoch changes nothing: the wait stays pending and a retry replays its receipt.
+          if (currentAuthEpoch() !== epoch) return;
+          const current = sameMove();
+          if (current) closePending(current.key, 'confirmed');
+          // Re-read the authoritative state instead of writing the receipt's (possibly older) copy into the cache.
+          void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
+        },
+        // Only the server's own "never applied" answer closes the wait; anything else keeps it for a retry of the same id.
+        onError: (error: unknown) => {
+          if (currentAuthEpoch() !== epoch) return;
+          const current = sameMove();
+          const evidence = current ? cancelEvidence(error, current) : undefined;
+          if (current && evidence) closePending(current.key, 'cancelled', evidence);
+        },
+      });
+    } catch {
+      setBlocked(true);
+    }
+  };
   return <div className="mt-3">
     <button type="button" className="dnd-button secondary" disabled={turn.isPending}
-      data-testid="button-death-wait" onClick={() => {
-        const request = pending ?? { message, action_id: crypto.randomUUID() };
-        setPending(request);
-        turn.mutate({ sessionId, data: request });
-      }}>
-      {turn.isPending ? 'Zaman geçiyor…' : state.combat.active ? 'Durumun çözülmesini bekle' : 'Bir saat geçmesini bekle'}
+      data-testid="button-death-wait" onClick={send}>
+      {buttonLabel(resumable, turn.isPending, state.combat.active)}
     </button>
-    {turn.isError && <p role="alert">Bekleyiş tamamlanamadı. Aynı bekleyişi yeniden deneyebilirsin.</p>}
+    {blocked && <p role="alert" data-testid="death-wait-blocked">Önceki hamle henüz doğrulanamadı. Önce onun sonucunu doğrula; bekleyiş bundan sonra gönderilir.</p>}
+    {resumable && !turn.isPending && <p role="status">Bekleyişin sonucu henüz doğrulanamadı. Aynı bekleyiş aynı kimlikle yeniden denenir; ikinci kez uygulanmaz.</p>}
   </div>;
 }

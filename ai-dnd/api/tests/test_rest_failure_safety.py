@@ -64,6 +64,52 @@ class RestFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(replay.json(), retry.json())
                 self.assertEqual(self.snapshot(record), committed)
 
+    async def test_human_temporary_hp_long_rest_rolls_back_then_retries_and_replays(self):
+        created, record = await self.prepare()
+        session = record.game_session
+        session.character.update(species='Human', race='Human')
+        session.initialize_species_trait_state()
+        session.grant_temporary_hit_points(5)
+        self.manager.save_campaign(created['campaign_id'])
+        before = self.snapshot(record)
+        command = {'action': 'long_rest', 'action_id': str(uuid4())}
+        url = f"/api/game/sessions/{created['session_id']}/species-actions"
+        original_save = self.store.save_campaign
+
+        def verify_recovery_before_real_sql_failure(*args, **kwargs):
+            self.assertEqual(session._species_trait_state()['temporary_hit_points'], 0)
+            self.assertEqual(session.world_state['last_long_rest_completed_at'], session.world_state['campaign_time']['elapsed_seconds'])
+            self.assertEqual(session.character['current_hp'], session.character['max_hp'])
+            return original_save(*args, **kwargs)
+
+        with closing(sqlite3.connect(self.store.path)) as db:
+            db.execute("CREATE TRIGGER human_rest_failure BEFORE INSERT ON campaign_turn_actions BEGIN SELECT RAISE(ABORT, 'synthetic receipt write failure'); END")
+        try:
+            with patch.object(self.store, 'save_campaign', side_effect=verify_recovery_before_real_sql_failure) as save:
+                response = await self.http.post(url, json=command)
+        finally:
+            with closing(sqlite3.connect(self.store.path)) as db:
+                db.execute('DROP TRIGGER human_rest_failure')
+        self.assertEqual(response.status_code, 503, response.text)
+        save.assert_called_once()
+        self.assertEqual(self.snapshot(record), before)
+        self.assertEqual(session._species_trait_state()['temporary_hit_points'], 5)
+        self.assertNotIn('last_long_rest_completed_at', session.world_state)
+        self.assertIsNone(self.store.get_turn_action(created['campaign_id'], command['action_id']))
+
+        retry = await self.http.post(url, json=command)
+        self.assertEqual(retry.status_code, 200, retry.text)
+        self.assertEqual(session._species_trait_state()['temporary_hit_points'], 0)
+        committed = self.snapshot(record)
+        with patch.object(session, 'resolve_species_trait_action', side_effect=AssertionError('receipt reran rest')):
+            replay = await self.http.post(url, json=command)
+        self.assertEqual(replay.json(), retry.json())
+        self.assertEqual(self.snapshot(record), committed)
+        fresh = SessionManager(campaign_store=self.store)
+        _, resumed, *_ = fresh.resume_campaign(created['campaign_id'])
+        self.assertEqual(resumed.game_session._species_trait_state()['temporary_hit_points'], 0)
+        self.assertEqual(resumed.game_session.world_state['last_long_rest_completed_at'], session.world_state['last_long_rest_completed_at'])
+
     async def test_failed_rest_restore_closes_session_without_committing_partial_state(self):
         for action in ('short_rest', 'long_rest'):
             with self.subTest(action=action):

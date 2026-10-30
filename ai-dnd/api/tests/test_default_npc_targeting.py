@@ -91,9 +91,12 @@ class InvalidConversationPlaceClient(AttributedPlaceClient):
     def chat(self, *args, **kwargs):
         response = super().chat(*args, **kwargs)
         packet = json.loads(response["message"]["content"])
-        packet["interaction"]["conversation"]["candidate_evidence_ids"] = [
-            "unavailable-evidence-id"
-        ]
+        # Only a classifier packet carries a helper conversation proposal; the
+        # default route's speech packet has none, so there is nothing to corrupt.
+        if isinstance(packet.get("interaction"), dict):
+            packet["interaction"]["conversation"]["candidate_evidence_ids"] = [
+                "unavailable-evidence-id"
+            ]
         response["message"]["content"] = json.dumps(packet, ensure_ascii=False)
         return response
 
@@ -351,9 +354,12 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         visible = response.json()["narration"]
-        self.assertIn("kilitli", visible)
+        # W03 / Rev2 5.5 (D4 assertion updated to the approved meaning, not deleted): the NPC's own words stay the NPC's
+        # (a speaker may be wrong); the system neither rewrites them nor reveals a lock the player does not know. The
+        # world truth is unchanged: the door is still locked, so "içerisi açık" is only attributed speech.
+        self.assertIn("içerisi açık", visible)
+        self.assertNotIn("kilitli", visible, "an unknown lock is not disclosed as a correction")
         self.assertNotIn("iyi bir seçenek olabilir", visible)
-        self.assertNotIn("açık", visible)
 
     async def test_combined_name_and_place_recommendation_is_grounded_over_http(self):
         _, session, turn_url, tavern_id, guard = (
@@ -386,7 +392,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(
             response.json()["narration"],
-            f'Marek (Marek omuz silker): “Bildiğim ve şu anda gidebileceğin '
+            f'Marek (omuz silker): “Bildiğim ve şu anda gidebileceğin '
             f'yerlerden {tavern_name} iyi bir seçenek olabilir.”',
         )
 
@@ -407,7 +413,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         visible = response.json()["narration"]
-        self.assertIn("Marek gülümser", visible)
+        self.assertIn("Marek (gülümser):", visible)
         self.assertNotIn("Oyuncu", visible)
         self.assertNotIn("girer", visible)
         self.assertIn(tavern_name, visible)
@@ -463,9 +469,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             captured["telemetry"]["narration_validation_result"], "accepted"
         )
         self.assertTrue(any(
-            "NPC dialogue mode" in prompt
-            and "natural, direct speech" in prompt
-            and "Answer the player's actual question" in prompt
+            "INTERNAL NPC SPEECH EXPERIMENT" in prompt
+            and "addressed NPC's spoken reply" in prompt
+            and "Answer the player's current message in character" in prompt
             and "Marek" in prompt
             for prompt in client.prompts
         ), client.prompts)
@@ -1350,7 +1356,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 for prompt in fallback_client.prompts
             )
         )
-        self.assertEqual(fallback_client.chat_calls, 2)
+        # The already active canonical NPC no longer needs a target-parser call.
+        # The actual uncertainty answer still takes exactly one speech request.
+        self.assertEqual(fallback_client.chat_calls, 1)
         self.assertIn(
             "Bu konuda söyleyecek bir şey bilmiyorum.",
             fallback_response.json()["narration"],
@@ -1692,7 +1700,8 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         suggestion_outcome = suggestion_payload["turn_outcome"]
         self.assertEqual(suggestion_payload["action_id"], suggestion_action_id)
         self.assertEqual(suggestion_outcome.get("action"), "dialogue")
-        self.assertEqual(suggestion_outcome.get("status"), "resolved")
+        # The default route records NPC speech as attributed, not as a resolved mechanic.
+        self.assertEqual(suggestion_outcome.get("status"), "experimental_attributed_speech")
         # Dialogue receipts intentionally omit target IDs and names; the
         # request target and the recorded said_by reference are authoritative.
         self.assertIsNone(suggestion_outcome.get("target_name"))

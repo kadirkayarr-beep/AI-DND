@@ -6,10 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SkillCheckResultAbility } from './skillCheckResultAbility';
+import type { SkillCheckResultCheckFeature } from './skillCheckResultCheckFeature';
 import type { SkillCheckResultDifficulty } from './skillCheckResultDifficulty';
+import type { SkillCheckResultOriginalAbility } from './skillCheckResultOriginalAbility';
 import type { SkillCheckResultOutcome } from './skillCheckResultOutcome';
 
 export interface SkillCheckResult {
+  check_feature?: SkillCheckResultCheckFeature;
+  original_ability?: SkillCheckResultOriginalAbility;
   /**
      * @minLength 1
      * @maxLength 40

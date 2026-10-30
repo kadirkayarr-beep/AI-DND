@@ -3,13 +3,15 @@
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
+
+from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
 
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     engine: Literal["AI-DND"] = "AI-DND"
-    model: Literal["qwen3:8b"] = "qwen3:8b"
+    model: LocalModelName = DEFAULT_LOCAL_MODEL
 
 
 class SessionResponse(BaseModel):
@@ -33,7 +35,7 @@ class ReadyResponseInput(BaseModel):
 class EconomyStepInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["attack", "continue_attack", "move", "dash", "ready", "react", "decline_reaction", "end_turn", "species",
-                  "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize"]
+                  "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize", "convert_spell_slot", "activate_rage", "extend_rage"]
     resource: Literal["action", "bonus"] = "action"
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     distance_ft: int | None = Field(default=None, gt=0, strict=True)
@@ -42,11 +44,42 @@ class EconomyStepInput(BaseModel):
     opportunity_id: str | None = None
     ability: str | None = None
     form: str | None = None
+    slot_level: int | None = Field(default=None, ge=1, le=9, strict=True)
+    reckless_attack: StrictBool | None = None
+    metamagic: Literal["quickened_spell"] | None = None
+
+    @model_validator(mode="after")
+    def slot_selection_requires_magic(self):
+        if self.kind in {"activate_rage", "extend_rage"}:
+            if self.resource != "bonus" or self.model_fields_set != {"kind", "resource"}:
+                raise ValueError("Rage requires one explicit Bonus Action and no other step fields.")
+            return self
+        if self.kind == "convert_spell_slot":
+            if self.slot_level not in {1, 2, 3} or self.resource != "action":
+                raise ValueError("Slot conversion requires a supported slot level and no action resource override.")
+            if self.model_fields_set - {"kind", "slot_level", "resource"}:
+                raise ValueError("Slot conversion accepts only its slot selection.")
+            return self
+        if self.metamagic is not None and (self.kind != "magic" or self.ability != "Magic Missile"):
+            raise ValueError("Quickened Spell is only supported for Magic Missile.")
+        if self.reckless_attack is not None and self.kind not in {"attack", "continue_attack", "react"}:
+            raise ValueError("Reckless Attack is only a choice on an attack roll.")
+        if self.slot_level is not None and self.kind != "magic":
+            raise ValueError("Only a Magic action can select a spell slot.")
+        return self
 
 
 class CombatActionInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     steps: list[EconomyStepInput] = Field(min_length=1, max_length=8)
+
+    @model_validator(mode="after")
+    def conversion_is_single_step(self):
+        if any(step.kind in {"activate_rage", "extend_rage"} for step in self.steps) and len(self.steps) != 1:
+            raise ValueError("Rage must be submitted as one explicit step.")
+        if any(step.kind == "convert_spell_slot" for step in self.steps) and len(self.steps) != 1:
+            raise ValueError("Slot conversion must be submitted as one explicit step.")
+        return self
 
 
 class TurnRequest(BaseModel):
@@ -57,6 +90,7 @@ class TurnRequest(BaseModel):
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     action_id: UUID | None = None
     combat_action: CombatActionInput | None = None
+    check_feature: Literal["primal_knowledge"] | None = None
     combat_id: str | None = Field(default=None, min_length=1, max_length=128)
     combat_round: int | None = Field(default=None, ge=1, strict=True)
     combat_turn_index: int | None = Field(default=None, ge=0, strict=True)
@@ -64,6 +98,11 @@ class TurnRequest(BaseModel):
     @model_validator(mode="after")
     def complete_combat_context(self):
         fields = (self.combat_id, self.combat_round, self.combat_turn_index)
+        if self.check_feature is not None and (
+            self.interaction_mode != "do" or self.combat_action is not None
+            or any(value is not None for value in fields)
+        ):
+            raise ValueError("Primal Knowledge requires an ordinary Do check without combat context.")
         if any(v is not None for v in fields) and any(v is None for v in fields):
             raise ValueError("Combat context must include ID, round and turn index.")
         return self
@@ -281,6 +320,25 @@ class SkillCheckResult(BaseModel):
     action_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
+    check_feature: Literal["primal_knowledge"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    original_ability: Literal["dexterity", "wisdom", "charisma"] | None = Field(default=None, exclude_if=lambda value: value is None)
+
+    @model_validator(mode="after")
+    def consistent_check_feature(self):
+        # Historical receipts validate their public annotation here, never live Rage.
+        if self.check_feature is None:
+            if self.original_ability is not None:
+                raise ValueError("Original ability requires a check feature.")
+            return self
+        originals = {"Acrobatics": "dexterity", "Intimidation": "charisma",
+                     "Perception": "wisdom", "Stealth": "dexterity", "Survival": "wisdom"}
+        if (self.skill not in originals or self.ability != "strength"
+                or self.original_ability != originals[self.skill]
+                or not self.action_id or not self.resolution_id
+                or not self.resolution_id.startswith(self.action_id + ":skill_check:")):
+            raise ValueError("Invalid Primal Knowledge check annotation.")
+        return self
+
 
 class QuestOutcome(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -348,8 +406,8 @@ class QuestCommandResult(BaseModel):
 class LevelUpResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    previous_level: int = Field(ge=1, le=4)
-    new_level: int = Field(ge=1, le=4)
+    previous_level: int = Field(ge=1, le=5)
+    new_level: int = Field(ge=1, le=5)
     xp_gained: int = Field(ge=1)
     hit_points_gained: int = Field(ge=0)
 
@@ -456,6 +514,7 @@ class SpeciesTraitActionRequest(BaseModel):
         "choose_giant_ancestry",
         "short_rest",
         "long_rest",
+        "spend_hit_die",
     ]
     form: Literal[
         "heavenly_wings", "inner_radiance", "necrotic_shroud"
@@ -499,10 +558,181 @@ class SpeciesTraitCommandResult(BaseModel):
     result: SpeciesTraitActionResult
 
 
+class LevelUpConIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    constitution: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpStrengthIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpIntelligenceIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    intelligence: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpWisdomIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    wisdom: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    charisma: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpStrengthConstitutionIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=1, le=1)
+    constitution: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpStrengthIntelligenceIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=1, le=1)
+    intelligence: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpStrengthWisdomIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=1, le=1)
+    wisdom: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpStrengthCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=1, le=1)
+    charisma: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpConstitutionIntelligenceIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    constitution: int = Field(strict=True, ge=1, le=1)
+    intelligence: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpConstitutionWisdomIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    constitution: int = Field(strict=True, ge=1, le=1)
+    wisdom: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpConstitutionCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    constitution: int = Field(strict=True, ge=1, le=1)
+    charisma: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpIntelligenceWisdomIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    intelligence: int = Field(strict=True, ge=1, le=1)
+    wisdom: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpIntelligenceCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    intelligence: int = Field(strict=True, ge=1, le=1)
+    charisma: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpWisdomCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    wisdom: int = Field(strict=True, ge=1, le=1)
+    charisma: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpAsiChoice(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    feat: Literal["Ability Score Improvement"]
+    increase: (
+        LevelUpStrengthIncrease |
+        LevelUpConIncrease |
+        LevelUpIntelligenceIncrease |
+        LevelUpWisdomIncrease |
+        LevelUpCharismaIncrease |
+        LevelUpStrengthConstitutionIncrease |
+        LevelUpStrengthIntelligenceIncrease |
+        LevelUpStrengthWisdomIncrease |
+        LevelUpStrengthCharismaIncrease |
+        LevelUpConstitutionIntelligenceIncrease |
+        LevelUpConstitutionWisdomIncrease |
+        LevelUpConstitutionCharismaIncrease |
+        LevelUpIntelligenceWisdomIncrease |
+        LevelUpIntelligenceCharismaIncrease |
+        LevelUpWisdomCharismaIncrease
+    )
+
+
+class LevelUpChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=1, max_length=1)
+    cantrips: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
+
+
+class LevelUpFiveChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+
+
+class SorcererLevel2Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prepared_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    metamagic: list[StrictStr] = Field(min_length=2, max_length=2)
+
+
+class SorcererLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prepared_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    subclass_id: StrictStr
+
+
+class BarbarianLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_id: Literal["berserker"]
+    primal_knowledge_skill: Literal["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"]
+
+
+class BarbarianLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    asi: LevelUpAsiChoice
+
+
+class BarbarianLevel2Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class BarbarianLevelChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: BarbarianLevel2Choices = Field(alias="2")
+    # Start 3-5 only; the creation validator requires each exactly through the starting level (omitted is None, explicit null is
+    # rejected). Level 4 is the earned-level-4 ASI bundle; level 5 has no choices (the same empty strict object as level 2).
+    level_3: BarbarianLevel3Choices = Field(default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None)
+    level_4: BarbarianLevel4Choices = Field(default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None)
+    level_5: BarbarianLevel2Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
+
+
+class SorcererLevelChoices(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+
+    # Omitted steps have an internal sentinel; explicitly supplied null is invalid.
+    # Factories keep the public schema non-nullable without a null default.
+    level_2: SorcererLevel2Choices = Field(default_factory=lambda: None, alias="2")
+    level_3: SorcererLevel3Choices = Field(default_factory=lambda: None, alias="3")
+    level_4: LevelUpChoices = Field(default_factory=lambda: None, alias="4")
+    level_5: LevelUpFiveChoices = Field(default_factory=lambda: None, alias="5")
+
+
 class CharacterCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     mode: Literal["custom", "random"]
+    starting_level: int = Field(default=1, ge=1, le=5, strict=True)
+    level_choices: SorcererLevelChoices | BarbarianLevelChoices | None = None
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
@@ -543,6 +773,25 @@ class CharacterCreateInput(BaseModel):
 
     @model_validator(mode="after")
     def fields_must_match_creation_mode(self) -> "CharacterCreateInput":
+        steps = (
+            set(self.level_choices.model_dump(by_alias=True, exclude_none=True))
+            if self.level_choices is not None else set()
+        )
+        if self.mode == "random":
+            if self.starting_level != 1 or self.level_choices is not None:
+                raise ValueError("Random creation supports level 1 without level choices only.")
+        else:
+            if self.starting_level > 1:
+                if self.character_class == "Barbarian":
+                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, BarbarianLevelChoices):
+                        raise ValueError("Barbarian supports only the exact level2 to level5 choice bundle for its starting level.")
+                elif self.character_class == "Sorcerer":
+                    if not isinstance(self.level_choices, SorcererLevelChoices):
+                        raise ValueError("Sorcerer requires its own per-level choices.")
+                else:
+                    raise ValueError("Higher starting levels are unsupported for this class.")
+            if steps != {str(level) for level in range(2, self.starting_level + 1)}:
+                raise ValueError("Level choices must contain exactly the steps through the starting level.")
         custom_fields = (
             self.name,
             self.race,
@@ -598,7 +847,112 @@ class CharacterCreationOptions(BaseModel):
     classes: list[str]
 
 
+class SorcererSubclassOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+
+
+class SorcererStartingLevel2Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    metamagic_count: int
+    metamagic_options: list[str]
+
+
+class SorcererStartingLevel3Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    subclass_options: list[SorcererSubclassOption]
+
+
+class SorcererStartingLevel4Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+    cantrip_count: int
+    cantrip_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+
+
+class SorcererStartingLevel5Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    prepared_spell_count: int
+    prepared_spell_ids: list[str]
+
+
+class SorcererEffectsPendingByLevel(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+
+    level_1: list[str] = Field(alias="1")
+    level_2: list[str] = Field(alias="2")
+    level_3: list[str] = Field(alias="3")
+    level_4: list[str] = Field(alias="4")
+    level_5: list[str] = Field(alias="5")
+
+
+class SorcererStartingCreationOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    supported_starting_levels: list[int]
+    level_2: SorcererStartingLevel2Options
+    level_3: SorcererStartingLevel3Options
+    level_4: SorcererStartingLevel4Options
+    level_5: SorcererStartingLevel5Options
+    effects_pending_by_level: SorcererEffectsPendingByLevel
+
+
+class BarbarianStartingLevel2Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    choices: BarbarianLevel2Choices
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class BarbarianStartingSubclassOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: Literal["berserker"]
+    name: str
+
+
+class BarbarianStartingLevel3Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_options: list[BarbarianStartingSubclassOption]
+    primal_knowledge_skill_options: list[str]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class BarbarianStartingLevel4Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    supported_asi_choices: list[LevelUpAsiChoice]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class BarbarianStartingLevel5Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class BarbarianStartingCreationOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: BarbarianStartingLevel2Options
+    level_3: BarbarianStartingLevel3Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_4: BarbarianStartingLevel4Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
 class CharacterCreationCatalogResponse(BaseModel):
+    sorcerer_starting_creation: SorcererStartingCreationOptions | None = None
+    barbarian_starting_creation: BarbarianStartingCreationOptions | None = None
     races: dict[str, Any]
     classes: dict[str, Any]
     backgrounds: dict[str, Any]
@@ -721,3 +1075,62 @@ class CampaignSessionResponse(BaseModel):
     state: dict[str, Any]
     history: list[CampaignHistoryEntry]
     combat_history: list[CombatHistoryEntry]
+
+
+class LevelUpApplyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action_id: UUID
+    campaign_id: UUID
+    expected_revision: int = Field(strict=True, ge=0)
+    target_level: int = Field(strict=True, ge=2, le=5)
+    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices
+
+    @model_validator(mode="after")
+    def choices_match_target(self):
+        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices),
+                    4: (LevelUpChoices, BarbarianLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices)}[self.target_level]
+        if not isinstance(self.choices, expected):
+            raise ValueError("Level-up choice shape does not match target level.")
+        return self
+
+    @field_validator("action_id", "campaign_id")
+    @classmethod
+    def require_uuid4(cls, value: UUID) -> UUID:
+        if value.version != 4:
+            raise ValueError("A UUID4 identity is required.")
+        return value
+
+
+class LevelUpPreviewResponse(BaseModel):
+    session_id: str
+    campaign_id: str | None
+    revision: int | None
+    status: Literal["ready", "blocked"]
+    reason: str | None
+    target_level: Literal[2, 3, 4, 5] = 4
+    class_name: str | None = None
+    from_level: int | None = None
+    metamagic_options: list[str] = Field(default_factory=list)
+    subclass_options: list[SorcererSubclassOption] = Field(default_factory=list)
+    primal_knowledge_skill_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
+    effects_supported: list[str] = Field(default_factory=list)
+    choices_required: dict[str, int] = Field(default_factory=dict)
+    cantrip_ids: list[str] = Field(default_factory=list)
+    prepared_spell_ids: list[str] = Field(default_factory=list)
+    supported_asi_choices: list[LevelUpAsiChoice] = Field(default_factory=list)
+    capacity: dict[str, Any] | None = None
+    effects_pending: list[str] = Field(default_factory=list)
+
+
+class LevelUpAppliedResult(BaseModel):
+    status: Literal["applied"]
+    reason: None = None
+    changes: list[dict[str, Any]]
+    effects_pending: list[str]
+
+
+class LevelUpCommandResult(BaseModel):
+    session_id: str
+    action_id: str
+    state: dict[str, Any]
+    result: LevelUpAppliedResult

@@ -5,6 +5,9 @@ import {
   rotateAuthEpoch,
 } from "@workspace/api-client-react/custom-fetch";
 
+import { clearPendingFallback } from "./pending-action.ts";
+
+const ACCOUNT_OWNER_KEY = "ai-dnd-account-owner";
 const ACCOUNT_STORAGE_KEYS = ["ai-dnd-last-selected-campaign-id"];
 const ACCOUNT_STORAGE_PREFIXES = [
   "ai-dnd-transcript-",
@@ -51,12 +54,53 @@ export function clearAccountStorage(storage: KeyedStorage): void {
 }
 
 export function clearAccountBrowserState(): void {
+  clearPendingFallback();
   if (typeof window === "undefined") return;
   try {
     clearAccountStorage(window.localStorage);
     clearAccountStorage(window.sessionStorage);
+    window.localStorage.removeItem(ACCOUNT_OWNER_KEY);
   } catch {
     // Storage can be unavailable. The signed-in screen still uses a fresh cache.
+  }
+}
+
+export type OwnerTransition = "unresolved" | "same" | "changed";
+
+/** Stored data with no recorded owner (previous null) is never "same": it cannot be verified. */
+export function classifyOwnerTransition(
+  previous: string | null,
+  resolved: string | null,
+): OwnerTransition {
+  if (!resolved) return "unresolved";
+  return previous === resolved ? "same" : "changed";
+}
+
+/** The account owner is the Clerk user; a new session of the same user is not a new owner. */
+function ownerOfIdentity(identity: string): string | null {
+  const owner = identity.split(":")[0];
+  return owner ? owner : null;
+}
+
+function readStoredOwner(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(ACCOUNT_OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** The Clerk user the browser state belongs to, once the gate has resolved it. Not an authorization. */
+export function currentAccountOwner(): string | null {
+  return readStoredOwner();
+}
+
+function writeStoredOwner(owner: string): void {
+  try {
+    window.localStorage.setItem(ACCOUNT_OWNER_KEY, owner);
+  } catch {
+    // Without a record the next mount cannot verify the owner and clears instead of recovering.
   }
 }
 
@@ -96,7 +140,13 @@ export function nextAccountClient(
     void previous.client.cancelQueries();
     previous.client.clear();
   }
-  clearAccountBrowserState();
+  const resolved = ownerOfIdentity(identity);
+  const before = previous ? ownerOfIdentity(previous.identity) : readStoredOwner();
+  // An unresolved identity neither clears nor claims stored data; the gate keeps it hidden.
+  if (classifyOwnerTransition(before, resolved) === "changed" && resolved) {
+    clearAccountBrowserState();
+    writeStoredOwner(resolved);
+  }
   return { identity, client: createAccountQueryClient() };
 }
 

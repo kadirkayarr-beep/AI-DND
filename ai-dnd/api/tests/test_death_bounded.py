@@ -2,6 +2,7 @@
 import copy
 from contextlib import closing
 import unittest
+import uuid
 from unittest.mock import patch
 
 from api.tests import test_death_system as death_fixtures
@@ -33,8 +34,10 @@ class DeathBoundedTests(unittest.TestCase):
     def test_zero_hp_massive_damage_uses_damage_before_temporary_hp(self):
         s = self.unconscious()
         s.character["max_hp"] = 2
-        s._species_trait_state()["temporary_hit_points"] = 2
+        s.grant_temporary_hit_points(2)
+        self.assertEqual(s._species_trait_state()["temporary_hit_points"], 2)
         result = s._apply_attack_damage_to_player(2, False, True)
+        self.assertEqual(result["temporary_hp_absorbed"], 2)
         self.assertEqual(result["death_resolution"]["cause"], "massive_damage")
 
     def test_recovery_once_and_cancellation(self):
@@ -169,7 +172,7 @@ class DeathBoundedTests(unittest.TestCase):
         s.initialize_species_trait_state()
         state = s._species_trait_state()
         state.update(active_celestial_form="inner_radiance", celestial_revelation_turns_remaining=10)
-        n = {"id": "radiance-target", "current_hp": 1, "max_hp": 1,
+        n = {"id": "radiance-target", "current_hp": 1, "max_hp": 1, "distance_ft": 5,  # K02: Inner Radiance has a 10 ft range
              "combat_status": "active", "location": s.world_state["location"]}
         s.world_state["npcs"].append(n)
         s._finish_species_player_turn()
@@ -834,6 +837,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(rejected.json(), {"detail": {
                         "code": "stale_combat",
                         "message": "Combat or turn context is stale.",
+                        "not_applied": True,  # R02: a definite rejection says the action did not run
                     }})
                     for forbidden in (engine, die, rng_roll, save):
                         forbidden.assert_not_called()
@@ -844,12 +848,12 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 ))
 
                 if retry_corrected_context:
-                    # This ID has never been accepted. Correct only the stale
-                    # precondition; this is neither replay nor an ID conflict.
-                    corrected = {**request, stale_field: valid_context}
+                    # R02: a definitively refused action ID stays refused (a changed body under it is an
+                    # ID conflict), so the corrected action is a deliberate NEW action with a fresh ID.
+                    corrected = {**request, stale_field: valid_context, "action_id": str(uuid.uuid4())}
                     self.assertEqual(
                         {key for key in request if request[key] != corrected[key]},
-                        {stale_field},
+                        {stale_field, "action_id"},
                     )
                     if reopen_before_retry:
                         await self._assert_rejected_fatal_death_save_reopens(
@@ -1366,6 +1370,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(rejected.json(), {"detail": {
                 "code": "stale_combat",
                 "message": "Combat or turn context is stale.",
+                "not_applied": True,  # R02: a definite rejection says the action did not run
             }})
             for forbidden in (engine, die, rng_roll, healing, save):
                 forbidden.assert_not_called()
@@ -1404,10 +1409,12 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                                  getattr(before["stored_campaign"], field), field)
             self.assertNotIn(request["action_id"], restored_record.turn_action_receipts)
             self.assertIsNone(store.get_turn_action(a["campaign_id"], request["action_id"]))
-            corrected = {**request, stale_field: valid_context}
+            # R02: a refused action ID stays refused; the corrected action is a deliberate new one (fresh ID).
+            corrected = {**request, stale_field: valid_context, "action_id": str(uuid.uuid4())}
             self.assertEqual(
-                {key for key in request if request[key] != corrected[key]}, {stale_field},
+                {key for key in request if request[key] != corrected[key]}, {stale_field, "action_id"},
             )
+            request = corrected
             before_combat = copy.deepcopy(restored.ensure_combat_state())
             before_economy = copy.deepcopy(ae.ensure(restored))
             expected_rng = random.Random()

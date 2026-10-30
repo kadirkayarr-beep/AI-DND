@@ -418,7 +418,12 @@ class PipelinePortTests(unittest.TestCase):
         self.assertEqual(captured["format"], game.DM_RESPONSE_SCHEMA)
         self.assertEqual(
             set(game.DM_RESPONSE_SCHEMA["properties"]),
-            {"world_updates", "narration", "lore_claims"},
+            # K3 (approved): two OPTIONAL fields, player_line and feature_refs.
+            {"world_updates", "narration", "lore_claims", "player_line", "feature_refs"},
+        )
+        self.assertEqual(
+            set(game.DM_RESPONSE_SCHEMA["required"]),
+            {"narration", "world_updates", "lore_claims"},
         )
         self.assertIn("create_shops", game.WORLD_UPDATE_SCHEMA["properties"])
         self.assertNotIn("create_shops", game.WORLD_UPDATE_SCHEMA["required"])

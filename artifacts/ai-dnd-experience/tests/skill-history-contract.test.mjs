@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {createRequire} from 'node:module';
+import ts from 'typescript';
 import {readFile} from 'node:fs/promises';
 import {CreateCampaignResponse,GetCampaignResponse,ResumeCampaignResponse} from '../../../lib/api-zod/src/generated/api.ts';
+
+// Reuse api-spec's installed Orval YAML parser; no new dependency or install.
+const codegenRequire = createRequire(new URL('../../../lib/api-spec/package.json', import.meta.url));
+const {load: parseYaml} = createRequire(codegenRequire.resolve('orval'))('js-yaml');
 
 const specimen = {
   player_message:'Test için gizlenmeye çalışıyorum.',
@@ -36,11 +42,26 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
   const block=client.match(/export interface CampaignHistoryEntry \{([^}]+)\}/);
   assert.ok(block,'generated interface exists');
   assert.match(block[1],/skill_check_result\?: SkillCheckResult;/);
-  const specBlock=spec.match(/    CampaignHistoryEntry:\s*\n([\s\S]*?)    CampaignDetail:/);
-  assert.ok(specBlock,'authoritative OpenAPI schema exists');
-  assert.match(specBlock[1],/skill_check_result:\s*\n\s+\$ref: "#\/components\/schemas\/SkillCheckResult"/);
-  assert.match(specBlock[1],/required: \[player_message, narration, created_at\]/);
+  const historySchema = parseYaml(spec).components.schemas.CampaignHistoryEntry;
+  assert.ok(historySchema, 'authoritative OpenAPI schema exists');
+  assert.equal(historySchema.properties.skill_check_result.$ref, '#/components/schemas/SkillCheckResult');
+  assert.deepEqual(historySchema.required, ['player_message', 'narration', 'created_at']);
   assert.doesNotMatch(source,/HistoryWithSkillResult| as CampaignHistoryEntry & /,'no cast masks drift');
-  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,2,
-    'both real turn reconciliation and resume use generated skill field');
+  const ast=ts.createSourceFile('game-browser.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  const owners=new Map();
+  const visit=node=>{
+    if(ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)
+        && ['undoLastTurn','handleResume','submitTurn','serverRecovery'].includes(node.name.text)){
+      owners.set(node.name.text,node.getText(ast));
+    }
+    ts.forEachChild(node,visit);
+  };
+  visit(ast);
+  for(const owner of ['undoLastTurn','handleResume','submitTurn','serverRecovery']){
+    assert.ok(owners.has(owner),owner+' exists');
+    assert.equal(owners.get(owner).match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
+      owner+' preserves exactly one generated history skill field');
+  }
+  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,4,
+    'undo, resume, real turn reconciliation and server-proven recovery all preserve the skill field');
 });

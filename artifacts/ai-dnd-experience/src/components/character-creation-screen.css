@@ -1507,3 +1507,9 @@
     bottom: 0;
   }
 }
+/* Starting-level choices are selections, not implemented class effects. */
+.cc-progression-notice { margin-block: 1rem; padding: .85rem; border: 1px solid currentColor; border-radius: .4rem; font-size: .85rem; overflow-wrap: anywhere; }
+.cc-progression-notice ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+.cc-starting-choices fieldset { min-width: 0; }
+.cc-starting-choices legend { font-weight: 600; }
+.cc-deferred-hp { display: inline-block; font-size: .8rem; line-height: 1.4; overflow-wrap: anywhere; }

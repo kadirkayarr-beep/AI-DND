@@ -9,12 +9,12 @@
 export interface LevelUpResult {
   /**
      * @minimum 1
-     * @maximum 4
+     * @maximum 5
      */
   previous_level: number;
   /**
      * @minimum 1
-     * @maximum 4
+     * @maximum 5
      */
   new_level: number;
   /** @minimum 1 */

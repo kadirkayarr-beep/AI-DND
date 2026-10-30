@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceRecord",
+  "description": "One acceptance evidence row (B02). PASS requires exitCode 0; fixture or mocked rows never count as real acceptance; real rows must not claim a runtimeSHA different from sourceSHA and must name realDependencies; human_acceptance counts as real only with a reviewer and model only with a model object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sourceSHA", "treeState", "runtimeSHA", "os", "runtime", "model", "column", "command",
+    "cwd", "exitCode", "testID", "status", "fixtureOwner", "mock", "realDependencies",
+    "rawDigest", "artifactDigest", "startedAt", "endedAt", "reviewer"
+  ],
+  "properties": {
+    "sourceSHA": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "treeState": {
+      "type": "object",
+      "required": ["clean", "changed_paths"],
+      "properties": {
+        "clean": {"type": "boolean"},
+        "changed_paths": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "runtimeSHA": {"type": "string", "pattern": "^([0-9a-f]{40}|UNKNOWN)$"},
+    "os": {"type": "string", "pattern": "\\S"},
+    "runtime": {"type": "string", "pattern": "\\S"},
+    "model": {"type": ["object", "null"], "description": "Model artifact and settings; null when no model is involved."},
+    "column": {
+      "enum": ["build", "typecheck", "lint", "unit", "http", "browser", "auth", "model", "human_acceptance"]
+    },
+    "command": {"type": "string", "pattern": "\\S"},
+    "cwd": {"type": "string", "pattern": "\\S"},
+    "exitCode": {"type": ["integer", "null"]},
+    "testID": {"type": "string", "pattern": "\\S"},
+    "status": {"enum": ["PASS", "FAIL", "SKIP", "BLOCKED", "NOT_RUN", "UNCONFIGURED"]},
+    "fixtureOwner": {"type": ["string", "null"], "pattern": "\\S"},
+    "mock": {"type": "boolean"},
+    "realDependencies": {"type": "array", "items": {"type": "string", "pattern": "\\S"}},
+    "rawDigest": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "artifactDigest": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "startedAt": {"type": "string", "pattern": "\\S"},
+    "endedAt": {"type": "string", "pattern": "\\S"},
+    "reviewer": {"type": ["string", "null"], "pattern": "\\S"}
+  }
+}

@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import game
+from api.tests.speech_double import routed_chat, speech_packet
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 RECORDED_LIVE_FOLLOWUP = (
@@ -33,53 +34,23 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         self.npc["knowledge"] = []
         self.npc["relationship"] = "neutral"
 
-    def turn(self, user_message, narration, *, lore_claims=None):
-        narrator_payload = {
-            "world_updates": {},
-            "narration": narration,
-            "lore_claims": [] if lore_claims is None else lore_claims,
-        }
-        phases = []
-
-        def phase_aware_chat(*args, **kwargs):
-            properties = kwargs.get("format", {}).get("properties", {})
-            if "intent" in properties:
-                phases.append("scene_intent")
-                packet = {
-                    "intent": "dialogue",
-                    "action": "dialogue",
-                    "target": {"type": "none", "reference": ""},
-                    "completion": "unclear",
-                    "confidence": 1.0,
-                    "interaction": {"operation": "none", "quote": user_message},
-                }
-            elif "narration" in properties:
-                phases.append("narrator")
-                packet = narrator_payload
-            else:
-                raise AssertionError(
-                    f"Unexpected model phase schema: {sorted(properties)}"
-                )
-            return {
-                "message": {
-                    "content": json.dumps(packet, ensure_ascii=False)
-                }
-            }
-
+    def turn(self, user_message, narration):
+        """One NPC-addressed turn: the default route asks for a single speech packet."""
+        kinds = []
+        chat = routed_chat({"speech": speech_packet(narration)}, kinds)
         before = copy.deepcopy({
             "inventory": self.session.world_state.get("inventory"),
             "currency": self.session.world_state.get("currency"),
             "quests": self.session.world_state.get("quests"),
             "relationships": self.session.world_state.get("relationships"),
         })
-        with patch("game.ollama.chat", side_effect=phase_aware_chat) as provider:
+        with patch("game.ollama.chat", side_effect=chat) as provider:
             result = self.session.run_player_turn(user_message, interaction_mode="say")
-        self.assertEqual(phases, ["scene_intent", "narrator"])
-        self.assertEqual(provider.call_count, 2)
+        self.assertEqual(kinds, ["speech"])
+        self.assertEqual(provider.call_count, 1)
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 1)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 2)
+        self.assertEqual(telemetry["total_model_calls"], 1)
         self.assertEqual(
             {key: self.session.world_state.get(key) for key in before}, before
         )
@@ -116,31 +87,17 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         self.assertEqual(telemetry["fallback_reason"], "META_NARRATOR_COMMENTARY")
         self.assertNotIn("Bu kısa etkileşim", result["narration"])
 
-    def test_lore_rejection_preserves_greeting_in_final_player_turn(self):
-        # Exercise the full turn and the actual lore-claim rejection branch,
-        # rather than directly calling a fallback helper.
-        invented = (
-            "Bir dükkâncı selam verir."  # Model cites a nonexistent lore fact below.
-        )
-        result, telemetry = self.turn(
-            "Merhaba.", invented,
-            lore_claims=[{"fact_id": "unverified:fictional_ruler"}],
-        )
+    def test_npc_lore_claim_is_attributed_speech_and_changes_no_state(self):
+        # Product decision (Phase 5 / K4): an NPC's words are attribution, not world
+        # fact. The old narrator-route guard (UNVERIFIED_LORE_CLAIM on a greeting)
+        # no longer applies to NPC speech; what must hold is that the line is shown
+        # as that NPC's speech and that no inventory/quest/relationship state moves
+        # (turn() asserts the state is unchanged).
+        result, telemetry = self.turn("Merhaba.", "Merhaba. Kral Vharion bu şehri yönetiyor.")
         self.assertEqual(result["action_result"]["action"], "dialogue")
-        self.assertEqual(result["action_result"]["status"], "answered_smalltalk")
-        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
-        self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
-        self.assertEqual(telemetry["fallback_reason"], "UNVERIFIED_LORE_CLAIM",
-                         (result["narration"], self.session.last_narration_safety))
-        self.assertIn("selamına karşılık verir", result["narration"])
-        self.assertIn("Neris", result["narration"])
-        for forbidden in (
-            "güvenilir bir doğrulamam yok", "kral", "yüz altın",
-            "görev", "Elara", "Arven",
-        ):
-            self.assertNotIn(forbidden.casefold(), result["narration"].casefold())
-        self.assertEqual(self.session.last_narration_safety["reason_code"],
-                         "UNVERIFIED_LORE_CLAIM")
+        self.assertEqual(result["action_result"]["status"], "experimental_attributed_speech")
+        self.assertTrue(result["narration"].startswith("Neris: “"), result["narration"])
+        self.assertEqual(telemetry["narration_source"], "qwen")
 
     def test_recorded_live_lore_prose_rejection_keeps_final_greeting(self):
         # Real recorded Qwen prose, exercised through the full turn pipeline.
@@ -157,11 +114,13 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
             "Yeni bir gün, yeni bir hikaye ile devam ediyor."
         )
         result, telemetry = self.turn("Merhaba.", raw)
-        self.assertEqual(telemetry["fallback_reason"], "UNVERIFIED_LORE_CLAIM",
-                         (result["narration"], self.session.last_narration_safety))
+        # On the speech route the player-name guard fires before the lore guard.
+        self.assertIn(telemetry["fallback_reason"],
+                      ("PLAYER_NAME_IN_NARRATION", "UNVERIFIED_LORE_CLAIM"),
+                      (result["narration"], self.session.last_narration_safety))
         self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
         self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
-        self.assertIn("selamına karşılık verir", result["narration"])
+        self.assertIn("karşılık verir", result["narration"])
         for forbidden in ("Arven", "çeşme", "alışverişe", "güvenilir bir doğrulamam yok"):
             self.assertNotIn(forbidden.casefold(), result["narration"].casefold())
 
@@ -170,16 +129,19 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         result, telemetry = self.turn("Merhaba.", narrator)
         self.assertEqual(telemetry["narration_source"], "qwen", telemetry)
         self.assertEqual(telemetry["narration_validation_result"], "accepted")
-        self.assertEqual(result["narration"], narrator)
+        self.assertEqual(result["narration"], f"Neris: “{narrator}”")
 
     def test_explicit_player_greeting_action_is_not_erased(self):
+        # Phase 7 (C2): NPC speech never replays the player's own gesture; the
+        # greeting stays the player's, and the NPC's own reply is kept.
         narrator = "Başını sallayıp merhaba diyorsun. Neris de sana gülümser."
         result, telemetry = self.turn(
             "Başımı sallayıp merhaba diyorum.", narrator
         )
         self.assertEqual(telemetry["narration_source"], "qwen", telemetry)
         self.assertEqual(telemetry["narration_validation_result"], "accepted")
-        self.assertEqual(result["narration"], narrator)
+        self.assertNotIn("Başını sallayıp merhaba diyorsun", result["narration"])
+        self.assertIn("Neris de sana gülümser", result["narration"])
 
     def test_turkish_noun_substring_does_not_authorize_invented_movement(self):
         decision = game._narration_safety_decision(
@@ -189,6 +151,19 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         )
         self.assertTrue(decision["unsafe"], decision)
         self.assertEqual(decision["reason_code"], "INVENTED_PLAYER_ACTION")
+
+    def test_hos_geldin_greeting_is_not_an_invented_player_action(self):
+        # "Hoş geldin" is the ordinary Turkish welcome, not a claim that the player arrived.
+        for line in ("Merhaba yabancı, hoş geldin.", "Hoş geldin.", "Hoş geldiniz, buyurun.",
+                     "Hoş geldin yabancı, otur."):
+            decision = game._narration_safety_decision(
+                line, "Merhaba.", action_result={},
+            )
+            self.assertFalse(decision["unsafe"], (line, decision))
+        invented = game._narration_safety_decision(
+            "Sonra hana girersin ve oraya geldin.", "Merhaba.", action_result={},
+        )
+        self.assertTrue(invented["unsafe"], invented)
 
     def test_genuinely_reported_player_movement_remains_valid(self):
         decision = game._narration_safety_decision(

@@ -10,3 +10,8 @@ export function focusReturnTarget(openerConnected: boolean): 'opener' | 'draft' 
 export function transcriptFollowsBottom(wasAtBottom: boolean) {
   return wasAtBottom;
 }
+
+export function clippedControlOverflow(elementBottom: number, containerBottom: number, viewportBottom: number) {
+  if (![elementBottom, containerBottom, viewportBottom].every(Number.isFinite)) return 0;
+  return Math.max(0, elementBottom - Math.min(containerBottom, viewportBottom));
+}

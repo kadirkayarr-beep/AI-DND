@@ -75,6 +75,15 @@ class ResolvedNarrationTests(unittest.TestCase):
             self.assertIn(expected,result['narration'])
             self.assertEqual(result['model_calls'],0)
 
+    def test_same_enemy_dodge_is_narrated_once(self):
+        session, npc = ready()
+        dodge = {'actor': npc['id'], 'outcome': 'dodge'}
+        resolved = {'outcome': 'hit', 'damage': 5, 'target_id': npc['id'],
+                    'enemy_actions': [dict(dodge), dict(dodge)]}
+        text = session._combat_narration(resolved)
+        self.assertEqual(text.count('savunmaya geçer'), 1)
+        self.assertIn('5 hasar', text)
+
     def test_spell_amounts_and_names_survive_without_internal_ids(self):
         for result, expected in [
             ({'spell_id':'Cure Wounds','healing':0}, 'Cure Wounds ile 0 canın yenilenir.'),
@@ -119,3 +128,33 @@ class CourtyardNarrationTests(NativeBase):
         self.assertEqual(replay.status_code,200)
         self.assertEqual(replay.json(),result)
         self.assertEqual(self.canonical(),before)
+
+class AdapterContextWindowTests(unittest.TestCase):
+    """A 4096-token default window truncated 5 of 47 live 9b calls (done_reason=length)."""
+
+    def chat(self, options):
+        from api.ollama_adapter import AuthenticatedOllamaAdapter, MODEL_NAME
+        seen = {}
+
+        class Client:
+            def chat(self, *args, **kwargs):
+                seen.update(kwargs)
+                return {}
+
+        kwargs = {'model': MODEL_NAME, 'messages': []}
+        if options is not None:
+            kwargs['options'] = options
+        AuthenticatedOllamaAdapter(Client()).chat(**kwargs)
+        return seen
+
+    def test_every_call_gets_a_window_that_fits_the_largest_live_prompt(self):
+        from api.ollama_adapter import CONTEXT_WINDOW_TOKENS
+        self.assertGreaterEqual(CONTEXT_WINDOW_TOKENS, 4076 + 700)
+        seen = self.chat({'temperature': 0.35, 'num_predict': 700})
+        self.assertEqual(seen['options']['num_ctx'], CONTEXT_WINDOW_TOKENS)
+        self.assertEqual(seen['options']['num_predict'], 700)
+        self.assertEqual(seen['options']['temperature'], 0.35)
+        self.assertEqual(self.chat(None)['options']['num_ctx'], CONTEXT_WINDOW_TOKENS)
+
+    def test_an_explicit_window_is_left_alone(self):
+        self.assertEqual(self.chat({'num_ctx': 2048})['options']['num_ctx'], 2048)

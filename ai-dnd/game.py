@@ -33,6 +33,10 @@ import combat_lifecycle
 import action_economy
 import initiative
 import weapon_attack
+import effect_targeting
+import attributed_claims
+import effect_lifecycle
+import event_order
 import interaction_adventure
 import npc_statements
 from weapon_catalog import WEAPONS
@@ -786,6 +790,30 @@ def calculate_ac(
 # ---------------------------------------------------------
 
 def perform_skill_check(
+    skill, dc, modifiers, proficient_skills, proficiency_bonus,
+    advantage=False, disadvantage=False, expertise_skills=None,
+    check_feature=None, check_evidence=None,
+):
+    if check_feature is None:
+        return _perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                    advantage, disadvantage, expertise_skills)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                      advantage, disadvantage, expertise_skills,
+                                      check_feature=check_feature, check_evidence=evidence)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _perform_skill_check(
     skill,
     dc,
     modifiers,
@@ -794,11 +822,20 @@ def perform_skill_check(
     advantage=False,
     disadvantage=False,
     expertise_skills=None,
+    check_feature=None,
+    check_evidence=None,
 ):
+    import barbarian_rage
+    if check_feature is not None:
+        barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
+    ability = "strength" if check_feature is not None else SKILLS[skill]
+    barbarian_rage.settle(_session())
+    if check_feature is not None:
+        barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
+    rage_advantage = barbarian_rage.strength_advantage(_session(), "player", ability)
     pace_advantage, pace_disadvantage = timed_gameplay.pace_effects(_session().world_state, skill)
-    advantage = bool(advantage or pace_advantage)
+    advantage = bool(advantage or pace_advantage or rage_advantage)
     disadvantage = bool(disadvantage or pace_disadvantage)
-    ability = SKILLS[skill]
     modifier = modifiers[ability]
     is_proficient = skill in proficient_skills
     expertise_skills = expertise_skills or ()
@@ -826,7 +863,7 @@ def perform_skill_check(
     total = resolution["total"]
     result = "BAŞARILI" if resolution["outcome"] == "SUCCESS" else "BAŞARISIZ"
 
-    return {
+    result_data = {
         "skill": skill,
         "ability": ability,
         "dice": dice,
@@ -843,6 +880,10 @@ def perform_skill_check(
         "result": result,
         "resolution": resolution,
     }
+
+    if check_feature is not None and check_evidence is not None:
+        check_evidence.append(barbarian_rage.record_primal_knowledge(_session(), result_data))
+    return result_data
 
 
 # ---------------------------------------------------------
@@ -1219,10 +1260,33 @@ def known_character_answer(player_input):
     return "; ".join(facts) + "."
 
 
+# Ordinary Turkish sentence openers; capitalized at a sentence start they are
+# not person names even when a descriptor word follows ("Belki muhafıza sor").
+_COMMON_SENTENCE_OPENERS = frozenset({
+    "belki", "evet", "hayır", "tabii", "tabi", "elbette", "şimdi", "sonra", "peki",
+    "ama", "çünkü", "eğer", "yoksa", "bence", "açıkçası", "doğrusu", "galiba",
+    "herhalde", "mutlaka", "kesinlikle", "ayrıca", "üstelik", "yine", "şöyle",
+})
+
+_QUESTION_CUE_RE = re.compile(
+    r"\?|\b(?:ne|neler|nere\w*|kim\w*|kac\w*|hangi\w*|nasil|neden|niye|nicin|m[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?)\b"
+)
+
+
+def _model_query_type_is_plausible(player_input):
+    """A model-supplied query_type counts only when the player asked something.
+
+    Live qwen fills query_type on plain statements ("Tamam, o zaman gideyim."),
+    and the engine then answered a location query to a statement.
+    """
+    text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
+    return bool(_QUESTION_CUE_RE.search(text))
+
+
 def _detect_query_type(player_input, npc_target=None):
     """Ground questions in known entities, not in an ambient NPC alone."""
     world_state = _session().world_state
-    text = _normalize_turkish_typos(player_input)
+    text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
     self_phrases = (
         "ben kimim", "karakterim kim", "kim oynuyorum",
         "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne",
@@ -1245,8 +1309,25 @@ def _detect_query_type(player_input, npc_target=None):
     )
     location_query = any(_normalize_turkish_typos(phrase) in text for phrase in (
         "neredeyim", "nerdeyim", "nerdeyiz", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
-    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text))
+    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text)) or bool(re.fullmatch(
+        # Accusative current-location object + affirmative information imperative.
+        # Negative/past forms (soyleme/soyledim) must not authorize a query.
+        r"(?:(?:bana|lutfen)\s+)*(?:bulundugum|bulundugumuz)\s+(?:yeri|konumu|mekani)\s+"
+        r"(?:soyle(?:yin|yiniz)?|anlat(?:in|iniz)?)\b", text,
+    ))
     location_id = _location_reference_in_text(player_input)
+    # A resolved place + a terminal locative interrogative asks for that place,
+    # not the player's current location and not an ungrounded lore answer.
+    import exploration
+    query_locations = _query_location_candidates(player_input)
+    query_location_id = query_locations[0] if len(query_locations) == 1 else None
+    referenced_location = world_state.get("locations", {}).get(query_location_id, {})
+    location_query = location_query or bool(
+        query_location_id in exploration.known_locations(world_state)
+        and isinstance(referenced_location, dict)
+        and not referenced_location.get("hidden")
+        and re.search(r"\bner(?:e)?de(?:dir)?\s*[?!.]*$", text)
+    )
     explicit_npcs = [
         npc for npc in active_npcs()
         if (
@@ -1263,7 +1344,11 @@ def _detect_query_type(player_input, npc_target=None):
     ))
     if location_query or (asks_name and (location_phrase or location_id)):
         return "location"
-    if asks_name or re.search(r"\b(?:kim|kimsin)\b", text):
+    named_identity = any(
+        re.fullmatch(re.escape(_normalize_turkish_typos(npc.get("name", ""))) + r"\s+(?:kim(?:dir)?|mi(?:sin(?:iz)?)?)[?!.]*", text)
+        for npc in explicit_npcs if npc.get("name")
+    )
+    if asks_name or named_identity or re.search(r"\bkimsin(?:iz)?\b", text):
         if len(explicit_npcs) == 1:
             return "npc_identity"
         if not explicit_npcs and not location_id and not location_phrase and npc_target in active_npcs():
@@ -1289,6 +1374,17 @@ def _detect_explore_type(player_input):
     return "observe"
 
 
+def _query_location_candidates(player_input):
+    """All registered place subjects in unquoted text; never pick the first."""
+    text = living_world._text_outside_quotes(str(player_input))
+    return [
+        key for key, record in _session().world_state.get("locations", {}).items()
+        if isinstance(record, dict) and any(
+            _entity_reference_in_text(alias, text)
+            for alias in _location_alias_values(record)
+        )
+    ]
+
 def _handle_query(player_input, query_type, npc_target=None):
     """Handle the detected query type and return response or None."""
     world_state = _session().world_state
@@ -1296,13 +1392,22 @@ def _handle_query(player_input, query_type, npc_target=None):
         return known_character_answer(player_input)
 
     if query_type == "location":
-        # LR00 fix: a place named in the question is not where the player is.
-        named = _location_reference_in_text(player_input)
-        if named and named != world_state.get("location"):
-            import grounded_action
-            hint = grounded_action.place_hint(_session(), named)
-            if hint:
-                return hint
+        # Only the player's unquoted, unambiguous public subject can select a
+        # place. A model location label cannot default an unknown subject to self.
+        import exploration
+        candidates = _query_location_candidates(player_input)
+        if len(candidates) > 1:
+            return None
+        if candidates:
+            named = candidates[0]
+            record = world_state.get("locations", {}).get(named, {})
+            if named not in exploration.known_locations(world_state) or record.get("hidden"):
+                return None
+            if named != world_state.get("location"):
+                import grounded_action
+                return grounded_action.place_hint(_session(), named)
+        elif _detect_query_type(player_input, npc_target) != "location":
+            return None
         return f"Bulunduğun yer: {location_display_name(world_state.get('location'))}."
 
     if query_type == "presence":
@@ -1328,6 +1433,8 @@ def _handle_query(player_input, query_type, npc_target=None):
         return _scene_presence_text(location_id)
 
     if query_type == "npc_identity" and npc_target:
+        if local_dialogue.identity_disclosure_is_negated(player_input):
+            return None
         # Learning an introduced identity is a Python-owned player-knowledge transition.
         npc_target["name_known_to_player"] = True
         npc_target["role_known_to_player"] = True
@@ -1361,10 +1468,31 @@ def resolve_python_world_action(player_input):
     door_action = ("kapı" in text or "kapıya" in text or "kilit" in text) and any(
         token in text for token in ("aç", "kapat", "zorla", "kır", "it", "kilit", "bak", "incele")
     )
+    if door_action and _model_query_type_is_plausible(player_input):
+        import grounded_action
+        parsed = grounded_action.plan(_session(), player_input)
+        physical = any(
+            step.get("verb") in grounded_action.TARGET_VERBS
+            and not any(step.get(k) for k in ("question", "negated", "reported", "not_now"))
+            for step in parsed["steps"]
+        )
+        if not physical:
+            door_action = False
     if "kapı" in text and any(token in text for token in ("yok ettim", "yok ettin", "parçaladım", "kırdım")):
         return "Kapıya bakıyorsun: hâlâ yerinde ve sapasağlam duruyor."
     if door_action and not door:
-        return "Burada açıp kapatabileceğin bir kapı görünmüyor."
+        # Keep the owner's known absence typed; a handled reply is not a
+        # successfully executed door action.
+        return {
+            "action": "world_interaction",
+            "success": False,
+            "status": "blocked",
+            "reason": "target_unknown",
+            "target_type": "door",
+            "target_id": None,
+            "state_changes": [],
+            "direct_response": "Burada açıp kapatabileceğin bir kapı görünmüyor.",
+        }
     if not door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
         return "Etrafında öyle bir kapı yok."
     if door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
@@ -1477,6 +1605,7 @@ def resolve_python_world_action(player_input):
         if "incele" in text or "kilidin nasıl çalış" in text:
             return None  # A real investigation check is resolved below.
         state = "kilitli ve kapalı" if door["locked"] else ("açık" if door["open"] else "kapalı")
+        _mark_lock_seen(_session().world_state, door)  # W03: the player was just shown the lock
         return f"{door['name']} {state}. {door['description']}"
     return None
 
@@ -1622,7 +1751,7 @@ world_state = {
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
 SAVE_FORMAT_VERSION = 4
-_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5)
+_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 
 GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
@@ -1631,6 +1760,14 @@ CELESTIAL_REVELATION_FORMS = (
     "inner_radiance",
     "necrotic_shroud",
 )
+# K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
+# "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
+# K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
+# K04: the recorded order of simultaneous due items (technical decision record, see event_order.py).
+RULE_ORDER = event_order.DEFAULT_RULE_ORDER
+INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
+NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(
+    "necrotic_shroud", 10, "PHB 2024 p.185 (PDF) Aasimar: Necrotic Shroud", excludes_allies=True)
 SPECIES_WITH_TRAIT_STATE = frozenset({"Aasimar", "Goliath", "Orc", "Half-Orc"})
 
 
@@ -1669,8 +1806,10 @@ def _validate_species_trait_state(value, species, proficiency_bonus=2):
         raise ValueError("Kayıt tür yetenekleri geçersiz.")
     limits = _new_species_trait_state(species, proficiency_bonus)
     expected = set(limits)
-    if set(value) != expected:
+    if set(value) - {"effect_clock"} != expected:  # K03: optional, versioned; older saves lack it
         raise ValueError("Kayıt tür yetenek alanları geçersiz.")
+    if "effect_clock" in value:
+        effect_lifecycle.validate_clock(value["effect_clock"])
     integer_fields = (
         "healing_hands_uses_remaining",
         "celestial_revelation_uses_remaining",
@@ -1724,7 +1863,6 @@ def _validate_species_trait_state(value, species, proficiency_bonus=2):
             species not in {"Orc", "Half-Orc"}
             and value["relentless_endurance_available"]
         )
-        or value["temporary_hit_points"] > proficiency_bonus
     ):
         raise ValueError("Kayıt tür yeteneği durumu tutarsız.")
     used_round = value.get("bonus_action_used_round")
@@ -1759,8 +1897,97 @@ def initialize_species_trait_state(giant_ancestry=None):
     return copy.deepcopy(character["species_trait_state"])
 
 
+_ABILITY_NAMES = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
+_ORIGIN_TEXT_KEYS = ("background", "alignment", "ability_score_method", "background_equipment_option", "species_bonus_feat")
+_ORIGIN_LIST_KEYS = ("languages", "origin_feats")
+_ORIGIN_SCORE_KEYS = ("background_ability_bonuses", "base_ability_scores")
+
+
+def _origin_choices_valid(choices):
+    """C02: the shape of the saved origin choices; anything else is refused, never silently reshaped."""
+    if not isinstance(choices, dict) or set(choices) - set(_ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS):
+        return False
+    for key in _ORIGIN_TEXT_KEYS:
+        if key in choices and not (choices[key] is None or (type(choices[key]) is str and 0 < len(choices[key]) <= 60)):
+            return False
+    from api.dnd_2024_rules import BACKGROUND_DEFINITIONS
+    if choices.get("background") is not None and "background" in choices and choices["background"] not in BACKGROUND_DEFINITIONS:
+        return False  # a background the rules do not know is refused, never kept as free text
+    bonuses = choices.get("background_ability_bonuses")
+    if bonuses is not None:
+        positive = sorted(value for value in bonuses.values() if value > 0)
+        if any(value < 0 or value > 2 for value in bonuses.values()) or positive not in ([], [1, 2], [1, 1, 1]):
+            return False  # the book allows +2/+1 or +1/+1/+1 only
+    for key in _ORIGIN_LIST_KEYS:
+        if key in choices and not (type(choices[key]) is list and len(choices[key]) <= 24
+                                   and all(type(item) is str and 0 < len(item) <= 60 for item in choices[key])):
+            return False
+    for key in _ORIGIN_SCORE_KEYS:
+        if key in choices and not (type(choices[key]) is dict and set(choices[key]) <= set(_ABILITY_NAMES)
+                                   and all(type(value) is int and 0 <= value <= 30 for value in choices[key].values())):
+            return False
+    return True
+
+
+def _origin_choices_for_save(character):
+    """The player's creation choices (background, score split, languages, ...); written only when the character has them."""
+    choices = {key: copy.deepcopy(character[key]) for key in _ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS
+               if key in character}
+    if choices and not _origin_choices_valid(choices):
+        raise ValueError("Origin choice state is invalid.")
+    return choices
+
+
+_PERSISTED_PLAYER_CONDITION_FIELDS = (
+    "conditions", "charmed_by", "frightened_by", "grappled_by", "grapple_escape_dc",
+    "prone", "frightened_until_player_turn", "speed_penalty_ft", "speed_penalty_turns_remaining",
+)
+
+
+def _validate_player_condition_state(player):
+    """Validate existing sparse condition metadata, not effect eligibility/lifetimes."""
+    if "conditions" in player:
+        names = player["conditions"]
+        if not isinstance(names, (list, dict)):
+            raise ValueError("Saved player conditions must be a list or boolean mapping.")
+        if any(not isinstance(name, str) or not name.strip() for name in names):
+            raise ValueError("Saved player condition names must be nonempty strings.")
+        if isinstance(names, dict) and any(type(value) is not bool for value in names.values()):
+            raise ValueError("Saved player condition flags must be booleans.")
+    for field in ("charmed_by", "frightened_by", "grappled_by"):
+        if field in player and (not isinstance(player[field], str) or not player[field].strip()):
+            raise ValueError("Saved condition source identity is invalid.")
+    if "prone" in player and type(player["prone"]) is not bool:
+        raise ValueError("Saved prone flag must be boolean.")
+    for field in ("grapple_escape_dc", "frightened_until_player_turn", "speed_penalty_ft", "speed_penalty_turns_remaining"):
+        if field in player and (type(player[field]) is not int or player[field] < 0):
+            raise ValueError("Saved condition numeric metadata is invalid.")
+
+
+def _validate_player_weapon_proficiencies(player, version):
+    """Optional explicit capability; absent legacy state is never inferred."""
+    if "weapon_proficiencies" not in player:
+        return
+    from weapon_catalog import WEAPONS
+    values = player["weapon_proficiencies"]
+    allowed = {"simple", "martial"} | {weapon["weapon_id"] for weapon in WEAPONS.values()}
+    if (version not in (4, 5, 6) or type(values) is not list
+            or any(type(value) is not str or value not in allowed for value in values)
+            or len(values) != len(set(values))):
+        raise ValueError("Saved weapon proficiencies are invalid.")
+
+
 def _player_state_for_save():
     character = _session().character
+    import character_progression
+    # Selected earned ASI requires format4/5/6; loaded formats are not promoted.
+    character_progression._validate_asi_choice_storage(character)
+    character_progression._validate_primal_knowledge(character)
+    if "primal_knowledge_choice" in character and getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+        raise ValueError("Primal Knowledge requires save format4–6.")
+    if character.get("asi_choices") and getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+        raise ValueError("Earned ASI requires save format4/5/6.")
+    _validate_player_weapon_proficiencies(character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION))
     saved = {
         "name": _session().character["name"],
         "race": _session().character["race"],
@@ -1796,6 +2023,12 @@ def _player_state_for_save():
         "armor_class": _session().character["armor_class"],
         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
+    if (
+        character.get("species", character.get("race"))
+        not in SPECIES_WITH_TRAIT_STATE
+        and "temporary_hit_points" in character
+    ):
+        saved["temporary_hit_points"] = character["temporary_hit_points"]
     for field in ("origin", "appearance", "personality", "backstory"):
         if field not in character or character[field] is None:
             saved[field] = None
@@ -1804,6 +2037,27 @@ def _player_state_for_save():
         if type(value) is not str:
             raise ValueError("Kayıt kimlik metni geçersiz.")
         saved[field] = value
+    _validate_player_condition_state(character)
+    for field in _PERSISTED_PLAYER_CONDITION_FIELDS:
+        if field in character:
+            saved[field] = copy.deepcopy(character[field])
+    choices = _origin_choices_for_save(character)
+    if choices:
+        saved["origin_choices"] = choices
+    if "progression_level" in character:  # C06: the level whose class-table choices were applied (XP may be ahead of it)
+        saved["progression_level"] = character["progression_level"]
+    if character.get("asi_choices"):
+        saved["asi_choices"] = copy.deepcopy(character["asi_choices"])
+    if "weapon_proficiencies" in character:
+        saved["weapon_proficiencies"] = list(character["weapon_proficiencies"])
+    if character.get("metamagic"):
+        saved["metamagic"] = list(character["metamagic"])
+    if "primal_knowledge_choice" in character:
+        saved["primal_knowledge_choice"] = copy.deepcopy(character["primal_knowledge_choice"])
+    if "subclass_id" in character:
+        saved["subclass_id"] = copy.deepcopy(character["subclass_id"])
+    if "hit_dice" in character:  # K07: spent Hit Point Dice and the open Short Rest window (additive, absent in older saves)
+        saved["hit_dice"] = dict(character["hit_dice"])
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
     # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
@@ -1819,6 +2073,7 @@ def _player_state_for_save():
             if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
                 raise ValueError("Origin feat state is invalid.")
             saved["origin_feat"] = feat
+    _validate_saved_multilevel_slots(saved, _session().world_state)
     return saved
 
 
@@ -1827,6 +2082,11 @@ def serialize_game_state():
     recent_dm_narrations = _session().recent_dm_narrations
     world_state = _session().world_state
     living_world.ensure_scene_state(world_state)
+    import barbarian_rage
+    barbarian_rage.validate(world_state, _session().character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION), strict_active=True)
+    if "sorcery_points_v1" in world_state:
+        import sorcery_points
+        sorcery_points.validate(world_state["sorcery_points_v1"], _session().character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION))
     return {
         "format": "ai-dnd-save",
         "version": getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION),
@@ -1957,6 +2217,34 @@ def _validate_combat_v3_payload(combat):
     initiative.validate_saved(combat)
 
 
+def _validate_long_rest_history(world):
+    """Optional legacy-compatible completion time; campaign time is the only clock."""
+    if "last_long_rest_completed_at" not in world:
+        return None
+    clock = world.get("campaign_time")
+    if not isinstance(clock, dict):
+        raise ValueError("Uzun dinlenme kaydı için oyun saati gerekli.")
+    campaign_time.validate_clock(clock)
+    completed = world["last_long_rest_completed_at"]
+    if type(completed) is not int or not 0 <= completed <= clock["elapsed_seconds"]:
+        raise ValueError("Uzun dinlenme tamamlanma zamanı geçersiz.")
+    return completed
+
+
+def _validate_saved_multilevel_slots(player, saved_world):
+    """Expanded encoding is not entitlement; keep the legacy level-one mirror contract."""
+    slots = player.get("spell_slots_remaining")
+    if slots is None or (isinstance(slots, dict) and set(slots) == {"1"}):
+        return
+    import character_progression
+    capacity = character_progression.slot_capacity(player)
+    if (not isinstance(saved_world.get("spellcasting_v1"), dict) or capacity is None
+            or not isinstance(slots, dict) or set(slots) != set(capacity)
+            or any(type(count) is not int or not 0 <= count <= capacity[key]
+                   for key, count in slots.items())):
+        raise ValueError("Saved multi-level spell slots require supported applied-level capacity.")
+
+
 def _validate_save_payload(payload):
     if not isinstance(payload, dict):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
@@ -1972,6 +2260,16 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt oyuncu veya dünya verisini içermiyor.")
     if "campaign_time" in saved_world:
         campaign_time.validate_clock(saved_world["campaign_time"])
+    _validate_long_rest_history(saved_world)
+    import barbarian_rage
+    barbarian_rage.validate(saved_world, player, version, strict_active=True)
+    if "sorcery_points_v1" in saved_world:
+        import sorcery_points
+        sorcery_points.validate(saved_world["sorcery_points_v1"], player, version)
+    _validate_player_condition_state(player)
+    _validate_player_weapon_proficiencies(player, version)
+    if "concentration" in player:
+        raise ValueError("Saved player concentration has no supported schema.")
     scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
     timed_gameplay.validate_state(saved_world)
     weapon_attack.exhaustion(player)
@@ -1998,6 +2296,17 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt oyuncu alanları eksik.")
     if "xp" in player and (type(player["xp"]) is not int or player["xp"] < 0):
         raise ValueError("Kayıt deneyim alanı geçersiz.")
+    if "origin_choices" in player and not _origin_choices_valid(player["origin_choices"]):
+        raise ValueError("Kayıt köken seçimleri geçersiz.")
+    if "progression_level" in player and (type(player["progression_level"]) is not int
+                                          or not 1 <= player["progression_level"] <= player["level"]):
+        raise ValueError("Kayıt seviye ilerlemesi geçersiz.")
+    if "metamagic" in player and (not isinstance(player["metamagic"], list) or len(player["metamagic"]) > 20
+                                  or any(not isinstance(m, str) or not 0 < len(m) <= 40 for m in player["metamagic"])
+                                  or len(set(player["metamagic"])) != len(player["metamagic"])):
+        raise ValueError("Kayıt metamagic seçimleri geçersiz.")
+    import hit_dice
+    hit_dice.validate_saved(player)
 
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
@@ -2041,7 +2350,7 @@ def _validate_save_payload(payload):
         spells.validate_saved_spell_fields(player)
     if version >= 5:
         import xp
-        xp.validate_saved_advancement(player, saved_world)
+        xp.validate_saved_advancement(player, saved_world, policy=6 if version >= 6 else 5)
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     species_bonus_skills = player.get("species_bonus_skills", [])
@@ -2065,9 +2374,22 @@ def _validate_save_payload(payload):
         raise ValueError("Karakter ırkı veya sınıfı geçersiz.")
     import spell_scope
     spell_scope.validate(saved_world.get("spellcasting_v1"), player)
+    import character_progression
+    if player.get("asi_choices") and version not in (4, 5, 6):
+        raise ValueError("Earned ASI requires save format4/5/6.")
+    if "primal_knowledge_choice" in player and version not in (4, 5, 6):
+        raise ValueError("Primal Knowledge requires save format4–6.")
+    character_progression.validate_saved(player, saved_world, saved=True)
+    weapon_attack.validate_saved_reckless(saved_world, player)
+    _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
         raise ValueError("Karakter türü geçersiz.")
+    if "temporary_hit_points" in player and (
+        type(player["temporary_hit_points"]) is not int
+        or player["temporary_hit_points"] < 0
+    ):
+        raise ValueError("Kayıt geçici can puanı geçersiz.")
     giant_ancestry = player.get("giant_ancestry")
     if giant_ancestry is not None and (
         species != "Goliath" or giant_ancestry not in GIANT_ANCESTRY_IDS
@@ -2329,6 +2651,13 @@ def load_game(path):
             character[field] = str(player[field])
         character["species"] = str(player.get("species", player["race"]))
         character["exhaustion"] = player.get("exhaustion", 0)
+        for field in (*_PERSISTED_PLAYER_CONDITION_FIELDS, "concentration"):
+            character.pop(field, None)
+            if field in player:
+                character[field] = copy.deepcopy(player[field])
+        character.pop("weapon_proficiencies", None)
+        if "weapon_proficiencies" in player:
+            character["weapon_proficiencies"] = list(player["weapon_proficiencies"])
         character["proficient_tools"] = list(player.get("proficient_tools", []))
         character["saving_throw_mods"] = copy.deepcopy(player.get("saving_throw_mods", {}))
         character["giant_ancestry"] = player.get("giant_ancestry")
@@ -2350,9 +2679,7 @@ def load_game(path):
         if payload["version"] >= 4:
             character["cantrips"] = list(player["cantrips"])
             character["spells"] = list(player["spells"])
-            character["spell_slots_remaining"] = {
-                "1": int(player["spell_slots_remaining"]["1"])
-            }
+            character["spell_slots_remaining"] = copy.deepcopy(player["spell_slots_remaining"])
         else:
             character["cantrips"] = []
             character["spells"] = []
@@ -2368,6 +2695,34 @@ def load_game(path):
         character["species_bonus_skills"] = list(
             player.get("species_bonus_skills", [])
         )
+        for stale in (_ORIGIN_TEXT_KEYS + _ORIGIN_LIST_KEYS + _ORIGIN_SCORE_KEYS
+                      + ("final_ability_scores", "equipment_package", "equipment_choices", "fighting_style")):
+            character.pop(stale, None)  # choices and derived creation state of a previous character never leak into the loaded one
+        character.update(copy.deepcopy(player.get("origin_choices") or {}))
+        character.pop("asi_choices", None)
+        # These player creation hints are not serialized authorities. Never
+        # inherit them from a previously loaded character after an ASI.
+        for cache in ("spell_save_dc", "spell_attack_bonus", "passive_perception"):
+            character.pop(cache, None)
+        if player.get("asi_choices"):
+            character["asi_choices"] = copy.deepcopy(player["asi_choices"])
+            character["final_ability_scores"] = {a: player[a] for a in
+                ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")}
+        character.pop("progression_level", None)
+        character.pop("metamagic", None)
+        character.pop("subclass_id", None)
+        character.pop("primal_knowledge_choice", None)
+        if "primal_knowledge_choice" in player:
+            character["primal_knowledge_choice"] = copy.deepcopy(player["primal_knowledge_choice"])
+        if "subclass_id" in player:
+            character["subclass_id"] = player["subclass_id"]
+        character.pop("hit_dice", None)
+        if "hit_dice" in player:
+            character["hit_dice"] = dict(player["hit_dice"])
+        if "progression_level" in player:
+            character["progression_level"] = player["progression_level"]
+        if player.get("metamagic"):
+            character["metamagic"] = list(player["metamagic"])
         for field in ("origin", "appearance", "personality", "backstory"):
             if field not in player or player[field] is None:
                 character[field] = None
@@ -2383,6 +2738,13 @@ def load_game(path):
             )
         else:
             character["species_trait_state"] = copy.deepcopy(saved_trait_state)
+        character.pop("temporary_hit_points", None)
+        if character["species"] not in SPECIES_WITH_TRAIT_STATE:
+            if "temporary_hit_points" in player:
+                character["temporary_hit_points"] = player["temporary_hit_points"]
+            elif (isinstance(saved_trait_state, dict)
+                  and "temporary_hit_points" in saved_trait_state):
+                character["temporary_hit_points"] = saved_trait_state["temporary_hit_points"]
         character["modifiers"] = {
             ability: get_modifier(character[ability])
             for ability in ("strength", "dexterity", "constitution",
@@ -2458,6 +2820,28 @@ def _venue_entry_door(world_state, origin, destination):
             grounded_action.note_near(world_state, door["id"])
         return door
     return None
+
+
+def _mark_lock_seen(world_state, door):
+    """W03: call only where the player is actually shown that the door is LOCKED (the text says "kilitli");
+    the refusal "kapalı. İçeri geçemezsin." says only closed, so it does not teach the lock.
+
+    The knowledge lives in flags, not on the door: what the player knows is not the door's mechanical state.
+    """
+    if isinstance(door, dict) and door.get("locked") is True and isinstance(door.get("id"), str):
+        flags = world_state.setdefault("flags", {})
+        known = flags.get("known_locked_door_ids")
+        if not isinstance(known, list):
+            known = flags["known_locked_door_ids"] = []
+        if door["id"] not in known:
+            known.append(door["id"])
+    return door
+
+
+def _lock_known_to_player(world_state, door_id):
+    flags = world_state.get("flags") if isinstance(world_state, dict) else None
+    known = flags.get("known_locked_door_ids") if isinstance(flags, dict) else None
+    return isinstance(known, list) and door_id in known
 
 
 def _current_door():
@@ -2870,6 +3254,10 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False, resolv
             "death_resolution": None,
         }
 
+    # Terminal Rage ending is part of this existing zero-HP mutation, before
+    # any death checkpoint rollback (which owns restoration of prior history).
+    import barbarian_rage
+    barbarian_rage.end(session)
     if hp_before > 0:
         if hp_damage >= hp_before + max_hp:
             state["dead"] = True
@@ -3224,6 +3612,21 @@ def _clean_world_text_list(value, item_limit=180, max_items=8):
     return result
 
 
+def _scene_texts_for_referents(world_state):
+    """Descriptive scene text whose lowercase words are evidence of common nouns (W05)."""
+    texts = []
+    # NPC descriptions can be model-authored; only the engine's own feature/location text counts as evidence
+    for collection in ("features",):
+        for item in world_state.get(collection, []) if isinstance(world_state, dict) else []:
+            if isinstance(item, dict) and isinstance(item.get("description"), str):
+                texts.append(item["description"])
+    locations = world_state.get("locations", {}) if isinstance(world_state, dict) else {}
+    for location in locations.values() if isinstance(locations, dict) else []:
+        if isinstance(location, dict) and isinstance(location.get("description"), str):
+            texts.append(location["description"])
+    return texts
+
+
 def _has_unregistered_person_name(value, extra_names=()):
     world_state = _session().world_state
     if not isinstance(value, str):
@@ -3385,7 +3788,13 @@ def create_local_feature(proposal):
         None,
     )
     if existing:
-        return existing
+        # A proposal may only reuse a feature the player can see; handing back a
+        # hidden record would let its name pass as a registered, citable object.
+        visible_ids = {
+            feature.get("id")
+            for feature in living_world.visible_features(world_state, location)
+        }
+        return existing if existing.get("id") in visible_ids else None
     if len(location_features(location)) >= 16:
         return None
     scene_state = living_world.ensure_scene_state(world_state)
@@ -3594,7 +4003,7 @@ def _explicit_campaign_shop_request(player_input):
         r"tezg[aâ]h|t[uü]ccar|sat[iı]c[iı]|esnaf)"
     )
     create_action = (
-        r"(?:create|open|set\s+up|establish|build|add|start|make|kur\w*|aç\w*|oluştur\w*|ekle\w*|"
+        r"(?:create|open|set\s+up|establish|build|add|start|make|kur\w*|aç(?!ık|il|ıl)\w*|oluştur\w*|ekle\w*|"
         r"inşa\s+et\w*|istiyorum)"
     )
     return bool(
@@ -3829,7 +4238,37 @@ def _species_trait_state():
             character.get("species", character.get("race")),
             character.get("proficiency_bonus", 2),
         )
+    species = character.get("species", character.get("race"))
+    if species not in SPECIES_WITH_TRAIT_STATE:
+        temporary_hit_points = character.get(
+            "temporary_hit_points",
+            state.get("temporary_hit_points", 0),
+        )
+        if type(temporary_hit_points) is not int or temporary_hit_points < 0:
+            raise ValueError("Temporary Hit Points state is invalid.")
+        state["temporary_hit_points"] = temporary_hit_points
     return state
+
+
+def _set_temporary_hit_points(amount, state=None):
+    character = _session().character
+    state = state if isinstance(state, dict) else _species_trait_state()
+    state["temporary_hit_points"] = amount
+    if (character.get("species", character.get("race")) not in SPECIES_WITH_TRAIT_STATE
+            and (amount > 0 or "temporary_hit_points" in character)):
+        character["temporary_hit_points"] = amount
+    return amount
+
+
+def grant_temporary_hit_points(amount):
+    """Apply externally granted Temporary Hit Points without healing or waking the player."""
+    if type(amount) is not int or amount < 0:
+        raise ValueError("Temporary Hit Points must be a non-negative integer.")
+    state = _species_trait_state()
+    return _set_temporary_hit_points(
+        max(state["temporary_hit_points"], amount),
+        state=state,
+    )
 
 
 def _species_bonus_action():
@@ -3967,18 +4406,13 @@ def _finish_species_player_turn():
     ):
         amount = character.get("proficiency_bonus", 2)
         combat = ensure_combat_state()
-        participant_ids = set(combat.get("participants", [])) if combat["active"] else set()
+        reachable = effect_targeting.eligible_effect_targets(_session(), "player", INNER_RADIANCE_SPEC)
         for npc in _session().world_state.get("npcs", []):
-            if (
-                not isinstance(npc, dict)
-                or npc.get("combat_status") != "active"
-                or (participant_ids and npc.get("id") not in participant_ids)
-            ):
+            if not isinstance(npc, dict) or npc.get("id") not in reachable:
                 continue
-            resistances = npc.get("damage_resistances", npc.get("resistances", []))
-            damage = amount // 2 if isinstance(resistances, list) and "radiant" in resistances else amount
-            before = npc.get("current_hp", npc.get("max_hp", 1))
-            after = max(0, before - damage)
+            # K02: the shared mitigation owner decides immunity/resistance/vulnerability; apply_npc_damage gets the final value.
+            mitigation = weapon_attack.mitigate(_session(), npc.get("id"), "radiant", amount)
+            damage = mitigation["final_damage"]
             after = apply_npc_damage(npc, damage)
             effects.append(
                 {
@@ -3986,6 +4420,7 @@ def _finish_species_player_turn():
                     "target_id": npc.get("id"),
                     "damage": damage,
                     "damage_type": "radiant",
+                    "mitigation": mitigation,
                     "target_hp_after": after,
                 }
             )
@@ -4019,6 +4454,12 @@ def _finish_species_player_turn():
         state["large_form_turns_remaining"] -= 1
         if state["large_form_turns_remaining"] == 0:
             effects.append({"trait": "large_form", "expired": True})
+    if "effect_clock" in state:  # K03: this turn boundary owns the combat decrement; keep the clock seconds in step
+        effect_lifecycle.sync_from_turns(state)
+        for effect in effects:
+            if effect.get("expired") and effect.get("trait") in effect_lifecycle.TIMED_EFFECTS:
+                state["effect_clock"]["remaining_s"].pop(effect["trait"], None)
+                state["effect_clock"]["last_event"].pop(effect["trait"], None)
     state["movement_budget_ft"] = 0
     state["movement_effect"] = None
     return effects
@@ -4027,6 +4468,11 @@ def _finish_species_player_turn():
 def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None):
     require_player_can_act()
     if action in {"short_rest", "long_rest"}:
+        import barbarian_rage
+        barbarian_rage.prepare_restore(_session())
+        if action == "long_rest":
+            import sorcery_points
+            sorcery_points.prepare_restore(_session())
         ensure_campaign_clock()
         if "campaign_time" not in _session().world_state:
             raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
@@ -4037,14 +4483,29 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             raise ValueError("Dinlenme süresi geçersiz.")
         if ensure_combat_state()["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if action == "long_rest":
+            completed = _validate_long_rest_history(_session().world_state)
+            if completed is not None and _session().world_state["campaign_time"]["elapsed_seconds"] - completed < 16 * 3600:
+                raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
                     "refreshed": {}, "time_advance": rest_time}
         if rest_time.get("interrupted"):
+            interrupted_effects = {"time_result": rest_time, "rest_completed": False}
+            if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
+                # PHB 2024 Long Rest (PDF 370): rested at least 1 hour before the interruption -> the benefits of a Short Rest.
+                # Only the Hit Point Dice window is given here; species Short Rest features are not (HANDOFF).
+                import hit_dice
+                interrupted_effects["short_rest_hit_dice"] = True  # only the Hit Dice part of the Short Rest benefits
+                interrupted_effects["hit_dice"] = hit_dice.open_window(_session())
+                # Rage has its own source-backed Short Rest recovery. An
+                # interrupted Long Rest after an hour grants one, not all uses.
+                import barbarian_rage
+                barbarian_rage.restore(_session(), "short_rest")
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
-                "effects": {"time_result": rest_time, "rest_completed": False},
+                "effects": interrupted_effects,
             }
     character = _session().character
     species = character.get("species", character.get("race"))
@@ -4114,6 +4575,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         state["celestial_revelation_uses_remaining"] -= 1
         state["active_celestial_form"] = form
         state["celestial_revelation_turns_remaining"] = 10
+        effect_lifecycle.start_effect(state, "celestial_revelation")
         if form == "heavenly_wings":
             state["movement_effect"] = {
                 "kind": "flight",
@@ -4122,12 +4584,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         elif form == "necrotic_shroud":
             save_dc = 8 + character.get("proficiency_bonus", 2) + character.get("charisma_mod", 0)
             saves = []
+            reachable = effect_targeting.eligible_effect_targets(_session(), "player", NECROTIC_SHROUD_SPEC)
             for npc in _session().world_state.get("npcs", []):
-                if (
-                    not isinstance(npc, dict)
-                    or npc.get("combat_status") != "active"
-                    or (combat["active"] and npc.get("id") not in combat["participants"])
-                ):
+                if not isinstance(npc, dict) or npc.get("id") not in reachable:
                     continue
                 save_bonus = npc.get("charisma_save_bonus", npc.get("charisma_modifier", 0))
                 if type(save_bonus) is not int:
@@ -4168,6 +4627,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["large_form_uses_remaining"] -= 1
         state["large_form_turns_remaining"] = 100
+        effect_lifecycle.start_effect(state, "large_form")
         if combat["active"]:
             resources = action_economy.ensure(_session())["player"]
             resources["movement_available"] = max(
@@ -4194,7 +4654,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["adrenaline_rush_uses_remaining"] -= 1
         granted_hp = character.get("proficiency_bonus", 2)
-        state["temporary_hit_points"] = max(state["temporary_hit_points"], granted_hp)
+        grant_temporary_hit_points(granted_hp)
         speed = character.get("speed_ft", 30) + (
             10 if state["large_form_turns_remaining"] > 0 else 0
         )
@@ -4264,6 +4724,10 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         state["movement_budget_ft"] = 0
         state["movement_effect"] = None
         effects = {"adrenaline_rush_uses_refreshed": refreshed}
+        import hit_dice
+        effects["hit_dice"] = hit_dice.open_window(_session())  # K07: the player spends dice one request at a time
+        import barbarian_rage
+        barbarian_rage.restore(_session(), "short_rest")
         message = (
             "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
             if species == "Orc"
@@ -4288,10 +4752,13 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
         }
         heal_player(character["max_hp"] - character["current_hp"])
+        import hit_dice
+        hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
         _session().world_state["player_combat_status"] = "active"
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
         )
+        character.pop("temporary_hit_points", None)
         for npc in _session().world_state.get("npcs", []):
             if isinstance(npc, dict):
                 npc.pop("frightened_until_player_turn", None)
@@ -4302,7 +4769,19 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
         import spell_scope
         spell_scope.restore_slots(_session())
+        import sorcery_points
+        sorcery_points.restore(_session())
+        import barbarian_rage
+        barbarian_rage.restore(_session(), "long_rest")
+        _session().world_state["last_long_rest_completed_at"] = _session().world_state["campaign_time"]["elapsed_seconds"]
         message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
+
+    elif action == "spend_hit_die":
+        import hit_dice
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında Hit Point Dice harcanamaz.")
+        effects = hit_dice.spend(_session(), heal_player)
+        message = f"Bir Hit Point Die harcandı; {effects['healing']} can puanı yenilendi."
 
     else:
         raise ValueError("Bilinmeyen tür yeteneği.")
@@ -4666,6 +5145,8 @@ def _start_combat_with_initiative(player_target_npc):
     ):
         raise ValueError("Combat participants require unique stable IDs.")
 
+    import barbarian_rage
+    barbarian_rage.settle(_session(), combat_active=False)
     _capture_combat_death_checkpoint()
     participant_ids = ["player", *[npc["id"] for npc in enemies]]
     combat = world_state["combat"]
@@ -4812,7 +5293,10 @@ def _apply_attack_damage_to_player(damage, critical, hit):
     species_effects = []
     temporary_hp_before = trait_state.get("temporary_hit_points", 0)
     temporary_hp_absorbed = min(temporary_hp_before, damage)
-    trait_state["temporary_hit_points"] = temporary_hp_before - temporary_hp_absorbed
+    _set_temporary_hit_points(
+        temporary_hp_before - temporary_hp_absorbed,
+        state=trait_state,
+    )
     hp_damage = damage - temporary_hp_absorbed
     player_hp_after = max(0, player_hp_before - hp_damage)
     endurance_used = False
@@ -4870,13 +5354,11 @@ def end_combat(reason="combat_ended"):
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
     if reason == "target_defeated":
         import xp
-        awarded = xp.award_defeated_combat(
-            combat,
-            _session().world_state,
-            _session().character,
+        _session()._receive_xp_award(
+            xp.award_defeated_combat, combat, _session().world_state, _session().character,
         )
-        if awarded is not None:
-            _session()._remember_xp_award(awarded)
+    import barbarian_rage
+    barbarian_rage.settle(_session(), combat_active=True)
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
@@ -4915,6 +5397,10 @@ def advance_combat_turn():
     """Advance initiative to the next living actor and roll over completed rounds."""
     combat = ensure_combat_state()
     if combat["active"]:
+        if combat["current_actor_id"] == "player":
+            import barbarian_rage
+            barbarian_rage.end_player_turn(_session(), combat["combat_id"],
+                combat.get("turn_resources", {}).get("player", {}).get("attack_turn_counter", 0))
         weapon_attack.boundary(_session(), combat["current_actor_id"], "end")
         action_economy.monster_event(_session(), "after_turn", combat["current_actor_id"])
     order = combat["initiative_order"]
@@ -5021,6 +5507,7 @@ def _combat_narration(result):
     enemies = result.get("enemy_actions")
     if enemies is None:
         enemies = [result.get("enemy_action") or {}]
+    announced = set()
     for enemy in enemies:
         subject = "Rakibinin"
         if len(enemies) > 1 and (enemy.get("actor_id") or enemy.get("actor")):
@@ -5031,7 +5518,10 @@ def _combat_narration(result):
         elif enemy.get("outcome") in ("hit", "critical_hit"):
             kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
             text += f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
-        text += monster_text.get(enemy.get("outcome"), "")
+        said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
+        if said not in announced:
+            announced.add(said)
+            text += monster_text.get(enemy.get("outcome"), "")
         if enemy.get("outcome") == "dash":
             import bounded_encounter
             text += bounded_encounter.visible_dash_narration(_session(), enemy)
@@ -5462,7 +5952,15 @@ def resolve_npc_reference(
                 )
             )
         )
-        if name_match or role_match:
+        # The label the player is shown ("Yakındaki kişi", "Bir köylü") is public
+        # by construction, so typing it back must address that person.
+        descriptor_match = (
+            not living_world.npc_name_known_to_player(npc)
+            and _entity_reference_in_text(
+                living_world.public_npc_descriptor(npc), text
+            )
+        )
+        if name_match or role_match or descriptor_match:
             matches.append(npc)
     # Hidden canonical identity must never become target authority just because
     # the player guessed an internal name/role string. Generic pronouns may still
@@ -5494,6 +5992,7 @@ def resolve_npc_reference(
     # Pronouns can use the current conversation; unknown named targets cannot.
     explicit_unresolved_reference = any(
         match.group("target") not in {"ona", "ondan", "onunla", "kendisine"}
+        and not local_dialogue.is_nominal_speech_reference(player_input[match.start():])
         for match in re.finditer(
             r"\b(?P<target>[\wçğıöşü]+(?:['’](?:dan|den|tan|ten)|la|le|dan|den|tan|ten|a|e))\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
             player_input.casefold(),
@@ -5553,6 +6052,8 @@ _OFFER_MARKER = re.compile(
 
 
 def _interaction_proposal_applies(raw_intent, npc_target, player_input):
+    if combat_lifecycle.quoted_report(_session(), player_input):
+        return False
     interaction = raw_intent.get("interaction") if isinstance(raw_intent, dict) else None
     if not isinstance(interaction, dict) or interaction.get("operation") in (None, "none"):
         return False
@@ -6226,7 +6727,7 @@ def build_world_context(npc_target=None):
                 "description": item.get("description", ""),
                 "reality_layer": item.get("reality_layer", "UNKNOWN_OR_UNLOADED"),
             }
-            for item in location_features()[:16]
+            for item in living_world.visible_features(world_state)[:16]
         ],
         "inventory_summary": equipment_economy.labels(world_state["inventory"]),
         "ground_items_summary": equipment_economy.labels(world_state["ground_items_by_location"].get(world_state["location"], [])),
@@ -6473,6 +6974,9 @@ def create_location_from_proposal(proposal):
         return None
     next_number = max(1, int(world_state.get("next_location_number", 1)))
     locations = world_state.setdefault("locations", {})
+    if len(locations) >= 80:
+        world_state.setdefault("flags", {})["location_create_status"] = "limit_reached"
+        return None
     while f"location_{next_number:03d}" in locations:
         next_number += 1
     location_id = f"location_{next_number:03d}"
@@ -6503,7 +7007,8 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
     if "campaign_time" not in world:
         return campaign_time.advance(world, seconds, reason, source, observation=observation)
     before = campaign_time.public_time(world)
-    remaining, elapsed, known, death_results = seconds, 0, [], []
+    event_order.require_complete(RULE_ORDER)  # K04: never discover a gap after the clock has already moved
+    remaining, elapsed, known, death_results, effect_events = seconds, 0, [], [], []
     while True:
         death = ensure_death_state()
         now = world["campaign_time"]["elapsed_seconds"]
@@ -6529,14 +7034,33 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
         elapsed += result["elapsed_seconds"]
         remaining -= result["elapsed_seconds"]
         known.extend(result["player_known_events"])
+        # K03: timed effects consume the ACTUAL elapsed seconds of this step, once per (source, step start).
+        def settle_effects(elapsed_step=result["elapsed_seconds"], step_start=now):
+            effect_events.extend(effect_lifecycle.advance_effects(
+                _session(), elapsed_step, f"{source}@{step_start}",
+                "round" if reason == "combat_round" else "clock"))
+
+        # K04: when the death/recovery timer is due at the same moment, the recorded rule order decides which runs first.
+        step_end = world["campaign_time"]["elapsed_seconds"]
+        due_kind = (None if deadline is None or step_end < deadline
+                    else "regeneration" if death["stable"] else "death")
+        effects_first = due_kind is None or event_order.order_due_events(
+            [{"event_id": "effects", "kind": "effect_expiry", "at": step_end},
+             {"event_id": "death-timer", "kind": due_kind, "at": step_end}], RULE_ORDER,
+        )[0]["event_id"] == "effects"
+        if effects_first:
+            settle_effects()
         if supplies:
             import equipment_economy
             condition_death = equipment_economy.process_supply_days(_session(), now)
             if condition_death:
                 death_results.extend(condition_death["death_results"])
+                if not effects_first:
+                    settle_effects()  # the step's time has passed; deferred effects must still consume it
                 return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
                             remaining_seconds=remaining, player_known_events=known,
-                            death_results=death_results, condition_death=True, interrupted=True)
+                            death_results=death_results, condition_death=True, interrupted=True,
+                            effect_events=effect_events)
         now = world["campaign_time"]["elapsed_seconds"]
         if deadline is not None and now >= deadline:
             if death["stable"]:
@@ -6551,15 +7075,18 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
                 if save and save.get("death_resolution", {}).get("rolled_back"):
                     return dict(result, elapsed_seconds=0, requested_seconds=seconds,
                                 remaining_seconds=seconds, death_results=death_results,
-                                player_known_events=[], after=campaign_time.public_time(world))
+                                player_known_events=[], after=campaign_time.public_time(world),
+                                effect_events=effect_events)
                 if _session().character["current_hp"] == 0 and not death["dead"] and not death["stable"]:
                     death["noncombat_next_save_at"] = deadline + 6
+        if not effects_first:
+            settle_effects()
         if remaining == 0 or result["interrupted"] or ensure_death_state()["dead"]:
             break
     adventure_play.settle_session(_session())
     return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
                 remaining_seconds=remaining, before=before, player_known_events=known,
-                death_results=death_results)
+                death_results=death_results, effect_events=effect_events)
 
 
 def commit_location_change(location_id, turn_index=None):
@@ -6597,6 +7124,7 @@ def commit_location_change(location_id, turn_index=None):
         flags["active_npc_id"] = None
         flags["last_npc_id"] = None
         flags["active_npc_until_turn"] = -1
+        scheduled_events.arm_table_absence(world_state, previous_location)
         now = world_state["campaign_time"]["elapsed_seconds"]
         scheduled_events.process_events(
             world_state, now, now,
@@ -6885,7 +7413,11 @@ def _speech_debug_trail(record):
 
 
 def _npc_speech_enabled():
-    """First-person NPC speech trial: per-session switch or AI_DND_NPC_SPEECH=1."""
+    """Compatibility switch for the existing target/focus routing extensions.
+
+    Resolved ordinary NPC speech uses the structured schema independently.
+    This switch still controls the broader experimental targeting behavior.
+    """
     if getattr(_session(), "_experimental_npc_dialogue_enabled", False) is True:
         return True
     return os.environ.get("AI_DND_NPC_SPEECH", "").strip() == "1"
@@ -6920,20 +7452,7 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
     ):
         return
     world = _session().world_state
-    log = world.get(_NPC_SPEECH_LOG_KEY)
-    if not isinstance(log, dict):
-        log = {}
-        world[_NPC_SPEECH_LOG_KEY] = log
-    entries = [
-        *_experimental_recent_exchanges(npc_id),
-        {
-            "player": str(player_text or "").strip()[:240],
-            "npc": npc_text.strip()[:400],
-        },
-    ]
-    log[npc_id] = entries[-_NPC_SPEECH_KEEP:]
-    for stale in list(log)[:-24]:
-        del log[stale]
+    local_dialogue.remember_speech_exchange(world, npc_id, player_text, npc_text)
     # LR00 fix: the short log above is conversation context only; the
     # statement ledger keeps places and commitments for the whole campaign.
     import npc_statements
@@ -7048,6 +7567,9 @@ def _render_experimental_npc_speech(payload, npc):
     """Render server-attributed speech; keep stage direction outside its quote."""
     name = living_world.public_npc_name(npc)
     stage = payload.get("stage_direction", "").strip().rstrip(".!?…")
+    # Identity and safety checks already saw the original stage. Avoid printing
+    # the same server-selected subject twice; do not remove another actor.
+    stage = re.sub(r"^" + re.escape(name) + r"(?:\s*[:,]\s*|\s+)", "", stage, count=1, flags=re.IGNORECASE)
     spoken = payload.get("spoken_text", "").strip()
     stage_clause = f" ({stage})" if stage else ""
     return f"{name}{stage_clause}: “{spoken}”"
@@ -7086,6 +7608,10 @@ def _experimental_npc_dialogue_context(
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
     source = interaction_adventure.context(world, npc)
+    speech_profile_facts = list(source.get("conversation_candidates", []))
+    public_detail = local_dialogue.public_personal_detail(world, npc)
+    if public_detail is not None:
+        speech_profile_facts.append(public_detail)
     addressee = source.get("addressee") or {}
     allowed_kinds = {"witnessed", "player_claim", "belief", "rumor", "lie"}
     perspective = [
@@ -7130,7 +7656,9 @@ def _experimental_npc_dialogue_context(
             "name": living_world.public_npc_name(npc),
             "role": living_world.public_npc_role(npc),
         },
-        "shareable_profile_facts": source.get("conversation_candidates", []),
+        "shareable_profile_facts": speech_profile_facts,
+        "conversation_focus": interaction_adventure.public_door_conversation_focus(world, npc),
+        "scene": living_world.visible_scene_facts(world),
         # A bare follow-up ("Neden onu?") is about the last exchange. Rumors and
         # old player lines pulled a small model away from it (18 Oct live T5),
         # so they are withheld for that turn only.
@@ -7261,6 +7789,24 @@ def _local_place_access(place_id, world_state):
     return "available"
 
 
+def _attributed_place_note(spoken_text, npc_target, world_state, player_input):
+    """W03: the separate narrator note for a locked venue the NPC named, only when the player already knows the lock."""
+    if not isinstance(spoken_text, str) or not local_dialogue.is_local_place_recommendation_request(player_input):
+        return None
+    options = _local_place_recommendation_options(
+        npc_target, world_state, place_kind=local_dialogue.local_place_recommendation_kind(player_input))
+    folded = npc_statements.fold(spoken_text)
+    for option in options:
+        if option["access"] != "locked" or npc_statements.fold(option["name"]) not in folded:
+            continue
+        view = attributed_claims.present_claim(
+            {"speaker_text": spoken_text, "source_event_id": f"speech:{npc_target.get('id')}",
+             "subject": {"name": option["name"], "locked": True}},
+            {"lock_known_to_player": _lock_known_to_player(world_state, f"venue-door:{option['location_id']}")})
+        return view["narrator_note"]
+    return None
+
+
 def _ground_local_place_recommendation_reply(
     spoken_text, npc_target, world_state, player_input
 ):
@@ -7332,11 +7878,8 @@ def _ground_local_place_recommendation_reply(
     if options and all_named_places_match:
         selected = matched[0]
         if all(item["location_id"] == selected["location_id"] for item in matched):
-            if selected["access"] == "locked":
-                return (
-                    f'{selected["name"]} şu anda kilitli; açıldığını '
-                    "doğrulamadan oraya gitmeni önermem."
-                )
+            # W03 (Rev2 5.5): the NPC's own recommendation stays the NPC's; a lock the player already knows is a
+            # separate narrator note (attributed_claims.present_claim), an unknown lock is never revealed here.
             return spoken_text
     if open_discovery and options:
         # A general request such as "another place" is not permission to replace
@@ -7507,13 +8050,26 @@ def _local_place_recommendation_guidance(
     )
 
 
+class IntentInfrastructureError(Exception):
+    """The intent classifier could not run; the turn must not be committed."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
                         operation_hint=None, require_conversation=False,
                         allow_scene_detail_proposals=False,
                         allow_local_person_proposal=False,
                         experimental_npc_dialogue=False,
-                        recent_scene_narration=""):
-    """Ask Qwen only to label the current input; it cannot read or write state."""
+                        recent_scene_narration="", strict=False):
+    """Ask Qwen only to label the current input; it cannot read or write state.
+
+    With strict=True a classifier reply that is not usable JSON raises
+    IntentInfrastructureError instead of degrading to an "unknown" intent that
+    reads like a normal turn. Provider outages and timeouts still degrade.
+    """
     world_state = _session().world_state
     locations = [
         {"name": value.get("name"), "aliases": value.get("aliases", [])[:6]}
@@ -7539,6 +8095,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         "ÖNEMLİ: 'saldırmıyorum', 'saldırmayacağım' ve 'saldırmak istemiyorum' saldırı değildir; bunlarda narrative seç. "
         "Saldırı fiilinin görünmesi olumsuzluk ekini veya 'istemiyorum' ifadesini geçersiz kılmaz. "
         "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
+        "query_type yalnızca oyuncu gerçekten bir bilgi sorusu soruyorsa doldurulur; düz cümlelerde "
+        "('Tamam, o zaman gideyim.', 'Bir şey satın almak istiyorum.') query_type verme ve intent=query seçme. "
         "Oyuncu kendi adı, sınıfı, ırkı veya seviyesi hakkında sorarsa query_type=self seç; target.type=none ve target.reference boş olsun. "
         "Bu sorular konum sorusu değildir; target.type=location seçme. Örnek: 'Benim adım ne?' için "
         '{"intent":"query","action":"query","target":{"type":"none","reference":""},'
@@ -7785,6 +8343,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "This limited conversation exception overrides 'Hikâye yazma' above. "
             "If there is an interaction proposal, leave narration empty: Python must "
             "resolve the proposal before narration. No lore claims or world updates."
+            "\nRolde kal: oyun yöneticisi veya asistan gibi konuşma ('anladım', 'belirtir "
+            "misin' gibi oyuncuya talimat veren sistem dili yok). Oyuncunun cümlesini aynen "
+            "tekrar etme. Aynı jesti (örneğin pelerin düzeltmek) art arda cevaplarda "
+            "tekrarlama; jest gerekmiyorsa yalnızca konuş."
         )
         prompt += (
             "\ninteraction.conversation alanında tek seferlik anlam önerisi döndür: "
@@ -7818,8 +8380,16 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             ),
         )
         data = _extract_json_object(ollama_response_content(response))
-        return data if isinstance(data, dict) else {"intent": "unknown"}
+        if isinstance(data, dict):
+            return data
+        if strict and not experimental_npc_dialogue:
+            raise IntentInfrastructureError("intent_json_invalid")
+        return {"intent": "unknown"}
+    except IntentInfrastructureError:
+        raise
     except Exception:
+        # A provider outage or timeout keeps its deterministic fallback; only a
+        # reply that arrived but is not usable JSON must not read as a normal turn.
         return {"intent": "unknown"}
 
 
@@ -8025,7 +8595,11 @@ def validate_intent(intent, player_input):
         valid.pop("query_type", None)
         return valid
     if valid["intent"] == "query":
-        if valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}:
+        if (
+            valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}
+            or not _model_query_type_is_plausible(player_input)
+        ):
+            valid.pop("query_type", None)
             valid["intent"] = "narrative"
         valid["completion"] = "unclear"
         return valid
@@ -8155,6 +8729,8 @@ def update_inventory_from_player(player_input):
             if "Kılıç" not in loc_items:
                 loc_items.append("Kılıç")
             return "Python durumu: Kılıç envanterden yere taşındı."
+        if "Kılıç" in loc_items:
+            return "Python durumu: Kılıç zaten yerde."
         return "Python durumu: Kılıç zaten envanterde değil; yerde olup olmadığı world_state içindedir."
 
     if picking_up:
@@ -8316,11 +8892,27 @@ def _fallback_narration(player_input, npc_target=None):
         return "Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir."
     if outcome in ("critical_failure", "failure"):
         return "Girişimin ters gider ve amaçladığın sonuç gerçekleşmez."
-    return (
-        "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
-        "hamleni bekliyor."
-    )
+    return _generic_no_change_response()
 
+
+_GENERIC_NO_CHANGE_RESPONSE = (
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
+    "hamleni bekliyor."
+)
+# Every variant keeps the prefix _SCENE_LEVEL_FALLBACK_RE recognizes.
+_GENERIC_NO_CHANGE_RESPONSES = (
+    _GENERIC_NO_CHANGE_RESPONSE,
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; herkes kendi işine "
+    "bakıyor, söz sende.",
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor; gözün bir şey "
+    "yakalamıyor, sıra sende.",
+)
+
+
+def _generic_no_change_response():
+    return _GENERIC_NO_CHANGE_RESPONSES[
+        _variation_index(("no_change",), len(_GENERIC_NO_CHANGE_RESPONSES))
+    ]
 
 _INTERNAL_PLAYER_FACING_RE = re.compile(
     r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
@@ -8484,6 +9076,36 @@ def _unregistered_persistent_object_claim(world_state, narration):
     return claim.group(0)
 
 
+_HELD_SKIP = frozenset({
+    "el", "goz", "yuz", "bas", "omuz", "kol", "parmak", "sac", "agiz",
+    "kucuk", "buyuk", "eski", "yeni", "pasli", "tozlu", "tuttugu", "tutan",
+})
+
+
+def _unregistered_held_object(world_state, narration):
+    """A thing in a hand, or a named prop, that the scene does not have."""
+    normalized = _normalize_turkish_typos(narration)
+    names = " ".join(
+        _normalize_turkish_typos(name)
+        for name in _registered_persistent_object_names(world_state, include_carried=True)
+    )
+    for head in ("caydanlik", "supurge", "cekic"):
+        if re.search(rf"\b{head}", normalized) and not re.search(rf"\b{head}", names):
+            return head
+    marker = re.search(r"\b(?:elindeki|elinde|tuttugu)\b", normalized)
+    if marker is None:
+        return None
+    window = normalized[marker.end():marker.end() + 48]
+    for word in re.findall(r"[a-z]+", window):
+        stem = re.sub(r"(?:nin|nun|in|un|si|su|yi|yu|i|u)$", "", word)
+        if word in _HELD_SKIP or stem in _HELD_SKIP or len(stem) < 4:
+            continue
+        if re.search(rf"\b{re.escape(stem)}", names):
+            return None
+        return window.strip()
+    return None
+
+
 def _resolve_campaign_npc_reference(player_input, world_state=None):
     if not isinstance(player_input, str):
         return None
@@ -8498,7 +9120,9 @@ def _resolve_campaign_npc_reference(player_input, world_state=None):
     return None
 
 
-def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, player_input=""):
+def _unsupported_npc_history_or_relationship_claim(
+    narration, npc_target=None, player_input="", *, spoken_start=None
+):
     """Detect invented relationship mutations or campaign-history claims not grounded in Python state."""
     text = str(narration).casefold()
 
@@ -8529,8 +9153,11 @@ def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, p
         (r"\b(?:eski|geçmiş)\s+macera\w*", "past_adventures"),
     )
     for pat, _category in history_patterns:
-        match = re.search(pat, text)
-        if match:
+        for match in re.finditer(pat, text):
+            if spoken_start is not None and match.start() >= spoken_start:
+                from npc_speech_boundary import explicit_history_denial
+                if explicit_history_denial(text, match):
+                    continue
             supported = False
             target = npc_target or _resolve_campaign_npc_reference(player_input or narration)
             if isinstance(target, dict):
@@ -8681,9 +9308,15 @@ def _is_figurative_key_transfer(text, match_start):
     return bool(re.search(r"(?:kalbimin|yüreğimin|yuregimin)$", prefix))
 
 
-def _experimental_private_npc_disclosure(text, world_state):
+def _experimental_private_npc_disclosure(
+    text, world_state, *, npc_target=None, speech_fields=None
+):
     """Match output against dynamically derived, non-shareable NPC source values."""
     folded_text = _normalize_turkish_typos(str(text or "").casefold())
+    public_detail = (
+        local_dialogue.public_personal_detail(world_state, npc_target)
+        if speech_fields is not None else None
+    )
 
     def strings(value):
         if isinstance(value, str):
@@ -8710,9 +9343,19 @@ def _experimental_private_npc_disclosure(text, world_state):
                     compact = re.sub(r"[^a-z0-9]", "", folded_value)
                     if len(compact) < 6:
                         continue
+                    field_text = folded_text
+                    if (
+                        public_detail is not None
+                        and npc.get("id") == public_detail["owner_id"]
+                        and field == "personal_detail"
+                        and private_value == public_detail["value"]
+                    ):
+                        # Only server-bound spoken text gets this exception.
+                        # Narrator stage text and every other NPC remain checked.
+                        field_text = _normalize_turkish_typos(speech_fields[1].casefold())
                     if re.search(
                         rf"(?<![a-z0-9]){re.escape(folded_value)}(?![a-z0-9])",
-                        folded_text,
+                        field_text,
                     ):
                         return True
 
@@ -8738,7 +9381,9 @@ def _experimental_private_npc_disclosure(text, world_state):
     return False
 
 
-def _narration_safety_decision(narration, player_input, npc_target=None, action_result=None):
+def _narration_safety_decision(
+    narration, player_input, npc_target=None, action_result=None, *, attributed_speech=None
+):
     """Return a reason-coded safety decision without changing canonical state."""
     world_state = _session().world_state
     scene_type = _narration_scene_type(action_result)
@@ -8763,10 +9408,20 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
 
     if not isinstance(narration, str) or not narration.strip():
         return reject("EMPTY_NARRATION")
+    import npc_speech_boundary
+    speech_fields = npc_speech_boundary.fields_for_narration(
+        narration, attributed_speech, npc_target, action_result
+    )
+    spoken_start = (
+        len(narration.casefold()) - len(speech_fields[0].casefold())
+        if speech_fields is not None else None
+    )
     if (
         isinstance(action_result, dict)
         and action_result.get("status") == "experimental_attributed_speech"
-        and _experimental_private_npc_disclosure(narration, world_state)
+        and _experimental_private_npc_disclosure(
+            narration, world_state, npc_target=npc_target, speech_fields=speech_fields
+        )
     ):
         return reject("NPC_PRIVATE_PROFILE_DISCLOSURE")
 
@@ -8804,7 +9459,18 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
                              ("role", living_world.npc_role_known_to_player)):
             identity = npc.get(field)
             if not known(npc) and identity and _entity_reference_in_text(identity, narration):
-                return reject("HIDDEN_NPC_IDENTITY_DISCLOSURE", identity)
+                identity_view = narration
+                if field == "name" and npc.get("id") != (npc_target or {}).get("id"):
+                    identity_view = npc_speech_boundary.mask_bound_self_name(
+                        narration, identity, world_state, attributed_speech,
+                        npc_target, action_result,
+                    )
+                identity_view = npc_speech_boundary.hidden_identity_scan_text(
+                    identity_view, identity, world_state
+                )
+                identity_view = npc_speech_boundary.mask_calendar_month_name(identity_view, identity)
+                if _entity_reference_in_text(identity, identity_view):
+                    return reject("HIDDEN_NPC_IDENTITY_DISCLOSURE", identity)
     action_result = action_result or {}
     elapsed_claim = re.search(
         r"((?:\d+|bir|iki|üç|dört|beş|altı|yarım)\s+(?:saniye|dakika|saat|gün))"
@@ -8911,22 +9577,20 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
                 return reject(
                     "WRONG_NPC_SPEAKER_ATTRIBUTION", speaker_label.group(1)
                 )
-        first_person_identity = re.search(
+        first_person_identities = re.finditer(
             r"\b(?:(?i:ben)\s+|(?i:benim\s+adım|adım|ismim)\s+)"
             r"([A-ZÇĞİÖŞÜ][a-zçğıöşü'’-]{1,})\b(?=\s*[,!.?])",
             narration,
         )
-        if first_person_identity:
-            claimed_name = _normalize_turkish_typos(
-                first_person_identity.group(1).casefold()
-            )
+        for first_person_identity in first_person_identities:
+            claimed_name = first_person_identity.group(1)
             allowed_names = {
                 _normalize_turkish_typos(target_name.casefold()),
                 _normalize_turkish_typos(
                     str(living_world.public_npc_name(npc_target) or "").casefold()
                 ),
             }
-            if claimed_name and claimed_name not in allowed_names:
+            if claimed_name and not npc_speech_boundary.matches_speaker_identity(claimed_name, allowed_names):
                 return reject(
                     "WRONG_NPC_SPEAKER_ATTRIBUTION",
                     first_person_identity.group(1),
@@ -9002,7 +9666,8 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
             return reject("UNVERIFIED_NARRATED_TRANSFER", door_claim.group(0))
 
     unsupported_npc_claim = _unsupported_npc_history_or_relationship_claim(
-        narration, npc_target=npc_target, player_input=player_input
+        narration, npc_target=npc_target, player_input=player_input,
+        spoken_start=spoken_start,
     )
     if unsupported_npc_claim:
         return reject(unsupported_npc_claim[0], unsupported_npc_claim[1])
@@ -9015,6 +9680,11 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     character_name_matches = (
         list(re.finditer(character_name_pattern, text)) if character_name_pattern else []
     )
+    if speech_fields is not None and character_name in target_known_names:
+        character_name_matches = [
+            match for match in character_name_matches
+            if not npc_speech_boundary.is_spoken_player_address(text, match, spoken_start)
+        ]
     if character_name_matches:
         travel_result = (
             action_result.get("action") == "travel"
@@ -9022,7 +9692,10 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
             and action_result.get("success") is True
         )
         if not travel_result or len(character_name_matches) != 1:
-            return reject("PLAYER_NAME_IN_NARRATION", character_name_matches[0].group(0))
+            result = reject("PLAYER_NAME_IN_NARRATION", character_name_matches[0].group(0))
+            if spoken_start is not None and all(match.start() < spoken_start for match in character_name_matches):
+                result["source_field"] = "stage_direction"
+            return result
         match = character_name_matches[0]
         arrival_clause = re.split(r"[,;.!?]", text[match.end():], maxsplit=1)[0]
         current_location = world_state.get("location")
@@ -9049,11 +9722,25 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         isinstance(action_result, dict)
         and action_result.get("status") == "experimental_attributed_speech"
     )
-    conditional = None if npc_speech else re.search(
-        r"\b(?:istersen|dilersen|açtıysan|başardıysan)\b"
-        r"|\beğer\b.{0,80}\b\w*(?:rsen|rsanız)\b",
-        text,
-    )
+    conditional = None
+    if not npc_speech:
+        quoted_spans = [
+            (quoted.start(), quoted.end())
+            for quoted in re.finditer(r'"[^"]*"|“[^”]*”', text)
+        ]
+        # A person's quoted "istersen" is an offer in their voice, not a choice
+        # the narrator makes for the player; only unquoted text is rejected.
+        conditional = next(
+            (
+                found for found in re.finditer(
+                    r"\b(?:istersen|dilersen|açtıysan|başardıysan)\b"
+                    r"|\beğer\b.{0,80}\b\w*(?:rsen|rsanız)\b",
+                    text,
+                )
+                if not any(start <= found.start() < end for start, end in quoted_spans)
+            ),
+            None,
+        )
     if conditional:
         return reject("UNSUPPORTED_PLAYER_CHOICE", conditional.group(0))
 
@@ -9098,6 +9785,12 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         )
         if failed_check_claim:
             return reject("SKILL_RESULT_CONTRADICTION", failed_check_claim.group(0))
+        reported_find = re.search(
+            r"fark ed|goruyorsun|buluyorsun|secebiliyorsun",
+            _normalize_turkish_typos(text),
+        )
+        if reported_find:
+            return reject("SKILL_RESULT_CONTRADICTION", reported_find.group(0))
 
     arrival_text = living_world._text_outside_quotes(narration)
     current_location = world_state.get("location")
@@ -9168,11 +9861,16 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         r"sınız|siniz|sunuz|sünüz|acaksın|eceksin)\b"
     )
     player_action_text = text
-    if npc_target:
+    # Quoted words are somebody's speech, not the narrator committing the
+    # player; that holds with or without a resolved addressee.
+    if npc_target or re.search(r'"[^"]+"|“[^”]+”', text):
         quotes = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|\'[^\']*\'')
         player_action_text = quotes.sub(
             lambda quoted: " " * len(quoted.group(0)), text
         )
+    player_action_text = npc_speech_boundary.mask_spoken_questions(
+        player_action_text, spoken_start
+    )
     normalized_action_text = _normalize_turkish_typos(
         player_action_text.casefold()
     ).strip()
@@ -9239,6 +9937,11 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         if _normalize_turkish_typos(match.group(1)) in input_verb_stems:
             continue
         normalized_verb = _normalize_turkish_typos(match.group(0))
+        if normalized_verb.startswith("gel") and re.search(
+            r"\bho[sş]\s*$", _normalize_turkish_typos(player_action_text[:match.start()])
+        ):
+            # "Hoş geldin(iz)" is the ordinary welcome, not a claim of arrival.
+            continue
         if npc_name_question and normalized_verb.startswith("de"):
             # This exact NPC-attributed clarifying question asks whether the
             # player said the NPC's name; it does not commit a player action.
@@ -9304,11 +10007,25 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     ):
         return reject("INVENTED_PLAYER_OBJECTIVE", unsupported_goal.group(0))
 
-    if re.search(r"\bbirlikte\s+otur\w*\b", text) and "otur" not in input_text:
-        return reject("INVENTED_PLAYER_ACTION", "birlikte otur")
+    for sitting in re.finditer(r"\bbirlikte\s+(otur\w*)\b", text):
+        if (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "sit"
+            and action_result.get("status") == "completed"
+            and action_result.get("success") is True
+        ):
+            continue
+        if (
+            spoken_start is not None and sitting.start() >= spoken_start
+            and npc_speech_boundary.is_nonassertive_collective(
+                sitting.group(1), text[sitting.end():sitting.end() + 100]
+            )
+        ):
+            continue
+        return reject("INVENTED_PLAYER_ACTION", sitting.group(0))
     forced_player_action = re.search(
         r"\b(?:seni|sana)\b.{0,50}"
-        r"\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır\w*|kaldır\w*)\b",
+        r"\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır(?!m|ış)\w*|kaldır\w*)\b",
         text,
     )
     if forced_player_action:
@@ -9413,32 +10130,61 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
         r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|"
         r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
-        r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı))",
+        r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
         r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
     )
+    import npc_speech_boundary
+    entity_narration = npc_speech_boundary.narrated_entity_text(
+        narration, attributed_speech, npc_target, action_result
+    )
+    def reject_entity(trigger=None):
+        verdict = reject("UNREGISTERED_NAMED_ENTITY", trigger)
+        if entity_narration != narration:
+            verdict["source_field"] = "stage_direction"
+        return verdict
+    entity_scan = npc_speech_boundary.mask_visible_entity_labels(entity_narration, world_state)
     for pattern in name_patterns:
-        for match in re.finditer(pattern, narration):
-            quote_prefix = narration[:match.start()].rstrip()
+        for match in re.finditer(pattern, entity_scan):
+            quote_prefix = entity_narration[:match.start()].rstrip()
             if match.group(1).casefold() == "bir" and quote_prefix.endswith(
                 ("'", "’", '"', "“", "‘")
             ):
                 continue
             candidate = match.group(1).casefold()
+            if candidate in _COMMON_SENTENCE_OPENERS:
+                continue
             normalized_candidate = _normalize_turkish_typos(candidate)
             if candidate not in (
                 registered_names | registered_name_tokens | known_places
             ) and normalized_candidate not in known_place_forms:
                 if _authorized_item_transfer_matches(match.group(1), action_result):
                     continue
-                return reject("UNREGISTERED_NAMED_ENTITY", match.group(1))
-    if _has_unregistered_person_name(narration):
-        return reject("UNREGISTERED_NAMED_ENTITY")
+                # W05: a common scene object is not an invented person; unknown names still fail closed.
+                import referent_span
+                if referent_span.classify_referent_span(
+                    match.group(1),
+                    {npc_statements.fold(npc.get("name", "")): npc.get("id")
+                     for npc in world_state.get("npcs", []) if isinstance(npc, dict) and npc.get("name")},
+                    {"scene_texts": _scene_texts_for_referents(world_state)}
+                )["kind"] == "common_object":
+                    continue
+                return reject_entity(match.group(1))
+    if _has_unregistered_person_name(entity_scan):
+        return reject_entity()
 
     unregistered_object = _unregistered_persistent_object_claim(
         world_state, narration
     )
     if unregistered_object:
         return reject("UNREGISTERED_PERSISTENT_OBJECT", unregistered_object)
+    held_object = _unregistered_held_object(world_state, narration)
+    held_action = action_result.get("action") if isinstance(action_result, dict) else None
+    held_outcome = action_result.get("outcome") if isinstance(action_result, dict) else None
+    if held_object and (
+        held_action == "narrative"
+        or held_outcome in {"failure", "critical_failure"}
+    ):
+        return reject("UNREGISTERED_PERSISTENT_OBJECT", held_object)
 
     arrival_sentences = re.split(
         r"(?<=[.!?;,:])\s+|\s+\b(?:ama|ancak|fakat|oysa|ve|ya da|yoksa)\b\s+",
@@ -9652,6 +10398,21 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     verdict = narration_claims.assess(narration, _narration_fact_packet(action_result))
     if verdict["reject"]:
         return reject(verdict["reason"] or "NARRATION_CLAIM_REJECTED", verdict.get("span"))
+
+    # Attributed words may be rumors; the optional narrator field is not speech.
+    # Reuse the narrator's existing lore authority, never the model's claim IDs.
+    if speech_fields is not None and _narration_has_unsupported_lore_claim(
+        speech_fields[1], [],
+        _prepare_lore_authority_context(getattr(_session(), "lore_authority_context", None)),
+        world_state,
+    ):
+        return {**reject("UNVERIFIED_LORE_CLAIM"), "source_field": "stage_direction"}
+
+    if combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
+        folded_narration = narration_claims.fold(narration)
+        fight = re.search(r"\b(?:saldir|savun)\w*|\bkan\b", folded_narration)
+        if fight:
+            return reject("REPORTED_NON_ATTACK", fight.group(0))
 
     return accept()
 
@@ -10030,6 +10791,17 @@ def _is_registered_lore_name(candidate, known_phrases, known_tokens):
     )
 
 
+_GENERIC_SPEAKER_LABEL_RE = re.compile(
+    r"(?:yakındaki kişi|bir [a-zçğıöşü]+(?: [a-zçğıöşü]+)?)",
+    re.IGNORECASE,
+)
+
+
+def _is_generic_speaker_label(label):
+    """A player-facing descriptor ("Yakındaki kişi", "Bir muhafız") names no entity."""
+    return bool(_GENERIC_SPEAKER_LABEL_RE.fullmatch(str(label).strip()))
+
+
 def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
     normalized_sentence = _lore_guard_text(sentence)
     contains_dr_year = bool(
@@ -10059,10 +10831,19 @@ def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
         if _is_registered_lore_name(candidate, known_phrases, known_tokens):
             continue
         prefix = sentence[:match.start()]
+        # A verified speaker label is not part of the spoken sentence. Without
+        # this boundary, ordinary capitalized words ("Evet", "Yolcuyum") are
+        # mistaken for new entities solely because dialogue has a label.
+        speaker = re.match(r'^\s*([^:«»“”"\n]{1,160}):\s*[“"«]', prefix)
+        if speaker and (
+            _is_registered_lore_name(speaker.group(1), known_phrases, known_tokens)
+            or _is_generic_speaker_label(speaker.group(1))
+        ):
+            prefix = prefix[speaker.end():]
         sentence_prefix = re.split(r"[.!?]\s*", prefix)[-1]
         at_sentence_start = not sentence_prefix.strip(
             " \t\r\n\"'“‘([{"
-        )
+        ) or bool(re.search(r"[:]\s*['\"“‘]\s*$", prefix))  # speech opened after a colon
         if at_sentence_start:
             first_word = _lore_guard_text(candidate.split()[0])
             if first_word in _LORE_SENTENCE_START_WORDS:
@@ -10250,6 +11031,26 @@ _UNVERIFIED_RULER_RESPONSE = (
 )
 
 
+def _rejected_lore_narration(player_input, npc_target=None):
+    """A lore miss on a question stays the rumor line. A social act does not."""
+    text = _normalize_turkish_typos(player_input or "")
+    asked = "?" in str(player_input or "") or bool(re.search(
+        r"\b(?:nedir|kimdir|nerede|ne kadar|soyler misin|anlatir misin)\b", text
+    ))
+    if asked:
+        return _unverified_lore_response(player_input, npc_target)
+    return _generic_no_change_response()
+
+
+def _shown_stage_direction(stage, world_state):
+    """Drop a stage direction that puts an unrecorded object in someone's hand."""
+    if not isinstance(stage, str) or not stage.strip():
+        return ""
+    if _unregistered_held_object(world_state, stage):
+        return ""
+    return stage.strip()
+
+
 def _unverified_lore_response(player_input, npc_target=None):
     text = local_dialogue.normalize_text(player_input)
     speaking_npc = npc_target if isinstance(npc_target, dict) else None
@@ -10375,6 +11176,64 @@ def _narration_has_unsupported_lore_claim(
                 if not linked or not has_outcome_evidence:
                     return True
     return False
+
+
+def _salvage_plain_speech(raw_intent):
+    """Keep a usable reply when only its helper conversation proposal is bad.
+
+    Safe only for plain speech: with a real operation (promise, trade, item
+    request...) a malformed packet must still be vetoed, so nothing is kept.
+    The rejected proposal is cleared and grants no authority.
+    """
+    if not isinstance(raw_intent, dict):
+        return False
+    interaction = raw_intent.get("interaction")
+    narration = raw_intent.get("narration")
+    if not isinstance(interaction, dict):
+        return False
+    if interaction.get("operation") not in (None, "none"):
+        return False
+    if not isinstance(narration, str) or not narration.strip():
+        return False
+    proposal = interaction.get("conversation")
+    # A factual reading (personal purpose, cause, identity, lore...) needs
+    # evidence; without it the answer must stay the in-character "I don't know".
+    if isinstance(proposal, dict) and proposal.get("meaning") not in (None, "other"):
+        return False
+    interaction["conversation"] = None
+    return True
+
+
+_SPEECH_SPAN_RE = re.compile(r"""“[^”]*”|"[^"]*"|(?<!\w)'[^']*'(?!\w)""")
+_TERMINATOR_MASK = {".": "\u0001", "!": "\u0002", "?": "\u0003"}
+
+
+def _split_sentences_keep_speech(text):
+    """Split on sentence ends, but never inside a quoted utterance."""
+    masked = _SPEECH_SPAN_RE.sub(
+        lambda span: "".join(_TERMINATOR_MASK.get(c, c) for c in span.group(0)), text
+    )
+    unmask = {mask: char for char, mask in _TERMINATOR_MASK.items()}
+    return [
+        "".join(unmask.get(c, c) for c in part)
+        for part in re.split(r"(?<=[.!?。！？])\s+", masked)
+    ]
+
+
+def _repair_unsupported_lore_narration(narration, lore_claims, lore_context, world_state):
+    """Drop only the unsupported sentences; None when nothing usable remains."""
+    sentences = _split_sentences_keep_speech(narration)
+    kept = [
+        sentence for sentence in sentences
+        if not _narration_has_unsupported_lore_claim(
+            sentence, lore_claims, lore_context, world_state
+        )
+    ]
+    repaired = _trim_dangling_quote(" ".join(kept).strip())
+    # A removed first sentence can leave an unbalanced quote and no speaker.
+    if not repaired or repaired.count("“") != repaired.count("”"):
+        return None
+    return repaired
 
 
 def _scene_has_registered_craft_role(term, world_state):
@@ -11149,10 +12008,58 @@ DM_RESPONSE_SCHEMA = {
         "world_updates": WORLD_UPDATE_SCHEMA,
         "narration": {"type": "string"},
         "lore_claims": {"type": "array", "items": {"type": "string"}},
+        # Optional (K3): the player's own words as a separate segment, and the
+        # canonical ids of the visible features the narration refers to.
+        "player_line": {
+            "type": "object",
+            "properties": {"text": {"type": "string", "maxLength": 300}},
+            "required": ["text"],
+            "additionalProperties": False,
+        },
+        "feature_refs": {"type": "array", "items": {"type": "string"}, "maxItems": 8},
     },
     "required": ["narration", "world_updates", "lore_claims"],
     "additionalProperties": False,
 }
+
+def _validated_player_line(raw_line, player_input):
+    """Return the player's own line to show, or None. The model never writes it.
+
+    A quote the player supplied beats any model rewrite. Otherwise the model may
+    only point at words the player actually typed: the line must be a bounded,
+    single-line, quote-free substring of the player's own input (whitespace and
+    case normalized). Anything else the model invents is dropped.
+    """
+    if not isinstance(raw_line, dict):
+        return None
+    import npc_speech_boundary
+    supplied = npc_speech_boundary.player_supplied_quote(player_input)
+    if supplied:
+        return supplied
+    text = raw_line.get("text")
+    if not isinstance(text, str) or "\n" in text or "\r" in text:
+        return None
+    text = text.strip()
+    if not text or len(text) > 300 or any(mark in text for mark in "“”«»\""):
+        return None
+    squash = lambda value: " ".join(str(value).split()).casefold()
+    if squash(text) not in squash(player_input or ""):
+        return None
+    return text
+
+
+def _feature_refs_are_visible(refs):
+    """Absent refs are fine; every given id must be a visible feature here."""
+    if refs is None:
+        return True
+    if not isinstance(refs, list) or len(refs) > 8 or not all(isinstance(r, str) for r in refs):
+        return False
+    world_state = _session().world_state
+    visible = {
+        feature.get("id")
+        for feature in living_world.visible_features(world_state, world_state.get("location"))
+    }
+    return all(ref in visible for ref in refs)
 
 
 def _dm_response_schema_for_turn(allow_new_shops=False, narration_only=False):
@@ -11254,7 +12161,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
                 "description": item.get("description"),
                 "aliases": item.get("aliases", []),
             }
-            for item in location_features(location_id)[:16]
+            for item in living_world.visible_features(world_state, location_id)[:16]
             if isinstance(item, dict)
         ],
         "background_referents": references[:4],
@@ -11504,6 +12411,15 @@ def ask_dungeon_master(
         for item in recent_narrations
         if isinstance(item, str) and item.strip()
     ) or "(yok)"
+    lore_claim_guidance = (
+        "Bu narration-only turunda lore_claims boş kalır; citation ekleme. "
+        "PYTHON ACTION RESULT, NARRATION FACTS ve görünür mevcut sahne bilgisini "
+        "mekanik sonucu değiştirmeden doğal biçimde anlat; cümleyi aynen kopyalamak zorunda değilsin. "
+        "Bu görevin dışına çıkarak yeni setting/campaign canon iddiası ekleme. "
+        if narration_only else
+        "Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
+        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
+    )
     user_prompt = (
         "Yalnızca bu turu yanıtla; aynı cümleyi tekrarlama. Oyuncunun iddialarını doğrulanmış gerçek sayma. "
         "RECENT NARRATION listesi yalnızca tekrar ve ifade çeşitliliği içindir; olgusal kaynak değildir. "
@@ -11532,8 +12448,8 @@ def ask_dungeon_master(
         "NPC memory alanını world_updates ile değiştirme; Python belleği yalnızca gerçekleşmiş NPC yanıtlarından yazar. "
         "SETTING REALITY yalnızca VERIFIED LORE AUTHORITY içindeki kaynaklı gerçeklerle belirlenir. "
         "Kendi model belleğini Forgotten Realms kaynağı olarak kullanma; yüklenmemiş veya bilinmeyen "
-        "lore'u uydurma. Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
-        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
+        "lore'u uydurma. "
+        f"{lore_claim_guidance}"
         "Söylenti, inanç ve efsaneleri nesnel gerçek gibi değil, bağlamdaki claim_type ve görünürlükle "
         "uyumlu biçimde aktar. Yeni NPC, konum ve özellikler yalnızca procedural local fiction'dır; "
         "events yalnızca narrative texture'dır. "
@@ -11635,23 +12551,46 @@ def ask_dungeon_master(
     updates = data.get("world_updates", {}) if data else {}
     lore_claims = data.get("lore_claims") if data else None
     claims_supported = _lore_claims_are_supported(lore_claims, lore_context)
-    if not claims_supported:
+    refs_supported = _feature_refs_are_visible(data.get("feature_refs")) if data else True
+    if not claims_supported or not refs_supported:
         narration = None
         updates = {}
+    raw_player_line = data.get("player_line") if data else None
+    if (
+        data and claims_supported and refs_supported
+        and not isinstance(raw_player_line, dict)
+    ):
+        import npc_speech_boundary
+        if npc_speech_boundary.player_supplied_quote(player_input):
+            raw_player_line = {"text": ""}
+    player_line = (
+        _validated_player_line(raw_player_line, player_input)
+        if data and claims_supported and refs_supported else None
+    )
     if return_details:
         return {
             "narration": narration,
             "world_updates": updates if isinstance(updates, dict) else {},
             "lore_claims": lore_claims if claims_supported else [],
-            "valid_response": bool(data) and claims_supported,
+            "player_line": player_line,
+            "valid_response": bool(data) and claims_supported and refs_supported,
             "fallback_reason_code": (
                 "UNVERIFIED_LORE_CLAIM"
                 if not claims_supported
                 else "INVALID_MODEL_RESPONSE"
-                if not data and not (isinstance(narration, str) and narration.strip())
+                if not refs_supported
+                or (not data and not (isinstance(narration, str) and narration.strip()))
                 else None
             ),
         }
+    if not refs_supported:
+        return finalize_narration(
+            _fallback_for_action_result(player_input, action_result),
+            player_input,
+            npc_target,
+            action_result,
+            fallback_reason_code="INVALID_MODEL_RESPONSE",
+        )
     if not claims_supported:
         fallback = _fallback_for_action_result(player_input, action_result)
         return finalize_narration(
@@ -11768,16 +12707,40 @@ def _inspection_findings(player_input, outcome):
         labels = [feature.get("name", ""), *(feature.get("aliases") or [])]
         if any(isinstance(label, str) and label.strip() and _entity_reference_in_text(label, text)
                for label in labels):
-            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if success
+            recorded = _normalize_turkish_typos(" ".join(
+                str(part) for part in (
+                    feature.get("name", ""), feature.get("description") or "", *labels
+                )
+            ))
+            named_absence = []
+            for word in re.findall(r"[a-z0-9]+", text):
+                if len(word) < 6 or word.endswith(("yorum", "iyorum", "uyorum", "sunuz")):
+                    continue
+                stem = re.sub(r"(?:da|de|ta|te|ya|ye|yi|yu|na|ne|nin|nun|in|un|i|u)$", "", word)
+                if stem in recorded or word in recorded:
+                    continue
+                named_absence.append(word)
+            found = success and not named_absence
+            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
                     else f"{feature['name']} üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.")
             return {"target_kind": "feature", "target_id": feature.get("id"),
-                    "target_name": feature.get("name"), "found": success, "text": line}
+                    "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
         line = ("İzleri dikkatle inceliyorsun: kalabalık bir zeminde beklendiği gibi birbirine "
                 "karışmışlar; belirli birinin izini ayırmak bu haliyle mümkün değil." if success
                 else "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.")
         return {"target_kind": "tracks", "target_id": None, "target_name": "izler",
                 "found": False, "text": line}
+    # Only a successful search for a detail the scene lacks is a Python miss;
+    # a failed roll keeps its normal (guarded) failure narration.
+    if success and re.search(r"\b(?:incel|arastir)\w*", text):
+        return {
+            "target_kind": "feature",
+            "target_id": None,
+            "target_name": None,
+            "found": False,
+            "text": "Bu bakışla adlandırdığın ayrıntı seçilmiyor.",
+        }
     return None
 
 
@@ -11900,6 +12863,26 @@ def _record_narration_safety(decision, handling):
         )
 
 
+_QUOTE_CLOSER_RE = re.compile(r"""(?<=[.!?…,])['"”’](?=\s|$)""")
+_QUOTE_OPENER_RE = re.compile(r"""(?:(?<=^)|(?<=[\s:(]))['"“‘](?=\S)""")
+
+
+def _trim_dangling_quote(text):
+    """Drop a leading fragment that ends in a closing quote nobody opened.
+
+    Removing the sentence that carried the opening quote leaves "...alırız.' Fırın
+    kokusu..."; keep only what follows. Untouched when balanced or nothing remains.
+    """
+    closer = _QUOTE_CLOSER_RE.search(text)
+    if closer is None:
+        return text
+    opener = _QUOTE_OPENER_RE.search(text)
+    if opener is not None and opener.start() < closer.start():
+        return text
+    rest = text[closer.end():].strip()
+    return rest if rest else text
+
+
 def _remove_trigger_sentence(narration, decision):
     """Remove one complete unsafe sentence only for deterministic agency repairs."""
     if decision.get("reason_code") not in {
@@ -11923,25 +12906,15 @@ def _remove_trigger_sentence(narration, decision):
                 kept.append(sentence)
         if kept:
             paragraphs.append(" ".join(kept))
-    repaired = "\n\n".join(paragraphs).strip()
+    repaired = _trim_dangling_quote("\n\n".join(paragraphs).strip())
     return repaired if removed else None
 
 
 def _dialogue_repair_has_attributed_answer(narration, npc_target, action_result):
     """Require a bound dialogue turn and actual speech content after repair."""
     if isinstance(narration, dict):
-        return (
-            isinstance(npc_target, dict)
-            and isinstance(npc_target.get("id"), str)
-            and isinstance(action_result, dict)
-            and action_result.get("action") == "dialogue"
-            and action_result.get("status") == "experimental_attributed_speech"
-            and narration.get("source") == "experimental_attributed_speech"
-            and narration.get("speaker_id") == npc_target["id"]
-            and action_result.get("npc_id") == npc_target["id"]
-            and isinstance(narration.get("spoken_text"), str)
-            and bool(narration["spoken_text"].strip())
-        )
+        from npc_speech_boundary import bound_fields
+        return bound_fields(narration, npc_target, action_result) is not None
     if (
         not isinstance(narration, str)
         or not narration.strip()
@@ -11993,6 +12966,17 @@ def _repair_attributed_speech(payload, decision):
     """Remove the trigger only from the source field that contains it."""
     if not isinstance(payload, dict):
         return None
+    if (
+        decision.get("reason_code") in {
+            "UNREGISTERED_NAMED_ENTITY", "PLAYER_NAME_IN_NARRATION",
+            "UNVERIFIED_LORE_CLAIM",
+        }
+        and decision.get("source_field") == "stage_direction"
+    ):
+        # This field marker is produced only for exact, server-bound speech.
+        # Discard the optional scene description, then revalidate every word
+        # of the retained answer. Do not repair a narrator or a speaker ID.
+        return {**payload, "stage_direction": ""}
     trigger = str(decision.get("trigger_span") or "").casefold()
     if not trigger:
         return None
@@ -12163,7 +13147,7 @@ def finalize_narration(
                 else "Selam veriyorsun."
             )
         if not narration:
-            narration = _unverified_lore_response(player_input, npc_target)
+            narration = _rejected_lore_narration(player_input, npc_target)
         handling = "python_fallback"
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
@@ -12180,7 +13164,8 @@ def finalize_narration(
             handling = "python_fallback"
 
     safety = _narration_safety_decision(
-        narration, player_input, npc_target, action_result
+        narration, player_input, npc_target, action_result,
+        attributed_speech=attributed_speech,
     )
     if safety["unsafe"]:
         repaired_payload = (
@@ -12194,13 +13179,15 @@ def finalize_narration(
         )
         repaired_safety = (
             _narration_safety_decision(
-                repaired, player_input, npc_target, action_result
+                repaired, player_input, npc_target, action_result,
+                attributed_speech=repaired_payload,
             )
             if repaired else None
         )
         if safety.get("reason_code") in (
             "WRONG_NPC_SPEAKER_ATTRIBUTION",
             "NPC_MEMORY_DISCLOSURE_LEAK",
+            "REPORTED_NON_ATTACK",
         ):
             narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
@@ -12209,7 +13196,10 @@ def finalize_narration(
             repaired and repaired_safety and not repaired_safety["unsafe"]
             and not (
                 isinstance(action_result, dict)
-                and action_result.get("action") == "dialogue"
+                and (
+                    action_result.get("action") == "dialogue"
+                    or action_result.get("status") == "experimental_attributed_speech"
+                )
                 and not _dialogue_repair_has_attributed_answer(
                     repaired_payload if repaired_payload is not None else repaired,
                     npc_target,
@@ -12230,7 +13220,22 @@ def finalize_narration(
             handling = "python_fallback"
 
     normalized = re.sub(r"\s+", " ", narration).strip().casefold()
-    if any(normalized == old for old in recent_dm_narrations):
+    # Bound speech has already passed the complete safety check (including
+    # revalidation after repair). Repetition alone cannot invalidate its answer.
+    # Likewise, do not replace a safety fallback or overwrite its first reason.
+    import npc_speech_boundary
+    accepted_bound_speech = (
+        handling in {"accepted", "repaired"}
+        and npc_speech_boundary.fields_for_narration(
+            narration, attributed_speech, npc_target, action_result
+        ) is not None
+    )
+    if (
+        handling != "python_fallback"
+        and not accepted_bound_speech
+        and any(normalized == old for old in recent_dm_narrations)
+    ):
+        replaced = True
         if (
             isinstance(action_result, dict)
             and action_result.get("status") == "experimental_attributed_speech"
@@ -12240,13 +13245,29 @@ def finalize_narration(
                 npc_target, player_input, salt=len(recent_dm_narrations)
             )
         else:
-            narration = fallback_for_turn()
-        decision = {
-            "reason_code": "REPEATED_NARRATION",
-            "trigger_span": None,
-            "scene_type": _narration_scene_type(action_result),
-        }
-        handling = "python_fallback"
+            has_resolved_outcome = (
+                isinstance(resolved_fallback_response, str)
+                and bool(resolved_fallback_response.strip())
+            )
+            replacement = fallback_for_turn() if has_resolved_outcome else None
+            if replacement == narration:
+                # A safe answer identical to the resolved receipt was not
+                # replaced. Keep its original safety/repair decision.
+                replaced = False
+            elif replacement is None or replacement in _GENERIC_NO_CHANGE_RESPONSES:
+                # Without a Python-resolved outcome the only substitutes are a
+                # "nothing happens" line or an "I don't know" line; a repeated
+                # real reply beats both.
+                replaced = False
+            else:
+                narration = replacement
+        if replaced:
+            decision = {
+                "reason_code": "REPEATED_NARRATION",
+                "trigger_span": None,
+                "scene_type": _narration_scene_type(action_result),
+            }
+            handling = "python_fallback"
 
     history_target = npc_target
     historical_claim = (
@@ -12772,12 +13793,19 @@ _CREATURE_REFERENCE = re.compile(
 
 
 def _attack_verb_tokens(text):
-    return [
-        token for token in text.split()
-        if re.match(_ATTACK_VERB_PATTERN, token)
-        and not _ATTACK_LOOKALIKE_TOKEN.match(token)
-        and token not in _ATTACK_INSTRUMENT_TOKENS
-    ]
+    import grounded_action
+    verbs = []
+    for token in text.split():
+        match = re.match(_ATTACK_VERB_PATTERN, token)
+        if not match or _ATTACK_LOOKALIKE_TOKEN.match(token) or token in _ATTACK_INSTRUMENT_TOKENS:
+            continue
+        tail = token[match.end():]
+        # Reuse the action owner's morphology instead of treating every word
+        # beginning with an attack stem as an attack (Kestrin, keskin, saldırgan).
+        if (not tail or grounded_action._VERB_TAIL.fullmatch(tail)
+                or grounded_action._NEGATIVE_TAIL.match(tail)):
+            verbs.append(token)
+    return verbs
 
 
 def _names_present_creature(text):
@@ -12803,6 +13831,15 @@ def _has_explicit_attack_verb(player_input):
         index for index, token in enumerate(tokens)
         if token in _attack_verb_tokens(token)
     ]
+    if not attack_positions:
+        return False
+    import grounded_action
+    # A complete named phrase (e.g. Keser Hanı) is not a verb. Do not let
+    # an isolated name equal to an imperative (an NPC named Kes) hide "onu kes".
+    known_targets = combat_lifecycle.registered_name_candidates(_session())
+    attack_positions = [index for index in attack_positions
+                        if not grounded_action._registered_target_name_covers(
+                            tokens, index, known_targets, strict=True)]
     if not attack_positions:
         return False
     # "Kapıya vuruyorum", "zili çalıp vuruyorum", "halatın ucunu kesip": the
@@ -12844,14 +13881,78 @@ def _is_explicitly_negated_attack(player_input):
     ))
 
 
-def execute_intent(intent, player_input, npc_target=None, target_id=None):
+def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None):
+    """Pure opt-in admission, not a new normal-command or PHB restriction.
+
+    Only bounded standalone immediate wording is supported. Other owners retain
+    their priority; timed, mixed, model-only and context-dependent routes refuse.
+    """
+    import barbarian_rage
+    if interaction_mode != 'do' or combat_action is not None or target_id is not None:
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'Use Primal Knowledge only for an immediate Do check.', 400)
+    world = _session().world_state
+    text = _normalize_turkish_typos(player_input) if type(player_input) is str else ''
+    simple = re.fullmatch(
+        r'(?:takla (?:atiyorum|atacagim|atmaya calisiyorum|atmak istiyorum)|'
+        r'dengede (?:yuruyorum|ilerliyorum|kaliyorum|geciyorum)|'
+        r'(?:ip|halat) uzerinde (?:yuruyorum|ilerliyorum)|'
+        r'akrobatik hareket (?:yapiyorum|ediyorum)|'
+        r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
+        r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
+        r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
+        r'(?:gizleniyorum|saklaniyorum)|'
+        r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
+        r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
+        r')[.! ]*', text,
+    )
+    journey = world.get('journey')
+    movement, wait, task, observation = timed_gameplay.input_route_markers(world, text)
+    timed = ((wait or task or observation) and campaign_time.requested_duration(player_input) is not None)
+    if (not simple or timed or world.get('active_task')
+            or (journey and journey.get('status') != 'ARRIVED')
+            or any(event.get('decision_status') == 'PENDING' for event in timed_gameplay.pending_events(world))
+            or adventure_play.inside_hideout(world)
+            or (isinstance(scene_plan, dict) and scene_plan.get('direct_result') is not None)):
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'This wording or route does not support an immediate Primal Knowledge check.', 400)
+    selected = deterministic_check_for_action(player_input)
+    skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
+    barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
+    return selected
+
+
+def execute_intent(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
+    if check_feature is None:
+        return _execute_intent_internal(intent, player_input, npc_target, target_id)
+    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+        raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    if isinstance(intent, dict) and intent.get('intent') in {'travel', 'attack', 'combat'}:
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'The selected intent is not an immediate check.', 400)
+    primal_knowledge_check_admission(player_input, target_id=target_id)
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _execute_intent_internal(intent, player_input, npc_target, target_id,
+                                          check_feature=check_feature, check_evidence=evidence)
+        if result.get('action') != 'skill_check' or len(evidence) != 1:
+            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _execute_intent_internal(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
     world_state = _session().world_state
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
         raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
-    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input):
+    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input) and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
         raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
     before = _world_snapshot()
     result = {
@@ -12860,6 +13961,15 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         "status": "resolved",
         "state_changes": [],
     }
+    if intent_type in {"attack", "combat"} and combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
+        result.update(
+            action="narrative",
+            success=None,
+            status="not_executed",
+            outcome="reported_not_attack",
+            state_changes=[],
+        )
+        return result
 
     if _is_door_inspection_request(player_input) and _current_door() is None:
         result.update({
@@ -12922,7 +14032,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         return result
 
     # Handle identity/location/presence queries
-    query_type = _detect_query_type(player_input, npc_target) or intent.get("query_type")
+    model_query_type = (
+        intent.get("query_type") if _model_query_type_is_plausible(player_input) else None
+    )
+    query_type = _detect_query_type(player_input, npc_target) or model_query_type
     if query_type:
         query_response = _handle_query(player_input, query_type, npc_target)
         if query_response:
@@ -13027,7 +14140,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             skill = inferred_skill
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
-        ability = SKILLS[skill]
+        ability = "strength" if check_feature is not None else SKILLS[skill]
         trait_state = _species_trait_state()
         check_result = perform_skill_check(
             skill,
@@ -13036,6 +14149,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             _session().character["proficient_skills"],
             _session().character["proficiency_bonus"],
             expertise_skills=_session().character.get("expertise_skills", ()),
+            **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {}),
             advantage=(
                 ability == "strength"
                 and trait_state.get("large_form_turns_remaining", 0) > 0
@@ -13049,6 +14163,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             "skill": check_result["skill"],
             "ability": check_result["ability"],
             "dice": check_result["dice"],
+            **({"dice_rolls": check_result["dice_rolls"]} if check_feature is not None else {}),
             "modifier": check_result["modifier"],
             "proficiency_bonus": check_result["proficiency_bonus"],
             "expertise": check_result["expertise"],
@@ -13084,6 +14199,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         return result
 
     python_reply = resolve_python_world_action(player_input)
+    if isinstance(python_reply, dict):
+        result.update(python_reply)
+        return result
     if python_reply:
         result.update({
             "action": "world_interaction",
@@ -13726,14 +14844,75 @@ def _scene_feature_match(player_input, location_id):
         if not isinstance(feature, dict) or feature.get("location") != location_id:
             continue
         aliases = [feature.get("name", ""), *feature.get("aliases", [])]
-        if any(
-            _entity_reference_in_text(alias, text)
-            or living_world.normalize_text(alias) in text
-            for alias in aliases
-            if isinstance(alias, str) and alias
-        ):
-            matches.append(feature)
-    return matches
+        best = 0
+        for alias in aliases:
+            if not isinstance(alias, str) or not alias.strip():
+                continue
+            if (
+                _entity_reference_in_text(alias, text)
+                or living_world.normalize_text(alias) in text
+            ):
+                words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(alias))
+                best = max(best, len(words))
+        if best:
+            matches.append((best, feature))
+    if not matches:
+        return []
+    longest = max(score for score, _feature in matches)
+    return [feature for score, feature in matches if score == longest]
+
+
+def resolve_scene_seating(action_input):
+    """Seat the player at one visible seat here, or say why that is not possible.
+
+    Single owner of the sit decision for the direct scene action and for the
+    compound grounded action. Hidden or undiscovered features are not
+    candidates (``living_world.visible_features`` is the visibility owner) and
+    their names are never disclosed.
+    """
+    world_state = _session().world_state
+    current = world_state.get("location")
+    visible = living_world.visible_features(world_state, current)
+    visible_ids = {feature.get("id") for feature in visible}
+    features = [
+        feature for feature in _scene_feature_match(action_input, current)
+        if feature.get("id") in visible_ids
+    ]
+    seats = [
+        feature for feature in visible
+        if feature.get("kind") in ("furnishing", "seat", "table", "bench")
+    ]
+    target = features[0] if len(features) == 1 else (seats[0] if seats else None)
+    if len(features) > 1:
+        return {
+            "action": "sit",
+            "status": "clarification",
+            "success": False,
+            "state_changes": [],
+            "direct_response": "Birden fazla uygun yer var; hangi masaya oturmak istediğini belirtir misin?",
+        }
+    if target:
+        living_world.set_player_position(world_state, current, "seated", target.get("id"))
+        target_name = str(target.get("name") or "seçtiğin yer").strip()
+        return {
+            "action": "sit",
+            "status": "completed",
+            "success": True,
+            "target_id": target.get("id"),
+            "target_name": target.get("name"),
+            "state_changes": [],
+            "direct_response": (
+                f"“{target_name}” yakınında uygun bir yere oturup "
+                "yerleşiyorsun."
+            ),
+        }
+    return {
+        "action": "sit",
+        "status": "unresolved",
+        "success": False,
+        "state_changes": [],
+        "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
+    }
 
 
 def _direct_npc_smalltalk_response(player_input, npc_target):
@@ -13792,7 +14971,7 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
         )
 
     if _is_conversation_start_input(player_input):
-        return f'{name} sana dönüyor. “Seni dinliyorum,” der.'
+        return _conversation_opening_line(name)
 
     if _is_local_place_question(player_input):
         location_name = location_display_name()
@@ -13967,14 +15146,54 @@ def _scene_presence_text(location_id):
     return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
 
 
+_LOOK_OPENINGS = (
+    "{name} çevresine göz gezdiriyorsun.",
+    "Bakışların {name} çevresinde bir kez daha dolaşıyor.",
+    "Bir an durup {name} çevresindeki hareketi izliyorsun.",
+    "{name} çevresini yeniden, bu sefer daha dikkatle süzüyorsun.",
+)
+
+
+def _variation_index(key, size):
+    """0 on first use of ``key``, then one step per turn; stable within a turn.
+
+    Transient presentation state only: never saved, never read by rules.
+    """
+    session = _session()
+    store = session.__dict__.setdefault("_variation_state", {})
+    turn = session.world_state.get("flags", {}).get("turn_index", 0)
+    last_turn, count = store.get(key, (None, -1))
+    if last_turn != turn:
+        count += 1
+        store[key] = (turn, count)
+    return store[key][1] % size
+
+
+def _look_opening(location_name):
+    """First look keeps the plain line; repeated looks do not repeat it verbatim."""
+    openings = [line.format(name=location_name) for line in _LOOK_OPENINGS]
+    return openings[_variation_index(("look", location_name), len(openings))]
+
+
+_CONVERSATION_OPENINGS = (
+    "{name} sana dönüyor. “Seni dinliyorum,” der.",
+    "{name} işini bir an bırakıp sana bakıyor. “Buyur, ne vardı?” diye sorar.",
+    "{name} başını kaldırıyor. “Evet, söyle bakalım,” der.",
+    "{name} hafifçe gülümsüyor. “Yine sen! Dinliyorum,” der.",
+)
+
+
+def _conversation_opening_line(name):
+    """The first opening is the plain line; later ones with the same person vary."""
+    openings = [line.format(name=name) for line in _CONVERSATION_OPENINGS]
+    return openings[_variation_index(("opening", name), len(openings))]
+
+
 def _scene_look_text(location_id):
     world_state = _session().world_state
     location_name = location_display_name(location_id)
-    people = _scene_names(location_id)
-    features = [
-        item for item in location_features(location_id)
-        if isinstance(item, dict)
-    ]
+    people = [npc for npc in _scene_names(location_id) if not npc.get("hidden")]
+    features = living_world.visible_scene_facts(world_state).get("features", [])
     turn_index = world_state.get("flags", {}).get("turn_index", 0)
     scene = living_world.ensure_scene_record(
         world_state,
@@ -13985,7 +15204,7 @@ def _scene_look_text(location_id):
         living_world.expire_referents(
             world_state, turn_index, location_id=location_id
         )
-    parts = [f"{location_name} çevresine göz gezdiriyorsun."]
+    parts = [_look_opening(location_name)]
     if people:
         parts.append(
             "Yakında " + living_world.public_scene_people(people[:3]) + " var."
@@ -14051,15 +15270,6 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     """Resolve ordinary local actions and materialize before scoped lore lookup."""
     world_state = _session().world_state
     interaction_mode = _normalize_interaction_mode(interaction_mode)
-    # LR00 fix: a turn the grounded owner will take must not get this planner's
-    # side effects first (a tavern created by a tavern search, a person made
-    # the active interlocutor by an approach). The dry run writes nothing.
-    import grounded_action
-    if grounded_action.resolve_turn(
-        _session(), player_input, interaction_mode=interaction_mode, target_id=target_id, dry_run=True,
-    ):
-        return {"direct_result": None, "state_changes": [],
-                "procedural_entity_ids_before": _current_procedural_entity_ids()}
     anchored_structure = living_world.is_anchored_structure_inquiry(player_input)
     affirmative_anchored_inspection = (
         anchored_structure
@@ -14233,11 +15443,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         action == "enter"
         and target_id is None
         and resolve_location_reference(entry_text) is None
-        and not re.search(
-            r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
-            str(entry_text),
-            re.IGNORECASE,
-        )
+        and not living_world.has_tavern_reference(entry_text)
     ):
         targetless_entry_reference = living_world.resolve_entry_target_reference(
             world_state,
@@ -14249,6 +15455,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         scheduled_events.pending_events(world_state)
         or
         campaign_time.requested_duration(player_input) is not None
+        or timed_gameplay.explicit_wait_request(player_input)
         or timed_gameplay.clock.normalize(player_input).startswith(
             ("sabaha kadar", "yola devam", "yolculuga devam", "geri don")
         )
@@ -14343,13 +15550,16 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     if not combat.get("active") and action == "enter":
         text = str(entry_text)
         candidate = None
-        explicit_tavern_target = bool(re.search(
-            r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
-            text,
-            re.IGNORECASE,
-        ))
+        explicit_tavern_target = living_world.has_tavern_reference(text)
+        named_candidate = resolve_location_reference(text)
+        named_record = world_state.get("locations", {}).get(named_candidate, {})
         if target_id is not None:
             candidate = target_id
+        elif (isinstance(named_record, dict)
+              and named_record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"):
+            # An existing canonical destination wins over a generic venue noun.
+            # Never substitute/create another inn for a named shop or locked door.
+            candidate = named_candidate
         elif explicit_tavern_target:
             root_location = current
             while _engine_location_parent(root_location):
@@ -14359,7 +15569,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             )
             candidate = existing_tavern.get("id") if existing_tavern else None
         if candidate is None:
-            candidate = resolve_location_reference(text)
+            candidate = named_candidate
         if (
             candidate is None
             and target_id is None
@@ -14375,32 +15585,15 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             and candidate_record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
             and candidate_record.get("parent_location_id") == current
         ):
-            venue_door = _venue_entry_door(world_state, current, candidate)
-            if venue_door is not None:
-                direct = {
-                    "action": "enter",
-                    "status": "blocked",
-                    "success": False,
-                    "target_id": candidate,
-                    "state_changes": [],
-                    "direct_response": (
-                        f"{location_display_name(candidate)} girişindeki "
-                        f"{venue_door.get('name', 'Kapı')} kilitli. İçeri geçemezsin."
-                    ),
-                }
-            else:
-                commit_location_change(candidate, turn_index=turn_index)
-                direct = {
-                    "action": "enter",
-                    "status": "completed",
-                    "success": True,
-                    "target_id": candidate,
-                    "state_changes": [],
-                    "direct_response": (
-                        "Kapıdan içeri giriyorsun. "
-                        + _scene_presence_text(candidate)
-                    ),
-                }
+            entry = grounded_action.enter_existing_place(_session(), candidate)
+            direct = {
+                "action": "enter",
+                "status": entry["status"],
+                "success": entry["status"] == "completed",
+                "target_id": candidate,
+                "state_changes": [],
+                "direct_response": entry["text"],
+            }
         elif (
             candidate == current
             and isinstance(candidate_record, dict)
@@ -14618,7 +15811,13 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "status": "observed",
                     "success": True,
                     "state_changes": [],
-                    "direct_response": _scene_look_text(look_location),
+                    "direct_response": (
+                        living_world.visible_contents_text(world_state)
+                        if living_world.is_visible_contents_query(player_input)
+                        else _scene_look_text(look_location)
+                    ),
+                    **({"explore_type": "observe"}
+                       if living_world.is_visible_contents_query(player_input) else {}),
                 }
         elif action == "approach":
             speech_part = "?" in str(action_input) or re.search(
@@ -14666,44 +15865,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "direct_response": __import__("grounded_action").clarification_text(_session()),
                 }
         elif action == "sit":
-            features = _scene_feature_match(action_input, current)
-            seats = [
-                feature for feature in location_features(current)
-                if isinstance(feature, dict)
-                and feature.get("kind") in ("furnishing", "seat", "table", "bench")
-            ]
-            target = features[0] if len(features) == 1 else (seats[0] if seats else None)
-            if len(features) > 1:
-                direct = {
-                    "action": "sit",
-                    "status": "clarification",
-                    "success": False,
-                    "state_changes": [],
-                    "direct_response": "Birden fazla uygun yer var; hangi masaya oturmak istediğini belirtir misin?",
-                }
-            elif target:
-                living_world.set_player_position(world_state, current, "seated", target.get("id"))
-                target_name = str(target.get("name") or "seçtiğin yer").strip()
-                direct = {
-                    "action": "sit",
-                    "status": "completed",
-                    "success": True,
-                    "target_id": target.get("id"),
-                    "target_name": target.get("name"),
-                    "state_changes": [],
-                    "direct_response": (
-                        f"“{target_name}” yakınında uygun bir yere oturup "
-                        "yerleşiyorsun."
-                    ),
-                }
-            else:
-                direct = {
-                    "action": "sit",
-                    "status": "unresolved",
-                    "success": False,
-                    "state_changes": [],
-                    "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
-                }
+            direct = resolve_scene_seating(action_input)
         elif action == "stand":
             living_world.set_player_position(world_state, current, "standing")
             direct = {
@@ -15045,7 +16207,57 @@ def _adventure_travel_reply(session, destination):
     }
 
 
+def _intent_infrastructure_result(error):
+    """The existing retryable result, emitted only for a typed engine exception."""
+    text = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+    return {
+        "narration": text,
+        "action_result": {
+            "action": "unknown",
+            "status": "infrastructure_failure",
+            "success": False,
+            "state_changes": [],
+            "infrastructure_code": error.code,
+            "direct_response": text,
+        },
+    }
+
+
 def run_player_turn(
+    player_input, messages=None, target_id=None, scene_plan=None,
+    action_id=None, session_id=None, combat_action=None, interaction_mode=None,
+    check_feature=None, check_evidence=None,
+):
+    if check_feature is None:
+        return _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
+                                session_id, combat_action, interaction_mode)
+    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+        raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    primal_knowledge_check_admission(player_input, interaction_mode=interaction_mode,
+                                     combat_action=combat_action, scene_plan=scene_plan, target_id=target_id)
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
+                                  session_id, combat_action, interaction_mode,
+                                  check_feature=check_feature, check_evidence=evidence)
+        if result.get('action_result', {}).get('action') != 'skill_check' or len(evidence) != 1:
+            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+    except IntentInfrastructureError as error:
+        # Preserve the API's retryable 503 path, not a permanent feature refusal.
+        _session()._restore_runtime_snapshot(snapshot)
+        return _intent_infrastructure_result(error)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _run_player_turn(
     player_input,
     messages=None,
     target_id=None,
@@ -15054,19 +16266,43 @@ def run_player_turn(
     session_id=None,
     combat_action=None,
     interaction_mode=None,
+    check_feature=None,
+    check_evidence=None,
 ):
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
     before = copy.deepcopy(_session().world_state)
-    result = _dispatch_player_turn(
-        player_input,
-        messages,
-        target_id,
-        scene_plan,
-        action_id,
-        session_id,
-        combat_action,
-        interaction_mode,
-    )
+    before_hp = _session().character.get("current_hp")
+    try:
+        runtime_snapshot = _session()._capture_runtime_snapshot()
+    except AttributeError:
+        # A test die without getstate cannot be snapshotted; the API restores its own.
+        runtime_snapshot = None
+    turn_index_before = _session().world_state.get("flags", {}).get("turn_index", 0)
+    try:
+        result = _dispatch_player_turn(
+            player_input,
+            messages,
+            target_id,
+            scene_plan,
+            action_id,
+            session_id,
+            combat_action,
+            interaction_mode,
+            **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {}),
+        )
+    except IntentInfrastructureError as error:
+        if check_feature is not None:
+            # The outer opt-in owner restores its earlier snapshot and formats
+            # this typed failure. No arbitrary status dictionary bypasses proof.
+            raise
+        # The classifier could not run: nothing was decided, so nothing is kept.
+        if runtime_snapshot is not None:
+            _session()._restore_runtime_snapshot(runtime_snapshot)
+        else:
+            _session().world_state.setdefault("flags", {})["turn_index"] = turn_index_before
+        return _intent_infrastructure_result(error)
+    import dialogue_runtime
+    dialogue_runtime.observe_turn(_session(), before, before_hp, result, player_input, action_id)
     action_result = result.get("action_result") if isinstance(result, dict) else None
     resolution = (
         action_result.get("resolution")
@@ -15117,12 +16353,16 @@ def run_player_turn(
         )
     if isinstance(result, dict) and isinstance(action_result, dict):
         _session()._publish_level_up(action_result)
+        local_dialogue.remember_native_reply(
+            _session().world_state, action_result, player_input, result.get("narration")
+        )
     return result
 
 
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
+    check_feature=None, check_evidence=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
@@ -15152,6 +16392,7 @@ def _dispatch_player_turn(
         require_player_can_act()
         active = _active_interlocutor()
         _clear_active_interlocutor()
+        interaction_adventure.retire_conversation_focus(_session().world_state)
         if active is None:
             narration = "Şu anda sürdürdüğün bir konuşma yok."
             status = "no_effect"
@@ -15170,6 +16411,15 @@ def _dispatch_player_turn(
                 "state_changes": ["conversation"] if active is not None else [],
             },
         }
+    if combat_action is None:
+        import dialogue_runtime
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            free_dialogue = dialogue_runtime.resolve_turn(
+                _session(), player_input, interaction_mode=interaction_mode,
+                target_id=target_id, action_id=action_id,
+            )
+        if free_dialogue is not None:
+            return free_dialogue
     if combat_action is None and interaction_mode in {"say", "ask_dm"}:
         if (
             interaction_mode == "ask_dm"
@@ -15181,7 +16431,8 @@ def _dispatch_player_turn(
         if action_id is None:
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -15190,7 +16441,8 @@ def _dispatch_player_turn(
         with resolution_action_scope(action_id, session_id):
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -15301,7 +16553,8 @@ def _dispatch_player_turn(
     if action_id is None:
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -15310,7 +16563,8 @@ def _dispatch_player_turn(
     with resolution_action_scope(action_id, session_id):
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -15526,12 +16780,28 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
     claims = packet.get("lore_claims", [])
-    if not _lore_claims_are_supported(claims, lore_context) or (
-        _narration_has_unsupported_lore_claim(
-            packet.get("narration"), claims, lore_context,
-            _session().world_state,
-        )
+    if (narration_only and not claims and resolved_turn.npc_target is None
+            and isinstance(packet.get("narration"), str)):
+        # The narration-only prompt asks for no citations; a narration that only
+        # restates public official facts is bound to them here instead.
+        from api.lore_authority.claim_authorization import exact_narration_evidence_ids
+        exact_ids = exact_narration_evidence_ids(packet["narration"], lore_context)
+        if exact_ids:
+            claims = exact_ids
+            packet["lore_claims"] = exact_ids
+    lore_unsupported = not _lore_claims_are_supported(claims, lore_context)
+    if not lore_unsupported and _narration_has_unsupported_lore_claim(
+        packet.get("narration"), claims, lore_context, _session().world_state,
     ):
+        # Repair before replacing: keep every sentence the guard accepts.
+        repaired_lore = _repair_unsupported_lore_narration(
+            packet.get("narration"), claims, lore_context, _session().world_state,
+        )
+        if repaired_lore:
+            packet["narration"] = repaired_lore
+        else:
+            lore_unsupported = True
+    if lore_unsupported:
         packet["valid_response"] = False
         packet["fallback_reason_code"] = "UNVERIFIED_LORE_CLAIM"
 
@@ -15573,6 +16843,24 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     safety_diag = getattr(_session(), "last_narration_safety", {}) or {}
     validation_result = safety_diag.get("handling", "accepted")
     fallback_reason = safety_diag.get("reason_code") or packet.get("fallback_reason_code")
+
+    shown_player_line = packet.get("player_line")
+    if (
+        shown_player_line
+        and packet.get("valid_response")
+        and packet.get("narration")
+        and not rejected_scene_detail_proposal
+        and validation_result in ("accepted", "repaired")
+    ):
+        # The player's own words are a separate, attributed segment, never NPC speech.
+        import npc_speech_boundary
+        body = npc_speech_boundary.strip_player_quote(
+            final_dict["narration"], player_input
+        )
+        final_dict["narration"] = (
+            f"Sen: “{shown_player_line}”\n\n{body}".strip()
+            if body else f"Sen: “{shown_player_line}”"
+        )
 
     if validation_result in ("python_memory_response", "python_memory_fallback"):
         narration_source = "python_memory_response"
@@ -15659,8 +16947,13 @@ def _owner_module_reply(player_input, interaction_mode):
 
 def _run_player_turn_internal(
     player_input, messages=None, target_id=None, scene_plan=None,
-    interaction_mode=None, action_id=None,
+    interaction_mode=None, action_id=None, check_feature=None, check_evidence=None,
 ):
+    def resolve_intent(*args, **kwargs):
+        if check_feature is not None:
+            kwargs.update(check_feature=check_feature, check_evidence=check_evidence)
+        return execute_intent(*args, **kwargs)
+
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     narration_model_calls = 0
     narration_source = "deterministic_system"
@@ -15897,6 +17190,7 @@ def _run_player_turn_internal(
             isinstance(action_result, dict)
             and isinstance(npc_target, dict)
             and isinstance(npc_target.get("id"), str)
+            and action_result.get("action") != "character_query"
         ):
             action_result.setdefault("npc_id", npc_target["id"])
         if isinstance(action_result, dict) and isinstance(scene_plan, dict):
@@ -16082,6 +17376,12 @@ def _run_player_turn_internal(
         interaction = (
             raw.get("interaction") if isinstance(raw, dict) else None
         )
+        # A quoted note is not speech to the NPC. A bad conversation reading
+        # must not replace the turn with an in-character refusal.
+        if combat_lifecycle.quoted_report(_session(), player_input):
+            if isinstance(interaction, dict):
+                interaction["conversation"] = None
+            return None, False
         proposal_present = (
             isinstance(interaction, dict)
             and interaction.get("conversation") is not None
@@ -16109,7 +17409,9 @@ def _run_player_turn_internal(
         action_result = interaction_adventure.resolve(_session(), player_input, compound)
         return finish_turn(
             action_result, action_result["direct_response"],
-            is_final=action_result["status"] != "recorded",
+            # Recording intentions is not executing them. Keep the exact
+            # receipt rather than inviting prose to turn a plan into movement.
+            is_final=True,
         )
 
     ensure_campaign_clock()
@@ -16391,6 +17693,7 @@ def _run_player_turn_internal(
         if not combat["active"] and interaction_mode != "say"
         else None
     )
+    focused_npc_before_targeting = _active_interlocutor()
     if target_id is not None:
         if not isinstance(target_id, str) or not target_id:
             result = {
@@ -16403,19 +17706,19 @@ def _run_player_turn_internal(
             }
             return finish_turn(result, result["direct_response"])
         npc_target = None
+        selected_npc_target = next(
+            (npc for npc in (_conversation_npcs() if interaction_mode == "say" else active_npcs())
+             if isinstance(npc, dict) and npc.get("id") == target_id), None,
+        ) if not combat["active"] else None
         if not combat["active"] and (
             interaction_mode == "say"
             or not world_subject_question
             or local_dialogue.is_local_dialogue_input(player_input)
+            or (_npc_speech_enabled() and interaction_mode in {None, "do", "say"}
+                and is_npc_dialogue_input(player_input))
+            or _is_spoken_to(player_input, selected_npc_target)
         ):
-            npc_target = next(
-                (
-                    npc
-                    for npc in (_conversation_npcs() if interaction_mode == "say" else active_npcs())
-                    if isinstance(npc, dict) and npc.get("id") == target_id
-                ),
-                None,
-            )
+            npc_target = selected_npc_target
             if npc_target is not None:
                 flags["last_npc_id"] = npc_target["id"]
                 flags["active_npc_id"] = npc_target["id"]
@@ -16449,10 +17752,27 @@ def _run_player_turn_internal(
                 force_dialogue=True,
                 allow_active_fallback=False,
             )
-            if interaction_mode == "say"
+            if (interaction_mode == "say" or (interaction_mode in {None, "do"} and _npc_speech_enabled()))
             and (world_subject_question or scene_exploration_question)
             else {"status": "none", "npc": None}
         )
+        if (interaction_mode != "say"
+                and explicit_dialogue_resolution["status"] == "found"
+                and not _is_spoken_to(player_input, explicit_dialogue_resolution["npc"])):
+            explicit_dialogue_resolution = {"status": "none", "npc": None}
+        if (
+            explicit_dialogue_resolution["status"] == "none"
+            and _npc_speech_enabled()
+            and interaction_mode in {None, "do", "say"}
+            and focused_npc_before_targeting is not None
+            and is_npc_dialogue_input(player_input)
+        ):
+            focused_resolution = resolve_npc_reference(player_input, force_dialogue=True)
+            if (focused_resolution.get("status") == "found"
+                    and focused_resolution["npc"].get("id") == focused_npc_before_targeting.get("id")):
+                # An already validated, current interlocutor owns the follow-up.
+                # A topic word must not discard it or spend a target-parser call.
+                explicit_dialogue_resolution = focused_resolution
         if explicit_dialogue_resolution["status"] == "found":
             world_subject_question = False
             scene_exploration_question = False
@@ -16521,6 +17841,7 @@ def _run_player_turn_internal(
                     player_input, world_state, interaction_mode
                 ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
+                strict=True,
             )
             scene_preparse_model_calls = 1
             intent_model_calls = scene_preparse_model_calls
@@ -16565,7 +17886,7 @@ def _run_player_turn_internal(
                 interaction_mode not in {"say", "ask_dm"}
                 and _has_explicit_attack_verb(player_input)
             ):
-                action_result = execute_intent(
+                action_result = resolve_intent(
                     {"intent": "attack"},
                     player_input,
                 )
@@ -16583,9 +17904,17 @@ def _run_player_turn_internal(
 
     if (
         target_id is None
-        and interaction_mode == "say"
+        and (
+            interaction_mode == "say"
+            or (interaction_mode in {None, "do"} and should_generate_npcs(player_input))
+        )
         and npc_target is not None
         and preparsed_scene_intent is None
+        and not (
+            focused_npc_before_targeting is not None
+            and npc_target.get("id") == focused_npc_before_targeting.get("id")
+            and not should_generate_npcs(player_input)
+        )
         and is_npc_dialogue_input(player_input)
         and not local_dialogue.personal_question_kind(player_input)
         and not resolve_npc_reference(
@@ -16604,6 +17933,7 @@ def _run_player_turn_internal(
                 player_input, world_state, interaction_mode
             ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
+                strict=True,
         )
         scene_preparse_model_calls = 1
         intent_model_calls = scene_preparse_model_calls
@@ -16743,13 +18073,13 @@ def _run_player_turn_internal(
 
     # An explicit hostile decision is already mechanically meaningful input.
     # Do not let a model reinterpret it as dialogue or an NPC interaction.
-    # Target resolution above and execute_intent() remain the existing combat
+    # Target resolution above and resolve_intent() remain the existing combat
     # owners; this is only deterministic routing precedence.
     if (
         interaction_mode not in {"say", "ask_dm"}
         and combat_lifecycle.is_attack_decision(_session(), player_input)
     ):
-        action_result = execute_intent(
+        action_result = resolve_intent(
             {"intent": "attack"},
             player_input,
             npc_target=npc_target,
@@ -16773,7 +18103,7 @@ def _run_player_turn_internal(
     if (interaction_mode not in {"say", "ask_dm"}
             and target_id is None and not combat["active"]
             and _explicit_sword_drop(player_input)):
-        action_result = execute_intent({"intent": "inventory"}, player_input)
+        action_result = resolve_intent({"intent": "inventory"}, player_input)
         return finish_turn(
             action_result,
             action_result.get("direct_response") or _fallback_for_action_result(
@@ -16784,6 +18114,7 @@ def _run_player_turn_internal(
 
     interaction_hint = (
         None if interaction_mode == "ask_dm"
+        or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
     if interaction_hint and not combat["active"]:
@@ -17008,37 +18339,48 @@ def _run_player_turn_internal(
             r"[^A-Za-zÇĞİÖŞÜçğıöşü'’-]", "", disclosed_name
         ).strip("'’-")
         if safe_name:
-            npc_name = living_world.public_npc_name(npc_target)
-            narration = (
-                f'{npc_name}, “Memnun oldum, {safe_name}. '
-                'Adını hatırlayacağım,” diye yanıt verir.'
+            compound_speech = (
+                _npc_speech_enabled()
+                and local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
             )
-            # A single utterance may introduce the player AND ask who the
-            # addressee is. Both answers come from verified Python state.
-            if _detect_query_type(player_input, npc_target) == "npc_identity":
-                identity_reply = _handle_query(player_input, "npc_identity", npc_target)
-                if identity_reply:
-                    narration += " " + identity_reply
-            action_result = {
-                "action": "dialogue",
-                "status": "player_name_disclosed",
-                "success": True,
-                "npc_id": npc_target["id"],
-                "state_changes": ["npcs.memory"],
-            }
-            record_npc_interaction(
-                npc_target, narration, player_input, npc_target
-            )
-            return finish_turn(
-                action_result,
-                narration,
-                safety_reason_code="NPC_MEMORY_EXPLICIT_PLAYER_NAME",
-                safety_handling="python_memory_response",
-            )
+            if compound_speech:
+                local_dialogue.remember_explicit_player_name(npc_target, safe_name)
+            if compound_speech and _detect_query_type(player_input, npc_target) == "npc_identity":
+                # The player requested this identity. Python decides disclosure;
+                # the model receives the now-public name, not hidden identity.
+                _handle_query(player_input, "npc_identity", npc_target)
+            if not compound_speech:
+                npc_name = living_world.public_npc_name(npc_target)
+                narration = (
+                    f'{npc_name}, “Memnun oldum, {safe_name}. '
+                    'Adını hatırlayacağım,” diye yanıt verir.'
+                )
+                # A single utterance may introduce the player AND ask who the
+                # addressee is. Both answers come from verified Python state.
+                if _detect_query_type(player_input, npc_target) == "npc_identity":
+                    identity_reply = _handle_query(player_input, "npc_identity", npc_target)
+                    if identity_reply:
+                        narration += " " + identity_reply
+                action_result = {
+                    "action": "dialogue",
+                    "status": "player_name_disclosed",
+                    "success": True,
+                    "npc_id": npc_target["id"],
+                    "state_changes": ["npcs.memory"],
+                }
+                record_npc_interaction(
+                    npc_target, narration, player_input, npc_target
+                )
+                return finish_turn(
+                    action_result,
+                    narration,
+                    safety_reason_code="NPC_MEMORY_EXPLICIT_PLAYER_NAME",
+                    safety_handling="python_memory_response",
+                )
 
     if isinstance(npc_target, dict) and isinstance(npc_target.get("id"), str):
         query_type = _detect_query_type(player_input, npc_target)
-        if query_type == "npc_identity" and interaction_mode != "say":
+        if query_type == "npc_identity" and local_dialogue.is_identity_only_question(player_input, npc_target):
             query_response = _handle_query(
                 player_input, query_type, npc_target
             )
@@ -17226,18 +18568,30 @@ def _run_player_turn_internal(
         }
         return finish_turn(action_result, supported_lore_response)
 
-    # The keyword-based topical gate would block harmless personal opinions in
-    # an experimental say session. The entity-aware claim check below still
-    # applies, and the model's speech stays attributed and non-canonical.
-    experimental_say_session = (
-        interaction_mode == "say"
-        and npc_target is not None
-        and _npc_speech_enabled()
-    )
     npc_place_recommendation = (
         isinstance(npc_target, dict)
         and interaction_mode != "ask_dm"
         and local_dialogue.is_local_place_recommendation_request(player_input)
+    )
+    # Resolve dialogue ownership once, before the topical gate. The UI's
+    # default do mode must not block a turn the speech owner would handle.
+    npc_dialogue_route = bool(npc_target and (
+        interaction_mode == "say"
+        or npc_place_recommendation
+        or is_npc_dialogue_input(player_input)
+        or _is_short_conversation_continuation(player_input)
+        or _is_spoken_to(player_input, npc_target)
+    ))
+    profile_focus = interaction_adventure.current_conversation_focus(world_state, npc_target)
+    canonical_profile_question = (
+        local_dialogue.personal_question_kind(player_input)
+        in interaction_adventure.PROFILE_FIELD_BY_MEANING.values()
+        or (_is_short_followup(player_input) and profile_focus
+            and profile_focus.get("predicate") in interaction_adventure.PROFILE_FIELD_BY_MEANING.values())
+    ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
+    experimental_dialogue_session = (
+        npc_dialogue_route and interaction_mode != "ask_dm"
+        and (_npc_speech_enabled() or not canonical_profile_question)
     )
     lore_safety_input = player_input
     if npc_place_recommendation:
@@ -17261,19 +18615,20 @@ def _run_player_turn_internal(
     # ("Adın nedir? Bir de kralın planını söyler misin?"). Dropping the whole
     # turn at this gate loses that part; the personal/smalltalk and model
     # paths below still run with every narration safety check behind them.
-    # Premise-bearing lore questions have no personal kind and stay gated.
+    # This admission gate governs authoritative answers, not an already
+    # resolved NPC's attributed speech. A topic word or an unknown name in a
+    # question is not itself a world mutation. The speech path below accepts
+    # no model operation/world updates and still validates identity, history,
+    # transfers, player agency and the resulting narration before display.
+    # Narrator and legacy authoritative paths retain the lore gate.
     answerable_personal_kind = (
         local_dialogue.personal_question_kind(player_input)
         if isinstance(npc_target, dict) else None
     )
-    if answerable_personal_kind is None and (
+    if answerable_personal_kind is None and not experimental_dialogue_session and (
         (
-            world_subject_question and not npc_place_recommendation
-            or (
-                not experimental_say_session
-                and not npc_place_recommendation
-                and local_dialogue.is_world_subject_question(player_input)
-            )
+            not npc_place_recommendation
+            and (world_subject_question or local_dialogue.is_world_subject_question(player_input))
         )
         or _player_question_has_unverified_lore_claim(
             lore_safety_input, lore_context, world_state
@@ -17297,8 +18652,10 @@ def _run_player_turn_internal(
         smalltalk_response
         and isinstance(npc_target, dict)
         and (
-            interaction_mode != "say"
-            or not _npc_speech_enabled()
+            not experimental_dialogue_session
+            or (interaction_mode != "say" and not local_dialogue.has_multiple_dialogue_clauses(
+                player_input, npc_target
+            ))
         )
     ):
         personal = (
@@ -17345,19 +18702,10 @@ def _run_player_turn_internal(
 
     if shop_request:
         validated_intent = {"intent_type": "narrative"}
-    elif npc_target and (
-        interaction_mode == "say"
-        or npc_place_recommendation
-        or is_npc_dialogue_input(player_input)
-        or _is_short_conversation_continuation(player_input)
-        or _is_spoken_to(player_input, npc_target)
-    ):
+    elif npc_dialogue_route:
         # The UI's default mode is "do"; a named or followed-up NPC in that
         # mode must reach the same first-person speech path as "say".
-        experimental_npc_dialogue = (
-            interaction_mode != "ask_dm"
-            and _npc_speech_enabled()
-        )
+        experimental_npc_dialogue = experimental_dialogue_session
         intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
         raw_intent = parse_player_intent(
@@ -17397,7 +18745,11 @@ def _run_player_turn_internal(
             and not experimental_npc_dialogue
             and not npc_place_recommendation
         ):
-            return finish_conversation_rejection(npc_target)
+            if _salvage_plain_speech(raw_intent):
+                conversation_rejected = False
+                conversation_resolution = None
+            else:
+                return finish_conversation_rejection(npc_target)
         if _interaction_proposal_applies(raw_intent, npc_target, player_input):
             if experimental_npc_dialogue:
                 action_result = {
@@ -17457,7 +18809,7 @@ def _run_player_turn_internal(
             )
             narration_model_calls = 1
             narration_source = "qwen"
-            action_result = execute_intent(
+            action_result = resolve_intent(
                 {"intent": "dialogue"}, player_input, npc_target=npc_target,
                 target_id=target_id,
             )
@@ -17499,7 +18851,14 @@ def _run_player_turn_internal(
                     and len(raw_stage) <= 600
                 )
                 if valid_speech_packet:
-                    cleaned_spoken = _clean_npc_speech(raw_spoken)
+                    import npc_speech_boundary
+                    cleaned_spoken = _clean_npc_speech(
+                        npc_speech_boundary.normalize_bound_speech_label(
+                            raw_spoken, npc_target,
+                            visible=any(n.get("id") == npc_target.get("id")
+                                        for n in _conversation_npcs()),
+                        )
+                    )
                     if cleaned_spoken.strip():
                         cleaned_spoken = _ground_local_place_recommendation_reply(
                             cleaned_spoken,
@@ -17514,6 +18873,30 @@ def _run_player_turn_internal(
                         world_state,
                         player_input,
                     )
+                    cleaned_spoken = npc_speech_boundary.strip_player_echo(
+                        cleaned_spoken, player_input
+                    )
+                    cleaned_spoken = npc_speech_boundary.drop_ungrounded_prop_sentences(
+                        cleaned_spoken,
+                        [
+                            {
+                                "name": feature.get("name"),
+                                "description": feature.get("description"),
+                                "aliases": feature.get("aliases") or [],
+                            }
+                            for feature in living_world.visible_features(world_state)
+                            if isinstance(feature, dict)
+                        ],
+                    )
+                    cleaned_stage = npc_speech_boundary.strip_player_quote(
+                        cleaned_stage, player_input
+                    )
+                    cleaned_stage = _shown_stage_direction(cleaned_stage, world_state)
+                    if (
+                        not cleaned_spoken.strip()
+                        and npc_speech_boundary.player_supplied_quote(player_input)
+                    ):
+                        cleaned_spoken = "Bunu senden duyuyorum."
                     if _is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):
                         cleaned_spoken = ""
                         invalid_spoken_stage_direction = True
@@ -17525,6 +18908,10 @@ def _run_player_turn_internal(
                         "spoken_text": cleaned_spoken,
                         "stage_direction": cleaned_stage,
                     }
+                    # W03: a known lock may be recalled by a SEPARATE narrator note; it never replaces the NPC's line.
+                    place_note = _attributed_place_note(cleaned_spoken, npc_target, world_state, player_input)
+                    if place_note:
+                        attributed_speech["narrator_note"] = place_note
                     raw_narration = _compose_experimental_npc_speech(
                         attributed_speech
                     )
@@ -17635,6 +19022,8 @@ def _run_player_turn_internal(
             )
             if experimental_npc_dialogue:
                 if accepted_model_speech:
+                    if not (_is_short_followup(player_input) and profile_focus):
+                        interaction_adventure.retire_conversation_focus(world_state)
                     text = _render_experimental_npc_speech(
                         attributed_speech, npc_target
                     )
@@ -17678,6 +19067,7 @@ def _run_player_turn_internal(
                 is_final=True,
                 safety_reason_code=final_safety_reason_code,
                 safety_handling=final_safety_handling,
+                record_safety=False,  # finalize_narration already recorded this verdict.
             )
         validated_intent = {"intent": "dialogue"}
     else:
@@ -17705,6 +19095,7 @@ def _run_player_turn_internal(
                 allow_scene_detail_proposals=_scene_detail_proposals_allowed(
                     player_input, world_state, interaction_mode
                 ),
+                strict=True,
             )
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
@@ -17719,7 +19110,11 @@ def _run_player_turn_internal(
             )
         )
         if conversation_rejected:
-            return finish_conversation_rejection(npc_target)
+            if _salvage_plain_speech(raw_intent):
+                conversation_rejected = False
+                conversation_resolution = None
+            else:
+                return finish_conversation_rejection(npc_target)
         if _interaction_proposal_applies(raw_intent, npc_target, player_input):
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
@@ -17749,9 +19144,9 @@ def _run_player_turn_internal(
             "state_changes": [],
         }
     elif target_id is None:
-        action_result = execute_intent(validated_intent, player_input, npc_target)
+        action_result = resolve_intent(validated_intent, player_input, npc_target)
     else:
-        action_result = execute_intent(
+        action_result = resolve_intent(
             validated_intent,
             player_input,
             npc_target,
@@ -17785,6 +19180,30 @@ def _run_player_turn_internal(
         )
 
     findings = action_result.get("inspection")
+    if (isinstance(findings, dict) and findings.get("target_id") is None
+            and isinstance(raw_intent, dict)
+            and isinstance(raw_intent.get("scene_detail_proposals"), list)
+            and raw_intent["scene_detail_proposals"]):
+        # An unmatched named search is a miss only if the model proposed no
+        # valid detail; an accepted proposal continues to the creation path.
+        # The submitted/verified record is kept either way, as on that path.
+        early_parent = _scene_detail_parent(world_state.get("location"), player_input)
+        early_parent_id = early_parent.get("id") if isinstance(early_parent, dict) else None
+        early_bound = [proposal for proposal in raw_intent["scene_detail_proposals"][:1]
+                       if isinstance(proposal, dict)
+                       and proposal.get("parent_id") == early_parent_id]
+        early_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
+        early_changed = early_entry or world_state.get("location") != previous_location
+        action_result["scene_detail_proposal_submitted"] = True
+        action_result["verified_world_updates"] = validate_world_updates(
+            {"create_features": early_bound},
+            allow_new_features=(not shop_request
+                                and should_generate_features(player_input, early_changed)
+                                and not is_player_world_assertion(player_input)),
+            allowed_feature_kinds=SCENE_DETAIL_KIND_ALLOWLIST,
+        )
+        if action_result["verified_world_updates"].get("create_features"):
+            findings = None
     if isinstance(findings, dict) and isinstance(findings.get("text"), str) and findings["text"].strip():
         # LR00-P2: a target-bound finding IS the result. Live runs showed the
         # narrator inventing a figure behind closed shutters; the receipt's
@@ -17929,10 +19348,41 @@ class GameSession:
         self._xp_level_up = None
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
+    def _receive_xp_award(self, award_owner, *args):
+        """Session adoption of an existing XP owner; no new reward or receipt policy.
+
+        Sessionless callers may use xp.apply_xp for detached numeric work, but
+        persistent sessions must use this boundary to atomically adopt format6.
+        """
+        snapshot = self._capture_runtime_snapshot()
+        had_format = "_persisted_engine_format" in self.__dict__
+        old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
+        try:
+            summary = award_owner(*args)
+            crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
+                        and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
+            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+                raise ValueError("Legacy numeric advancement requires supported spell/save state.")
+            self._remember_xp_award(summary)
+            if crossing:
+                # Read through the real production admission owner before commit.
+                self._validate_save_payload(self.serialize_game_state())
+            return summary
+        except Exception:
+            self._restore_runtime_snapshot(snapshot)
+            if had_format:
+                self._persisted_engine_format = old_format
+            else:
+                self.__dict__.pop("_persisted_engine_format", None)
+            raise
+
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""
         if not isinstance(summary, dict):
             return
+        if (type(summary.get("xp_gained")) is int and summary["xp_gained"] > 0
+                and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0)):
+            self._persisted_engine_format = 6
         pending = self._xp_level_up
         if not isinstance(pending, dict):
             self._xp_level_up = copy.deepcopy(summary)
@@ -17968,6 +19418,8 @@ class GameSession:
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
             "xp_level_up": copy.deepcopy(self._xp_level_up),
+            "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
+            "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -17987,6 +19439,10 @@ class GameSession:
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
         self._xp_level_up = restored.get("xp_level_up")
+        if restored.get("persisted_engine_format_present", False):
+            self._persisted_engine_format = restored["persisted_engine_format"]
+        else:
+            self.__dict__.pop("_persisted_engine_format", None)
 
     def resolve_ambient_event_action(
         self,
@@ -18276,11 +19732,9 @@ class GameSession:
                            for item in quest["objectives"]):
                         quest["status"] = "completed"
                         import xp
-                        summary = xp.award_completed_quest(
-                            world, self.character, quest["quest_id"]
+                        self._receive_xp_award(
+                            xp.award_completed_quest, world, self.character, quest["quest_id"]
                         )
-                        if summary is not None:
-                            self._remember_xp_award(summary)
                         transitions.append(self._quest_transition(
                             "completed", quest["quest_id"], None, source_id, turn
                         ))

@@ -1,0 +1,508 @@
+{
+  "schema_version": 2,
+  "triage_status": "PLAN_CLASS_PARTIALLY_CONFIRMED",
+  "measured": {
+    "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+    "source_tree": "HEAD plus untracked B01-B03 files only (tracked diff empty)",
+    "selected_methods": 186,
+    "executed_methods": 186,
+    "failed_methods": 11,
+    "failed_assertions": 13,
+    "reproduced_in_second_run": true,
+    "first_run": "docs/acceptance/evidence/b03-anchors-78b3803/run.json (isolation guard v1)",
+    "canonical_run": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json (isolation guard v2)",
+    "parent_commit": "cb40a59a6cbb6f331f41732dfb88c28e98a37c1c",
+    "parent_failed_methods": 35,
+    "parent_only_failures_repaired_by_83c6ebd": 26,
+    "parent_run": "docs/acceptance/evidence/b03-parent-cb40a59/run.json (isolation guard v1)",
+    "audit_ledger_available": false,
+    "note": "Counts are measured from retained run.json files, not copied from the earlier audit report; the audit ledger itself was not available, so ID parity is against these fresh runs."
+  },
+  "evidence_files": {
+    "evidence/b03-anchors-78b3803-v2/output.log": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+    "evidence/b03-anchors-78b3803-v2/run.json": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+    "evidence/b03-anchors-78b3803/output.log": "7447cebc89f963f2778e8d0a50070bf01f55317c5289fe78401136c82d1467e2",
+    "evidence/b03-anchors-78b3803/run.json": "f217e990dae1f1b260564e75a7e52481ce0c64c1577a93491845c78895e764cb",
+    "evidence/b03-diagnostics/b03-diag-faithful.output.log": "da6e6465f396039747c21bbc8356725e0093eb551c3acf932de66c77c257bdd5",
+    "evidence/b03-diagnostics/b03-diag-old-double.output.log": "51cd946aae1ec60f63cde33aa814b4c9c39a7b9ebfa899a55d77c870c2a7c74d",
+    "evidence/b03-diagnostics/b03-diag-v2.output.log": "271cbcfb0af1c65177d8997eb9344309750532763d5387eebf9fd8185614c753",
+    "evidence/b03-diagnostics/b03-trace.output.log": "2e000638362b14b89b0d703effa689fa904558a3d1315f14c4699042eb484de0",
+    "evidence/b03-diagnostics/proofs/20261026T194707-b03-anchors.proof.json": "915f45a267b707df18adb960214cb0950cc72ad9935f4ab2c978f8728e5a764f",
+    "evidence/b03-diagnostics/proofs/20261026T195132-b03-trace.proof.json": "435b932187b8f19cf7af68da883ffcadeaa5dc666f0748b6fb7009f88d04d78f",
+    "evidence/b03-diagnostics/proofs/20261026T195323-b03-parent-anchors.proof.json": "1d0382682001658a1e49ad5e1cc8399251818d572ffdc787020941a6db5075d8",
+    "evidence/b03-diagnostics/proofs/20261026T195743-b03-diag-faithful.proof.json": "bd3402b9c2b8be0913c247f0d188deb299e7e8fc259684eec0ca664bb77ef33d",
+    "evidence/b03-diagnostics/proofs/20261026T195925-b03-diag-v2.proof.json": "4e30be5d53d62f43a3f69bcbf5b7d5a410301421d51aaf57c8cf920d5ea61531",
+    "evidence/b03-diagnostics/proofs/20261026T200946-b03-anchors-v2.proof.json": "6c027c582c4fd1c6f3a6d6171b06a7a299e0cfd58f610e19ffac255cddfe33af",
+    "evidence/b03-diagnostics/proofs/20261026T201015-b03-diag-old-double.proof.json": "41ee8300a48c76c1847f91d6578264a13073ffdec0e0ca3fb8347b7bf58f8ac8",
+    "evidence/b03-diagnostics/scripts/build_contracts_v2.py": "6fbc22b205a0a440e37abb4a10560b187c5e8ba20ba24c0bc693a99664c438a6",
+    "evidence/b03-diagnostics/scripts/compare_runs.py": "de39a9342be7217f1864509ac6973aaf1b9ec2acf0a134f01bbf6cd7df7d3446",
+    "evidence/b03-diagnostics/scripts/diag_faithful_double.py": "8d503cbdca3baa3ede53a7dcd79ffb222046cdf700dc25491bb8043adcc87010",
+    "evidence/b03-diagnostics/scripts/diag_old_double.py": "4c9e944ab0f0b2a3143a25ce903ecd51c0351d0b78d40a623929af798b51a5ee",
+    "evidence/b03-diagnostics/scripts/diag_v2.py": "7352fdc9762f79b9fb45739ecd03d5cc512dfd8a35c63c7cca78d322058d2637",
+    "evidence/b03-diagnostics/scripts/guard-v1.sitecustomize.py": "8724f0b2fc0b87e7fc9e2f884a68c22ac531aadfa54d286c02e1ecddd549ffdb",
+    "evidence/b03-diagnostics/scripts/guard-v2.sitecustomize.py": "4de628216406ecc2c2485c76648fd5f00825d5cfdc7ea1a62294eee7549873ea",
+    "evidence/b03-diagnostics/scripts/parent_sig.py": "f4b0748e50b09b3aa94c12c1fa28b4116677061d13abbe7b0d7ddab7ecf908f9",
+    "evidence/b03-diagnostics/scripts/run_isolated.py": "66476064e21f2e54c8d83c6988ba9bd3be4b6d3028dcb8e16e777032049afb76",
+    "evidence/b03-diagnostics/scripts/trace_profile.py": "b5735c178c8b6dcbf5557d6518fad6db9df11d21778f2d9fbc8dea91d9915886",
+    "evidence/b03-parent-cb40a59/output.log": "437f2f50eaa3eb99850ad0d27843880c9075461073cc0c7b46e054a0279691e8",
+    "evidence/b03-parent-cb40a59/run.json": "e2409f905b4a9a510a4e47500487574309ed2606aae260ef62d4db3aa5e12afc"
+  },
+  "history": [
+    {
+      "entry": 1,
+      "action": "initial_triage",
+      "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+      "rows": 13
+    },
+    {
+      "entry": 2,
+      "action": "reclassify_after_review_and_old_double_swap",
+      "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+      "rows": 13,
+      "previous_contract": "docs/acceptance/evidence/b03-triage-history/failure-contracts.v1.json",
+      "previous_contract_sha256": "f78d7fb51013a538da5d8e93256350aaa9e93d6fe8c759a93c78bc2ce7f110ae"
+    }
+  ],
+  "rows": [
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct#1@test_campaign_api.py:2077",
+      "plan_cause_class": "schema_double",
+      "cause_class": "test_fixture_double",
+      "cause_class_basis": "measured_by_double_swap",
+      "evidence_status": "CONFIRMED_BY_DIAGNOSTIC",
+      "diagnostic": "Passes (0 events) when only the shared double is replaced by its parent-commit version.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "pass",
+      "parent_signature_note": "",
+      "double_change_sufficient": true,
+      "assertion_error": "AssertionError: 'Arşivde kayıp yük kayıtlarını bulmaya geldim.' unexpectedly found in 'Marek: “Arşivde kayıp yük kayıtlarını bulmaya geldim.”'",
+      "assertion_trace_sha256": "5c06c4ef44249d2117705c1b1915d4837e2cf0283c1f7cdb1d9df3e53da69647",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct#2@test_campaign_api.py:2078",
+      "plan_cause_class": "schema_double",
+      "cause_class": "test_fixture_double",
+      "cause_class_basis": "measured_by_double_swap",
+      "evidence_status": "CONFIRMED_BY_DIAGNOSTIC",
+      "diagnostic": "Passes (0 events) when only the shared double is replaced by its parent-commit version.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "pass",
+      "parent_signature_note": "",
+      "double_change_sufficient": true,
+      "assertion_error": "AssertionError: None != {'speaker_id': 'npc_marek_terminal_resolu[388 chars]sed'}",
+      "assertion_trace_sha256": "d2d48fb2a4078fb1ceec8cca3f44c9726a1ef5dec962d14d6ac011d4bb72a9ee",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_conversation_proposal_rejection_and_valid_unknown_are_distinct#3@test_campaign_api.py:2078",
+      "plan_cause_class": "schema_double",
+      "cause_class": "test_fixture_double",
+      "cause_class_basis": "measured_by_double_swap",
+      "evidence_status": "CONFIRMED_BY_DIAGNOSTIC",
+      "diagnostic": "Passes (0 events) when only the shared double is replaced by its parent-commit version.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "pass",
+      "parent_signature_note": "",
+      "double_change_sufficient": true,
+      "assertion_error": "AssertionError: None != {'speaker_id': 'npc_marek_terminal_resolu[388 chars]sed'}",
+      "assertion_trace_sha256": "d2d48fb2a4078fb1ceec8cca3f44c9726a1ef5dec962d14d6ac011d4bb72a9ee",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_free_http_profile_purpose_is_owned_by_personal_topic",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_free_http_profile_purpose_is_owned_by_personal_topic#1@test_campaign_api.py:1631",
+      "plan_cause_class": "schema_double",
+      "cause_class": "test_fixture_double",
+      "cause_class_basis": "measured_by_double_swap",
+      "evidence_status": "CONFIRMED_BY_DIAGNOSTIC",
+      "diagnostic": "Passes (0 events) with the parent-commit double and with the in-memory variant 2 double.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": true,
+      "assertion_error": "AssertionError: 'Arşivde kayıp yük kayıtlarını bulmaya geldim.' unexpectedly found in 'Marek: “Arşivde kayıp yük kayıtlarını bulmaya geldim.”'",
+      "assertion_trace_sha256": "0e6a3fbc2b4ea6703f149320b673c9d9fe45e8a043f38a64cbc504bf03bef438",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_free_npc_profile_statement_uses_shared_resolution_without_forced_target",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_free_npc_profile_statement_uses_shared_resolution_without_forced_target#1@test_campaign_api.py:1902",
+      "plan_cause_class": "schema_double",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "PREEXISTING_NOT_DOUBLE",
+      "diagnostic": "Still fails with the parent-commit double, with the failure signature it had at the parent commit; the cause is not the 83c6ebd double change.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: 'Arşivde kayıp yük kayıtlarını bulmaya geldim.' not found in '[]'",
+      "assertion_trace_sha256": "0f1dfcc76efaf38d4e56e03e8e1b238d6a999e9fd6d2f0ab804974be1ca373a2",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_missing_conversation_fields_reject_without_retry_or_focus_change",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_missing_conversation_fields_reject_without_retry_or_focus_change#1@test_campaign_api.py:2469",
+      "plan_cause_class": "schema_double",
+      "cause_class": "test_fixture_double",
+      "cause_class_basis": "measured_by_double_swap",
+      "evidence_status": "CONFIRMED_BY_DIAGNOSTIC",
+      "diagnostic": "Passes (0 events) when only the shared double is replaced by its parent-commit version.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "pass",
+      "parent_signature_note": "",
+      "double_change_sufficient": true,
+      "assertion_error": "AssertionError: None != {'speaker_id': 'npc_marek_missing_contrac[371 chars]sed'}",
+      "assertion_trace_sha256": "8ebd9688acc6fe5b6fe170c33a3132961601da4dbcd8889210cfc3ed3434db20",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_model_owned_personal_purpose_phrasings_do_not_need_lexical_gate",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_model_owned_personal_purpose_phrasings_do_not_need_lexical_gate#1@test_campaign_api.py:1761",
+      "plan_cause_class": "schema_double",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "PREEXISTING_NOT_DOUBLE",
+      "diagnostic": "Still fails with the parent-commit double, with the failure signature it had at the parent commit; the cause is not the 83c6ebd double change.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: 'Arşivde kayıp yük kayıtlarını bulmaya geldim.' not found in 'Marek: “Bu konuda doğrulanmış bir bilgi yok.”'",
+      "assertion_trace_sha256": "bd2304cf09c4633f93aa0ef79c3ac6496fdf56717d731f9d72ae36765cbcc1fe",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_npc_occupation_and_origin_share_validated_profile_resolution",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_npc_occupation_and_origin_share_validated_profile_resolution#1@test_campaign_api.py:2167",
+      "plan_cause_class": "schema_double",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "PREEXISTING_NOT_DOUBLE",
+      "diagnostic": "Still fails with the parent-commit double, with the failure signature it had at the parent commit; the cause is not the 83c6ebd double change.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, ANL 02, BIL 02: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "ANL 02",
+        "BIL 02"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: 'Kuzeydeki küçük bir yerleşimden geldim.' not found in 'Marek: “Şehir arşivinde geçici kâtiplik yapıyorum.”'",
+      "assertion_trace_sha256": "68ad090d30f59c76712b2282fce92b8ba570a39b90d4174ba539c8ad6e2291c2",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_campaign_api.CampaignApiTests.test_profile_why_does_not_bypass_unverified_lore_safety",
+      "assertion_id": "api.tests.test_campaign_api.CampaignApiTests.test_profile_why_does_not_bypass_unverified_lore_safety#1@test_campaign_api.py:1401",
+      "plan_cause_class": "schema_double",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "PREEXISTING_NOT_DOUBLE",
+      "diagnostic": "Still fails with the parent-commit double, with the failure signature it had at the parent commit; relates to unverified lore safety (BIL 01, S15) rather than profile selection.",
+      "approved_behavior": "Design Rev2 §16.7, §18.6, BIL 01, S15: a profile question is answered from the NPC's own validated, attributed profile fact for the asked topic; a rejected or off-topic proposal must not leak another profile fact or move conversation focus; a test double must imitate the current classifier contract and not blur which layer a test exercises.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "§18.6",
+        "BIL 01",
+        "S15"
+      ],
+      "owner_task": "W02",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: False is not true : Marek: “Eski liman kayıtlarını tasnif ediyorum.”",
+      "assertion_trace_sha256": "9b421fb1a8213a74e5bb61efc43a47677d4d39f8943511ce21450cb9f6c1dec6",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": [
+          "docs/acceptance/evidence/b03-diagnostics/b03-diag-old-double.output.log"
+        ]
+      }
+    },
+    {
+      "method_id": "api.tests.test_default_npc_targeting.DefaultNpcTargetingTests.test_default_npc_place_statement_keeps_attribution_after_resume_and_respects_locked_target",
+      "assertion_id": "api.tests.test_default_npc_targeting.DefaultNpcTargetingTests.test_default_npc_place_statement_keeps_attribution_after_resume_and_respects_locked_target#1@test_default_npc_targeting.py:1485",
+      "plan_cause_class": "attributed_speech_contract",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "REPRODUCED_CAUSE_NOT_VERIFIED",
+      "diagnostic": "Reproduced at HEAD and at the parent commit; the plan and design section 16.7 point to the attributed-speech contract, not independently verified. The failure text contains a randomly generated inn name (nondeterministic fixture, observed in three runs).",
+      "approved_behavior": "Design Rev2 §16.7, S12, A17: the original attributed NPC speech is kept; only a separate narrator note may reflect the player-known lock state.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "S12",
+        "A17"
+      ],
+      "owner_task": "W03",
+      "parent_outcome": "same_signature_fail",
+      "parent_signature_note": "The failure text contains a randomly generated inn name (Nuri, Tamsin and Lidda in three runs): the fixture is nondeterministic; the name is masked when comparing signatures.",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: 'Lidda Hanı şehir merkezindedir; uğramaya değer.' not found in 'Marek: “Lidda Hanı şu anda kilitli; açıldığını doğrulamadan oraya gitmeni önermem.”'",
+      "assertion_trace_sha256": "0f919a12aebd9086ba87e515332ee2a4438d54e33a04a3923650024f3dcc52d2",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": []
+      }
+    },
+    {
+      "method_id": "api.tests.test_stability_repairs.CrossSessionTests.test_attack_lore_and_reload_do_not_cross_write",
+      "assertion_id": "api.tests.test_stability_repairs.CrossSessionTests.test_attack_lore_and_reload_do_not_cross_write#1@test_stability_repairs.py:725",
+      "plan_cause_class": "fixture_city_metadata",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "REPRODUCED_CAUSE_NOT_VERIFIED",
+      "diagnostic": "Same assertion class as the other ruler method at HEAD; at the parent commit it failed earlier (CombatRequestError). Cause from design section 16.7, not independently verified.",
+      "approved_behavior": "Design Rev2 §16.7, A17: with a verified city binding and the current_ruler intent, an indirect ruler question is answered from loaded lore without scene writes.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "A17"
+      ],
+      "owner_task": "W04",
+      "parent_outcome": "different_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "+ answered_from_loaded_lore",
+      "assertion_trace_sha256": "6f7cfeb87ec43767699a5bffe8c5117a9ee1600a4bcf0f57839a77b7fcc89466",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": []
+      }
+    },
+    {
+      "method_id": "api.tests.test_stability_repairs.NarrationAndCoreTests.test_texture_and_feature_names_are_not_people",
+      "assertion_id": "api.tests.test_stability_repairs.NarrationAndCoreTests.test_texture_and_feature_names_are_not_people#1@test_stability_repairs.py:557",
+      "plan_cause_class": "product_filter",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "REPRODUCED_CAUSE_NOT_VERIFIED",
+      "diagnostic": "Identical failure at HEAD and at the parent commit; product-filter cause comes from design section 16.7, not independently verified.",
+      "approved_behavior": "Design Rev2 §16.7, A17: a generic object or texture name is distinguished from an invented person without removing secret protection.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "A17"
+      ],
+      "owner_task": "W05",
+      "parent_outcome": "same_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "AssertionError: True is not false",
+      "assertion_trace_sha256": "e8fb370e181172e2f4e2d2048b3f7e663d597eea154f9a454e75b887db102661",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": []
+      }
+    },
+    {
+      "method_id": "api.tests.test_stability_repairs.TurnIntegrityTests.test_ruler_question_answers_from_lore_without_scene_writes",
+      "assertion_id": "api.tests.test_stability_repairs.TurnIntegrityTests.test_ruler_question_answers_from_lore_without_scene_writes#1@test_stability_repairs.py:460",
+      "plan_cause_class": "fixture_city_metadata",
+      "cause_class": "unresolved",
+      "cause_class_basis": "not_established",
+      "evidence_status": "REPRODUCED_CAUSE_NOT_VERIFIED",
+      "diagnostic": "Identical failure at HEAD and at the parent commit; fixture city metadata cause comes from design section 16.7, not independently verified.",
+      "approved_behavior": "Design Rev2 §16.7, A17: with a verified city binding and the current_ruler intent, an indirect ruler question is answered from loaded lore without scene writes.",
+      "approved_behavior_refs": [
+        "§16.7",
+        "A17"
+      ],
+      "owner_task": "W04",
+      "parent_outcome": "same_signature_fail",
+      "parent_signature_note": "",
+      "double_change_sufficient": false,
+      "assertion_error": "+ answered_from_loaded_lore",
+      "assertion_trace_sha256": "a055f09d5dcf901a082f44e834693e81ba6a44a64e8b94d5cc3950b9114b83e5",
+      "expectation_changed": false,
+      "before_evidence": {
+        "source_sha": "78b380384e70832156d2d9aa2785192bbbbdb74b",
+        "command": "python ai-dnd/scripts/run_regression_evidence.py api.tests.test_campaign_api api.tests.test_default_npc_targeting api.tests.test_stability_repairs",
+        "run_json": "docs/acceptance/evidence/b03-anchors-78b3803-v2/run.json",
+        "run_json_sha256": "aace9de3783803189a7d5be101c967ee6e010a473160c9366189aef32cc1599c",
+        "output_log_sha256": "8aeb63537f4cb06d0e2516c68adc3b06a6f016f9e180654fe47ac047e022fdea",
+        "isolated": true,
+        "runtime_sha": "UNKNOWN",
+        "diagnostic_artifacts": []
+      }
+    }
+  ]
+}

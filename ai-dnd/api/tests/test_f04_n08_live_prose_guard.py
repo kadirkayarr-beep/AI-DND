@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import game
+from api.tests.speech_double import reply, routed_chat, speech_packet
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 
@@ -45,11 +46,9 @@ class N08UnverifiedProseRegression(unittest.TestCase):
                     "candidate_evidence_ids": [],
                 },
             },
-            "narration": LIVE_STYLE_ECHO,
         }
-        with patch("game.ollama.chat", return_value={
-            "message": {"content": json.dumps(payload, ensure_ascii=False)}
-        }) as provider:
+        chat = routed_chat({"intent": reply(payload), "speech": speech_packet(LIVE_STYLE_ECHO)})
+        with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(CLAIM, interaction_mode="say")
         self.assertEqual(provider.call_count, 1)
         telemetry = result["_engine_event_evidence"]["telemetry"]
@@ -99,11 +98,9 @@ class N08UnverifiedProseRegression(unittest.TestCase):
                     "candidate_evidence_ids": [],
                 },
             },
-            "narration": invented,
         }
-        with patch("game.ollama.chat", return_value={
-            "message": {"content": json.dumps(payload, ensure_ascii=False)}
-        }) as provider:
+        chat = routed_chat({"intent": reply(payload), "speech": speech_packet(invented)})
+        with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(CLAIM, interaction_mode="say")
         self.assertEqual(provider.call_count, 1)
         telemetry = result["_engine_event_evidence"]["telemetry"]

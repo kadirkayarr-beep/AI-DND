@@ -1,0 +1,1640 @@
+{
+ "schema_version": 1,
+ "task": "C03",
+ "source": {
+  "book": "Player's Handbook",
+  "edition": "2024",
+  "file_name": "D&D 5e - Players Handbook 2024.pdf",
+  "sha256": "f2ea73369a6c4afbf6a7047249f06e5c51af503d9e42f87fe7a9c2c50aefafea",
+  "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
+  "page_rule": "pdf_page from the manifest (feat list PDF 198-199; descriptions PDF 199-210); facts only, no book text"
+ },
+ "rules": {
+  "repeat": "a feat can be taken once unless it says otherwise (marked * in the Feat List)",
+  "class_prerequisite": "a class prerequisite needs at least 1 level in that class",
+  "origin_feats": "the Origin category feats have no prerequisite",
+  "asi_cap": "ability increases cap at 20 (30 for Epic Boons)"
+ },
+ "feats": {
+  "Alert": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 199,
+   "benefits": [
+    "Initiative Proficiency",
+    "Initiative Swap"
+   ]
+  },
+  "Crafter": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 199,
+   "benefits": [
+    "Tool Proficiency",
+    "Discount",
+    "Fast Crafting"
+   ]
+  },
+  "Healer": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Battle Medic",
+    "Healing Rerolls"
+   ]
+  },
+  "Lucky": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Luck Points",
+    "Advantage",
+    "Disadvantage"
+   ]
+  },
+  "Magic Initiate": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": true,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Two Cantrips",
+    "Level 1 Spell",
+    "Spell Change"
+   ]
+  },
+  "Musician": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Instrument Training",
+    "Encouraging Song"
+   ]
+  },
+  "Savage Attacker": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Savage Attacker"
+   ]
+  },
+  "Skilled": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": true,
+   "asi": null,
+   "pdf_page": 200,
+   "benefits": [
+    "Skill Proficiencies"
+   ]
+  },
+  "Tavern Brawler": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 201,
+   "benefits": [
+    "Enhanced Unarmed Strike",
+    "Damage Rerolls",
+    "Improvised Weaponry",
+    "Push"
+   ]
+  },
+  "Tough": {
+   "category": "origin",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 201,
+   "benefits": [
+    "Hit Point Maximum"
+   ]
+  },
+  "Ability Score Improvement": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": true,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "plus2_or_two_plus1"
+   },
+   "pdf_page": 201,
+   "benefits": []
+  },
+  "Actor": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "charisma"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 201,
+   "benefits": [
+    "Impersonation",
+    "Mimicry"
+   ]
+  },
+  "Athlete": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 201,
+   "benefits": [
+    "Climb Speed",
+    "Hop Up",
+    "Jumping"
+   ]
+  },
+  "Charger": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 201,
+   "benefits": [
+    "Improved Dash",
+    "Charge Attack"
+   ]
+  },
+  "Chef": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "constitution",
+     "wisdom"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 201,
+   "benefits": [
+    "Cook's Utensils",
+    "Replenishing Meal",
+    "Bolstering Treats"
+   ]
+  },
+  "Crossbow Expert": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Ignore Loading",
+    "Firing in Melee",
+    "Dual Wielding"
+   ]
+  },
+  "Crusher": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "constitution"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Push",
+    "Enhanced Critical"
+   ]
+  },
+  "Defensive Duelist": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Parry"
+   ]
+  },
+  "Dual Wielder": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Enhanced Dual Wielding",
+    "Quick Draw"
+   ]
+  },
+  "Durable": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "constitution"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Defy Death",
+    "Speedy Recovery"
+   ]
+  },
+  "Elemental Adept": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": "Spellcasting or Pact Magic",
+   "repeatable": true,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 202,
+   "benefits": [
+    "Energy Mastery"
+   ]
+  },
+  "Fey-Touched": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Fey Magic"
+   ]
+  },
+  "Grappler": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Punch and Grab",
+    "Attack Advantage",
+    "Fast Wrestler"
+   ]
+  },
+  "Great Weapon Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Heavy Weapon Mastery",
+    "Hew"
+   ]
+  },
+  "Heavily Armored": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": "Medium Armor",
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "constitution",
+     "strength"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Armor Training"
+   ]
+  },
+  "Heavy Armor Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": "Heavy Armor",
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "constitution",
+     "strength"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Damage Reduction"
+   ]
+  },
+  "Inspiring Leader": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "wisdom",
+     "charisma"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 203,
+   "benefits": [
+    "Bolstering Performance"
+   ]
+  },
+  "Keen Mind": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "intelligence"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Lore Knowledge",
+    "Quick Study"
+   ]
+  },
+  "Lightly Armored": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Armor Training"
+   ]
+  },
+  "Mage Slayer": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Concentration Breaker",
+    "Guarded Mind"
+   ]
+  },
+  "Martial Weapon Training": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Weapon Proficiency"
+   ]
+  },
+  "Medium Armor Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": "Medium Armor",
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Dexterous Wearer"
+   ]
+  },
+  "Moderately Armored": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": "Light Armor",
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Armor Training"
+   ]
+  },
+  "Mounted Combatant": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "wisdom"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Mounted Strike",
+    "Leap Aside",
+    "Veer"
+   ]
+  },
+  "Observant": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "intelligence",
+     "wisdom"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 204,
+   "benefits": [
+    "Keen Observer",
+    "Quick Search"
+   ]
+  },
+  "Piercer": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 205,
+   "benefits": [
+    "Puncture",
+    "Enhanced Critical"
+   ]
+  },
+  "Poisoner": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity",
+     "intelligence"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 205,
+   "benefits": [
+    "Potent Poison",
+    "Brew Poison"
+   ]
+  },
+  "Polearm Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity",
+     "strength"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 205,
+   "benefits": [
+    "Pole Strike",
+    "Reactive Strike"
+   ]
+  },
+  "Resilient": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "save_proficiency_lacking"
+   },
+   "pdf_page": 205,
+   "benefits": [
+    "Saving Throw Proficiency"
+   ]
+  },
+  "Ritual Caster": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 205,
+   "benefits": [
+    "Ritual Spells",
+    "Quick Ritual"
+   ]
+  },
+  "Sentinel": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "strength",
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 206,
+   "benefits": [
+    "Guardian",
+    "Halt"
+   ]
+  },
+  "Shadow-Touched": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 206,
+   "benefits": [
+    "Shadow Magic"
+   ]
+  },
+  "Sharpshooter": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 206,
+   "benefits": [
+    "Bypass Cover",
+    "Firing in Melee",
+    "Long Shots"
+   ]
+  },
+  "Shield Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": "Shield",
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 206,
+   "benefits": [
+    "Shield Bash",
+    "Interpose Shield"
+   ]
+  },
+  "Skill Expert": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 206,
+   "benefits": [
+    "Skill Proficiency",
+    "Expertise"
+   ]
+  },
+  "Skulker": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "dexterity"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Blindsight",
+    "Fog of War",
+    "Sniper"
+   ]
+  },
+  "Slasher": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Hamstring",
+    "Enhanced Critical"
+   ]
+  },
+  "Speedy": {
+   "category": "general",
+   "level": 4,
+   "ability_min": {
+    "any_of": [
+     "dexterity",
+     "constitution"
+    ],
+    "min": 13
+   },
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "dexterity",
+     "constitution"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Speed Increase",
+    "Dash over Difficult Terrain",
+    "Agile Movement"
+   ]
+  },
+  "Spell Sniper": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": "Spellcasting or Pact Magic",
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Bypass Cover",
+    "Casting in Melee",
+    "Increased Range"
+   ]
+  },
+  "Telekinetic": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Minor Telekinesis",
+    "Telekinetic Shove"
+   ]
+  },
+  "Telepathic": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 207,
+   "benefits": [
+    "Telepathic Utterance",
+    "Detect Thoughts"
+   ]
+  },
+  "War Caster": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": "Spellcasting or Pact Magic",
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 208,
+   "benefits": [
+    "Concentration",
+    "Reactive Spell",
+    "Somatic Components"
+   ]
+  },
+  "Weapon Master": {
+   "category": "general",
+   "level": 4,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 20,
+    "kind": "one"
+   },
+   "pdf_page": 208,
+   "benefits": [
+    "Mastery Property"
+   ]
+  },
+  "Archery": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Archery"
+   ]
+  },
+  "Blind Fighting": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Blind Fighting"
+   ]
+  },
+  "Defense": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Defense"
+   ]
+  },
+  "Dueling": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Dueling"
+   ]
+  },
+  "Great Weapon Fighting": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Great Weapon Fighting"
+   ]
+  },
+  "Interception": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Interception"
+   ]
+  },
+  "Protection": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 208,
+   "benefits": [
+    "Protection"
+   ]
+  },
+  "Thrown Weapon Fighting": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 209,
+   "benefits": [
+    "Thrown Weapon Fighting"
+   ]
+  },
+  "Two-Weapon Fighting": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 209,
+   "benefits": [
+    "Two-Weapon Fighting"
+   ]
+  },
+  "Unarmed Fighting": {
+   "category": "fighting_style",
+   "level": null,
+   "ability_min": null,
+   "training": null,
+   "feature": "Fighting Style",
+   "repeatable": false,
+   "asi": null,
+   "pdf_page": 209,
+   "benefits": [
+    "Unarmed Strike Damage",
+    "Grapple Damage"
+   ]
+  },
+  "Boon of Combat Prowess": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 209,
+   "benefits": [
+    "Peerless Aim"
+   ]
+  },
+  "Boon of Dimensional Travel": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 209,
+   "benefits": [
+    "Blink Steps"
+   ]
+  },
+  "Boon of Energy Resistance": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 209,
+   "benefits": [
+    "Energy Resistances",
+    "Energy Redirection"
+   ]
+  },
+  "Boon of Fate": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 209,
+   "benefits": [
+    "Improve Fate"
+   ]
+  },
+  "Boon of Fortitude": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 209,
+   "benefits": [
+    "Fortified Health"
+   ]
+  },
+  "Boon of Irresistible Offense": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Overcome Defenses",
+    "Overwhelming Strike"
+   ]
+  },
+  "Boon of Recovery": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Last Stand",
+    "Recover Vitality"
+   ]
+  },
+  "Boon of Skill": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "All-Around Adept",
+    "Expertise"
+   ]
+  },
+  "Boon of Speed": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Escape Artist",
+    "Quickness"
+   ]
+  },
+  "Boon of Spell Recall": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": "Spellcasting",
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Free Casting"
+   ]
+  },
+  "Boon of the Night Spirit": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Merge with Shadows",
+    "Shadowy Form"
+   ]
+  },
+  "Boon of Truesight": {
+   "category": "epic_boon",
+   "level": 19,
+   "ability_min": null,
+   "training": null,
+   "feature": null,
+   "repeatable": false,
+   "asi": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution",
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "amount": 1,
+    "cap": 30,
+    "kind": "one"
+   },
+   "pdf_page": 210,
+   "benefits": [
+    "Truesight"
+   ]
+  }
+ }
+}

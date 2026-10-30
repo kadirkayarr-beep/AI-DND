@@ -323,7 +323,8 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
     spec = PLACE_KINDS[record["place_kind"]]
     place_id = record["id"]
     npc = resident_of(world, place_id)
-    if npc is None:
+    assigned = any(isinstance(n,dict) and n.get("place_role_of")==place_id for n in world.get("npcs",[]))
+    if npc is None and not assigned:
         npc = create_npc({
             "name": living_world.stable_local_name(world, place_id, spec["role"]),
             "role": spec["role"],

@@ -395,6 +395,33 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.serialize_game_state(), snapshot)
 
+    def test_legacy_load_preserves_absent_temporary_hp_and_clears_stale_value(self):
+        expected = self.a.serialize_game_state()
+        self.assertNotIn("temporary_hit_points", expected["player"])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.json"
+            self.a.save_game(path)
+            self.a.grant_temporary_hit_points(9)
+
+            self.a.load_game(path)
+
+        self.assertNotIn("temporary_hit_points", self.a.character)
+        self.assertEqual(self.a._species_trait_state()["temporary_hit_points"], 0)
+        self.assertEqual(self.a.serialize_game_state(), expected)
+
+    def test_human_temporary_hp_survives_save_load_round_trip(self):
+        self.a.grant_temporary_hit_points(5)
+        expected = self.a.serialize_game_state()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "temporary-hp.json"
+            self.a.save_game(path)
+
+            self.b.load_game(path)
+
+        self.assertEqual(self.b.character["temporary_hit_points"], 5)
+        self.assertEqual(self.b._species_trait_state()["temporary_hit_points"], 5)
+        self.assertEqual(self.b.serialize_game_state(), expected)
+
     def test_invalid_load_preserves_all_sessions_and_held_references(self):
         for session, name, hp in ((self.a, "Target", 3),
                                   (self.b, "Other", 7)):
@@ -1606,6 +1633,10 @@ class SessionTests(unittest.TestCase):
                         world, 3600, "short_rest",
                         f"turn:{world.get('flags', {}).get('turn_index', 0)}",
                     )
+                    # K07: a finished Short Rest opens the Hit Point Dice spending window at the rest-end second.
+                    snapshot["player"]["hit_dice"] = {
+                        "spent": 0, "window_second": world["campaign_time"]["elapsed_seconds"],
+                        "hp": snapshot["player"]["current_hp"]}
                 rng_before = [session.rng.getstate() for session in sessions]
                 rng_default = game._DEFAULT_SESSION.rng.getstate()
                 rng_module = random.getstate()
@@ -1742,6 +1773,9 @@ class SessionTests(unittest.TestCase):
                                 adrenaline_rush_uses_remaining=fixtures[index][0],
                                 movement_budget_ft=0, movement_effect=None,
                             )
+                            snapshot["player"]["hit_dice"] = {
+                                "spent": 0, "window_second": world["campaign_time"]["elapsed_seconds"],
+                                "hp": snapshot["player"]["current_hp"]}
                     rng_before = [session.rng.getstate() for session in sessions]
                     rng_default = game._DEFAULT_SESSION.rng.getstate()
                     rng_module = random.getstate()
@@ -1842,6 +1876,7 @@ class SessionTests(unittest.TestCase):
                     assert_preserved()
 
     def test_overlapping_interrupted_long_rest_keeps_healing_and_spells_session_owned(self):
+        self.maxDiff = None  # retain full provenance when concurrent world snapshots differ
         import spell_scope
         from api.tests.test_campaign_time import scene
         from api.tests.test_campaign_time_edges import event, flag
@@ -1891,6 +1926,8 @@ class SessionTests(unittest.TestCase):
                             f"turn:{world.get('flags', {}).get('turn_index', 0)}",
                         )
                         if index != interrupted_index:
+                            world["last_long_rest_completed_at"] = 28800  # only this completed session owns the marker
+                            snapshot["player"]["hit_dice"] = {"spent": 0, "window_second": None, "hp": None}  # K07 Long Rest
                             snapshot["player"]["current_hp"] = fixtures[index][2]
                             world["spellcasting_v1"]["slots"] = copy.deepcopy(
                                 spell_scope.CLASS_DEFINITIONS[fixtures[index][0]][
@@ -2536,6 +2573,8 @@ class SessionTests(unittest.TestCase):
                         active_celestial_form="heavenly_wings",
                         celestial_revelation_turns_remaining=10,
                         movement_effect={"kind": "flight", "speed_ft": 35},
+                        # K03: activation records the effect's clock (60 s) in the versioned optional field
+                        effect_clock={"version": 1, "remaining_s": {"celestial_revelation": 60}, "last_event": {}},
                     )
                 assert_isolated(expected)
 
@@ -2554,6 +2593,7 @@ class SessionTests(unittest.TestCase):
                     game.initialize_species_trait_state(session=session)
                     first = self.npc(session)
                     first["charisma_save_bonus"] = 0
+                    first["distance_ft"] = 5  # K01: an unknown distance is never reached
                     second = copy.deepcopy(first)
                     second.update(id="npc_002", name="Second enemy",
                                   hostile=True, charisma_save_bonus=0)
@@ -2682,6 +2722,7 @@ class SessionTests(unittest.TestCase):
                     ),
                     active_celestial_form="necrotic_shroud",
                     celestial_revelation_turns_remaining=10,
+                    effect_clock={"version": 1, "remaining_s": {"celestial_revelation": 60}, "last_event": {}},
                     bonus_action_used_round=before[eligible_index][
                         "world_state"]["combat"]["round"],
                 )

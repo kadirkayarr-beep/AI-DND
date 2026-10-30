@@ -61,6 +61,15 @@ def _evidence_from_turn(quest, world, before_world, action_result):
     location = world.get("location")
     if before_world.get("location") != location and isinstance(location, str):
         found.extend(_matching(quest, "visit_location", location, "investigation", f"location:{turn}:{location}"))
+    from adventure.dialogue_jobs import transfer_evidence
+    parcel_target = transfer_evidence(quest, before_world, world)
+    if parcel_target is not None:
+        found.extend(_matching(quest, "investigate", parcel_target, "social", f"parcel:{turn}:{quest['quest_id']}"))
+    if (quest.get('creation_evidence','').startswith('dialogue-job:') and quest.get('template_id')=='URBAN_INVESTIGATION'
+            and quest.get('status')=='ACTIVE' and action_result.get('action')=='dialogue'
+            and action_result.get('npc_id')==quest.get('giver_npc_id')
+            and world.get('npc_speech_log',{}).get(quest['giver_npc_id']) != before_world.get('npc_speech_log',{}).get(quest['giver_npc_id'])):
+        found.extend(_matching(quest,'investigate',quest['giver_npc_id'],'social',f"conversation:{turn}:{quest['quest_id']}"))
     before_npcs = {
         npc.get("id"): npc for npc in before_world.get("npcs", []) if isinstance(npc, dict)
     }

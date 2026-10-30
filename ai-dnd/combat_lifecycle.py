@@ -12,10 +12,76 @@ class CombatRequestError(ValueError):
         self.status_code = status_code
 
 
+def registered_name_candidates(session):
+    """Read local multiword names without requiring migrated target IDs.
+
+    Combat preflight runs before scene migration. Merely recognizing a name
+    must not create doors/references or require a complete targeting registry.
+    """
+    world = session.world_state
+    here = world.get("location")
+    locations = world.get("locations", {})
+    current = locations.get(here, {}) if isinstance(locations, dict) else {}
+    parent = current.get("parent_location_id") if isinstance(current, dict) else None
+    anchors = {value for value in (here, parent) if isinstance(value, str)}
+    records = [place for key, place in locations.items()
+               if isinstance(place, dict) and not place.get("hidden")
+               and (key in anchors or place.get("parent_location_id") in anchors)] if isinstance(locations, dict) else []
+    records.extend(record for key in ("doors", "features") for record in world.get(key, [])
+                   if isinstance(record, dict) and not record.get("hidden")
+                   and record.get("discovered") is not False
+                   and (record.get("location") == here or record.get("place_id") == here))
+    records.extend(npc for npc in session.active_npcs()
+                   if isinstance(npc, dict) and not npc.get("hidden")
+                   and living_world.npc_name_known_to_player(npc))
+    return [{"names": [record["name"]]} for record in records
+            if isinstance(record.get("name"), str) and len(record["name"].split()) > 1]
+
+
+def _conditional_self_defense(text):
+    """Someone else might attack, and the player only says they will defend."""
+    if not re.search(
+        r"\b(?:saldirirsa|saldirirlarsa|saldirdiginda|saldirdiklarinda)\b", text
+    ):
+        return False
+    if not re.search(r"\bsavun(?:acag\w*|urum|uruz|uyorum|uyoruz)\b", text):
+        return False
+    return not re.search(
+        r"\b(?:saldir|vur|dov|kes|sapla|bicakl|yumrukla)"
+        r"(?:iyorum|iyoruz|acagim|acagiz|ecegim|ecegiz|dim|dik|dum|duk)\b",
+        text,
+    )
+
+
+def quoted_report(session, message):
+    """An attack verb that survives only inside quotation is a report."""
+    spoken = living_world._text_outside_quotes(str(message))
+    return (
+        not session._has_explicit_attack_verb(spoken)
+        and session._has_explicit_attack_verb(message)
+    )
+
+
+def quoted_or_conditional_not_attack(session, message):
+    """A quoted report or a conditional defense is not the player's attack.
+
+    Called from is_attack_decision and from game.execute_intent. Reads only the
+    player message. Writes nothing: no HP, distance, or combat mutation.
+    """
+    spoken = living_world._text_outside_quotes(str(message))
+    text = session._normalize_turkish_typos(spoken)
+    if _conditional_self_defense(text):
+        return True
+    return quoted_report(session, message)
+
+
 def is_attack_decision(session, message):
-    text = session._normalize_turkish_typos(message)
-    return (session._has_explicit_attack_verb(message)
-            and not session._is_explicitly_negated_attack(message)
+    if quoted_or_conditional_not_attack(session, message):
+        return False
+    spoken = living_world._text_outside_quotes(str(message))
+    text = session._normalize_turkish_typos(spoken)
+    return (session._has_explicit_attack_verb(spoken)
+            and not session._is_explicitly_negated_attack(spoken)
             and not re.search(r"\b(?:tehdit|gozdagi|varsay|saldirsam)\w*\b", text)
             and not str(message).rstrip().endswith("?"))
 

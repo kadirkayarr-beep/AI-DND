@@ -1,8 +1,8 @@
 """Tier 1 experience from the 2024 Player's Handbook.
 
 Python owns the total, the level, and the hit-point gain. Narration and the
-client cannot grant experience. Levels stop at 4; experience past that
-threshold is kept and does not open Tier 2.
+client cannot grant experience. Levels stop at 5; experience past that
+threshold is kept and does not open level 6.
 """
 
 from __future__ import annotations
@@ -11,22 +11,22 @@ import hashlib
 import re
 from typing import Any, Mapping
 
+from feat_rules import held_feats
 from quest_catalog import find_quest
 
 
-MAX_LEVEL = 4
-PROFICIENCY_BONUS = 2
+MAX_LEVEL = 5
 MAX_GRANT = 100_000
 MAX_STORED_XP = 1_000_000_000
 MAX_AWARD_IDS = 10_000  # Bounded long-campaign receipts; old save IDs remain valid.
 
-# Character Advancement table, levels 1–4. Level 5 (6,500 XP, proficiency +3)
-# is the start of Tier 2 and is intentionally not applied.
+# Character Advancement table, levels 1–5; higher numeric levels remain pending.
 LEVEL_THRESHOLDS = (
     (1, 0),
     (2, 300),
     (3, 900),
     (4, 2700),
+    (5, 6500),
 )
 
 # Fixed Hit Points by Class, added on each level after 1.
@@ -49,8 +49,14 @@ _AWARD_ID = re.compile(r"^(quest|combat):\S{1,180}$")
 _DEFEATED = frozenset({"unconscious", "defeated", "dead"})
 
 
+def proficiency_bonus_for(level: int) -> int:
+    """The one Proficiency Bonus resolver (K07 leaf): kept here as a name for the XP/level code."""
+    from api.dnd_2024_rules import proficiency_bonus_for_level
+    return proficiency_bonus_for_level(level)
+
+
 def level_for_xp(xp: int) -> int:
-    """Return the Tier 1 level for a stored experience total."""
+    """Return the bounded level for a stored experience total."""
     level = 1
     for candidate, threshold in LEVEL_THRESHOLDS:
         if xp >= threshold:
@@ -77,7 +83,7 @@ def hit_point_gain(character: Mapping[str, Any]) -> int:
     gain = max(1, fixed + _constitution_modifier(character))
     if character.get("species") == "Dwarf" or character.get("race") == "Dwarf":
         gain += 1
-    if character.get("origin_feat") == "Tough":
+    if "Tough" in held_feats(dict(character)):  # PHB 2024 Tough: +2 per level, however many records name it
         gain += 2
     return gain
 
@@ -90,12 +96,69 @@ def _award_ids(world: dict[str, Any]) -> list[str]:
     return ids
 
 
+def _apply_numeric_level(character: dict[str, Any], target: int) -> dict[str, int]:
+    """Shared numeric owner for real XP and atomic high-level creation.
+
+    Does not award XP, record an event, finalize creation HP, or grant class choices.
+    Callers own transaction/admission. Never demotes an already higher raw level.
+    """
+    if type(target) is not int or not 1 <= target <= MAX_LEVEL:
+        raise ValueError("Unsupported numeric advancement target.")
+    previous = character.get("level")
+    if type(previous) is not int or previous < 1:
+        previous = 1
+    stored_level = previous
+    previous = min(previous, MAX_LEVEL)
+    level = previous
+    gains: list[int] = []
+    while level < target and level < MAX_LEVEL:
+        gains.append(hit_point_gain(character))
+        level += 1
+
+    hit_points_gained = 0
+    max_hp = character.get("max_hp")
+    current_hp = character.get("current_hp")
+    if type(max_hp) is not int:
+        max_hp = 0
+    if type(current_hp) is not int:
+        current_hp = 0
+    for gain in gains:
+        max_hp += gain
+        if current_hp > 0:
+            current_hp += gain
+        hit_points_gained += gain
+    character["max_hp"] = max_hp
+    character["current_hp"] = current_hp
+    level = max(level, min(stored_level, 20))  # XP never demotes a character created above the XP-earned cap (C06)
+    character["level"] = level
+    old_pb = proficiency_bonus_for(min(stored_level, 20))
+    new_pb = proficiency_bonus_for(level)
+    if new_pb != old_pb:
+        from api.dnd_2024_rules import CLASS_DEFINITIONS
+        definition = CLASS_DEFINITIONS.get(character.get("class"), {})
+        saves = character.get("saving_throw_mods")
+        if isinstance(saves, dict):
+            for ability in definition.get("saving_throws", []):
+                if type(saves.get(ability)) is int:
+                    saves[ability] += new_pb - old_pb
+        # Derived caches are not authorities. Clear present casting caches;
+        # existing consumers recompute them from score and canonical PB.
+        for key in ("spell_save_dc", "spell_attack_bonus"):
+            character.pop(key, None)
+        if "initiative" in character:
+            character.pop("initiative")
+    character["proficiency_bonus"] = new_pb
+    return {"previous_level": min(stored_level, 20), "new_level": level,
+            "hit_points_gained": hit_points_gained}
+
+
 def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, event_id: str):
-    """Grant one experience award and apply every crossed level through 4.
+    """Grant one experience award and apply every crossed level through 5.
 
     Returns a summary, or None when the event was already paid or the amount
     is not a positive server grant. The award id is recorded only after the
-    character can accept the grant.
+    character can accept the grant. ``hit_points_gained`` reports maximum-HP
+    advancement, not guaranteed current-HP recovery: zero HP stays zero.
     """
     if not isinstance(character, dict) or not isinstance(world, dict):
         return None
@@ -107,47 +170,17 @@ def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, even
     if type(amount) is not int or amount <= 0 or amount > MAX_GRANT:
         return None
 
-    previous = character.get("level")
-    if type(previous) is not int or previous < 1:
-        previous = 1
-    previous = min(previous, MAX_LEVEL)
     current_xp = character.get("xp")
     if type(current_xp) is not int or current_xp < 0:
         current_xp = 0
     new_xp = current_xp + amount
     if new_xp > MAX_STORED_XP:
         return None
-
-    target = level_for_xp(new_xp)
-    level = previous
-    gains: list[int] = []
-    while level < target and level < MAX_LEVEL:
-        gains.append(hit_point_gain(character))
-        level += 1
-
+    summary = _apply_numeric_level(character, level_for_xp(new_xp))
     ids.append(event_id)
     character["xp"] = new_xp
-    hit_points_gained = 0
-    max_hp = character.get("max_hp")
-    current_hp = character.get("current_hp")
-    if type(max_hp) is not int:
-        max_hp = 0
-    if type(current_hp) is not int:
-        current_hp = 0
-    for gain in gains:
-        max_hp += gain
-        current_hp += gain
-        hit_points_gained += gain
-    character["max_hp"] = max_hp
-    character["current_hp"] = current_hp
-    character["level"] = level
-    character["proficiency_bonus"] = PROFICIENCY_BONUS
-    return {
-        "previous_level": previous,
-        "new_level": level,
-        "xp_gained": amount,
-        "hit_points_gained": hit_points_gained,
-    }
+    return {**summary, "xp_gained": amount}
+
 
 
 def _is_defeated(npc: Mapping[str, Any]) -> bool:
@@ -213,15 +246,26 @@ def award_completed_quest(world: dict[str, Any], character: dict[str, Any], ques
     return apply_xp(character, world, amount, f"quest:{quest_id}")
 
 
-def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, Any]) -> None:
+def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, Any], *, policy: int = 5) -> None:
     """Reject a version-5 save whose experience does not match its level."""
+    if type(policy) is not int or policy not in (5, 6):
+        raise ValueError("Unsupported saved XP policy.")
     xp = player.get("xp")
     if type(xp) is not int or xp < 0 or xp > MAX_STORED_XP:
         raise ValueError("Kayıt deneyim puanı geçersiz.")
-    if player.get("level") != level_for_xp(xp) or player.get("level") > MAX_LEVEL:
-        raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
-    if player.get("proficiency_bonus") != PROFICIENCY_BONUS:
-        raise ValueError("Kayıt ustalık bonusu geçersiz.")
+    earned = min(level_for_xp(xp), 4) if policy == 5 else level_for_xp(xp)
+    cap = 4 if policy == 5 else 5
+    level, applied = player.get("level"), player.get("progression_level")
+    if applied is None:
+        if level != earned or level > cap:
+            raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
+        if player.get("proficiency_bonus") != proficiency_bonus_for(level):
+            raise ValueError("Kayıt ustalık bonusu geçersiz.")
+    else:  # C06: a level reached through applied class-table choices may be ahead of the XP-earned level, never behind it
+        if type(level) is not int or type(applied) is not int or not earned <= level <= 20 or not 1 <= applied <= level:
+            raise ValueError("Kayıt seviyesi deneyim puanıyla uyuşmuyor.")
+        if player.get("proficiency_bonus") != proficiency_bonus_for(level):
+            raise ValueError("Kayıt ustalık bonusu geçersiz.")
     for key, limit in (("species", 40), ("origin_feat", 40)):
         if key not in player or player.get(key) is None:
             continue

@@ -573,6 +573,20 @@ SPECIES_DEFINITIONS = {
 }
 
 
+# C02: source-backed additions beside the existing fields (PHB 2024 chapter 4; values pinned in
+# content/rules/phb2024/origins.json). Existing `size`, `tool` and `feat` stay as they were: nothing that works is removed.
+_SPECIES_SIZE_CHOICES = {"Aasimar": ["Medium", "Small"], "Human": ["Medium", "Small"], "Tiefling": ["Medium", "Small"]}
+for _name, _species in SPECIES_DEFINITIONS.items():
+    _species.setdefault("size_options", list(_SPECIES_SIZE_CHOICES.get(_name, [_species["size"].split(" ")[0]])))
+_BACKGROUND_FEAT_LISTS = {"Acolyte": "Cleric", "Guide": "Druid", "Sage": "Wizard"}  # Magic Initiate spell lists
+_BACKGROUND_TOOL_CHOICES = {
+    "Artisan": "artisan_tools", "Entertainer": "musical_instrument", "Guard": "gaming_set", "Noble": "gaming_set",
+    "Soldier": "gaming_set",
+}  # category ids (PHB: "choose one kind of ...")
+for _name, _background in BACKGROUND_DEFINITIONS.items():
+    _background.setdefault("feat_variant", _BACKGROUND_FEAT_LISTS.get(_name))
+    _background.setdefault("tool_choice", _BACKGROUND_TOOL_CHOICES.get(_name))
+
 # ============================================================================
 # CLASSES (2024 PHB)
 # ============================================================================
@@ -591,8 +605,8 @@ CLASS_DEFINITIONS = {
         "features": ["Öfke (Rage)", "Zırsız Savunma (Unarmored Defense)", "Silah Ustalığı (Weapon Mastery)"],
         "is_spellcaster": False,
         "equipment_packages": [
-            {"id": "A", "label": "Büyük Balta & Ciritler", "items": ["Büyük Balta (Greataxe)", "4 Cirit", "Macera Çantası", "15 Altın"]},
-            {"id": "B", "label": "Çift El Baltası & Ciritler", "items": ["2 El Baltası (Handaxe)", "4 Cirit", "Macera Çantası", "15 Altın"]},
+            {"id": "A", "label": "Greataxe, 4 Handaxes, Explorer's Pack + 15 GP (yalnız sınıf payı)", "items": ["Büyük Balta (Greataxe)", "4 Handaxes", "Explorer's Pack", "15 GP"]},
+            {"id": "B", "label": "75 GP (yalnız sınıf payı; sınıf eşyası yok)", "items": ["75 GP"]},
         ],
     },
     "Bard": {
@@ -924,6 +938,10 @@ SPELLS_CATALOG = {
             {"id": "Chromatic Orb", "name_tr": "Renk Küresi (Chromatic Orb)", "desc": "Seçilen element türünde 3d8 güçlü hasar fırlatır."},
             {"id": "Chaos Bolt", "name_tr": "Kaos Oku (Chaos Bolt)", "desc": "Rastgele elementte 2d8 + 1d6 hasar verir ve sıçrayabilir."},
             {"id": "Disguise Self", "name_tr": "Kılık Değiştirme", "desc": "Dış görünüşü tamamen yanılsamayla değiştirir."},
+            {"id": "Detect Magic", "name_tr": "Büyü Algılama", "desc": "Seçim kaydı; büyü etkisinin desteği ayrı doğrulanır."},
+            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor."},
+            {'id': 'Fog Cloud', 'name_tr': 'Fog Cloud', 'desc': 'Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor.'},
+            {'id': 'Silent Image', 'name_tr': 'Silent Image', 'desc': 'Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor.'},
         ],
     },
     "Warlock": {
@@ -966,26 +984,46 @@ SPELLS_CATALOG = {
 # AUTHORITATIVE CATALOG ACCESSOR
 # ============================================================================
 
+# PHB 2024 armor table (PDF 218; values in content/rules/phb2024/weapons_armor.json, pinned by test_roadmap_c04).
+# `min_strength` (speed penalty) and `stealth_disadvantage` are recorded here; applying them in play is a later C04 leaf.
+def _armor(category, base_ac, mode, min_strength=None, stealth=False):
+    rule = {"base_ac": base_ac, "dexterity_mode": mode, "category": category, "min_strength": min_strength,
+            "stealth_disadvantage": stealth}
+    if mode == "capped":
+        rule["max_dexterity_bonus"] = 2
+    return rule
+
+
 ARMOR_CLASS_RULES = {
-    "Chain Mail": {"base_ac": 16, "dexterity_mode": "none"},
-    "Scale Mail": {
-        "base_ac": 14,
-        "dexterity_mode": "capped",
-        "max_dexterity_bonus": 2,
-    },
-    "Leather Armor": {"base_ac": 11, "dexterity_mode": "full"},
+    "Padded Armor": _armor("light", 11, "full", stealth=True),
+    "Leather Armor": _armor("light", 11, "full"),
+    "Studded Leather Armor": _armor("light", 12, "full"),
+    "Hide Armor": _armor("medium", 12, "capped"),
+    "Chain Shirt": _armor("medium", 13, "capped"),
+    "Scale Mail": _armor("medium", 14, "capped", stealth=True),
+    "Breastplate": _armor("medium", 14, "capped"),
+    "Half Plate Armor": _armor("medium", 15, "capped", stealth=True),
+    "Ring Mail": _armor("heavy", 14, "none", stealth=True),
+    "Chain Mail": _armor("heavy", 16, "none", 13, True),
+    "Splint Armor": _armor("heavy", 17, "none", 15, True),
+    "Plate Armor": _armor("heavy", 18, "none", 15, True),
 }
 
 ARMOR_NAME_ALIASES = {
     "Zincir Zırh": "Chain Mail",
-    "Chain Mail": "Chain Mail",
     "Pul Zırh": "Scale Mail",
-    "Scale Mail": "Scale Mail",
     "Deri Zırh": "Leather Armor",
-    "Leather Armor": "Leather Armor",
+    **{name: name for name in ARMOR_CLASS_RULES},
 }
 
 SHIELD_ITEM_TOKENS = ("kalkan", "shield")
+
+
+def proficiency_bonus_for_level(level: int) -> int:
+    """PHB 2024 Proficiency Bonus table for a CHARACTER level (PDF 12, printed 13): 1-4 +2, 5-8 +3, 9-12 +4, 13-16 +5, 17-20 +6."""
+    if type(level) is not int or not 1 <= level <= 20:
+        raise ValueError("Character level must be an integer from 1 to 20.")
+    return (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6)[level - 1]
 
 
 def get_equipment_armor_and_shield(
@@ -996,21 +1034,26 @@ def get_equipment_armor_and_shield(
         return None, False
 
     joined = " ".join(equipment_choices).casefold()
-    armor = next(
-        (
-            canonical_name
-            for alias, canonical_name in ARMOR_NAME_ALIASES.items()
-            if alias.casefold() in joined
-        ),
-        None,
-    )
+    # Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor"). The labels are CARRIED
+    # equipment, not a worn-armor selection: two different suits cannot both be worn and nothing says which one is, so the
+    # creation request is refused instead of picking one (a carried suit must never raise AC, PHB p.219: one suit at a time).
+    found = [alias for alias in ARMOR_NAME_ALIASES if alias.casefold() in joined]
+    found = [a for a in found if not any(a != b and a.casefold() in b.casefold() for b in found)]
+    suits = {ARMOR_NAME_ALIASES[a] for a in found}
+    if len(suits) > 1:
+        raise CharacterCreationError("Equipment lists more than one suit of armor; only one can be worn.")
+    armor = next(iter(suits), None)
     has_shield = any(token in joined for token in SHIELD_ITEM_TOKENS)
     return armor, has_shield
 
 
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
+    from character_progression import sorcerer_starting_creation_options, barbarian_starting_creation_options
+
     return {
+        "sorcerer_starting_creation": sorcerer_starting_creation_options(),
+        "barbarian_starting_creation": barbarian_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),

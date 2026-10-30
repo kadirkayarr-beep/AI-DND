@@ -1,0 +1,956 @@
+{
+ "schema_version": 1,
+ "purpose": "Maps historical LR00-LR05, G1-G6 and the 16 research opportunities to the new roadmap tasks without letting any historical result close the full release.",
+ "source_package_files": {
+  "traceability/historical-crosswalk.json": "a38b299cd0b7b9b53d4589cca35a639989e68c789d5e71642f04c54b8bc646e6",
+  "traceability/task-index.json": "db4fe1da8c267449f8835cb6ce7a50bea4bf9edee7aa3970b6afbc5382c57dd5"
+ },
+ "historical_package_sha256_as_recorded": "3d6355bf60cb612676c8a7d52819dbb783234d317e5bf16d7ed0157d6b715c43",
+ "task_index_ids": [
+  "B01",
+  "B02",
+  "B03",
+  "B04",
+  "B05",
+  "B06",
+  "R01",
+  "R02",
+  "R03",
+  "R04",
+  "R05",
+  "R06",
+  "R07",
+  "R08",
+  "R09",
+  "K01",
+  "K02",
+  "K03",
+  "K04",
+  "K05",
+  "K06",
+  "K07",
+  "W01",
+  "W02",
+  "W03",
+  "W04",
+  "W05",
+  "W06",
+  "W07",
+  "W08",
+  "W09",
+  "W10",
+  "W11",
+  "C01",
+  "C02",
+  "C03",
+  "C04",
+  "C05",
+  "C06",
+  "C10",
+  "C11",
+  "C12",
+  "C13",
+  "C14",
+  "C15",
+  "C16",
+  "C17",
+  "C18",
+  "C19",
+  "C20",
+  "C21",
+  "C07",
+  "C22",
+  "X01",
+  "X02",
+  "X03",
+  "X04",
+  "L01",
+  "L02",
+  "L03",
+  "L04",
+  "L05",
+  "L06",
+  "L07",
+  "L08",
+  "L09",
+  "U01",
+  "U02",
+  "U03",
+  "U04",
+  "U05",
+  "U06",
+  "U07",
+  "U08",
+  "D01",
+  "D02",
+  "D03",
+  "D04",
+  "M01",
+  "M02",
+  "M03",
+  "M04",
+  "M05",
+  "N01",
+  "N02",
+  "N03",
+  "N04",
+  "F01",
+  "F02",
+  "F03",
+  "F04",
+  "F05",
+  "C08",
+  "C09"
+ ],
+ "historical_gates": {
+  "closes_full_release": false,
+  "legacy_gate_count_reported": 33,
+  "note": "The 33 historical gates, any v0.6 PASS and the LR00 closures are earlier-stage results; none of them closes the full release (design sections 16.5 and 16.8; closure belongs to N01-N04)."
+ },
+ "tool_boundary": {
+  "named_tools": [
+   "Jina",
+   "Open5e",
+   "SRD",
+   "Freesound",
+   "DiceBear",
+   "Openverse",
+   "Groq",
+   "Gemini"
+  ],
+  "roles": {
+   "Jina": "research reading",
+   "Open5e": "controlled helper data with edition and rights verification",
+   "SRD": "controlled helper data with edition and rights verification",
+   "Freesound": "optional media candidate",
+   "DiceBear": "optional media candidate",
+   "Openverse": "optional media candidate",
+   "Groq": "conditional model comparison",
+   "Gemini": "conditional model comparison"
+  },
+  "tools_are_dependencies": false,
+  "automatic_install": false,
+  "personal_campaign_transfer": false,
+  "source_note": "03_Tarihsel_Arastirma_Eslemesi.md, section on tool and external source limits"
+ },
+ "linked_checks": {
+  "b04_manifest_rows": 728,
+  "b02_evidence_columns": [
+   "build",
+   "typecheck",
+   "lint",
+   "unit",
+   "http",
+   "browser",
+   "auth",
+   "model",
+   "human_acceptance"
+  ]
+ },
+ "rows": [
+  {
+   "historical_id": "LR00",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 411,
+    "heading": "11.3 LR00 Reforged — gerçekten oynanabilir yaratıcı temel",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.3 LR00 Reforged — gerçekten oynanabilir yaratıcı temel",
+   "package_title": "Tarihsel temel/sağlamlaştırma kesiti",
+   "target_spec": "B01–B06,R01–R09,K01–K04,W02–W06",
+   "target_tasks": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06",
+    "R01",
+    "R02",
+    "R03",
+    "R04",
+    "R05",
+    "R06",
+    "R07",
+    "R08",
+    "R09",
+    "K01",
+    "K02",
+    "K03",
+    "K04",
+    "W02",
+    "W03",
+    "W04",
+    "W05",
+    "W06"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Yeni tam sürüm değildir; eski kapanışlar güncel kaynakta kanıtlanır.",
+   "historical_claims": {
+    "closures_reported": "LR00 and the 33 historical gates are earlier-stage closures",
+    "closes_full_release": false
+   }
+  },
+  {
+   "historical_id": "LR01",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 498,
+    "heading": "11.4 LR01 — The Open Road",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.4 LR01 — The Open Road",
+   "package_title": "The Open Road",
+   "target_spec": "W10,W11,L08,U06",
+   "target_tasks": [
+    "W10",
+    "W11",
+    "L08",
+    "U06"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Özgür açılış, kalıcı coğrafya, yolculuk ve bilgi sınırı ilk tam oyunda.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "LR02",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 508,
+    "heading": "11.5 LR02 — Living Souls",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.5 LR02 — Living Souls",
+   "package_title": "Living Souls",
+   "target_spec": "W01–W11,L01–L03",
+   "target_tasks": [
+    "W01",
+    "W02",
+    "W03",
+    "W04",
+    "W05",
+    "W06",
+    "W07",
+    "W08",
+    "W09",
+    "W10",
+    "W11",
+    "L01",
+    "L02",
+    "L03"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Söz, bilgi, rutin, yoldaş ve aile; dört sohbet uzun hayat kabulü değildir.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "LR03",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 518,
+    "heading": "11.6 LR03 — Steel & Sorcery",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.6 LR03 — Steel & Sorcery",
+   "package_title": "Steel & Sorcery",
+   "target_spec": "K01–K07,C01–C22,X01–X04",
+   "target_tasks": [
+    "K01",
+    "K02",
+    "K03",
+    "K04",
+    "K05",
+    "K06",
+    "K07",
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C10",
+    "C11",
+    "C12",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C18",
+    "C19",
+    "C20",
+    "C21",
+    "C22",
+    "X01",
+    "X02",
+    "X03",
+    "X04"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Tam PHB, yaratıcı büyü/icat, mekanik otorite; eski v0.6 kapsamına daraltılmaz.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "LR04",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 528,
+    "heading": "11.7 LR04 — A World Alive",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.7 LR04 — A World Alive",
+   "package_title": "A World Alive",
+   "target_spec": "K04,L01,L04–L09",
+   "target_tasks": [
+    "K04",
+    "L01",
+    "L04",
+    "L05",
+    "L06",
+    "L07",
+    "L08",
+    "L09"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Sahne-dışı yaşam, ekonomi, fraksiyon/ordu rol yapma ölçeği ve huzur.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "LR05",
+   "kind": "lr",
+   "source_ref": {
+    "file": "ai-dnd/docs/UNWRITTEN_ONE_HANDOFF_v1_0_REVIEW.md",
+    "line": 538,
+    "heading": "11.8 LR05 — Beyond the Horizon",
+    "file_sha256": "09bbab4016d82d84a75eb45dffe2d116d5f65cdac5d80eb0f3d3ea41036da5dd"
+   },
+   "source_title": "11.8 LR05 — Beyond the Horizon",
+   "package_title": "Beyond the Horizon",
+   "target_spec": "D03,U02–U03,F01–F05",
+   "target_tasks": [
+    "D03",
+    "U02",
+    "U03",
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED",
+   "not_full_release": true,
+   "source_verification": "REPO_HEADING_VERIFIED",
+   "note": "Düzeltme/erişilebilirlik ilk tam oyunda; özgün dünya/sonraki tür/ses/multiplayer sonraki kapılarda.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G1",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Kampanya yaratımı",
+   "package_title": "Kampanya yaratımı",
+   "target_spec": "W10,W11,F01",
+   "target_tasks": [
+    "W10",
+    "W11",
+    "F01"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "İlk FR kampanya yaratımı onaylı; kullanıcı editörü/mod aracı otomatik eklenmez.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G2",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Keşif/yolculuk",
+   "package_title": "Keşif/yolculuk",
+   "target_spec": "L08,U06",
+   "target_tasks": [
+    "L08",
+    "U06"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Preview nonmutating, rota maliyeti, duyma/bilme/ziyaret ayrımı.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G3",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Yaşayan kişiler",
+   "package_title": "Yaşayan kişiler",
+   "target_spec": "W06–W08,L01–L03",
+   "target_tasks": [
+    "W06",
+    "W07",
+    "W08",
+    "L01",
+    "L02",
+    "L03"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Promise/witness/return, aynı gün tek tick, NPC bilgisi ve kalıcı davranış.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G4",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Söylenti/gizem/sonuçlu yay",
+   "package_title": "Söylenti/gizem/sonuçlu yay",
+   "target_spec": "W03,W07,W09,L07",
+   "target_tasks": [
+    "W03",
+    "W07",
+    "W09",
+    "L07"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Ret/müzakere/beklenmedik çözüm; bitmiş yay bitmiş, olası plan geçmiş değildir.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G5",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Mekanik ve çoklu görünüm",
+   "package_title": "Mekanik ve çoklu görünüm",
+   "target_spec": "K01–K07,C01–C22,U04–U07",
+   "target_tasks": [
+    "K01",
+    "K02",
+    "K03",
+    "K04",
+    "K05",
+    "K06",
+    "K07",
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C10",
+    "C11",
+    "C12",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C18",
+    "C19",
+    "C20",
+    "C21",
+    "C22",
+    "U04",
+    "U05",
+    "U06",
+    "U07"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Tek sonuç metin/günlük/harita/portre; medya otorite veya zorunlu ağ değil.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "G6",
+   "kind": "g",
+   "source_ref": {
+    "original_document": "01_GUNCEL/scene-truth-20261025/IMPLEMENTATION_PLAN.md (G1-G6 table)",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Düzeltme/erişilebilirlik; sonraki ses",
+   "package_title": "Düzeltme/erişilebilirlik; sonraki ses",
+   "target_spec": "D03,U02–U03,F03–F04,F05",
+   "target_tasks": [
+    "D03",
+    "U02",
+    "U03",
+    "F03",
+    "F04",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Kelime düzeltme/retcon/undo/branch/ses ayrı; ses ve multiplayer sonrası, genel branch editor opsiyonel.",
+   "historical_claims": {}
+  },
+  {
+   "historical_id": "A1",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Oyun içi teşhis: anlatı, işlem sonucu ve kaynak ayrı görülsün",
+   "package_title": "Oyun içi teşhis: anlatı, işlem sonucu ve kaynak ayrı görülsün",
+   "target_spec": "B02,R04,W09,M04",
+   "target_tasks": [
+    "B02",
+    "R04",
+    "W09",
+    "M04"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "İlk tam oyunda redakte kanıt/isteğe bağlı OOC açıklama; sürekli debug yağmuru yok.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "İlk tam oyunda redakte kanıt/isteğe bağlı OOC açıklama; sürekli debug yağmuru yok.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "A2",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Yerel-model uyumluluk paketi ve Qwen sözleşme testleri",
+   "package_title": "Yerel-model uyumluluk paketi ve Qwen sözleşme testleri",
+   "target_spec": "M01–M05,W02",
+   "target_tasks": [
+    "M01",
+    "M02",
+    "M03",
+    "M04",
+    "M05",
+    "W02"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Mevcut Qwen+istenen HauhauCS, gerçek model kimliği; otomatik Groq/Gemini yok.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Mevcut Qwen+istenen HauhauCS, gerçek model kimliği; otomatik Groq/Gemini yok.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "A3",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Güvenli kayıt ve retry: yeni event store’dan önce mevcut kayıt sınırını sağlamlaştır",
+   "package_title": "Güvenli kayıt ve retry: yeni event store’dan önce mevcut kayıt sınırını sağlamlaştır",
+   "target_spec": "R01–R09,D01–D02",
+   "target_tasks": [
+    "R01",
+    "R02",
+    "R03",
+    "R04",
+    "R05",
+    "R06",
+    "R07",
+    "R08",
+    "R09",
+    "D01",
+    "D02"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Mevcut CampaignStore sahibi korunur.",
+   "historical_claims": {},
+   "disposition": "korunur",
+   "reason": "Mevcut CampaignStore sahibi korunur.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "A4",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Doğal NPC konuşması + doğrulanmış eylem sonucu",
+   "package_title": "Doğal NPC konuşması + doğrulanmış eylem sonucu",
+   "target_spec": "W02–W05,W09,M04",
+   "target_tasks": [
+    "W02",
+    "W03",
+    "W04",
+    "W05",
+    "W09",
+    "M04"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Konu/konuşmacı/receipt; bir pilot bütün kalite kabulü değil.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Konu/konuşmacı/receipt; bir pilot bütün kalite kabulü değil.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B1",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Uzun kampanya hafızası: olay, inanç ve söylenti ayrı tutulsun",
+   "package_title": "Uzun kampanya hafızası: olay, inanç ve söylenti ayrı tutulsun",
+   "target_spec": "W01,W06–W08,M05",
+   "target_tasks": [
+    "W01",
+    "W06",
+    "W07",
+    "W08",
+    "M05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Kaynaklı retention/retrieval/compaction ilk tam oyunda.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Kaynaklı retention/retrieval/compaction ilk tam oyunda.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B2",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Lore içe aktarma ve editör onaylı dünya hazırlama",
+   "package_title": "Lore içe aktarma ve editör onaylı dünya hazırlama",
+   "target_spec": "B04,W11,F05",
+   "target_tasks": [
+    "B04",
+    "W11",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Kaynak/provenans ilk tam oyunda; son kullanıcı lore-import editörü ayrı isteğe bağlı.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "Kaynak/provenans ilk tam oyunda; son kullanıcı lore-import editörü ayrı isteğe bağlı.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B3",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Veriyle yazılan, doğrulanabilir macera paketleri",
+   "package_title": "Veriyle yazılan, doğrulanabilir macera paketleri",
+   "target_spec": "B04,W10,W11,F05",
+   "target_tasks": [
+    "B04",
+    "W10",
+    "W11",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "İçerik doğrulaması/kimlik ilk tam oyunda; paket yazarlık/dağıtım ürünü zorunlu değil.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "İçerik doğrulaması/kimlik ilk tam oyunda; paket yazarlık/dağıtım ürünü zorunlu değil.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B4",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Ulaşım türüne göre rota ve zaman önizlemesi",
+   "package_title": "Ulaşım türüne göre rota ve zaman önizlemesi",
+   "target_spec": "L08,K04",
+   "target_tasks": [
+    "L08",
+    "K04"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Onaylı yolculuk; preview hareket etmez.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Onaylı yolculuk; preview hareket etmez.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B5",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Söylenti haritası ve kademeli keşif",
+   "package_title": "Söylenti haritası ve kademeli keşif",
+   "target_spec": "W01,L08,U06",
+   "target_tasks": [
+    "W01",
+    "L08",
+    "U06"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Onaylı oyuncu bilgisi haritası; gizli koordinat ağ payload’ına çıkmaz.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Onaylı oyuncu bilgisi haritası; gizli koordinat ağ payload’ına çıkmaz.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B6",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "NPC ve fraksiyon ilişkileri için içerik yazarlığı grafı",
+   "package_title": "NPC ve fraksiyon ilişkileri için içerik yazarlığı grafı",
+   "target_spec": "W01,L01,L06,F05",
+   "target_tasks": [
+    "W01",
+    "L01",
+    "L06",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "İlişki durumu ilk tam oyunda; authoring graf editörü opsiyonel.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "İlişki durumu ilk tam oyunda; authoring graf editörü opsiyonel.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B7",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Karakter geçmişi ve olası gelişim çizgisi editörü",
+   "package_title": "Karakter geçmişi ve olası gelişim çizgisi editörü",
+   "target_spec": "W11,L07,F05",
+   "target_tasks": [
+    "W11",
+    "L07",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Geçmiş/gelecek olasılığı ayrımı ilk tam oyunda; arc editörü opsiyonel, zorunlu ending yok.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "Geçmiş/gelecek olasılığı ayrımı ilk tam oyunda; arc editörü opsiyonel, zorunlu ending yok.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "B8",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Model çağrısı gerektirmeyen günlük NPC rutinleri",
+   "package_title": "Model çağrısı gerektirmeyen günlük NPC rutinleri",
+   "target_spec": "L01,K04",
+   "target_tasks": [
+    "L01",
+    "K04"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Onaylı yaşayan dünya; 100 routine tick model çağrısı0 test kapısı.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Onaylı yaşayan dünya; 100 routine tick model çağrısı0 test kapısı.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "C1",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Oyun sürümü, kayıt sürümü ve alternatif geçmişi birbirinden ayır",
+   "package_title": "Oyun sürümü, kayıt sürümü ve alternatif geçmişi birbirinden ayır",
+   "target_spec": "D01,D03,F05",
+   "target_tasks": [
+    "D01",
+    "D03",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Save/oyun/content/model sürümü ilk tam oyunda; alternatif branch editor opsiyonel.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "Save/oyun/content/model sürümü ilk tam oyunda; alternatif branch editor opsiyonel.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "C2",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Oyuncu dışındaki ilişkiler ve sınırlı faction gündemleri",
+   "package_title": "Oyuncu dışındaki ilişkiler ve sınırlı faction gündemleri",
+   "target_spec": "L01,L06,L07",
+   "target_tasks": [
+    "L01",
+    "L06",
+    "L07"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Nedensel sınırlı dünya; dev strateji motoru veya sürekli ajan toplumu yok.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Nedensel sınırlı dünya; dev strateji motoru veya sürekli ajan toplumu yok.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "C3",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Bütçeli sahne-dışı yaşam ve zaman atlama özeti",
+   "package_title": "Bütçeli sahne-dışı yaşam ve zaman atlama özeti",
+   "target_spec": "K04,L01,L05",
+   "target_tasks": [
+    "K04",
+    "L01",
+    "L05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Actual elapsed, tek event, bilgi sınırı, önemli kararda kesme.",
+   "historical_claims": {},
+   "disposition": "uygulanır",
+   "reason": "Actual elapsed, tek event, bilgi sınırı, önemli kararda kesme.",
+   "is_scope_decision": false
+  },
+  {
+   "historical_id": "C4",
+   "kind": "opportunity",
+   "source_ref": {
+    "original_document": "90_TARIHSEL/2026-10-16_20_Repo_ve_Oyunlar/AI_DND_Repo_Firsat_Haritasi_2026-10-20.md",
+    "original_opened_in_b05": false
+   },
+   "source_title": "Önce veri paketleri, sonra kontrollü mod ekosistemi",
+   "package_title": "Önce veri paketleri, sonra kontrollü mod ekosistemi",
+   "target_spec": "B04,F05",
+   "target_tasks": [
+    "B04",
+    "F05"
+   ],
+   "missing_targets": [],
+   "status": "MAPPED_UNVERIFIED_SOURCE",
+   "not_full_release": true,
+   "source_verification": "PLAN_PACKAGE_RECORD_ONLY",
+   "note": "Kaynaklı veri ilk tam oyunda; native SDK/paket mağazası/onaysız kod import yok.",
+   "historical_claims": {},
+   "disposition": "kısmen_uygulanır_kısmen_sonraya_ayrılır",
+   "reason": "Kaynaklı veri ilk tam oyunda; native SDK/paket mağazası/onaysız kod import yok.",
+   "is_scope_decision": false
+  }
+ ]
+}

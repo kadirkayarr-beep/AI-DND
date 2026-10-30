@@ -82,7 +82,7 @@ class ExperienceRuleTests(unittest.TestCase):
         self.session = game.create_session(seed=6)
         _character(self.session)
 
-    def test_thresholds_fixed_hit_points_and_the_level_four_cap(self):
+    def test_thresholds_fixed_hit_points_and_the_level_five_cap(self):
         character = self.session.character
         self.assertEqual(xp.level_for_xp(299), 1)
         below = xp.apply_xp(character, self.session.world_state, 299, "quest:below")
@@ -128,13 +128,14 @@ class ExperienceRuleTests(unittest.TestCase):
         capped = game.create_session(seed=6)
         _character(capped)
         overflow = xp.apply_xp(capped.character, capped.world_state, 10000, "quest:overflow")
-        self.assertEqual(capped.character["level"], 4)
+        self.assertEqual(capped.character["level"], 5)
         self.assertEqual(capped.character["xp"], 10000)
-        self.assertEqual(capped.character["proficiency_bonus"], 2)
-        self.assertEqual(overflow["hit_points_gained"], 24)
+        self.assertEqual(capped.character["proficiency_bonus"], 3)
+        self.assertEqual(overflow["hit_points_gained"], 32)
         self.assertEqual(capped.character["spell_slots_remaining"], {"1": 2})
         self.assertEqual(capped.character["spells"], [])
-        self.assertEqual(capped.character["spell_attack_bonus"], 5)
+        self.assertNotIn("spell_attack_bonus", capped.character)  # PB-dependent cache is invalidated, not retained stale.
+        self.assertEqual(xp.level_for_xp(14000), 5)  # Next activation boundary remains closed.
 
     def test_negative_constitution_dwarf_and_tough_use_the_fixed_table(self):
         wizard = self.session.character
@@ -411,7 +412,7 @@ class ExperienceAwardTests(unittest.TestCase):
                 self.session.load_game(path)
             self.assertEqual(self.session.character["xp"], 6500)
             self.assertEqual(self.session.character["level"], 1)
-            broken["version"] = 6
+            broken["version"] = 7  # v6 now has explicit cap5 semantics; unknown7 still rejects.
             broken["player"]["xp"] = 300
             broken["player"]["level"] = 2
             path.write_text(json.dumps(broken), encoding="utf-8")

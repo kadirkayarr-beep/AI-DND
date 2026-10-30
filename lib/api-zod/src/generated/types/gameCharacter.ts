@@ -7,9 +7,13 @@
  */
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
+import type { PrimalKnowledgeCheck } from './primalKnowledgeCheck';
+import type { RageState } from './rageState';
 import type { SpeciesTraitState } from './speciesTraitState';
 
 export interface GameCharacter {
+  primal_knowledge_check?: PrimalKnowledgeCheck;
+  rage?: RageState;
   name: string;
   race: string;
   species?: string;
@@ -49,6 +53,14 @@ export interface GameCharacter {
   species_bonus_skills?: string[];
   origin_feats?: string[];
   level: number;
+  /** Canonical applied progression level, not an unapplied XP level. */
+  progression_level?: number;
+  /** Selected Metamagic options only; effects are not implemented. */
+  metamagic?: string[];
+  /** Selected subclass ID only; subclass effects and grants remain pending. */
+  subclass_id?: string;
+  /** Informative pending effects at the applied level; not spendable resources. */
+  progression_effects_pending?: string[];
   proficiency_bonus: number;
   max_hp: number;
   current_hp: number;

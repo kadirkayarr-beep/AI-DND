@@ -6,12 +6,18 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatActionInput } from './combatActionInput';
+import type { GameTurnInputCheckFeature } from './gameTurnInputCheckFeature';
 import type { GameTurnInputInteractionMode } from './gameTurnInputInteractionMode';
 
 /**
  * The message must contain at least one non-whitespace character.
  */
 export interface GameTurnInput {
+  /**
+     * Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.
+     * @nullable
+     */
+  check_feature?: GameTurnInputCheckFeature;
   combat_action?: CombatActionInput | null;
   /**
      * @minLength 1

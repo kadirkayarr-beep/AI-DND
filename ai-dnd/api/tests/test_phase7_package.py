@@ -279,9 +279,10 @@ class Phase7PackageTests(unittest.TestCase):
         for record in context["npcs"]:
             self.assertNotIn("knowledge", record)
             self.assertNotIn("backstory", record)
-        self.assertNotIn("CANONICAL_LOCATION", Path(
+        # The bare marker must not appear; the imported CANONICAL_LOCATION_TYPES is fine.
+        self.assertNotRegex(Path(
             Path(__file__).resolve().parents[1] / "main.py"
-        ).read_text(encoding="utf-8"))
+        ).read_text(encoding="utf-8"), r"\bCANONICAL_LOCATION\b")
 
     def test_npc_status_location_and_known_name_survive_reload(self):
         session = game.create_session(seed=22)

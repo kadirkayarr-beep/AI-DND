@@ -1,0 +1,1759 @@
+{
+  "oracles": {
+    "barbarian3": {
+      "campaign": {
+        "campaign_id": "c454df4a-57a2-47e5-9777-ae6e3f8a475c",
+        "combat_history": [],
+        "history": [],
+        "name": "Vael — Yeni Macera",
+        "session_id": "35f29e30-9e63-4b47-b1a8-6d5a05f042f9",
+        "state": {
+          "adventure": {
+            "commitments": [],
+            "plan": null,
+            "recent_events": [],
+            "threads": []
+          },
+          "campaign_adventures": {
+            "active": [],
+            "affordances": [],
+            "completed": [],
+            "failed": [],
+            "rumors": [],
+            "timeline": []
+          },
+          "campaign_time": null,
+          "character": {
+            "appearance": null,
+            "armor_class": 15,
+            "backstory": null,
+            "cantrips": [],
+            "charisma": 15,
+            "class": "Barbarian",
+            "constitution": 14,
+            "current_hp": 23,
+            "dexterity": 16,
+            "expertise_skills": [],
+            "giant_ancestry": null,
+            "intelligence": 10,
+            "level": 2,
+            "max_hp": 23,
+            "name": "Vael",
+            "origin": null,
+            "origin_feat": "Alert",
+            "origin_feats": [
+              "Alert"
+            ],
+            "personality": null,
+            "proficiency_bonus": 2,
+            "proficient_skills": [
+              "Athletics",
+              "Perception",
+              "Persuasion",
+              "Sleight of Hand",
+              "Stealth"
+            ],
+            "progression_effects_pending": [
+              "Rage: known-unarmored Barbarian 1–2 combat Bonus activation/extension, supported attack/check/save/resistance routes and rest recovery; verified adopted state required",
+              "Reckless Attack: explicit first own-turn attack choice and canonical advantage window supported",
+              "Danger Sense: weapon/unarmed Dexterity-save route supported",
+              "Weapon Mastery: selections and effects remain pending (C10/C04)",
+              "General armor changes and broader Unarmored Defense routes remain unsupported",
+              "Danger Sense: other save routes remain pending (C10)"
+            ],
+            "progression_level": 2,
+            "race": "Human",
+            "rage": {
+              "activate": {
+                "available": false,
+                "reason": "rage_current_combat_turn_required"
+              },
+              "active": false,
+              "extend": {
+                "available": false,
+                "reason": "rage_current_combat_turn_required"
+              },
+              "max_uses": 2,
+              "remaining_seconds": null,
+              "uses_remaining": 2
+            },
+            "species": "Human",
+            "species_bonus_feat": null,
+            "species_bonus_skills": [],
+            "species_trait_state": null,
+            "speed_ft": 30,
+            "spell_slots_remaining": {
+              "1": 0
+            },
+            "spells": [],
+            "strength": 8,
+            "wisdom": 12,
+            "xp": 300
+          },
+          "combat": {
+            "action_economy": null,
+            "active": false,
+            "combat_id": null,
+            "current_actor_id": null,
+            "current_turn_index": 0,
+            "end_reason": null,
+            "initiative_order": [],
+            "participant_records": [],
+            "participants": [],
+            "round": 0,
+            "status": "ended",
+            "target_id": null,
+            "turn_owner": null
+          },
+          "conversation": {
+            "active": false,
+            "interlocutor": null
+          },
+          "death_state": {
+            "dead": false,
+            "failures": 0,
+            "mode": "NORMAL",
+            "prone": false,
+            "stable": false,
+            "status": "active",
+            "successes": 0,
+            "terminal": false
+          },
+          "doors": [],
+          "expedition": {
+            "actions": [
+              {
+                "label": "Erzak takibi: aç",
+                "message": "/travel supplies enabled"
+              }
+            ],
+            "exhaustion": 0,
+            "extended_travel_saves": [],
+            "hours_beyond_eight": 0,
+            "supplies_enabled": false,
+            "tracking_required_seconds": 3600,
+            "tracking_seconds": 0,
+            "tracking_status": null,
+            "walking_seconds": 0
+          },
+          "exploration": null,
+          "features": [],
+          "inventory": [
+            "Büyük Balta (Greataxe)",
+            "Handaxe",
+            "Handaxe",
+            "Handaxe",
+            "Handaxe",
+            "Explorer's Pack",
+            "Hırsız Aletleri",
+            "Koyu Renkli Pelerin",
+            "Levye",
+            "16 Altın"
+          ],
+          "journal": {
+            "discovered_locations": [],
+            "known_npcs": [],
+            "notable_events": [],
+            "quests": [],
+            "schema_version": 1
+          },
+          "journey": null,
+          "known_factions": [],
+          "known_lore": [],
+          "known_scheduled_events": [],
+          "location": "Henüz belirlenmedi",
+          "locations": {
+            "castle": {
+              "description": "",
+              "id": "castle",
+              "name": "Kale",
+              "type": "building"
+            },
+            "forest": {
+              "description": "",
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness"
+            },
+            "tavern": {
+              "description": "",
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building"
+            }
+          },
+          "npcs": [],
+          "pending_event_decisions": [],
+          "player_combat_status": "active",
+          "quest_offers": [],
+          "quests": [],
+          "scene": null,
+          "scene_incidents": [],
+          "shops": [],
+          "spellcasting": null,
+          "turn_index": 0,
+          "world": {
+            "environment": "unknown",
+            "time_of_day": "day",
+            "weather": "clear"
+          }
+        }
+      },
+      "preview": {
+        "campaign_id": "c454df4a-57a2-47e5-9777-ae6e3f8a475c",
+        "cantrip_ids": [],
+        "capacity": null,
+        "choices_required": {
+          "primal_knowledge_skill": 1,
+          "subclass_id": 1
+        },
+        "class_name": "Barbarian",
+        "effects_pending": [
+          "Weapon Mastery: selections and effects remain pending (C10/C04)",
+          "General armor changes and broader Unarmored Defense routes remain unsupported",
+          "Danger Sense: other save routes remain pending (C10)",
+          "Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)",
+          "Other Barbarian subclasses and higher-level features remain unsupported"
+        ],
+        "effects_supported": [
+          "Rage: known-unarmored Barbarian 1–3 combat Bonus activation/extension, supported attack/check/save/resistance routes and rest recovery; verified adopted state required",
+          "Reckless Attack: explicit first own-turn attack choice and canonical advantage window supported",
+          "Danger Sense: weapon/unarmed Dexterity-save route supported",
+          "Selected Berserker Frenzy: first eligible own-turn Strength hit after Reckless while raging; 2d6 extra damage",
+          "Primal Knowledge: one additional class skill proficiency supported",
+          "Primal Knowledge: explicit optional Strength for selected untargeted immediate Acrobatics, Intimidation, Perception, Stealth or Survival checks while Rage is active"
+        ],
+        "from_level": 2,
+        "metamagic_options": [],
+        "prepared_spell_ids": [],
+        "primal_knowledge_skill_options": [
+          "Animal Handling",
+          "Intimidation",
+          "Nature",
+          "Survival"
+        ],
+        "reason": null,
+        "revision": 1,
+        "session_id": "35f29e30-9e63-4b47-b1a8-6d5a05f042f9",
+        "status": "ready",
+        "subclass_options": [
+          {
+            "id": "berserker",
+            "name": "Path of the Berserker"
+          }
+        ],
+        "supported_asi_choices": [],
+        "target_level": 3
+      },
+      "receipt": {
+        "request_hash": "9fc2c61bea962fd4e6f2f2e6e5c34c74f0f1790947cd3091362ce23297c7f5dc",
+        "response": {
+          "action_id": "d019eb4c-f64e-43c7-90b6-f3a008fff3bb",
+          "result": {
+            "changes": [
+              {
+                "from": 2,
+                "kind": "level",
+                "to": 3
+              },
+              {
+                "gain": 0,
+                "kind": "hit_points"
+              },
+              {
+                "added": "Survival",
+                "kind": "skill_proficiency"
+              },
+              {
+                "from": 2,
+                "kind": "rage_capacity",
+                "to": 3
+              }
+            ],
+            "effects_pending": [
+              "Weapon Mastery: selections and effects remain pending (C10/C04)",
+              "General armor changes and broader Unarmored Defense routes remain unsupported",
+              "Danger Sense: other save routes remain pending (C10)",
+              "Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)",
+              "Other Barbarian subclasses and higher-level features remain unsupported"
+            ],
+            "reason": null,
+            "status": "applied"
+          },
+          "session_id": "35f29e30-9e63-4b47-b1a8-6d5a05f042f9",
+          "state": {
+            "adventure": {
+              "commitments": [],
+              "plan": null,
+              "recent_events": [],
+              "threads": []
+            },
+            "campaign_adventures": {
+              "active": [],
+              "affordances": [],
+              "completed": [],
+              "failed": [],
+              "rumors": [],
+              "timeline": []
+            },
+            "campaign_time": null,
+            "character": {
+              "appearance": null,
+              "armor_class": 15,
+              "backstory": null,
+              "cantrips": [],
+              "charisma": 15,
+              "class": "Barbarian",
+              "constitution": 14,
+              "current_hp": 32,
+              "dexterity": 16,
+              "expertise_skills": [],
+              "giant_ancestry": null,
+              "intelligence": 10,
+              "level": 3,
+              "max_hp": 32,
+              "name": "Vael",
+              "origin": null,
+              "origin_feat": "Alert",
+              "origin_feats": [
+                "Alert"
+              ],
+              "personality": null,
+              "primal_knowledge_check": {
+                "available": false,
+                "reason": "primal_knowledge_rage_required",
+                "skills": [
+                  "Acrobatics",
+                  "Intimidation",
+                  "Perception",
+                  "Stealth",
+                  "Survival"
+                ]
+              },
+              "proficiency_bonus": 2,
+              "proficient_skills": [
+                "Athletics",
+                "Perception",
+                "Persuasion",
+                "Sleight of Hand",
+                "Stealth",
+                "Survival"
+              ],
+              "progression_effects_pending": [
+                "Rage: known-unarmored Barbarian 1–3 combat Bonus activation/extension, supported attack/check/save/resistance routes and rest recovery; verified adopted state required",
+                "Reckless Attack: explicit first own-turn attack choice and canonical advantage window supported",
+                "Danger Sense: weapon/unarmed Dexterity-save route supported",
+                "Selected Berserker Frenzy: first eligible own-turn Strength hit after Reckless while raging; 2d6 extra damage",
+                "Primal Knowledge: one additional class skill proficiency supported",
+                "Primal Knowledge: explicit optional Strength for selected untargeted immediate Acrobatics, Intimidation, Perception, Stealth or Survival checks while Rage is active",
+                "Weapon Mastery: selections and effects remain pending (C10/C04)",
+                "General armor changes and broader Unarmored Defense routes remain unsupported",
+                "Danger Sense: other save routes remain pending (C10)",
+                "Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)",
+                "Other Barbarian subclasses and higher-level features remain unsupported"
+              ],
+              "progression_level": 3,
+              "race": "Human",
+              "rage": {
+                "activate": {
+                  "available": false,
+                  "reason": "rage_current_combat_turn_required"
+                },
+                "active": false,
+                "extend": {
+                  "available": false,
+                  "reason": "rage_current_combat_turn_required"
+                },
+                "max_uses": 3,
+                "remaining_seconds": null,
+                "uses_remaining": 3
+              },
+              "species": "Human",
+              "species_bonus_feat": null,
+              "species_bonus_skills": [],
+              "species_trait_state": null,
+              "speed_ft": 30,
+              "spell_slots_remaining": {
+                "1": 0
+              },
+              "spells": [],
+              "strength": 8,
+              "subclass_id": "berserker",
+              "wisdom": 12,
+              "xp": 900
+            },
+            "combat": {
+              "action_economy": null,
+              "active": false,
+              "combat_id": null,
+              "current_actor_id": null,
+              "current_turn_index": 0,
+              "end_reason": null,
+              "initiative_order": [],
+              "participant_records": [],
+              "participants": [],
+              "round": 0,
+              "status": "ended",
+              "target_id": null,
+              "turn_owner": null
+            },
+            "conversation": {
+              "active": false,
+              "interlocutor": null
+            },
+            "death_state": {
+              "dead": false,
+              "failures": 0,
+              "mode": "NORMAL",
+              "prone": false,
+              "stable": false,
+              "status": "active",
+              "successes": 0,
+              "terminal": false
+            },
+            "doors": [],
+            "expedition": {
+              "actions": [
+                {
+                  "label": "Erzak takibi: aç",
+                  "message": "/travel supplies enabled"
+                }
+              ],
+              "exhaustion": 0,
+              "extended_travel_saves": [],
+              "hours_beyond_eight": 0,
+              "supplies_enabled": false,
+              "tracking_required_seconds": 3600,
+              "tracking_seconds": 0,
+              "tracking_status": null,
+              "walking_seconds": 0
+            },
+            "exploration": null,
+            "features": [],
+            "inventory": [
+              "Büyük Balta (Greataxe)",
+              "Handaxe",
+              "Handaxe",
+              "Handaxe",
+              "Handaxe",
+              "Explorer's Pack",
+              "Hırsız Aletleri",
+              "Koyu Renkli Pelerin",
+              "Levye",
+              "16 Altın"
+            ],
+            "journal": {
+              "discovered_locations": [],
+              "known_npcs": [],
+              "notable_events": [],
+              "quests": [],
+              "schema_version": 1
+            },
+            "journey": null,
+            "known_factions": [],
+            "known_lore": [],
+            "known_scheduled_events": [],
+            "location": "Henüz belirlenmedi",
+            "locations": {
+              "castle": {
+                "description": "",
+                "id": "castle",
+                "name": "Kale",
+                "type": "building"
+              },
+              "forest": {
+                "description": "",
+                "id": "forest",
+                "name": "Orman",
+                "type": "wilderness"
+              },
+              "tavern": {
+                "description": "",
+                "id": "tavern",
+                "name": "Taverna",
+                "type": "building"
+              }
+            },
+            "npcs": [],
+            "pending_event_decisions": [],
+            "player_combat_status": "active",
+            "quest_offers": [],
+            "quests": [],
+            "scene": null,
+            "scene_incidents": [],
+            "shops": [],
+            "spellcasting": null,
+            "turn_index": 0,
+            "world": {
+              "environment": "unknown",
+              "time_of_day": "day",
+              "weather": "clear"
+            }
+          }
+        }
+      },
+      "request": {
+        "action_id": "d019eb4c-f64e-43c7-90b6-f3a008fff3bb",
+        "campaign_id": "c454df4a-57a2-47e5-9777-ae6e3f8a475c",
+        "choices": {
+          "primal_knowledge_skill": "Survival",
+          "subclass_id": "berserker"
+        },
+        "expected_revision": 1,
+        "target_level": 3
+      },
+      "runtime": {
+        "format": "ai-dnd-save",
+        "player": {
+          "appearance": null,
+          "armor_class": 15,
+          "backstory": null,
+          "cantrips": [],
+          "charisma": 15,
+          "class": "Barbarian",
+          "constitution": 14,
+          "current_hp": 32,
+          "dexterity": 16,
+          "exhaustion": 0,
+          "expertise_skills": [],
+          "giant_ancestry": null,
+          "intelligence": 10,
+          "level": 3,
+          "max_hp": 32,
+          "name": "Vael",
+          "origin": null,
+          "origin_choices": {
+            "ability_score_method": "standard_array",
+            "alignment": "Neutral Good",
+            "background": "Criminal",
+            "background_ability_bonuses": {
+              "constitution": 1,
+              "dexterity": 2
+            },
+            "background_equipment_option": "A",
+            "base_ability_scores": {
+              "charisma": 15,
+              "constitution": 13,
+              "dexterity": 14,
+              "intelligence": 10,
+              "strength": 8,
+              "wisdom": 12
+            },
+            "languages": [
+              "Common",
+              "Dwarvish",
+              "Giant"
+            ],
+            "origin_feats": [
+              "Alert"
+            ],
+            "species_bonus_feat": null
+          },
+          "origin_feat": "Alert",
+          "personality": null,
+          "primal_knowledge_choice": {
+            "class_level": 3,
+            "prior_proficient_skills": [
+              "Athletics",
+              "Perception",
+              "Persuasion",
+              "Sleight of Hand",
+              "Stealth"
+            ],
+            "skill": "Survival"
+          },
+          "proficiency_bonus": 2,
+          "proficient_skills": [
+            "Athletics",
+            "Perception",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth",
+            "Survival"
+          ],
+          "proficient_tools": [
+            "Thieves' Tools"
+          ],
+          "progression_level": 3,
+          "race": "Human",
+          "saving_throw_mods": {
+            "charisma": 2,
+            "constitution": 4,
+            "dexterity": 3,
+            "intelligence": 0,
+            "strength": 1,
+            "wisdom": 1
+          },
+          "species": "Human",
+          "species_bonus_skills": [],
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "spell_slots_remaining": {
+            "1": 0
+          },
+          "spells": [],
+          "strength": 8,
+          "subclass_id": "berserker",
+          "weapon_proficiencies": [
+            "simple",
+            "martial"
+          ],
+          "wisdom": 12,
+          "xp": 900
+        },
+        "recent_dm_narrations": [],
+        "version": 4,
+        "world_state": {
+          "campaign_id": "c454df4a-57a2-47e5-9777-ae6e3f8a475c",
+          "combat": {
+            "actions_used": [],
+            "active": false,
+            "combat_id": null,
+            "current_actor_id": null,
+            "current_turn_index": 0,
+            "end_reason": null,
+            "initiative_order": [],
+            "participant_records": [],
+            "participants": [],
+            "round": 0,
+            "schema_version": 3,
+            "status": "ended",
+            "target_id": null
+          },
+          "containers": [],
+          "currency": {
+            "player": 1500
+          },
+          "death_state": {
+            "combat_checkpoint": null,
+            "dead": false,
+            "failures": 0,
+            "last_death_save_result": null,
+            "last_death_save_turn_key": null,
+            "last_resolution": null,
+            "mode": "NORMAL",
+            "noncombat_episode_id": null,
+            "noncombat_next_save_at": null,
+            "prone": false,
+            "recovery": null,
+            "stable": false,
+            "successes": 0,
+            "terminal": false
+          },
+          "doors": [],
+          "equipment": {
+            "main_hand": "greataxe",
+            "off_hand": null
+          },
+          "events": [],
+          "features": [],
+          "flags": {
+            "active_npc_id": null,
+            "active_npc_until_turn": -1,
+            "last_npc_id": null,
+            "pending_destination": null,
+            "turn_index": 0
+          },
+          "ground_items": [],
+          "ground_items_by_location": {},
+          "inventory": [
+            "Büyük Balta (Greataxe)",
+            "Handaxe",
+            "Handaxe",
+            "Handaxe",
+            "Handaxe",
+            "Explorer's Pack",
+            "Hırsız Aletleri",
+            "Koyu Renkli Pelerin",
+            "Levye",
+            "16 Altın"
+          ],
+          "location": "Henüz belirlenmedi",
+          "locations": {
+            "castle": {
+              "aliases": [
+                "kale",
+                "kaleye",
+                "kalede"
+              ],
+              "description": "",
+              "id": "castle",
+              "name": "Kale",
+              "type": "building"
+            },
+            "forest": {
+              "aliases": [
+                "orman",
+                "ormana",
+                "ormanda"
+              ],
+              "description": "",
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness"
+            },
+            "tavern": {
+              "aliases": [
+                "taverna",
+                "tavernaya",
+                "tavernada",
+                "meyhane",
+                "meyhaneye",
+                "meyhanede"
+              ],
+              "description": "",
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building"
+            }
+          },
+          "next_location_number": 1,
+          "next_npc_number": 1,
+          "next_shop_number": 1,
+          "npcs": [],
+          "player_combat_status": "active",
+          "player_knowledge": [],
+          "quest_processed_event_ids": [],
+          "quests": [],
+          "rage_v1": {
+            "active": null,
+            "remaining": 3,
+            "version": 1
+          },
+          "scene_state": {
+            "active_referent_id": null,
+            "ambient_context": {
+              "background": "Criminal",
+              "environment": "unknown",
+              "origin": "",
+              "time_of_day": "day",
+              "weather": "clear"
+            },
+            "ambient_event_counts": {},
+            "ambient_event_history": [],
+            "campaign_seed": "52f51de12abd3848288a128f",
+            "entry_target_reference": null,
+            "next_feature_number": 1,
+            "next_referent_number": 1,
+            "player_position": {
+              "kind": "standing",
+              "location_id": null,
+              "target_id": null
+            },
+            "proposal_references": [],
+            "scenes": {},
+            "schema_version": 1
+          },
+          "shops": [],
+          "starting_equipment_source": "PHB2024-background-v1",
+          "worn_armor_v1": {
+            "armor_id": null,
+            "version": 1
+          },
+          "xp_awarded_event_ids": [
+            "quest:synthetic-earned-berserker"
+          ]
+        }
+      }
+    },
+    "sorcerer4": {
+      "campaign": {
+        "campaign_id": "b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38",
+        "combat_history": [],
+        "history": [],
+        "name": "Vael — Yeni Macera",
+        "session_id": "78ef9eda-c69b-4a9a-abc5-65c3e7eadb4b",
+        "state": {
+          "adventure": {
+            "commitments": [],
+            "plan": null,
+            "recent_events": [],
+            "threads": []
+          },
+          "campaign_adventures": {
+            "active": [],
+            "affordances": [],
+            "completed": [],
+            "failed": [],
+            "rumors": [],
+            "timeline": []
+          },
+          "campaign_time": null,
+          "character": {
+            "appearance": null,
+            "armor_class": 13,
+            "backstory": null,
+            "cantrips": [
+              "Fire Bolt",
+              "Ray of Frost",
+              "Mage Hand",
+              "Minor Illusion"
+            ],
+            "charisma": 15,
+            "class": "Sorcerer",
+            "constitution": 14,
+            "current_hp": 20,
+            "dexterity": 16,
+            "expertise_skills": [],
+            "giant_ancestry": null,
+            "intelligence": 10,
+            "level": 3,
+            "max_hp": 20,
+            "metamagic": [
+              "Quickened Spell",
+              "Twinned Spell"
+            ],
+            "name": "Vael",
+            "origin": null,
+            "origin_feat": "Alert",
+            "origin_feats": [
+              "Alert"
+            ],
+            "personality": null,
+            "proficiency_bonus": 2,
+            "proficient_skills": [
+              "Arcana",
+              "Insight",
+              "Persuasion",
+              "Sleight of Hand",
+              "Stealth"
+            ],
+            "progression_effects_pending": [
+              "Font of Magic: Sorcery Points tracked; slot-to-point conversion supported; adopted state required",
+              "Metamagic: selected Quickened Magic Missile supported; selected choice and adopted points required",
+              "Innate Sorcery: activation and effects are not implemented",
+              "Font of Magic: creating spell slots remains unsupported",
+              "Other Metamagic effects remain unsupported",
+              "Sorcerer subclass features and always-prepared grants are not implemented (C19)",
+              "Optional spell, cantrip and Metamagic replacement choices remain unsupported"
+            ],
+            "progression_level": 3,
+            "race": "Human",
+            "species": "Human",
+            "species_bonus_feat": null,
+            "species_bonus_skills": [],
+            "species_trait_state": null,
+            "speed_ft": 30,
+            "spell_slots_remaining": {
+              "1": 4,
+              "2": 2
+            },
+            "spells": [
+              "Magic Missile",
+              "Shield",
+              "Burning Hands",
+              "Chromatic Orb",
+              "Disguise Self",
+              "Detect Magic"
+            ],
+            "strength": 8,
+            "subclass_id": "phb2024:subclass:sorcerer:aberrant-sorcery",
+            "wisdom": 12,
+            "xp": 900
+          },
+          "combat": {
+            "action_economy": null,
+            "active": false,
+            "combat_id": null,
+            "current_actor_id": null,
+            "current_turn_index": 0,
+            "end_reason": null,
+            "initiative_order": [],
+            "participant_records": [],
+            "participants": [],
+            "round": 0,
+            "status": "ended",
+            "target_id": null,
+            "turn_owner": null
+          },
+          "conversation": {
+            "active": false,
+            "interlocutor": null
+          },
+          "death_state": {
+            "dead": false,
+            "failures": 0,
+            "mode": "NORMAL",
+            "prone": false,
+            "stable": false,
+            "status": "active",
+            "successes": 0,
+            "terminal": false
+          },
+          "doors": [],
+          "expedition": {
+            "actions": [
+              {
+                "label": "Erzak takibi: aç",
+                "message": "/travel supplies enabled"
+              }
+            ],
+            "exhaustion": 0,
+            "extended_travel_saves": [],
+            "hours_beyond_eight": 0,
+            "supplies_enabled": false,
+            "tracking_required_seconds": 3600,
+            "tracking_seconds": 0,
+            "tracking_status": null,
+            "walking_seconds": 0
+          },
+          "exploration": null,
+          "features": [],
+          "inventory": [
+            "2 Hançer",
+            "Kristal Büyü Odağı",
+            "Zindan Çantası",
+            "28 Altın",
+            "Hırsız Aletleri",
+            "Koyu Renkli Pelerin",
+            "Levye",
+            "16 Altın"
+          ],
+          "journal": {
+            "discovered_locations": [],
+            "known_npcs": [],
+            "notable_events": [],
+            "quests": [],
+            "schema_version": 1
+          },
+          "journey": null,
+          "known_factions": [],
+          "known_lore": [],
+          "known_scheduled_events": [],
+          "location": "Henüz belirlenmedi",
+          "locations": {
+            "castle": {
+              "description": "",
+              "id": "castle",
+              "name": "Kale",
+              "type": "building"
+            },
+            "forest": {
+              "description": "",
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness"
+            },
+            "tavern": {
+              "description": "",
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building"
+            }
+          },
+          "npcs": [],
+          "pending_event_decisions": [],
+          "player_combat_status": "active",
+          "quest_offers": [],
+          "quests": [],
+          "scene": null,
+          "scene_incidents": [],
+          "shops": [],
+          "spellcasting": {
+            "cantrips": [
+              "Fire Bolt",
+              "Ray of Frost",
+              "Mage Hand",
+              "Minor Illusion"
+            ],
+            "convert_spell_slot": {
+              "options": [
+                {
+                  "available": false,
+                  "points_gained": 1,
+                  "reason": "sorcery_points_capacity",
+                  "slot_level": 1
+                },
+                {
+                  "available": false,
+                  "points_gained": 2,
+                  "reason": "sorcery_points_capacity",
+                  "slot_level": 2
+                }
+              ]
+            },
+            "prepared": [
+              "Magic Missile",
+              "Shield",
+              "Burning Hands",
+              "Chromatic Orb",
+              "Disguise Self",
+              "Detect Magic"
+            ],
+            "slot_turn": null,
+            "slots": {
+              "1": 4,
+              "2": 2
+            },
+            "sorcery_points": {
+              "current": 3,
+              "max": 3
+            }
+          },
+          "turn_index": 0,
+          "world": {
+            "environment": "unknown",
+            "time_of_day": "day",
+            "weather": "clear"
+          }
+        }
+      },
+      "preview": {
+        "campaign_id": "b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38",
+        "cantrip_ids": [
+          "Shocking Grasp",
+          "Prestidigitation"
+        ],
+        "capacity": {
+          "cantrips": 5,
+          "prepared_spells": 7,
+          "slots": {
+            "1": 4,
+            "2": 3
+          },
+          "sorcery_points": 4
+        },
+        "choices_required": {
+          "asi": 1,
+          "cantrips": 1,
+          "prepared_spells": 1
+        },
+        "class_name": "Sorcerer",
+        "effects_pending": [
+          "Innate Sorcery: activation and effects are not implemented",
+          "Font of Magic: creating spell slots remains unsupported",
+          "Other Metamagic effects remain unsupported",
+          "Sorcerer subclass features and always-prepared grants are not implemented (C19)",
+          "Optional spell, cantrip and Metamagic replacement choices remain unsupported"
+        ],
+        "effects_supported": [
+          "Font of Magic: Sorcery Points tracked; slot-to-point conversion supported; adopted state required",
+          "Metamagic: selected Quickened Magic Missile supported; selected choice and adopted points required"
+        ],
+        "from_level": 3,
+        "metamagic_options": [],
+        "prepared_spell_ids": [
+          "Chaos Bolt",
+          "Mage Armor",
+          "Fog Cloud",
+          "Silent Image"
+        ],
+        "reason": null,
+        "revision": 1,
+        "session_id": "78ef9eda-c69b-4a9a-abc5-65c3e7eadb4b",
+        "status": "ready",
+        "subclass_options": [],
+        "supported_asi_choices": [
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "strength": 2
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "constitution": 2
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "intelligence": 2
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "wisdom": 2
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "charisma": 2
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "constitution": 1,
+              "strength": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "intelligence": 1,
+              "strength": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "strength": 1,
+              "wisdom": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "charisma": 1,
+              "strength": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "constitution": 1,
+              "intelligence": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "constitution": 1,
+              "wisdom": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "charisma": 1,
+              "constitution": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "intelligence": 1,
+              "wisdom": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "charisma": 1,
+              "intelligence": 1
+            }
+          },
+          {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "charisma": 1,
+              "wisdom": 1
+            }
+          }
+        ],
+        "target_level": 4
+      },
+      "receipt": {
+        "request_hash": "f67acd162f1ca010d2578f835cd1b53356dddf5b61592803daad7fba56670211",
+        "response": {
+          "action_id": "bac924a9-aa21-42df-bbf8-7aadbcb4f4d0",
+          "result": {
+            "changes": [
+              {
+                "from": 3,
+                "kind": "level",
+                "to": 4
+              },
+              {
+                "gain": 0,
+                "kind": "hit_points"
+              },
+              {
+                "gain": 4,
+                "kind": "maximum_hit_points"
+              },
+              {
+                "feat_delta": {
+                  "changes": [
+                    {
+                      "ability": "constitution",
+                      "from": 14,
+                      "to": 16
+                    }
+                  ],
+                  "effects_pending": [],
+                  "feat": "Ability Score Improvement",
+                  "status": "applied"
+                },
+                "kind": "asi"
+              },
+              {
+                "added": [
+                  "Shocking Grasp"
+                ],
+                "kind": "cantrips"
+              },
+              {
+                "added": [
+                  "Mage Armor"
+                ],
+                "kind": "prepared_spells"
+              },
+              {
+                "kind": "spell_slots",
+                "maximum": {
+                  "1": 4,
+                  "2": 3
+                }
+              }
+            ],
+            "effects_pending": [
+              "Innate Sorcery: activation and effects are not implemented",
+              "Font of Magic: creating spell slots remains unsupported",
+              "Other Metamagic effects remain unsupported",
+              "Sorcerer subclass features and always-prepared grants are not implemented (C19)",
+              "Optional spell, cantrip and Metamagic replacement choices remain unsupported"
+            ],
+            "reason": null,
+            "status": "applied"
+          },
+          "session_id": "78ef9eda-c69b-4a9a-abc5-65c3e7eadb4b",
+          "state": {
+            "adventure": {
+              "commitments": [],
+              "plan": null,
+              "recent_events": [],
+              "threads": []
+            },
+            "campaign_adventures": {
+              "active": [],
+              "affordances": [],
+              "completed": [],
+              "failed": [],
+              "rumors": [],
+              "timeline": []
+            },
+            "campaign_time": null,
+            "character": {
+              "appearance": null,
+              "armor_class": 13,
+              "backstory": null,
+              "cantrips": [
+                "Fire Bolt",
+                "Ray of Frost",
+                "Mage Hand",
+                "Minor Illusion",
+                "Shocking Grasp"
+              ],
+              "charisma": 15,
+              "class": "Sorcerer",
+              "constitution": 16,
+              "current_hp": 26,
+              "dexterity": 16,
+              "expertise_skills": [],
+              "giant_ancestry": null,
+              "intelligence": 10,
+              "level": 4,
+              "max_hp": 30,
+              "metamagic": [
+                "Quickened Spell",
+                "Twinned Spell"
+              ],
+              "name": "Vael",
+              "origin": null,
+              "origin_feat": "Alert",
+              "origin_feats": [
+                "Alert"
+              ],
+              "personality": null,
+              "proficiency_bonus": 2,
+              "proficient_skills": [
+                "Arcana",
+                "Insight",
+                "Persuasion",
+                "Sleight of Hand",
+                "Stealth"
+              ],
+              "progression_effects_pending": [
+                "Font of Magic: Sorcery Points tracked; slot-to-point conversion supported; adopted state required",
+                "Metamagic: selected Quickened Magic Missile supported; selected choice and adopted points required",
+                "Innate Sorcery: activation and effects are not implemented",
+                "Font of Magic: creating spell slots remains unsupported",
+                "Other Metamagic effects remain unsupported",
+                "Sorcerer subclass features and always-prepared grants are not implemented (C19)",
+                "Optional spell, cantrip and Metamagic replacement choices remain unsupported"
+              ],
+              "progression_level": 4,
+              "race": "Human",
+              "species": "Human",
+              "species_bonus_feat": null,
+              "species_bonus_skills": [],
+              "species_trait_state": null,
+              "speed_ft": 30,
+              "spell_slots_remaining": {
+                "1": 4,
+                "2": 3
+              },
+              "spells": [
+                "Magic Missile",
+                "Shield",
+                "Burning Hands",
+                "Chromatic Orb",
+                "Disguise Self",
+                "Detect Magic",
+                "Mage Armor"
+              ],
+              "strength": 8,
+              "subclass_id": "phb2024:subclass:sorcerer:aberrant-sorcery",
+              "wisdom": 12,
+              "xp": 2700
+            },
+            "combat": {
+              "action_economy": null,
+              "active": false,
+              "combat_id": null,
+              "current_actor_id": null,
+              "current_turn_index": 0,
+              "end_reason": null,
+              "initiative_order": [],
+              "participant_records": [],
+              "participants": [],
+              "round": 0,
+              "status": "ended",
+              "target_id": null,
+              "turn_owner": null
+            },
+            "conversation": {
+              "active": false,
+              "interlocutor": null
+            },
+            "death_state": {
+              "dead": false,
+              "failures": 0,
+              "mode": "NORMAL",
+              "prone": false,
+              "stable": false,
+              "status": "active",
+              "successes": 0,
+              "terminal": false
+            },
+            "doors": [],
+            "expedition": {
+              "actions": [
+                {
+                  "label": "Erzak takibi: aç",
+                  "message": "/travel supplies enabled"
+                }
+              ],
+              "exhaustion": 0,
+              "extended_travel_saves": [],
+              "hours_beyond_eight": 0,
+              "supplies_enabled": false,
+              "tracking_required_seconds": 3600,
+              "tracking_seconds": 0,
+              "tracking_status": null,
+              "walking_seconds": 0
+            },
+            "exploration": null,
+            "features": [],
+            "inventory": [
+              "2 Hançer",
+              "Kristal Büyü Odağı",
+              "Zindan Çantası",
+              "28 Altın",
+              "Hırsız Aletleri",
+              "Koyu Renkli Pelerin",
+              "Levye",
+              "16 Altın"
+            ],
+            "journal": {
+              "discovered_locations": [],
+              "known_npcs": [],
+              "notable_events": [],
+              "quests": [],
+              "schema_version": 1
+            },
+            "journey": null,
+            "known_factions": [],
+            "known_lore": [],
+            "known_scheduled_events": [],
+            "location": "Henüz belirlenmedi",
+            "locations": {
+              "castle": {
+                "description": "",
+                "id": "castle",
+                "name": "Kale",
+                "type": "building"
+              },
+              "forest": {
+                "description": "",
+                "id": "forest",
+                "name": "Orman",
+                "type": "wilderness"
+              },
+              "tavern": {
+                "description": "",
+                "id": "tavern",
+                "name": "Taverna",
+                "type": "building"
+              }
+            },
+            "npcs": [],
+            "pending_event_decisions": [],
+            "player_combat_status": "active",
+            "quest_offers": [],
+            "quests": [],
+            "scene": null,
+            "scene_incidents": [],
+            "shops": [],
+            "spellcasting": {
+              "cantrips": [
+                "Fire Bolt",
+                "Ray of Frost",
+                "Mage Hand",
+                "Minor Illusion",
+                "Shocking Grasp"
+              ],
+              "convert_spell_slot": {
+                "options": [
+                  {
+                    "available": false,
+                    "points_gained": 1,
+                    "reason": "sorcery_points_capacity",
+                    "slot_level": 1
+                  },
+                  {
+                    "available": false,
+                    "points_gained": 2,
+                    "reason": "sorcery_points_capacity",
+                    "slot_level": 2
+                  }
+                ]
+              },
+              "prepared": [
+                "Magic Missile",
+                "Shield",
+                "Burning Hands",
+                "Chromatic Orb",
+                "Disguise Self",
+                "Detect Magic",
+                "Mage Armor"
+              ],
+              "slot_turn": null,
+              "slots": {
+                "1": 4,
+                "2": 3
+              },
+              "sorcery_points": {
+                "current": 4,
+                "max": 4
+              }
+            },
+            "turn_index": 0,
+            "world": {
+              "environment": "unknown",
+              "time_of_day": "day",
+              "weather": "clear"
+            }
+          }
+        }
+      },
+      "request": {
+        "action_id": "bac924a9-aa21-42df-bbf8-7aadbcb4f4d0",
+        "campaign_id": "b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38",
+        "choices": {
+          "asi": {
+            "feat": "Ability Score Improvement",
+            "increase": {
+              "constitution": 2
+            }
+          },
+          "cantrips": [
+            "Shocking Grasp"
+          ],
+          "prepared_spells": [
+            "Mage Armor"
+          ]
+        },
+        "expected_revision": 1,
+        "target_level": 4
+      },
+      "runtime": {
+        "format": "ai-dnd-save",
+        "player": {
+          "appearance": null,
+          "armor_class": 13,
+          "asi_choices": [
+            {
+              "class_level": 4,
+              "feat": "Ability Score Improvement",
+              "increase": {
+                "constitution": 2
+              }
+            }
+          ],
+          "backstory": null,
+          "cantrips": [
+            "Fire Bolt",
+            "Ray of Frost",
+            "Mage Hand",
+            "Minor Illusion",
+            "Shocking Grasp"
+          ],
+          "charisma": 15,
+          "class": "Sorcerer",
+          "constitution": 16,
+          "current_hp": 26,
+          "dexterity": 16,
+          "exhaustion": 0,
+          "expertise_skills": [],
+          "giant_ancestry": null,
+          "intelligence": 10,
+          "level": 4,
+          "max_hp": 30,
+          "metamagic": [
+            "Quickened Spell",
+            "Twinned Spell"
+          ],
+          "name": "Vael",
+          "origin": null,
+          "origin_choices": {
+            "ability_score_method": "standard_array",
+            "alignment": "Neutral Good",
+            "background": "Criminal",
+            "background_ability_bonuses": {
+              "constitution": 1,
+              "dexterity": 2
+            },
+            "background_equipment_option": "A",
+            "base_ability_scores": {
+              "charisma": 15,
+              "constitution": 13,
+              "dexterity": 14,
+              "intelligence": 10,
+              "strength": 8,
+              "wisdom": 12
+            },
+            "languages": [
+              "Common",
+              "Dwarvish",
+              "Giant"
+            ],
+            "origin_feats": [
+              "Alert"
+            ],
+            "species_bonus_feat": null
+          },
+          "origin_feat": "Alert",
+          "personality": null,
+          "proficiency_bonus": 2,
+          "proficient_skills": [
+            "Arcana",
+            "Insight",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth"
+          ],
+          "proficient_tools": [
+            "Thieves' Tools"
+          ],
+          "progression_level": 4,
+          "race": "Human",
+          "saving_throw_mods": {
+            "charisma": 4,
+            "constitution": 5,
+            "dexterity": 3,
+            "intelligence": 0,
+            "strength": -1,
+            "wisdom": 1
+          },
+          "species": "Human",
+          "species_bonus_skills": [],
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "spell_slots_remaining": {
+            "1": 4,
+            "2": 3
+          },
+          "spells": [
+            "Magic Missile",
+            "Shield",
+            "Burning Hands",
+            "Chromatic Orb",
+            "Disguise Self",
+            "Detect Magic",
+            "Mage Armor"
+          ],
+          "strength": 8,
+          "subclass_id": "phb2024:subclass:sorcerer:aberrant-sorcery",
+          "wisdom": 12,
+          "xp": 2700
+        },
+        "recent_dm_narrations": [],
+        "version": 4,
+        "world_state": {
+          "campaign_id": "b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38",
+          "combat": {
+            "actions_used": [],
+            "active": false,
+            "combat_id": null,
+            "current_actor_id": null,
+            "current_turn_index": 0,
+            "end_reason": null,
+            "initiative_order": [],
+            "participant_records": [],
+            "participants": [],
+            "round": 0,
+            "schema_version": 3,
+            "status": "ended",
+            "target_id": null
+          },
+          "containers": [],
+          "death_state": {
+            "combat_checkpoint": null,
+            "dead": false,
+            "failures": 0,
+            "last_death_save_result": null,
+            "last_death_save_turn_key": null,
+            "last_resolution": null,
+            "mode": "NORMAL",
+            "noncombat_episode_id": null,
+            "noncombat_next_save_at": null,
+            "prone": false,
+            "recovery": null,
+            "stable": false,
+            "successes": 0,
+            "terminal": false
+          },
+          "doors": [],
+          "equipment": {
+            "main_hand": "longsword",
+            "off_hand": null
+          },
+          "events": [],
+          "features": [],
+          "flags": {
+            "active_npc_id": null,
+            "active_npc_until_turn": -1,
+            "last_npc_id": null,
+            "pending_destination": null,
+            "turn_index": 0
+          },
+          "ground_items": [],
+          "ground_items_by_location": {},
+          "inventory": [
+            "2 Hançer",
+            "Kristal Büyü Odağı",
+            "Zindan Çantası",
+            "28 Altın",
+            "Hırsız Aletleri",
+            "Koyu Renkli Pelerin",
+            "Levye",
+            "16 Altın"
+          ],
+          "location": "Henüz belirlenmedi",
+          "locations": {
+            "castle": {
+              "aliases": [
+                "kale",
+                "kaleye",
+                "kalede"
+              ],
+              "description": "",
+              "id": "castle",
+              "name": "Kale",
+              "type": "building"
+            },
+            "forest": {
+              "aliases": [
+                "orman",
+                "ormana",
+                "ormanda"
+              ],
+              "description": "",
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness"
+            },
+            "tavern": {
+              "aliases": [
+                "taverna",
+                "tavernaya",
+                "tavernada",
+                "meyhane",
+                "meyhaneye",
+                "meyhanede"
+              ],
+              "description": "",
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building"
+            }
+          },
+          "next_location_number": 1,
+          "next_npc_number": 1,
+          "next_shop_number": 1,
+          "npcs": [],
+          "player_combat_status": "active",
+          "player_knowledge": [],
+          "quest_processed_event_ids": [],
+          "quests": [],
+          "scene_state": {
+            "active_referent_id": null,
+            "ambient_context": {
+              "background": "Criminal",
+              "environment": "unknown",
+              "origin": "",
+              "time_of_day": "day",
+              "weather": "clear"
+            },
+            "ambient_event_counts": {},
+            "ambient_event_history": [],
+            "campaign_seed": "c65c0557bd1b258a1a76770d",
+            "entry_target_reference": null,
+            "next_feature_number": 1,
+            "next_referent_number": 1,
+            "player_position": {
+              "kind": "standing",
+              "location_id": null,
+              "target_id": null
+            },
+            "proposal_references": [],
+            "scenes": {},
+            "schema_version": 1
+          },
+          "shops": [],
+          "sorcery_points_v1": {
+            "remaining": 4,
+            "version": 1
+          },
+          "spellcasting_v1": {
+            "cantrips": [
+              "Fire Bolt",
+              "Ray of Frost",
+              "Mage Hand",
+              "Minor Illusion",
+              "Shocking Grasp"
+            ],
+            "class": "Sorcerer",
+            "prepared": [
+              "Magic Missile",
+              "Shield",
+              "Burning Hands",
+              "Chromatic Orb",
+              "Disguise Self",
+              "Detect Magic",
+              "Mage Armor"
+            ],
+            "slot_turn": null,
+            "slots": {
+              "1": 4,
+              "2": 3
+            },
+            "version": 1
+          },
+          "starting_equipment_source": "PHB2024-background-v1",
+          "xp_awarded_event_ids": [
+            "quest:synthetic-earned-four"
+          ]
+        }
+      }
+    }
+  },
+  "sqlite_dump": "BEGIN TRANSACTION;\nCREATE TABLE campaign_action_intents (\n            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n            action_id TEXT NOT NULL,\n            request_hash TEXT NOT NULL,\n            created_at TEXT NOT NULL,\n            PRIMARY KEY (campaign_id, action_id)\n        );\nINSERT INTO \"campaign_action_intents\" VALUES('b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38','bac924a9-aa21-42df-bbf8-7aadbcb4f4d0','f67acd162f1ca010d2578f835cd1b53356dddf5b61592803daad7fba56670211','2026-10-29T18:24:53.876467+00:00');\nINSERT INTO \"campaign_action_intents\" VALUES('c454df4a-57a2-47e5-9777-ae6e3f8a475c','d019eb4c-f64e-43c7-90b6-f3a008fff3bb','9fc2c61bea962fd4e6f2f2e6e5c34c74f0f1790947cd3091362ce23297c7f5dc','2026-10-29T18:24:54.378051+00:00');\nCREATE TABLE campaign_combat_history (\n                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                                ON DELETE CASCADE,\n                            sequence INTEGER NOT NULL CHECK (sequence > 0),\n                            event_id TEXT NOT NULL,\n                            turn_index INTEGER NOT NULL CHECK (turn_index >= 0),\n                            result_json TEXT NOT NULL,\n                            created_at TEXT NOT NULL,\n                            PRIMARY KEY (campaign_id, sequence),\n                            UNIQUE (campaign_id, event_id)\n                        );\nCREATE TABLE campaign_emergence_attempts (\n        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n        trigger_id TEXT NOT NULL,\n        attempt_id TEXT NOT NULL,\n        status TEXT NOT NULL,\n        owner_token TEXT NOT NULL,\n        canon_stamp TEXT NOT NULL,\n        proposal_json TEXT,\n        proposal_hash TEXT,\n        incident_id TEXT,\n        gate_outcome TEXT,\n        rejection_reason TEXT,\n        model_id TEXT NOT NULL,\n        prompt_contract_version INTEGER NOT NULL,\n        envelope_version INTEGER NOT NULL,\n        envelope_hash TEXT NOT NULL,\n        proposal_schema_version INTEGER NOT NULL,\n        gate_policy_version INTEGER NOT NULL,\n        incident_schema_version INTEGER NOT NULL,\n        model_call_count INTEGER NOT NULL CHECK (model_call_count BETWEEN 0 AND 1),\n        created_at TEXT NOT NULL,\n        completed_at TEXT,\n        PRIMARY KEY (campaign_id, trigger_id)\n    );\nCREATE TABLE campaign_history (\n                        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                            ON DELETE CASCADE,\n                        sequence INTEGER NOT NULL,\n                        player_message TEXT NOT NULL,\n                        narration TEXT NOT NULL,\n                        created_at TEXT NOT NULL,\n                        PRIMARY KEY (campaign_id, sequence)\n                    );\nCREATE TABLE campaign_refused_actions (\n            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n            action_id TEXT NOT NULL,\n            request_hash TEXT NOT NULL,\n            status_code INTEGER NOT NULL,\n            detail_json TEXT NOT NULL,\n            created_at TEXT NOT NULL,\n            PRIMARY KEY (campaign_id, action_id)\n        );\nCREATE TABLE campaign_turn_actions (\n                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                                ON DELETE CASCADE,\n                            action_id TEXT NOT NULL,\n                            request_hash TEXT NOT NULL,\n                            response_json TEXT NOT NULL,\n                            created_at TEXT NOT NULL, base_revision INTEGER, committed_revision INTEGER, result_digest TEXT,\n                            PRIMARY KEY (campaign_id, action_id)\n                        );\nINSERT INTO \"campaign_turn_actions\" VALUES('b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38','bac924a9-aa21-42df-bbf8-7aadbcb4f4d0','f67acd162f1ca010d2578f835cd1b53356dddf5b61592803daad7fba56670211','{\"session_id\":\"78ef9eda-c69b-4a9a-abc5-65c3e7eadb4b\",\"action_id\":\"bac924a9-aa21-42df-bbf8-7aadbcb4f4d0\",\"state\":{\"location\":\"Henüz belirlenmedi\",\"campaign_time\":null,\"known_scheduled_events\":[],\"pending_event_decisions\":[],\"journey\":null,\"expedition\":{\"walking_seconds\":0,\"hours_beyond_eight\":0,\"extended_travel_saves\":[],\"exhaustion\":0,\"supplies_enabled\":false,\"tracking_status\":null,\"tracking_seconds\":0,\"tracking_required_seconds\":3600,\"actions\":[{\"label\":\"Erzak takibi: aç\",\"message\":\"/travel supplies enabled\"}]},\"scene\":null,\"conversation\":{\"active\":false,\"interlocutor\":null},\"world\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"description\":\"\"}},\"character\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"class\":\"Sorcerer\",\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"strength\":8,\"dexterity\":16,\"constitution\":16,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Arcana\",\"Insight\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"],\"expertise_skills\":[],\"origin_feat\":\"Alert\",\"species_bonus_skills\":[],\"level\":4,\"progression_level\":4,\"metamagic\":[\"Quickened Spell\",\"Twinned Spell\"],\"subclass_id\":\"phb2024:subclass:sorcerer:aberrant-sorcery\",\"proficiency_bonus\":2,\"max_hp\":30,\"current_hp\":26,\"armor_class\":13,\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\",\"Shocking Grasp\"],\"spells\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\",\"Disguise Self\",\"Detect Magic\",\"Mage Armor\"],\"spell_slots_remaining\":{\"1\":4,\"2\":3},\"xp\":2700,\"progression_effects_pending\":[\"Font of Magic: Sorcery Points tracked; slot-to-point conversion supported; adopted state required\",\"Metamagic: selected Quickened Magic Missile supported; selected choice and adopted points required\",\"Innate Sorcery: activation and effects are not implemented\",\"Font of Magic: creating spell slots remains unsupported\",\"Other Metamagic effects remain unsupported\",\"Sorcerer subclass features and always-prepared grants are not implemented (C19)\",\"Optional spell, cantrip and Metamagic replacement choices remain unsupported\"],\"species_bonus_feat\":null,\"origin_feats\":[\"Alert\"]},\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"spellcasting\":{\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\",\"Shocking Grasp\"],\"prepared\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\",\"Disguise Self\",\"Detect Magic\",\"Mage Armor\"],\"slots\":{\"1\":4,\"2\":3},\"slot_turn\":null,\"sorcery_points\":{\"current\":4,\"max\":4},\"convert_spell_slot\":{\"options\":[{\"slot_level\":1,\"points_gained\":1,\"available\":false,\"reason\":\"sorcery_points_capacity\"},{\"slot_level\":2,\"points_gained\":2,\"available\":false,\"reason\":\"sorcery_points_capacity\"}]}},\"npcs\":[],\"shops\":[],\"features\":[],\"doors\":[],\"combat\":{\"active\":false,\"combat_id\":null,\"status\":\"ended\",\"round\":0,\"initiative_order\":[],\"current_turn_index\":0,\"current_actor_id\":null,\"turn_owner\":null,\"participants\":[],\"participant_records\":[],\"target_id\":null,\"end_reason\":null,\"action_economy\":null},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"status\":\"active\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false},\"turn_index\":0,\"quests\":[],\"quest_offers\":[],\"adventure\":{\"threads\":[],\"commitments\":[],\"plan\":null,\"recent_events\":[]},\"campaign_adventures\":{\"rumors\":[],\"active\":[],\"completed\":[],\"failed\":[],\"timeline\":[],\"affordances\":[]},\"known_lore\":[],\"known_factions\":[],\"exploration\":null,\"scene_incidents\":[]},\"result\":{\"status\":\"applied\",\"reason\":null,\"changes\":[{\"kind\":\"level\",\"from\":3,\"to\":4},{\"kind\":\"hit_points\",\"gain\":0},{\"kind\":\"maximum_hit_points\",\"gain\":4},{\"kind\":\"asi\",\"feat_delta\":{\"status\":\"applied\",\"feat\":\"Ability Score Improvement\",\"changes\":[{\"ability\":\"constitution\",\"from\":14,\"to\":16}],\"effects_pending\":[]}},{\"kind\":\"cantrips\",\"added\":[\"Shocking Grasp\"]},{\"kind\":\"prepared_spells\",\"added\":[\"Mage Armor\"]},{\"kind\":\"spell_slots\",\"maximum\":{\"1\":4,\"2\":3}}],\"effects_pending\":[\"Innate Sorcery: activation and effects are not implemented\",\"Font of Magic: creating spell slots remains unsupported\",\"Other Metamagic effects remain unsupported\",\"Sorcerer subclass features and always-prepared grants are not implemented (C19)\",\"Optional spell, cantrip and Metamagic replacement choices remain unsupported\"]}}','2026-10-29T18:24:54+00:00',1,2,'8ed1ada7cc405a79c02cd889ef9b8f94195c0893a98d577bc272acc38a24977d');\nINSERT INTO \"campaign_turn_actions\" VALUES('c454df4a-57a2-47e5-9777-ae6e3f8a475c','d019eb4c-f64e-43c7-90b6-f3a008fff3bb','9fc2c61bea962fd4e6f2f2e6e5c34c74f0f1790947cd3091362ce23297c7f5dc','{\"session_id\":\"35f29e30-9e63-4b47-b1a8-6d5a05f042f9\",\"action_id\":\"d019eb4c-f64e-43c7-90b6-f3a008fff3bb\",\"state\":{\"location\":\"Henüz belirlenmedi\",\"campaign_time\":null,\"known_scheduled_events\":[],\"pending_event_decisions\":[],\"journey\":null,\"expedition\":{\"walking_seconds\":0,\"hours_beyond_eight\":0,\"extended_travel_saves\":[],\"exhaustion\":0,\"supplies_enabled\":false,\"tracking_status\":null,\"tracking_seconds\":0,\"tracking_required_seconds\":3600,\"actions\":[{\"label\":\"Erzak takibi: aç\",\"message\":\"/travel supplies enabled\"}]},\"scene\":null,\"conversation\":{\"active\":false,\"interlocutor\":null},\"world\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"description\":\"\"}},\"character\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"class\":\"Barbarian\",\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Athletics\",\"Perception\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\",\"Survival\"],\"expertise_skills\":[],\"origin_feat\":\"Alert\",\"species_bonus_skills\":[],\"level\":3,\"progression_level\":3,\"subclass_id\":\"berserker\",\"proficiency_bonus\":2,\"max_hp\":32,\"current_hp\":32,\"armor_class\":15,\"cantrips\":[],\"spells\":[],\"spell_slots_remaining\":{\"1\":0},\"xp\":900,\"rage\":{\"uses_remaining\":3,\"max_uses\":3,\"active\":false,\"remaining_seconds\":null,\"activate\":{\"available\":false,\"reason\":\"rage_current_combat_turn_required\"},\"extend\":{\"available\":false,\"reason\":\"rage_current_combat_turn_required\"}},\"primal_knowledge_check\":{\"available\":false,\"reason\":\"primal_knowledge_rage_required\",\"skills\":[\"Acrobatics\",\"Intimidation\",\"Perception\",\"Stealth\",\"Survival\"]},\"progression_effects_pending\":[\"Rage: known-unarmored Barbarian 1–3 combat Bonus activation/extension, supported attack/check/save/resistance routes and rest recovery; verified adopted state required\",\"Reckless Attack: explicit first own-turn attack choice and canonical advantage window supported\",\"Danger Sense: weapon/unarmed Dexterity-save route supported\",\"Selected Berserker Frenzy: first eligible own-turn Strength hit after Reckless while raging; 2d6 extra damage\",\"Primal Knowledge: one additional class skill proficiency supported\",\"Primal Knowledge: explicit optional Strength for selected untargeted immediate Acrobatics, Intimidation, Perception, Stealth or Survival checks while Rage is active\",\"Weapon Mastery: selections and effects remain pending (C10/C04)\",\"General armor changes and broader Unarmored Defense routes remain unsupported\",\"Danger Sense: other save routes remain pending (C10)\",\"Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)\",\"Other Barbarian subclasses and higher-level features remain unsupported\"],\"species_bonus_feat\":null,\"origin_feats\":[\"Alert\"]},\"inventory\":[\"Büyük Balta (Greataxe)\",\"Handaxe\",\"Handaxe\",\"Handaxe\",\"Handaxe\",\"Explorer''s Pack\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"spellcasting\":null,\"npcs\":[],\"shops\":[],\"features\":[],\"doors\":[],\"combat\":{\"active\":false,\"combat_id\":null,\"status\":\"ended\",\"round\":0,\"initiative_order\":[],\"current_turn_index\":0,\"current_actor_id\":null,\"turn_owner\":null,\"participants\":[],\"participant_records\":[],\"target_id\":null,\"end_reason\":null,\"action_economy\":null},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"status\":\"active\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false},\"turn_index\":0,\"quests\":[],\"quest_offers\":[],\"adventure\":{\"threads\":[],\"commitments\":[],\"plan\":null,\"recent_events\":[]},\"campaign_adventures\":{\"rumors\":[],\"active\":[],\"completed\":[],\"failed\":[],\"timeline\":[],\"affordances\":[]},\"known_lore\":[],\"known_factions\":[],\"exploration\":null,\"scene_incidents\":[]},\"result\":{\"status\":\"applied\",\"reason\":null,\"changes\":[{\"kind\":\"level\",\"from\":2,\"to\":3},{\"kind\":\"hit_points\",\"gain\":0},{\"kind\":\"skill_proficiency\",\"added\":\"Survival\"},{\"kind\":\"rage_capacity\",\"from\":2,\"to\":3}],\"effects_pending\":[\"Weapon Mastery: selections and effects remain pending (C10/C04)\",\"General armor changes and broader Unarmored Defense routes remain unsupported\",\"Danger Sense: other save routes remain pending (C10)\",\"Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)\",\"Other Barbarian subclasses and higher-level features remain unsupported\"]}}','2026-10-29T18:24:54+00:00',1,2,'416edcd43aa6cc116c2aed6d8e0ea897df54e152f34f925f575e195f2b23c44d');\nCREATE TABLE campaign_turn_actions_archive (\n        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n        action_id TEXT NOT NULL,\n        request_hash TEXT NOT NULL,\n        result_digest TEXT NOT NULL,\n        base_revision INTEGER,\n        committed_revision INTEGER,\n        turn_index INTEGER,\n        narration_digest TEXT,\n        skill_json TEXT,\n        archived_at TEXT NOT NULL,\n        PRIMARY KEY (campaign_id, action_id)\n    );\nCREATE TABLE campaigns (\n                        campaign_id TEXT PRIMARY KEY NOT NULL,\n                        name TEXT NOT NULL,\n                        created_at TEXT NOT NULL,\n                        updated_at TEXT NOT NULL,\n                        last_played_at TEXT NOT NULL,\n                        campaign_version INTEGER NOT NULL,\n                        save_version INTEGER NOT NULL,\n                        engine_hash TEXT NOT NULL,\n                        character_name TEXT NOT NULL,\n                        character_race TEXT NOT NULL,\n                        character_class TEXT NOT NULL,\n                        character_level INTEGER NOT NULL,\n                        location TEXT NOT NULL,\n                        payload_json TEXT NOT NULL\n                    , revision INTEGER NOT NULL DEFAULT 0, owner_issuer TEXT, owner_subject TEXT, ownership_state TEXT NOT NULL DEFAULT 'unowned');\nINSERT INTO \"campaigns\" VALUES('b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38','Vael — Yeni Macera','2026-10-29T18:24:53+00:00','2026-10-29T18:24:54+00:00','2026-10-29T18:24:54+00:00',1,4,'2a1ec61373904176afa978260aadaa123a76d4b017328c3e06f444266737a926','Vael','Human','Sorcerer',4,'Henüz belirlenmedi','{\"format\":\"ai-dnd-campaign\",\"version\":1,\"engine_save\":{\"format\":\"ai-dnd-save\",\"version\":4,\"player\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"exhaustion\":0,\"proficient_tools\":[\"Thieves'' Tools\"],\"saving_throw_mods\":{\"strength\":-1,\"dexterity\":3,\"constitution\":5,\"intelligence\":0,\"wisdom\":1,\"charisma\":4},\"class\":\"Sorcerer\",\"strength\":8,\"dexterity\":16,\"constitution\":16,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Arcana\",\"Insight\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"],\"expertise_skills\":[],\"species_bonus_skills\":[],\"level\":4,\"proficiency_bonus\":2,\"max_hp\":30,\"current_hp\":26,\"armor_class\":13,\"xp\":2700,\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"origin_choices\":{\"background\":\"Criminal\",\"alignment\":\"Neutral Good\",\"ability_score_method\":\"standard_array\",\"background_equipment_option\":\"A\",\"species_bonus_feat\":null,\"languages\":[\"Common\",\"Dwarvish\",\"Giant\"],\"origin_feats\":[\"Alert\"],\"background_ability_bonuses\":{\"dexterity\":2,\"constitution\":1},\"base_ability_scores\":{\"strength\":8,\"dexterity\":14,\"constitution\":13,\"intelligence\":10,\"wisdom\":12,\"charisma\":15}},\"progression_level\":4,\"asi_choices\":[{\"class_level\":4,\"feat\":\"Ability Score Improvement\",\"increase\":{\"constitution\":2}}],\"metamagic\":[\"Quickened Spell\",\"Twinned Spell\"],\"subclass_id\":\"phb2024:subclass:sorcerer:aberrant-sorcery\",\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\",\"Shocking Grasp\"],\"spells\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\",\"Disguise Self\",\"Detect Magic\",\"Mage Armor\"],\"spell_slots_remaining\":{\"1\":4,\"2\":3},\"origin_feat\":\"Alert\"},\"world_state\":{\"campaign_id\":\"b6e9f613-bc0e-43d7-a28d-5c9f19bd7f38\",\"location\":\"Henüz belirlenmedi\",\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"aliases\":[\"taverna\",\"tavernaya\",\"tavernada\",\"meyhane\",\"meyhaneye\",\"meyhanede\"],\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"aliases\":[\"orman\",\"ormana\",\"ormanda\"],\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"aliases\":[\"kale\",\"kaleye\",\"kalede\"],\"description\":\"\"}},\"next_location_number\":1,\"npcs\":[],\"shops\":[],\"next_shop_number\":1,\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"equipment\":{\"main_hand\":\"longsword\",\"off_hand\":null},\"ground_items_by_location\":{},\"ground_items\":[],\"doors\":[],\"containers\":[],\"features\":[],\"scene_state\":{\"schema_version\":1,\"next_referent_number\":1,\"next_feature_number\":1,\"scenes\":{},\"active_referent_id\":null,\"player_position\":{\"location_id\":null,\"kind\":\"standing\",\"target_id\":null},\"proposal_references\":[],\"entry_target_reference\":null,\"campaign_seed\":\"c65c0557bd1b258a1a76770d\",\"ambient_context\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\",\"background\":\"Criminal\",\"origin\":\"\"},\"ambient_event_history\":[],\"ambient_event_counts\":{}},\"events\":[],\"flags\":{\"last_npc_id\":null,\"active_npc_id\":null,\"active_npc_until_turn\":-1,\"turn_index\":0,\"pending_destination\":null},\"next_npc_number\":1,\"combat\":{\"schema_version\":3,\"active\":false,\"status\":\"ended\",\"combat_id\":null,\"round\":0,\"initiative_order\":[],\"current_turn_index\":0,\"current_actor_id\":null,\"participants\":[],\"participant_records\":[],\"actions_used\":[],\"target_id\":null,\"end_reason\":null},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false,\"last_death_save_turn_key\":null,\"last_death_save_result\":null,\"last_resolution\":null,\"combat_checkpoint\":null,\"recovery\":null,\"noncombat_next_save_at\":null,\"noncombat_episode_id\":null},\"player_knowledge\":[],\"quests\":[],\"quest_processed_event_ids\":[],\"starting_equipment_source\":\"PHB2024-background-v1\",\"spellcasting_v1\":{\"version\":1,\"class\":\"Sorcerer\",\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\",\"Shocking Grasp\"],\"prepared\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\",\"Disguise Self\",\"Detect Magic\",\"Mage Armor\"],\"slots\":{\"1\":4,\"2\":3},\"slot_turn\":null},\"sorcery_points_v1\":{\"version\":1,\"remaining\":4},\"xp_awarded_event_ids\":[\"quest:synthetic-earned-four\"]},\"recent_dm_narrations\":[]},\"rng_state\":[3,[2147483648,4285156158,1884507998,497025956,3883638478,2849836534,2166875276,1455359855,3350040624,1634446282,4030257403,4265581932,1966757407,3083141097,3188497751,35248257,689607314,3675331237,1992721646,69666485,540965819,4227262572,857880181,3737708776,2644533649,2799422020,1556778617,2853594558,3686890595,1694331416,2458221142,2887678140,234979032,1264668465,2640263426,2515521295,720364793,3935674341,1648226395,2725618523,175789872,86560647,3686464351,229466624,3693165976,3666379616,104014906,3586411208,4162557331,1840487278,4165592121,4272018336,3740253067,3988303937,882770192,3779324700,569298098,3926382946,1562984391,2822733840,1875526564,3979976391,506580489,80744432,3336689857,898305945,365010515,316929906,3138126335,712685342,2217478436,3424310751,3837937986,1308332115,180722913,4254695748,1959177154,837008945,4181975380,2970957978,154528560,320788783,316629323,2191093361,3134001315,2507034447,1509978179,2763356736,1227649122,156285167,909822515,1274599141,294895910,780242492,2184542383,1480436923,2856640000,2304445002,3010271616,1479045815,1370843195,2015495961,3644603709,3805889292,953614744,1576674551,3942312372,3880210157,627530361,4055541386,3610189863,2300695886,2621557423,4234886446,3451386702,2686817176,2513931691,4005240826,2489727331,4051605290,3685742518,3345421265,2704117957,1272528348,3814765444,4288052851,989677495,3417050574,2041719484,3655620406,2573622765,128774454,3414962241,4211086884,895040189,4235484276,2660759415,1743497404,340327088,1528389456,2923535508,742119569,1741250896,3547147233,1489180756,3192225891,3248151293,2407868664,1036720553,3341847977,1032049550,2697046422,2180642798,2041474871,1151714483,2694601308,3238661746,1451714489,2660433107,2444718510,826369482,3806481131,965309524,3635048759,1516664800,19114926,1233811474,2883094541,2608258578,1484536274,284008503,1862069879,3705507012,283559210,90722697,1987344930,455487072,4032314532,3837552395,3902619459,1038125764,3354678706,390922332,720023992,3244327791,2292158623,3792934102,3683997765,4284759561,3513533456,48391127,2780994517,357024718,1553570950,2167706737,17170316,2424520963,2449785663,3440767517,2383669432,3617945653,3122997298,4112911044,2947459343,2483448352,4061450799,4033598306,126465611,290578459,4031196127,536170475,3134957355,1787306575,2646200605,3357222184,1257403983,176225890,814637636,2591033398,4023280175,1829449936,517044386,3375258258,2639121394,21036731,1387615452,3387335707,1724848360,863073365,1842234605,2827733779,668357251,1976311064,3896367462,936865707,2796694309,1698413769,2693261805,1216521579,3546303522,3717341203,1182910090,2655884377,555813909,648536159,3834385113,3103940314,555867430,2047428702,3702272494,1569054703,341565756,2265620951,2621216861,3921667288,1629392748,2947005442,1168985569,1176030044,2339590178,125123168,148519107,1455409336,1097310238,3020392300,682714816,977296450,3726990312,1488115867,1305056417,2813012836,2170035559,2811811817,3463780013,1967459231,539425385,1617054193,413867222,4164611399,4033028064,1746716058,1819572459,120141780,2626732947,974120423,270871737,702277574,1824390046,2302950015,3819270534,3179374232,2047664576,1220725454,3704217590,2779561073,677299659,59153335,114325789,924345252,1280520203,3187933205,1227200222,4237706114,605183649,3975190165,3240973871,939910488,3977851387,1464454115,194259553,3501774891,1504455530,1973705875,2812080487,128717199,3173947876,612768548,2767903616,2544824342,3885355217,2023804540,2296068690,34336514,281959070,1209223854,406125983,2883580675,2065180004,2637729713,4121216362,1527921470,3246486219,3298150932,3177814677,3404071052,66344376,2404007928,1331502728,637584458,2658799961,4252564899,3944546473,1491179484,2832167680,1192572185,179615608,3926781636,611282383,3767110661,1068832465,18225306,1922115147,1511867130,416126932,160376953,4217188534,2138555910,3671461209,780707017,1419747020,2628541880,2852850120,3218488249,49936935,2402576155,3661290473,1882090396,2640643040,2200508203,3925180583,3779116953,652728325,3884437699,4280452142,3070168087,722753866,3266183311,3851567289,1555204999,1123252806,1825803849,1680448722,2798933329,357993568,2643823888,3584346686,1735131815,2959182532,1798917252,2366170097,448361737,2412988832,1854751809,1903115083,1296849396,1265411366,3628636034,2907799073,2599156945,3852116707,3417840222,2125297861,2652427050,3579151476,1183655688,807234906,3016125225,3768216226,3558732188,3779212890,2420410831,3891767475,644830116,723568770,325005279,1457185150,1695789358,212830950,1784396986,3502053383,2590637979,3617023727,1318417009,3274958907,2462294458,4061109381,3547519442,3541100505,1530618589,3757299930,175197744,2562181868,973414236,3961682769,785666564,160563180,1065370577,1605055388,3093026875,3473026408,2227186412,2359044494,1252757299,1272413440,3723983594,4248623039,3177579481,1039266607,1030475731,2310713804,2987016046,2721809881,1218353300,732550794,79639409,4124633249,166905502,3323442534,1008869997,1344821761,46784137,93251076,2779834497,498800977,4202356551,1432555271,1437038001,1843941573,1656599991,2380275845,3363377505,226942556,754340341,1470096810,1390695352,147614852,1703476493,2460387232,3622958269,1435644557,3705284282,2588509071,2469948752,262909917,2963838201,2462203893,385550524,387314127,2331234060,1553894014,911362665,1213950608,2197671272,44812657,455569261,3927747510,2191061244,380534281,3550298724,464800177,1054391108,1648659673,488325394,2785604286,1416134840,3103338823,699235248,2387819455,3079717758,1112849292,3355078434,1287664635,2628698367,2172852410,4245173043,3273763156,1108780789,2586036249,3543114583,1734286460,1352584385,1276369054,3939673912,2012499102,939486447,2234558460,1235962593,2048209392,1424549313,802705217,4075476506,2142111644,1256661452,2998900930,2830653435,311878571,1909700509,1438541748,3058590185,353476748,2659016717,1918361533,1988735964,1449456935,1642448379,4004331618,3071301103,567379739,1860890728,1439771094,670401784,526928095,3584223399,518391500,1277004582,2937635891,3974638640,3815768941,3433225607,1793185886,3701264408,2008401784,3388846942,2744457510,2324713794,355118380,3923855071,2487216001,4092250758,1554621073,335619269,2186146828,1263152358,1048108187,1372448487,3941178575,1493671867,92450199,225142874,2840831933,1041824192,4191988695,606285070,2145301500,4183810930,1518083746,3350407961,1366061947,2639978501,3728073310,1868813300,2492819374,1803276635,2988456518,2657774580,2830145677,2144978186,2383082950,2410781940,257263033,1256985051,2393406867,3043892766,2107364636,4212443778,2931915737,105419346,797262133,3011775573,3715382676,3746839018,2759557612,4265177362,807556686,2867660002,1202622331,1876357679,1804103352,4019179181,1673194217,905668478,724671767,192170490,2520049369,624],null],\"world_metadata\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"narrative_memory\":{\"schema_version\":1,\"recent_turns\":[],\"story_summary\":{\"current_arc\":[],\"recent_events\":[],\"important_relationships\":[],\"current_location\":null,\"unresolved_threads\":[],\"major_discoveries\":[],\"player_history\":[]},\"entity_memory\":{\"npcs\":{},\"locations\":{}},\"npc_interactions\":{},\"location_continuity\":{},\"quest_memory\":{},\"unresolved_threads\":[],\"style_profile\":{\"tone\":\"immersive high fantasy\",\"description_density\":\"moderate\",\"dialogue_density\":\"strong\",\"pace\":\"variable\",\"darkness\":\"grounded\",\"humor\":\"restrained\",\"violence_detail\":\"restrained\"},\"repetition_fingerprint\":{\"recent_openings\":[],\"recent_closings\":[],\"recent_phrases\":[],\"recent_gestures\":[],\"recent_environment_descriptions\":[]}},\"lore_authority\":{\"binding_status\":\"LEGACY_UNBOUND\",\"setting_profile\":null,\"world_id\":null,\"epoch_id\":null,\"region_id\":null,\"current_location_entity_id\":null,\"region_pack_id\":null,\"starting_location_entity_id\":null,\"player_known_fact_ids\":[],\"npc_known_fact_ids\":{},\"campaign_overrides\":[],\"procedural_entity_refs\":[],\"lore_discoveries\":[],\"faction_standings\":[],\"adventure_possibility_ids\":[],\"lore_payload_version\":1}}',2,'test-issuer','test-player','owned');\nINSERT INTO \"campaigns\" VALUES('c454df4a-57a2-47e5-9777-ae6e3f8a475c','Vael — Yeni Macera','2026-10-29T18:24:54+00:00','2026-10-29T18:24:54+00:00','2026-10-29T18:24:54+00:00',1,4,'2a1ec61373904176afa978260aadaa123a76d4b017328c3e06f444266737a926','Vael','Human','Barbarian',3,'Henüz belirlenmedi','{\"format\":\"ai-dnd-campaign\",\"version\":1,\"engine_save\":{\"format\":\"ai-dnd-save\",\"version\":4,\"player\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"exhaustion\":0,\"proficient_tools\":[\"Thieves'' Tools\"],\"saving_throw_mods\":{\"strength\":1,\"dexterity\":3,\"constitution\":4,\"intelligence\":0,\"wisdom\":1,\"charisma\":2},\"class\":\"Barbarian\",\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Athletics\",\"Perception\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\",\"Survival\"],\"expertise_skills\":[],\"species_bonus_skills\":[],\"level\":3,\"proficiency_bonus\":2,\"max_hp\":32,\"current_hp\":32,\"armor_class\":15,\"xp\":900,\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"origin_choices\":{\"background\":\"Criminal\",\"alignment\":\"Neutral Good\",\"ability_score_method\":\"standard_array\",\"background_equipment_option\":\"A\",\"species_bonus_feat\":null,\"languages\":[\"Common\",\"Dwarvish\",\"Giant\"],\"origin_feats\":[\"Alert\"],\"background_ability_bonuses\":{\"dexterity\":2,\"constitution\":1},\"base_ability_scores\":{\"strength\":8,\"dexterity\":14,\"constitution\":13,\"intelligence\":10,\"wisdom\":12,\"charisma\":15}},\"progression_level\":3,\"weapon_proficiencies\":[\"simple\",\"martial\"],\"primal_knowledge_choice\":{\"class_level\":3,\"skill\":\"Survival\",\"prior_proficient_skills\":[\"Athletics\",\"Perception\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"]},\"subclass_id\":\"berserker\",\"cantrips\":[],\"spells\":[],\"spell_slots_remaining\":{\"1\":0},\"origin_feat\":\"Alert\"},\"world_state\":{\"campaign_id\":\"c454df4a-57a2-47e5-9777-ae6e3f8a475c\",\"location\":\"Henüz belirlenmedi\",\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"aliases\":[\"taverna\",\"tavernaya\",\"tavernada\",\"meyhane\",\"meyhaneye\",\"meyhanede\"],\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"aliases\":[\"orman\",\"ormana\",\"ormanda\"],\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"aliases\":[\"kale\",\"kaleye\",\"kalede\"],\"description\":\"\"}},\"next_location_number\":1,\"npcs\":[],\"shops\":[],\"next_shop_number\":1,\"inventory\":[\"Büyük Balta (Greataxe)\",\"Handaxe\",\"Handaxe\",\"Handaxe\",\"Handaxe\",\"Explorer''s Pack\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"equipment\":{\"main_hand\":\"greataxe\",\"off_hand\":null},\"ground_items_by_location\":{},\"ground_items\":[],\"doors\":[],\"containers\":[],\"features\":[],\"scene_state\":{\"schema_version\":1,\"next_referent_number\":1,\"next_feature_number\":1,\"scenes\":{},\"active_referent_id\":null,\"player_position\":{\"location_id\":null,\"kind\":\"standing\",\"target_id\":null},\"proposal_references\":[],\"entry_target_reference\":null,\"campaign_seed\":\"52f51de12abd3848288a128f\",\"ambient_context\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\",\"background\":\"Criminal\",\"origin\":\"\"},\"ambient_event_history\":[],\"ambient_event_counts\":{}},\"events\":[],\"flags\":{\"last_npc_id\":null,\"active_npc_id\":null,\"active_npc_until_turn\":-1,\"turn_index\":0,\"pending_destination\":null},\"next_npc_number\":1,\"combat\":{\"schema_version\":3,\"active\":false,\"status\":\"ended\",\"combat_id\":null,\"round\":0,\"initiative_order\":[],\"current_turn_index\":0,\"current_actor_id\":null,\"participants\":[],\"participant_records\":[],\"actions_used\":[],\"target_id\":null,\"end_reason\":null},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false,\"last_death_save_turn_key\":null,\"last_death_save_result\":null,\"last_resolution\":null,\"combat_checkpoint\":null,\"recovery\":null,\"noncombat_next_save_at\":null,\"noncombat_episode_id\":null},\"player_knowledge\":[],\"quests\":[],\"quest_processed_event_ids\":[],\"currency\":{\"player\":1500},\"starting_equipment_source\":\"PHB2024-background-v1\",\"worn_armor_v1\":{\"version\":1,\"armor_id\":null},\"rage_v1\":{\"version\":1,\"remaining\":3,\"active\":null},\"xp_awarded_event_ids\":[\"quest:synthetic-earned-berserker\"]},\"recent_dm_narrations\":[]},\"rng_state\":[3,[2147483648,4062146364,4184885405,3044680227,2186508099,3972950019,1776265212,594609858,1708704297,2021777354,2555140866,2133598067,2726984747,1140793888,16181590,3692241272,3849050437,2410472511,71293083,1316644526,1712102777,3644334405,4042524157,4270191671,373297110,2446065226,1950027427,1007018157,2540758247,3405595684,1586822536,121746685,2513148072,2357556688,3603729953,2429212953,3308765105,4172647055,663377618,3271775354,3371757664,899728699,3435101734,2117024352,4182448382,1455682120,3328794132,2792996994,1194942723,4003444261,4005282852,1387917352,1693405767,1275640617,20107841,4207651699,1996231142,2985236301,2879200498,156529788,1210352582,1988228105,3122461084,1005154437,830520705,4145060934,3213421813,1473452909,567446748,3775166568,3065143135,3166422636,1126399200,3838851260,650596285,3275310347,3265535744,1162421822,2757839597,4207136154,1042443429,2668865279,3048029413,2112197397,1699640424,250438097,1616362443,1048287075,43741956,1060810674,1213512631,3390077699,496771710,1959533044,1444117277,2240353777,877457397,2946687270,3390733255,1543509189,1526530000,1115561176,804610617,1361911833,2212446214,349733565,321621537,1509064515,590760453,3772910196,115496607,113728866,1987608454,3410360164,3456430799,15565437,980187123,1466743095,3427656262,1180170345,3635813990,934488318,1012534411,3001506381,920331091,372569242,1812905800,1746323834,3904297833,3373895426,2144529585,2168866372,1870852613,3683267284,205984441,1930010793,3873561521,3349674754,1678707055,1567792088,3659518030,1844032917,4078689307,1865062835,1712911226,3658825256,2883250041,2658224891,3725445371,3689716319,751971216,936340540,2345457325,671015448,1538707306,297360420,205459922,4200956467,3736343225,1450133028,2998446569,2230642032,1318746782,2948429769,1312677251,2134862787,3819462234,703491205,3049802473,1772402015,2932388200,860734584,1741287183,414812699,4199954101,700176772,3088007213,2897514224,1898489640,3079070675,3142891385,2780806646,2257554312,599282806,470335741,2580947692,3478548838,1973888917,2883618437,2494569352,564089581,1660079975,3097801308,2579509983,2948733366,3978804787,1026097078,3376509814,3201422210,3952809109,1312200818,2167291482,520749299,541564767,876610327,1578454164,1714084058,2235522530,2920736502,190238228,4148455148,2233876843,1269845293,2273991557,1086918270,2277092240,727530699,1500919962,1722114686,1761627711,271782480,2648481191,675394995,2721856121,523652392,3141115363,712774696,3240348886,3710437183,4244641457,3596134824,2399442979,3218087187,1930372264,3789133570,196654358,3142491547,1333349270,1325861030,401355117,2724792977,1154185433,3443506886,95365390,910286249,4037313891,328092580,1092636657,179018876,806690096,687550302,2107450700,3165335924,4084911829,3803507998,4118393073,404994280,4008147565,999897057,4129748816,934196052,1445884773,1237342527,763030455,3274948274,3022343000,4036190696,1841731456,3445736639,3614869846,577189940,1346067217,1246430586,4209693505,3472223586,3684168125,1170980130,4030375919,1807491514,1875498969,4074957192,2542668402,199548114,1286595515,4017188947,3965776920,2872338470,943392917,3844064544,3839798389,1788682565,639081202,3093530087,559985120,695651205,4021204698,3795106184,541290135,4075633751,3460772054,3635026050,1274389017,2289278759,801469031,724505727,1111777316,98181501,676883512,2807823056,3251085533,420259320,1798176961,596349623,866969766,1384848480,2769606524,2346540560,550325577,3444995655,113386649,2482169236,3235586507,828374571,1813060578,1727691909,4178893432,2362587731,4288587305,259864095,1825534589,4127064229,913886247,2682024948,2178190101,1966860232,276845338,4192560420,4247230308,1942845403,2304644815,374732377,3328388893,1529347957,1947380404,2396899940,1982673956,2847039438,1239004312,307137187,3210001194,2744199941,925692607,875423574,1597491871,3242633995,2610730977,332159491,854861036,3539424686,4001960088,2817060145,3032799067,4178998265,3039819735,811375622,2902483759,750929367,4384327,1936946738,2285206571,1528093581,2887949463,53495108,4005853436,2728671971,1852302314,1002792745,2734887545,2468005473,3883180233,4105514510,2118163984,3689910253,1079351052,2548273580,3422764167,3604987830,3810713391,983743006,2864445409,3153112753,1353923167,208220033,4130087083,3965208589,2491692324,597393893,2525244721,1714751841,2566621221,4271232656,3632086126,792985893,4116285243,40834317,849334490,1202347308,1822092000,1359704984,2827174755,994310955,2507946646,1870497384,371440250,1148914050,1826965804,875182929,481608449,661647735,3782401062,970207524,1911496915,1287768491,3547963022,3061163212,989678821,2525435260,3291693291,3186441870,2994196193,1553195221,3367583731,1298065677,1052125432,3932370493,3191454350,2978639404,973427301,327479338,3979167816,2280797152,1015262602,1394954261,3092049592,140750790,3076947122,1728266692,1996937589,1557747755,970181549,824855880,3317951684,623098855,918253150,3933740624,2363650304,4214970363,628804475,1880505295,3768872917,905758116,1697859252,491259098,405111649,2590007762,1718861313,1257322550,1938130132,1779246550,2284978240,1682392602,954725042,1922703550,1459406186,3460230085,499985347,3573474742,3973034600,1948222716,1531174170,1355954882,990606039,4263773807,1041382586,2443236538,1776394801,1127931564,3612324020,113252117,76935359,3789305952,3690595432,418733809,3686514918,4240863217,1425492978,70725347,4184995595,4289060025,3198458896,4177036968,1165340232,900708162,3071761920,2942595665,3733374290,77545385,4029928755,1130164869,2002624847,2704585922,14790033,4278925719,3959198921,800750490,597474734,2807006933,3404419818,1418669174,8581738,4212093987,2206019840,1694039669,2209450544,1042360871,2254394003,1745976955,3654871712,4294865218,4205377614,2092849428,1387828544,1454926922,4141350592,4017510747,1376156753,3260959668,3971894396,4257176187,1282704880,3561269687,987824647,3116530059,418090156,2856240524,4140618828,3134955909,3232759521,200882031,3812449673,3468874725,3174151215,1421854220,127259151,1940763471,2728825947,3850662088,2780554841,3771157326,2085303626,3298314417,3235744532,2261458503,2839378044,1411547380,773453725,3844780040,4261496818,4039587745,4067704640,1077645533,85522302,1455256386,3384380291,2295693341,2972527211,4243161803,513698276,669981637,1774465653,2433277048,31970941,3112117417,1996691612,2960435736,728543812,256448629,3269442218,609290370,1048446772,3185423276,1399506369,4173413972,4291015724,101896167,1325804681,1121632180,584993624,1068080255,863052812,28009259,3139484322,1288138686,3129854719,848439523,1004522783,3171559841,1574294737,2293634961,2866309953,1383613908,3955766018,2142851176,4101604688,2110130142,1525824478,2319036860,1569551513,734048607,1141351796,1276559671,4271159360,2777728297,1692588657,624],null],\"world_metadata\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"narrative_memory\":{\"schema_version\":1,\"recent_turns\":[],\"story_summary\":{\"current_arc\":[],\"recent_events\":[],\"important_relationships\":[],\"current_location\":null,\"unresolved_threads\":[],\"major_discoveries\":[],\"player_history\":[]},\"entity_memory\":{\"npcs\":{},\"locations\":{}},\"npc_interactions\":{},\"location_continuity\":{},\"quest_memory\":{},\"unresolved_threads\":[],\"style_profile\":{\"tone\":\"immersive high fantasy\",\"description_density\":\"moderate\",\"dialogue_density\":\"strong\",\"pace\":\"variable\",\"darkness\":\"grounded\",\"humor\":\"restrained\",\"violence_detail\":\"restrained\"},\"repetition_fingerprint\":{\"recent_openings\":[],\"recent_closings\":[],\"recent_phrases\":[],\"recent_gestures\":[],\"recent_environment_descriptions\":[]}},\"lore_authority\":{\"binding_status\":\"LEGACY_UNBOUND\",\"setting_profile\":null,\"world_id\":null,\"epoch_id\":null,\"region_id\":null,\"current_location_entity_id\":null,\"region_pack_id\":null,\"starting_location_entity_id\":null,\"player_known_fact_ids\":[],\"npc_known_fact_ids\":{},\"campaign_overrides\":[],\"procedural_entity_refs\":[],\"lore_discoveries\":[],\"faction_standings\":[],\"adventure_possibility_ids\":[],\"lore_payload_version\":1}}',2,'test-issuer','test-player','owned');\nCOMMIT;",
+  "sqlite_user_version": 6
+}

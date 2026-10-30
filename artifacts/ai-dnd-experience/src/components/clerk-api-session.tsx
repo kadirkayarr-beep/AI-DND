@@ -45,7 +45,8 @@ export default function ClerkApiSession({ children }: { children: ReactNode }) {
       void boundary.current.client.cancelQueries();
       boundary.current.client.clear();
       boundary.current = null;
-      clearAccountBrowserState();
+      // Only a confirmed sign-out clears storage; an unresolved identity just hides the content.
+      if (auth.isLoaded && auth.isSignedIn !== true) clearAccountBrowserState();
       generation.current += 1;
     }
     setAuthTokenGetter(null);
@@ -73,7 +74,6 @@ export default function ClerkApiSession({ children }: { children: ReactNode }) {
       if (!activeClient) return;
       void activeClient.cancelQueries();
       activeClient.clear();
-      clearAccountBrowserState();
       if (generation.current === activeGeneration) {
         setAuthTokenGetter(null);
         setProtectedRequestCredentials("omit");
@@ -82,6 +82,10 @@ export default function ClerkApiSession({ children }: { children: ReactNode }) {
       }
     };
   }, [activeIdentity, activeClient, activeGeneration]);
+
+  // Leaving the signed-in shell (sign-out) clears account storage; a new session of the same
+  // owner only changes the identity and keeps it.
+  useEffect(() => clearAccountBrowserState, []);
 
   if (!identity || !activeClient) return <GateWaiting />;
 
