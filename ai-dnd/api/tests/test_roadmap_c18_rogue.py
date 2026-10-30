@@ -147,8 +147,8 @@ class EarnedProgression(unittest.TestCase):
         self.assertEqual(session.character["level"], 5)
         self.assertEqual(features.rogue_level(session.character), 2)
         self.assertEqual(features.sneak_dice(features.rogue_level(session.character)), 1)
-        self.assertFalse(features.projection_of(session)["steady_aim"])
-        self.assertIsNone(features.projection_of(session)["uncanny_dodge"])
+        self.assertFalse(features.projection(session)["steady_aim"])
+        self.assertIsNone(features.projection(session)["uncanny_dodge"])
 
     def test_hit_points_are_paid_once_by_xp_and_never_again_by_the_step(self):
         session = created()

@@ -13,6 +13,7 @@ import action_economy as economy
 import barbarian_rage
 import fighter_features
 import character_progression
+import rogue_features
 import initiative
 import spatial_rules
 from combat_lifecycle import CombatRequestError
@@ -25,6 +26,7 @@ SIZES = ("tiny", "small", "medium", "large", "huge", "gargantuan")
 CHOICES = frozenset({
     "mode", "ability", "grip", "mastery", "push_ft", "cleave_target_id",
     "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id", "reckless_attack",
+    "cunning_strike", "cunning_strike_move_ft",
 })
 
 
@@ -462,6 +464,9 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         bonus = ability_mod + (pb if proficient else 0) + weapon["magic_attack_bonus"] + attack_adjustment
     advantage = list(rules.get("advantage_sources", []))
     disadvantage = list(rules.get("disadvantage_sources", []))
+    if actor == "player":
+        advantage.extend(rogue_features.attack_advantage(session, target))
+    rogue_features.check_choice(session, actor, choice, defender)
     for names in (advantage, disadvantage):
         if any(not isinstance(source, str) or not source for source in names):
             fail("invalid_attack_state", "Attack advantage sources require provenance.")
@@ -791,6 +796,7 @@ def boundary(session, actor, event):
         counter += 1
         if actor in resources:
             resources[actor]["attack_turn_counter"] = counter
+    rogue_features.turn_boundary(session, actor, event, counter)
     effects = session.world_state.get("attack_effects", [])
     effects[:] = [e for e in effects if not (e["source_actor"] == actor
                  and e["expires_boundary"] == event and counter >= e["expires_turn"])]
@@ -835,6 +841,8 @@ def _resolve(session, c):
             advantage=bool(c["advantage_sources"]), disadvantage=bool(c["disadvantage_sources"]),
             actor_id=actor, target_id=target)
         hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
+        if actor == "player":
+            rogue_features.spend_steady_aim(session)
         threshold = fighter_features.critical_threshold(attacker) if actor == "player" else 20
         critical = bool(hit and (resolution["selected_roll"] >= threshold or (
             c["spatial"]["distance_ft"] <= 5 and set(c["target_conditions"]) & {"unconscious", "paralyzed"})))
@@ -843,6 +851,7 @@ def _resolve(session, c):
         barbarian_rage.observe_enemy_roll_or_save(session, target)
     graze = not hit and not c["auto_miss"] and c["mastery"] == "graze"
     damage_rolls, components, species_effects, additional_effects = [], [], [], []
+    sneak = None
     if hit and not special:
         modifier = c["rules"].get("damage_modifier", c["ability_modifier"])
         integer(modifier, "damage modifier")
@@ -887,6 +896,12 @@ def _resolve(session, c):
             raw = max(0, session.roll_damage(extra.get("damage_die", 0), count, extra.get("modifier", 0), rolls=rolls))
             damage_rolls.append({"source": extra["source"], "die": extra.get("damage_die", 0), "count": count, "rolls": rolls})
             components.append({"damage_type": extra["damage_type"], "raw_damage": raw})
+        sneak = rogue_features.sneak_attack(session, c, critical) if actor == "player" else None
+        if sneak:
+            rolls = []
+            raw = session.roll_damage(sneak["die"], sneak["count"], sneak["surprising_strikes"], rolls=rolls)
+            damage_rolls.append({"source": "sneak_attack", "die": sneak["die"], "count": sneak["count"], "rolls": rolls})
+            components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
         if actor == "player":
             _, species_effects = session._apply_species_on_hit_effects(defender, critical=critical)
             for entry in species_effects:
@@ -905,6 +920,8 @@ def _resolve(session, c):
     if target == "player":
         reduced, flat_effects = session._reduce_attack_damage_to_player(sum(grouped.values()))
         species_effects.extend(flat_effects)
+        reduced, dodged = rogue_features.uncanny_dodge(session, c, hit, reduced)
+        additional_effects.extend(dodged)
         remaining_reduction = sum(grouped.values()) - reduced
         for kind in grouped:
             applied = min(grouped[kind], remaining_reduction)
@@ -1032,6 +1049,7 @@ def _resolve(session, c):
         "resulting_position": mastery_result if mastery_result and mastery_result["kind"] == "push" else None,
         "species_effects": species_effects, **{k: v for k, v in hp_result.items() if k != "species_effects"},
     }
+    rogue_features.after_attack(session, c, result, sneak)
     for event in ("after_attack", "after_damage", "after_mastery"):
         # Notifications, not unvalidated mutation commands.
         hook(session, event, result)

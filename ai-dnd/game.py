@@ -5402,6 +5402,8 @@ def end_combat(reason="combat_ended"):
         )
     import barbarian_rage
     barbarian_rage.settle(_session(), combat_active=True)
+    import rogue_features
+    rogue_features.combat_ended(_session())
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))

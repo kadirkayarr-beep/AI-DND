@@ -72,6 +72,8 @@ def speed(session, actor):
     able_to_move = (data.get("current_hp", 0) > 0) if outside_player else present(session, actor)
     if not able_to_move or active_conditions & SPEED_ZERO_CONDITIONS:
         return 0
+    if actor == "player" and "steady_aim" in session.world_state.get("combat", {}).get("turn_resources", {}).get("player", {}):
+        return 0  # Rogue Steady Aim: validated when saved, ended by the turn boundary
     value = int(data.get("speed_ft", 30 if actor == "player" else 0))
     if actor == "player":
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
@@ -213,6 +215,7 @@ def begin_turn(session, actor):
     r = ensure(session)[actor]
     weapon_attack.boundary(session, actor, "begin")
     r.pop("weapon_sequence", None)
+    r.pop("steady_aim", None)
     r["base_action_spent"] = False
     r["bonus_action_spent"] = False
     r["reaction_spent"] = False
@@ -846,6 +849,10 @@ def _execute(session, command, action_id=None, session_id=None):
         import fighter_features
         if not fighter_features.native_command(command):
             fail("invalid_fighter_command", "Second Wind and Action Surge require one exact typed step.")
+    if any(step.get("kind") in {"cunning_action", "steady_aim", "uncanny_dodge"} for step in steps if isinstance(step, dict)):
+        import rogue_features
+        if not rogue_features.native_command(command):
+            fail("invalid_rogue_command", "Cunning Action, Steady Aim and Uncanny Dodge require one exact typed step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -861,7 +868,7 @@ def _execute(session, command, action_id=None, session_id=None):
                 fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
             if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot"}:
                 fail("invalid_spell_slot_choice", "Only a Magic action can select a spell slot.")
-            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind"}:
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind", "cunning_action", "steady_aim"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
@@ -890,7 +897,8 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append(attack_step(
                     session, step.get("target_id"), kind == "continue_attack",
                     weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
-                            **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {})},
+                            **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {}),
+                            **__import__("rogue_features").step_choice(step)},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
             elif kind == "species":
@@ -910,6 +918,12 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind == "action_surge":
                 import fighter_features
                 results.append({"kind": kind, "result": fighter_features.activate_action_surge(session)})
+            elif kind in {"cunning_action", "steady_aim", "uncanny_dodge"}:
+                import rogue_features
+                results.append({"kind": kind, "result": (
+                    rogue_features.cunning_action(session, step["cunning_option"]) if kind == "cunning_action"
+                    else rogue_features.steady_aim(session) if kind == "steady_aim"
+                    else rogue_features.set_uncanny_dodge(session, step["uncanny_dodge_enabled"]))})
             elif kind == "convert_spell_slot":
                 import sorcery_points
                 results.append({"kind": kind, "result": sorcery_points.convert_slot(session, step.get("slot_level"))})
@@ -972,6 +986,12 @@ def resolved_narration(session, results):
             narration_parts.append(f"Bonus Action ile Second Wind kullanırsın: {result['healing']} can puanı kazanırsın{moved}; kalan kullanım: {result['uses_remaining']}.")
         elif step["kind"] == "action_surge":
             narration_parts.append("Action Surge ile bu tur bir ek eylem kazanırsın (Magic eylemi hariç).")
+        elif step["kind"] == "cunning_action":
+            narration_parts.append(f"Bonus Action ile Cunning Action: {step['result']['option']}.")
+        elif step["kind"] == "steady_aim":
+            narration_parts.append("Bonus Action ile Steady Aim: sonraki saldırı zarında Advantage; bu tur Hızın 0.")
+        elif step["kind"] == "uncanny_dodge":
+            narration_parts.append("Uncanny Dodge açık." if step["result"]["enabled"] else "Uncanny Dodge kapalı; Reaction sende kalır.")
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
             narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")
