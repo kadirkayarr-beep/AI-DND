@@ -5874,10 +5874,16 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
     return accepted, list(dict.fromkeys(rejected_names))
 
 
+_PROPOSAL_MARKER_RE = re.compile(r"\[\[([nlfs][1-9]\d?)\]\] ?")
+
+
+def _strip_proposal_markers(narration):
+    return _PROPOSAL_MARKER_RE.sub("", narration) if isinstance(narration, str) else narration
+
+
 def _filter_unaccepted_proposal_mentions(narration, accepted_keys, rejected_names):
     if not isinstance(narration, str):
         return narration
-    marker_pattern = re.compile(r"\[\[([nlfs][1-9]\d?)\]\]")
     accepted = set(accepted_keys)
     rejected = [
         name for name in rejected_names
@@ -5888,7 +5894,7 @@ def _filter_unaccepted_proposal_mentions(narration, accepted_keys, rejected_name
         if not paragraph or re.fullmatch(r"\n\s*\n", paragraph):
             filtered_paragraphs.append(paragraph)
             continue
-        markers = marker_pattern.findall(paragraph)
+        markers = _PROPOSAL_MARKER_RE.findall(paragraph)
         if any(marker not in accepted for marker in markers):
             continue
         if any(
@@ -5900,7 +5906,7 @@ def _filter_unaccepted_proposal_mentions(narration, accepted_keys, rejected_name
             for name in rejected
         ):
             continue
-        filtered_paragraphs.append(marker_pattern.sub("", paragraph))
+        filtered_paragraphs.append(_strip_proposal_markers(paragraph))
     return "".join(filtered_paragraphs).strip()
 
 
@@ -16889,6 +16895,9 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             if post_travel_quests:
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
+    # A narration-only turn cannot propose, so a marker there names nothing new;
+    # the sentence stays and only the marker goes.
+    packet["narration"] = _strip_proposal_markers(packet.get("narration"))
     claims = packet.get("lore_claims", [])
     if (narration_only and not claims and resolved_turn.npc_target is None
             and isinstance(packet.get("narration"), str)):
