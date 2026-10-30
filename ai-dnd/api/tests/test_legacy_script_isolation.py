@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import game
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from offline_test_support import offline_model
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +38,7 @@ class LegacyScriptIsolationTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    @guard_bound(CHILD_PROCESS)
     def test_cold_imports_in_both_orders_do_not_bind_or_call_a_mock(self):
         for names in (SCRIPTS, SCRIPTS[::-1]):
             for engine_first in (False, True):
@@ -65,6 +67,7 @@ assert ollama.chat is original_chat
 assert ollama.list is original_list
 """)
 
+    @guard_bound(CHILD_PROCESS)
     def test_direct_main_entry_points_succeed_and_restore_bindings(self):
         for name in SCRIPTS:
             with self.subTest(script=name):

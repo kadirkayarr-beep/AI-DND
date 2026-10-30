@@ -13,6 +13,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "tools" / "acceptance"))
 import guarded_runner
 import source_identity
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 class GuardedRunnerTests(unittest.TestCase):
@@ -27,6 +28,7 @@ class GuardedRunnerTests(unittest.TestCase):
         return guarded_runner.run_unittest_gate(
             [selector], timeout_s=timeout_s, run_root=self.run_root)
 
+    @guard_bound(CHILD_PROCESS)
     def test_internal_asyncio_pair_does_not_enable_network_or_unix_services(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.AsyncioTarget."
@@ -34,6 +36,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["testMethodsRun"], 1)
 
+    @guard_bound(CHILD_PROCESS)
     def test_fresh_temporary_database_does_not_enable_other_database_access(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.GuardedTarget."
@@ -41,6 +44,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["testMethodsRun"], 1)
 
+    @guard_bound(CHILD_PROCESS)
     def test_read_only_sqlite_uri_cannot_bypass_database_boundaries(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.GuardedTarget."
@@ -85,6 +89,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(calls, 2)
         return result
 
+    @guard_bound(CHILD_PROCESS)
     def test_guard_proof_and_exact_clean_environment_precede_target(self):
         os.environ["AI_DND_SECRET_PROBE"] = "synthetic-only"
         self.addCleanup(os.environ.pop, "AI_DND_SECRET_PROBE", None)
@@ -96,6 +101,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 1)
         self.assertTrue((self.run_root / "target.started").is_file())
 
+    @guard_bound(CHILD_PROCESS)
     def test_python_user_site_pth_does_not_run_before_guard(self):
         userbase = self.root / "synthetic-userbase"
         site_packages = (userbase / "lib" /
@@ -118,6 +124,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertFalse(marker.exists(), "user-site .pth ran before guard activation")
         self.assertEqual(result["target"]["status"], "PASS")
 
+    @guard_bound(CHILD_PROCESS)
     def test_pythonpath_sitecustomize_shadow_does_not_run(self):
         shadow = self.root / "synthetic-shadow"
         shadow.mkdir()
@@ -132,6 +139,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertFalse(marker.exists(), "environment-supplied sitecustomize ran")
         self.assertEqual(result["target"]["status"], "PASS")
 
+    @guard_bound(CHILD_PROCESS)
     def test_stale_guard_bytecode_cannot_replace_verified_source(self):
         shadow = self.root / "synthetic-bytecode-shadow"
         shadow.mkdir()
@@ -170,6 +178,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["target"]["status"], "PASS")
         self.assertTrue((self.run_root / "target.started").is_file())
 
+    @guard_bound(CHILD_PROCESS)
     def test_runner_owned_campaign_database_passes_but_other_database_is_blocked(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.GuardedTarget."
@@ -180,6 +189,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertTrue((self.run_root / "db" / "campaigns.sqlite3").is_file())
         self.assertFalse((self.run_root / "db" / "personal.sqlite3").exists())
 
+    @guard_bound(CHILD_PROCESS)
     def test_nested_temporary_directory_cleanup_with_dir_fd_is_allowed(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.DirFdTarget."
@@ -189,6 +199,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 1)
         self.assertEqual(list((self.run_root / "nested-cleanup").iterdir()), [])
 
+    @guard_bound(CHILD_PROCESS)
     def test_dir_fd_cannot_delete_file_outside_run_root(self):
         outside = self.root / "outside-sentinel.txt"
         outside.write_text("preserve", encoding="utf-8")
@@ -212,12 +223,14 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 1)
         self.assertEqual(outside.read_text(encoding="utf-8"), "preserve")
 
+    @guard_bound(CHILD_PROCESS)
     def test_import_time_exit_zero_without_summary_does_not_pass(self):
         result = self.run_gate("api.tests.fixtures.b06_import_exit_zero")
         self.assertEqual(result["target"]["exitCode"], 0)
         self.assertIsNone(result["testMethodsRun"])
         self.assertEqual(result["status"], "FAIL")
 
+    @guard_bound(CHILD_PROCESS)
     def test_zero_tests_do_not_pass(self):
         result = self.run_gate(
             "api.tests.fixtures.b06_guard_target.EmptyTarget")
@@ -225,12 +238,14 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 0)
         self.assertEqual(result["status"], "FAIL")
 
+    @guard_bound(CHILD_PROCESS)
     def test_missing_summary_does_not_pass_and_keeps_process_exit_code(self):
         result = self.run_gate_with_summary(None)
         self.assertEqual(result["target"]["exitCode"], 0)
         self.assertIsNone(result["testMethodsRun"])
         self.assertEqual(result["status"], "FAIL")
 
+    @guard_bound(CHILD_PROCESS)
     def test_malformed_summary_does_not_pass_and_keeps_process_exit_code(self):
         result = self.run_gate_with_summary("{not-json")
         self.assertEqual(result["target"]["exitCode"], 0)
@@ -263,6 +278,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertIsNone(result["target"])
         self.assertFalse((self.run_root / "target.started").exists())
 
+    @guard_bound(CHILD_PROCESS)
     def test_target_child_rechecks_guard_before_importing_tests(self):
         guard_dir = self.root / "replaceable-guard"
         guard_dir.mkdir()
@@ -305,6 +321,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertIsNone(result["guard"])
         self.assertFalse(outside.exists())
 
+    @guard_bound(CHILD_PROCESS)
     def test_target_failure_exit_code_is_forwarded(self):
         result = self.run_gate("api.tests.fixtures.b06_guard_target.FailingTarget")
         self.assertEqual(result["guard"]["status"], "PASS")
@@ -312,12 +329,14 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(result["testMethodsRun"], 1)
         self.assertEqual(result["status"], "FAIL")
 
+    @guard_bound(CHILD_PROCESS)
     def test_target_timeout_is_forwarded_and_owned_process_is_closed(self):
         result = self.run_gate("api.tests.fixtures.b06_guard_target.SlowTarget.test_timeout_fixture",
                                timeout_s=1)
         self.assertEqual(result["guard"]["status"], "PASS")
         self.assertEqual((result["target"]["status"], result["target"]["exitCode"]), ("FAIL", None))
 
+    @guard_bound(CHILD_PROCESS)
     def test_source_identity_git_environment_drops_caller_secrets(self):
         with mock.patch.dict(os.environ, {"B06_SECRET_SENTINEL": "synthetic-only"}):
             with mock.patch.object(source_identity.subprocess, "run") as run:
@@ -335,6 +354,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(child_env["GIT_CONFIG_NOSYSTEM"], "1")
         self.assertEqual(child_env["GIT_CONFIG_GLOBAL"], os.devnull)
 
+    @guard_bound(CHILD_PROCESS)
     def test_source_identity_uses_isolated_candidate_root_and_head(self):
         marker = (REPO / ".git").read_text(encoding="utf-8").strip()
         self.assertTrue(marker.startswith("gitdir: "))
@@ -345,6 +365,7 @@ class GuardedRunnerTests(unittest.TestCase):
         self.assertEqual(source_identity.git_root(REPO), REPO.resolve())
         self.assertEqual(source_identity.ref_sha(REPO, "HEAD"), expected_head)
 
+    @guard_bound(CHILD_PROCESS)
     def test_source_identity_git_context_overrides_caller_git_routing(self):
         marker = (REPO / ".git").read_text(encoding="utf-8").strip()
         admin = Path(marker.removeprefix("gitdir: ").strip())

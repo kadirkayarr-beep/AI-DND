@@ -30,6 +30,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.auth import FixedAuthenticator
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 PROTECTED_DATABASES = {
     Path(r"C:\Users\Kadir\Desktop\AI - DND\ai-dnd\saves\campaigns.sqlite3").resolve(),
@@ -432,6 +433,7 @@ def load_trace(root: Path, name: str) -> dict:
 
 
 class CharacterIdentityPersistenceTests(unittest.TestCase):
+    @guard_bound(CHILD_PROCESS)
     def test_identity_fields_survive_new_process_resume(self):
         with tempfile.TemporaryDirectory(prefix="character-identity-proof-") as temporary:
             root = Path(temporary)
@@ -501,6 +503,7 @@ class CharacterIdentityPersistenceTests(unittest.TestCase):
                 )
             self.assertFalse(problems, "\n".join(problems))
 
+    @guard_bound(CHILD_PROCESS)
     def test_save_without_identity_fields_still_loads(self):
         with tempfile.TemporaryDirectory(prefix="character-identity-legacy-") as temporary:
             root = Path(temporary)
@@ -540,6 +543,7 @@ class CharacterIdentityPersistenceTests(unittest.TestCase):
                 create_trace["location"],
             )
 
+    @guard_bound(CHILD_PROCESS)
     def test_omitted_save_clears_identity_on_the_same_character(self):
         with tempfile.TemporaryDirectory(prefix="character-identity-clear-") as temporary:
             root = Path(temporary)
@@ -561,6 +565,7 @@ class CharacterIdentityPersistenceTests(unittest.TestCase):
             self.assertEqual(trace["location"], trace["legacy_location"])
             self.assertNotEqual(trace["mechanical"]["name"], "Kimlik Yolcu")
 
+    @guard_bound(CHILD_PROCESS)
     def test_turkish_empty_and_null_follow_the_input_contract(self):
         with tempfile.TemporaryDirectory(prefix="character-identity-contract-") as temporary:
             root = Path(temporary)

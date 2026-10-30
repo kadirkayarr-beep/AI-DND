@@ -26,6 +26,7 @@ from api.persistence.campaign_store import (
 )
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
@@ -119,6 +120,7 @@ class StartupSafetyTests(unittest.TestCase):
             else:
                 os.environ[key] = value
 
+    @guard_bound(CHILD_PROCESS)
     def test_module_import_does_not_open_a_campaign_database(self):
         path = _temporary(self.directory.name)
         _version_five(path)

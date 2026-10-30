@@ -15,6 +15,7 @@ from api.lore_authority.freeze_admission import (
     load_freeze_evidence,
 )
 from api.lore_authority.models import LoreFact
+from api.tests.guard_bound import EVIDENCE_READ, guard_bound
 
 
 class FreezeAdmissionTests(unittest.TestCase):
@@ -22,6 +23,7 @@ class FreezeAdmissionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.evidence = load_freeze_evidence()
 
+    @guard_bound(EVIDENCE_READ)
     def test_pinned_evidence_loads_and_admits_every_public_record(self):
         evidence = self.evidence
         self.assertEqual(evidence.integrity_errors, ())
@@ -39,6 +41,7 @@ class FreezeAdmissionTests(unittest.TestCase):
             self.assertEqual(decision.record.source_review_status, "UNREVIEWED")
             self.assertFalse(decision.record.production_authorized)
 
+    @guard_bound(EVIDENCE_READ)
     def test_restricted_record_is_rejected_when_relabeled_current_and_common(self):
         evidence = self.evidence
         record_id = "WD22-F-067"
@@ -58,6 +61,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIn("source_classification_not_public", decision.reasons)
         self.assertIn("not_in_public_freeze_manifest", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_supplemental_record_is_rejected_when_relabeled_current(self):
         evidence = self.evidence
         record_id = "WD22-F-002-1"
@@ -76,6 +80,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIn("applicability_not_verified_current", decision.reasons)
         self.assertNotIn("source_classification_not_public", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_missing_source_applicability_is_not_replaced_by_runtime_scope(self):
         evidence = self.evidence
         record_id = "WD22-F-001"
@@ -89,6 +94,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertFalse(decision.admitted)
         self.assertIn("missing_current_applicability", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_runtime_visibility_does_not_decide_a_verified_public_record(self):
         evidence = self.evidence
         proposal = canonical_proposal(evidence, "WD22-F-001")
@@ -103,6 +109,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertNotIn("temporal_scope", projected_fields)
         self.assertNotEqual(decision.record.claim, "DM_SECRET")
 
+    @guard_bound(EVIDENCE_READ)
     def test_altered_claim_text_is_rejected(self):
         evidence = self.evidence
         proposal = canonical_proposal(evidence, "WD22-F-001")
@@ -112,6 +119,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIsNone(decision.record)
         self.assertIn("claim_mismatch", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_unknown_id_is_rejected(self):
         decision = admit_record({
             "id": "WD22-NO-SUCH",
@@ -123,6 +131,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertFalse(decision.admitted)
         self.assertIn("not_in_public_freeze_manifest", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_f015_printed_ward_list_is_admitted(self):
         evidence = self.evidence
         proposal = canonical_proposal(evidence, "WD22-F-015")
@@ -131,6 +140,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         decision = admit_record(proposal, evidence)
         self.assertTrue(decision.admitted, decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_f015_rejects_reintroduced_castle_ward_inference(self):
         evidence = self.evidence
         proposal = canonical_proposal(evidence, "WD22-F-015")
@@ -141,6 +151,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIn("excluded_castle_ward_inference", decision.reasons)
         self.assertIn("claim_mismatch", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_owner_existence_sentence_is_not_admitted_as_the_2025_claim(self):
         evidence = self.evidence
         proposal = canonical_proposal(evidence, "WD22-F-015")
@@ -151,6 +162,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIn("owner_continuity_not_source_fact", decision.reasons)
         self.assertNotIn(evidence.owner_statement, evidence.records["WD22-F-015"]["claim"])
 
+    @guard_bound(EVIDENCE_READ)
     def test_missing_sources_and_wrong_hash_fail_closed(self):
         evidence = self.evidence
         missing = canonical_proposal(evidence, "BG22-F-001")
@@ -180,6 +192,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIn("freeze_integrity", decision.reasons)
         self.assertFalse(decision.production_authorized)
 
+    @guard_bound(EVIDENCE_READ)
     def test_historical_record_is_not_promoted_by_a_current_label(self):
         evidence = self.evidence
         record_id = "WD22-F-004"
@@ -196,6 +209,7 @@ class FreezeAdmissionTests(unittest.TestCase):
         self.assertIsNone(decision.record)
         self.assertIn("applicability_not_verified_current", decision.reasons)
 
+    @guard_bound(EVIDENCE_READ)
     def test_tampered_runtime_metadata_cannot_enter_the_projection(self):
         evidence = self.evidence
         record_id = "WD22-F-001"

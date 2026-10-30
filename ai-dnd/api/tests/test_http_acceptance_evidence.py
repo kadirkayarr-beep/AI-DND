@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from api.tests.guard_bound import CHILD_PROCESS, EVIDENCE_READ, guard_bound
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -195,6 +196,7 @@ class HttpEvidenceTests(unittest.TestCase):
         self.assert_record(record, "FAIL", 2)
         self.assertEqual(record["export_error"]["message"], "offline export write failure")
 
+    @guard_bound(EVIDENCE_READ)
     def test_historical_and_suite_destinations_are_rejected(self):
         historical_bytes = owner.HISTORICAL.read_bytes()
         for output in (owner.HISTORICAL, owner.SUITE_ARCHIVE / "forbidden.json"):
@@ -203,6 +205,7 @@ class HttpEvidenceTests(unittest.TestCase):
         self.assertEqual(len(self.records()), 2)
         self.urlopen.assert_not_called()
 
+    @guard_bound(EVIDENCE_READ)
     def test_symlink_to_suite_directory_is_rejected(self):
         link = self.root / "suite-link"
         link.symlink_to(owner.SUITE_ARCHIVE, target_is_directory=True)
@@ -241,6 +244,7 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertEqual(record["campaign_id"], "offline-signal-fixture")
         return process, record
 
+    @guard_bound(CHILD_PROCESS)
     @unittest.skipIf(os.name == "nt", "Requires POSIX process signal semantics")
     def test_sigterm_has_end_time_and_actual_exit_status(self):
         process, record = self.signal_fixture(signal.SIGTERM)
@@ -249,6 +253,7 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertEqual(record["exit_status"], process.returncode)
         self.assertIsNotNone(record["ended_at"])
 
+    @guard_bound(CHILD_PROCESS)
     @unittest.skipIf(os.name == "nt", "Requires POSIX process signal semantics")
     def test_hard_kill_leaves_identifiable_incomplete_record_never_pass(self):
         process, record = self.signal_fixture(signal.SIGKILL)

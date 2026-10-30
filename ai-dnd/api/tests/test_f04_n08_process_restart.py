@@ -24,6 +24,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_f04_n08_npc_memory import CLAIM
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 class FakeProvider:
@@ -147,6 +148,7 @@ async def worker(phase: str, root: Path):
             }))
 
 
+@guard_bound(CHILD_PROCESS)
 class N08SeparateProcessRestart(unittest.TestCase):
     def test_real_process_exit_and_new_process_resume(self):
         with tempfile.TemporaryDirectory(prefix="n08-process-restart-") as temporary:

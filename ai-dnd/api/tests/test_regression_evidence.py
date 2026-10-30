@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +38,7 @@ class EvidenceRunnerTests(unittest.TestCase):
             self.assertFalse(data["historical_certification"])
             return process, data
 
+    @guard_bound(CHILD_PROCESS)
     def test_duplicate_function_module_selection_executes_once(self):
         process, data = self.run_fixture(
             "def test_ok():\n    print('FUNCTION EXECUTED')\n",
@@ -51,6 +53,7 @@ class EvidenceRunnerTests(unittest.TestCase):
         self.assertEqual(data["aggregate"]["per_test_outcomes"], {"pass": 1})
         self.assertFalse(data["source_changed_during_run"])
 
+    @guard_bound(CHILD_PROCESS)
     def test_failures_errors_skips_expected_and_unexpected_are_distinct(self):
         process, data = self.run_fixture("""
 import unittest
@@ -71,6 +74,7 @@ class Outcomes(unittest.TestCase):
         self.assertEqual(data["aggregate"]["tests_run"], 6)
         self.assertTrue(all(row["ended_at"] for row in data["per_test"]))
 
+    @guard_bound(CHILD_PROCESS)
     def test_setup_class_error_does_not_claim_test_methods_executed(self):
         process, data = self.run_fixture("""
 import unittest
@@ -85,6 +89,7 @@ class Broken(unittest.TestCase):
         self.assertEqual(data["aggregate"]["errors"], 1)
         self.assertEqual(data["suite_events"][0]["outcome"], "error")
 
+    @guard_bound(CHILD_PROCESS)
     def test_failed_subtests_retain_parent_and_individual_details(self):
         process, data = self.run_fixture("""
 import unittest
@@ -99,6 +104,7 @@ class Subtests(unittest.TestCase):
         self.assertEqual(data["per_test"][0]["outcome"], "failure")
         self.assertEqual(len(data["per_test"][0]["events"]), 2)
 
+    @guard_bound(CHILD_PROCESS)
     def test_import_error_and_empty_selection_fail_closed(self):
         for code in ("raise RuntimeError('bad import')", "VALUE = 1"):
             with self.subTest(code=code):
@@ -108,6 +114,7 @@ class Subtests(unittest.TestCase):
                 self.assertIn("runner_error", data)
                 self.assertEqual(data["executed_test_ids"], [])
 
+    @guard_bound(CHILD_PROCESS)
     def test_interruption_retains_started_test_and_nonzero_status(self):
         process, data = self.run_fixture("def test_interrupt():\n    raise KeyboardInterrupt()\n")
         self.assertEqual(process.returncode, 130)
@@ -116,6 +123,7 @@ class Subtests(unittest.TestCase):
         self.assertNotEqual(data["per_test"][0]["outcome"], "pass")
         self.assertEqual(data["aggregate"]["tests_run"], 1)
 
+    @guard_bound(CHILD_PROCESS)
     def test_source_hash_changes_with_untracked_content_and_deletion(self):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)

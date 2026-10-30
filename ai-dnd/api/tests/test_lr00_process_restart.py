@@ -18,6 +18,7 @@ import unittest
 from uuid import uuid4
 
 import httpx
+from api.tests.guard_bound import LISTENER, guard_bound
 
 
 def _serve(port: int, database: Path, instance: str) -> None:
@@ -54,6 +55,7 @@ def _serve(port: int, database: Path, instance: str) -> None:
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="error")
 
 
+@guard_bound(LISTENER)
 class LR00ProcessRestartTests(unittest.TestCase):
     def test_spent_action_survives_actual_process_restart_and_resume(self):
         from api.persistence.campaign_store import CampaignStore

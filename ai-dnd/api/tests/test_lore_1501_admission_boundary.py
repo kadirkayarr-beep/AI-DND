@@ -15,9 +15,11 @@ from api.lore_authority.freeze_admission import (
     parse_json_object,
     projection_is_transform_ready,
 )
+from api.tests.guard_bound import EVIDENCE_READ, guard_bound
 
 
 class AdmissionBoundaryTests(unittest.TestCase):
+    @guard_bound(EVIDENCE_READ)
     def test_pinned_snapshot_is_deeply_immutable_and_covers_every_pin(self):
         snapshot = load_pinned_snapshot()
         self.assertEqual(snapshot.evidence.integrity_errors, ())
@@ -35,6 +37,7 @@ class AdmissionBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_json_object(b'{"a": 1, "a": 2}', "sample.json")
 
+    @guard_bound(EVIDENCE_READ)
     def test_public_batch_rejects_a_forged_projection(self):
         batch = admit_public_batch()
         self.assertEqual(batch.rejections, ())
@@ -71,6 +74,7 @@ class AdmissionBoundaryTests(unittest.TestCase):
                 False,
             )
 
+    @guard_bound(EVIDENCE_READ)
     def test_structure_comes_from_the_pinned_record(self):
         batch = admit_public_batch()
         by_id = {item.record.record_id: item for item in batch.projections}

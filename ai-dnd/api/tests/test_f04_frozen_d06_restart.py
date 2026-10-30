@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 import httpx
 from api.tests.test_f04_frozen_faults import Fixture, ScriptedProvider, evidence, narration, no_network
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 BAD = 'Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.'
 FIRST_MESSAGE = "Hancı'ya selam veriyorum"
@@ -177,11 +178,12 @@ async def worker(phase, database_root, output):
             raise ValueError('Unknown D06 worker phase')
 
 
+@guard_bound(CHILD_PROCESS)
 class FrozenRejectedNarrationRestartTests(unittest.TestCase):
     def test_D06_rejected_model_text_through_real_process_restart(self):
         with tempfile.TemporaryDirectory(prefix='f04-d06-two-process-') as directory:
             database_root = Path(directory)
-            output = Path(os.environ.get('F04_FAULT_EVIDENCE', str(database_root/'evidence'))) / self._testMethodName
+            output = Path(os.environ.get('F04_FAULT_EVIDENCE', str(database_root/'fault-output'))) / self._testMethodName
             output.mkdir(parents=True, exist_ok=False)
             child_env = {key:value for key,value in os.environ.items()
                          if not key.startswith(('OLLAMA_', 'AI_DND_', 'REPLIT_'))}

@@ -18,12 +18,14 @@ VERIFIED_FILES = (
 )
 sys.path.insert(0, str(REPO / "tools" / "acceptance"))
 import source_identity as owner
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+@guard_bound(CHILD_PROCESS)
 class RoadmapB01Tests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

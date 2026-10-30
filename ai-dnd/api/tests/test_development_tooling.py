@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import development_checks as owner
 from development_archive import Archive
+from api.tests.guard_bound import GIT_FIXTURE, guard_bound
 
 
 CI_PROVENANCE_ENV_KEYS = (
@@ -44,6 +45,7 @@ def isolated_fixture_ci_provenance():
         os.environ.update(original)
 
 
+@guard_bound(GIT_FIXTURE)
 class DevelopmentToolingTests(unittest.TestCase):
     def setUp(self):
         self.ci_environment_scope = isolated_fixture_ci_provenance()

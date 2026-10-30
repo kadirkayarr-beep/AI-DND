@@ -20,6 +20,7 @@ SOURCE_SHA = "78b380384e70832156d2d9aa2785192bbbbdb74b"
 sys.path.insert(0, str(REPO / "tools" / "acceptance"))
 import evidence as ledger_owner
 import failure_contract as owner
+from api.tests.guard_bound import EVIDENCE_READ, guard_bound
 
 
 def sha256(path):
@@ -34,6 +35,7 @@ def failing_rows(run):
     return {row["id"]: row for row in run["per_test"] if row["outcome"] in ("failure", "error")}
 
 
+@guard_bound(EVIDENCE_READ)
 class RoadmapB03Tests(unittest.TestCase):
     def setUp(self):
         self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))

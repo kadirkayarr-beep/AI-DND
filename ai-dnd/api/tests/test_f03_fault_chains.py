@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 import httpx
+from api.tests.guard_bound import LISTENER, guard_bound
 
 
 def read(path):
@@ -81,7 +82,7 @@ def serve(folder, port):
     session._restore_runtime_snapshot = restore
 
     def snapshot():
-        with closing(sqlite3.connect(f"file:{store.path.as_posix()}?mode=ro", uri=True)) as db:
+        with closing(sqlite3.connect(f"{store.path.resolve().as_uri()}?mode=ro", uri=True)) as db:
             db.row_factory = sqlite3.Row
             rows = {table: [dict(row) for row in db.execute(f'SELECT * FROM "{table}" ORDER BY rowid')]
                     for table in ("campaign_turn_actions", "campaign_emergence_attempts")}
@@ -124,6 +125,7 @@ def serve(folder, port):
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="error", access_log=False)
 
 
+@guard_bound(LISTENER)
 class F03FaultChains(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ai-dnd-f03-synthetic-")

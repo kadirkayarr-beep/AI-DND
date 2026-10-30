@@ -14,6 +14,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "tools" / "acceptance"))
 import evidence as evidence_owner
 import platform_runner as owner
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 PY = sys.executable
 # Leader starts a grandchild, records its pid, then both sleep far longer than any timeout.
@@ -73,6 +74,7 @@ class RoadmapB06Tests(unittest.TestCase):
     def run_gate(self, command, timeout_s=20, env=None, **kwargs):
         return owner.run_gate(command, self.cwd, timeout_s, dict(os.environ) if env is None else env, **kwargs)
 
+    @guard_bound(CHILD_PROCESS)
     def test_runner_timeout_cleans_owned_children(self):
         pid_file = self.cwd / "kid.pid"
         started = time.monotonic()
@@ -85,6 +87,7 @@ class RoadmapB06Tests(unittest.TestCase):
         self.assertIsNone(record["exitCode"])
         evidence_owner.validate_record(record)
 
+    @guard_bound(CHILD_PROCESS)
     def test_timeout_leaves_unowned_processes_alone(self):
         bystander = subprocess.Popen([PY, "-c", "import time;time.sleep(120)"])
         self.cleanup_pids.append(bystander.pid)
@@ -94,6 +97,7 @@ class RoadmapB06Tests(unittest.TestCase):
         time.sleep(0.5)
         self.assertTrue(pid_alive(bystander.pid))
 
+    @guard_bound(CHILD_PROCESS)
     def test_descendants_are_cleaned_even_after_the_leader_exited(self):
         pid_file = self.cwd / "kid.pid"
         code = ("import subprocess,sys\n"
@@ -105,6 +109,7 @@ class RoadmapB06Tests(unittest.TestCase):
         self.assertEqual(record["exitCode"], 0)
         self.assertTrue(wait_dead(kid), "orphaned descendant of a finished gate is still alive")
 
+    @guard_bound(CHILD_PROCESS)
     def test_exit_code_and_status_are_recorded(self):
         passed = self.run_gate([PY, "-c", "print('ok')"])
         failed = self.run_gate([PY, "-c", "import sys;sys.exit(3)"])
@@ -117,6 +122,7 @@ class RoadmapB06Tests(unittest.TestCase):
             self.assertRegex(record["rawDigest"], r"^[0-9a-f]{64}$")
         self.assertNotEqual(passed["rawDigest"], failed["rawDigest"])
 
+    @guard_bound(CHILD_PROCESS)
     def test_shell_strings_are_never_executed(self):
         marker = self.cwd / "marker.txt"
         for bad in (f"echo hi > {marker}", "python -c pass", (PY, "-c", "pass"), [PY, 3]):
@@ -128,12 +134,14 @@ class RoadmapB06Tests(unittest.TestCase):
         record = self.run_gate([PY, "-c", "import sys;print(sys.argv[1])", "a && b; c | d"])
         self.assertEqual(record["exitCode"], 0)
 
+    @guard_bound(CHILD_PROCESS)
     def test_missing_executable_is_blocked_not_silent(self):
         record = self.run_gate(["definitely-not-a-real-binary-b06"])
         self.assertEqual(record["status"], "BLOCKED")
         self.assertIsNone(record["exitCode"])
         evidence_owner.validate_record(record)
 
+    @guard_bound(CHILD_PROCESS)
     def test_environment_is_exactly_what_the_caller_passed(self):
         env = {**os.environ, "B06_PROBE": "only-here"}
         code = ("import os,sys;sys.exit(0 if os.environ.get('B06_PROBE')=='only-here' "
@@ -174,6 +182,7 @@ class RoadmapB06Tests(unittest.TestCase):
         self.assertIsNone(record["exitCode"])
         spawn.assert_not_called()
 
+    @guard_bound(CHILD_PROCESS)
     def test_non_utf8_output_does_not_break_the_runner(self):
         record = self.run_gate([PY, "-c", "import sys;sys.stdout.buffer.write(b'\\xff\\xfe caf\\xe9')"])
         self.assertEqual(record["exitCode"], 0)

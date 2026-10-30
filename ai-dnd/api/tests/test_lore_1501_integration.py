@@ -38,6 +38,7 @@ from api.lore_authority.registry import LoreRegistry
 from api.persistence.campaign_store import _DATABASE_SCHEMA_VERSION
 from api.persistence.campaign_validation import CAMPAIGN_FORMAT_VERSION
 from incidents.profiles import DISABLED
+from api.tests.guard_bound import EVIDENCE_READ, guard_bound
 
 
 AI_DND = Path(__file__).resolve().parents[2]
@@ -54,6 +55,7 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@guard_bound(EVIDENCE_READ)
 class Lore1501IntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

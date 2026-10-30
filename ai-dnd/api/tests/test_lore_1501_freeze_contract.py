@@ -37,6 +37,7 @@ from api.tests.lore_1501_freeze_view import (
     load_freeze_view,
 )
 from incidents.profiles import DISABLED, resolve as resolve_profile
+from api.tests.guard_bound import EVIDENCE_READ, guard_bound
 
 
 SCENE_MESSAGE = "What is known about this city?"
@@ -186,6 +187,7 @@ def _selected(registry: LoreRegistry, *, location_id: str, region_id: str, year:
     return set(packet["diagnostics"]["selected_fact_ids"])
 
 
+@guard_bound(EVIDENCE_READ)
 class Lore1501FreezeContractTests(unittest.TestCase):
     view: FreezeView
 
