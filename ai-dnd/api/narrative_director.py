@@ -148,6 +148,14 @@ def install_narrative_context_adapter(game_module: Any) -> None:
             ]
         return original_finalize(*args, **kwargs)
 
+    # Keep what the session looks up: session.finalize_narration stays callable.
+    for wrapper, original in (
+        (ask_with_action_context, original_ask),
+        (build_with_narrative_context, original_build),
+        (finalize_with_supported_claims, original_finalize),
+    ):
+        wrapper._session_bound = getattr(original, "_session_bound", False)
+
     game_module.ask_dungeon_master = ask_with_action_context
     game_module.build_world_context = build_with_narrative_context
     game_module.finalize_narration = finalize_with_supported_claims

@@ -5,9 +5,17 @@ import unittest
 from unittest.mock import patch
 
 import game
+from api.narrative_director import install_narrative_context_adapter
 
 
 class PipelinePortTests(unittest.TestCase):
+    def test_session_helpers_survive_the_narrative_adapter(self):
+        install_narrative_context_adapter(game)
+        self.assertEqual(
+            self.session.finalize_narration("Sakin bir an.", "Etrafıma bakıyorum"),
+            game.finalize_narration("Sakin bir an.", "Etrafıma bakıyorum", session=self.session),
+        )
+
     def setUp(self):
         self.session = game.create_session(seed=8)
         self.session.world_state["location"] = "tavern"
