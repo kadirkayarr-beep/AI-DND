@@ -198,7 +198,8 @@ def rules_for(session, actor, data, weapon):
             else:
                 fail("invalid_attack_state", "Conflicting authoritative feature overrides.")
     if actor == "player":
-        for key, values in fighter_features.attack_rules(data, weapon).items():
+        held = _held_weapon_profiles(session, actor, data, weapon["equipment_after"]) if "equipment_after" in weapon else []
+        for key, values in fighter_features.attack_rules(data, weapon, len(held)).items():
             rules.setdefault(key, []).extend(values)
     allowed = {"ability", "damage_die", "damage_dice", "damage_modifier",
                "attack_modifiers", "damage_modifiers", "additional_damage",
@@ -1039,9 +1040,9 @@ def _resolve(session, c):
     return result
 
 
-def _held_weapon_profiles(session, actor, data):
-    """Catalog profiles for currently held hands; item_id refs resolve via inventory."""
-    hands = equipment(session, actor, data)
+def _held_weapon_profiles(session, actor, data, hands=None):
+    """Catalog profiles for the given (default: current) hands; item_id refs resolve via inventory. A Shield or a grapple has none."""
+    hands = equipment(session, actor, data) if hands is None else hands
     profiles = []
     for value in hands.values():
         if value is None:

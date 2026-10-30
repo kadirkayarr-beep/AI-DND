@@ -152,7 +152,7 @@ class Fighter(ClassProgression):
         pending = [
             MASTERY_PENDING,
             "Fighting Style: replacing the feat on a Fighter level, Protection (a kept legacy choice has no effect) and the feats not offered remain pending",
-            "Dueling: a filled off hand counts as holding something, so a held Shield gets no bonus (hands record no shield identity)",
+            "Dueling: a thrown Melee weapon keeps the bonus; the source sets no melee attack limit, but this is a reading, not stated",
             "Fighter equipment packages are the existing catalog lists, not yet the PHB packages",
             "Weapon proficiency: a Fighter created before this change keeps its stored proficiency list; it is not inferred on load",
         ]

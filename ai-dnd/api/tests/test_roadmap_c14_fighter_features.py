@@ -40,6 +40,7 @@ def second_wind(**extra):
 
 
 SURGE = {"kind": "action_surge"}
+DUELING = {"source": "fighting_style_dueling", "value": 2}
 
 
 def end_turn(session):
@@ -476,6 +477,34 @@ class Styles(unittest.TestCase):
         self.assertFalse(swing(session, npc)["damage_modifiers"])
         session, npc = weapon_session("Dueling")
         self.assertFalse(swing(session, npc, attack_choice={"grip": 2})["damage_modifiers"], "a two-handed grip is not one hand")
+
+    def test_dueling_counts_other_weapons_not_filled_hands(self):
+        """PDF 208 names no other weapons: a Shield or a grappled creature in the other hand does not cost the bonus."""
+        session, npc = weapon_session("Dueling", off_hand="Shield", items=("Shield",))
+        self.assertIn(DUELING, swing(session, npc)["damage_modifiers"])
+        session, npc = weapon_session("Dueling")
+        session.world_state["equipment"]["off_hand"] = f"grapple:{npc['id']}"
+        self.assertIn(DUELING, swing(session, npc)["damage_modifiers"])
+
+    def test_dueling_still_refuses_a_second_weapon_however_the_hand_names_it(self):
+        session, npc = weapon_session("Dueling", weapon="dagger", off_hand="dagger", items=("dagger",))
+        self.assertFalse(swing(session, npc)["damage_modifiers"], "two weapons of one type")
+        session, npc = weapon_session("Dueling", off_hand="owned-dagger", items=({"item_id": "owned-dagger", "name": "Hançer", "weapon_id": "dagger"},))
+        self.assertFalse(swing(session, npc)["damage_modifiers"], "an owned instance id is still a weapon")
+
+    def test_a_thrown_melee_weapon_keeps_dueling_and_a_thrown_ranged_weapon_is_archery(self):
+        """PDF 208 sets Dueling on a Melee weapon and Archery on Ranged weapons; PDF 213 Thrown leaves a Melee weapon a Melee weapon."""
+        thrown = {"attack_choice": {"mode": "thrown"}}
+        session, npc = weapon_session("Dueling", weapon="dagger")
+        self.assertIn(DUELING, swing(session, npc, **thrown)["damage_modifiers"])
+        session, npc = weapon_session("Dueling", weapon="dagger", off_hand="handaxe", items=("handaxe",))
+        self.assertFalse(swing(session, npc, **thrown)["damage_modifiers"])
+        session, npc = weapon_session("Dueling", weapon="dart")
+        self.assertFalse(swing(session, npc, **thrown)["damage_modifiers"], "a Dart is a Ranged weapon")
+        session, npc = weapon_session("Archery", weapon="dagger")
+        self.assertFalse(swing(session, npc, **thrown)["attack_bonuses"], "a thrown Dagger is still a Melee weapon")
+        session, npc = weapon_session("Archery", weapon="dart")
+        self.assertIn({"source": "fighting_style_archery", "value": 2}, swing(session, npc, **thrown)["attack_bonuses"])
 
     def test_great_weapon_fighting_counts_one_and_two_as_three_in_two_hands(self):
         session, npc = weapon_session("Great Weapon Fighting", weapon="greatsword")

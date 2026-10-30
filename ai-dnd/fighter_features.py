@@ -309,14 +309,15 @@ def style(character: Any) -> str | None:
     return character.get(STYLE) if fighter_level(character) is not None else None
 
 
-def attack_rules(character: Any, weapon: dict[str, Any]) -> dict[str, Any]:
-    """Sourced modifiers for the existing attack-rule owner. Only an applied style reaches it."""
+def attack_rules(character: Any, weapon: dict[str, Any], weapons_held: int) -> dict[str, Any]:
+    """Sourced modifiers for the existing attack-rule owner. Only an applied style reaches it.
+
+    `weapons_held` counts weapons in hand, so a Shield or a grappled creature is not one. A thrown Dagger is still a Melee weapon.
+    """
     held = style(character)
     if held == "Archery" and weapon["kind"] == "ranged":
         return {"attack_modifiers": [{"source": "fighting_style_archery", "value": ARCHERY_ATTACK_BONUS}]}
-    if (held == "Dueling" and weapon["kind"] == "melee" and weapon.get("grip") == 1
-            and sum(value is not None for value in weapon.get("equipment_after", {}).values()) == 1):
-        # The hands record names no shield, so a filled off hand is never read as free: under-grant, disclosed.
+    if held == "Dueling" and weapon["kind"] == "melee" and weapon.get("grip") == 1 and weapons_held == 1:
         return {"damage_modifiers": [{"source": "fighting_style_dueling", "value": DUELING_DAMAGE_BONUS}]}
     return {}
 
