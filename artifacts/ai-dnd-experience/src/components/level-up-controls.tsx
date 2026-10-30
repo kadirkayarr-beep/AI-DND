@@ -1,7 +1,7 @@
 import { AsiChoicePicker } from './asi-choice-picker';
 import { sourceAsiChoice, asiChoiceLabel, type AsiChoice } from '@/lib/asi-choices';
 import { useState } from 'react';
-import { getGameSessionLevelUp, type FighterLevel3Choices, type LevelUpPreviewResponse, type LevelUpApplyRequest, type RogueLevel3Choices } from '@workspace/api-client-react';
+import { getGameSessionLevelUp, type FighterLevel3Choices, type LevelUpPreviewResponse, type LevelUpApplyRequest, type MonkLevel3Choices, type RogueLevel3Choices } from '@workspace/api-client-react';
 import { useActionLifetime } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 import { ProgressionEffectsNotice } from './sorcerer-starting-creation';
@@ -9,8 +9,8 @@ import { ProgressionEffectsNotice } from './sorcerer-starting-creation';
 export type LevelUpRequest = Omit<LevelUpApplyRequest, 'action_id'>;
 type Draft = { asi?: AsiChoice; cantrip: string; preparedSpell: string; preparedSpells?: string[]; metamagic?: string[]; subclassId?: string; primalKnowledgeSkill?: string; confirmed: boolean };
 const EMPTY: Draft = { cantrip: '', preparedSpell: '', confirmed: false };
-type SubclassPick = (FighterLevel3Choices | RogueLevel3Choices)['subclass_id'];
-const SUBCLASS_PICKS: readonly SubclassPick[] = ['champion', 'assassin'];  // the generated contract's ids: an offered id outside them cannot be sent
+type SubclassPick = (FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices)['subclass_id'];
+const SUBCLASS_PICKS: readonly SubclassPick[] = ['champion', 'open_hand', 'assassin'];  // the generated contract's ids: an offered id outside them cannot be sent
 
 export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, disabled = false }: {
   preview: LevelUpPreviewResponse; draft: Draft; onChange: (draft: Draft) => void;
@@ -29,7 +29,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   const needsMetamagic = sorcerer && preview.target_level === 2 && exactCounts({ prepared_spells: 2, metamagic: 2 });
   const needsSubclass = sorcerer && preview.target_level === 3 && exactCounts({ prepared_spells: 2, subclass_id: 1 });
   // Barbarian 2 (Danger Sense/Reckless Attack) and 5 (Extra Attack/Fast Movement) have no choices: explicit confirmation of an empty object.
-  const fighter = preview.class_name === 'Fighter' || preview.class_name === 'Rogue';  // the same step shapes
+  const fighter = preview.class_name === 'Fighter' || preview.class_name === 'Monk' || preview.class_name === 'Rogue';  // the same step shapes
   const emptyChoice = (preview.class_name === 'Barbarian' || fighter) && (preview.target_level === 2 || preview.target_level === 5) && exactCounts({});
   const needsSubclassPick = fighter && preview.target_level === 3 && exactCounts({ subclass_id: 1 });
   const needsBerserker = preview.class_name === 'Barbarian' && preview.target_level === 3 && exactCounts({ subclass_id: 1, primal_knowledge_skill: 1 });

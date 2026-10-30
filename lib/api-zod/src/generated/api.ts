@@ -393,6 +393,8 @@ export const ApplyGameSessionLevelUpBody = zod.object({
   "subclass_id": zod.literal("champion")
 }).strict(),zod.object({
   "subclass_id": zod.literal("assassin")
+}).strict(),zod.object({
+  "subclass_id": zod.literal("open_hand")
 }).strict()])
 }).strict()
 
@@ -557,6 +559,15 @@ export const createGameSessionResponseStateCharacterFighterActionSurgeOneUsesRem
 
 export const createGameSessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const createGameSessionResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const createGameSessionResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const createGameSessionResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const createGameSessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -982,6 +993,43 @@ export const CreateGameSessionResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(createGameSessionResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(createGameSessionResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(createGameSessionResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(createGameSessionResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -1424,6 +1472,15 @@ export const getGameSessionStateResponseCharacterFighterActionSurgeOneUsesRemain
 export const getGameSessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const getGameSessionStateResponseCharacterMonkMartialArtsDieMin = 2;
+
+export const getGameSessionStateResponseCharacterMonkMovementBonusFtMin = 0;
+
+export const getGameSessionStateResponseCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const getGameSessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1846,6 +1903,43 @@ export const GetGameSessionStateResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(getGameSessionStateResponseCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(getGameSessionStateResponseCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(getGameSessionStateResponseCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(getGameSessionStateResponseCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -2295,6 +2389,15 @@ export const resolveSpeciesTraitActionResponseStateCharacterFighterActionSurgeOn
 export const resolveSpeciesTraitActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resolveSpeciesTraitActionResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resolveSpeciesTraitActionResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -2722,6 +2825,43 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -3178,6 +3318,15 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterFighterActionS
 export const resolveSpeciesTraitActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -3606,6 +3755,43 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -3948,7 +4134,7 @@ export const PlayGameTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge', 'martial_arts_strike', 'flurry_of_blows', 'flurry_strike', 'patient_defense', 'step_of_the_wind', 'uncanny_metabolism', 'set_deflect_attacks']),
   "resource": zod.enum(['action', 'bonus']).default(playGameTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -3962,6 +4148,10 @@ export const PlayGameTurnBody = zod.object({
   "cunning_strike_move_ft": zod.number().int().min(1).nullish(),
   "uncanny_dodge_enabled": zod.boolean().nullish(),
   "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
+  "stunning_strike": zod.boolean().nullish().describe('Monk Stunning Strike declared with an attack, before the roll; spent only on a hit.'),
+  "open_hand_technique": zod.union([zod.enum(['push', 'topple']),zod.null()]).optional().describe('Open Hand Technique declared with an attack granted by Flurry of Blows.'),
+  "spend_focus": zod.boolean().nullish().describe('Patient Defense or Step of the Wind with its 1 Focus Point option.'),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]).optional().describe('Deflect Attacks setting for set_deflect_attacks.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
   "actor_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax)
@@ -4113,6 +4303,15 @@ export const playGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainin
 
 export const playGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const playGameTurnResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const playGameTurnResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const playGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const playGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -4691,6 +4890,43 @@ export const PlayGameTurnResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(playGameTurnResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(playGameTurnResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(playGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(playGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -5580,6 +5816,15 @@ export const getGameActionStatusResponseResponseTwoStateCharacterFighterActionSu
 export const getGameActionStatusResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const getGameActionStatusResponseResponseTwoStateCharacterMonkMartialArtsDieMin = 2;
+
+export const getGameActionStatusResponseResponseTwoStateCharacterMonkMovementBonusFtMin = 0;
+
+export const getGameActionStatusResponseResponseTwoStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const getGameActionStatusResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -6160,6 +6405,43 @@ export const GetGameActionStatusResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -7036,6 +7318,15 @@ export const abandonGameActionResponseResponseTwoStateCharacterFighterActionSurg
 export const abandonGameActionResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const abandonGameActionResponseResponseTwoStateCharacterMonkMartialArtsDieMin = 2;
+
+export const abandonGameActionResponseResponseTwoStateCharacterMonkMovementBonusFtMin = 0;
+
+export const abandonGameActionResponseResponseTwoStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const abandonGameActionResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -7616,6 +7907,43 @@ export const AbandonGameActionResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -8496,6 +8824,15 @@ export const undoGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainin
 export const undoGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const undoGameTurnResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const undoGameTurnResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const undoGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const undoGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -8923,6 +9260,43 @@ export const UndoGameTurnResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(undoGameTurnResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(undoGameTurnResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -9369,6 +9743,15 @@ export const acceptGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemai
 
 export const acceptGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const acceptGameQuestResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const acceptGameQuestResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const acceptGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const acceptGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -9820,6 +10203,43 @@ export const AcceptGameQuestResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(acceptGameQuestResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(acceptGameQuestResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -10289,6 +10709,15 @@ export const cancelGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemai
 export const cancelGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const cancelGameQuestResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const cancelGameQuestResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const cancelGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const cancelGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -10739,6 +11168,43 @@ export const CancelGameQuestResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(cancelGameQuestResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(cancelGameQuestResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -11216,6 +11682,15 @@ export const resolveAmbientEventActionResponseStateCharacterFighterActionSurgeOn
 export const resolveAmbientEventActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resolveAmbientEventActionResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resolveAmbientEventActionResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11647,6 +12122,43 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -12103,6 +12615,15 @@ export const acceptLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRem
 export const acceptLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const acceptLegacyQuestResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const acceptLegacyQuestResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const acceptLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12553,6 +13074,43 @@ export const AcceptLegacyQuestResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(acceptLegacyQuestResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(acceptLegacyQuestResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -13023,6 +13581,15 @@ export const cancelLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRem
 export const cancelLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const cancelLegacyQuestResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const cancelLegacyQuestResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const cancelLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -13473,6 +14040,43 @@ export const CancelLegacyQuestResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(cancelLegacyQuestResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(cancelLegacyQuestResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -13951,6 +14555,15 @@ export const resolveAmbientEventActionCompatResponseStateCharacterFighterActionS
 export const resolveAmbientEventActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resolveAmbientEventActionCompatResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -14382,6 +14995,43 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -14959,6 +15609,61 @@ export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4On
 
 export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetCharacterCreationCatalogResponse = zod.object({
@@ -15177,7 +15882,7 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
 }),zod.null()]).optional(),
-  "rogue_starting_creation": zod.union([zod.object({
+  "rogue_starting_creation": zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
   "choices": zod.record(zod.string(), zod.never().optional()),
@@ -15235,6 +15940,74 @@ export const GetCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}).optional(),
+  "monk_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("open_hand"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -15601,6 +16374,61 @@ export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWi
 
 export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createCampaignBodyCharacterOneNameMax = 40;
 
 export const createCampaignBodyCharacterOneOriginMax = 240;
@@ -15843,6 +16671,58 @@ export const CreateCampaignBody = zod.object({
 }).strict()
 }).strict().optional(),
   "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("open_hand")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
 }).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
@@ -16016,6 +16896,15 @@ export const createCampaignResponseStateCharacterFighterActionSurgeOneUsesRemain
 
 export const createCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const createCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const createCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const createCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const createCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -16515,6 +17404,43 @@ export const CreateCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(createCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(createCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(createCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(createCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -17192,6 +18118,15 @@ export const getCampaignResponseStateCharacterFighterActionSurgeOneUsesRemaining
 export const getCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const getCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const getCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const getCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const getCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17700,6 +18635,43 @@ export const GetCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(getCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(getCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(getCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(getCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -18364,6 +19336,15 @@ export const resumeCampaignResponseStateCharacterFighterActionSurgeOneUsesRemain
 export const resumeCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resumeCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resumeCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resumeCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resumeCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -18862,6 +19843,43 @@ export const ResumeCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resumeCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resumeCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -19681,6 +20699,61 @@ export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLe
 
 export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetLegacyCharacterCreationCatalogResponse = zod.object({
@@ -19899,7 +20972,7 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "effects_pending": zod.array(zod.string())
 }),zod.null()]).optional()
 }),zod.null()]).optional(),
-  "rogue_starting_creation": zod.union([zod.object({
+  "rogue_starting_creation": zod.object({
   "supported_starting_levels": zod.array(zod.number().int()),
   "level_2": zod.object({
   "choices": zod.record(zod.string(), zod.never().optional()),
@@ -19957,6 +21030,74 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}).optional(),
+  "monk_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("open_hand"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseMonkStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -20197,6 +21338,15 @@ export const createLegacySessionResponseStateCharacterFighterActionSurgeOneUsesR
 
 export const createLegacySessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const createLegacySessionResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const createLegacySessionResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const createLegacySessionResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const createLegacySessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -20622,6 +21772,43 @@ export const CreateLegacySessionResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(createLegacySessionResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(createLegacySessionResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -21065,6 +22252,15 @@ export const getLegacySessionStateResponseCharacterFighterActionSurgeOneUsesRema
 export const getLegacySessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const getLegacySessionStateResponseCharacterMonkMartialArtsDieMin = 2;
+
+export const getLegacySessionStateResponseCharacterMonkMovementBonusFtMin = 0;
+
+export const getLegacySessionStateResponseCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const getLegacySessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -21488,6 +22684,43 @@ export const GetLegacySessionStateResponse = zod.object({
   "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(getLegacySessionStateResponseCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(getLegacySessionStateResponseCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -21825,7 +23058,7 @@ export const PlayLegacyTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge', 'martial_arts_strike', 'flurry_of_blows', 'flurry_strike', 'patient_defense', 'step_of_the_wind', 'uncanny_metabolism', 'set_deflect_attacks']),
   "resource": zod.enum(['action', 'bonus']).default(playLegacyTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -21839,6 +23072,10 @@ export const PlayLegacyTurnBody = zod.object({
   "cunning_strike_move_ft": zod.number().int().min(1).nullish(),
   "uncanny_dodge_enabled": zod.boolean().nullish(),
   "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
+  "stunning_strike": zod.boolean().nullish().describe('Monk Stunning Strike declared with an attack, before the roll; spent only on a hit.'),
+  "open_hand_technique": zod.union([zod.enum(['push', 'topple']),zod.null()]).optional().describe('Open Hand Technique declared with an attack granted by Flurry of Blows.'),
+  "spend_focus": zod.boolean().nullish().describe('Patient Defense or Step of the Wind with its 1 Focus Point option.'),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]).optional().describe('Deflect Attacks setting for set_deflect_attacks.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
   "actor_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax)
@@ -21990,6 +23227,15 @@ export const playLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemain
 
 export const playLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const playLegacyTurnResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const playLegacyTurnResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const playLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const playLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -22568,6 +23814,43 @@ export const PlayLegacyTurnResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(playLegacyTurnResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(playLegacyTurnResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -23445,6 +24728,15 @@ export const undoLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemain
 export const undoLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const undoLegacyTurnResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const undoLegacyTurnResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const undoLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const undoLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -23872,6 +25164,43 @@ export const UndoLegacyTurnResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(undoLegacyTurnResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(undoLegacyTurnResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -24440,6 +25769,61 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOne
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
 export const createLegacyCampaignBodyCharacterOneOriginMax = 240;
@@ -24682,6 +26066,58 @@ export const CreateLegacyCampaignBody = zod.object({
 }).strict()
 }).strict().optional(),
   "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("open_hand")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFive4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
 }).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createLegacyCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
@@ -24855,6 +26291,15 @@ export const createLegacyCampaignResponseStateCharacterFighterActionSurgeOneUses
 
 export const createLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
+
+export const createLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const createLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const createLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -25354,6 +26799,43 @@ export const CreateLegacyCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(createLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(createLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -26033,6 +27515,15 @@ export const getLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRem
 export const getLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const getLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const getLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const getLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -26541,6 +28032,43 @@ export const GetLegacyCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(getLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(getLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -27206,6 +28734,15 @@ export const resumeLegacyCampaignResponseStateCharacterFighterActionSurgeOneUses
 export const resumeLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
+export const resumeLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const resumeLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const resumeLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -27704,6 +29241,43 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "enabled": zod.boolean(),
   "reaction_available": zod.boolean()
 }),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),

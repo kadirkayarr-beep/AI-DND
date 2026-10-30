@@ -7,8 +7,10 @@
  */
 import type { EconomyStepInputCunningOption } from './economyStepInputCunningOption';
 import type { EconomyStepInputCunningStrike } from './economyStepInputCunningStrike';
+import type { EconomyStepInputDeflectMode } from './economyStepInputDeflectMode';
 import type { EconomyStepInputKind } from './economyStepInputKind';
 import type { EconomyStepInputMetamagic } from './economyStepInputMetamagic';
+import type { EconomyStepInputOpenHandTechnique } from './economyStepInputOpenHandTechnique';
 import type { EconomyStepInputResource } from './economyStepInputResource';
 import type { ReadyResponseInput } from './readyResponseInput';
 import type { ReadyTriggerInput } from './readyTriggerInput';
@@ -56,6 +58,20 @@ export interface EconomyStepInput {
      * @nullable
      */
   reckless_attack?: boolean | null;
+  /**
+     * Monk Stunning Strike declared with an attack, before the roll; spent only on a hit.
+     * @nullable
+     */
+  stunning_strike?: boolean | null;
+  /** Open Hand Technique declared with an attack granted by Flurry of Blows. */
+  open_hand_technique?: EconomyStepInputOpenHandTechnique;
+  /**
+     * Patient Defense or Step of the Wind with its 1 Focus Point option.
+     * @nullable
+     */
+  spend_focus?: boolean | null;
+  /** Deflect Attacks setting for set_deflect_attacks. */
+  deflect_mode?: EconomyStepInputDeflectMode;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }

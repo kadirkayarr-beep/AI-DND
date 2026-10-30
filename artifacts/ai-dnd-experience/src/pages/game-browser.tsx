@@ -5,6 +5,7 @@ import { StartingEquipmentNotice } from '@/components/starting-equipment-notice'
 import { RageStatus } from '@/components/rage-controls';
 import { FighterStatus } from '@/components/fighter-controls';
 import { RogueStatus } from '@/components/rogue-controls';
+import { MonkStatus } from '@/components/monk-controls';
 import { LevelUpControls, type LevelUpRequest } from '@/components/level-up-controls';
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
@@ -281,6 +282,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <RageStatus rage={character.rage} />
       <FighterStatus fighter={character.fighter} />
       <RogueStatus rogue={character.rogue} />
+      <MonkStatus monk={character.monk} />
       <StoredProgressionChoices character={character} />
       <CharacterIdentityNotes character={character} />
     </section>

@@ -16,11 +16,38 @@
    "render_read": "all numeric and feature cells re-read by an AI visual pass of the release render pdf101.png on 2026-10-30; not human certification",
    "ocr_suspects_on_page": "none: PDF ordinal absent from SAYISAL_OCR_ADAYLARI.json (641 items) and SUPHELI_SAYFALAR.json; OCR_DUZELTME_KAYDI covers other pages",
    "printed_page_basis": "footer read on the render",
-   "subclass_names_basis": "class intro sentence in the accepted release text (not re-read on the render)",
+   "subclass_names_basis": "class intro sentence read on the page render pdf102.png",
    "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
   },
   "unverified_cells": [],
-  "scope": "progression table only; no feature effects, spell lists or choices"
+  "scope": "Monk 1-5 with the selected Warrior of the Open Hand. Table rows above level 5, other subclasses and DEX Ability Score Improvement remain pending; effects and disclosures are owned by class_progression/monk.py and monk_features.py.",
+  "class_rules": {
+   "core_traits": {
+    "pdf_page": 100,
+    "printed_page": 101,
+    "level": "render read 2026-10-30"
+   },
+   "level_1_2_features": {
+    "pdf_page": 100,
+    "printed_page": 101,
+    "level": "render read 2026-10-30"
+   },
+   "monk_focus_and_level_2_3_features": {
+    "pdf_page": 101,
+    "printed_page": 102,
+    "level": "render read 2026-10-30"
+   },
+   "level_3_5_features": {
+    "pdf_page": 102,
+    "printed_page": 103,
+    "level": "render read 2026-10-30"
+   },
+   "open_hand": {
+    "pdf_page": 106,
+    "printed_page": 107,
+    "level": "render read 2026-10-30"
+   }
+  }
  },
  "levels": {
   "1": {

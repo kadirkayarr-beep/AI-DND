@@ -12,6 +12,7 @@ import type { CharacterCreateInputBackgroundEquipmentOption } from './characterC
 import type { CharacterCreateInputGiantAncestry } from './characterCreateInputGiantAncestry';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
 import type { FighterLevelChoices } from './fighterLevelChoices';
+import type { MonkLevelChoices } from './monkLevelChoices';
 import type { RogueLevelChoices } from './rogueLevelChoices';
 import type { SorcererLevelChoices } from './sorcererLevelChoices';
 
@@ -25,7 +26,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | RogueLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | RogueLevelChoices | MonkLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40

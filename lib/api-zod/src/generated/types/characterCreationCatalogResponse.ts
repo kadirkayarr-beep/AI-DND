@@ -17,6 +17,7 @@ import type { CharacterCreationCatalogResponseRaces } from './characterCreationC
 import type { CharacterCreationCatalogResponseSkills } from './characterCreationCatalogResponseSkills';
 import type { CharacterCreationCatalogResponseSpellsCatalog } from './characterCreationCatalogResponseSpellsCatalog';
 import type { FighterStartingCreationOptions } from './fighterStartingCreationOptions';
+import type { MonkStartingCreationOptions } from './monkStartingCreationOptions';
 import type { RogueStartingCreationOptions } from './rogueStartingCreationOptions';
 import type { SorcererStartingCreationOptions } from './sorcererStartingCreationOptions';
 
@@ -24,7 +25,8 @@ export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
-  rogue_starting_creation?: RogueStartingCreationOptions | null;
+  rogue_starting_creation?: RogueStartingCreationOptions;
+  monk_starting_creation?: MonkStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

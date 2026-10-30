@@ -154,7 +154,7 @@ async function panelHarness(state) {
   const code = ts.transpileModule([...['createQuickenedIntent', 'quickenedProjection', 'ActionEconomyPanel'].map(pick), 'globalThis.Panel = ActionEconomyPanel;'].join('\n'),
     { compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const slots = []; let cursor = 0; const sent = [];
-  const env = { FighterControl: 'FighterControl', RogueControl: 'RogueControl', CunningStrikeControl: 'CunningStrikeControl', RageControl: 'RageControl', MagicMissileControl: 'MagicMissileControl',
+  const env = { FighterControl: 'FighterControl', MonkControl: 'MonkControl', RogueControl: 'RogueControl', CunningStrikeControl: 'CunningStrikeControl', RageControl: 'RageControl', MagicMissileControl: 'MagicMissileControl',
     readRogueProjection: controls.readRogueProjection, cunningStrikeFields: controls.cunningStrikeFields, readRageProjection: panel.readRageProjection, createRecklessIntent: panel.createRecklessIntent, RecklessAttackControl: panel.RecklessAttackControl,
     React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) },
     useRef(value) { const index = cursor++; return slots[index] ??= { current: value }; },

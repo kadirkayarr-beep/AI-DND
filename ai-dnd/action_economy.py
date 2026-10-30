@@ -83,6 +83,8 @@ def speed(session, actor):
     value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    if weapon_attack.speed_halved(session, actor):
+        value //= 2
     return max(0, value)
 
 
@@ -733,6 +735,8 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
         if type(limit) is not int or limit < 1:
             fail("invalid_attack_allowance", "Invalid server-defined attacks-per-Action.")
     npc = target(session, identity)
+    import monk_features
+    weapon_id = monk_features.default_weapon(session, weapon_id or session.world_state.get("equipment", {}).get("main_hand"))
     selected = weapon_id or session.world_state.get("equipment", {}).get("main_hand")
     weapon, data = session.find_weapon_in_inventory(selected)
     if any(isinstance(item, dict) and item.get("item_id") == selected for item in session.world_state["inventory"]):
@@ -853,6 +857,9 @@ def _execute(session, command, action_id=None, session_id=None):
     if any(step.get("kind") in {"cunning_action", "steady_aim", "uncanny_dodge"} for step in steps if isinstance(step, dict)):
         if not rogue_features.native_command(command):
             fail("invalid_rogue_command", "Cunning Action, Steady Aim and Uncanny Dodge require one exact typed step.")
+    import monk_features
+    if any(step.get("kind") in monk_features.STEP_KINDS for step in steps if isinstance(step, dict)) and not monk_features.native_command(command):
+        fail("invalid_monk_command", "A Monk feature requires one exact typed step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -898,11 +905,13 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind in {"attack", "continue_attack"}:
                 results.append(attack_step(
                     session, step.get("target_id"), kind == "continue_attack",
-                    weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
+                    weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}), **monk_features.step_choice(step),
                             **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {}),
                             **rogue_features.step_choice(step)},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
+            elif kind in monk_features.STEP_KINDS:
+                results.append({"kind": kind, "result": monk_features.run_step(session, step)})
             elif kind == "species":
                 with executing(session):
                     try:
@@ -966,6 +975,7 @@ def _execute(session, command, action_id=None, session_id=None):
 
 def resolved_narration(session, results):
     """Read completed steps only; never resolve mechanics or rewrite history."""
+    import monk_features
     import spell_scope
     narration_parts = []
     for step in results:
@@ -993,6 +1003,8 @@ def resolved_narration(session, results):
             narration_parts.append("Bonus Action ile Steady Aim: sonraki saldırı zarında Advantage; bu tur Hızın 0.")
         elif step["kind"] == "uncanny_dodge":
             narration_parts.append("Uncanny Dodge açık." if step["result"]["enabled"] else "Uncanny Dodge kapalı; Reaction sende kalır.")
+        elif step["kind"] in monk_features.STEP_KINDS:
+            narration_parts.append(monk_features.narration(session, step))
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
             narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")
