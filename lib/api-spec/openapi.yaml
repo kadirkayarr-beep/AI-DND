@@ -1328,6 +1328,7 @@ components:
           - $ref: '#/components/schemas/BarbarianLevel3Choices'
           - $ref: '#/components/schemas/BarbarianLevel4Choices'
           - $ref: '#/components/schemas/FighterLevel3Choices'
+          - $ref: '#/components/schemas/MonkLevel3Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1994,6 +1995,13 @@ components:
           - extend_rage
           - second_wind
           - action_surge
+          - martial_arts_strike
+          - flurry_of_blows
+          - flurry_strike
+          - patient_defense
+          - step_of_the_wind
+          - uncanny_metabolism
+          - set_deflect_attacks
         resource:
           type: string
           enum:
@@ -2041,6 +2049,28 @@ components:
           - 'null'
           description: Explicit first-own-turn attack-roll decision; only attack,
             continue_attack or attack react. Omission preserves legacy behavior.
+        stunning_strike:
+          type:
+          - boolean
+          - 'null'
+          description: Monk Stunning Strike declared with an attack, before the roll; spent only on a hit.
+        open_hand_technique:
+          anyOf:
+          - type: string
+            enum: [push, topple]
+          - type: 'null'
+          description: Open Hand Technique declared with an attack granted by Flurry of Blows.
+        spend_focus:
+          type:
+          - boolean
+          - 'null'
+          description: Patient Defense or Step of the Wind with its 1 Focus Point option.
+        deflect_mode:
+          anyOf:
+          - type: string
+            enum: ['off', reduce, redirect]
+          - type: 'null'
+          description: Deflect Attacks setting for set_deflect_attacks.
         trigger:
           anyOf:
           - $ref: '#/components/schemas/ReadyTriggerInput'
@@ -4748,6 +4778,73 @@ components:
           - $ref: '#/components/schemas/FighterActionSurgeState'
           - type: 'null'
       required: [fighting_style, tactical_mind, second_wind, action_surge]
+    MonkFocusState:
+      type: object
+      additionalProperties: false
+      properties:
+        points_remaining:
+          type: integer
+          minimum: 0
+        max_points:
+          type: integer
+          minimum: 1
+      required: [points_remaining, max_points]
+    MonkState:
+      type: object
+      additionalProperties: false
+      properties:
+        martial_arts_die:
+          type: integer
+          minimum: 2
+        martial_arts_ready:
+          type: boolean
+        movement_bonus_ft:
+          type: integer
+          minimum: 0
+        save_dc:
+          type: integer
+        focus:
+          anyOf:
+          - $ref: '#/components/schemas/MonkFocusState'
+          - type: 'null'
+        martial_arts_strike:
+          $ref: '#/components/schemas/FighterAvailability'
+        flurry_of_blows:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
+        flurry_strikes_remaining:
+          type: integer
+          minimum: 0
+        patient_defense:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
+        step_of_the_wind:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
+        uncanny_metabolism:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
+        stunning_strike:
+          anyOf:
+          - $ref: '#/components/schemas/FighterAvailability'
+          - type: 'null'
+        deflect_mode:
+          anyOf:
+          - type: string
+            enum: ['off', reduce, redirect]
+          - type: 'null'
+        open_hand_techniques:
+          type: array
+          items:
+            type: string
+            enum: [push, topple]
+      required: [martial_arts_die, martial_arts_ready, movement_bonus_ft, save_dc, focus, martial_arts_strike, flurry_of_blows,
+                 flurry_strikes_remaining, patient_defense, step_of_the_wind, uncanny_metabolism, stunning_strike, deflect_mode,
+                 open_hand_techniques]
     RageState:
       type: object
       additionalProperties: false
@@ -4796,6 +4893,8 @@ components:
           $ref: '#/components/schemas/RageState'
         fighter:
           $ref: '#/components/schemas/FighterState'
+        monk:
+          $ref: '#/components/schemas/MonkState'
         name:
           type: string
         race:
@@ -5601,6 +5700,7 @@ components:
           - $ref: '#/components/schemas/SorcererLevelChoices'
           - $ref: '#/components/schemas/BarbarianLevelChoices'
           - $ref: '#/components/schemas/FighterLevelChoices'
+          - $ref: '#/components/schemas/MonkLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -5901,6 +6001,10 @@ components:
         fighter_starting_creation:
           anyOf:
           - $ref: '#/components/schemas/FighterStartingCreationOptions'
+          - type: 'null'
+        monk_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/MonkStartingCreationOptions'
           - type: 'null'
         races:
           additionalProperties: true
@@ -6227,6 +6331,95 @@ components:
       - supported_starting_levels
       - level_2
       title: FighterStartingCreationOptions
+    MonkLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass_id:
+          type: string
+          const: open_hand
+      required: [subclass_id]
+    MonkLevelChoices:
+      properties:
+        '2':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        '3':
+          $ref: '#/components/schemas/MonkLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/BarbarianLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+      additionalProperties: false
+      type: object
+      required:
+      - '2'
+      title: MonkLevelChoices
+    MonkStartingSubclassOption:
+      properties:
+        id:
+          type: string
+          const: open_hand
+          title: Id
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - name
+      title: MonkStartingSubclassOption
+    MonkStartingLevel3Options:
+      properties:
+        subclass_options:
+          items:
+            $ref: '#/components/schemas/MonkStartingSubclassOption'
+          type: array
+          title: Subclass Options
+        effects_supported:
+          items:
+            type: string
+          type: array
+          title: Effects Supported
+        effects_pending:
+          items:
+            type: string
+          type: array
+          title: Effects Pending
+      additionalProperties: false
+      type: object
+      required:
+      - subclass_options
+      - effects_supported
+      - effects_pending
+      title: MonkStartingLevel3Options
+    MonkStartingCreationOptions:
+      properties:
+        supported_starting_levels:
+          items:
+            type: integer
+          type: array
+          title: Supported Starting Levels
+        level_2:
+          $ref: '#/components/schemas/BarbarianStartingLevel2Options'
+        level_3:
+          anyOf:
+          - $ref: '#/components/schemas/MonkStartingLevel3Options'
+          - type: 'null'
+        level_4:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel4Options'
+          - type: 'null'
+        level_5:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel5Options'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - supported_starting_levels
+      - level_2
+      title: MonkStartingCreationOptions
     BarbarianLevel2Choices:
       properties: {}
       additionalProperties: false

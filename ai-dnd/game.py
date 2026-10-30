@@ -2407,6 +2407,8 @@ def _validate_save_payload(payload):
         raise ValueError("Primal Knowledge requires save format4–6.")
     character_progression.validate_saved(player, saved_world, saved=True)
     weapon_attack.validate_saved_reckless(saved_world, player)
+    import monk_features
+    monk_features.validate_saved_effects(saved_world, player)
     _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
@@ -5408,6 +5410,9 @@ def end_combat(reason="combat_ended"):
     combat.update(_combat_defaults(end_reason=reason))
     combat["combat_id"] = identity
     if "attack_effects" in _session().world_state:
+        import monk_features
+        for entry in _session().world_state["attack_effects"]:
+            monk_features.effect_ended(_session(), entry)
         _session().world_state["attack_effects"] = []
     scheduled_events.combat_finished(_session().world_state)
     ensure_death_state()["combat_checkpoint"] = None
