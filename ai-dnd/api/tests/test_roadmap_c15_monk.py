@@ -263,6 +263,20 @@ class SavedState(unittest.TestCase):
         self.assertEqual(monk_features.projection(fresh)["martial_arts_die"], 6)
         self.assertTrue(monk_features.projection(fresh)["martial_arts_ready"])
 
+    def test_a_legacy_monk_still_holding_the_default_sword_it_never_owned_fights_unarmed(self):
+        session = created()
+        session.world_state["equipment"].update(main_hand="longsword")
+        session.world_state.pop("worn_armor_v1")
+        fresh, _ = roundtrip(session)
+        self.assertTrue(monk_features.projection(fresh)["martial_arts_ready"])
+
+    def test_a_forged_armor_proof_is_refused(self):
+        session = created()
+        payload = serialize_campaign_payload(session)
+        payload["engine_save"]["world_state"]["worn_armor_v1"] = {"version": 1, "armor_id": "chain_mail"}
+        with self.assertRaises((CampaignCorruptError, CampaignValidationError, ValueError)):
+            restore_campaign_session(game.create_session(seed=19), payload)
+
     def forged(self, level, change):
         session = created(level)
         payload = serialize_campaign_payload(session)

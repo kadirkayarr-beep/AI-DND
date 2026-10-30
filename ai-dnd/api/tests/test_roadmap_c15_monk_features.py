@@ -238,6 +238,14 @@ class Focus(unittest.TestCase):
         self.assertEqual((focus(self.session), second["strikes_remaining"]), (1, 0))
         self.assertEqual(code(self.session, flurry_strike(self.npc)), "flurry_strike_unavailable")
 
+    def test_flurry_is_a_focus_feature_and_needs_no_martial_arts_conditions(self):
+        self.session.world_state["inventory"].append("Longsword")
+        self.session.world_state["equipment"].update(main_hand="longsword")
+        self.assertFalse(features.martial_arts_ready(self.session))
+        self.assertTrue(features.projection(self.session)["flurry_of_blows"]["available"])
+        result = hit(self.session, flurry(self.npc), damage=4)[0]["result"]
+        self.assertEqual((focus(self.session), result["attack"]["ability_used"]), (1, "strength"))
+
     def test_the_second_strike_lapses_with_the_turn(self):
         hit(self.session, flurry(self.npc))
         end_turn(self.session)
@@ -749,7 +757,7 @@ class Projection(unittest.TestCase):
 
     def test_disclosure_names_what_is_supported_and_what_is_not(self):
         text = " ".join(cp.progression_disclosure("Monk", 5)["pending"])
-        for word in ("Slow Fall", "Weapon Mastery" if False else "DEX", "Addle", "jump", "Disengage"):
+        for word in ("Slow Fall", "DEX", "Addle", "jump", "Disengage"):
             self.assertIn(word, text, word)
         supported = " ".join(cp.progression_disclosure("Monk", 5)["supported"])
         for word in ("Martial Arts", "Unarmored Defense", "Focus Points", "Stunning Strike", "Deflect Attacks", "Extra Attack", "Open Hand"):

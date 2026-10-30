@@ -164,10 +164,13 @@ def movement_bonus_ft(character: Any, world: Any) -> int:
 
 
 def held_profiles(session: Any, hands: Any = None) -> list[dict[str, Any]]:
-    """Weapons in hand; a save with no hand state holds nothing rather than refusing an Unarmed Strike."""
+    """Weapons really in hand. A save with no hand state, or the default sword it never owned, holds nothing rather than refusing."""
     import weapon_attack as attacks
     hands = hands if hands is not None else session.world_state.get("equipment")
-    return attacks._held_weapon_profiles(session, "player", session.character, hands) if isinstance(hands, dict) else []
+    if not isinstance(hands, dict):
+        return []
+    owned = {hand: value for hand, value in hands.items() if isinstance(value, str) and session.find_weapon_in_inventory(value)[0]}
+    return attacks._held_weapon_profiles(session, "player", session.character, owned)
 
 
 def martial_arts_ready(session: Any) -> bool:
@@ -177,8 +180,10 @@ def martial_arts_ready(session: Any) -> bool:
 
 
 def default_weapon(session: Any, selected: Any) -> Any:
-    """A Monk with empty hands attacks with an Unarmed Strike; anyone else keeps the existing refusal."""
-    return "unarmed" if selected is None and monk_level(session.character) is not None else selected
+    """A Monk holding no owned weapon attacks with an Unarmed Strike; anyone else keeps the existing refusal."""
+    if monk_level(session.character) is None or (selected and session.find_weapon_in_inventory(selected)[0]):
+        return selected
+    return "unarmed"
 
 
 def attack_rules(character: Any, world: Any, weapon: dict[str, Any], held: list[dict[str, Any]]) -> dict[str, Any]:
@@ -405,10 +410,8 @@ def _focus_reason(session: Any, prefix: str, *, cost: int) -> str | None:
 
 
 def _flurry_reason(session: Any) -> str | None:
-    reason = _focus_reason(session, "flurry_of_blows", cost=1)
-    if reason:
-        return reason
-    return None if martial_arts_ready(session) else "martial_arts_conditions_not_met"
+    """PDF 101: a Focus feature, so the Martial Arts conditions gate its die and Dexterity, never the strikes themselves."""
+    return _focus_reason(session, "flurry_of_blows", cost=1)
 
 
 def _metabolism_reason(session: Any) -> str | None:
