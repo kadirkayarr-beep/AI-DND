@@ -202,8 +202,25 @@ class DivineSmite(unittest.TestCase):
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
 
     def test_a_ranged_weapon_opens_nothing(self):
+        hit(self.session, self.npc)  # a live sequence: without one the observer returns before it reads the weapon
         features.observe_attack(self.session, weapon={"kind": "ranged"}, target=self.npc["id"], landed=True)
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
+
+    def test_a_hit_outside_the_players_turn_leaves_no_window_for_that_turn(self):
+        hit(self.session, self.npc)
+        combat = self.session.world_state["combat"]
+        actor, combat["current_actor_id"] = combat["current_actor_id"], self.npc["id"]
+        features.observe_attack(self.session, weapon={"kind": "melee"}, target=self.npc["id"], landed=True)
+        combat["current_actor_id"] = actor
+        self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
+
+    def test_a_fiend_adds_the_die_an_undead_does(self):
+        session, npc = fight(5)
+        hit(session, npc)
+        npc["monster_stat_block"] = {"creature_type": "Fiend"}
+        result, dice = self.damage(session, npc, slot_level=2)
+        self.assertEqual(dice.call_args.args, (8, 4, 0))
+        self.assertEqual(result["dice"], 4)
 
     def test_any_other_step_closes_the_window(self):
         hit(self.session, self.npc)
