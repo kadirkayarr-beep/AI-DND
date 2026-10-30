@@ -15,7 +15,7 @@ import fighter_features
 import paladin_features as features
 import spell_scope
 import weapon_attack as attacks
-from class_progression.paladin import Paladin
+from class_progression.paladin import CATALOG_ONLY_NOTE, Paladin
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
 from api.tests.test_roadmap_c16_paladin import created, earn, earned, roundtrip, spells, step
@@ -566,6 +566,25 @@ class SharedOwners(unittest.TestCase):
         self.assertEqual(session._capture_runtime_snapshot(), before)
         rows = {row["id"]: row["castable"] for row in features.projection(session)["prepared_spells"]}
         self.assertEqual(rows, {"Cure Wounds": True, "Command": False, "Bless": False})
+
+    def test_the_catalog_note_says_exactly_which_spells_cast_and_how(self):
+        for words in ("Cure Wounds on yourself, in combat, with a level-1 slot", "Divine Smite", "catalog-only"):
+            self.assertIn(words, CATALOG_ONLY_NOTE)
+        session, npc = fight(5)
+        session.world_state["equipment"] = {"main_hand": None, "off_hand": None}
+        wound(session)
+        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]), ["Cure Wounds"])
+        spells(session)["prepared"][-1] = "Divine Smite"
+        session.character["spells"] = list(spells(session)["prepared"])
+        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]), ["Cure Wounds", "Divine Smite"])
+        for target, slot in ((npc["id"], None), ("player", 2)):
+            with self.assertRaises(CombatRequestError) as caught:
+                spell_scope.cast(session, "Cure Wounds", target, slot)
+            self.assertEqual(caught.exception.code, "unsupported_spell_mode")
+        outside = created(3)
+        with self.assertRaises(CombatRequestError) as caught:
+            spell_scope.cast(outside, "Cure Wounds", "player")
+        self.assertEqual(caught.exception.code, "unsupported_spell_mode")
 
     def test_a_long_rest_restores_table_slots_and_a_short_rest_does_not(self):
         session = created(5)

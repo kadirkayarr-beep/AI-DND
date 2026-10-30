@@ -235,8 +235,8 @@ def _apply(session, preview, choices):
     return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
 
 
-CATALOG_ONLY_NOTE = ("Paladin spells may be prepared at the table's counts, but only Cure Wounds has a resolver: every other prepared spell is "
-                     "catalog-only and has no effect in play yet")
+CATALOG_ONLY_NOTE = ("Paladin spells may be prepared at the table's counts, but only two can be cast: Cure Wounds on yourself, in combat, with a level-1 slot, "
+                     "and Divine Smite right after a Melee weapon or Unarmed Strike hit on your own turn; every other prepared spell is catalog-only and has no effect in play yet")
 
 
 class Paladin(ClassProgression):
