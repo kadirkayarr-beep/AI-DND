@@ -1726,7 +1726,7 @@ def _do_inspect(run: _Run, step) -> dict[str, Any]:
         target = next((c for c in candidates(run.session) if c["id"] == near), None)
     if target is None:
         return _receipt("inspect", "blocked", None, reason="no_target",
-                        text="Neye bakmak istediğini seçemedim. " + clarification_text(run.session))
+                        text=clarification_text(run.session))
     if target["kind"] == "door" or step.get("part"):
         return _inspect_door(run, step, target if target["kind"] == "door" else _current_door_target(run, step))
     if target["kind"] in {"place", "reference"}:
@@ -2456,16 +2456,18 @@ def enter_existing_place(session, location_id):
 
 
 def clarification_text(session) -> str:
+    """The dead end: the words fit nothing here, so say what is here instead."""
     cands = candidates(session)
-    people = [c["label"] for c in cands if c["kind"] == "npc"][:4]
-    places = [c["label"] for c in cands if c["kind"] in {"place", "door", "feature", "reference"}][:5]
-    parts = []
+    people = [c["record"] for c in cands if c["kind"] == "npc"][:4]
+    places = [c["label"] for c in cands if c["kind"] in {"place", "door", "feature", "reference"}][:3]
+    seen = []
     if people:
-        parts.append("yakınındakiler: " + ", ".join(people))
-    if places:
-        parts.append("çevrede: " + ", ".join(places))
-    hint = ("; ".join(parts)) if parts else "çevrede belirgin bir hedef yok"
-    return f"Kime ya da neye yöneldiğini seçemedim ({hint}). Hangisini kastediyorsun?"
+        seen.append(living_world.public_scene_people(people))
+    seen.extend(places)
+    if not seen:
+        return "Etrafında yönelebileceğin belirgin bir şey görmüyorsun."
+    listed = seen[0] if len(seen) == 1 else ", ".join(seen[:-1]) + " ve " + seen[-1]
+    return f"Tarif ettiğine uyan bir şey göremiyorsun. Yakınında {listed} var."
 
 
 def place_hint(session, location_id: str) -> str | None:
@@ -2736,6 +2738,12 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         return defer
     first = steps[0]
     for step in steps:
+        people = [c for c in step["ambiguous"] if c["kind"] == "npc"]
+        if people and len(people) == len(step["ambiguous"]):
+            # "Adama yaklaşıp selam veriyorum": any of them is a person to walk up to.
+            chosen = session.most_plausible_addressee([c["record"] for c in people], player_input)
+            step["target"] = next((c for c in people if c["record"] is chosen), None)
+            step["ambiguous"] = []
         if step["verb"] in {"go", "approach"} and step["target"] is None and not step["place_noun"] \
                 and not step["detail"] and not step.get("outside"):
             step["commitment"] = _implicit_escort_target(session, step)
@@ -2973,14 +2981,25 @@ def _finish_info(run: _Run, target: dict[str, Any]) -> dict[str, Any]:
     })
 
 
+def _spoken_label(option: dict[str, Any]) -> str:
+    """How a person or thing is named aloud: an unnamed person is never a UI label."""
+    if option.get("kind") != "npc":
+        return option["label"]
+    record = option["record"]
+    if living_world.npc_name_known_to_player(record):
+        return option["label"]
+    return "yakındaki " + (living_world.public_npc_role(record) or "biri").casefold()
+
+
 def _finish_clarification(run: _Run, options) -> dict[str, Any]:
-    labels = [o["label"] for o in options][:4]
+    labels = [_spoken_label(o) for o in options][:4]
+    labels[:1] = [label[:1].upper() + label[1:] for label in labels[:1]]
     if not labels:
-        text = "Neyi kastettiğini seçemedim; çevrende belirgin bir hedef yok. Biraz daha açık anlatır mısın?"
+        text = clarification_text(run.session)
     elif len(labels) == 1:
-        text = f"Bunu {labels[0]} için söylediğini mi anlamalıyım?"
+        text = f"{labels[0]} mi demek istiyorsun?"
     else:
-        text = "Hangisini kastediyorsun: " + ", ".join(labels[:-1]) + " ya da " + labels[-1] + "?"
+        text = ", ".join(labels[:-1]) + " ya da " + labels[-1] + ": hangisine yöneliyorsun?"
     return _bookkeeping(run, text, {
         "action": "grounded_action", "status": "clarification", "success": False, "steps": [],
         "candidates": [o["id"] for o in options], "state_changes": [],

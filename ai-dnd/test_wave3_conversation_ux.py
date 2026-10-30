@@ -94,13 +94,13 @@ class Wave3ConversationUxTests(unittest.TestCase):
         self.assertEqual(result["action_result"]["query_type"], "presence")
         self.assertEqual(session.world_state["flags"]["active_npc_id"], "npc_aylin")
 
-    def test_expired_say_target_with_multiple_npcs_requires_clarification(self):
+    def test_expired_say_target_with_multiple_npcs_goes_to_the_last_person_addressed(self):
         session = self.fresh()
         session.world_state["flags"]["turn_index"] = 10
         with patch("game.ollama.chat", side_effect=AssertionError("model used")):
             result = session.run_player_turn("Merhaba.", interaction_mode="say")
-        self.assertEqual(result["action_result"]["status"], "clarification")
-        self.assertFalse(result["action_result"]["success"])
+        self.assertNotEqual(result["action_result"]["status"], "clarification")
+        self.assertEqual(session.world_state["flags"]["active_npc_id"], "npc_aylin")
 
     def test_end_conversation_is_deterministic_and_clears_active_target(self):
         session = self.fresh()

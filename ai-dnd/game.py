@@ -1119,9 +1119,9 @@ def is_ordinary_environment_look(player_input):
 
 
 def npc_ambiguity_response(resolution):
-    candidates = resolution.get("npcs", [])
-    names = ", ".join(living_world.public_npc_name(npc) for npc in candidates)
-    return f"Bu tanıma uyan birden fazla kişi var: {names}. Hangisini kastettiğini belirt."
+    """An attack on nobody in particular: the one address the game must not pick."""
+    people = living_world.public_scene_people(resolution.get("npcs", []))
+    return f"Yakında {people} var; hangisine yöneliyorsun?"
 
 
 _NEGATED_VERB_SUFFIX = re.compile(r"^(?:ma|me|mi|mu|mı|mü|mam|mem|may|mey|miyor|muyor|mayacag|meyeceg)")
@@ -6022,6 +6022,62 @@ def _without_place_names(text, world_state):
         if normalized:
             text = re.sub(rf"(?<![a-z0-9]){re.escape(normalized)}[a-z0-9]*", " ", text)
     return text
+
+
+_GUARD_ROLE = re.compile(r"muhafiz|guard|nobet|bekci|asker|devriye")
+_GUARD_WORD = re.compile(r"\b(?:muhafiz|nobetci|bekci|asker|devriye|guard)\w*")
+_GENERIC_PERSON = re.compile(
+    r"\b(?:biri|birine|birini|birisi|birisine|birisini|birilerine)\b"
+    r"|^(?:(?:su|o|bu|bir|yakin\w*|yan\w*|karsi\w*|oradaki|suradaki|buradaki)\s+)*"
+    r"(?:adam|kadin|kisi|insan)\w*\s+(?:dogru\s+)?(?:yaklas|sokul|yanas|yonel)"
+)
+
+
+def _is_guard(npc):
+    return bool(_GUARD_ROLE.search(living_world.normalize_text(npc.get("role", ""))))
+
+
+def _words_fit_person(npc, text):
+    """A plain word for what this person visibly is, beyond the shown label."""
+    return bool(_GUARD_WORD.search(text)) and _is_guard(npc)
+
+
+def most_plausible_addressee(people, player_input=""):
+    """Who an address with no named person goes to; None when nobody is here.
+
+    The current conversation partner, then the last person addressed, then the
+    one the words fit, then the nearest person who is not standing guard.
+    """
+    people = [npc for npc in people if isinstance(npc, dict) and npc.get("id")]
+    if not people:
+        return None
+    flags = _session().world_state.get("flags", {})
+    for key in ("active_npc_id", "last_npc_id"):
+        partner = next((npc for npc in people if npc["id"] == flags.get(key)), None)
+        if partner is not None:
+            return partner
+    text = _normalize_turkish_typos(str(player_input))
+    pool = [npc for npc in people if _words_fit_person(npc, text)] or people
+
+    def distance(npc):
+        value = npc.get("distance_ft")
+        return value if isinstance(value, (int, float)) else 1000
+
+    return min(pool, key=lambda npc: (_is_guard(npc), distance(npc)))
+
+
+def _settle_address(resolution, player_input):
+    """Several people could be meant by a line that is not an attack: pick one."""
+    if resolution.get("status") != "ambiguous":
+        return resolution
+    npc = most_plausible_addressee(resolution.get("npcs", []), player_input)
+    if npc is None:
+        return resolution
+    flags = _session().world_state.setdefault("flags", {})
+    flags["last_npc_id"] = npc["id"]
+    flags["active_npc_id"] = npc["id"]
+    flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+    return {"status": "found", "npc": npc}
 
 
 def resolve_npc_reference(
@@ -14390,7 +14446,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             ]
             clarification = "Hangi hedefe saldırıyorsun?"
             if candidate_names:
-                clarification += f" Yakındaki kişiler: {', '.join(candidate_names[:4])}."
+                clarification += f" Yakında {living_world.public_scene_people(active_npcs()[:4])} var."
             result.update(success=False, status="clarification", outcome="ambiguous_target",
                           direct_response=clarification)
             return _finish_combat_result(result, before)
@@ -15894,15 +15950,15 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                         "direct_response": npc_ambiguity_response(npc_resolution),
                     }
                 else:
-                    direct = {
-                        "action": "dialogue",
-                        "status": "clarification",
-                        "success": False,
-                        "state_changes": [],
-                        "direct_response": npc_ambiguity_response(npc_resolution),
-                    }
-            elif npc_resolution.get("status") == "found":
+                    npc_resolution = _settle_address(npc_resolution, action_input)
+            if npc_resolution.get("status") == "found":
                 resolved_npc = npc_resolution.get("npc")
+            elif (
+                action == "approach"
+                and _GENERIC_PERSON.search(_normalize_turkish_typos(str(action_input)))
+            ):
+                # "Yakınımdaki birine yaklaşıyorum": any person will do, so pick one.
+                resolved_npc = most_plausible_addressee(active_npcs(), action_input)
 
     if not combat.get("active") and not direct:
         if action == "presence" and current in world_state.get("locations", {}):
@@ -15935,9 +15991,9 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                        if living_world.is_visible_contents_query(player_input) else {}),
                 }
         elif action == "approach":
-            speech_part = "?" in str(action_input) or re.search(
+            speech_part = "?" in str(player_input) or re.search(
                 r"\b(?:sor\w*|selam\w*|anlat\w*|soyle\w*|danis\w*)\b",
-                _normalize_turkish_typos(str(action_input)),
+                _normalize_turkish_typos(str(player_input)),
             )
             if resolved_npc and speech_part:
                 # "Marek'e yaklaşıp arşivi soruyorum": walking up is the first
@@ -18014,11 +18070,7 @@ def _run_player_turn_internal(
                     action_result.get("direct_response")
                     or "Hangi hedefe saldırmak istiyorsun?",
                 )
-            result = {"action": "dialogue", "status": "clarification", "success": False, "state_changes": []}
-            return finish_turn(
-                result,
-                npc_ambiguity_response(npc_resolution),
-            )
+            npc_resolution = _settle_address(npc_resolution, player_input)
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
     if (
