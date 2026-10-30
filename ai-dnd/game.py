@@ -925,6 +925,14 @@ def _is_negated_dialogue_action(player_input):
     ))
 
 
+def _reads_as_question(player_input):
+    """A written question, with or without the mark players often leave out."""
+    return "?" in str(player_input) or bool(re.search(
+        r"\b(?:mi|mu)\s*[.!…]*$|\bvarmi\s*[.!…]*$",
+        _normalize_turkish_typos(str(player_input)),
+    ))
+
+
 def is_npc_dialogue_input(player_input):
     if not isinstance(player_input, str):
         return False
@@ -949,7 +957,7 @@ def is_npc_dialogue_input(player_input):
         or _is_player_name_inquiry_to_npc(player_input)
     ):
         return True
-    if "?" in text or is_npc_historical_claim(player_input):
+    if _reads_as_question(player_input) or is_npc_historical_claim(player_input):
         return True
     if re.search(
         r"\b(?:selam\w*|merhaba\w*|iyi günler|teşekkür\w*|sağ ol)\b",
@@ -7756,14 +7764,18 @@ def _npc_speech_is_claim_refusal(text, npc=None):
 
 
 def _experimental_npc_dialogue_context(
-    world, npc, *, unverified_claim=False, followup=False
+    world, npc, *, unverified_claim=False, followup=False, personal_context=True
 ):
     """Small, target-bound context for the internal attributed-speech trial."""
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
     source = interaction_adventure.context(world, npc)
     speech_profile_facts = list(source.get("conversation_candidates", []))
-    public_detail = local_dialogue.public_personal_detail(world, npc)
+    # Small talk about the person, not a stock fact to reach for on any question.
+    public_detail = (
+        local_dialogue.public_personal_detail(world, npc)
+        if personal_context else None
+    )
     if public_detail is not None:
         speech_profile_facts.append(public_detail)
     addressee = source.get("addressee") or {}
@@ -15117,7 +15129,7 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
                 )
             ),
             None,
-        )
+        ) or _ensure_local_tavern(root_location)
         if tavern:
             door = next(
                 (
@@ -15129,8 +15141,8 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
             )
             if isinstance(door, dict) and door.get("locked") is True:
                 return (
-                    f'{name}, “{tavern.get("name", "Han")}’ın kapısı kilitli; '
-                    'şu anda orada dinlenemezsin,” diye yanıt verir.'
+                    f'{name}, “{tavern.get("name", "Han")} şu saatte kapalı, kapısı kilitli; '
+                    'orada dinlenemezsin,” diye yanıt verir.'
                 )
             return (
                 f'{name}, “Yakınlarda {tavern.get("name", "bir han")} var,” '
@@ -15175,8 +15187,6 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
             "day",
             "origin",
             "personal_context",
-            "local_work",
-            "work_acceptance",
         }
     ):
         personal = local_dialogue.personal_answer(npc_target, player_input)
@@ -15590,6 +15600,8 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         # player searching the streets (the P6-style answer was always the
         # same inn).
         and not re.search(r"\b(?:biliyor|bilir|tanir|tanirsin|onerir|gosterir)\s*m[iu]s[iu]n\b", normalized_input)
+        # "Bu çevrede bir han var mı?" with someone here is asked of them.
+        and not (_reads_as_question(player_input) and active_npcs(current))
     )
     merchant_search = (
         interaction_mode not in {"say", "ask_dm"}
@@ -18606,32 +18618,16 @@ def _run_player_turn_internal(
         if shop_request or interaction_mode == "say"
         else local_dialogue.unaddressed_work_answer(player_input)
     )
-    if work_answer:
-        if isinstance(npc_target, dict):
-            npc_name = living_world.public_npc_name(npc_target)
-            response = (
-                f'{npc_name}, “Şu an sana önerebileceğim belirli bir iş yok,” der.'
-            )
-            action_result = {
-                "action": "dialogue",
-                "status": "answered_without_offer",
-                "success": True,
-                "npc_id": npc_target.get("id"),
-                "reality_category": local_dialogue.CAMPAIGN_FACT,
-                "state_changes": [],
-            }
-            record_npc_interaction(
-                npc_target, response, player_input, npc_target
-            )
-        else:
-            response = work_answer[0]
-            action_result = {
-                "action": "local_inquiry",
-                "status": "answered_without_offer",
-                "success": True,
-                "reality_category": work_answer[1],
-                "state_changes": [],
-            }
+    # A person who is here answers for themselves on the speech path.
+    if work_answer and not isinstance(npc_target, dict):
+        response = work_answer[0]
+        action_result = {
+            "action": "local_inquiry",
+            "status": "answered_without_offer",
+            "success": True,
+            "reality_category": work_answer[1],
+            "state_changes": [],
+        }
         return finish_turn(
             action_result,
             response,
@@ -18886,6 +18882,10 @@ def _run_player_turn_internal(
                     world_state, npc_target,
                     unverified_claim=experimental_unverified_claim,
                     followup=_is_short_followup(player_input),
+                    personal_context=(
+                        local_dialogue.personal_question_kind(player_input)
+                        != "local_work"
+                    ),
                 )
                 if experimental_npc_dialogue
                 else interaction_adventure.context(

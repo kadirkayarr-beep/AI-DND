@@ -945,9 +945,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         duplicate_marek["id"] = "npc_marek_duplicate"
         session.world_state["npcs"].append(duplicate_marek)
         calls_before_ambiguous_address = len(client.message_batches)
-        ambiguous_address = await say("Marek, neden kilitli?")
-        self.assertEqual(ambiguous_address.status_code, 200, ambiguous_address.text)
+        shared_name = await say("Marek, neden kilitli?")
+        self.assertEqual(shared_name.status_code, 200, shared_name.text)
         self.assertEqual(
+            session.world_state["flags"]["active_npc_id"], marek["id"]
+        )
+        self.assertGreater(
             len(client.message_batches), calls_before_ambiguous_address
         )
 
@@ -3138,7 +3141,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session = self.manager.get(created["session_id"]).game_session
         messages = [
             "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
-            "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?",
+            "Yakınlarda oturup bir şeyler içebileceğim bir yer arıyorum.",
             "Buralarda bir tücaar var mı?",
             "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.",
             "Buralarda bir tücaar var mı?",
@@ -14328,7 +14331,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(final_store.get_turn_action(campaign_id, body["action_id"]), receipt)
             self.assertEqual(final_manager.get_turn_action(final_record, body["action_id"]), receipt)
 
-    async def test_reopened_expired_conversation_clarifies_personal_question(self):
+    async def test_reopened_expired_conversation_answers_through_the_last_person(self):
         created = await self.create_campaign()
         campaign_id = created["campaign_id"]
         original_session = self.manager.get(created["session_id"]).game_session
@@ -14387,9 +14390,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(resumed.json()["history"], committed.history)
             self.assertIsNone(reopened_store.get_turn_action(campaign_id, body["action_id"]))
 
-            # As with expired scene references, no selected target means the
-            # saved referent cannot authorize an answer. Observe (do not replace)
-            # the real resolver and turn through the HTTP endpoint.
+            # A lapsed conversation still has a last person addressed: the
+            # question goes to them. Observe (do not replace) the real resolver
+            # and turn through the HTTP endpoint.
             real_turn = session.run_player_turn
             results = []
 
@@ -14411,32 +14414,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             resolver.assert_called_with(body["message"])
             action = results[0]["action_result"]
             self.assertEqual(action["action"], "dialogue")
-            self.assertEqual(action["status"], "clarification")
-            self.assertFalse(action["success"])
-            self.assertEqual(action["state_changes"], [])
-            self.assertIsNone(action.get("npc_id"))
+            self.assertEqual(action["status"], "answered_personal_question")
+            self.assertTrue(action["success"])
+            self.assertEqual(action["npc_id"], local_npcs[0]["id"])
             turn = response.json()
             self.assertEqual(turn["action_id"], body["action_id"])
             self.assertEqual(turn["narration"], results[0]["narration"])
-            expected_narration = game.npc_ambiguity_response(
-                {"npcs": saved_npcs}
-            )
-            self.assertEqual(turn["narration"], expected_narration)
-            for npc in local_npcs:
-                self.assertIn(npc["name"], turn["narration"])
-                self.assertNotEqual(
-                    turn["narration"],
-                    f'{npc["name"]}, “{npc["personal_profile"]["occupation"]}” diye yanıt verir.',
-                )
+            expected_narration = turn["narration"]
+            self.assertIn(local_npcs[0]["personal_profile"]["occupation"], expected_narration)
 
             persisted = reopened_store.get_campaign(campaign_id)
             self.assertEqual(persisted.payload["engine_save"], session.serialize_game_state())
             persisted_world = persisted.payload["engine_save"]["world_state"]
-            # Clarification must not choose a person, append NPC dialogue memory,
-            # regenerate profiles, or refresh the expired conversation.
-            self.assertEqual(persisted_world["npcs"], saved_npcs)
-            for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn"):
-                self.assertEqual(persisted_world["flags"][key], saved_world["flags"][key])
+            self.assertEqual(persisted_world["flags"]["active_npc_id"], local_npcs[0]["id"])
             self.assertEqual(
                 persisted_world["flags"]["turn_index"],
                 saved_world["flags"]["turn_index"] + 1,

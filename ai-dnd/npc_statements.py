@@ -75,6 +75,7 @@ _DENIED_PLACE = re.compile(
     r"^\s*(?:diye\s+bir\s+yer\s+yok(?:tur)?|"
     r"(?:bir\s+yer\s+)?yok(?:tur)?|bulunmuyor|mevcut\s+degil)\b"
 )
+_SENTENCE_OPENER = re.compile(r"(?:da|de|ta|te)$")
 _DENIED_PLACE_PREDICATE = re.compile(
     r"\b(?:yok(?:tur)?|bulunmuyor|mevcut\s+degil)\b"
 )
@@ -298,6 +299,8 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
             continue
         if fold(words[0]) in _PERSON_TITLES:
             continue
+        if index == 0 and len(words) > 2 and _SENTENCE_OPENER.search(fold(words[0])):
+            words = words[1:]  # "Yakınlarda Dessa Hanı var": the opener is no part of the name
         display = " ".join(words)
         tail = fold(" ".join(tokens[following:]))
         known_kind = place_kind_of(fold(words[-1]))

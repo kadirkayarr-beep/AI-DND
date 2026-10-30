@@ -713,7 +713,12 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertNotIn("Cael", result["narration"])
         self.assertIn("muhafız", result["narration"].casefold())
         self.assertNotIn("buluyorsun", result["narration"])
-        self.assertEqual(self.world["locations"], before_locations)
+        new_places = [
+            place for key, place in self.world["locations"].items()
+            if key not in before_locations
+        ]
+        self.assertEqual([place["scene_kind"] for place in new_places], ["tavern"])
+        self.assertIn(new_places[0]["name"], result["narration"])
 
     def test_new_npc_name_is_hidden_until_identity_is_learned(self):
         npc = self.session.create_npc_from_ai({
@@ -2053,7 +2058,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         scene_before_discovery = copy.deepcopy(scene)
 
         venue = self.session.plan_living_world_turn(
-            "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?"
+            "Yakınlarda oturup bir şeyler içebileceğim bir yer arıyorum."
         )
         self.assertIsNotNone(venue["direct_result"], venue)
         self.assertEqual(venue["direct_result"]["action"], "local_search")

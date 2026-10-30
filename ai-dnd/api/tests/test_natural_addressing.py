@@ -179,5 +179,48 @@ class AddressGoesToThePlausiblePerson(TownCase):
         self.assertFalse(self.world["combat"].get("active"))
 
 
+class WorldQuestionsReachThePerson(TownCase):
+    async def test_asking_about_an_inn_is_answered_by_a_person(self):
+        data = await self.say("Bu çevrede bir han var mı?")
+        self.assert_no_wall(data)
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        self.assertIn(inn["name"], data["narration"])
+        self.assertIn("“", data["narration"])
+
+    async def test_asking_the_street_for_work_reaches_a_person(self):
+        data = await self.say("Burada nerede iş bulabilirim?")
+        self.assert_no_wall(data)
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+        self.assertIn("speech", self.client.kinds)
+
+    async def test_why_was_the_door_locked_is_a_question_to_someone(self):
+        before = copy.deepcopy(self.world["doors"])
+        data = await self.say("Kapı niye kilitliydi?")
+        self.assert_no_wall(data)
+        self.assertNotIn("açıp kapatabileceğin", data["narration"])
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+        self.assertEqual(self.world["doors"], before)
+
+    async def test_nobody_here_means_the_player_searches_for_the_inn(self):
+        for npc in self.people:
+            npc["location"] = "elsewhere"
+        data = await self.say("Bu çevrede bir han var mı?")
+        self.assertIn("Hanı", data["narration"])
+
+
+    async def test_a_question_without_a_mark_is_still_a_question(self):
+        data = await self.say("Bu çevrede bir han var mı")
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+        self.assertIn("“", data["narration"])
+
+    async def test_a_named_inn_is_kept_under_its_real_name(self):
+        await self.say("Bu çevrede bir han var mı?")
+        inn = next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+        references = self.world["npc_statements"]["references"]
+        self.assertEqual([r["location_id"] for r in references], [inn["id"]])
+        self.assertEqual(references[0]["name"], inn["name"])
+
+
 if __name__ == "__main__":
     unittest.main()
