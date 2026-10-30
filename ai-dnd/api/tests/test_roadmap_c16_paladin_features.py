@@ -7,6 +7,7 @@ Divinity two uses, one back on a Short Rest, all on a Long Rest; Divine Sense 10
 """
 import random
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import action_economy as economy
@@ -15,6 +16,8 @@ import fighter_features
 import paladin_features as features
 import spell_scope
 import weapon_attack as attacks
+import yaml
+from api.serializers import serialize_session_state
 from class_progression.paladin import CATALOG_ONLY_NOTE, Paladin
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
@@ -508,6 +511,68 @@ class SacredWeapon(unittest.TestCase):
             run(self.session, attack(self.npc, sacred_weapon=True))
         fresh, _ = roundtrip(self.session)
         self.assertTrue(features.projection(fresh)["sacred_weapon"]["active"])
+
+
+def conforms(value, schema, schemas, where="paladin"):
+    """A strict JSON Schema subset, since no validator is a project dependency: a keyword it does not know fails instead of passing."""
+    unknown = set(schema) - {"$ref", "anyOf", "type", "const", "minimum", "additionalProperties", "properties", "required", "items"}
+    assert not unknown, f"{where}: unchecked keywords {unknown}"
+    if "$ref" in schema:
+        return conforms(value, schemas[schema["$ref"].rsplit("/", 1)[1]], schemas, where)
+    if "anyOf" in schema:
+        failures = []
+        for option in schema["anyOf"]:
+            try:
+                return conforms(value, option, schemas, where)
+            except AssertionError as error:
+                failures.append(str(error))
+        raise AssertionError(f"{where}: no option fits: {failures}")
+    kinds = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
+    types = {"object": dict, "array": list, "string": str, "integer": int, "boolean": bool, "null": type(None)}
+    assert type(value) in [types[kind] for kind in kinds], f"{where}: {value!r} is not {kinds}"
+    if "const" in schema:
+        assert value == schema["const"], f"{where}: {value!r} is not {schema['const']!r}"
+    if "minimum" in schema:
+        assert value >= schema["minimum"], f"{where}: {value!r} is below {schema['minimum']}"
+    if type(value) is dict:
+        assert schema["additionalProperties"] is False, f"{where}: an open object proves nothing"
+        assert set(value) <= set(schema["properties"]), f"{where}: unpublished {set(value) - set(schema['properties'])}"
+        assert set(schema["required"]) <= set(value), f"{where}: missing {set(schema['required']) - set(value)}"
+        for name, item in value.items():
+            conforms(item, schema["properties"][name], schemas, f"{where}.{name}")
+    if type(value) is list:
+        for index, item in enumerate(value):
+            conforms(item, schema["items"], schemas, f"{where}[{index}]")
+
+
+class PublishedContract(unittest.TestCase):
+    def test_the_live_projection_matches_openapi_yaml(self):
+        spec = Path(__file__).resolve().parents[3] / "lib" / "api-spec" / "openapi.yaml"
+        schemas = yaml.safe_load(spec.read_text(encoding="utf-8"))["components"]["schemas"]
+        published = schemas["GameCharacter"]["properties"]["paladin"]
+
+        def live(session):
+            return serialize_session_state(session)["character"]["paladin"]
+
+        for level in range(1, 6):
+            conforms(live(created(level)), published, schemas)
+        session, npc = fight(3)
+        run(session, SENSE)
+        with patch("game.roll_attack", return_value=19):
+            run(session, attack(npc, sacred_weapon=True))
+        npc["monster_stat_block"] = {"creature_type": "Fiend"}
+        block = live(session)
+        conforms(block, published, schemas)
+        self.assertEqual(block["divine_smite"]["target_id"], npc["id"], "the open window is in the block")
+        self.assertEqual(block["divine_sense"]["detected"][0]["creature_type"], "fiend")
+        self.assertEqual(block["sacred_weapon"]["remaining_seconds"], 600)
+        self.assertEqual(block["prepared_spells"][0], {"id": "Cure Wounds", "castable": True})
+        for broken in ({**block, "unpublished": 1}, {key: value for key, value in block.items() if key != "lay_on_hands"},
+                       {**block, "lay_on_hands": {**block["lay_on_hands"], "poison_cost": 6}},
+                       {**block, "divine_sense": {**block["divine_sense"], "remaining_seconds": "600"}},
+                       {**block, "prepared_spells": [{"id": "Cure Wounds", "castable": 1}]}):
+            with self.assertRaises(AssertionError):
+                conforms(broken, published, schemas)
 
 
 class SharedOwners(unittest.TestCase):
