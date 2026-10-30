@@ -43,6 +43,9 @@ import type {
   HealthResponse,
   IdentitySuggestionJob,
   IdentitySuggestionRequest,
+  LevelUpApplyRequest,
+  LevelUpCommandResult,
+  LevelUpPreviewResponse,
   QuestCommandResult,
   RequestValidationErrorResponse,
   SpeciesTraitActionInput,
@@ -76,6 +79,172 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetGameSessionLevelUpUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/level-up`
+}
+
+/**
+ * @summary Preview Earned Level Up
+ */
+export const getGameSessionLevelUp = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<LevelUpPreviewResponse> => {
+
+  return customFetch<LevelUpPreviewResponse>(getGetGameSessionLevelUpUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGameSessionLevelUpQueryKey = (sessionId: string,) => {
+    return [
+    `/api/game/sessions/${sessionId}/level-up`
+    ] as const;
+    }
+
+
+export const getGetGameSessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGameSessionLevelUpQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGameSessionLevelUp>>> = ({ signal }) => getGameSessionLevelUp(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGameSessionLevelUpQueryResult = NonNullable<Awaited<ReturnType<typeof getGameSessionLevelUp>>>
+export type GetGameSessionLevelUpQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Preview Earned Level Up
+ */
+
+export function useGetGameSessionLevelUp<TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<unknown>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGameSessionLevelUpQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApplyGameSessionLevelUpUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/level-up`
+}
+
+/**
+ * @summary Apply Earned Level Up
+ */
+export const applyGameSessionLevelUp = async (sessionId: string,
+    levelUpApplyRequest: LevelUpApplyRequest, options?: Parameters<typeof customFetch>[1]): Promise<LevelUpCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LevelUpCommandResult>(getApplyGameSessionLevelUpUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(levelUpApplyRequest)
+  }
+);}
+
+
+
+
+
+export const getApplyGameSessionLevelUpMutationKey = () => ['applyGameSessionLevelUp'] as const;
+
+export const getApplyGameSessionLevelUpMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext> => {
+
+const mutationKey = getApplyGameSessionLevelUpMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, ApplyGameSessionLevelUpMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  applyGameSessionLevelUp(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyGameSessionLevelUpMutationResult = NonNullable<Awaited<ReturnType<typeof applyGameSessionLevelUp>>>
+    export type ApplyGameSessionLevelUpMutationBody = BodyType<LevelUpApplyRequest>
+    export type ApplyGameSessionLevelUpMutationError = ErrorType<unknown>
+    export type ApplyGameSessionLevelUpMutationVariables = {sessionId: string;data: BodyType<LevelUpApplyRequest>}
+
+    /**
+ * @summary Apply Earned Level Up
+ */
+export const useApplyGameSessionLevelUp = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyGameSessionLevelUp>>,
+        TError,
+        ApplyGameSessionLevelUpMutationVariables,
+        TContext
+      > => {
+      return useMutation(getApplyGameSessionLevelUpMutationOptions(options));
+    }
 
 export const getGetGameHealthUrl = () => {
 

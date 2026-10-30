@@ -125,10 +125,10 @@ def validate_saved_spell_fields(player: dict[str, Any]) -> None:
     slots = player.get("spell_slots_remaining")
     if (
         not isinstance(slots, dict)
-        or set(slots) != {"1"}
-        or type(slots.get("1")) is not int
-        or isinstance(slots.get("1"), bool)
-        or not 0 <= slots["1"] <= 20
+        or not slots
+        or any(key not in {str(level) for level in range(1, 10)}
+               or type(count) is not int or not 0 <= count <= 20
+               for key, count in slots.items())
     ):
         raise ValueError("Kayıt büyü yuvası geçersiz.")
 

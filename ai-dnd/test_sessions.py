@@ -395,6 +395,33 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.serialize_game_state(), snapshot)
 
+    def test_legacy_load_preserves_absent_temporary_hp_and_clears_stale_value(self):
+        expected = self.a.serialize_game_state()
+        self.assertNotIn("temporary_hit_points", expected["player"])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.json"
+            self.a.save_game(path)
+            self.a.grant_temporary_hit_points(9)
+
+            self.a.load_game(path)
+
+        self.assertNotIn("temporary_hit_points", self.a.character)
+        self.assertEqual(self.a._species_trait_state()["temporary_hit_points"], 0)
+        self.assertEqual(self.a.serialize_game_state(), expected)
+
+    def test_human_temporary_hp_survives_save_load_round_trip(self):
+        self.a.grant_temporary_hit_points(5)
+        expected = self.a.serialize_game_state()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "temporary-hp.json"
+            self.a.save_game(path)
+
+            self.b.load_game(path)
+
+        self.assertEqual(self.b.character["temporary_hit_points"], 5)
+        self.assertEqual(self.b._species_trait_state()["temporary_hit_points"], 5)
+        self.assertEqual(self.b.serialize_game_state(), expected)
+
     def test_invalid_load_preserves_all_sessions_and_held_references(self):
         for session, name, hp in ((self.a, "Target", 3),
                                   (self.b, "Other", 7)):
@@ -1849,6 +1876,7 @@ class SessionTests(unittest.TestCase):
                     assert_preserved()
 
     def test_overlapping_interrupted_long_rest_keeps_healing_and_spells_session_owned(self):
+        self.maxDiff = None  # retain full provenance when concurrent world snapshots differ
         import spell_scope
         from api.tests.test_campaign_time import scene
         from api.tests.test_campaign_time_edges import event, flag
@@ -1898,6 +1926,7 @@ class SessionTests(unittest.TestCase):
                             f"turn:{world.get('flags', {}).get('turn_index', 0)}",
                         )
                         if index != interrupted_index:
+                            world["last_long_rest_completed_at"] = 28800  # only this completed session owns the marker
                             snapshot["player"]["hit_dice"] = {"spent": 0, "window_second": None, "hp": None}  # K07 Long Rest
                             snapshot["player"]["current_hp"] = fixtures[index][2]
                             world["spellcasting_v1"]["slots"] = copy.deepcopy(

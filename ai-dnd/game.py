@@ -790,6 +790,30 @@ def calculate_ac(
 # ---------------------------------------------------------
 
 def perform_skill_check(
+    skill, dc, modifiers, proficient_skills, proficiency_bonus,
+    advantage=False, disadvantage=False, expertise_skills=None,
+    check_feature=None, check_evidence=None,
+):
+    if check_feature is None:
+        return _perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                    advantage, disadvantage, expertise_skills)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                      advantage, disadvantage, expertise_skills,
+                                      check_feature=check_feature, check_evidence=evidence)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _perform_skill_check(
     skill,
     dc,
     modifiers,
@@ -798,11 +822,20 @@ def perform_skill_check(
     advantage=False,
     disadvantage=False,
     expertise_skills=None,
+    check_feature=None,
+    check_evidence=None,
 ):
+    import barbarian_rage
+    if check_feature is not None:
+        barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
+    ability = "strength" if check_feature is not None else SKILLS[skill]
+    barbarian_rage.settle(_session())
+    if check_feature is not None:
+        barbarian_rage.require_primal_knowledge(_session(), skill, check_feature)
+    rage_advantage = barbarian_rage.strength_advantage(_session(), "player", ability)
     pace_advantage, pace_disadvantage = timed_gameplay.pace_effects(_session().world_state, skill)
-    advantage = bool(advantage or pace_advantage)
+    advantage = bool(advantage or pace_advantage or rage_advantage)
     disadvantage = bool(disadvantage or pace_disadvantage)
-    ability = SKILLS[skill]
     modifier = modifiers[ability]
     is_proficient = skill in proficient_skills
     expertise_skills = expertise_skills or ()
@@ -830,7 +863,7 @@ def perform_skill_check(
     total = resolution["total"]
     result = "BAŞARILI" if resolution["outcome"] == "SUCCESS" else "BAŞARISIZ"
 
-    return {
+    result_data = {
         "skill": skill,
         "ability": ability,
         "dice": dice,
@@ -847,6 +880,10 @@ def perform_skill_check(
         "result": result,
         "resolution": resolution,
     }
+
+    if check_feature is not None and check_evidence is not None:
+        check_evidence.append(barbarian_rage.record_primal_knowledge(_session(), result_data))
+    return result_data
 
 
 # ---------------------------------------------------------
@@ -1714,7 +1751,7 @@ world_state = {
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
 SAVE_FORMAT_VERSION = 4
-_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5)
+_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 
 GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
@@ -1826,7 +1863,6 @@ def _validate_species_trait_state(value, species, proficiency_bonus=2):
             species not in {"Orc", "Half-Orc"}
             and value["relentless_endurance_available"]
         )
-        or value["temporary_hit_points"] > proficiency_bonus
     ):
         raise ValueError("Kayıt tür yeteneği durumu tutarsız.")
     used_round = value.get("bonus_action_used_round")
@@ -1902,8 +1938,56 @@ def _origin_choices_for_save(character):
     return choices
 
 
+_PERSISTED_PLAYER_CONDITION_FIELDS = (
+    "conditions", "charmed_by", "frightened_by", "grappled_by", "grapple_escape_dc",
+    "prone", "frightened_until_player_turn", "speed_penalty_ft", "speed_penalty_turns_remaining",
+)
+
+
+def _validate_player_condition_state(player):
+    """Validate existing sparse condition metadata, not effect eligibility/lifetimes."""
+    if "conditions" in player:
+        names = player["conditions"]
+        if not isinstance(names, (list, dict)):
+            raise ValueError("Saved player conditions must be a list or boolean mapping.")
+        if any(not isinstance(name, str) or not name.strip() for name in names):
+            raise ValueError("Saved player condition names must be nonempty strings.")
+        if isinstance(names, dict) and any(type(value) is not bool for value in names.values()):
+            raise ValueError("Saved player condition flags must be booleans.")
+    for field in ("charmed_by", "frightened_by", "grappled_by"):
+        if field in player and (not isinstance(player[field], str) or not player[field].strip()):
+            raise ValueError("Saved condition source identity is invalid.")
+    if "prone" in player and type(player["prone"]) is not bool:
+        raise ValueError("Saved prone flag must be boolean.")
+    for field in ("grapple_escape_dc", "frightened_until_player_turn", "speed_penalty_ft", "speed_penalty_turns_remaining"):
+        if field in player and (type(player[field]) is not int or player[field] < 0):
+            raise ValueError("Saved condition numeric metadata is invalid.")
+
+
+def _validate_player_weapon_proficiencies(player, version):
+    """Optional explicit capability; absent legacy state is never inferred."""
+    if "weapon_proficiencies" not in player:
+        return
+    from weapon_catalog import WEAPONS
+    values = player["weapon_proficiencies"]
+    allowed = {"simple", "martial"} | {weapon["weapon_id"] for weapon in WEAPONS.values()}
+    if (version not in (4, 5, 6) or type(values) is not list
+            or any(type(value) is not str or value not in allowed for value in values)
+            or len(values) != len(set(values))):
+        raise ValueError("Saved weapon proficiencies are invalid.")
+
+
 def _player_state_for_save():
     character = _session().character
+    import character_progression
+    # Selected earned ASI requires format4/5/6; loaded formats are not promoted.
+    character_progression._validate_asi_choice_storage(character)
+    character_progression._validate_primal_knowledge(character)
+    if "primal_knowledge_choice" in character and getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+        raise ValueError("Primal Knowledge requires save format4–6.")
+    if character.get("asi_choices") and getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+        raise ValueError("Earned ASI requires save format4/5/6.")
+    _validate_player_weapon_proficiencies(character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION))
     saved = {
         "name": _session().character["name"],
         "race": _session().character["race"],
@@ -1939,6 +2023,12 @@ def _player_state_for_save():
         "armor_class": _session().character["armor_class"],
         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
+    if (
+        character.get("species", character.get("race"))
+        not in SPECIES_WITH_TRAIT_STATE
+        and "temporary_hit_points" in character
+    ):
+        saved["temporary_hit_points"] = character["temporary_hit_points"]
     for field in ("origin", "appearance", "personality", "backstory"):
         if field not in character or character[field] is None:
             saved[field] = None
@@ -1947,13 +2037,25 @@ def _player_state_for_save():
         if type(value) is not str:
             raise ValueError("Kayıt kimlik metni geçersiz.")
         saved[field] = value
+    _validate_player_condition_state(character)
+    for field in _PERSISTED_PLAYER_CONDITION_FIELDS:
+        if field in character:
+            saved[field] = copy.deepcopy(character[field])
     choices = _origin_choices_for_save(character)
     if choices:
         saved["origin_choices"] = choices
     if "progression_level" in character:  # C06: the level whose class-table choices were applied (XP may be ahead of it)
         saved["progression_level"] = character["progression_level"]
+    if character.get("asi_choices"):
+        saved["asi_choices"] = copy.deepcopy(character["asi_choices"])
+    if "weapon_proficiencies" in character:
+        saved["weapon_proficiencies"] = list(character["weapon_proficiencies"])
     if character.get("metamagic"):
         saved["metamagic"] = list(character["metamagic"])
+    if "primal_knowledge_choice" in character:
+        saved["primal_knowledge_choice"] = copy.deepcopy(character["primal_knowledge_choice"])
+    if "subclass_id" in character:
+        saved["subclass_id"] = copy.deepcopy(character["subclass_id"])
     if "hit_dice" in character:  # K07: spent Hit Point Dice and the open Short Rest window (additive, absent in older saves)
         saved["hit_dice"] = dict(character["hit_dice"])
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
@@ -1971,6 +2073,7 @@ def _player_state_for_save():
             if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
                 raise ValueError("Origin feat state is invalid.")
             saved["origin_feat"] = feat
+    _validate_saved_multilevel_slots(saved, _session().world_state)
     return saved
 
 
@@ -1979,6 +2082,11 @@ def serialize_game_state():
     recent_dm_narrations = _session().recent_dm_narrations
     world_state = _session().world_state
     living_world.ensure_scene_state(world_state)
+    import barbarian_rage
+    barbarian_rage.validate(world_state, _session().character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION), strict_active=True)
+    if "sorcery_points_v1" in world_state:
+        import sorcery_points
+        sorcery_points.validate(world_state["sorcery_points_v1"], _session().character, getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION))
     return {
         "format": "ai-dnd-save",
         "version": getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION),
@@ -2109,6 +2217,34 @@ def _validate_combat_v3_payload(combat):
     initiative.validate_saved(combat)
 
 
+def _validate_long_rest_history(world):
+    """Optional legacy-compatible completion time; campaign time is the only clock."""
+    if "last_long_rest_completed_at" not in world:
+        return None
+    clock = world.get("campaign_time")
+    if not isinstance(clock, dict):
+        raise ValueError("Uzun dinlenme kaydı için oyun saati gerekli.")
+    campaign_time.validate_clock(clock)
+    completed = world["last_long_rest_completed_at"]
+    if type(completed) is not int or not 0 <= completed <= clock["elapsed_seconds"]:
+        raise ValueError("Uzun dinlenme tamamlanma zamanı geçersiz.")
+    return completed
+
+
+def _validate_saved_multilevel_slots(player, saved_world):
+    """Expanded encoding is not entitlement; keep the legacy level-one mirror contract."""
+    slots = player.get("spell_slots_remaining")
+    if slots is None or (isinstance(slots, dict) and set(slots) == {"1"}):
+        return
+    import character_progression
+    capacity = character_progression.slot_capacity(player)
+    if (not isinstance(saved_world.get("spellcasting_v1"), dict) or capacity is None
+            or not isinstance(slots, dict) or set(slots) != set(capacity)
+            or any(type(count) is not int or not 0 <= count <= capacity[key]
+                   for key, count in slots.items())):
+        raise ValueError("Saved multi-level spell slots require supported applied-level capacity.")
+
+
 def _validate_save_payload(payload):
     if not isinstance(payload, dict):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
@@ -2124,6 +2260,16 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt oyuncu veya dünya verisini içermiyor.")
     if "campaign_time" in saved_world:
         campaign_time.validate_clock(saved_world["campaign_time"])
+    _validate_long_rest_history(saved_world)
+    import barbarian_rage
+    barbarian_rage.validate(saved_world, player, version, strict_active=True)
+    if "sorcery_points_v1" in saved_world:
+        import sorcery_points
+        sorcery_points.validate(saved_world["sorcery_points_v1"], player, version)
+    _validate_player_condition_state(player)
+    _validate_player_weapon_proficiencies(player, version)
+    if "concentration" in player:
+        raise ValueError("Saved player concentration has no supported schema.")
     scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
     timed_gameplay.validate_state(saved_world)
     weapon_attack.exhaustion(player)
@@ -2204,7 +2350,7 @@ def _validate_save_payload(payload):
         spells.validate_saved_spell_fields(player)
     if version >= 5:
         import xp
-        xp.validate_saved_advancement(player, saved_world)
+        xp.validate_saved_advancement(player, saved_world, policy=6 if version >= 6 else 5)
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     species_bonus_skills = player.get("species_bonus_skills", [])
@@ -2229,10 +2375,21 @@ def _validate_save_payload(payload):
     import spell_scope
     spell_scope.validate(saved_world.get("spellcasting_v1"), player)
     import character_progression
-    character_progression.validate_saved(player, saved_world)
+    if player.get("asi_choices") and version not in (4, 5, 6):
+        raise ValueError("Earned ASI requires save format4/5/6.")
+    if "primal_knowledge_choice" in player and version not in (4, 5, 6):
+        raise ValueError("Primal Knowledge requires save format4–6.")
+    character_progression.validate_saved(player, saved_world, saved=True)
+    weapon_attack.validate_saved_reckless(saved_world, player)
+    _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
         raise ValueError("Karakter türü geçersiz.")
+    if "temporary_hit_points" in player and (
+        type(player["temporary_hit_points"]) is not int
+        or player["temporary_hit_points"] < 0
+    ):
+        raise ValueError("Kayıt geçici can puanı geçersiz.")
     giant_ancestry = player.get("giant_ancestry")
     if giant_ancestry is not None and (
         species != "Goliath" or giant_ancestry not in GIANT_ANCESTRY_IDS
@@ -2494,6 +2651,13 @@ def load_game(path):
             character[field] = str(player[field])
         character["species"] = str(player.get("species", player["race"]))
         character["exhaustion"] = player.get("exhaustion", 0)
+        for field in (*_PERSISTED_PLAYER_CONDITION_FIELDS, "concentration"):
+            character.pop(field, None)
+            if field in player:
+                character[field] = copy.deepcopy(player[field])
+        character.pop("weapon_proficiencies", None)
+        if "weapon_proficiencies" in player:
+            character["weapon_proficiencies"] = list(player["weapon_proficiencies"])
         character["proficient_tools"] = list(player.get("proficient_tools", []))
         character["saving_throw_mods"] = copy.deepcopy(player.get("saving_throw_mods", {}))
         character["giant_ancestry"] = player.get("giant_ancestry")
@@ -2515,9 +2679,7 @@ def load_game(path):
         if payload["version"] >= 4:
             character["cantrips"] = list(player["cantrips"])
             character["spells"] = list(player["spells"])
-            character["spell_slots_remaining"] = {
-                "1": int(player["spell_slots_remaining"]["1"])
-            }
+            character["spell_slots_remaining"] = copy.deepcopy(player["spell_slots_remaining"])
         else:
             character["cantrips"] = []
             character["spells"] = []
@@ -2537,8 +2699,23 @@ def load_game(path):
                       + ("final_ability_scores", "equipment_package", "equipment_choices", "fighting_style")):
             character.pop(stale, None)  # choices and derived creation state of a previous character never leak into the loaded one
         character.update(copy.deepcopy(player.get("origin_choices") or {}))
+        character.pop("asi_choices", None)
+        # These player creation hints are not serialized authorities. Never
+        # inherit them from a previously loaded character after an ASI.
+        for cache in ("spell_save_dc", "spell_attack_bonus", "passive_perception"):
+            character.pop(cache, None)
+        if player.get("asi_choices"):
+            character["asi_choices"] = copy.deepcopy(player["asi_choices"])
+            character["final_ability_scores"] = {a: player[a] for a in
+                ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")}
         character.pop("progression_level", None)
         character.pop("metamagic", None)
+        character.pop("subclass_id", None)
+        character.pop("primal_knowledge_choice", None)
+        if "primal_knowledge_choice" in player:
+            character["primal_knowledge_choice"] = copy.deepcopy(player["primal_knowledge_choice"])
+        if "subclass_id" in player:
+            character["subclass_id"] = player["subclass_id"]
         character.pop("hit_dice", None)
         if "hit_dice" in player:
             character["hit_dice"] = dict(player["hit_dice"])
@@ -2561,6 +2738,13 @@ def load_game(path):
             )
         else:
             character["species_trait_state"] = copy.deepcopy(saved_trait_state)
+        character.pop("temporary_hit_points", None)
+        if character["species"] not in SPECIES_WITH_TRAIT_STATE:
+            if "temporary_hit_points" in player:
+                character["temporary_hit_points"] = player["temporary_hit_points"]
+            elif (isinstance(saved_trait_state, dict)
+                  and "temporary_hit_points" in saved_trait_state):
+                character["temporary_hit_points"] = saved_trait_state["temporary_hit_points"]
         character["modifiers"] = {
             ability: get_modifier(character[ability])
             for ability in ("strength", "dexterity", "constitution",
@@ -3070,6 +3254,10 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False, resolv
             "death_resolution": None,
         }
 
+    # Terminal Rage ending is part of this existing zero-HP mutation, before
+    # any death checkpoint rollback (which owns restoration of prior history).
+    import barbarian_rage
+    barbarian_rage.end(session)
     if hp_before > 0:
         if hp_damage >= hp_before + max_hp:
             state["dead"] = True
@@ -4050,7 +4238,37 @@ def _species_trait_state():
             character.get("species", character.get("race")),
             character.get("proficiency_bonus", 2),
         )
+    species = character.get("species", character.get("race"))
+    if species not in SPECIES_WITH_TRAIT_STATE:
+        temporary_hit_points = character.get(
+            "temporary_hit_points",
+            state.get("temporary_hit_points", 0),
+        )
+        if type(temporary_hit_points) is not int or temporary_hit_points < 0:
+            raise ValueError("Temporary Hit Points state is invalid.")
+        state["temporary_hit_points"] = temporary_hit_points
     return state
+
+
+def _set_temporary_hit_points(amount, state=None):
+    character = _session().character
+    state = state if isinstance(state, dict) else _species_trait_state()
+    state["temporary_hit_points"] = amount
+    if (character.get("species", character.get("race")) not in SPECIES_WITH_TRAIT_STATE
+            and (amount > 0 or "temporary_hit_points" in character)):
+        character["temporary_hit_points"] = amount
+    return amount
+
+
+def grant_temporary_hit_points(amount):
+    """Apply externally granted Temporary Hit Points without healing or waking the player."""
+    if type(amount) is not int or amount < 0:
+        raise ValueError("Temporary Hit Points must be a non-negative integer.")
+    state = _species_trait_state()
+    return _set_temporary_hit_points(
+        max(state["temporary_hit_points"], amount),
+        state=state,
+    )
 
 
 def _species_bonus_action():
@@ -4250,6 +4468,11 @@ def _finish_species_player_turn():
 def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None):
     require_player_can_act()
     if action in {"short_rest", "long_rest"}:
+        import barbarian_rage
+        barbarian_rage.prepare_restore(_session())
+        if action == "long_rest":
+            import sorcery_points
+            sorcery_points.prepare_restore(_session())
         ensure_campaign_clock()
         if "campaign_time" not in _session().world_state:
             raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
@@ -4260,6 +4483,10 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             raise ValueError("Dinlenme süresi geçersiz.")
         if ensure_combat_state()["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if action == "long_rest":
+            completed = _validate_long_rest_history(_session().world_state)
+            if completed is not None and _session().world_state["campaign_time"]["elapsed_seconds"] - completed < 16 * 3600:
+                raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
@@ -4272,6 +4499,10 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 import hit_dice
                 interrupted_effects["short_rest_hit_dice"] = True  # only the Hit Dice part of the Short Rest benefits
                 interrupted_effects["hit_dice"] = hit_dice.open_window(_session())
+                # Rage has its own source-backed Short Rest recovery. An
+                # interrupted Long Rest after an hour grants one, not all uses.
+                import barbarian_rage
+                barbarian_rage.restore(_session(), "short_rest")
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
                 "effects": interrupted_effects,
@@ -4423,7 +4654,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["adrenaline_rush_uses_remaining"] -= 1
         granted_hp = character.get("proficiency_bonus", 2)
-        state["temporary_hit_points"] = max(state["temporary_hit_points"], granted_hp)
+        grant_temporary_hit_points(granted_hp)
         speed = character.get("speed_ft", 30) + (
             10 if state["large_form_turns_remaining"] > 0 else 0
         )
@@ -4495,6 +4726,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         effects = {"adrenaline_rush_uses_refreshed": refreshed}
         import hit_dice
         effects["hit_dice"] = hit_dice.open_window(_session())  # K07: the player spends dice one request at a time
+        import barbarian_rage
+        barbarian_rage.restore(_session(), "short_rest")
         message = (
             "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
             if species == "Orc"
@@ -4525,6 +4758,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
         )
+        character.pop("temporary_hit_points", None)
         for npc in _session().world_state.get("npcs", []):
             if isinstance(npc, dict):
                 npc.pop("frightened_until_player_turn", None)
@@ -4535,6 +4769,11 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
         import spell_scope
         spell_scope.restore_slots(_session())
+        import sorcery_points
+        sorcery_points.restore(_session())
+        import barbarian_rage
+        barbarian_rage.restore(_session(), "long_rest")
+        _session().world_state["last_long_rest_completed_at"] = _session().world_state["campaign_time"]["elapsed_seconds"]
         message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
 
     elif action == "spend_hit_die":
@@ -4906,6 +5145,8 @@ def _start_combat_with_initiative(player_target_npc):
     ):
         raise ValueError("Combat participants require unique stable IDs.")
 
+    import barbarian_rage
+    barbarian_rage.settle(_session(), combat_active=False)
     _capture_combat_death_checkpoint()
     participant_ids = ["player", *[npc["id"] for npc in enemies]]
     combat = world_state["combat"]
@@ -5052,7 +5293,10 @@ def _apply_attack_damage_to_player(damage, critical, hit):
     species_effects = []
     temporary_hp_before = trait_state.get("temporary_hit_points", 0)
     temporary_hp_absorbed = min(temporary_hp_before, damage)
-    trait_state["temporary_hit_points"] = temporary_hp_before - temporary_hp_absorbed
+    _set_temporary_hit_points(
+        temporary_hp_before - temporary_hp_absorbed,
+        state=trait_state,
+    )
     hp_damage = damage - temporary_hp_absorbed
     player_hp_after = max(0, player_hp_before - hp_damage)
     endurance_used = False
@@ -5110,13 +5354,11 @@ def end_combat(reason="combat_ended"):
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
     if reason == "target_defeated":
         import xp
-        awarded = xp.award_defeated_combat(
-            combat,
-            _session().world_state,
-            _session().character,
+        _session()._receive_xp_award(
+            xp.award_defeated_combat, combat, _session().world_state, _session().character,
         )
-        if awarded is not None:
-            _session()._remember_xp_award(awarded)
+    import barbarian_rage
+    barbarian_rage.settle(_session(), combat_active=True)
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
@@ -5155,6 +5397,10 @@ def advance_combat_turn():
     """Advance initiative to the next living actor and roll over completed rounds."""
     combat = ensure_combat_state()
     if combat["active"]:
+        if combat["current_actor_id"] == "player":
+            import barbarian_rage
+            barbarian_rage.end_player_turn(_session(), combat["combat_id"],
+                combat.get("turn_resources", {}).get("player", {}).get("attack_turn_counter", 0))
         weapon_attack.boundary(_session(), combat["current_actor_id"], "end")
         action_economy.monster_event(_session(), "after_turn", combat["current_actor_id"])
     order = combat["initiative_order"]
@@ -13635,7 +13881,71 @@ def _is_explicitly_negated_attack(player_input):
     ))
 
 
-def execute_intent(intent, player_input, npc_target=None, target_id=None):
+def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None):
+    """Pure opt-in admission, not a new normal-command or PHB restriction.
+
+    Only bounded standalone immediate wording is supported. Other owners retain
+    their priority; timed, mixed, model-only and context-dependent routes refuse.
+    """
+    import barbarian_rage
+    if interaction_mode != 'do' or combat_action is not None or target_id is not None:
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'Use Primal Knowledge only for an immediate Do check.', 400)
+    world = _session().world_state
+    text = _normalize_turkish_typos(player_input) if type(player_input) is str else ''
+    simple = re.fullmatch(
+        r'(?:takla (?:atiyorum|atacagim|atmaya calisiyorum|atmak istiyorum)|'
+        r'dengede (?:yuruyorum|ilerliyorum|kaliyorum|geciyorum)|'
+        r'(?:ip|halat) uzerinde (?:yuruyorum|ilerliyorum)|'
+        r'akrobatik hareket (?:yapiyorum|ediyorum)|'
+        r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
+        r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
+        r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
+        r'(?:gizleniyorum|saklaniyorum)|'
+        r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
+        r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
+        r')[.! ]*', text,
+    )
+    journey = world.get('journey')
+    movement, wait, task, observation = timed_gameplay.input_route_markers(world, text)
+    timed = ((wait or task or observation) and campaign_time.requested_duration(player_input) is not None)
+    if (not simple or timed or world.get('active_task')
+            or (journey and journey.get('status') != 'ARRIVED')
+            or any(event.get('decision_status') == 'PENDING' for event in timed_gameplay.pending_events(world))
+            or adventure_play.inside_hideout(world)
+            or (isinstance(scene_plan, dict) and scene_plan.get('direct_result') is not None)):
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'This wording or route does not support an immediate Primal Knowledge check.', 400)
+    selected = deterministic_check_for_action(player_input)
+    skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
+    barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
+    return selected
+
+
+def execute_intent(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
+    if check_feature is None:
+        return _execute_intent_internal(intent, player_input, npc_target, target_id)
+    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+        raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    if isinstance(intent, dict) and intent.get('intent') in {'travel', 'attack', 'combat'}:
+        raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'The selected intent is not an immediate check.', 400)
+    primal_knowledge_check_admission(player_input, target_id=target_id)
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _execute_intent_internal(intent, player_input, npc_target, target_id,
+                                          check_feature=check_feature, check_evidence=evidence)
+        if result.get('action') != 'skill_check' or len(evidence) != 1:
+            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _execute_intent_internal(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
     world_state = _session().world_state
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
@@ -13830,7 +14140,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             skill = inferred_skill
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
-        ability = SKILLS[skill]
+        ability = "strength" if check_feature is not None else SKILLS[skill]
         trait_state = _species_trait_state()
         check_result = perform_skill_check(
             skill,
@@ -13839,6 +14149,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             _session().character["proficient_skills"],
             _session().character["proficiency_bonus"],
             expertise_skills=_session().character.get("expertise_skills", ()),
+            **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {}),
             advantage=(
                 ability == "strength"
                 and trait_state.get("large_form_turns_remaining", 0) > 0
@@ -13852,6 +14163,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             "skill": check_result["skill"],
             "ability": check_result["ability"],
             "dice": check_result["dice"],
+            **({"dice_rolls": check_result["dice_rolls"]} if check_feature is not None else {}),
             "modifier": check_result["modifier"],
             "proficiency_bonus": check_result["proficiency_bonus"],
             "expertise": check_result["expertise"],
@@ -15895,7 +16207,57 @@ def _adventure_travel_reply(session, destination):
     }
 
 
+def _intent_infrastructure_result(error):
+    """The existing retryable result, emitted only for a typed engine exception."""
+    text = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+    return {
+        "narration": text,
+        "action_result": {
+            "action": "unknown",
+            "status": "infrastructure_failure",
+            "success": False,
+            "state_changes": [],
+            "infrastructure_code": error.code,
+            "direct_response": text,
+        },
+    }
+
+
 def run_player_turn(
+    player_input, messages=None, target_id=None, scene_plan=None,
+    action_id=None, session_id=None, combat_action=None, interaction_mode=None,
+    check_feature=None, check_evidence=None,
+):
+    if check_feature is None:
+        return _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
+                                session_id, combat_action, interaction_mode)
+    if type(check_feature) is not str or check_feature != 'primal_knowledge':
+        raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    primal_knowledge_check_admission(player_input, interaction_mode=interaction_mode,
+                                     combat_action=combat_action, scene_plan=scene_plan, target_id=target_id)
+    snapshot = _session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
+                                  session_id, combat_action, interaction_mode,
+                                  check_feature=check_feature, check_evidence=evidence)
+        if result.get('action_result', {}).get('action') != 'skill_check' or len(evidence) != 1:
+            raise combat_lifecycle.CombatRequestError('primal_knowledge_immediate_check_only', 'No supported immediate check was resolved.', 400)
+    except IntentInfrastructureError as error:
+        # Preserve the API's retryable 503 path, not a permanent feature refusal.
+        _session()._restore_runtime_snapshot(snapshot)
+        return _intent_infrastructure_result(error)
+    except Exception:
+        _session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
+
+
+def _run_player_turn(
     player_input,
     messages=None,
     target_id=None,
@@ -15904,6 +16266,8 @@ def run_player_turn(
     session_id=None,
     combat_action=None,
     interaction_mode=None,
+    check_feature=None,
+    check_evidence=None,
 ):
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
     before = copy.deepcopy(_session().world_state)
@@ -15924,25 +16288,19 @@ def run_player_turn(
             session_id,
             combat_action,
             interaction_mode,
+            **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {}),
         )
     except IntentInfrastructureError as error:
+        if check_feature is not None:
+            # The outer opt-in owner restores its earlier snapshot and formats
+            # this typed failure. No arbitrary status dictionary bypasses proof.
+            raise
         # The classifier could not run: nothing was decided, so nothing is kept.
         if runtime_snapshot is not None:
             _session()._restore_runtime_snapshot(runtime_snapshot)
         else:
             _session().world_state.setdefault("flags", {})["turn_index"] = turn_index_before
-        text = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
-        return {
-            "narration": text,
-            "action_result": {
-                "action": "unknown",
-                "status": "infrastructure_failure",
-                "success": False,
-                "state_changes": [],
-                "infrastructure_code": error.code,
-                "direct_response": text,
-            },
-        }
+        return _intent_infrastructure_result(error)
     import dialogue_runtime
     dialogue_runtime.observe_turn(_session(), before, before_hp, result, player_input, action_id)
     action_result = result.get("action_result") if isinstance(result, dict) else None
@@ -16004,6 +16362,7 @@ def run_player_turn(
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
+    check_feature=None, check_evidence=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
@@ -16072,7 +16431,8 @@ def _dispatch_player_turn(
         if action_id is None:
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -16081,7 +16441,8 @@ def _dispatch_player_turn(
         with resolution_action_scope(action_id, session_id):
             try:
                 return _run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
                 )
             except TurnResolved as e:
                 return _narrate_resolved_turn(
@@ -16192,7 +16553,8 @@ def _dispatch_player_turn(
     if action_id is None:
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -16201,7 +16563,8 @@ def _dispatch_player_turn(
     with resolution_action_scope(action_id, session_id):
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan, interaction_mode, action_id
+                player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -16584,8 +16947,13 @@ def _owner_module_reply(player_input, interaction_mode):
 
 def _run_player_turn_internal(
     player_input, messages=None, target_id=None, scene_plan=None,
-    interaction_mode=None, action_id=None,
+    interaction_mode=None, action_id=None, check_feature=None, check_evidence=None,
 ):
+    def resolve_intent(*args, **kwargs):
+        if check_feature is not None:
+            kwargs.update(check_feature=check_feature, check_evidence=check_evidence)
+        return execute_intent(*args, **kwargs)
+
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     narration_model_calls = 0
     narration_source = "deterministic_system"
@@ -17518,7 +17886,7 @@ def _run_player_turn_internal(
                 interaction_mode not in {"say", "ask_dm"}
                 and _has_explicit_attack_verb(player_input)
             ):
-                action_result = execute_intent(
+                action_result = resolve_intent(
                     {"intent": "attack"},
                     player_input,
                 )
@@ -17705,13 +18073,13 @@ def _run_player_turn_internal(
 
     # An explicit hostile decision is already mechanically meaningful input.
     # Do not let a model reinterpret it as dialogue or an NPC interaction.
-    # Target resolution above and execute_intent() remain the existing combat
+    # Target resolution above and resolve_intent() remain the existing combat
     # owners; this is only deterministic routing precedence.
     if (
         interaction_mode not in {"say", "ask_dm"}
         and combat_lifecycle.is_attack_decision(_session(), player_input)
     ):
-        action_result = execute_intent(
+        action_result = resolve_intent(
             {"intent": "attack"},
             player_input,
             npc_target=npc_target,
@@ -17735,7 +18103,7 @@ def _run_player_turn_internal(
     if (interaction_mode not in {"say", "ask_dm"}
             and target_id is None and not combat["active"]
             and _explicit_sword_drop(player_input)):
-        action_result = execute_intent({"intent": "inventory"}, player_input)
+        action_result = resolve_intent({"intent": "inventory"}, player_input)
         return finish_turn(
             action_result,
             action_result.get("direct_response") or _fallback_for_action_result(
@@ -18441,7 +18809,7 @@ def _run_player_turn_internal(
             )
             narration_model_calls = 1
             narration_source = "qwen"
-            action_result = execute_intent(
+            action_result = resolve_intent(
                 {"intent": "dialogue"}, player_input, npc_target=npc_target,
                 target_id=target_id,
             )
@@ -18776,9 +19144,9 @@ def _run_player_turn_internal(
             "state_changes": [],
         }
     elif target_id is None:
-        action_result = execute_intent(validated_intent, player_input, npc_target)
+        action_result = resolve_intent(validated_intent, player_input, npc_target)
     else:
-        action_result = execute_intent(
+        action_result = resolve_intent(
             validated_intent,
             player_input,
             npc_target,
@@ -18980,10 +19348,41 @@ class GameSession:
         self._xp_level_up = None
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
+    def _receive_xp_award(self, award_owner, *args):
+        """Session adoption of an existing XP owner; no new reward or receipt policy.
+
+        Sessionless callers may use xp.apply_xp for detached numeric work, but
+        persistent sessions must use this boundary to atomically adopt format6.
+        """
+        snapshot = self._capture_runtime_snapshot()
+        had_format = "_persisted_engine_format" in self.__dict__
+        old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
+        try:
+            summary = award_owner(*args)
+            crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
+                        and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
+            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
+                raise ValueError("Legacy numeric advancement requires supported spell/save state.")
+            self._remember_xp_award(summary)
+            if crossing:
+                # Read through the real production admission owner before commit.
+                self._validate_save_payload(self.serialize_game_state())
+            return summary
+        except Exception:
+            self._restore_runtime_snapshot(snapshot)
+            if had_format:
+                self._persisted_engine_format = old_format
+            else:
+                self.__dict__.pop("_persisted_engine_format", None)
+            raise
+
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""
         if not isinstance(summary, dict):
             return
+        if (type(summary.get("xp_gained")) is int and summary["xp_gained"] > 0
+                and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0)):
+            self._persisted_engine_format = 6
         pending = self._xp_level_up
         if not isinstance(pending, dict):
             self._xp_level_up = copy.deepcopy(summary)
@@ -19019,6 +19418,8 @@ class GameSession:
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
             "xp_level_up": copy.deepcopy(self._xp_level_up),
+            "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
+            "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -19038,6 +19439,10 @@ class GameSession:
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
         self._xp_level_up = restored.get("xp_level_up")
+        if restored.get("persisted_engine_format_present", False):
+            self._persisted_engine_format = restored["persisted_engine_format"]
+        else:
+            self.__dict__.pop("_persisted_engine_format", None)
 
     def resolve_ambient_event_action(
         self,
@@ -19327,11 +19732,9 @@ class GameSession:
                            for item in quest["objectives"]):
                         quest["status"] = "completed"
                         import xp
-                        summary = xp.award_completed_quest(
-                            world, self.character, quest["quest_id"]
+                        self._receive_xp_award(
+                            xp.award_completed_quest, world, self.character, quest["quest_id"]
                         )
-                        if summary is not None:
-                            self._remember_xp_award(summary)
                         transitions.append(self._quest_transition(
                             "completed", quest["quest_id"], None, source_id, turn
                         ))

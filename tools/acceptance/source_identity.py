@@ -5,6 +5,7 @@ a server, or touches personal campaign data or port 8008.
 """
 import hashlib
 import json
+import ntpath
 import os
 from pathlib import Path
 import platform
@@ -21,23 +22,121 @@ BASELINE_LOCKS = ("pnpm-lock.yaml", "uv.lock")
 UI_PACKAGE = "artifacts/ai-dnd-experience/package.json"
 
 
-def git(repo_root, *args):
+def _git_context(repo_root):
+    """Pin Git to the requested checkout, including linked worktrees."""
+    root = Path(repo_root).resolve()
+    marker = root / ".git"
+    if marker.is_dir():
+        return root, marker.resolve()
+    if not marker.is_file():
+        raise ValueError(f"Repository has no .git entry: {root}")
+    content = marker.read_text(encoding="utf-8").strip()
+    if not content.startswith("gitdir: "):
+        raise ValueError(f"Malformed Git worktree pointer: {marker}")
+    git_dir = Path(content.removeprefix("gitdir: ").strip())
+    if not git_dir.is_absolute():
+        git_dir = root / git_dir
+    git_dir = git_dir.resolve(strict=True)
+    backlink = git_dir / "gitdir"
+    if not backlink.is_file() or Path(backlink.read_text(encoding="utf-8").strip()).resolve() != marker.resolve():
+        raise ValueError(f"Git worktree pointer does not match its admin directory: {root}")
+    return root, git_dir
+
+
+def _git_environment(env=None, *, platform_name=None, repo_root=None):
+    """Build a read-only Git environment without caller credentials or config."""
+    source = os.environ if env is None else env
+    platform_name = platform_name or os.name
+    trusted_path = []
+    if platform_name == "nt":
+        program_roots = {
+            os.environ.get(name, "")
+            for name in ("ProgramFiles", "ProgramFiles(x86)", "ProgramW6432")
+        }
+        git_roots = {
+            ntpath.normcase(ntpath.normpath(ntpath.join(root, "Git", subdir)))
+            for root in program_roots if root and ntpath.isabs(root)
+            for subdir in ("cmd", "bin")
+        }
+        if not git_roots:
+            git_roots = {
+                ntpath.normcase(r"c:\program files\git\cmd"),
+                ntpath.normcase(r"c:\program files\git\bin"),
+                ntpath.normcase(r"c:\program files (x86)\git\cmd"),
+                ntpath.normcase(r"c:\program files (x86)\git\bin"),
+            }
+        entries = source.get("PATH", "").split(";")
+        for entry in entries:
+            if entry and ntpath.isabs(entry):
+                normalized = ntpath.normcase(ntpath.normpath(entry))
+                if normalized in git_roots:
+                    trusted_path.append(ntpath.normpath(entry))
+    else:
+        for entry in source.get("PATH", os.defpath).split(os.pathsep):
+            if not entry:
+                continue
+            resolved = Path(entry).resolve()
+            if any(resolved == root or root in resolved.parents
+                   for root in (Path("/nix/store"), Path("/usr/bin"), Path("/bin"))):
+                trusted_path.append(str(resolved))
+    path_separator = ";" if platform_name == "nt" else os.pathsep
+    clean = {
+        "PATH": path_separator.join(trusted_path) or os.defpath,
+        "HOME": os.devnull,
+        "XDG_CONFIG_HOME": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_OPTIONAL_LOCKS": "0",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    if repo_root is not None:
+        root, git_dir = _git_context(repo_root)
+        clean["GIT_DIR"] = str(git_dir)
+        clean["GIT_WORK_TREE"] = str(root)
+    return clean
+
+
+def git_root(repo_root, env=None):
+    expected = Path(repo_root).resolve()
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"], cwd=expected,
+            env=_git_environment(env, repo_root=expected),
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    try:
+        return Path(completed.stdout.decode().strip()).resolve()
+    except (OSError, RuntimeError):
+        return None
+
+
+def git(repo_root, *args, env=None):
+    expected = Path(repo_root).resolve()
+    if git_root(expected, env=env) != expected:
+        raise ValueError(f"Git root does not match requested checkout: {expected}")
     return subprocess.check_output(
-        ["git", "-c", "core.fsmonitor=false", *args], cwd=repo_root,
-        env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"}, stderr=subprocess.PIPE).decode()
+        ["git", "-c", "core.fsmonitor=false", *args], cwd=expected,
+        env=_git_environment(env, repo_root=expected), stderr=subprocess.PIPE).decode()
 
 
-def ref_sha(repo_root, ref):
+def ref_sha(repo_root, ref, env=None):
+    expected = Path(repo_root).resolve()
+    if git_root(expected, env=env) != expected:
+        return None
     completed = subprocess.run(
-        ["git", "rev-parse", "--verify", "--quiet", ref], cwd=repo_root,
-        env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+        ["git", "rev-parse", "--verify", "--quiet", ref], cwd=expected,
+        env=_git_environment(env, repo_root=expected),
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     return completed.stdout.decode().strip() if completed.returncode == 0 else None
 
 
-def tree_state(repo_root):
+def tree_state(repo_root, env=None):
     """Porcelain -z keeps filenames verbatim; renames report both paths."""
-    fields = git(repo_root, "status", "--porcelain=v1", "-z", "--untracked-files=all").split("\0")
+    fields = git(repo_root, "status", "--porcelain=v1", "-z", "--untracked-files=all",
+                 env=env).split("\0")
     changed, index = set(), 0
     while index < len(fields) and fields[index]:
         entry = fields[index]

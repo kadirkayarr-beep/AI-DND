@@ -1,7 +1,9 @@
-import type { GameState } from '@workspace/api-client-react';
+import { SpellSlotConversionControl } from './spell-slot-conversion';
+export { SpellSlotConversionChoice, createConversionDraft } from './spell-slot-conversion';
+import type { CombatActionInput, GameState } from '@workspace/api-client-react';
 
 /** Read-only character information; preparation, resources and legality stay in Python. */
-export function SpellcastingPanel({ spellcasting }: { spellcasting: GameState['spellcasting'] }) {
+export function SpellcastingPanel({ spellcasting, decisionScope = '', conversionBlocked = true, onCommand }: { spellcasting: GameState['spellcasting']; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
   if (!spellcasting) return null;
   return (
     <section className="state-panel spellcasting-panel" aria-label="Büyüler ve büyü yuvaları" data-testid="panel-spellcasting">
@@ -27,6 +29,8 @@ export function SpellcastingPanel({ spellcasting }: { spellcasting: GameState['s
           </div>)}
         </dl>
       </div>
+      {spellcasting.sorcery_points && <p className="subtle-text mt-3" data-testid="spell-sorcery-points">Sorcery Points: {spellcasting.sorcery_points.current}/{spellcasting.sorcery_points.max}</p>}
+      {onCommand && <SpellSlotConversionControl spellcasting={spellcasting} decisionScope={decisionScope} blocked={conversionBlocked} onCommand={onCommand} />}
       {spellcasting.slot_turn && <p className="subtle-text mt-3" data-testid="spell-slot-turn">
         Son yuva kullanımı: Raunt {spellcasting.slot_turn[1]} · Sıra {spellcasting.slot_turn[2]}
       </p>}

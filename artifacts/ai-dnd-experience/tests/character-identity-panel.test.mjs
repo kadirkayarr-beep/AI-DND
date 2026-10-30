@@ -106,6 +106,6 @@ test('identity scroll stays inside the panel and the command box keeps its place
   assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*?\.workspace-left, \.world-column \{ display: none; \}/);
   assert.match(page, /<CharacterIdentityNotes character=\{character\} \/>/);
   assert.match(page, /<CharacterPanel character=\{state\.character\} \/>/);
-  assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} \/>/);
+  assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} decisionScope=\{decisionScope\} conversionBlocked=\{conversionBlocked\} onCommand=\{onEconomyCommand\} \/>/);
   assert.doesNotMatch(page, /command-input[\s\S]{0,200}character-identity-notes|character-identity-notes[\s\S]{0,200}command-input/);
 });

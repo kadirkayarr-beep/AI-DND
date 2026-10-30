@@ -10,6 +10,8 @@ from contextlib import nullcontext
 from uuid import uuid4
 
 import action_economy as economy
+import barbarian_rage
+import character_progression
 import initiative
 import spatial_rules
 from combat_lifecycle import CombatRequestError
@@ -21,7 +23,7 @@ MASTERY = frozenset("cleave graze nick push sap slow topple vex".split())
 SIZES = ("tiny", "small", "medium", "large", "huge", "gargantuan")
 CHOICES = frozenset({
     "mode", "ability", "grip", "mastery", "push_ft", "cleave_target_id",
-    "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id",
+    "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id", "reckless_attack",
 })
 
 
@@ -207,21 +209,112 @@ def turn_state(session, actor):
     if not combat["active"]:
         fail("combat_required", "Attacks require the authoritative combat owner.")
     return economy.ensure(session)[actor].setdefault("weapon_sequence", {
-        "attacks": 0, "light_weapon_ids": [], "light_used": False,
+        "attacks": 0, "attack_rolls": 0, "light_weapon_ids": [], "light_used": False,
         "cleave_used": False, "loading_origins": [],
     })
 
 
 def sequence_snapshot(session, actor):
     return session.world_state.get("combat", {}).get("turn_resources", {}).get(actor, {}).get(
-        "weapon_sequence", {"attacks": 0, "light_weapon_ids": [], "light_used": False,
+        "weapon_sequence", {"attacks": 0, "attack_rolls": 0, "light_weapon_ids": [], "light_used": False,
                             "cleave_used": False, "loading_origins": []})
+
+
+def reckless_eligible(data):
+    """Strict applied class eligibility, matching the bounded Danger Sense leaf."""
+    return (data.get("class") == "Barbarian"
+            and type(data.get("level")) is int and data["level"] >= 2
+            and type(data.get("progression_level")) is int
+            and data["progression_level"] <= data["level"]
+            and character_progression.applied_level(data) >= 2)
+
+
+def validate_saved_reckless(world, character):
+    """Validate the new effect without changing compatible legacy sequence state."""
+    combat = world.get("combat", {})
+    effects = world.get("attack_effects", [])
+    if not isinstance(effects, list):
+        raise ValueError("Invalid attack effects.")
+    found = False
+    for entry in effects:
+        if not isinstance(entry, dict):
+            raise ValueError("Invalid attack effect.")
+        if entry.get("kind") != "reckless_attack":
+            continue
+        resources = combat.get("turn_resources", {}).get("player", {})
+        counter = resources.get("attack_turn_counter", 0)
+        count = resources.get("weapon_sequence", {}).get("attack_rolls")
+        if (found or set(entry) != {"kind", "source_actor", "target_id", "expires_turn", "expires_boundary"}
+            or not combat.get("active") or not reckless_eligible(character)
+            or entry.get("source_actor") != "player" or entry.get("target_id") != "player"
+            or entry.get("expires_boundary") != "begin"
+            or type(counter) is not int or counter < 0
+            or type(entry.get("expires_turn")) is not int or entry["expires_turn"] != counter + 1
+            or type(count) is not int or count < 1):
+            raise ValueError("Invalid saved Reckless Attack effect.")
+        found = True
+    validate_saved_frenzy(world, character)
+
+
+def validate_saved_frenzy(world, character):
+    """Optional own-turn provenance, never inferred from current Rage alone."""
+    combat = world.get("combat", {})
+    for actor, resources in combat.get("turn_resources", {}).items():
+        sequence = resources.get("weapon_sequence", {})
+        flags = {name for name in ("frenzy_eligible", "frenzy_used") if name in sequence}
+        if not flags:
+            continue
+        count = sequence.get("attack_rolls")
+        attacks = sequence.get("attacks")
+        if (actor != "player" or not combat.get("active")
+            or not character_progression.berserker_eligible(character)
+            # The save boundary already validates these optional records. A
+            # historical Frenzy declaration requires their retained presence,
+            # but does not require Rage to remain active after the attack.
+            or "rage_v1" not in world or "worn_armor_v1" not in world
+            or any(sequence[name] is not True for name in flags)
+            or sequence.get("frenzy_eligible") is not True
+            or type(count) is not int or count < 1
+            or type(attacks) is not int or attacks < count
+            or not any(e.get("kind") == "reckless_attack" and e.get("source_actor") == "player"
+                       for e in world.get("attack_effects", []))):
+            raise ValueError("Invalid saved Frenzy sequence.")
+
+
+def reckless_active(session, actor):
+    combat = session.world_state.get("combat", {})
+    counter = combat.get("turn_resources", {}).get(actor, {}).get("attack_turn_counter", 0)
+    if (actor != "player" or not combat.get("active") or not reckless_eligible(session.character)
+        or type(counter) is not int or counter < 0):
+        return False
+    return any(isinstance(e, dict) and e.get("kind") == "reckless_attack"
+               and e.get("source_actor") == actor and e.get("target_id") == actor
+               and e.get("expires_boundary") == "begin"
+               and type(e.get("expires_turn")) is int and e["expires_turn"] == counter + 1
+               for e in session.world_state.get("attack_effects", []))
+
+
+def reckless_state(session, actor="player"):
+    combat = session.world_state.get("combat", {})
+    active = reckless_active(session, actor)
+    count = sequence_snapshot(session, actor).get("attack_rolls")
+    reason = ("feature_unavailable" if actor != "player" or not reckless_eligible(session.character)
+              else "combat_required" if not combat.get("active")
+              else "not_own_turn" if combat.get("current_actor_id") != actor
+              else "actor_cannot_act" if not economy.can_act(session, actor)
+              else "already_active" if active
+              else "legacy_attack_roll_count_unknown" if count is None
+              else "invalid_attack_roll_count" if type(count) is not int or count < 0
+              else "first_attack_roll_passed" if count != 0 else None)
+    return {"available": reason is None, "active": active, "reason": reason}
 
 
 def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="action", profile=None):
     choice = copy.deepcopy(choice or {})
     if set(choice) - CHOICES:
         fail("invalid_attack_choice", "Only player choices, never mechanical numbers, are accepted.")
+    if "reckless_attack" in choice and type(choice["reckless_attack"]) is not bool:
+        fail("invalid_attack_choice", "Reckless Attack requires an explicit boolean.")
     attacker, defender = actor_data(session, actor), actor_data(session, target)
     combat = session.world_state.get("combat", {})
     if combat.get("combat_id") and not combat["active"]:
@@ -246,6 +339,8 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         fail("actor_cannot_act", "Authoritative conditions prohibit this attack.")
     if "dead" in tconditions:
         fail("invalid_combat_target", "Dead creatures cannot be attacked.")
+    if "charmed" in aconditions and attacker.get("charmed_by") == target:
+        fail("charmed_target_forbidden", "Charmed creatures cannot attack their known charmer.")
     spatial = pair(session, actor, target)
     distance = spatial["distance_ft"]
     unarmed = weapon_id == "unarmed"
@@ -365,9 +460,9 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed", "petrified"}))
     if "prone" in tconditions:
         (advantage if distance <= 5 else disadvantage).append("target_prone")
-    if "invisible" in aconditions:
+    if "invisible" in aconditions and spatial.get("target_sees_attacker") is not True:
         advantage.append("invisible_attacker")
-    if "invisible" in tconditions:
+    if "invisible" in tconditions and spatial.get("attacker_sees_target") is not True:
         disadvantage.append("invisible_target")
     if spatial.get("attacker_sees_target") is False:
         disadvantage.append("unseen_target")
@@ -473,6 +568,16 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             fail("invalid_hands", "Grapple requires a free hand.")
         if choice.get("shove_option", "prone") not in {"prone", "push"}:
             fail("invalid_shove_choice", "Choose Prone or a 5-foot push.")
+    special = unarmed and unarmed_option != "damage"
+    if choice.get("reckless_attack"):
+        state = reckless_state(session, actor)
+        if special or not state["available"]:
+            fail("reckless_attack_unavailable", state["reason"] or "Reckless Attack requires an attack roll.")
+    if not special:
+        if ability == "strength" and (choice.get("reckless_attack") or reckless_active(session, actor)):
+            advantage.append("reckless_attack")
+        if reckless_active(session, target):
+            advantage.append("reckless_attack")
     if choice.get("cleave_target_id"):
         if mastery != "cleave" or mode != "melee" or sequence["cleave_used"]:
             fail("cleave_unavailable", "No unused Cleave mastery trigger.")
@@ -482,7 +587,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         if pair(session, target, second)["distance_ft"] > 5:
             fail("invalid_cleave_target", "Second target must be within 5 feet of the first.")
         # Validate the complete second attack before committing the first.
-        prepare(session, actor, second, weapon_id, {k: v for k, v in choice.items() if k != "cleave_target_id"},
+        prepare(session, actor, second, weapon_id, {k: v for k, v in choice.items() if k not in {"cleave_target_id", "reckless_attack"}},
                 origin="cleave", profile=profile)
     if choice.get("push_ft") is not None:
         integer(choice["push_ft"], "push choice", 0)
@@ -551,6 +656,7 @@ def preview(session, actor, target, weapon_id, choice=None, *, origin="action"):
 def mitigate(session, target, damage_type, amount, *, graze=False):
     defender = actor_data(session, target)
     resistances = set(defender.get("resistances", []))
+    resistances.update(barbarian_rage.resistance_types(session, target))
     if target == "player" and defender.get("species") == "Aasimar":
         resistances.update({"radiant", "necrotic"})
     resistance = damage_type in resistances
@@ -571,6 +677,13 @@ def mitigate(session, target, damage_type, amount, *, graze=False):
 
 
 def save(session, target, abilities, dc, chosen=None, *, effect_context=None):
+    # A real save is a mutation boundary; previews never call this owner.
+    with initiative.atomic(session):
+        barbarian_rage.settle(session)
+        return _save(session, target, abilities, dc, chosen, effect_context=effect_context)
+
+
+def _save(session, target, abilities, dc, chosen=None, *, effect_context=None):
     defender = actor_data(session, target)
     ability = chosen or max(abilities, key=lambda a: defender.get(a + "_save_bonus", defender.get(a + "_mod", 0)))
     if ability not in abilities:
@@ -583,13 +696,23 @@ def save(session, target, abilities, dc, chosen=None, *, effect_context=None):
         total = integer(defender.get(ability + "_save_bonus", modifier), "saving throw bonus")
         dodging = (ability == "dexterity" and economy.ensure(session).get(target, {}).get("dodging")
                    and economy.can_act(session, target) and economy.speed(session, target) > 0)
+        # PHB2024 PDF51: passive DEX-save Advantage unless Incapacitated.
+        # The auto-failure branch above already handles its implied conditions.
+        danger_sense = (target == "player" and ability == "dexterity"
+                        and defender.get("class") == "Barbarian"
+                        and type(defender.get("level")) is int and defender["level"] >= 2
+                        and type(defender.get("progression_level")) is int
+                        and defender["progression_level"] <= defender["level"]
+                        and character_progression.applied_level(defender) >= 2
+                        and "incapacitated" not in status)
         if target == "player":
             modifier, adjustment = saving_bonus(defender, ability)
         else:
             adjustment = total - modifier - 2 * exhaustion(defender)
         result = resolve_saving_throw(roll_fn=session.roll_d20, ability=ability, dc=dc,
                                     ability_modifier=modifier, circumstantial_modifier=adjustment,
-                                    advantage=bool(dodging), disadvantage=ability == "dexterity" and "restrained" in status)
+                                    advantage=bool(dodging or danger_sense or barbarian_rage.strength_advantage(session, target, ability)),
+                                    disadvantage=ability == "dexterity" and "restrained" in status)
     block = defender.get("monster_stat_block") or {}
     if (target != "player" and result["outcome"] == "FAILURE" and effect_context
             and session.world_state.get("combat", {}).get("active")
@@ -667,6 +790,7 @@ def slow_penalty(session, actor):
 def resolve(session, actor, target, weapon_id=None, choice=None, *, origin="action", profile=None):
     # Reuse the existing state/RNG rollback context; HTTP receipts own durability.
     with initiative.atomic(session):
+        barbarian_rage.settle(session)
         context = prepare(session, actor, target, weapon_id, choice, origin=origin, profile=profile)
         action_id, _, _ = resolution_identity("weapon_context")
         scope = nullcontext() if action_id else resolution_action_scope(str(uuid4()))
@@ -686,6 +810,11 @@ def _resolve(session, c):
         hit = unarmed_save["outcome"] == "FAILURE"
         critical = False
     else:
+        if c["choice"].get("reckless_attack"):
+            effect(session, "reckless_attack", actor, actor)
+            if (actor == "player" and character_progression.berserker_eligible(attacker)
+                    and barbarian_rage.active(session)):
+                turn_state(session, actor)["frenzy_eligible"] = True
         resolution = resolve_attack_roll(
             roll_fn=session.roll_attack if actor == "player" else session.roll_d20,
             attack_bonus=c["attack_bonus"], target_ac=c["target_ac"],
@@ -694,6 +823,9 @@ def _resolve(session, c):
         hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
         critical = bool(hit and (resolution["selected_roll"] == 20 or (
             c["spatial"]["distance_ft"] <= 5 and set(c["target_conditions"]) & {"unconscious", "paralyzed"})))
+    # Observe the actual roll/save, including misses, before damage can close combat.
+    if actor == "player":
+        barbarian_rage.observe_enemy_roll_or_save(session, target)
     graze = not hit and not c["auto_miss"] and c["mastery"] == "graze"
     damage_rolls, components, species_effects, additional_effects = [], [], [], []
     if hit and not special:
@@ -704,17 +836,31 @@ def _resolve(session, c):
         fixed = weapon.get("fixed_damage")
         if fixed is not None and not c["unarmed"]:
             modifier = 0  # Blowgun's fixed damage has no ability modifier.
+        rage_bonus = barbarian_rage.damage_bonus(session, c["ability"]) if actor == "player" else 0
         if fixed is not None:
-            raw = max(0, fixed + modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"])
+            raw = max(0, fixed + modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus)
         else:
             die = c["damage_die"]
             if weapon.get("grip") == 2 and "versatile" in weapon["properties"] and c["mode"] == "melee":
                 die = weapon["versatile_damage_die"]
             count = c["damage_dice"] * (2 if critical else 1)
             rolls = []
-            raw = max(0, session.roll_damage(die, count, modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"], rolls=rolls))
+            raw = max(0, session.roll_damage(die, count, modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus, rolls=rolls))
             damage_rolls.append({"source": "weapon", "die": die, "count": count, "rolls": rolls})
         components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
+        sequence = sequence_snapshot(session, actor)
+        if (actor == "player" and c["ability"] == "strength"
+                and session.world_state["combat"].get("current_actor_id") == "player"
+                and character_progression.berserker_eligible(attacker)
+                and barbarian_rage.active(session)
+                and sequence.get("frenzy_eligible") is True
+                and "frenzy_used" not in sequence):
+            count = barbarian_rage.damage_bonus(session, "strength") * (2 if critical else 1)
+            rolls = []
+            raw = session.roll_damage(6, count, 0, rolls=rolls)
+            damage_rolls.append({"source": "frenzy", "die": 6, "count": count, "rolls": rolls})
+            components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
+            turn_state(session, actor)["frenzy_used"] = True
         for extra in c["rules"].get("additional_damage", []):
             count = extra.get("damage_dice", 0) * (2 if critical and extra.get("critical_doublable", True) else 1)
             rolls = []
@@ -821,6 +967,8 @@ def _resolve(session, c):
     if combat["active"]:
         sequence = turn_state(session, actor)
         sequence["attacks"] += 1
+        if not special and "attack_rolls" in sequence:
+            sequence["attack_rolls"] += 1
         if "light" in weapon["properties"] and c["origin"] in {"action", "continuation"}:
             sequence["light_weapon_ids"].append(weapon["instance_id"])
         if c["origin"] in {"light", "nick"}:
@@ -872,7 +1020,7 @@ def _resolve(session, c):
     if hit and c["choice"].get("cleave_target_id"):
         sequence = turn_state(session, actor)
         sequence["cleave_used"] = True
-        second_choice = {k: v for k, v in c["choice"].items() if k != "cleave_target_id"}
+        second_choice = {k: v for k, v in c["choice"].items() if k not in {"cleave_target_id", "reckless_attack"}}
         result["cleave_attack"] = resolve(session, actor, c["choice"]["cleave_target_id"],
                                          weapon["weapon_id"], second_choice, origin="cleave")
     history = session.world_state.setdefault("attack_results", [])

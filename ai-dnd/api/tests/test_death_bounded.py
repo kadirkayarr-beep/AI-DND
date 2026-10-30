@@ -34,8 +34,10 @@ class DeathBoundedTests(unittest.TestCase):
     def test_zero_hp_massive_damage_uses_damage_before_temporary_hp(self):
         s = self.unconscious()
         s.character["max_hp"] = 2
-        s._species_trait_state()["temporary_hit_points"] = 2
+        s.grant_temporary_hit_points(2)
+        self.assertEqual(s._species_trait_state()["temporary_hit_points"], 2)
         result = s._apply_attack_damage_to_player(2, False, True)
+        self.assertEqual(result["temporary_hp_absorbed"], 2)
         self.assertEqual(result["death_resolution"]["cause"], "massive_damage")
 
     def test_recovery_once_and_cancellation(self):

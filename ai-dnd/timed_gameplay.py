@@ -766,6 +766,18 @@ def explicit_wait_request(text):
                    ("question", "reported", "conditional", "negated", "not_now"))
 
 
+def input_route_markers(world, normalized):
+    """Pure recognition shared by the timed owner and immediate-check admission."""
+    journey = world.get("journey")
+    movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
+    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
+    passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
+    task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
+    if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
+        task = True
+    return movement, wait, task, passive_observation
+
+
 def resolve_input(session, text):
     """Narrow deterministic player-intent grammar before model interpretation."""
     normalized = clock.normalize(text)
@@ -779,12 +791,7 @@ def resolve_input(session, text):
     if re.search(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir)\b", normalized):
         return None
     journey = world.get("journey")
-    movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
-    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
-    passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
-    task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
-    if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
-        task = True
+    movement, wait, task, passive_observation = input_route_markers(world, normalized)
     if not (movement or wait or task or passive_observation):
         return None
     if session.ensure_combat_state()["active"]:

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[3]
@@ -146,6 +147,32 @@ class RoadmapB06Tests(unittest.TestCase):
         self.assertEqual(record["status"], "BLOCKED")
         self.assertIsNone(record["exitCode"])
         self.assertIn("plan9", record["runtime"])
+
+    def test_missing_source_identity_blocks_before_spawn(self):
+        with mock.patch.object(owner.source_identity, "ref_sha", return_value=None):
+            with mock.patch.object(owner.source_identity, "tree_state",
+                                   return_value={"clean": True, "changed_paths": []}):
+                with mock.patch.object(owner, "spawn") as spawn:
+                    record = self.run_gate([PY, "-c", "pass"])
+        self.assertEqual(record["status"], "BLOCKED")
+        self.assertIsNone(record["exitCode"])
+        spawn.assert_not_called()
+
+    def test_mismatched_git_root_blocks_before_spawn(self):
+        child = mock.Mock()
+        child.wait.return_value = 0
+        tree = mock.Mock()
+        with mock.patch.object(owner.source_identity, "git_root",
+                               return_value=self.cwd / "wrong-copy"):
+            with mock.patch.object(owner.source_identity, "ref_sha",
+                                   return_value="a" * 40):
+                with mock.patch.object(owner.source_identity, "tree_state",
+                                       return_value={"clean": True, "changed_paths": []}):
+                    with mock.patch.object(owner, "spawn", return_value=(child, tree)) as spawn:
+                        record = self.run_gate([PY, "-c", "pass"])
+        self.assertEqual(record["status"], "BLOCKED")
+        self.assertIsNone(record["exitCode"])
+        spawn.assert_not_called()
 
     def test_non_utf8_output_does_not_break_the_runner(self):
         record = self.run_gate([PY, "-c", "import sys;sys.stdout.buffer.write(b'\\xff\\xfe caf\\xe9')"])

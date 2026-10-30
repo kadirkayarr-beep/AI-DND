@@ -1,0 +1,5 @@
+# K07 eligible source aggregation — 2026-10-28
+
+ACCEPTED narrowly after independent static review: weapon/Initiative aggregation of already eligible sources. Source PHB2024 Playing the Game PDF11. Eight literal oracle cases cover no source, multiple same-kind sources, unequal opposingcounts and duplicates through bothrealowners. State+hookmerging separately tested. Existing productbehavior alreadycorrect; QG1characterizationPASS, oraclepresenceREDbeforeadapter. No eligibility or skill/save/spell routingacceptance.
+
+Initialrelated349executionsPASS; final same-current-source combined `invisible-sight-final`489executionsPASS also includesaggregation. B02record bound to latterrun in `evidence/k07-source-aggregation-20261028/`. An earlierbindingattempt used laterartifact with earlierrawrun and is explicitly invalidated in sibling superseded folder; neveruseitforacceptance. Rawtestsuccess itself wasnotfalse. Reviewstaticonly, noindependentrerun. Generalfamily remainsOPEN. No push/merge/deploy.

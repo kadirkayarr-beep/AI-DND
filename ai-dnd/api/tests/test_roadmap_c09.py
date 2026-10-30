@@ -65,7 +65,8 @@ class DispatchTests(unittest.TestCase):
     def test_unsupported_slot_level_is_rejected_and_spends_nothing(self):
         s, e = caster()
         before = copy.deepcopy(s.world_state)
-        delta = spell_registry.cast_spell("Magic Missile", {"session": s}, 2, {"target_id": e["id"]})
+        # Selected C06 now supports earned slots2/3; slot4 remains genuinely unsupported.
+        delta = spell_registry.cast_spell("Magic Missile", {"session": s}, 4, {"target_id": e["id"]})
         self.assertEqual((delta["status"], delta["reason"]), ("rejected", "unsupported_spell_mode"))
         self.assertEqual(s.world_state, before)
         self.assertEqual(delta["changes"], [])

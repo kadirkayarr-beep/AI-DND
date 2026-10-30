@@ -905,3 +905,21 @@ def legacy_sword_move(session, dropping):
         world.clear()
         world.update(before)
         return "Python durumu: Eşya kimliğini belirtmelisin; envanter değişmedi."
+
+
+def validate_worn_armor(world, character, engine_format):
+    """Selected new-creation known-unarmored fact, not a general armor owner."""
+    if 'worn_armor_v1' not in world:
+        return
+    proof = world['worn_armor_v1']
+    if (type(engine_format) is not int or engine_format not in (4, 5, 6)
+            or character.get('class') != 'Barbarian'
+            or type(proof) is not dict or set(proof) != {'version', 'armor_id'}
+            or type(proof['version']) is not int or proof['version'] != 1
+            or proof['armor_id'] is not None):
+        fail('invalid_worn_armor_provenance')
+
+
+def initialize_unarmored_proof(session):
+    """Called only by verified new-character equipment selection, never load."""
+    session.world_state['worn_armor_v1'] = {'version': 1, 'armor_id': None}

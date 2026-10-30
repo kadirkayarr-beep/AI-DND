@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EconomyStepInputKind } from './economyStepInputKind';
+import type { EconomyStepInputMetamagic } from './economyStepInputMetamagic';
 import type { EconomyStepInputResource } from './economyStepInputResource';
 import type { ReadyResponseInput } from './readyResponseInput';
 import type { ReadyTriggerInput } from './readyTriggerInput';
@@ -30,6 +31,19 @@ export interface EconomyStepInput {
   ability?: string | null;
   /** @nullable */
   form?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 9
+     * @nullable
+     */
+  slot_level?: number | null;
+  /** Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts. */
+  metamagic?: EconomyStepInputMetamagic;
+  /**
+     * Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.
+     * @nullable
+     */
+  reckless_attack?: boolean | null;
   trigger?: ReadyTriggerInput | null;
   response?: ReadyResponseInput | null;
 }

@@ -1654,7 +1654,12 @@ class ContractParityTests(unittest.TestCase):
             public_state["scene"]["player_position"]["kind"],
             "standing",
         )
-        self.assertEqual(set(public_state["character"]), _property_names("GameCharacter"))
+        # Feature projections exist only for a character that holds the feature.
+        conditional_character_fields = {"rage", "primal_knowledge_check", "progression_effects_pending"}
+        self.assertEqual(
+            set(public_state["character"]),
+            _property_names("GameCharacter") - conditional_character_fields,
+        )
         self.assertEqual(set(public_state["combat"]), _property_names("GameCombat"))
         self.assertEqual(
             set(public_state["world"]),

@@ -1,0 +1,44 @@
+# C06 manual browser fixture — bounded verification plan
+
+Goal: let the user validate the already reviewed UI with visible controls when automated Chromium is blocked. This is a new disposable fixture, not a production auth/security change, deployment or weakened unittest guard. User availability was asked and is pending; do not start a local server until the user is ready. Main development stays in cloud; the connected desktop is only the authorized necessary fallback.
+
+## Existing evidence and build
+- Current product code is statically reviewed, related52NodePASS, defaultUI160PASS/1SKIP, fulltscPASS.
+- Cloud Chromium fails IPC; reviewed launcher failed before browser. Windows probe was inconclusive due deniedCIM cleanup query; no PID retained. Do not retry that query or enumerate/kill unrelated processes.
+- A separate Vite build of existing tests/r02-live-fixture/index.html already exists in work/c06-ui-fixture-dist. It mounts actualGameBrowser, no fetch replacement. VerifiedcompiledJS contains newstalechoice recovery text. Normalapp build withoutClerk key tree-shakes game UI, so it is not the fixture.
+- Do not import existing R02 serve.py: it patches engine turns. This factory leaves engine unpatched and rejects routes outside the manualcreation scope before dispatch.
+- Existing Windows Python3.14.2 verified at C:\Users\Kadir\AppData\Local\Python\pythoncore-3.14-64\python.exe; FastAPI0.141.1/Uvicorn0.54.0/Pydantic2.12.5/HTTPX0.28.1 installed. Appcompatibility unverified. No installation needed or authorized by this fixture plan.
+
+## Files / interfaces
+1. tools/acceptance/manual_c06_fixture.py
+- create_manual_fixture(run_root:Path, static_root:Path) -> FastAPI, imported safely without launching server.
+- Require AI_DND_DISABLE_DEFAULT_APP=1 BEFORE importing api.main. Require owned run-root marker; reject symlink root/db and external/path-escape DB. DB fixed run_root/db/campaigns.sqlite3, retained only for this fixture's restart. Mount ONLY verified prebuilt static_root after existing API routes; no arbitrary source-directory serving.
+- Real CampaignStore/SessionManager/create_app(ollama_adapter=None,authenticator=FixedAuthenticator(TEST_PLAYER)). No engine monkeypatch, no model binding, no realClerk.
+- Fixture-only middleware allowlists method/path: GET health, character-creation-options/catalog, campaign-start-options, campaign list/detail, session state and unresolved-action read; POST campaign create/save/resume. Canonical and existing aliases where applicable. UUID-shaped path IDs. Deny turns, identity suggestions, ambient/species/combat/undo/abandon/delete and other API paths BEFORE dispatch. UnknownnonAPI/staticpaths404; no API documentation routes exposed. Explicit scopes prevent accidental directOllama calls that adapter=None alone does not prevent.
+- Restrictive CSP on every response: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'. Cache-Control:no-store. No browser/securitysetting change. GoogleFonts blocked, fallbackfontvisualdifference disclosed.
+- Minimal trace captures only method/path/status and successfulcreation's class/starting_level/spells/level_choices (not names/backstory/headers/tokens). Synthetic test identity only. Logging must not change mutation outcome; boundedtrace failures recorded separately, not create a false rollback aftercommit.
+- CLI serve mode binds exactly one127.0.0.1:0 socket, rejects protected8008/11434, records PID and actual URL promptly to run_root/ready.json, then serves. No automaticbrowserlaunch.
+2. tools/acceptance/run_manual_c06_fixture.py
+- Standard-library launcher accepting verified absolute Pythonpath, verifiedbundle/staticdir, finite duration. No installer or broadlocaldiscovery.
+- Verify every package manifest path/hash/size, reject traversal/symlinks. Use fresh ownedHOME/TMP/runroot; explicit envallowlist without credentials/proxies/model/Clerksettings; AI_DND_DISABLE_DEFAULT_APP1. Do not import originalPCproject.
+- Reuse unchanged platform_runner.spawn and tree.close processowner; no CIM/globalprocessqueries. Record ownedPID immediately. run_gate itself requiresGit and is unsuitable for .git-freeexport; fixture provenance is explicitly bundle SHA256/source manifest, never a fabricatedcommit or 'guarded unittest' claim.
+- A bounded restart.request control file triggers closing onlyownedtree andstartingfreshmanager on samefixtureDB; stop.request/duration stopsownedtree. Preserve logs and syntheticDB for evidence until usertest complete; no globalcleanup. No browserprocessowned/closed, since useropensincognito manually.
+3. tests/test_roadmap_c06_manual_fixture.py under ai-dnd/api/tests (guardedASGI only): realcatalog→createSorcerer3→save→freshappresume exactfields; forbiddenroutes nevercallturn/model; engine methodidentity unchanged; ownedroot/DB/staticboundary; CSP; trace excludes header/name sentinel; invalidrootfailsbeforeDB. Runnerpreflight/env/manifestunitchecks use fixtures and existing processowner mocks, not realnetworkunderunitguard.
+
+## TDD and review
+- First write assertionRED for missing factory/protocol; run through unchangedrun_guarded.py withunique labels. No actualserver inunitrun.
+- Implementminimalfactory/launcher; GREEN relatedcreation/catalog/persistence. Testrealpostconditions, notjustmockcallcounts. Independentreview beforelocalexecution.
+- Package source+prebuiltfixture+manifest, excluding.git/venv/personalDB/.env/rawbooks. Localconsumer materializes exactSpaceID, verifies ZIPandmembers, probesappimports undercleanenv, then onlyafteruserready startsoneownedloopbackfixture. No existingcheckout overwrite, push, merge orpublication.
+- Actualmanualevidence must be labeled human/browser/realHTTP as observed. ASGItests orscreenshots alone do not establish exactsentpayload; fixturetrace provides selectedkeys, stateandDB checks confirm persistence. No claimofrealmodel/combat/Clerk/fullC06.
+
+## Human checklist
+Visiblecards/labels only, neverhiddenlegacyselectors. Create Human/Criminal/Sorcerer3, CON14; initialMM+Shield, L2BurningHands+ChromaticOrb andQuickened+Twinned, L3DisguiseSelf+DetectMagic andexplicit subclass. ConfirmreviewdefersHP, revealserverlevel3/HP20/slots4+2 andpendingnotice. Save, restartfixturebackendonly, reopen/list/resumeconfirmchoices. Checksource-loss/staleinitialrecovery with controlledfixturemetadata onlyif separatelysupported; no liveeditinguserstate. Verifyclassswitch/randomnohigherpayload, invalidchoicesblocked, keyboard/mobile layout. Stopafterrecordingoutcome; failuresstayopen.
+
+## Pre-TDD review refinements
+- Factory takes explicit bound authority and launch generation. Enforce exact Host=127.0.0.1:port; reject foreign or null Origin and cross-site Fetch Metadata before dispatch. Every POST requires the exact same-origin Origin. Campaign creation requires JSON; save/resume permit truly empty bodies without Content-Type, matching generated clients. Keep OPTIONS/CORS closed. Uvicorn proxy_headers=False; do not trust forwarded headers.
+- Correct options route is /api[/game]/character-options. Entry URL is /tests/r02-live-fixture/index.html. GET unresolved route is /api/game/sessions/{id}/actions/unresolved. No out-of-scope endpoints admitted for convenience.
+- Each restart receives a new port/URL. Invalidate old ready.json before launch, record generation/PID promptly, require matching generation when reading readiness, and tell the user to reopen the newly reported URL. Do not imply old tab remains connected.
+- Sanitize Windows USERPROFILE/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA as well as HOME/TEMP/TMP to owned fresh directories. Use isolated Python flags and explicit source/interpreter paths. Reject symlinks, junctions and reparse escapes in bundle/run paths. No original project/user-site/.env imports.
+- Trace mode plus ONLY submitted class/starting_level/spells/level_choices, preserving omission. Successful creation trace includes synthetic returned campaign_id and launch generation. Never record auth headers or personal description fields. A trace failure after commit preserves HTTP success and marks manual evidence incomplete; no automatic creation retry or rollback claim.
+- Verify exact extracted member set plus every hash/size, not merely listed files. Reject extra source/static files, traversal/absolute names, Windows case collisions/ADS names and symlink/junction members before imports or static mount. Runtime files live outside immutable bundle. Bind owned-root marker to bundle digest for restart. This is provenance/preflight, not a kernel sandbox claim.
+- Implement factory and guarded ASGI tests first. Launcher follows after factory review. No actual TCP server or browser starts in this cloud unit-test phase.

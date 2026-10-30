@@ -122,6 +122,7 @@ from api.serializers import (
     serialize_skill_check_result,
     serialize_session_state,
 )
+from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult
 from api.session_manager import SessionManager, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
@@ -820,7 +821,7 @@ def create_app(
             campaign_id, session_id, record, metadata = manager.create_campaign(
                 request.name,
                 character=(
-                    request.character.model_dump()
+                    request.character.model_dump(by_alias=True, exclude_none=True)
                     if request.character is not None
                     else None
                 ),
@@ -1028,6 +1029,8 @@ def create_app(
             hash_payload["interaction_mode"] = request.interaction_mode
         if request.combat_action is not None:
             hash_payload["combat_action"] = request.combat_action.model_dump(exclude_none=True)
+        if request.check_feature is not None:
+            hash_payload["check_feature"] = request.check_feature
         if request.combat_id is not None:
             hash_payload.update(combat_id=request.combat_id, combat_round=request.combat_round,
                                 combat_turn_index=request.combat_turn_index)
@@ -1141,9 +1144,25 @@ def create_app(
                     raise refuse_before_commit(error.status_code, error.code, str(error)) from None
                 except ValueError:
                     raise refuse_before_commit(409, "invalid_combat_state", "Combat state is invalid.") from None
+            # Pure opt-in admission precedes adapter preflight and every mutating
+            # scene/lore planner. Ordinary turns retain their existing order.
+            if request.check_feature is not None:
+                try:
+                    session.primal_knowledge_check_admission(
+                        request.message, interaction_mode=effective_mode,
+                        combat_action=request.combat_action, target_id=request.target_id,
+                    )
+                except combat_lifecycle.CombatRequestError as error:
+                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+            check_evidence = [] if request.check_feature is not None else None
             import spell_scope
+            import sorcery_points
+            slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
+                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+            )
             if isinstance(session, game.GameSession) and (
                 session.character.get("current_hp", 1) <= 0
+                or slot_conversion
                 or spell_scope.explicit_request(
                     request.message,
                     request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
@@ -1256,7 +1275,7 @@ def create_app(
                     )
                 effective_target_id = (
                     None
-                    if effective_mode == "ask_dm"
+                    if effective_mode == "ask_dm" or slot_conversion
                     else request.target_id
                 )
                 plan_kwargs = {"target_id": effective_target_id}
@@ -1271,7 +1290,10 @@ def create_app(
                         ).parameters
                     if "interaction_mode" in plan_parameters:
                         plan_kwargs["interaction_mode"] = effective_mode
-                scene_plan = session.plan_living_world_turn(
+                # Exact resource-only conversion has no scene/reference authority.
+                # Its display label or a retained UI target must not focus an NPC,
+                # materialize a place, or alter an existing conversation first.
+                scene_plan = None if slot_conversion else session.plan_living_world_turn(
                     narrative_player_message,
                     **plan_kwargs,
                 )
@@ -1330,6 +1352,8 @@ def create_app(
                                             game.run_player_turn
                                         ).parameters
                                     run_kwargs = {}
+                                    if request.check_feature is not None:
+                                        run_kwargs.update(check_feature=request.check_feature, check_evidence=check_evidence)
                                     if request.combat_action is not None:
                                         run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
                                     if "scene_plan" in run_parameters:
@@ -1544,6 +1568,7 @@ def create_app(
                 skill_check_result = serialize_skill_check_result(
                     action_result,
                     session,
+                    **({"check_evidence": check_evidence} if request.check_feature is not None else {}),
                 )
                 combat_result = serialize_combat_result(action_result, session)
                 combat_history_entry = serialize_combat_history_entry(
@@ -2292,6 +2317,204 @@ def create_app(
                         "message": "The event result could not be saved safely.",
                     },
                 ) from None
+
+    def level_up_projection(record: Any, session_id: str) -> dict[str, Any]:
+        """Public earned eligibility only; core/save choices ahead of XP remain legal."""
+        import character_progression as progression
+        import xp
+        from api.dnd_2024_rules import SPELLS_CATALOG
+        session = record.game_session
+        character = session.character
+        token = getattr(session, "_campaign_persistence_version", None)
+        import spell_scope
+        cls = character.get("class")
+        applied = character.get("progression_level", 1)
+        ceiling = {"Sorcerer": 5, "Barbarian": 5}.get(cls, 2)
+        valid_applied = type(applied) is int and 1 <= applied <= ceiling
+        target = min(applied + 1, ceiling) if valid_applied else ceiling
+        result = dict(session_id=session_id, campaign_id=record.campaign_id,
+                      revision=token[1] if isinstance(token, tuple) and len(token) == 2 else None,
+                      status="blocked", reason=None, target_level=target,
+                      class_name=cls, from_level=applied if valid_applied else None)
+        if record.campaign_id is None:
+            result["reason"] = "campaign_persistence_required"
+        elif cls not in {"Sorcerer", "Barbarian"}:
+            result["reason"] = "selected_progression_not_supported"
+        elif not valid_applied:
+            result["reason"] = "previous_progression_state_invalid"
+        elif applied == ceiling:
+            result["reason"] = "target_not_above_applied_level"
+        elif (type(character.get("xp")) is not int or character["xp"] < dict(xp.LEVEL_THRESHOLDS)[target]
+              or type(character.get("level")) is not int or not target <= character["level"] <= xp.MAX_LEVEL):
+            result["reason"] = "level_not_earned"
+        else:
+            try:
+                progression.validate_saved(character, session.world_state)
+                if cls == "Sorcerer":
+                    state = session.world_state.get("spellcasting_v1")
+                    if type(state) is not dict:
+                        raise ValueError("Prior spell state required")
+                    spell_scope.validate(state, character)
+                    cap = progression.capacity(character)
+                    if (len(state["cantrips"]) != cap["cantrips"] or len(state["prepared"]) != cap["prepared_spells"]
+                            or character.get("cantrips") != state["cantrips"] or character.get("spells") != state["prepared"]):
+                        raise ValueError("Prior complete spell choices required")
+                    # The world counter is authoritative; independently bound the lagging mirror.
+                    spell_scope.validate({**state, "slots": character.get("spell_slots_remaining")}, character)
+            except (ValueError, KeyError, TypeError):
+                result["reason"] = "previous_progression_state_invalid"
+                return LevelUpPreviewResponse.model_validate(result).model_dump(mode="json")
+            preview = progression.preview_level_up(session, target)
+            result.update(status=preview["status"], reason=preview["reason"])
+            if preview["status"] == "ready":
+                result.update(choices_required=preview["choices_required"], capacity=preview["capacity"],
+                              effects_pending=preview["effects_pending"], effects_supported=preview.get("effects_supported", []))
+                if cls == "Sorcerer":
+                    metadata = progression.sorcerer_starting_creation_options()
+                    if not metadata:
+                        result.update(status="blocked", reason="progression_options_unavailable")
+                    else:
+                        options = metadata[f"level_{target}"]
+                        result.update(
+                            supported_asi_choices=preview.get("supported_asi_choices", []),
+                            cantrip_ids=[s["id"] for s in SPELLS_CATALOG["Sorcerer"]["cantrips"] if target == 4 and s["id"] not in state["cantrips"]],
+                            prepared_spell_ids=[identity for identity in options["prepared_spell_ids"] if identity not in state["prepared"]],
+                            metamagic_options=[identity for identity in options.get("metamagic_options", []) if identity not in character.get("metamagic", [])],
+                            subclass_options=options.get("subclass_options", []),
+                        )
+                else:
+                    result["effects_supported"] = preview.get("effects_supported", [])
+                    if target == 4:
+                        result["supported_asi_choices"] = preview.get("supported_asi_choices", [])
+                    if target == 3:
+                        result["subclass_options"] = preview.get("subclass_options", [])
+                        result["primal_knowledge_skill_options"] = preview.get("primal_knowledge_skill_options", [])
+        return LevelUpPreviewResponse.model_validate(result).model_dump(mode="json")
+
+    @application.get("/api/game/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
+                     operation_id="getGameSessionLevelUp")
+    @application.get("/api/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
+                     include_in_schema=False)
+    def preview_earned_level_up(session_id: str) -> dict[str, Any]:
+        record = get_record(session_id)
+        with record.turn_lock:
+            record = get_record(session_id)
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            require_current(record)
+            return level_up_projection(record, session_id)
+
+    @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
+                      operation_id="applyGameSessionLevelUp")
+    @application.post("/api/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
+                      include_in_schema=False)
+    def apply_earned_level_up(session_id: str, request: LevelUpApplyRequest) -> dict[str, Any]:
+        import character_progression as progression
+        record = get_record(session_id)
+        if record.campaign_id is None:
+            raise HTTPException(status_code=409, detail={"code": "campaign_persistence_required"})
+        action_id = str(request.action_id)
+        request_hash = hashlib.sha256(json.dumps(
+            {"command": "level_up", **request.model_dump(mode="json", exclude={"action_id"})},
+            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+
+        def refusal(status_code: int, code: str) -> HTTPException:
+            detail = {"code": code, "message": "Seviye seçimi uygulanmadı.", "not_applied": True}
+            try:
+                durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
+            except Exception:
+                durable = False
+            if not durable:
+                detail.pop("not_applied")
+            return HTTPException(status_code=status_code, detail=detail)
+
+        try:
+            claim = manager.claim_action_intent(record, action_id, request_hash)
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+        if claim["outcome"] == "hash_conflict":
+            raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+        if claim["outcome"] == "conflict":
+            error = refusal(409, "unresolved_action")
+            error.detail["unresolved_action_id"] = claim["unresolved_action_id"]
+            raise error
+        with record.turn_lock:
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            ensure_usable(record)
+            try:
+                previous = manager.get_turn_action(record, action_id)
+                if previous is not None:
+                    if previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+                    return replay_action_response(previous["response"], LevelUpCommandResult, session_id)
+                refused = manager.get_refused_action(record, action_id)
+                if refused is not None:
+                    if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
+                    raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+                manager.assert_current(record)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if str(request.campaign_id) != record.campaign_id:
+                raise refusal(409, "level_up_campaign_mismatch")
+            public = level_up_projection(record, session_id)
+            if request.expected_revision != public["revision"]:
+                raise refusal(409, "level_up_preview_stale")
+            if public["status"] != "ready":
+                raise refusal(409, public["reason"] or "level_up_unavailable")
+            if request.target_level != public["target_level"]:
+                raise refusal(409, "level_up_preview_stale")
+            session = record.game_session
+            preview = progression.preview_level_up(session, request.target_level)
+            choices = request.choices.model_dump(mode="json")
+            if request.target_level in (3, 4, 5):
+                from api.schemas import (BarbarianLevel2Choices, BarbarianLevel3Choices, SorcererLevel3Choices, BarbarianLevel4Choices,
+                                         LevelUpChoices, LevelUpFiveChoices)
+                expected_choices = {
+                    3: {"Barbarian": BarbarianLevel3Choices, "Sorcerer": SorcererLevel3Choices},
+                    4: {"Barbarian": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices},
+                    # Barbarian 5 has no choices: the same empty strict object as Barbarian 2 (no new schema).
+                    5: {"Barbarian": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices},
+                }[request.target_level][session.character["class"]]
+                if not isinstance(request.choices, expected_choices):
+                    raise refusal(409, "level_up_choice_class_mismatch")
+            # Validate before entering the mutation transaction; failures are durable refusals.
+            problem = progression._check_choices(session, preview, choices)
+            if problem:
+                raise refusal(409, problem)
+            snapshot = _capture_session(session)
+            had_format = "_persisted_engine_format" in session.__dict__
+            previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
+            response_payload = None
+            try:
+                result = progression.apply_level_choices(session, preview, choices)
+                if result["status"] != "applied":
+                    raise ValueError("Validated level choices could not be applied.")
+                response_payload = redact_sensitive_values(LevelUpCommandResult(
+                    session_id=session_id, action_id=action_id,
+                    state=serialize_session_state(session, record.journal, record.lore_authority), result=result,
+                ).model_dump(mode="json"))
+                manager.save_campaign_locked(record, turn_action_receipt={
+                    "action_id": action_id, "request_hash": request_hash, "response": response_payload,
+                    "public_state": serialize_session_state(session, record.journal, record.lore_authority),
+                })
+            except Exception as error:
+                _raise_if_commit_unconfirmed(
+                    manager, record, action_id, request_hash, response_payload, error,
+                    adopt=lambda: setattr(record, "undo_checkpoint", None),
+                )
+                if had_format:
+                    session._persisted_engine_format = previous_format
+                else:
+                    session.__dict__.pop("_persisted_engine_format", None)
+                _rollback_session(record, session, snapshot)
+                if isinstance(error, CampaignError):
+                    raise campaign_http_exception(error) from None
+                raise HTTPException(status_code=500, detail={"code": "level_up_failed", "message": "Seviye seçimi güvenle kaydedilemedi."}) from None
+            record.undo_checkpoint = None
+            return response_payload
 
     return application
 

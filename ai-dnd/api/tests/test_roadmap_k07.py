@@ -67,6 +67,21 @@ class NumericRuleOracleTests(unittest.TestCase):
             self.assertEqual(xp.proficiency_bonus_for(level), dnd_2024_rules.proficiency_bonus_for_level(level))
         self.assertIs(character_progression.proficiency_bonus_for_level, dnd_2024_rules.proficiency_bonus_for_level)
 
+    def test_zero_hp_temporary_hit_points_oracle_matches_source(self):
+        result = rule_oracles.evaluate_rule_case(
+            "K07.death_saves_and_stable.temp_hp_at_zero#01", ORACLES
+        )
+        self.assertTrue(result["match"], result)
+        self.assertEqual(result["source_ref"]["pdf_page"], 28)
+
+    def test_supported_death_saves_and_stable_oracles_match_source(self):
+        for case_number in range(1, 15):
+            case_id = f"K07.death_saves_and_stable.core#{case_number:02d}"
+            with self.subTest(case_id=case_id):
+                result = rule_oracles.evaluate_rule_case(case_id, ORACLES)
+                self.assertTrue(result["match"], result)
+                self.assertEqual(result["source_ref"]["pdf_page"], 28)
+
     def test_a_wrong_expectation_is_detected_not_absorbed(self):
         broken = {**ORACLES, "leaves": [
             dict(leaf, cases=[dict(case, expected=(case["expected"] + 1) if isinstance(case["expected"], int) else case["expected"])
@@ -74,8 +89,10 @@ class NumericRuleOracleTests(unittest.TestCase):
         self.assertFalse(rule_oracles.evaluate_rule_case("K07.ability_modifier#01", broken)["match"])
 
     def test_an_open_rule_family_cannot_be_evaluated_as_if_it_passed(self):
+        open_rule = "heal_cap_and_temp_hp_no_stack_choice"
+        self.assertIn(open_rule, {row["rule"] for row in ORACLES["open_leaves"]})
         with self.assertRaises(rule_oracles.OpenRule):
-            rule_oracles.evaluate_rule_case("K07.death_saves_and_stable#01", ORACLES)  # a family that is still OPEN
+            rule_oracles.evaluate_rule_case(f"K07.{open_rule}#01", ORACLES)
 
 
 if __name__ == "__main__":

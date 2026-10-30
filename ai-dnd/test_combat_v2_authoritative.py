@@ -817,6 +817,7 @@ class CombatV2(unittest.TestCase):
                     with self.subTest(version=version, schema=schema_version, index=index):
                         legacy = copy.deepcopy(original)
                         legacy['version'] = version
+                        legacy['player'].pop('weapon_proficiencies', None)
                         order = [self.npc['id'], 'player']
                         participants = ['player', self.npc['id']]
                         legacy['world_state']['combat'] = {
@@ -918,6 +919,7 @@ class CombatV2(unittest.TestCase):
                 with self.subTest(version=version, field=field, value=value):
                     legacy = copy.deepcopy(original)
                     legacy['version'] = version
+                    legacy['player'].pop('weapon_proficiencies', None)
                     legacy['player']['name'] = 'Must Roll Back'
                     legacy['recent_dm_narrations'] = ['Must Roll Back']
                     legacy['world_state']['combat'] = copy.deepcopy(legacy_combat)
@@ -949,6 +951,7 @@ class CombatV2(unittest.TestCase):
                                           index=index, markers=markers):
                             legacy = copy.deepcopy(original)
                             legacy['version'] = version
+                            legacy['player'].pop('weapon_proficiencies', None)
                             order = [self.npc['id'], 'player']
                             participants = ['player', self.npc['id']]
                             combat = {
@@ -1080,6 +1083,7 @@ class CombatV2(unittest.TestCase):
                                           active=active, markers=markers):
                             legacy = copy.deepcopy(original)
                             legacy['version'] = version
+                            legacy['player'].pop('weapon_proficiencies', None)
                             legacy['player']['name'] = 'Must Roll Back'
                             legacy['recent_dm_narrations'] = ['Must Roll Back']
                             legacy['world_state']['combat'] = {
@@ -1200,6 +1204,7 @@ class CombatV2(unittest.TestCase):
         rng_before = self.session.rng.getstate()
         legacy = copy.deepcopy(before)
         legacy['version'] = 2
+        legacy['player'].pop('weapon_proficiencies', None)
         legacy['player']['name'] = 'Forged Name'
         legacy['world_state']['combat'] = {
             'active': True,

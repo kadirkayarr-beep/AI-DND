@@ -10,6 +10,9 @@ from collections.abc import Mapping
 from typing import Any
 
 import game
+import character_progression
+import sorcery_points
+import barbarian_rage
 import living_world
 import campaign_time
 import scheduled_events
@@ -37,6 +40,7 @@ _PLAYER_FIELDS = (
     "species",
     "giant_ancestry",
     "species_trait_state",
+    "temporary_hit_points",
     "speed_ft",
     "class",
     "background",
@@ -58,6 +62,9 @@ _PLAYER_FIELDS = (
     "species_bonus_skills",
     "origin_feats",
     "level",
+    "progression_level",
+    "metamagic",
+    "subclass_id",
     "proficiency_bonus",
     "max_hp",
     "current_hp",
@@ -250,6 +257,12 @@ def _overlay_live_spell_fields(
     for field in _LIVE_SPELL_PROJECTION_FIELDS:
         if field in saved_player or field not in live:
             continue
+        if field == "spell_slots_remaining":
+            import game
+            try:
+                game._validate_saved_multilevel_slots(live, getattr(session, "world_state", {}))
+            except (TypeError, ValueError):
+                continue  # syntax alone must not expose unearned expanded slots
         accepted = _validated_live_spell_field(field, live[field])
         if accepted is None:
             continue
@@ -429,9 +442,13 @@ def serialize_combat_history_entry(
 def serialize_skill_check_result(
     action_result: Any,
     session: Any,
+    *,
+    check_evidence: list[Any] | None = None,
 ) -> dict[str, Any] | None:
     """Expose only a validated projection of a Python-owned skill check."""
     if not isinstance(action_result, Mapping) or action_result.get("action") != "skill_check":
+        if check_evidence is not None:
+            raise SkillCheckResultSerializationError("Feature evidence requires a completed check.")
         return None
 
     skill = action_result.get("skill")
@@ -450,7 +467,17 @@ def serialize_skill_check_result(
 
     if not isinstance(skill, str) or skill not in game.SKILLS:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
-    if ability != game.SKILLS[skill]:
+    annotation = {}
+    if check_evidence is not None:
+        if type(check_evidence) is not list or len(check_evidence) != 1:
+            raise SkillCheckResultSerializationError("Invalid skill-check evidence.")
+        try:
+            annotation = barbarian_rage.primal_knowledge_annotation(check_evidence[0], action_result)
+            if outcome != str(resolution.get("outcome", "")).lower():
+                raise ValueError("Feature outcome does not match the completed resolution.")
+        except ValueError:
+            raise SkillCheckResultSerializationError("Invalid skill-check evidence.") from None
+    if ability != game.SKILLS[skill] and not annotation:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
     if any(
         type(value) is not int
@@ -565,6 +592,7 @@ def serialize_skill_check_result(
             for field in ("action_id", "resolution_id"):
                 if resolution.get(field) is not None:
                     projected_values[field] = resolution[field]
+        projected_values.update(annotation)
         projected = SkillCheckResult(**projected_values)
     except ValidationError:
         raise SkillCheckResultSerializationError(
@@ -611,7 +639,20 @@ def serialize_session_state(
         world,
         getattr(session, "world_metadata", None),
     )
+    points = sorcery_points.projection(session) if isinstance(session, game.GameSession) else None
     character = _project_fields(player, _PLAYER_FIELDS)
+    rage = barbarian_rage.projection(session) if isinstance(session, game.GameSession) else None
+    if rage is not None:
+        character["rage"] = rage
+    primal_check = barbarian_rage.primal_knowledge_projection(session) if isinstance(session, game.GameSession) else None
+    if primal_check is not None:
+        character["primal_knowledge_check"] = primal_check
+    if player.get("class") == "Barbarian" or (player.get("class") == "Sorcerer" and "progression_level" in player):
+        disclosure = character_progression.progression_disclosure(
+            player["class"], character_progression.applied_level(player),
+            rage_adopted=rage is not None, points_adopted=points is not None,
+        )
+        character["progression_effects_pending"] = disclosure["supported"] + disclosure["pending"]
     if isinstance(player, Mapping):
         _overlay_live_spell_fields(character, session, player)
     # Native casting owns remaining slots. The legacy character field remains
@@ -753,8 +794,10 @@ def serialize_session_state(
         "character": character,
         "inventory": equipment_economy.public_inventory(world),
         "spellcasting": (
-            {key: copy.deepcopy(world["spellcasting_v1"][key])
-             for key in ("cantrips", "prepared", "slots", "slot_turn")}
+            {**{key: copy.deepcopy(world["spellcasting_v1"][key])
+                for key in ("cantrips", "prepared", "slots", "slot_turn")},
+             **({"sorcery_points": points, "convert_spell_slot": {"options": sorcery_points.conversion_options(session)}}
+                if points is not None else {})}
             if world.get("spellcasting_v1") is not None else None
         ),
         "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),

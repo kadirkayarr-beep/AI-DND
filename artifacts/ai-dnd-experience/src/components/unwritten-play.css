@@ -484,3 +484,13 @@
 .character-creation-screen.dnd-frame.cinematic-create.gate-fade a:focus-visible,
 .character-creation-screen.dnd-frame.cinematic-create.gate-fade input:focus-visible,
 .character-creation-screen.dnd-frame.cinematic-create.gate-fade select:focus-visible { outline:2px solid #d2aa92; outline-offset:3px; }
+
+/* A tall action panel must scroll the workspace, not collapse the transcript
+   wrapper while its 320px child paints over the next action button. Keep the
+   readable minimum on the wrapper; its child scrolls within that allocation. */
+@media (min-width:761px) {
+  .design-preview.play-shell .workspace-grid { overflow-y:auto; }
+  .design-preview.play-shell .story-column { height:auto; flex:1 0 auto; overflow:visible; }
+  .design-preview.play-shell .transcript-region { height:320px; min-height:320px; flex:1 0 320px; overflow:hidden; }
+  .design-preview.play-shell .transcript-region > .transcript-scroll { min-height:0; flex:1 1 0; overflow-y:auto; }
+}

@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { BarbarianStartingCreationOptions } from './barbarianStartingCreationOptions';
 import type { CharacterCreationCatalogResponseAbilityScoreMethodsItem } from './characterCreationCatalogResponseAbilityScoreMethodsItem';
 import type { CharacterCreationCatalogResponseAlignmentsItem } from './characterCreationCatalogResponseAlignmentsItem';
 import type { CharacterCreationCatalogResponseBackgrounds } from './characterCreationCatalogResponseBackgrounds';
@@ -14,8 +15,11 @@ import type { CharacterCreationCatalogResponseOriginFeats } from './characterCre
 import type { CharacterCreationCatalogResponseRaces } from './characterCreationCatalogResponseRaces';
 import type { CharacterCreationCatalogResponseSkills } from './characterCreationCatalogResponseSkills';
 import type { CharacterCreationCatalogResponseSpellsCatalog } from './characterCreationCatalogResponseSpellsCatalog';
+import type { SorcererStartingCreationOptions } from './sorcererStartingCreationOptions';
 
 export interface CharacterCreationCatalogResponse {
+  sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
+  barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

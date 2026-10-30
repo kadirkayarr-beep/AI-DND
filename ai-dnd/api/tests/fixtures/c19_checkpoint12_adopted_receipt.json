@@ -1,0 +1,1943 @@
+{
+  "campaign": {
+    "campaign_id": "b83178bd-2a8f-4a48-8334-69ca53b11731",
+    "session_id": "5bb2d7c2-1fec-4cb9-b040-6c5bdf2b8445",
+    "name": "TestHero — Yeni Macera",
+    "state": {
+      "location": "Henüz belirlenmedi",
+      "campaign_time": null,
+      "known_scheduled_events": [],
+      "pending_event_decisions": [],
+      "journey": null,
+      "expedition": {
+        "walking_seconds": 0,
+        "hours_beyond_eight": 0,
+        "extended_travel_saves": [],
+        "exhaustion": 0,
+        "supplies_enabled": false,
+        "tracking_status": null,
+        "tracking_seconds": 0,
+        "tracking_required_seconds": 3600,
+        "actions": [
+          {
+            "label": "Erzak takibi: aç",
+            "message": "/travel supplies enabled"
+          }
+        ]
+      },
+      "scene": null,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "world": {
+        "environment": "unknown",
+        "time_of_day": "day",
+        "weather": "clear"
+      },
+      "journal": {
+        "schema_version": 1,
+        "discovered_locations": [],
+        "known_npcs": [],
+        "notable_events": [],
+        "quests": []
+      },
+      "locations": {
+        "tavern": {
+          "id": "tavern",
+          "name": "Taverna",
+          "type": "building",
+          "description": ""
+        },
+        "forest": {
+          "id": "forest",
+          "name": "Orman",
+          "type": "wilderness",
+          "description": ""
+        },
+        "castle": {
+          "id": "castle",
+          "name": "Kale",
+          "type": "building",
+          "description": ""
+        }
+      },
+      "character": {
+        "name": "TestHero",
+        "race": "Human",
+        "species": "Human",
+        "giant_ancestry": null,
+        "species_trait_state": null,
+        "speed_ft": 30,
+        "class": "Fighter",
+        "origin": null,
+        "appearance": null,
+        "personality": null,
+        "backstory": null,
+        "strength": 16,
+        "dexterity": 14,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 10,
+        "proficient_skills": [
+          "Athletics",
+          "Perception"
+        ],
+        "expertise_skills": [],
+        "species_bonus_skills": [],
+        "level": 1,
+        "proficiency_bonus": 2,
+        "max_hp": 12,
+        "current_hp": 12,
+        "armor_class": 12,
+        "cantrips": [],
+        "spells": [],
+        "spell_slots_remaining": {
+          "1": 0
+        },
+        "xp": 0,
+        "origin_feat": null,
+        "species_bonus_feat": null,
+        "origin_feats": []
+      },
+      "inventory": [
+        "Macera çantası",
+        "Kılıç"
+      ],
+      "spellcasting": null,
+      "npcs": [],
+      "shops": [],
+      "features": [],
+      "doors": [],
+      "combat": {
+        "active": false,
+        "combat_id": null,
+        "status": "ended",
+        "round": 0,
+        "initiative_order": [],
+        "current_turn_index": 0,
+        "current_actor_id": null,
+        "turn_owner": null,
+        "participants": [],
+        "participant_records": [],
+        "target_id": null,
+        "end_reason": null,
+        "action_economy": null
+      },
+      "player_combat_status": "active",
+      "death_state": {
+        "mode": "NORMAL",
+        "status": "active",
+        "successes": 0,
+        "failures": 0,
+        "stable": false,
+        "dead": false,
+        "terminal": false,
+        "prone": false
+      },
+      "turn_index": 0,
+      "quests": [],
+      "quest_offers": [],
+      "adventure": {
+        "threads": [],
+        "commitments": [],
+        "plan": null,
+        "recent_events": []
+      },
+      "campaign_adventures": {
+        "rumors": [],
+        "active": [],
+        "completed": [],
+        "failed": [],
+        "timeline": [],
+        "affordances": []
+      },
+      "known_lore": [],
+      "known_factions": [],
+      "exploration": null,
+      "scene_incidents": []
+    },
+    "history": [],
+    "combat_history": []
+  },
+  "command": {
+    "message": "Hamle.",
+    "action_id": "8174ccad-e817-4ac7-9ecc-4eb91d59b257",
+    "combat_action": {
+      "steps": [
+        {
+          "kind": "magic",
+          "ability": "Magic Missile",
+          "target_id": "npc_002",
+          "slot_level": 1,
+          "metamagic": "quickened_spell"
+        }
+      ]
+    }
+  },
+  "response": {
+    "session_id": "5bb2d7c2-1fec-4cb9-b040-6c5bdf2b8445",
+    "action_id": "8174ccad-e817-4ac7-9ecc-4eb91d59b257",
+    "narration": "Magic Missile hedefe 12 hasar verir.",
+    "state": {
+      "location": "tavern",
+      "campaign_time": {
+        "year": 1501,
+        "month": "Mirtul",
+        "day": 1,
+        "hour": 9,
+        "minute": 0,
+        "second": 0,
+        "day_index": 0,
+        "calendar": "Harptos",
+        "local_convention": "Neverwinter local",
+        "time_of_day": "day",
+        "display": "1 Mirtul — Gündüz",
+        "detail": "1 Mirtul 1501 DR — 09:00:00"
+      },
+      "known_scheduled_events": [],
+      "pending_event_decisions": [],
+      "journey": null,
+      "expedition": {
+        "walking_seconds": 0,
+        "hours_beyond_eight": 0,
+        "extended_travel_saves": [],
+        "exhaustion": 0,
+        "supplies_enabled": false,
+        "tracking_status": null,
+        "tracking_seconds": 0,
+        "tracking_required_seconds": 3600,
+        "actions": []
+      },
+      "scene": {
+        "id": "scene:tavern",
+        "location_id": "tavern",
+        "parent_location_id": null,
+        "kind": "tavern",
+        "visit_revision": 1,
+        "activity_revision": 0,
+        "last_activity": "Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.",
+        "ambient_event": {
+          "event_id": "city_weapon_glance",
+          "instance_id": "413823ff-208b-40b1-b04f-c4d3035e6d53",
+          "variation_id": "v1",
+          "event_type": "GREEN",
+          "repeat_group": "children",
+          "count": 1
+        },
+        "opening": null,
+        "player_position": {
+          "location_id": "tavern",
+          "kind": "standing",
+          "target_id": null
+        },
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Bir barmen",
+            "role": "Barmen",
+            "appearance": "Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor."
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "muhafız",
+            "appearance": ""
+          }
+        ],
+        "features": [
+          {
+            "id": "feature_001",
+            "name": "Ahşap masa",
+            "description": "Kenarında sıradan bir kil bardak duran sağlam bir masa."
+          }
+        ],
+        "referents": []
+      },
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "world": {
+        "environment": "tavern",
+        "time_of_day": "day",
+        "weather": "clear"
+      },
+      "journal": {
+        "schema_version": 1,
+        "discovered_locations": [],
+        "known_npcs": [],
+        "notable_events": [],
+        "quests": []
+      },
+      "locations": {
+        "tavern": {
+          "id": "tavern",
+          "name": "Taverna",
+          "type": "building",
+          "description": ""
+        },
+        "forest": {
+          "id": "forest",
+          "name": "Orman",
+          "type": "wilderness",
+          "description": ""
+        },
+        "castle": {
+          "id": "castle",
+          "name": "Kale",
+          "type": "building",
+          "description": ""
+        }
+      },
+      "character": {
+        "name": "Vael",
+        "race": "Human",
+        "species": "Human",
+        "giant_ancestry": null,
+        "species_trait_state": null,
+        "speed_ft": 30,
+        "class": "Sorcerer",
+        "origin": null,
+        "appearance": null,
+        "personality": null,
+        "backstory": null,
+        "strength": 8,
+        "dexterity": 16,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15,
+        "proficient_skills": [
+          "Arcana",
+          "Insight",
+          "Persuasion",
+          "Sleight of Hand",
+          "Stealth"
+        ],
+        "expertise_skills": [],
+        "origin_feat": "Alert",
+        "species_bonus_skills": [],
+        "level": 2,
+        "progression_level": 2,
+        "metamagic": [
+          "Quickened Spell",
+          "Twinned Spell"
+        ],
+        "proficiency_bonus": 2,
+        "max_hp": 14,
+        "current_hp": 14,
+        "armor_class": 13,
+        "cantrips": [
+          "Fire Bolt",
+          "Ray of Frost",
+          "Mage Hand",
+          "Minor Illusion"
+        ],
+        "spells": [
+          "Magic Missile",
+          "Shield",
+          "Burning Hands",
+          "Chromatic Orb"
+        ],
+        "spell_slots_remaining": {
+          "1": 2
+        },
+        "xp": 300,
+        "progression_effects_pending": [
+          "Innate Sorcery: activation and effects are not implemented",
+          "Font of Magic: Sorcery Points tracked; slot conversion and creation remain unsupported",
+          "Metamagic: selected Quickened Magic Missile supported; other Metamagic effects remain unsupported",
+          "Optional spell, cantrip and Metamagic replacement choices remain unsupported"
+        ],
+        "species_bonus_feat": null,
+        "origin_feats": [
+          "Alert"
+        ]
+      },
+      "inventory": [
+        "2 Hançer",
+        "Kristal Büyü Odağı",
+        "Zindan Çantası",
+        "28 Altın",
+        "Hırsız Aletleri",
+        "Koyu Renkli Pelerin",
+        "Levye",
+        "16 Altın"
+      ],
+      "spellcasting": {
+        "cantrips": [
+          "Fire Bolt",
+          "Ray of Frost",
+          "Mage Hand",
+          "Minor Illusion"
+        ],
+        "prepared": [
+          "Magic Missile",
+          "Shield",
+          "Burning Hands",
+          "Chromatic Orb"
+        ],
+        "slots": {
+          "1": 2
+        },
+        "slot_turn": [
+          "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+          1,
+          1
+        ],
+        "sorcery_points": {
+          "current": 0,
+          "max": 2
+        }
+      },
+      "npcs": [
+        {
+          "id": "npc_001",
+          "name": "Bir barmen",
+          "role": "Barmen",
+          "location": "tavern",
+          "appearance": "Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.",
+          "relationship": "neutral",
+          "tags": [],
+          "max_hp": 10,
+          "current_hp": 10,
+          "armor_class": 10,
+          "combat_status": "active"
+        },
+        {
+          "id": "npc_002",
+          "name": "Bir muhafız",
+          "role": "muhafız",
+          "location": "tavern",
+          "appearance": "",
+          "relationship": "neutral",
+          "tags": [],
+          "max_hp": 100,
+          "current_hp": 88,
+          "armor_class": 20,
+          "combat_status": "active"
+        }
+      ],
+      "shops": [],
+      "features": [
+        {
+          "id": "feature_001",
+          "location": "tavern",
+          "name": "Ahşap masa",
+          "description": "Kenarında sıradan bir kil bardak duran sağlam bir masa."
+        }
+      ],
+      "doors": [
+        {
+          "name": "Taverna Kapısı",
+          "location": "tavern",
+          "description": "Taverna giriş kapısı.",
+          "open": false,
+          "locked": false,
+          "broken": false
+        }
+      ],
+      "combat": {
+        "active": true,
+        "combat_id": "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+        "status": "active",
+        "round": 1,
+        "initiative_order": [
+          "player",
+          "npc_002"
+        ],
+        "current_turn_index": 0,
+        "current_actor_id": "player",
+        "turn_owner": "player",
+        "participants": [
+          "player",
+          "npc_002"
+        ],
+        "participant_records": [
+          {
+            "id": "player",
+            "kind": "player",
+            "name": "Vael",
+            "current_hp": 14,
+            "max_hp": 14,
+            "armor_class": 13,
+            "status": "active",
+            "primary_action_available": true,
+            "is_current_actor": true
+          },
+          {
+            "id": "npc_002",
+            "kind": "npc",
+            "name": "Bir muhafız",
+            "current_hp": 88,
+            "max_hp": 100,
+            "armor_class": 20,
+            "status": "active",
+            "primary_action_available": true,
+            "is_current_actor": false
+          }
+        ],
+        "target_id": "npc_002",
+        "end_reason": null,
+        "action_economy": {
+          "actors": {
+            "player": {
+              "base_action_spent": false,
+              "additional_actions": [],
+              "bonus_action_spent": true,
+              "bonus_grants": [],
+              "reaction_spent": false,
+              "movement_available": 30,
+              "movement_used": 0,
+              "dash_count": 0,
+              "ready_movement_grant": 0,
+              "ready": null,
+              "opportunity": null,
+              "attack_action": null,
+              "attack_turn_counter": 1,
+              "speed_ft": 30,
+              "action_available": true,
+              "bonus_action_available": false,
+              "bonus_rules": [],
+              "reaction_available": true,
+              "effective_movement_available": 30,
+              "movement_remaining": 30,
+              "legal_actions": [
+                {
+                  "kind": "attack",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "dash",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "disengage",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "dodge",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "feature",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "help",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "hide",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "influence",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "magic",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "ready",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "search",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "study",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "utilize",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                }
+              ],
+              "reckless_attack": {
+                "available": false,
+                "active": false,
+                "reason": "feature_unavailable"
+              },
+              "quickened_spell": {
+                "available": false,
+                "reason": "sorcery_points_insufficient"
+              }
+            },
+            "npc_002": {
+              "base_action_spent": false,
+              "additional_actions": [],
+              "bonus_action_spent": false,
+              "bonus_grants": [],
+              "reaction_spent": false,
+              "movement_available": 0,
+              "movement_used": 0,
+              "dash_count": 0,
+              "ready_movement_grant": 0,
+              "ready": null,
+              "opportunity": null,
+              "attack_action": null,
+              "speed_ft": 0,
+              "action_available": false,
+              "bonus_action_available": false,
+              "bonus_rules": [],
+              "reaction_available": true,
+              "effective_movement_available": 0,
+              "movement_remaining": 0,
+              "legal_actions": [
+                {
+                  "kind": "attack",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "dash",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "disengage",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "dodge",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "feature",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "help",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "hide",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "influence",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "magic",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "ready",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "search",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "study",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "utilize",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                }
+              ],
+              "reckless_attack": {
+                "available": false,
+                "active": false,
+                "reason": "feature_unavailable"
+              }
+            }
+          }
+        }
+      },
+      "player_combat_status": "active",
+      "death_state": {
+        "mode": "NORMAL",
+        "status": "active",
+        "successes": 0,
+        "failures": 0,
+        "stable": false,
+        "dead": false,
+        "terminal": false,
+        "prone": false
+      },
+      "turn_index": 1,
+      "quests": [],
+      "quest_offers": [],
+      "adventure": {
+        "threads": [],
+        "commitments": [],
+        "plan": null,
+        "recent_events": []
+      },
+      "campaign_adventures": {
+        "rumors": [],
+        "active": [],
+        "completed": [],
+        "failed": [],
+        "timeline": [],
+        "affordances": []
+      },
+      "known_lore": [],
+      "known_factions": [],
+      "exploration": null,
+      "scene_incidents": []
+    },
+    "combat_result": {
+      "action": "action_economy",
+      "status": "resolved",
+      "success": true,
+      "outcome": null,
+      "actor": null,
+      "actor_name": null,
+      "target": null,
+      "target_id": null,
+      "target_name": null,
+      "weapon": null,
+      "attack_roll": null,
+      "attack_bonus": null,
+      "attack_total": null,
+      "target_ac": null,
+      "critical": null,
+      "damage": null,
+      "target_hp_before": null,
+      "target_hp_after": null,
+      "target_status": null,
+      "damage_type": null,
+      "attack_rolls": null,
+      "disadvantage": null,
+      "hp_damage": null,
+      "temporary_hp_before": null,
+      "temporary_hp_absorbed": null,
+      "temporary_hp_after": null,
+      "species_effects": null,
+      "economy_steps": [
+        {
+          "kind": "magic",
+          "result": {
+            "spell_id": "Magic Missile",
+            "target_id": "npc_002",
+            "slot_level": 1,
+            "spell_attack_modifier": 4,
+            "spell_save_dc": 12,
+            "damage": 12,
+            "healing": 0,
+            "resolution": null,
+            "darts": [
+              5,
+              3,
+              4
+            ],
+            "hp_before": 100,
+            "hp_after": 88,
+            "hit": true
+          }
+        }
+      ],
+      "combat_id": "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+      "combat_status": null,
+      "round": null,
+      "current_turn_index": null,
+      "spell": null,
+      "casting_ability": null,
+      "attack_or_save": null,
+      "save_roll": null,
+      "save_dc": null,
+      "healing": null,
+      "slot_spent": null,
+      "combat_started": null,
+      "combat_ended": null,
+      "end_reason": null,
+      "current_actor_id": null,
+      "turn_owner": null,
+      "enemy_action": null,
+      "enemy_actions": null
+    },
+    "combat_history_entry": {
+      "event_id": "fccac44f-557e-4c1c-8860-8c0b813fa2a9",
+      "turn_index": 1,
+      "result": {
+        "action": "action_economy",
+        "status": "resolved",
+        "success": true,
+        "outcome": null,
+        "actor": null,
+        "actor_name": null,
+        "target": null,
+        "target_id": null,
+        "target_name": null,
+        "weapon": null,
+        "attack_roll": null,
+        "attack_bonus": null,
+        "attack_total": null,
+        "target_ac": null,
+        "critical": null,
+        "damage": null,
+        "target_hp_before": null,
+        "target_hp_after": null,
+        "target_status": null,
+        "damage_type": null,
+        "attack_rolls": null,
+        "disadvantage": null,
+        "hp_damage": null,
+        "temporary_hp_before": null,
+        "temporary_hp_absorbed": null,
+        "temporary_hp_after": null,
+        "species_effects": null,
+        "economy_steps": [
+          {
+            "kind": "magic",
+            "result": {
+              "spell_id": "Magic Missile",
+              "target_id": "npc_002",
+              "slot_level": 1,
+              "spell_attack_modifier": 4,
+              "spell_save_dc": 12,
+              "damage": 12,
+              "healing": 0,
+              "resolution": null,
+              "darts": [
+                5,
+                3,
+                4
+              ],
+              "hp_before": 100,
+              "hp_after": 88,
+              "hit": true
+            }
+          }
+        ],
+        "combat_id": "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+        "combat_status": null,
+        "round": null,
+        "current_turn_index": null,
+        "spell": null,
+        "casting_ability": null,
+        "attack_or_save": null,
+        "save_roll": null,
+        "save_dc": null,
+        "healing": null,
+        "slot_spent": null,
+        "combat_started": null,
+        "combat_ended": null,
+        "end_reason": null,
+        "current_actor_id": null,
+        "turn_owner": null,
+        "enemy_action": null,
+        "enemy_actions": null
+      }
+    },
+    "skill_check_result": null,
+    "quest_outcomes": [],
+    "level_up": null,
+    "turn_outcome": {
+      "action": "action_economy",
+      "status": "resolved",
+      "kind": null,
+      "target_name": null,
+      "found": null,
+      "place_created": null
+    }
+  },
+  "request_hash": "0abea1e4163b978eae8bed1355d6fab7d5ae0a18cee031793e36241bf0d086e2",
+  "runtime": {
+    "format": "ai-dnd-save",
+    "version": 4,
+    "player": {
+      "name": "Vael",
+      "race": "Human",
+      "species": "Human",
+      "giant_ancestry": null,
+      "species_trait_state": null,
+      "speed_ft": 30,
+      "exhaustion": 0,
+      "proficient_tools": [
+        "Thieves' Tools"
+      ],
+      "saving_throw_mods": {
+        "strength": -1,
+        "dexterity": 3,
+        "constitution": 4,
+        "intelligence": 0,
+        "wisdom": 1,
+        "charisma": 4
+      },
+      "class": "Sorcerer",
+      "strength": 8,
+      "dexterity": 16,
+      "constitution": 14,
+      "intelligence": 10,
+      "wisdom": 12,
+      "charisma": 15,
+      "proficient_skills": [
+        "Arcana",
+        "Insight",
+        "Persuasion",
+        "Sleight of Hand",
+        "Stealth"
+      ],
+      "expertise_skills": [],
+      "species_bonus_skills": [],
+      "level": 2,
+      "proficiency_bonus": 2,
+      "max_hp": 14,
+      "current_hp": 14,
+      "armor_class": 13,
+      "xp": 300,
+      "origin": null,
+      "appearance": null,
+      "personality": null,
+      "backstory": null,
+      "origin_choices": {
+        "background": "Criminal",
+        "alignment": "Neutral Good",
+        "ability_score_method": "standard_array",
+        "background_equipment_option": "A",
+        "species_bonus_feat": null,
+        "languages": [
+          "Common",
+          "Dwarvish",
+          "Giant"
+        ],
+        "origin_feats": [
+          "Alert"
+        ],
+        "background_ability_bonuses": {
+          "dexterity": 2,
+          "constitution": 1
+        },
+        "base_ability_scores": {
+          "strength": 8,
+          "dexterity": 14,
+          "constitution": 13,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 15
+        }
+      },
+      "progression_level": 2,
+      "metamagic": [
+        "Quickened Spell",
+        "Twinned Spell"
+      ],
+      "cantrips": [
+        "Fire Bolt",
+        "Ray of Frost",
+        "Mage Hand",
+        "Minor Illusion"
+      ],
+      "spells": [
+        "Magic Missile",
+        "Shield",
+        "Burning Hands",
+        "Chromatic Orb"
+      ],
+      "spell_slots_remaining": {
+        "1": 3
+      },
+      "origin_feat": "Alert"
+    },
+    "world_state": {
+      "campaign_id": "b83178bd-2a8f-4a48-8334-69ca53b11731",
+      "location": "tavern",
+      "locations": {
+        "tavern": {
+          "id": "tavern",
+          "name": "Taverna",
+          "type": "building",
+          "aliases": [
+            "taverna",
+            "tavernaya",
+            "tavernada",
+            "meyhane",
+            "meyhaneye",
+            "meyhanede"
+          ],
+          "description": ""
+        },
+        "forest": {
+          "id": "forest",
+          "name": "Orman",
+          "type": "wilderness",
+          "aliases": [
+            "orman",
+            "ormana",
+            "ormanda"
+          ],
+          "description": ""
+        },
+        "castle": {
+          "id": "castle",
+          "name": "Kale",
+          "type": "building",
+          "aliases": [
+            "kale",
+            "kaleye",
+            "kalede"
+          ],
+          "description": ""
+        }
+      },
+      "next_location_number": 1,
+      "npcs": [
+        {
+          "id": "npc_001",
+          "name": "Wystan",
+          "role": "Barmen",
+          "location": "tavern",
+          "personality": "Sıcakkanlı, konuşmadan önce dinliyor.",
+          "appearance": "Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.",
+          "relationship": "neutral",
+          "knowledge": [],
+          "memory": [],
+          "backstory": "",
+          "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+          "tags": [],
+          "name_known_to_player": false,
+          "role_known_to_player": true,
+          "personal_profile": {
+            "occupation": "Bu handa barmenlik yapıyorum.",
+            "current_activity": "Tezgâhın arkasında çalışıyorum",
+            "mood": "İyiyim; işler sakin gidiyor.",
+            "recent_activity": "Sabah bardakları yıkayıp tezgâhı hazırladım.",
+            "origin": "Yakınlardaki bir yerleşimden geldim; uzun zamandır bu handayım.",
+            "reason_for_being_here": "Burası çalıştığım han.",
+            "personal_detail": "Tezgâhın köşesindeki küçük çizik yıllardır orada.",
+            "immediate_goal": "Tezgâhı düzenli tutup akşamı tamamlamak.",
+            "schema_version": 1
+          },
+          "max_hp": 10,
+          "current_hp": 10,
+          "armor_class": 10,
+          "combat_status": "active"
+        },
+        {
+          "id": "npc_002",
+          "name": "Rakip",
+          "role": "Guard",
+          "location": "tavern",
+          "personality": "",
+          "appearance": "",
+          "relationship": "neutral",
+          "knowledge": [],
+          "memory": [],
+          "backstory": "",
+          "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+          "tags": [],
+          "name_known_to_player": false,
+          "role_known_to_player": true,
+          "personal_profile": {
+            "occupation": "Şehir muhafızıyım.",
+            "current_activity": "Bu sokakta nöbet tutuyorum",
+            "mood": "İyiyim; nöbet sakin geçiyor.",
+            "recent_activity": "Sabah nöbet değişiminde devriye arkadaşımı bilgilendirdim.",
+            "origin": "Yakınlardaki küçük bir yerleşimden geldim.",
+            "reason_for_being_here": "Bugünkü nöbet yerim bu sokak.",
+            "personal_detail": "Nöbet değişimleri genelde günün aynı saatlerinde olur.",
+            "immediate_goal": "Nöbetimi sorunsuz tamamlamak.",
+            "schema_version": 1
+          },
+          "max_hp": 100,
+          "current_hp": 88,
+          "armor_class": 20,
+          "combat_status": "active",
+          "hostile": true,
+          "distance_ft": 5,
+          "attack_damage_type": "bludgeoning",
+          "attack_bonus": 2,
+          "damage_die": 6,
+          "damage_dice": 1,
+          "damage_modifier": 0
+        }
+      ],
+      "shops": [],
+      "next_shop_number": 1,
+      "inventory": [
+        "2 Hançer",
+        "Kristal Büyü Odağı",
+        "Zindan Çantası",
+        "28 Altın",
+        "Hırsız Aletleri",
+        "Koyu Renkli Pelerin",
+        "Levye",
+        "16 Altın"
+      ],
+      "equipment": {
+        "main_hand": "longsword",
+        "off_hand": null
+      },
+      "ground_items_by_location": {},
+      "ground_items": [],
+      "doors": [
+        {
+          "name": "Taverna Kapısı",
+          "description": "Taverna giriş kapısı.",
+          "locked": false,
+          "open": false,
+          "broken": false,
+          "location": "tavern"
+        }
+      ],
+      "containers": [],
+      "features": [
+        {
+          "id": "feature_001",
+          "location": "tavern",
+          "name": "Ahşap masa",
+          "description": "Kenarında sıradan bir kil bardak duran sağlam bir masa.",
+          "kind": "furnishing",
+          "aliases": [
+            "masa",
+            "ahşap masa",
+            "bardak",
+            "kil bardak"
+          ],
+          "tags": [
+            "campaign_local",
+            "interactable_prop"
+          ],
+          "reality_layer": "PROCEDURAL_LOCAL_FICTION"
+        }
+      ],
+      "scene_state": {
+        "schema_version": 1,
+        "next_referent_number": 1,
+        "next_feature_number": 2,
+        "scenes": {
+          "tavern": {
+            "id": "scene:tavern",
+            "location_id": "tavern",
+            "parent_location_id": null,
+            "kind": "tavern",
+            "materialized": true,
+            "visit_revision": 1,
+            "activity_revision": 0,
+            "first_seen_turn": 0,
+            "last_visit_turn": 0,
+            "last_activity_turn": 0,
+            "last_beat": "Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.",
+            "referents": [],
+            "ambient_event": {
+              "event_id": "city_weapon_glance",
+              "instance_id": "413823ff-208b-40b1-b04f-c4d3035e6d53",
+              "variation_id": "v1",
+              "event_type": "GREEN",
+              "repeat_group": "children",
+              "count": 1
+            }
+          }
+        },
+        "active_referent_id": null,
+        "player_position": {
+          "location_id": "tavern",
+          "kind": "standing",
+          "target_id": null
+        },
+        "proposal_references": [],
+        "entry_target_reference": null,
+        "campaign_seed": "43a78bc5fddc5c0b2cf8faaf",
+        "ambient_context": {
+          "environment": "tavern",
+          "time_of_day": "day",
+          "weather": "clear",
+          "background": "Criminal",
+          "origin": ""
+        },
+        "ambient_event_history": [
+          {
+            "event_id": "city_weapon_glance",
+            "instance_id": "413823ff-208b-40b1-b04f-c4d3035e6d53",
+            "variation_id": "v1",
+            "repeat_group": "children",
+            "location_id": "tavern",
+            "turn_index": 0,
+            "last_seen_turn": 0,
+            "count": 1
+          }
+        ],
+        "ambient_event_counts": {
+          "city_weapon_glance": 1
+        }
+      },
+      "events": [],
+      "flags": {
+        "last_npc_id": null,
+        "active_npc_id": null,
+        "active_npc_until_turn": -1,
+        "turn_index": 1,
+        "pending_destination": null
+      },
+      "next_npc_number": 3,
+      "combat": {
+        "schema_version": 3,
+        "active": true,
+        "status": "active",
+        "combat_id": "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+        "round": 1,
+        "initiative_order": [
+          "player",
+          "npc_002"
+        ],
+        "current_turn_index": 0,
+        "current_actor_id": "player",
+        "participants": [
+          "player",
+          "npc_002"
+        ],
+        "participant_records": [
+          {
+            "id": "player",
+            "kind": "player",
+            "name": "Vael",
+            "initiative": 20,
+            "current_hp": 14,
+            "max_hp": 14,
+            "armor_class": 13,
+            "status": "active",
+            "primary_action_available": true
+          },
+          {
+            "id": "npc_002",
+            "kind": "npc",
+            "name": "Rakip",
+            "initiative": 1,
+            "current_hp": 88,
+            "max_hp": 100,
+            "armor_class": 20,
+            "status": "active",
+            "primary_action_available": true
+          }
+        ],
+        "actions_used": [],
+        "target_id": "npc_002",
+        "end_reason": null,
+        "initiative_results": {
+          "player": {
+            "actor_id": "player",
+            "base_modifier": 3,
+            "additional_modifiers": [],
+            "advantage_sources": [],
+            "disadvantage_sources": [],
+            "surprised": false,
+            "group_id": null,
+            "stat_block_id": null,
+            "stat_block_score": null,
+            "roll_type": "d20",
+            "raw_rolls": [
+              17
+            ],
+            "selected_roll": 17,
+            "advantage": false,
+            "disadvantage": false,
+            "advantage_cancelled": false,
+            "final_total": 20,
+            "source": "PHB_2024_initiative",
+            "mode": "rolled"
+          },
+          "npc_002": {
+            "actor_id": "npc_002",
+            "base_modifier": 0,
+            "additional_modifiers": [],
+            "advantage_sources": [],
+            "disadvantage_sources": [],
+            "surprised": false,
+            "group_id": null,
+            "stat_block_id": null,
+            "stat_block_score": null,
+            "roll_type": "d20",
+            "raw_rolls": [
+              1
+            ],
+            "selected_roll": 1,
+            "advantage": false,
+            "disadvantage": false,
+            "advantage_cancelled": false,
+            "final_total": 1,
+            "source": "PHB_2024_initiative",
+            "mode": "rolled"
+          }
+        },
+        "initiative_groups": {},
+        "initiative_effects": [],
+        "turn_resources": {
+          "player": {
+            "base_action_spent": false,
+            "additional_actions": [],
+            "bonus_action_spent": true,
+            "bonus_grants": [],
+            "reaction_spent": false,
+            "movement_available": 30,
+            "movement_used": 0,
+            "dash_count": 0,
+            "ready_movement_grant": 0,
+            "ready": null,
+            "opportunity": null,
+            "attack_action": null,
+            "attack_turn_counter": 1
+          },
+          "npc_002": {
+            "base_action_spent": false,
+            "additional_actions": [],
+            "bonus_action_spent": false,
+            "bonus_grants": [],
+            "reaction_spent": false,
+            "movement_available": 0,
+            "movement_used": 0,
+            "dash_count": 0,
+            "ready_movement_grant": 0,
+            "ready": null,
+            "opportunity": null,
+            "attack_action": null
+          }
+        }
+      },
+      "player_combat_status": "active",
+      "death_state": {
+        "mode": "NORMAL",
+        "successes": 0,
+        "failures": 0,
+        "stable": false,
+        "dead": false,
+        "terminal": false,
+        "prone": false,
+        "last_death_save_turn_key": null,
+        "last_death_save_result": null,
+        "last_resolution": null,
+        "combat_checkpoint": {
+          "campaign_id": "b83178bd-2a8f-4a48-8334-69ca53b11731",
+          "player": {
+            "name": "Vael",
+            "race": "Human",
+            "class": "Sorcerer",
+            "strength": 8,
+            "dexterity": 16,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 12,
+            "charisma": 15,
+            "proficient_skills": [
+              "Arcana",
+              "Insight",
+              "Persuasion",
+              "Sleight of Hand",
+              "Stealth"
+            ],
+            "level": 2,
+            "proficiency_bonus": 2,
+            "max_hp": 14,
+            "current_hp": 14,
+            "armor_class": 13,
+            "strength_mod": -1,
+            "dexterity_mod": 3,
+            "constitution_mod": 2,
+            "intelligence_mod": 0,
+            "wisdom_mod": 1,
+            "charisma_mod": 2,
+            "modifiers": {
+              "strength": -1,
+              "dexterity": 3,
+              "constitution": 2,
+              "intelligence": 0,
+              "wisdom": 1,
+              "charisma": 2
+            },
+            "species": "Human",
+            "giant_ancestry": null,
+            "background": "Criminal",
+            "alignment": "Neutral Good",
+            "languages": [
+              "Common",
+              "Dwarvish",
+              "Giant"
+            ],
+            "background_equipment_option": "A",
+            "ability_score_method": "standard_array",
+            "base_ability_scores": {
+              "strength": 8,
+              "dexterity": 14,
+              "constitution": 13,
+              "intelligence": 10,
+              "wisdom": 12,
+              "charisma": 15
+            },
+            "background_ability_bonuses": {
+              "dexterity": 2,
+              "constitution": 1
+            },
+            "final_ability_scores": {
+              "strength": 8,
+              "dexterity": 16,
+              "constitution": 14,
+              "intelligence": 10,
+              "wisdom": 12,
+              "charisma": 15
+            },
+            "expertise_skills": [],
+            "species_bonus_skills": [],
+            "proficient_tools": [
+              "Thieves' Tools"
+            ],
+            "origin_feat": "Alert",
+            "species_bonus_feat": null,
+            "origin_feats": [
+              "Alert"
+            ],
+            "fighting_style": null,
+            "equipment_package": "A",
+            "equipment_choices": [
+              "2 Hançer",
+              "Kristal Büyü Odağı",
+              "Zindan Çantası",
+              "28 Altın",
+              "Hırsız Aletleri",
+              "Koyu Renkli Pelerin",
+              "Levye",
+              "16 Altın"
+            ],
+            "inventory": [
+              "2 Hançer",
+              "Kristal Büyü Odağı",
+              "Zindan Çantası",
+              "28 Altın",
+              "Hırsız Aletleri",
+              "Koyu Renkli Pelerin",
+              "Levye",
+              "16 Altın"
+            ],
+            "cantrips": [
+              "Fire Bolt",
+              "Ray of Frost",
+              "Mage Hand",
+              "Minor Illusion"
+            ],
+            "spells": [
+              "Magic Missile",
+              "Shield",
+              "Burning Hands",
+              "Chromatic Orb"
+            ],
+            "origin": null,
+            "spell_slots_remaining": {
+              "1": 3
+            },
+            "appearance": null,
+            "personality": null,
+            "backstory": null,
+            "xp": 300,
+            "saving_throws": [
+              "constitution",
+              "charisma"
+            ],
+            "saving_throw_mods": {
+              "strength": -1,
+              "dexterity": 3,
+              "constitution": 4,
+              "intelligence": 0,
+              "wisdom": 1,
+              "charisma": 4
+            },
+            "initiative": 5,
+            "spell_save_dc": 12,
+            "spell_attack_bonus": 4,
+            "passive_perception": 11,
+            "speed_ft": 30,
+            "species_trait_state": null,
+            "progression_level": 2,
+            "metamagic": [
+              "Quickened Spell",
+              "Twinned Spell"
+            ]
+          },
+          "world_state": {
+            "campaign_id": "b83178bd-2a8f-4a48-8334-69ca53b11731",
+            "location": "tavern",
+            "locations": {
+              "tavern": {
+                "id": "tavern",
+                "name": "Taverna",
+                "type": "building",
+                "aliases": [
+                  "taverna",
+                  "tavernaya",
+                  "tavernada",
+                  "meyhane",
+                  "meyhaneye",
+                  "meyhanede"
+                ],
+                "description": ""
+              },
+              "forest": {
+                "id": "forest",
+                "name": "Orman",
+                "type": "wilderness",
+                "aliases": [
+                  "orman",
+                  "ormana",
+                  "ormanda"
+                ],
+                "description": ""
+              },
+              "castle": {
+                "id": "castle",
+                "name": "Kale",
+                "type": "building",
+                "aliases": [
+                  "kale",
+                  "kaleye",
+                  "kalede"
+                ],
+                "description": ""
+              }
+            },
+            "next_location_number": 1,
+            "npcs": [
+              {
+                "id": "npc_001",
+                "name": "Wystan",
+                "role": "Barmen",
+                "location": "tavern",
+                "personality": "Sıcakkanlı, konuşmadan önce dinliyor.",
+                "appearance": "Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.",
+                "relationship": "neutral",
+                "knowledge": [],
+                "memory": [],
+                "backstory": "",
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                "tags": [],
+                "name_known_to_player": false,
+                "role_known_to_player": true,
+                "personal_profile": {
+                  "occupation": "Bu handa barmenlik yapıyorum.",
+                  "current_activity": "Tezgâhın arkasında çalışıyorum",
+                  "mood": "İyiyim; işler sakin gidiyor.",
+                  "recent_activity": "Sabah bardakları yıkayıp tezgâhı hazırladım.",
+                  "origin": "Yakınlardaki bir yerleşimden geldim; uzun zamandır bu handayım.",
+                  "reason_for_being_here": "Burası çalıştığım han.",
+                  "personal_detail": "Tezgâhın köşesindeki küçük çizik yıllardır orada.",
+                  "immediate_goal": "Tezgâhı düzenli tutup akşamı tamamlamak.",
+                  "schema_version": 1
+                },
+                "max_hp": 10,
+                "current_hp": 10,
+                "armor_class": 10,
+                "combat_status": "active"
+              },
+              {
+                "id": "npc_002",
+                "name": "Rakip",
+                "role": "Guard",
+                "location": "tavern",
+                "personality": "",
+                "appearance": "",
+                "relationship": "neutral",
+                "knowledge": [],
+                "memory": [],
+                "backstory": "",
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                "tags": [],
+                "name_known_to_player": false,
+                "role_known_to_player": true,
+                "personal_profile": {
+                  "occupation": "Şehir muhafızıyım.",
+                  "current_activity": "Bu sokakta nöbet tutuyorum",
+                  "mood": "İyiyim; nöbet sakin geçiyor.",
+                  "recent_activity": "Sabah nöbet değişiminde devriye arkadaşımı bilgilendirdim.",
+                  "origin": "Yakınlardaki küçük bir yerleşimden geldim.",
+                  "reason_for_being_here": "Bugünkü nöbet yerim bu sokak.",
+                  "personal_detail": "Nöbet değişimleri genelde günün aynı saatlerinde olur.",
+                  "immediate_goal": "Nöbetimi sorunsuz tamamlamak.",
+                  "schema_version": 1
+                },
+                "max_hp": 100,
+                "current_hp": 100,
+                "armor_class": 20,
+                "combat_status": "active",
+                "hostile": true,
+                "distance_ft": 5,
+                "attack_damage_type": "bludgeoning",
+                "attack_bonus": 2,
+                "damage_die": 6,
+                "damage_dice": 1,
+                "damage_modifier": 0
+              }
+            ],
+            "shops": [],
+            "next_shop_number": 1,
+            "inventory": [
+              "2 Hançer",
+              "Kristal Büyü Odağı",
+              "Zindan Çantası",
+              "28 Altın",
+              "Hırsız Aletleri",
+              "Koyu Renkli Pelerin",
+              "Levye",
+              "16 Altın"
+            ],
+            "equipment": {
+              "main_hand": "longsword",
+              "off_hand": null
+            },
+            "ground_items_by_location": {},
+            "ground_items": [],
+            "doors": [
+              {
+                "name": "Taverna Kapısı",
+                "description": "Taverna giriş kapısı.",
+                "locked": false,
+                "open": false,
+                "broken": false,
+                "location": "tavern"
+              }
+            ],
+            "containers": [],
+            "features": [
+              {
+                "id": "feature_001",
+                "location": "tavern",
+                "name": "Ahşap masa",
+                "description": "Kenarında sıradan bir kil bardak duran sağlam bir masa.",
+                "kind": "furnishing",
+                "aliases": [
+                  "masa",
+                  "ahşap masa",
+                  "bardak",
+                  "kil bardak"
+                ],
+                "tags": [
+                  "campaign_local",
+                  "interactable_prop"
+                ],
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION"
+              }
+            ],
+            "scene_state": {
+              "schema_version": 1,
+              "next_referent_number": 1,
+              "next_feature_number": 2,
+              "scenes": {
+                "tavern": {
+                  "id": "scene:tavern",
+                  "location_id": "tavern",
+                  "parent_location_id": null,
+                  "kind": "tavern",
+                  "materialized": true,
+                  "visit_revision": 1,
+                  "activity_revision": 0,
+                  "first_seen_turn": 0,
+                  "last_visit_turn": 0,
+                  "last_activity_turn": 0,
+                  "last_beat": "Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.",
+                  "referents": [],
+                  "ambient_event": {
+                    "event_id": "city_weapon_glance",
+                    "instance_id": "413823ff-208b-40b1-b04f-c4d3035e6d53",
+                    "variation_id": "v1",
+                    "event_type": "GREEN",
+                    "repeat_group": "children",
+                    "count": 1
+                  }
+                }
+              },
+              "active_referent_id": null,
+              "player_position": {
+                "location_id": "tavern",
+                "kind": "standing",
+                "target_id": null
+              },
+              "proposal_references": [],
+              "entry_target_reference": null,
+              "campaign_seed": "43a78bc5fddc5c0b2cf8faaf",
+              "ambient_context": {
+                "environment": "unknown",
+                "time_of_day": "day",
+                "weather": "clear",
+                "background": "",
+                "origin": ""
+              },
+              "ambient_event_history": [
+                {
+                  "event_id": "city_weapon_glance",
+                  "instance_id": "413823ff-208b-40b1-b04f-c4d3035e6d53",
+                  "variation_id": "v1",
+                  "repeat_group": "children",
+                  "location_id": "tavern",
+                  "turn_index": 0,
+                  "last_seen_turn": 0,
+                  "count": 1
+                }
+              ],
+              "ambient_event_counts": {
+                "city_weapon_glance": 1
+              }
+            },
+            "events": [],
+            "flags": {
+              "last_npc_id": null,
+              "active_npc_id": null,
+              "active_npc_until_turn": -1,
+              "turn_index": 0,
+              "pending_destination": null
+            },
+            "next_npc_number": 3,
+            "combat": {
+              "schema_version": 3,
+              "active": false,
+              "status": "ended",
+              "combat_id": null,
+              "round": 0,
+              "initiative_order": [],
+              "current_turn_index": 0,
+              "current_actor_id": null,
+              "participants": [],
+              "participant_records": [],
+              "actions_used": [],
+              "target_id": null,
+              "end_reason": null
+            },
+            "player_combat_status": "active",
+            "death_state": {
+              "mode": "NORMAL",
+              "successes": 0,
+              "failures": 0,
+              "stable": false,
+              "dead": false,
+              "terminal": false,
+              "prone": false,
+              "last_death_save_turn_key": null,
+              "last_death_save_result": null,
+              "last_resolution": null,
+              "combat_checkpoint": null,
+              "recovery": null,
+              "noncombat_next_save_at": null,
+              "noncombat_episode_id": null
+            },
+            "player_knowledge": [],
+            "quests": [],
+            "quest_processed_event_ids": [],
+            "starting_equipment_source": "PHB2024-background-v1",
+            "spellcasting_v1": {
+              "version": 1,
+              "class": "Sorcerer",
+              "cantrips": [
+                "Fire Bolt",
+                "Ray of Frost",
+                "Mage Hand",
+                "Minor Illusion"
+              ],
+              "prepared": [
+                "Magic Missile",
+                "Shield",
+                "Burning Hands",
+                "Chromatic Orb"
+              ],
+              "slots": {
+                "1": 3
+              },
+              "slot_turn": null
+            },
+            "sorcery_points_v1": {
+              "version": 1,
+              "remaining": 2
+            },
+            "campaign_time": {
+              "calendar": "Harptos",
+              "local_convention": "Neverwinter local",
+              "start_date": {
+                "year": 1501,
+                "month": "Mirtul",
+                "day": 1
+              },
+              "start_second": 32400,
+              "elapsed_seconds": 0
+            },
+            "scheduled_events": [],
+            "scheduled_event_diagnostics": [],
+            "monster_perception": {
+              "npc_002": {
+                "player": {
+                  "visible": true
+                }
+              }
+            }
+          },
+          "recent_dm_narrations": [],
+          "world_metadata": {
+            "environment": "unknown",
+            "time_of_day": "day",
+            "weather": "clear"
+          },
+          "campaign_state": {
+            "journal": {
+              "schema_version": 1,
+              "discovered_locations": [],
+              "known_npcs": [],
+              "notable_events": [],
+              "quests": []
+            },
+            "narrative_memory": {
+              "schema_version": 1,
+              "recent_turns": [],
+              "story_summary": {
+                "current_arc": [],
+                "recent_events": [],
+                "important_relationships": [],
+                "current_location": null,
+                "unresolved_threads": [],
+                "major_discoveries": [],
+                "player_history": []
+              },
+              "entity_memory": {
+                "npcs": {},
+                "locations": {}
+              },
+              "npc_interactions": {},
+              "location_continuity": {},
+              "quest_memory": {},
+              "unresolved_threads": [],
+              "style_profile": {
+                "tone": "immersive high fantasy",
+                "description_density": "moderate",
+                "dialogue_density": "strong",
+                "pace": "variable",
+                "darkness": "grounded",
+                "humor": "restrained",
+                "violence_detail": "restrained"
+              },
+              "repetition_fingerprint": {
+                "recent_openings": [],
+                "recent_closings": [],
+                "recent_phrases": [],
+                "recent_gestures": [],
+                "recent_environment_descriptions": []
+              }
+            },
+            "lore_authority": {
+              "binding_status": "LEGACY_UNBOUND",
+              "setting_profile": null,
+              "world_id": null,
+              "epoch_id": null,
+              "region_id": null,
+              "current_location_entity_id": null,
+              "region_pack_id": null,
+              "starting_location_entity_id": null,
+              "player_known_fact_ids": [],
+              "npc_known_fact_ids": {},
+              "campaign_overrides": [],
+              "procedural_entity_refs": [],
+              "lore_discoveries": [],
+              "faction_standings": [],
+              "adventure_possibility_ids": [],
+              "lore_payload_version": 1
+            },
+            "world_metadata": {
+              "environment": "unknown",
+              "time_of_day": "day",
+              "weather": "clear"
+            }
+          }
+        },
+        "recovery": null,
+        "noncombat_next_save_at": null,
+        "noncombat_episode_id": null
+      },
+      "player_knowledge": [],
+      "quests": [],
+      "quest_processed_event_ids": [],
+      "starting_equipment_source": "PHB2024-background-v1",
+      "spellcasting_v1": {
+        "version": 1,
+        "class": "Sorcerer",
+        "cantrips": [
+          "Fire Bolt",
+          "Ray of Frost",
+          "Mage Hand",
+          "Minor Illusion"
+        ],
+        "prepared": [
+          "Magic Missile",
+          "Shield",
+          "Burning Hands",
+          "Chromatic Orb"
+        ],
+        "slots": {
+          "1": 2
+        },
+        "slot_turn": [
+          "3950cf85-ac81-47f9-a5fa-ace457b9a73d",
+          1,
+          1
+        ]
+      },
+      "sorcery_points_v1": {
+        "version": 1,
+        "remaining": 0
+      },
+      "campaign_time": {
+        "calendar": "Harptos",
+        "local_convention": "Neverwinter local",
+        "start_date": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1
+        },
+        "start_second": 32400,
+        "elapsed_seconds": 0
+      },
+      "scheduled_events": [],
+      "scheduled_event_diagnostics": [],
+      "monster_perception": {
+        "npc_002": {
+          "player": {
+            "visible": true
+          }
+        }
+      },
+      "attack_environment": {
+        "pairs": {
+          "player|npc_002": {
+            "distance_ft": 5,
+            "attacker_sees_target": true,
+            "target_sees_attacker": true,
+            "cover": "none"
+          }
+        }
+      }
+    },
+    "recent_dm_narrations": []
+  },
+  "sqlite_dump": "BEGIN TRANSACTION;\nCREATE TABLE campaign_action_intents (\n            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n            action_id TEXT NOT NULL,\n            request_hash TEXT NOT NULL,\n            created_at TEXT NOT NULL,\n            PRIMARY KEY (campaign_id, action_id)\n        );\nINSERT INTO \"campaign_action_intents\" VALUES('b83178bd-2a8f-4a48-8334-69ca53b11731','8174ccad-e817-4ac7-9ecc-4eb91d59b257','0abea1e4163b978eae8bed1355d6fab7d5ae0a18cee031793e36241bf0d086e2','2026-10-29T12:53:21.634157+00:00');\nCREATE TABLE campaign_combat_history (\n                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                                ON DELETE CASCADE,\n                            sequence INTEGER NOT NULL CHECK (sequence > 0),\n                            event_id TEXT NOT NULL,\n                            turn_index INTEGER NOT NULL CHECK (turn_index >= 0),\n                            result_json TEXT NOT NULL,\n                            created_at TEXT NOT NULL,\n                            PRIMARY KEY (campaign_id, sequence),\n                            UNIQUE (campaign_id, event_id)\n                        );\nINSERT INTO \"campaign_combat_history\" VALUES('b83178bd-2a8f-4a48-8334-69ca53b11731',1,'fccac44f-557e-4c1c-8860-8c0b813fa2a9',1,'{\"action\":\"action_economy\",\"status\":\"resolved\",\"success\":true,\"economy_steps\":[{\"kind\":\"magic\",\"result\":{\"spell_id\":\"Magic Missile\",\"target_id\":\"npc_002\",\"slot_level\":1,\"spell_attack_modifier\":4,\"spell_save_dc\":12,\"damage\":12,\"healing\":0,\"resolution\":null,\"darts\":[5,3,4],\"hp_before\":100,\"hp_after\":88,\"hit\":true}}],\"combat_id\":\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\"}','2026-10-29T12:53:21+00:00');\nCREATE TABLE campaign_emergence_attempts (\n        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n        trigger_id TEXT NOT NULL,\n        attempt_id TEXT NOT NULL,\n        status TEXT NOT NULL,\n        owner_token TEXT NOT NULL,\n        canon_stamp TEXT NOT NULL,\n        proposal_json TEXT,\n        proposal_hash TEXT,\n        incident_id TEXT,\n        gate_outcome TEXT,\n        rejection_reason TEXT,\n        model_id TEXT NOT NULL,\n        prompt_contract_version INTEGER NOT NULL,\n        envelope_version INTEGER NOT NULL,\n        envelope_hash TEXT NOT NULL,\n        proposal_schema_version INTEGER NOT NULL,\n        gate_policy_version INTEGER NOT NULL,\n        incident_schema_version INTEGER NOT NULL,\n        model_call_count INTEGER NOT NULL CHECK (model_call_count BETWEEN 0 AND 1),\n        created_at TEXT NOT NULL,\n        completed_at TEXT,\n        PRIMARY KEY (campaign_id, trigger_id)\n    );\nCREATE TABLE campaign_history (\n                        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                            ON DELETE CASCADE,\n                        sequence INTEGER NOT NULL,\n                        player_message TEXT NOT NULL,\n                        narration TEXT NOT NULL,\n                        created_at TEXT NOT NULL,\n                        PRIMARY KEY (campaign_id, sequence)\n                    );\nINSERT INTO \"campaign_history\" VALUES('b83178bd-2a8f-4a48-8334-69ca53b11731',1,'Hamle.','Magic Missile hedefe 12 hasar verir.','2026-10-29T12:53:21+00:00');\nCREATE TABLE campaign_refused_actions (\n            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n            action_id TEXT NOT NULL,\n            request_hash TEXT NOT NULL,\n            status_code INTEGER NOT NULL,\n            detail_json TEXT NOT NULL,\n            created_at TEXT NOT NULL,\n            PRIMARY KEY (campaign_id, action_id)\n        );\nCREATE TABLE campaign_turn_actions (\n                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)\n                                ON DELETE CASCADE,\n                            action_id TEXT NOT NULL,\n                            request_hash TEXT NOT NULL,\n                            response_json TEXT NOT NULL,\n                            created_at TEXT NOT NULL, base_revision INTEGER, committed_revision INTEGER, result_digest TEXT,\n                            PRIMARY KEY (campaign_id, action_id)\n                        );\nINSERT INTO \"campaign_turn_actions\" VALUES('b83178bd-2a8f-4a48-8334-69ca53b11731','8174ccad-e817-4ac7-9ecc-4eb91d59b257','0abea1e4163b978eae8bed1355d6fab7d5ae0a18cee031793e36241bf0d086e2','{\"session_id\":\"5bb2d7c2-1fec-4cb9-b040-6c5bdf2b8445\",\"action_id\":\"8174ccad-e817-4ac7-9ecc-4eb91d59b257\",\"narration\":\"Magic Missile hedefe 12 hasar verir.\",\"state\":{\"location\":\"tavern\",\"campaign_time\":{\"year\":1501,\"month\":\"Mirtul\",\"day\":1,\"hour\":9,\"minute\":0,\"second\":0,\"day_index\":0,\"calendar\":\"Harptos\",\"local_convention\":\"Neverwinter local\",\"time_of_day\":\"day\",\"display\":\"1 Mirtul — Gündüz\",\"detail\":\"1 Mirtul 1501 DR — 09:00:00\"},\"known_scheduled_events\":[],\"pending_event_decisions\":[],\"journey\":null,\"expedition\":{\"walking_seconds\":0,\"hours_beyond_eight\":0,\"extended_travel_saves\":[],\"exhaustion\":0,\"supplies_enabled\":false,\"tracking_status\":null,\"tracking_seconds\":0,\"tracking_required_seconds\":3600,\"actions\":[]},\"scene\":{\"id\":\"scene:tavern\",\"location_id\":\"tavern\",\"parent_location_id\":null,\"kind\":\"tavern\",\"visit_revision\":1,\"activity_revision\":0,\"last_activity\":\"Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.\",\"ambient_event\":{\"event_id\":\"city_weapon_glance\",\"instance_id\":\"413823ff-208b-40b1-b04f-c4d3035e6d53\",\"variation_id\":\"v1\",\"event_type\":\"GREEN\",\"repeat_group\":\"children\",\"count\":1},\"opening\":null,\"player_position\":{\"location_id\":\"tavern\",\"kind\":\"standing\",\"target_id\":null},\"npcs\":[{\"id\":\"npc_001\",\"name\":\"Bir barmen\",\"role\":\"Barmen\",\"appearance\":\"Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.\"},{\"id\":\"npc_002\",\"name\":\"Bir muhafız\",\"role\":\"muhafız\",\"appearance\":\"\"}],\"features\":[{\"id\":\"feature_001\",\"name\":\"Ahşap masa\",\"description\":\"Kenarında sıradan bir kil bardak duran sağlam bir masa.\"}],\"referents\":[]},\"conversation\":{\"active\":false,\"interlocutor\":null},\"world\":{\"environment\":\"tavern\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"description\":\"\"}},\"character\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"class\":\"Sorcerer\",\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Arcana\",\"Insight\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"],\"expertise_skills\":[],\"origin_feat\":\"Alert\",\"species_bonus_skills\":[],\"level\":2,\"progression_level\":2,\"metamagic\":[\"Quickened Spell\",\"Twinned Spell\"],\"proficiency_bonus\":2,\"max_hp\":14,\"current_hp\":14,\"armor_class\":13,\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"spells\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"spell_slots_remaining\":{\"1\":2},\"xp\":300,\"progression_effects_pending\":[\"Innate Sorcery: activation and effects are not implemented\",\"Font of Magic: Sorcery Points tracked; slot conversion and creation remain unsupported\",\"Metamagic: selected Quickened Magic Missile supported; other Metamagic effects remain unsupported\",\"Optional spell, cantrip and Metamagic replacement choices remain unsupported\"],\"species_bonus_feat\":null,\"origin_feats\":[\"Alert\"]},\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"spellcasting\":{\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"prepared\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"slots\":{\"1\":2},\"slot_turn\":[\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",1,1],\"sorcery_points\":{\"current\":0,\"max\":2}},\"npcs\":[{\"id\":\"npc_001\",\"name\":\"Bir barmen\",\"role\":\"Barmen\",\"location\":\"tavern\",\"appearance\":\"Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.\",\"relationship\":\"neutral\",\"tags\":[],\"max_hp\":10,\"current_hp\":10,\"armor_class\":10,\"combat_status\":\"active\"},{\"id\":\"npc_002\",\"name\":\"Bir muhafız\",\"role\":\"muhafız\",\"location\":\"tavern\",\"appearance\":\"\",\"relationship\":\"neutral\",\"tags\":[],\"max_hp\":100,\"current_hp\":88,\"armor_class\":20,\"combat_status\":\"active\"}],\"shops\":[],\"features\":[{\"id\":\"feature_001\",\"location\":\"tavern\",\"name\":\"Ahşap masa\",\"description\":\"Kenarında sıradan bir kil bardak duran sağlam bir masa.\"}],\"doors\":[{\"name\":\"Taverna Kapısı\",\"location\":\"tavern\",\"description\":\"Taverna giriş kapısı.\",\"open\":false,\"locked\":false,\"broken\":false}],\"combat\":{\"active\":true,\"combat_id\":\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",\"status\":\"active\",\"round\":1,\"initiative_order\":[\"player\",\"npc_002\"],\"current_turn_index\":0,\"current_actor_id\":\"player\",\"turn_owner\":\"player\",\"participants\":[\"player\",\"npc_002\"],\"participant_records\":[{\"id\":\"player\",\"kind\":\"player\",\"name\":\"Vael\",\"current_hp\":14,\"max_hp\":14,\"armor_class\":13,\"status\":\"active\",\"primary_action_available\":true,\"is_current_actor\":true},{\"id\":\"npc_002\",\"kind\":\"npc\",\"name\":\"Bir muhafız\",\"current_hp\":88,\"max_hp\":100,\"armor_class\":20,\"status\":\"active\",\"primary_action_available\":true,\"is_current_actor\":false}],\"target_id\":\"npc_002\",\"end_reason\":null,\"action_economy\":{\"actors\":{\"player\":{\"base_action_spent\":false,\"additional_actions\":[],\"bonus_action_spent\":true,\"bonus_grants\":[],\"reaction_spent\":false,\"movement_available\":30,\"movement_used\":0,\"dash_count\":0,\"ready_movement_grant\":0,\"ready\":null,\"opportunity\":null,\"attack_action\":null,\"attack_turn_counter\":1,\"speed_ft\":30,\"action_available\":true,\"bonus_action_available\":false,\"bonus_rules\":[],\"reaction_available\":true,\"effective_movement_available\":30,\"movement_remaining\":30,\"legal_actions\":[{\"kind\":\"attack\",\"legal\":true,\"reason\":null},{\"kind\":\"dash\",\"legal\":true,\"reason\":null},{\"kind\":\"disengage\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"dodge\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"feature\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"help\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"hide\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"influence\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"magic\",\"legal\":true,\"reason\":null},{\"kind\":\"ready\",\"legal\":true,\"reason\":null},{\"kind\":\"search\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"study\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"},{\"kind\":\"utilize\",\"legal\":false,\"reason\":\"Action-specific mechanic not connected by this lock.\"}],\"reckless_attack\":{\"available\":false,\"active\":false,\"reason\":\"feature_unavailable\"},\"quickened_spell\":{\"available\":false,\"reason\":\"sorcery_points_insufficient\"}},\"npc_002\":{\"base_action_spent\":false,\"additional_actions\":[],\"bonus_action_spent\":false,\"bonus_grants\":[],\"reaction_spent\":false,\"movement_available\":0,\"movement_used\":0,\"dash_count\":0,\"ready_movement_grant\":0,\"ready\":null,\"opportunity\":null,\"attack_action\":null,\"speed_ft\":0,\"action_available\":false,\"bonus_action_available\":false,\"bonus_rules\":[],\"reaction_available\":true,\"effective_movement_available\":0,\"movement_remaining\":0,\"legal_actions\":[{\"kind\":\"attack\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"dash\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"disengage\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"dodge\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"feature\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"help\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"hide\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"influence\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"magic\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"ready\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"search\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"study\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"},{\"kind\":\"utilize\",\"legal\":false,\"reason\":\"Actor is not the current participant.\"}],\"reckless_attack\":{\"available\":false,\"active\":false,\"reason\":\"feature_unavailable\"}}}}},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"status\":\"active\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false},\"turn_index\":1,\"quests\":[],\"quest_offers\":[],\"adventure\":{\"threads\":[],\"commitments\":[],\"plan\":null,\"recent_events\":[]},\"campaign_adventures\":{\"rumors\":[],\"active\":[],\"completed\":[],\"failed\":[],\"timeline\":[],\"affordances\":[]},\"known_lore\":[],\"known_factions\":[],\"exploration\":null,\"scene_incidents\":[]},\"combat_result\":{\"action\":\"action_economy\",\"status\":\"resolved\",\"success\":true,\"outcome\":null,\"actor\":null,\"actor_name\":null,\"target\":null,\"target_id\":null,\"target_name\":null,\"weapon\":null,\"attack_roll\":null,\"attack_bonus\":null,\"attack_total\":null,\"target_ac\":null,\"critical\":null,\"damage\":null,\"target_hp_before\":null,\"target_hp_after\":null,\"target_status\":null,\"damage_type\":null,\"attack_rolls\":null,\"disadvantage\":null,\"hp_damage\":null,\"temporary_hp_before\":null,\"temporary_hp_absorbed\":null,\"temporary_hp_after\":null,\"species_effects\":null,\"economy_steps\":[{\"kind\":\"magic\",\"result\":{\"spell_id\":\"Magic Missile\",\"target_id\":\"npc_002\",\"slot_level\":1,\"spell_attack_modifier\":4,\"spell_save_dc\":12,\"damage\":12,\"healing\":0,\"resolution\":null,\"darts\":[5,3,4],\"hp_before\":100,\"hp_after\":88,\"hit\":true}}],\"combat_id\":\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",\"combat_status\":null,\"round\":null,\"current_turn_index\":null,\"spell\":null,\"casting_ability\":null,\"attack_or_save\":null,\"save_roll\":null,\"save_dc\":null,\"healing\":null,\"slot_spent\":null,\"combat_started\":null,\"combat_ended\":null,\"end_reason\":null,\"current_actor_id\":null,\"turn_owner\":null,\"enemy_action\":null,\"enemy_actions\":null},\"combat_history_entry\":{\"event_id\":\"fccac44f-557e-4c1c-8860-8c0b813fa2a9\",\"turn_index\":1,\"result\":{\"action\":\"action_economy\",\"status\":\"resolved\",\"success\":true,\"outcome\":null,\"actor\":null,\"actor_name\":null,\"target\":null,\"target_id\":null,\"target_name\":null,\"weapon\":null,\"attack_roll\":null,\"attack_bonus\":null,\"attack_total\":null,\"target_ac\":null,\"critical\":null,\"damage\":null,\"target_hp_before\":null,\"target_hp_after\":null,\"target_status\":null,\"damage_type\":null,\"attack_rolls\":null,\"disadvantage\":null,\"hp_damage\":null,\"temporary_hp_before\":null,\"temporary_hp_absorbed\":null,\"temporary_hp_after\":null,\"species_effects\":null,\"economy_steps\":[{\"kind\":\"magic\",\"result\":{\"spell_id\":\"Magic Missile\",\"target_id\":\"npc_002\",\"slot_level\":1,\"spell_attack_modifier\":4,\"spell_save_dc\":12,\"damage\":12,\"healing\":0,\"resolution\":null,\"darts\":[5,3,4],\"hp_before\":100,\"hp_after\":88,\"hit\":true}}],\"combat_id\":\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",\"combat_status\":null,\"round\":null,\"current_turn_index\":null,\"spell\":null,\"casting_ability\":null,\"attack_or_save\":null,\"save_roll\":null,\"save_dc\":null,\"healing\":null,\"slot_spent\":null,\"combat_started\":null,\"combat_ended\":null,\"end_reason\":null,\"current_actor_id\":null,\"turn_owner\":null,\"enemy_action\":null,\"enemy_actions\":null}},\"skill_check_result\":null,\"quest_outcomes\":[],\"level_up\":null,\"turn_outcome\":{\"action\":\"action_economy\",\"status\":\"resolved\",\"kind\":null,\"target_name\":null,\"found\":null,\"place_created\":null}}','2026-10-29T12:53:21+00:00',1,2,'6aeaa7b8268b083d8f92be9f30176f634460e89a818fe5cb273c47b3024bfb1c');\nCREATE TABLE campaign_turn_actions_archive (\n        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,\n        action_id TEXT NOT NULL,\n        request_hash TEXT NOT NULL,\n        result_digest TEXT NOT NULL,\n        base_revision INTEGER,\n        committed_revision INTEGER,\n        turn_index INTEGER,\n        narration_digest TEXT,\n        skill_json TEXT,\n        archived_at TEXT NOT NULL,\n        PRIMARY KEY (campaign_id, action_id)\n    );\nCREATE TABLE campaigns (\n                        campaign_id TEXT PRIMARY KEY NOT NULL,\n                        name TEXT NOT NULL,\n                        created_at TEXT NOT NULL,\n                        updated_at TEXT NOT NULL,\n                        last_played_at TEXT NOT NULL,\n                        campaign_version INTEGER NOT NULL,\n                        save_version INTEGER NOT NULL,\n                        engine_hash TEXT NOT NULL,\n                        character_name TEXT NOT NULL,\n                        character_race TEXT NOT NULL,\n                        character_class TEXT NOT NULL,\n                        character_level INTEGER NOT NULL,\n                        location TEXT NOT NULL,\n                        payload_json TEXT NOT NULL\n                    , revision INTEGER NOT NULL DEFAULT 0, owner_issuer TEXT, owner_subject TEXT, ownership_state TEXT NOT NULL DEFAULT 'unowned');\nINSERT INTO \"campaigns\" VALUES('b83178bd-2a8f-4a48-8334-69ca53b11731','TestHero — Yeni Macera','2026-10-29T12:53:21+00:00','2026-10-29T12:53:21+00:00','2026-10-29T12:53:21+00:00',1,4,'25279ffca939d9a306138c0d5969dc22c3e47704ae2b2a5c28bed5c6b6fb7637','Vael','Human','Sorcerer',2,'tavern','{\"format\":\"ai-dnd-campaign\",\"version\":1,\"engine_save\":{\"format\":\"ai-dnd-save\",\"version\":4,\"player\":{\"name\":\"Vael\",\"race\":\"Human\",\"species\":\"Human\",\"giant_ancestry\":null,\"species_trait_state\":null,\"speed_ft\":30,\"exhaustion\":0,\"proficient_tools\":[\"Thieves'' Tools\"],\"saving_throw_mods\":{\"strength\":-1,\"dexterity\":3,\"constitution\":4,\"intelligence\":0,\"wisdom\":1,\"charisma\":4},\"class\":\"Sorcerer\",\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Arcana\",\"Insight\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"],\"expertise_skills\":[],\"species_bonus_skills\":[],\"level\":2,\"proficiency_bonus\":2,\"max_hp\":14,\"current_hp\":14,\"armor_class\":13,\"xp\":300,\"origin\":null,\"appearance\":null,\"personality\":null,\"backstory\":null,\"origin_choices\":{\"background\":\"Criminal\",\"alignment\":\"Neutral Good\",\"ability_score_method\":\"standard_array\",\"background_equipment_option\":\"A\",\"species_bonus_feat\":null,\"languages\":[\"Common\",\"Dwarvish\",\"Giant\"],\"origin_feats\":[\"Alert\"],\"background_ability_bonuses\":{\"dexterity\":2,\"constitution\":1},\"base_ability_scores\":{\"strength\":8,\"dexterity\":14,\"constitution\":13,\"intelligence\":10,\"wisdom\":12,\"charisma\":15}},\"progression_level\":2,\"metamagic\":[\"Quickened Spell\",\"Twinned Spell\"],\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"spells\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"spell_slots_remaining\":{\"1\":3},\"origin_feat\":\"Alert\"},\"world_state\":{\"campaign_id\":\"b83178bd-2a8f-4a48-8334-69ca53b11731\",\"location\":\"tavern\",\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"aliases\":[\"taverna\",\"tavernaya\",\"tavernada\",\"meyhane\",\"meyhaneye\",\"meyhanede\"],\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"aliases\":[\"orman\",\"ormana\",\"ormanda\"],\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"aliases\":[\"kale\",\"kaleye\",\"kalede\"],\"description\":\"\"}},\"next_location_number\":1,\"npcs\":[{\"id\":\"npc_001\",\"name\":\"Wystan\",\"role\":\"Barmen\",\"location\":\"tavern\",\"personality\":\"Sıcakkanlı, konuşmadan önce dinliyor.\",\"appearance\":\"Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.\",\"relationship\":\"neutral\",\"knowledge\":[],\"memory\":[],\"backstory\":\"\",\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\",\"tags\":[],\"name_known_to_player\":false,\"role_known_to_player\":true,\"personal_profile\":{\"occupation\":\"Bu handa barmenlik yapıyorum.\",\"current_activity\":\"Tezgâhın arkasında çalışıyorum\",\"mood\":\"İyiyim; işler sakin gidiyor.\",\"recent_activity\":\"Sabah bardakları yıkayıp tezgâhı hazırladım.\",\"origin\":\"Yakınlardaki bir yerleşimden geldim; uzun zamandır bu handayım.\",\"reason_for_being_here\":\"Burası çalıştığım han.\",\"personal_detail\":\"Tezgâhın köşesindeki küçük çizik yıllardır orada.\",\"immediate_goal\":\"Tezgâhı düzenli tutup akşamı tamamlamak.\",\"schema_version\":1},\"max_hp\":10,\"current_hp\":10,\"armor_class\":10,\"combat_status\":\"active\"},{\"id\":\"npc_002\",\"name\":\"Rakip\",\"role\":\"Guard\",\"location\":\"tavern\",\"personality\":\"\",\"appearance\":\"\",\"relationship\":\"neutral\",\"knowledge\":[],\"memory\":[],\"backstory\":\"\",\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\",\"tags\":[],\"name_known_to_player\":false,\"role_known_to_player\":true,\"personal_profile\":{\"occupation\":\"Şehir muhafızıyım.\",\"current_activity\":\"Bu sokakta nöbet tutuyorum\",\"mood\":\"İyiyim; nöbet sakin geçiyor.\",\"recent_activity\":\"Sabah nöbet değişiminde devriye arkadaşımı bilgilendirdim.\",\"origin\":\"Yakınlardaki küçük bir yerleşimden geldim.\",\"reason_for_being_here\":\"Bugünkü nöbet yerim bu sokak.\",\"personal_detail\":\"Nöbet değişimleri genelde günün aynı saatlerinde olur.\",\"immediate_goal\":\"Nöbetimi sorunsuz tamamlamak.\",\"schema_version\":1},\"max_hp\":100,\"current_hp\":88,\"armor_class\":20,\"combat_status\":\"active\",\"hostile\":true,\"distance_ft\":5,\"attack_damage_type\":\"bludgeoning\",\"attack_bonus\":2,\"damage_die\":6,\"damage_dice\":1,\"damage_modifier\":0}],\"shops\":[],\"next_shop_number\":1,\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"equipment\":{\"main_hand\":\"longsword\",\"off_hand\":null},\"ground_items_by_location\":{},\"ground_items\":[],\"doors\":[{\"name\":\"Taverna Kapısı\",\"description\":\"Taverna giriş kapısı.\",\"locked\":false,\"open\":false,\"broken\":false,\"location\":\"tavern\"}],\"containers\":[],\"features\":[{\"id\":\"feature_001\",\"location\":\"tavern\",\"name\":\"Ahşap masa\",\"description\":\"Kenarında sıradan bir kil bardak duran sağlam bir masa.\",\"kind\":\"furnishing\",\"aliases\":[\"masa\",\"ahşap masa\",\"bardak\",\"kil bardak\"],\"tags\":[\"campaign_local\",\"interactable_prop\"],\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\"}],\"scene_state\":{\"schema_version\":1,\"next_referent_number\":1,\"next_feature_number\":2,\"scenes\":{\"tavern\":{\"id\":\"scene:tavern\",\"location_id\":\"tavern\",\"parent_location_id\":null,\"kind\":\"tavern\",\"materialized\":true,\"visit_revision\":1,\"activity_revision\":0,\"first_seen_turn\":0,\"last_visit_turn\":0,\"last_activity_turn\":0,\"last_beat\":\"Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.\",\"referents\":[],\"ambient_event\":{\"event_id\":\"city_weapon_glance\",\"instance_id\":\"413823ff-208b-40b1-b04f-c4d3035e6d53\",\"variation_id\":\"v1\",\"event_type\":\"GREEN\",\"repeat_group\":\"children\",\"count\":1}}},\"active_referent_id\":null,\"player_position\":{\"location_id\":\"tavern\",\"kind\":\"standing\",\"target_id\":null},\"proposal_references\":[],\"entry_target_reference\":null,\"campaign_seed\":\"43a78bc5fddc5c0b2cf8faaf\",\"ambient_context\":{\"environment\":\"tavern\",\"time_of_day\":\"day\",\"weather\":\"clear\",\"background\":\"Criminal\",\"origin\":\"\"},\"ambient_event_history\":[{\"event_id\":\"city_weapon_glance\",\"instance_id\":\"413823ff-208b-40b1-b04f-c4d3035e6d53\",\"variation_id\":\"v1\",\"repeat_group\":\"children\",\"location_id\":\"tavern\",\"turn_index\":0,\"last_seen_turn\":0,\"count\":1}],\"ambient_event_counts\":{\"city_weapon_glance\":1}},\"events\":[],\"flags\":{\"last_npc_id\":null,\"active_npc_id\":null,\"active_npc_until_turn\":-1,\"turn_index\":1,\"pending_destination\":null},\"next_npc_number\":3,\"combat\":{\"schema_version\":3,\"active\":true,\"status\":\"active\",\"combat_id\":\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",\"round\":1,\"initiative_order\":[\"player\",\"npc_002\"],\"current_turn_index\":0,\"current_actor_id\":\"player\",\"participants\":[\"player\",\"npc_002\"],\"participant_records\":[{\"id\":\"player\",\"kind\":\"player\",\"name\":\"Vael\",\"initiative\":20,\"current_hp\":14,\"max_hp\":14,\"armor_class\":13,\"status\":\"active\",\"primary_action_available\":true},{\"id\":\"npc_002\",\"kind\":\"npc\",\"name\":\"Rakip\",\"initiative\":1,\"current_hp\":88,\"max_hp\":100,\"armor_class\":20,\"status\":\"active\",\"primary_action_available\":true}],\"actions_used\":[],\"target_id\":\"npc_002\",\"end_reason\":null,\"initiative_results\":{\"player\":{\"actor_id\":\"player\",\"base_modifier\":3,\"additional_modifiers\":[],\"advantage_sources\":[],\"disadvantage_sources\":[],\"surprised\":false,\"group_id\":null,\"stat_block_id\":null,\"stat_block_score\":null,\"roll_type\":\"d20\",\"raw_rolls\":[17],\"selected_roll\":17,\"advantage\":false,\"disadvantage\":false,\"advantage_cancelled\":false,\"final_total\":20,\"source\":\"PHB_2024_initiative\",\"mode\":\"rolled\"},\"npc_002\":{\"actor_id\":\"npc_002\",\"base_modifier\":0,\"additional_modifiers\":[],\"advantage_sources\":[],\"disadvantage_sources\":[],\"surprised\":false,\"group_id\":null,\"stat_block_id\":null,\"stat_block_score\":null,\"roll_type\":\"d20\",\"raw_rolls\":[1],\"selected_roll\":1,\"advantage\":false,\"disadvantage\":false,\"advantage_cancelled\":false,\"final_total\":1,\"source\":\"PHB_2024_initiative\",\"mode\":\"rolled\"}},\"initiative_groups\":{},\"initiative_effects\":[],\"turn_resources\":{\"player\":{\"base_action_spent\":false,\"additional_actions\":[],\"bonus_action_spent\":true,\"bonus_grants\":[],\"reaction_spent\":false,\"movement_available\":30,\"movement_used\":0,\"dash_count\":0,\"ready_movement_grant\":0,\"ready\":null,\"opportunity\":null,\"attack_action\":null,\"attack_turn_counter\":1},\"npc_002\":{\"base_action_spent\":false,\"additional_actions\":[],\"bonus_action_spent\":false,\"bonus_grants\":[],\"reaction_spent\":false,\"movement_available\":0,\"movement_used\":0,\"dash_count\":0,\"ready_movement_grant\":0,\"ready\":null,\"opportunity\":null,\"attack_action\":null}}},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false,\"last_death_save_turn_key\":null,\"last_death_save_result\":null,\"last_resolution\":null,\"combat_checkpoint\":{\"campaign_id\":\"b83178bd-2a8f-4a48-8334-69ca53b11731\",\"player\":{\"name\":\"Vael\",\"race\":\"Human\",\"class\":\"Sorcerer\",\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15,\"proficient_skills\":[\"Arcana\",\"Insight\",\"Persuasion\",\"Sleight of Hand\",\"Stealth\"],\"level\":2,\"proficiency_bonus\":2,\"max_hp\":14,\"current_hp\":14,\"armor_class\":13,\"strength_mod\":-1,\"dexterity_mod\":3,\"constitution_mod\":2,\"intelligence_mod\":0,\"wisdom_mod\":1,\"charisma_mod\":2,\"modifiers\":{\"strength\":-1,\"dexterity\":3,\"constitution\":2,\"intelligence\":0,\"wisdom\":1,\"charisma\":2},\"species\":\"Human\",\"giant_ancestry\":null,\"background\":\"Criminal\",\"alignment\":\"Neutral Good\",\"languages\":[\"Common\",\"Dwarvish\",\"Giant\"],\"background_equipment_option\":\"A\",\"ability_score_method\":\"standard_array\",\"base_ability_scores\":{\"strength\":8,\"dexterity\":14,\"constitution\":13,\"intelligence\":10,\"wisdom\":12,\"charisma\":15},\"background_ability_bonuses\":{\"dexterity\":2,\"constitution\":1},\"final_ability_scores\":{\"strength\":8,\"dexterity\":16,\"constitution\":14,\"intelligence\":10,\"wisdom\":12,\"charisma\":15},\"expertise_skills\":[],\"species_bonus_skills\":[],\"proficient_tools\":[\"Thieves'' Tools\"],\"origin_feat\":\"Alert\",\"species_bonus_feat\":null,\"origin_feats\":[\"Alert\"],\"fighting_style\":null,\"equipment_package\":\"A\",\"equipment_choices\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"spells\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"origin\":null,\"spell_slots_remaining\":{\"1\":3},\"appearance\":null,\"personality\":null,\"backstory\":null,\"xp\":300,\"saving_throws\":[\"constitution\",\"charisma\"],\"saving_throw_mods\":{\"strength\":-1,\"dexterity\":3,\"constitution\":4,\"intelligence\":0,\"wisdom\":1,\"charisma\":4},\"initiative\":5,\"spell_save_dc\":12,\"spell_attack_bonus\":4,\"passive_perception\":11,\"speed_ft\":30,\"species_trait_state\":null,\"progression_level\":2,\"metamagic\":[\"Quickened Spell\",\"Twinned Spell\"]},\"world_state\":{\"campaign_id\":\"b83178bd-2a8f-4a48-8334-69ca53b11731\",\"location\":\"tavern\",\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"type\":\"building\",\"aliases\":[\"taverna\",\"tavernaya\",\"tavernada\",\"meyhane\",\"meyhaneye\",\"meyhanede\"],\"description\":\"\"},\"forest\":{\"id\":\"forest\",\"name\":\"Orman\",\"type\":\"wilderness\",\"aliases\":[\"orman\",\"ormana\",\"ormanda\"],\"description\":\"\"},\"castle\":{\"id\":\"castle\",\"name\":\"Kale\",\"type\":\"building\",\"aliases\":[\"kale\",\"kaleye\",\"kalede\"],\"description\":\"\"}},\"next_location_number\":1,\"npcs\":[{\"id\":\"npc_001\",\"name\":\"Wystan\",\"role\":\"Barmen\",\"location\":\"tavern\",\"personality\":\"Sıcakkanlı, konuşmadan önce dinliyor.\",\"appearance\":\"Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.\",\"relationship\":\"neutral\",\"knowledge\":[],\"memory\":[],\"backstory\":\"\",\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\",\"tags\":[],\"name_known_to_player\":false,\"role_known_to_player\":true,\"personal_profile\":{\"occupation\":\"Bu handa barmenlik yapıyorum.\",\"current_activity\":\"Tezgâhın arkasında çalışıyorum\",\"mood\":\"İyiyim; işler sakin gidiyor.\",\"recent_activity\":\"Sabah bardakları yıkayıp tezgâhı hazırladım.\",\"origin\":\"Yakınlardaki bir yerleşimden geldim; uzun zamandır bu handayım.\",\"reason_for_being_here\":\"Burası çalıştığım han.\",\"personal_detail\":\"Tezgâhın köşesindeki küçük çizik yıllardır orada.\",\"immediate_goal\":\"Tezgâhı düzenli tutup akşamı tamamlamak.\",\"schema_version\":1},\"max_hp\":10,\"current_hp\":10,\"armor_class\":10,\"combat_status\":\"active\"},{\"id\":\"npc_002\",\"name\":\"Rakip\",\"role\":\"Guard\",\"location\":\"tavern\",\"personality\":\"\",\"appearance\":\"\",\"relationship\":\"neutral\",\"knowledge\":[],\"memory\":[],\"backstory\":\"\",\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\",\"tags\":[],\"name_known_to_player\":false,\"role_known_to_player\":true,\"personal_profile\":{\"occupation\":\"Şehir muhafızıyım.\",\"current_activity\":\"Bu sokakta nöbet tutuyorum\",\"mood\":\"İyiyim; nöbet sakin geçiyor.\",\"recent_activity\":\"Sabah nöbet değişiminde devriye arkadaşımı bilgilendirdim.\",\"origin\":\"Yakınlardaki küçük bir yerleşimden geldim.\",\"reason_for_being_here\":\"Bugünkü nöbet yerim bu sokak.\",\"personal_detail\":\"Nöbet değişimleri genelde günün aynı saatlerinde olur.\",\"immediate_goal\":\"Nöbetimi sorunsuz tamamlamak.\",\"schema_version\":1},\"max_hp\":100,\"current_hp\":100,\"armor_class\":20,\"combat_status\":\"active\",\"hostile\":true,\"distance_ft\":5,\"attack_damage_type\":\"bludgeoning\",\"attack_bonus\":2,\"damage_die\":6,\"damage_dice\":1,\"damage_modifier\":0}],\"shops\":[],\"next_shop_number\":1,\"inventory\":[\"2 Hançer\",\"Kristal Büyü Odağı\",\"Zindan Çantası\",\"28 Altın\",\"Hırsız Aletleri\",\"Koyu Renkli Pelerin\",\"Levye\",\"16 Altın\"],\"equipment\":{\"main_hand\":\"longsword\",\"off_hand\":null},\"ground_items_by_location\":{},\"ground_items\":[],\"doors\":[{\"name\":\"Taverna Kapısı\",\"description\":\"Taverna giriş kapısı.\",\"locked\":false,\"open\":false,\"broken\":false,\"location\":\"tavern\"}],\"containers\":[],\"features\":[{\"id\":\"feature_001\",\"location\":\"tavern\",\"name\":\"Ahşap masa\",\"description\":\"Kenarında sıradan bir kil bardak duran sağlam bir masa.\",\"kind\":\"furnishing\",\"aliases\":[\"masa\",\"ahşap masa\",\"bardak\",\"kil bardak\"],\"tags\":[\"campaign_local\",\"interactable_prop\"],\"reality_layer\":\"PROCEDURAL_LOCAL_FICTION\"}],\"scene_state\":{\"schema_version\":1,\"next_referent_number\":1,\"next_feature_number\":2,\"scenes\":{\"tavern\":{\"id\":\"scene:tavern\",\"location_id\":\"tavern\",\"parent_location_id\":null,\"kind\":\"tavern\",\"materialized\":true,\"visit_revision\":1,\"activity_revision\":0,\"first_seen_turn\":0,\"last_visit_turn\":0,\"last_activity_turn\":0,\"last_beat\":\"Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır.\",\"referents\":[],\"ambient_event\":{\"event_id\":\"city_weapon_glance\",\"instance_id\":\"413823ff-208b-40b1-b04f-c4d3035e6d53\",\"variation_id\":\"v1\",\"event_type\":\"GREEN\",\"repeat_group\":\"children\",\"count\":1}}},\"active_referent_id\":null,\"player_position\":{\"location_id\":\"tavern\",\"kind\":\"standing\",\"target_id\":null},\"proposal_references\":[],\"entry_target_reference\":null,\"campaign_seed\":\"43a78bc5fddc5c0b2cf8faaf\",\"ambient_context\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\",\"background\":\"\",\"origin\":\"\"},\"ambient_event_history\":[{\"event_id\":\"city_weapon_glance\",\"instance_id\":\"413823ff-208b-40b1-b04f-c4d3035e6d53\",\"variation_id\":\"v1\",\"repeat_group\":\"children\",\"location_id\":\"tavern\",\"turn_index\":0,\"last_seen_turn\":0,\"count\":1}],\"ambient_event_counts\":{\"city_weapon_glance\":1}},\"events\":[],\"flags\":{\"last_npc_id\":null,\"active_npc_id\":null,\"active_npc_until_turn\":-1,\"turn_index\":0,\"pending_destination\":null},\"next_npc_number\":3,\"combat\":{\"schema_version\":3,\"active\":false,\"status\":\"ended\",\"combat_id\":null,\"round\":0,\"initiative_order\":[],\"current_turn_index\":0,\"current_actor_id\":null,\"participants\":[],\"participant_records\":[],\"actions_used\":[],\"target_id\":null,\"end_reason\":null},\"player_combat_status\":\"active\",\"death_state\":{\"mode\":\"NORMAL\",\"successes\":0,\"failures\":0,\"stable\":false,\"dead\":false,\"terminal\":false,\"prone\":false,\"last_death_save_turn_key\":null,\"last_death_save_result\":null,\"last_resolution\":null,\"combat_checkpoint\":null,\"recovery\":null,\"noncombat_next_save_at\":null,\"noncombat_episode_id\":null},\"player_knowledge\":[],\"quests\":[],\"quest_processed_event_ids\":[],\"starting_equipment_source\":\"PHB2024-background-v1\",\"spellcasting_v1\":{\"version\":1,\"class\":\"Sorcerer\",\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"prepared\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"slots\":{\"1\":3},\"slot_turn\":null},\"sorcery_points_v1\":{\"version\":1,\"remaining\":2},\"campaign_time\":{\"calendar\":\"Harptos\",\"local_convention\":\"Neverwinter local\",\"start_date\":{\"year\":1501,\"month\":\"Mirtul\",\"day\":1},\"start_second\":32400,\"elapsed_seconds\":0},\"scheduled_events\":[],\"scheduled_event_diagnostics\":[],\"monster_perception\":{\"npc_002\":{\"player\":{\"visible\":true}}}},\"recent_dm_narrations\":[],\"world_metadata\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"campaign_state\":{\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"narrative_memory\":{\"schema_version\":1,\"recent_turns\":[],\"story_summary\":{\"current_arc\":[],\"recent_events\":[],\"important_relationships\":[],\"current_location\":null,\"unresolved_threads\":[],\"major_discoveries\":[],\"player_history\":[]},\"entity_memory\":{\"npcs\":{},\"locations\":{}},\"npc_interactions\":{},\"location_continuity\":{},\"quest_memory\":{},\"unresolved_threads\":[],\"style_profile\":{\"tone\":\"immersive high fantasy\",\"description_density\":\"moderate\",\"dialogue_density\":\"strong\",\"pace\":\"variable\",\"darkness\":\"grounded\",\"humor\":\"restrained\",\"violence_detail\":\"restrained\"},\"repetition_fingerprint\":{\"recent_openings\":[],\"recent_closings\":[],\"recent_phrases\":[],\"recent_gestures\":[],\"recent_environment_descriptions\":[]}},\"lore_authority\":{\"binding_status\":\"LEGACY_UNBOUND\",\"setting_profile\":null,\"world_id\":null,\"epoch_id\":null,\"region_id\":null,\"current_location_entity_id\":null,\"region_pack_id\":null,\"starting_location_entity_id\":null,\"player_known_fact_ids\":[],\"npc_known_fact_ids\":{},\"campaign_overrides\":[],\"procedural_entity_refs\":[],\"lore_discoveries\":[],\"faction_standings\":[],\"adventure_possibility_ids\":[],\"lore_payload_version\":1},\"world_metadata\":{\"environment\":\"unknown\",\"time_of_day\":\"day\",\"weather\":\"clear\"}}},\"recovery\":null,\"noncombat_next_save_at\":null,\"noncombat_episode_id\":null},\"player_knowledge\":[],\"quests\":[],\"quest_processed_event_ids\":[],\"starting_equipment_source\":\"PHB2024-background-v1\",\"spellcasting_v1\":{\"version\":1,\"class\":\"Sorcerer\",\"cantrips\":[\"Fire Bolt\",\"Ray of Frost\",\"Mage Hand\",\"Minor Illusion\"],\"prepared\":[\"Magic Missile\",\"Shield\",\"Burning Hands\",\"Chromatic Orb\"],\"slots\":{\"1\":2},\"slot_turn\":[\"3950cf85-ac81-47f9-a5fa-ace457b9a73d\",1,1]},\"sorcery_points_v1\":{\"version\":1,\"remaining\":0},\"campaign_time\":{\"calendar\":\"Harptos\",\"local_convention\":\"Neverwinter local\",\"start_date\":{\"year\":1501,\"month\":\"Mirtul\",\"day\":1},\"start_second\":32400,\"elapsed_seconds\":0},\"scheduled_events\":[],\"scheduled_event_diagnostics\":[],\"monster_perception\":{\"npc_002\":{\"player\":{\"visible\":true}}},\"attack_environment\":{\"pairs\":{\"player|npc_002\":{\"distance_ft\":5,\"attacker_sees_target\":true,\"target_sees_attacker\":true,\"cover\":\"none\"}}}},\"recent_dm_narrations\":[]},\"rng_state\":[3,[3577533871,1743569767,2052902592,710412835,3738552253,1686083915,196364577,688343536,1947648441,2774644715,3278552414,1257124922,183356242,1583279781,2173117029,285415077,1190036630,4195918184,1424281569,185646274,1579698395,1277989608,3951806083,1546895216,1092986217,3802021259,2503703853,587660026,1765679844,2992860778,1865604441,1836182253,3474397783,3882511877,3339510985,3345480552,1102195705,3567214229,1083154603,3197953557,2433186123,1217021764,3959790114,1304376797,2228085214,1998471254,1375696179,827873314,1313003438,3360159253,2161006587,764273196,2381713732,4185843032,151996081,1442500928,748684541,323247116,1077326191,2353788335,2578125912,170077867,2263796793,1049172694,764498996,2983123314,3382018029,3049297629,4254447989,3814236402,3966807306,883652373,1221696520,3911318937,4255225624,1033796987,3027747068,4190660975,3769901238,4227144,3595309943,2224273549,3336248953,1462494038,1444552549,2235080598,1642066650,3666922806,1707048961,997034065,117786192,4000583164,2203787718,3524153852,3892472658,3535283223,1080988543,2912499651,4274920722,3391984678,3206468474,4063302548,2695049482,2321950339,3860078367,2473996516,4271795772,3322263599,3259176444,115727559,1742384324,257911391,4289187976,448629059,370380989,1722936696,2885202001,623414182,1769795040,1260620523,1414985829,3388492051,2931364113,2916479926,2120561623,1956771233,3347700243,175320941,2441334859,816204171,3421819259,2197389048,2508822075,998838290,500857941,4182199189,1695353461,991914665,3101293598,2603882426,920771564,2915714595,2107896604,3955475879,293470537,941443125,214234864,2295455187,1724509118,3146634859,2399694941,404706161,171621125,3668753412,4026999506,1508284855,778988648,2361935296,2710232015,4074853646,1500316912,2290422110,1544409572,2031868199,2296134199,2133556415,2720437987,176473152,3876498737,2462183810,2762005329,3992172945,1593165033,4228627458,3160057658,2647615095,2418236720,1248898888,3085826483,4041933542,3961589222,2097877550,95510566,718793629,3043501227,1054641799,3890576744,541279484,169043648,440863502,3339329319,2556349713,2071911702,2623722733,623869247,1467608961,2575460950,3288731566,3661281009,1077370692,2028294047,2602881798,3582173634,2655293425,3403716694,1138965369,1533590305,357394860,2057501011,3935367975,1496972749,624128645,1258959395,3134112783,2289484655,1210549992,3773327381,2300039041,1519803558,494849476,676231625,2989928547,2009874249,1069245279,4109165804,1277470497,647480661,646613619,2455074126,1371971985,457615678,2718316965,2334683682,4136419430,3623714543,4266723237,3694252791,3626613691,4250639207,1042438777,1793324704,550598244,3510845223,3163162873,3001107516,441124545,2969184163,4183951963,4207309055,3275824652,3602228404,1285946252,1276432578,3716485056,865725751,2380660383,962810318,2808834363,1018606367,103057239,457427601,1695529138,2242285415,338245766,1344905449,2359766087,689380849,540423603,4260374019,3995697136,225781129,2201257356,2702149539,4266309140,1093742304,2577147058,3395219837,3469046946,2585388879,2689877983,2378621173,3987629475,1139456326,2904583924,647279284,3159670470,426056273,3835525237,2521074840,73946994,383522166,3945671362,1217131642,1447158682,723462098,1252633197,1962813523,3981127919,2010731779,1279735816,570098129,1472939030,3495388416,2588248980,3926432723,431709835,3369557755,669460513,318332261,268611831,2228963843,3377306967,1942987119,2516122653,3049536569,779038330,619031780,3481257208,3711709866,1908907594,1041390949,2369562334,2248850762,340439251,2309873374,4122055225,728736100,3188486059,4292224642,4267025627,2402076070,3704006163,758567798,3832330113,2481060321,503677023,1231422617,787553669,2987632690,3603769878,2916520846,479919445,1591333835,1094205992,4041667742,1842258387,3425731266,3278385068,3767284809,1379613678,1730318266,790785911,1213362555,1172537237,480633312,1133745685,2569611546,1194434306,2111707279,3970001469,1593596533,941661423,670842234,1957115861,744494660,2758019958,1665143806,2285038667,799545408,1161387527,4134206487,2508808448,2747015353,2113827466,4148870837,3821604543,2614391962,3570330928,2661649506,3035349188,2213047663,3569739273,194893582,423465576,9593607,1536613067,2289065627,807330342,123183991,1709209548,1115697339,1915438714,3763565701,1240973013,1446042978,1583256594,3640693052,1086134393,638153470,3484580351,2640235158,1963835040,2634814877,2591496276,3350515057,966478085,4203984837,3242274699,3303023804,4046290628,2795295264,2056806362,4170040235,3919828583,886009266,891370313,631271774,1857402097,2294698790,1120680830,530246832,3211712857,3769043071,2339719222,3721679204,2182309930,4083568611,276355603,2639636981,310100496,765344525,3832218071,3262720145,1855816000,1690255396,2527138875,4048584565,2104293768,3846111574,2283947263,2283901903,275977012,2934972031,2426187793,1373307934,1148160987,45180055,913445645,3673322595,592171206,3260595880,4043604876,1969759042,1011245021,3085184757,1852610235,737198008,496589482,3655422777,3353139905,133413053,60435831,3105647172,2435784080,3847289610,2797518522,3483263600,750739831,296823227,730045221,759086430,418903800,2228427344,1079852837,1341543992,4241163746,627815891,3893513500,3350866623,4131337408,934672719,1354986570,3648085881,1540989750,3319467115,810695238,3808413967,734029240,3838609791,824814520,1080056472,499931239,2285695197,3895864815,625659227,2815562063,2678296526,2454681917,3636664544,258147813,725088059,4120288830,3324262590,186715601,651796833,106597923,490539677,822219257,447025208,3242559235,4070200041,2212841862,1147292040,2172762863,2106877199,603062989,483350139,2067963757,4255096675,2661452743,3351196286,1446648824,3999440369,2227665455,2068477099,66951212,2197803753,4111879037,3183555995,2048703512,44389869,3387204442,833867498,598971513,4261071600,1053765126,1047217304,939154774,2292935682,2175172344,409613248,352256626,927224979,1745145611,1034830558,1973297037,148380934,1496769357,1167538520,907250935,1904255046,2407770464,4141081712,66920319,3546932539,1060793235,3070328644,1984132433,3898001518,3679172830,449593887,3435631194,2859848026,2913806638,63215384,868518809,3775493243,3895570761,886590814,1977566848,2910127962,3635453225,4264851946,4275341313,304182675,1018679424,904581533,190924578,3429426815,4104111898,4294187510,474500358,3037769243,256306556,3484730765,3593411287,3239568857,366377515,1215924233,2203002108,2725282348,2565203446,2552747544,2336211912,2554643912,3038244711,3578159113,2066798818,697553831,568613840,862835922,3469069319,2812507748,4253706108,1109640208,4153539971,1676084788,3514568450,2804223064,1650671915,677206681,515029842,3216878012,2934201700,84890590,2605883830,3298948686,2270247381,2742567210,1661473180,1685440179,3739876964,307259019,1788234548,9],null],\"world_metadata\":{\"environment\":\"tavern\",\"time_of_day\":\"day\",\"weather\":\"clear\"},\"journal\":{\"schema_version\":1,\"discovered_locations\":[],\"known_npcs\":[],\"notable_events\":[],\"quests\":[]},\"narrative_memory\":{\"schema_version\":1,\"recent_turns\":[{\"player\":\"Hamle.\",\"narration\":\"[presentation omitted from continuity]\",\"turn_index\":1,\"authority\":\"presentation\"}],\"story_summary\":{\"current_arc\":[],\"recent_events\":[],\"important_relationships\":[],\"current_location\":{\"location_id\":\"tavern\",\"authority\":\"canonical_reference\"},\"unresolved_threads\":[],\"major_discoveries\":[],\"player_history\":[]},\"entity_memory\":{\"npcs\":{},\"locations\":{\"tavern\":{\"id\":\"tavern\",\"name\":\"Taverna\",\"authority\":\"canonical_reference\"}}},\"npc_interactions\":{},\"location_continuity\":{\"tavern\":[{\"text\":\"Canonical location: Taverna\",\"turn_index\":1,\"importance\":\"medium\",\"authority\":\"narrative_continuity\",\"source\":\"canonical_location\"}]},\"quest_memory\":{},\"unresolved_threads\":[],\"style_profile\":{\"tone\":\"immersive high fantasy\",\"description_density\":\"moderate\",\"dialogue_density\":\"strong\",\"pace\":\"variable\",\"darkness\":\"grounded\",\"humor\":\"restrained\",\"violence_detail\":\"restrained\"},\"repetition_fingerprint\":{\"recent_openings\":[],\"recent_closings\":[],\"recent_phrases\":[],\"recent_gestures\":[],\"recent_environment_descriptions\":[]}},\"lore_authority\":{\"binding_status\":\"LEGACY_UNBOUND\",\"setting_profile\":null,\"world_id\":null,\"epoch_id\":null,\"region_id\":null,\"current_location_entity_id\":null,\"region_pack_id\":null,\"starting_location_entity_id\":null,\"player_known_fact_ids\":[],\"npc_known_fact_ids\":{},\"campaign_overrides\":[],\"procedural_entity_refs\":[],\"lore_discoveries\":[],\"faction_standings\":[],\"adventure_possibility_ids\":[],\"lore_payload_version\":1}}',2,'test-issuer','test-player','owned');\nCOMMIT;",
+  "provenance": {
+    "checkpoint": "12-before-Font-slot-to-points",
+    "capture_guard": "d0803047bca67beec76a27d7825cef6f655bafee81d290d5c940d530ec0a51c5",
+    "database_sha256": "89de1665841a4f5b4daf3f81626b697f13e4729885b0b4ff478d693ed7b8990a",
+    "synthetic_only": true
+  },
+  "sqlite_user_version": 6
+}

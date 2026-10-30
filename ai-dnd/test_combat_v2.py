@@ -237,6 +237,7 @@ class CombatV2Turns(unittest.TestCase):
     def test_combat_state_legacy(self):
         payload = self.session.serialize_game_state()
         payload["version"] = 2
+        payload["player"].pop("weapon_proficiencies", None)
         payload["world_state"]["combat"] = {
             "active": False, "round": 0, "initiative_order": [],
             "current_turn_index": 0, "participants": [], "target_id": None,

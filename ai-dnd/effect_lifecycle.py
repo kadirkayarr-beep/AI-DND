@@ -64,6 +64,10 @@ def _expire(state: dict, effect_id: str) -> None:
 def advance_effects(session: object, elapsed_s: int, source_event_id: str, boundary: str) -> list[dict]:
     if type(elapsed_s) is not int or elapsed_s < 0:
         raise ValueError("Elapsed seconds are invalid.")
+    # Rage has a separate hard cap even during combat rounds; dispatch before
+    # species-only early returns. The canonical clock already advanced.
+    import barbarian_rage
+    barbarian_rage.settle(session)
     state = (session.character.get("species_trait_state") or None)
     if state is None or boundary == "round" or elapsed_s == 0:
         return []  # a zero-length step consumes nothing and must not occupy its source key

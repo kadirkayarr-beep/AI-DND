@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import game
+import character_progression
 import incidents.hooks as incident_hooks
 from incidents.attempts import SqliteAttemptStore
 
@@ -21,6 +22,8 @@ from api.campaign_journal import (
     empty_campaign_journal,
 )
 from api.character_creation import configure_character
+from api.dnd_2024_rules import CharacterCreationError
+from api.schemas import CharacterCreateInput
 from api.lore_authority import (
     PRODUCTION_REGISTRY,
     PRODUCTION_START_CATALOG,
@@ -167,7 +170,17 @@ class SessionManager:
         store = self._require_campaign_store()
         session = self._session_factory()
         if character is not None:
-            configure_character(session, **character)
+            try:
+                creation = CharacterCreateInput.model_validate(character)
+                spec = creation.model_dump(exclude={"starting_level", "level_choices"})
+                if creation.mode == "custom" and creation.starting_level > 1:
+                    spec.pop("mode")
+                    choices = creation.level_choices.model_dump(by_alias=True, exclude_none=True)
+                    character_progression.create_at_level(session, spec, creation.starting_level, choices)
+                else:
+                    configure_character(session, **spec)
+            except ValueError as error:
+                raise CharacterCreationError(str(error)) from None
         narrative_memory = empty_narrative_memory()
         lore_authority = CampaignLoreState.legacy_unbound()
         if campaign_start is not None:

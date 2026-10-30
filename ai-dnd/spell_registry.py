@@ -63,14 +63,17 @@ def cast_spell(spell_id: Any, context: dict[str, Any], slot_level: int | None, c
         return _result("unsupported", spell_id, None, "spell_resolver_missing")
     level = spell_scope.CATALOG[spell_id][0]
     reported = level or None  # a cantrip has no slot
+    if spell_id == "Magic Missile" and type(slot_level) is int and slot_level in (2, 3):
+        reported = slot_level
     session = context.get("session") if isinstance(context, dict) else None
     if session is None:
         return _result("rejected", spell_id, reported, "session_required")
     target_id = choice.get("target_id") if isinstance(choice, dict) else None
     try:
-        outcome = spell_scope.cast(session, spell_id, target_id, slot_level)
+        outcome = spell_scope.cast(session, spell_id, target_id, slot_level, metamagic=choice.get("metamagic") if isinstance(choice, dict) else None)
     except CombatRequestError as exc:
         return _result("rejected", spell_id, reported, exc.code)
     except ValueError:  # dead/unconscious player, invalid saved spell state: the owner restored its state (initiative.atomic)
         return _result("rejected", spell_id, reported, "invalid_spell_state")
-    return _result("applied", spell_id, reported, None, outcome, _changes(level, outcome))
+    actual_level = outcome["slot_level"]
+    return _result("applied", spell_id, actual_level or None, None, outcome, _changes(actual_level, outcome))

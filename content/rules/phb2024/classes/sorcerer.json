@@ -383,5 +383,39 @@
   "2": 2,
   "10": 2,
   "17": 2
+ },
+ "subclass_options": {
+  "phb2024:subclass:sorcerer:aberrant-sorcery": {
+   "name": "Aberrant Sorcery",
+   "pdf_page": 144,
+   "level3_features": [
+    "Psionic Spells",
+    "Telepathic Speech"
+   ]
+  },
+  "phb2024:subclass:sorcerer:clockwork-sorcery": {
+   "name": "Clockwork Sorcery",
+   "pdf_page": 145,
+   "level3_features": [
+    "Clockwork Spells",
+    "Restore Balance"
+   ]
+  },
+  "phb2024:subclass:sorcerer:draconic-sorcery": {
+   "name": "Draconic Sorcery",
+   "pdf_page": 147,
+   "level3_features": [
+    "Draconic Resilience",
+    "Draconic Spells"
+   ]
+  },
+  "phb2024:subclass:sorcerer:wild-magic-sorcery": {
+   "name": "Wild Magic Sorcery",
+   "pdf_page": 148,
+   "level3_features": [
+    "Wild Magic Surge",
+    "Tides of Chaos"
+   ]
+  }
  }
 }

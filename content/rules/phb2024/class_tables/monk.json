@@ -1,0 +1,242 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "class": "Monk",
+  "features_table": {
+   "pdf_page": 101,
+   "printed_page": 102
+  },
+  "verification": {
+   "level": "dual-source+render-read",
+   "package_label": "TAM_GORSEL (package author's narrow visual check; not independent)",
+   "package": "AI-DND-C06-PHB-KAYNAK-20261030 (local, never copied into the repo)",
+   "package_file": "ilerleme/monk_1_20.md",
+   "release": "kaynak_paketler/Monk/release_v1",
+   "dual_source": "package ilerleme table equals the older accepted release table in the archive PHB_20261028_e7d6b0bd/Monk_20261028/release_v1/monk.md cell for cell (script comparison, 0 differences)",
+   "render_read": "all numeric and feature cells re-read by an AI visual pass of the release render pdf101.png on 2026-10-30; not human certification",
+   "ocr_suspects_on_page": "none: PDF ordinal absent from SAYISAL_OCR_ADAYLARI.json (641 items) and SUPHELI_SAYFALAR.json; OCR_DUZELTME_KAYDI covers other pages",
+   "printed_page_basis": "footer read on the render",
+   "subclass_names_basis": "class intro sentence in the accepted release text (not re-read on the render)",
+   "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
+  },
+  "unverified_cells": [],
+  "scope": "progression table only; no feature effects, spell lists or choices"
+ },
+ "levels": {
+  "1": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Martial Arts",
+    "Unarmored Defense"
+   ],
+   "martial_arts_die": 6,
+   "focus_points": null,
+   "unarmored_movement_ft": null
+  },
+  "2": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Monk's Focus",
+    "Unarmored Movement",
+    "Uncanny Metabolism"
+   ],
+   "martial_arts_die": 6,
+   "focus_points": 2,
+   "unarmored_movement_ft": 10
+  },
+  "3": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Deflect Attacks",
+    "Monk Subclass"
+   ],
+   "martial_arts_die": 6,
+   "focus_points": 3,
+   "unarmored_movement_ft": 10
+  },
+  "4": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Ability Score Improvement",
+    "Slow Fall"
+   ],
+   "martial_arts_die": 6,
+   "focus_points": 4,
+   "unarmored_movement_ft": 10
+  },
+  "5": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Extra Attack",
+    "Stunning Strike"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 5,
+   "unarmored_movement_ft": 10
+  },
+  "6": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Empowered Strikes",
+    "Subclass feature"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 6,
+   "unarmored_movement_ft": 15
+  },
+  "7": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Evasion"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 7,
+   "unarmored_movement_ft": 15
+  },
+  "8": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 8,
+   "unarmored_movement_ft": 15
+  },
+  "9": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Acrobatic Movement"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 9,
+   "unarmored_movement_ft": 15
+  },
+  "10": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Heightened Focus",
+    "Self-Restoration"
+   ],
+   "martial_arts_die": 8,
+   "focus_points": 10,
+   "unarmored_movement_ft": 20
+  },
+  "11": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Subclass feature"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 11,
+   "unarmored_movement_ft": 20
+  },
+  "12": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 12,
+   "unarmored_movement_ft": 20
+  },
+  "13": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Deflect Energy"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 13,
+   "unarmored_movement_ft": 20
+  },
+  "14": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Disciplined Survivor"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 14,
+   "unarmored_movement_ft": 25
+  },
+  "15": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Perfect Focus"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 15,
+   "unarmored_movement_ft": 25
+  },
+  "16": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "martial_arts_die": 10,
+   "focus_points": 16,
+   "unarmored_movement_ft": 25
+  },
+  "17": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Subclass feature"
+   ],
+   "martial_arts_die": 12,
+   "focus_points": 17,
+   "unarmored_movement_ft": 25
+  },
+  "18": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Superior Defense"
+   ],
+   "martial_arts_die": 12,
+   "focus_points": 18,
+   "unarmored_movement_ft": 30
+  },
+  "19": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Epic Boon"
+   ],
+   "martial_arts_die": 12,
+   "focus_points": 19,
+   "unarmored_movement_ft": 30
+  },
+  "20": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Body and Mind"
+   ],
+   "martial_arts_die": 12,
+   "focus_points": 20,
+   "unarmored_movement_ft": 30
+  }
+ },
+ "subclass_levels": [
+  3,
+  6,
+  11,
+  17
+ ],
+ "asi_levels": [
+  4,
+  8,
+  12,
+  16
+ ],
+ "epic_boon_level": 19,
+ "subclass_options": {
+  "phb2024:subclass:monk:warrior-of-mercy": {
+   "name": "Warrior of Mercy"
+  },
+  "phb2024:subclass:monk:warrior-of-shadow": {
+   "name": "Warrior of Shadow"
+  },
+  "phb2024:subclass:monk:warrior-of-the-elements": {
+   "name": "Warrior of the Elements"
+  },
+  "phb2024:subclass:monk:warrior-of-the-open-hand": {
+   "name": "Warrior of the Open Hand"
+  }
+ }
+}

@@ -1,3 +1,4 @@
+import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -46,7 +47,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   setInFlightSessions() {}, setNotice: value => { if (value) errors.push(value); }, getTurnInteractionMetadata: () => ({ interaction_mode: 'do' }),
   epoch: 1, currentAuthEpoch: () => 1, accountWriteAllowed: () => env.epoch === 1,
   playGameTurn: async (sessionId, data) => { const request = { sessionId, data }; requests.push(request); return transport ? transport(request) : { state: old, narration: 'Synthetic receipt' }; },
-  queryClient: client, getGetGameSessionStateQueryKey: id => ['state', id], ...gateInjection(),
+  queryClient: client, getGetGameSessionStateQueryKey: id => ['state', id], ...gateInjection(), ...primalKnowledgeInjection(),
   getGameSessionState: refresh,
   getCampaign: async () => ({ state: await env.getGameSessionState(), history, combat_history: [] }),
   mergeCombatHistory: history => history,
@@ -234,7 +235,7 @@ function speciesHarness({ store = storage(), fail = false, refresh = async () =>
   window:{ sessionStorage:store, crypto:{ randomUUID:() => crypto.randomUUID() } },
   useState: fn => [fn(), v => setters.push(['retry',v])],
   setSending:v => setters.push(['sending',v]), setFeedback:v => setters.push(['feedback',v]), setFailure:v => setters.push(['failure',v]), setStorageUnavailable:v => setters.push(['storageUnavailable',v]),
-  queryClient:client, getGetGameSessionStateQueryKey:id => ['state',id], ...gateInjection(), getGameSessionState:refresh,
+  queryClient:client, getGetGameSessionStateQueryKey:id => ['state',id], ...gateInjection(), ...primalKnowledgeInjection(), getGameSessionState:refresh,
   resolveSpeciesTraitAction:async (id,data) => { requests.push(data); if(fail) throw new Error('lost after commit'); return {state:old,result:{message:'Synthetic',effects:{}}}; },
  };
  globalThis.window = env.window;

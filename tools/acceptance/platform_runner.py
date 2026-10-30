@@ -10,6 +10,7 @@ import hashlib
 import os
 from pathlib import Path
 import platform
+import re
 import signal
 import subprocess
 import tempfile
@@ -141,9 +142,17 @@ def run_gate(command, cwd, timeout_s, env, *, column="unit", test_id=None, platf
     cwd = Path(cwd)
     platform_name = platform_name or os.name
     name = Path(command[0]).name
+    expected_root = REPO.resolve()
+    actual_root = source_identity.git_root(REPO, env=env)
+    if actual_root == expected_root:
+        source_sha = source_identity.ref_sha(REPO, "HEAD", env=env)
+        tree_state = source_identity.tree_state(REPO, env=env)
+    else:
+        source_sha = None
+        tree_state = None
     record = {
-        "sourceSHA": source_identity.ref_sha(REPO, "HEAD"),
-        "treeState": source_identity.tree_state(REPO),
+        "sourceSHA": source_sha,
+        "treeState": tree_state,
         "runtimeSHA": "UNKNOWN", "os": platform.platform(),
         "runtime": f"python {platform.python_version()} on {platform_name}",
         "model": None, "column": column, "command": subprocess.list2cmdline(command), "cwd": str(cwd),
@@ -152,6 +161,13 @@ def run_gate(command, cwd, timeout_s, env, *, column="unit", test_id=None, platf
         "artifactDigest": None, "startedAt": timestamp(), "endedAt": None, "reviewer": None,
     }
     if platform_name not in SUPPORTED:
+        record["endedAt"] = timestamp()
+        return record
+    if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+        record["endedAt"] = timestamp()
+        return record
+    if not (isinstance(tree_state, dict) and isinstance(tree_state.get("clean"), bool)
+            and isinstance(tree_state.get("changed_paths"), list)):
         record["endedAt"] = timestamp()
         return record
     with tempfile.TemporaryFile() as output:

@@ -605,8 +605,8 @@ CLASS_DEFINITIONS = {
         "features": ["Öfke (Rage)", "Zırsız Savunma (Unarmored Defense)", "Silah Ustalığı (Weapon Mastery)"],
         "is_spellcaster": False,
         "equipment_packages": [
-            {"id": "A", "label": "Büyük Balta & Ciritler", "items": ["Büyük Balta (Greataxe)", "4 Cirit", "Macera Çantası", "15 Altın"]},
-            {"id": "B", "label": "Çift El Baltası & Ciritler", "items": ["2 El Baltası (Handaxe)", "4 Cirit", "Macera Çantası", "15 Altın"]},
+            {"id": "A", "label": "Greataxe, 4 Handaxes, Explorer's Pack + 15 GP (yalnız sınıf payı)", "items": ["Büyük Balta (Greataxe)", "4 Handaxes", "Explorer's Pack", "15 GP"]},
+            {"id": "B", "label": "75 GP (yalnız sınıf payı; sınıf eşyası yok)", "items": ["75 GP"]},
         ],
     },
     "Bard": {
@@ -938,6 +938,10 @@ SPELLS_CATALOG = {
             {"id": "Chromatic Orb", "name_tr": "Renk Küresi (Chromatic Orb)", "desc": "Seçilen element türünde 3d8 güçlü hasar fırlatır."},
             {"id": "Chaos Bolt", "name_tr": "Kaos Oku (Chaos Bolt)", "desc": "Rastgele elementte 2d8 + 1d6 hasar verir ve sıçrayabilir."},
             {"id": "Disguise Self", "name_tr": "Kılık Değiştirme", "desc": "Dış görünüşü tamamen yanılsamayla değiştirir."},
+            {"id": "Detect Magic", "name_tr": "Büyü Algılama", "desc": "Seçim kaydı; büyü etkisinin desteği ayrı doğrulanır."},
+            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor."},
+            {'id': 'Fog Cloud', 'name_tr': 'Fog Cloud', 'desc': 'Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor.'},
+            {'id': 'Silent Image', 'name_tr': 'Silent Image', 'desc': 'Yalnızca seçim kaydıdır; büyünün oyun içi etkisi henüz desteklenmiyor.'},
         ],
     },
     "Warlock": {
@@ -1045,7 +1049,11 @@ def get_equipment_armor_and_shield(
 
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
+    from character_progression import sorcerer_starting_creation_options, barbarian_starting_creation_options
+
     return {
+        "sorcerer_starting_creation": sorcerer_starting_creation_options(),
+        "barbarian_starting_creation": barbarian_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),

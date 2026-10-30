@@ -66,7 +66,9 @@ class ReactionSingleUseTests(unittest.TestCase):
         obs["declined_choice_spend"] = declined_spends["count"]
         leak_pattern = r'"[a-z_]*(?:attack_total|attack_roll|total_roll|roll_total|raw_roll)[a-z_]*"'
         self.assertTrue(re.search(leak_pattern, '{"attack_total": 17}'), "control: the leak pattern can match")
-        obs["hidden_attack_total_disclosed"] = bool(re.search(leak_pattern, pending_projection))
+        # weapon_sequence.attack_rolls is a per-turn count of attacks, not a roll value.
+        without_attack_count = re.sub(r'"attack_rolls": \d+', '', pending_projection)
+        obs["hidden_attack_total_disclosed"] = bool(re.search(leak_pattern, without_attack_count))
 
         self.assertEqual(obs["resource_spent_before_choice"], 0)
         self.assertEqual(obs["used_choice_total_spend_after_retry"], 1)

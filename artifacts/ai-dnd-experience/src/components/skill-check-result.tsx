@@ -42,6 +42,9 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
   const proficiencyModifier = availableNumber(result.proficiency_modifier);
   const totalModifier = availableNumber(result.total_modifier);
   const abilityLabel = ABILITY_ABBREVIATIONS[result.ability];
+  const primalKnowledge = result.check_feature === 'primal_knowledge' && result.ability === 'strength'
+    && result.original_ability && ABILITY_ABBREVIATIONS[result.original_ability];
+  const featureAbilityLabel = primalKnowledge ? 'Kuvvet (Primal Knowledge)' : null;
   const difficultyLabel = DIFFICULTY_LABELS[result.difficulty];
   const rolls = Array.isArray(result.d20_rolls)
     ? result.d20_rolls.map(availableNumber).filter((roll): roll is number => roll !== undefined)
@@ -52,6 +55,7 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
   ].filter((mode): mode is string => mode !== null);
   const accessibleSummary = [
     skillLabel,
+    ...(featureAbilityLabel ? [featureAbilityLabel, `Asıl yetenek ${primalKnowledge}`] : []),
     outcome?.label ?? 'Sonuç bilgisi yok',
     ...(d20 === undefined ? [] : [`D20 ${d20}`]),
     ...(total === undefined ? [] : [`Toplam ${total}`]),
@@ -88,10 +92,11 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
           </span>
         </div>}
         {rollModes.length > 0 && <p className="skill-check-result__roll-context">{rollModes.join(' · ')}</p>}
+        {featureAbilityLabel && <p className="skill-check-result__roll-context" data-testid="skill-check-primal-knowledge">{featureAbilityLabel} · Asıl yetenek: {primalKnowledge}</p>}
         {result.expertise === true && <p className="skill-check-result__roll-context">Uzmanlık</p>}
         <dl className="skill-check-result__roll">
           {d20 !== undefined && <div><dt>Kullanılan D20</dt><dd>{d20}</dd></div>}
-          {abilityModifier !== undefined && abilityLabel && <div><dt>Yetenek · {abilityLabel}</dt><dd>{signed(abilityModifier)}</dd></div>}
+          {abilityModifier !== undefined && abilityLabel && <div><dt>Yetenek · {featureAbilityLabel ?? abilityLabel}</dt><dd>{signed(abilityModifier)}</dd></div>}
           {proficiencyModifier !== undefined && <div><dt>Yeterlilik bonusu</dt><dd>{signed(proficiencyModifier)}</dd></div>}
           {totalModifier !== undefined && <div><dt>Toplam bonus</dt><dd>{signed(totalModifier)}</dd></div>}
           {total !== undefined && <div className="skill-check-result__total"><dt>Toplam</dt><dd>{total}</dd></div>}

@@ -6,11 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GameSpellcastingSlots } from './gameSpellcastingSlots';
+import type { SorceryPoints } from './sorceryPoints';
+import type { SpellSlotConversion } from './spellSlotConversion';
 
 /**
  * Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.
  */
 export interface GameSpellcasting {
+  convert_spell_slot?: SpellSlotConversion;
+  sorcery_points?: SorceryPoints;
   cantrips: string[];
   prepared: string[];
   slots: GameSpellcastingSlots;

@@ -1,8 +1,8 @@
 """C06 (first slice): Sorcerer level 1 -> 2 progression through the real create / preview / apply / save-load flow.
 
 Source: PHB 2024 PDF 138-141 (Sorcerer Features table, Spellcasting, Font of Magic, Metamagic), read from the page scans; the
-table is `content/rules/phb2024/classes/sorcerer.json`. This slice supports level 1 and 2 only: from level 3 a second slot level
-exists and the save/spell validators accept slot level 1 only, so 3-5 are explicitly BLOCKED (preview says why), not faked.
+table is `content/rules/phb2024/classes/sorcerer.json`. These tests retain the original level1/2 slice. Level3 core state is now covered separately by test_roadmap_c06_level3;
+levels4+ remain explicitly BLOCKED, and pending class effects are not faked.
 `progression_level` is the level whose choices were applied; an XP-granted level above it is a PENDING level-up: the character
 keeps its previous resources and stays able to cast (the 300 XP Magic Missile counter-example) until the choices are applied once.
 Not covered here (owners in HANDOFF): other classes, levels 3-20, subclass, ASI/feat choice at 4, Font of Magic / Metamagic EFFECTS,
@@ -93,13 +93,16 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(preview["choices_required"], {"prepared_spells": 2, "metamagic": 2})
         self.assertEqual(preview["capacity"], {"cantrips": 4, "prepared_spells": 4, "slots": {"1": 3}, "sorcery_points": 2})
         self.assertEqual(preview["hit_points"], {"gain": xp.hit_point_gain(session.character), "already_applied": False})
-        self.assertIn("Font of Magic: Sorcery Points are not tracked yet", preview["effects_pending"])
+        # Shared disclosure distinguishes this absent pool from implemented tracked pools.
+        self.assertIn("Font of Magic: Sorcery Points are not adopted in this legacy state; no load-time grant", preview["effects_pending"])
+        self.assertIn("Font of Magic: creating spell slots remains unsupported", preview["effects_pending"])
+        self.assertNotIn("sorcery_points_v1", session.world_state)
 
-    def test_levels_three_to_five_and_other_classes_are_blocked_explicitly(self):
+    def test_levels_four_to_five_and_other_classes_are_blocked_explicitly(self):
         session = created_sorcerer()
-        for target in (3, 4, 5):
+        for target in (4, 5, 6):
             preview = cp.preview_level_up(session, target)
-            self.assertEqual((preview["status"], preview["reason"]), ("blocked", "slot_levels_above_1_not_supported"), target)
+            self.assertEqual((preview["status"], preview["reason"]), ("blocked", "previous_level_three_choices_required" if target == 4 else "previous_level_four_choices_and_numeric_five_required" if target == 5 else "progression_level_not_supported"), target)
         self.assertEqual(cp.preview_level_up(session, 1)["reason"], "target_not_above_applied_level")
         self.assertEqual(cp.preview_level_up(session, 21)["reason"], "invalid_target_level")
         other = game.create_session(seed=3)
@@ -185,7 +188,7 @@ class ApplyTests(unittest.TestCase):
         delta = cp.apply_level_choices(session, preview, level_two_choices(session))
         self.assertEqual((delta["status"], delta["reason"]), ("rejected", "preview_not_current"))
         self.assertEqual(before, (session.character, session.world_state))
-        blocked = cp.preview_level_up(session, 3)
+        blocked = cp.preview_level_up(session, 4)
         self.assertEqual(cp.apply_level_choices(session, blocked, {})["reason"], "preview_not_ready")
 
 
@@ -260,7 +263,7 @@ class CastabilityAndSaveLoadTests(unittest.TestCase):
             cp.create_at_level(missing, SPEC, level=2)  # no choices: no half-made level-2 character
         self.assertEqual(missing.character.get("level", 1), 1)
         with self.assertRaises(ValueError):
-            cp.create_at_level(game.create_session(seed=42), SPEC, level=3)  # blocked slice
+            cp.create_at_level(game.create_session(seed=42), SPEC, level=3)  # required level choices are absent
 
 
 class ReviewHardeningTests(unittest.TestCase):

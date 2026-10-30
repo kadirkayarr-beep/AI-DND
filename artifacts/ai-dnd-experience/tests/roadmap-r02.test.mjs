@@ -1,3 +1,4 @@
+import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 // R02: a technical retry (same action id) is separate from a deliberate new action with identical text.
 // The server here is a test double of the receipt rule (owner + campaign + id); the real backend's
 // ownership and replay rules stay covered by the Python campaign/turn tests.
@@ -219,7 +220,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
       const owner = account.currentAccountOwner();
       return transport ? transport({ sessionId, data, server, owner }) : server.handle(owner, 'campaign-a', data);
     },
-    queryClient: client, getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(),
+    queryClient: client, getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(), ...primalKnowledgeInjection(),
     getGameSessionState: async () => state,
     getCampaign: async () => ({ state, history: [{ player_message: 'x', narration: 'y' }], combat_history: [] }),
     mergeCombatHistory: (value) => value,
@@ -516,7 +517,7 @@ function durableDeathWait({ storage = memoryStorage() } = {}) {
     },
     useEffect() {}, useQueryClient: () => ({ setQueryData() {}, invalidateQueries() {} }),
     usePlayGameTurn: (given) => { options = given; return { mutate: (call, perCall) => { mutations.push(call); callbacks.push(perCall ?? {}); }, isPending: false, isError: false }; },
-    getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(), currentAccountOwner: () => OWNER_A, currentAuthEpoch,
+    getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(), ...primalKnowledgeInjection(), currentAccountOwner: () => OWNER_A, currentAuthEpoch,
     readPending: pending.readPending, createIntentKey: pending.createIntentKey, resumePending: pending.resumePending,
     closePending: pending.closePending, unresolvedElsewhere: pending.unresolvedElsewhere, crypto: globalThis.crypto,
   };

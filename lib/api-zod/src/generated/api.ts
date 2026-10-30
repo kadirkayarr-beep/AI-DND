@@ -9,6 +9,403 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Preview Earned Level Up
+ */
+export const GetGameSessionLevelUpParams = zod.object({
+  "session_id": zod.coerce.string()
+})
+
+export const getGameSessionLevelUpResponseTargetLevelDefault = 4;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+
+
+export const GetGameSessionLevelUpResponse = zod.object({
+  "primal_knowledge_skill_options": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "session_id": zod.string(),
+  "campaign_id": zod.union([zod.string(),zod.null()]),
+  "revision": zod.union([zod.number().int(),zod.null()]),
+  "status": zod.enum(['ready', 'blocked']),
+  "reason": zod.union([zod.string(),zod.null()]),
+  "target_level": zod.union([zod.literal(2),zod.literal(3),zod.literal(4),zod.literal(5)]).default(getGameSessionLevelUpResponseTargetLevelDefault),
+  "class_name": zod.union([zod.string(),zod.null()]).optional(),
+  "from_level": zod.union([zod.number().int(),zod.null()]).optional(),
+  "metamagic_options": zod.array(zod.string()).optional(),
+  "subclass_options": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})).optional(),
+  "effects_supported": zod.array(zod.string()).optional(),
+  "choices_required": zod.record(zod.string(), zod.number().int()).optional(),
+  "cantrip_ids": zod.array(zod.string()).optional(),
+  "prepared_spell_ids": zod.array(zod.string()).optional(),
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})).optional(),
+  "capacity": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "effects_pending": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Apply Earned Level Up
+ */
+export const ApplyGameSessionLevelUpParams = zod.object({
+  "session_id": zod.string()
+})
+
+export const applyGameSessionLevelUpBodyExpectedRevisionMin = 0;
+
+export const applyGameSessionLevelUpBodyTargetLevelMin = 2;
+export const applyGameSessionLevelUpBodyTargetLevelMax = 5;
+
+export const applyGameSessionLevelUpBodyChoicesOnePreparedSpellsMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneCantripsMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesThreePreparedSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesThreePreparedSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesThreeMetamagicMin = 2;
+export const applyGameSessionLevelUpBodyChoicesThreeMetamagicMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesFourPreparedSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesFourPreparedSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax = 1;
+
+
+
+export const ApplyGameSessionLevelUpBody = zod.object({
+  "action_id": zod.string().uuid(),
+  "campaign_id": zod.string().uuid(),
+  "expected_revision": zod.number().int().min(applyGameSessionLevelUpBodyExpectedRevisionMin),
+  "target_level": zod.number().int().min(applyGameSessionLevelUpBodyTargetLevelMin).max(applyGameSessionLevelUpBodyTargetLevelMax),
+  "choices": zod.union([zod.object({
+  "prepared_spells": zod.array(zod.string()).min(1).max(applyGameSessionLevelUpBodyChoicesOnePreparedSpellsMax),
+  "cantrips": zod.array(zod.string()).min(1).max(applyGameSessionLevelUpBodyChoicesOneCantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMin).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOneAsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict(),zod.object({
+  "prepared_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMin).max(applyGameSessionLevelUpBodyChoicesTwoPreparedSpellsMax)
+}).strict(),zod.object({
+  "prepared_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesThreePreparedSpellsMin).max(applyGameSessionLevelUpBodyChoicesThreePreparedSpellsMax),
+  "metamagic": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesThreeMetamagicMin).max(applyGameSessionLevelUpBodyChoicesThreeMetamagicMax)
+}).strict(),zod.object({
+  "prepared_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesFourPreparedSpellsMin).max(applyGameSessionLevelUpBodyChoicesFourPreparedSpellsMax),
+  "subclass_id": zod.string()
+}).strict(),zod.record(zod.string(), zod.never().optional()),zod.object({
+  "subclass_id": zod.literal("berserker"),
+  "primal_knowledge_skill": zod.enum(['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival'])
+}).strict(),zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMin).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict()])
+}).strict()
+
+export const ApplyGameSessionLevelUpResponse = zod.object({
+  "session_id": zod.string(),
+  "action_id": zod.string(),
+  "state": zod.record(zod.string(), zod.unknown()),
+  "result": zod.object({
+  "status": zod.literal("applied"),
+  "reason": zod.null().optional(),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())),
+  "effects_pending": zod.array(zod.string())
+})
+})
+
+
+/**
  * @summary Check the AI-DND service
  */
 export const getGameHealthResponseStatusDefault = `ok`;
@@ -138,6 +535,14 @@ export const createGameSessionResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createGameSessionResponseStateJournalQuestsMax = 100;
 
+export const createGameSessionResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const createGameSessionResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const createGameSessionResponseStateCharacterRageUsesRemainingMin = 0;
+export const createGameSessionResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const createGameSessionResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -165,9 +570,16 @@ export const createGameSessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createGameSessionResponseStateCharacterOriginMax = 240;
 
+export const createGameSessionResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const createGameSessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const createGameSessionResponseStateCharacterXpMin = 0;
+
+export const createGameSessionResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const createGameSessionResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const createGameSessionResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -473,6 +885,25 @@ export const CreateGameSessionResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(createGameSessionResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(createGameSessionResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterRageUsesRemainingMin).max(createGameSessionResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(createGameSessionResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -516,8 +947,13 @@ export const CreateGameSessionResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(createGameSessionResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -526,6 +962,18 @@ export const CreateGameSessionResponse = zod.object({
   "xp": zod.number().int().min(createGameSessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(createGameSessionResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(createGameSessionResponseStateSpellcastingOneSorceryPointsMaxMin).max(createGameSessionResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateSpellcastingOneSlotsMinOne)),
@@ -878,6 +1326,14 @@ export const getGameSessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getGameSessionStateResponseJournalQuestsMax = 100;
 
+export const getGameSessionStateResponseCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const getGameSessionStateResponseCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const getGameSessionStateResponseCharacterRageUsesRemainingMin = 0;
+export const getGameSessionStateResponseCharacterRageUsesRemainingMax = 3;
+
+export const getGameSessionStateResponseCharacterRageRemainingSecondsMax = 12;
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -905,9 +1361,16 @@ export const getGameSessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getGameSessionStateResponseCharacterOriginMax = 240;
 
+export const getGameSessionStateResponseCharacterTemporaryHitPointsMin = 0;
+
 export const getGameSessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
 
 export const getGameSessionStateResponseCharacterXpMin = 0;
+
+export const getGameSessionStateResponseSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const getGameSessionStateResponseSpellcastingOneSorceryPointsMaxMin = 2;
+export const getGameSessionStateResponseSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
@@ -1211,6 +1674,25 @@ export const GetGameSessionStateResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(getGameSessionStateResponseCharacterPrimalKnowledgeCheckSkillsMin).max(getGameSessionStateResponseCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterRageUsesRemainingMin).max(getGameSessionStateResponseCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(getGameSessionStateResponseCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -1254,8 +1736,13 @@ export const GetGameSessionStateResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(getGameSessionStateResponseCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -1264,6 +1751,18 @@ export const GetGameSessionStateResponse = zod.object({
   "xp": zod.number().int().min(getGameSessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(getGameSessionStateResponseSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(getGameSessionStateResponseSpellcastingOneSorceryPointsMaxMin).max(getGameSessionStateResponseSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseSpellcastingOneSlotsMinOne)),
@@ -1623,6 +2122,14 @@ export const resolveSpeciesTraitActionResponseStateJournalQuestsItemObjectivesMa
 
 export const resolveSpeciesTraitActionResponseStateJournalQuestsMax = 100;
 
+export const resolveSpeciesTraitActionResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resolveSpeciesTraitActionResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMin = 0;
+export const resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1650,9 +2157,16 @@ export const resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterOriginMax = 240;
 
+export const resolveSpeciesTraitActionResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resolveSpeciesTraitActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterXpMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -1961,6 +2475,25 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resolveSpeciesTraitActionResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resolveSpeciesTraitActionResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMin).max(resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -2004,8 +2537,13 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -2014,6 +2552,18 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "xp": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsMaxMin).max(resolveSpeciesTraitActionResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne)),
@@ -2380,6 +2930,14 @@ export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemObject
 
 export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsMax = 100;
 
+export const resolveSpeciesTraitActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resolveSpeciesTraitActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemainingMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -2407,9 +2965,16 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin = 0
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax = 240;
 
+export const resolveSpeciesTraitActionCompatResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterXpMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -2718,6 +3283,25 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resolveSpeciesTraitActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resolveSpeciesTraitActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemainingMin).max(resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -2761,8 +3345,13 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -2771,6 +3360,18 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "xp": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsMaxMin).max(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne)),
@@ -3019,6 +3620,8 @@ export const playGameTurnBodyCombatActionOneStepsItemResourceDefault = `action`;
 export const playGameTurnBodyCombatActionOneStepsItemTargetIdMax = 128;
 
 
+export const playGameTurnBodyCombatActionOneStepsItemSlotLevelMax = 9;
+
 export const playGameTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax = 128;
 
 
@@ -3037,26 +3640,30 @@ export const playGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{
 
 
 export const PlayGameTurnBody = zod.object({
+  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage']),
   "resource": zod.enum(['action', 'bonus']).default(playGameTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
   "opportunity_id": zod.string().nullish(),
   "ability": zod.string().nullish(),
   "form": zod.string().nullish(),
+  "slot_level": zod.number().int().min(1).max(playGameTurnBodyCombatActionOneStepsItemSlotLevelMax).nullish(),
+  "metamagic": zod.union([zod.enum(['quickened_spell']),zod.null()]).optional().describe('Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.'),
+  "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
   "actor_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional(),
   "response": zod.union([zod.object({
   "kind": zod.enum(['attack', 'move']),
   "target_id": zod.string().nullish(),
   "distance_ft": zod.number().int().min(1).nullish()
-}),zod.null()]).optional()
-})).min(1).max(playGameTurnBodyCombatActionOneStepsMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional()
+}).strict()).min(1).max(playGameTurnBodyCombatActionOneStepsMax)
+}).strict(),zod.null()]).optional(),
   "combat_id": zod.string().min(1).max(playGameTurnBodyCombatIdMax).nullish(),
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playGameTurnBodyCombatTurnIndexMin).nullish(),
@@ -3064,7 +3671,7 @@ export const PlayGameTurnBody = zod.object({
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
-}).describe('The message must contain at least one non-whitespace character.')
+}).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playGameTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
 
@@ -3179,6 +3786,14 @@ export const playGameTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playGameTurnResponseStateJournalQuestsMax = 100;
 
+export const playGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const playGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const playGameTurnResponseStateCharacterRageUsesRemainingMin = 0;
+export const playGameTurnResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const playGameTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -3206,9 +3821,16 @@ export const playGameTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playGameTurnResponseStateCharacterOriginMax = 240;
 
+export const playGameTurnResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const playGameTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const playGameTurnResponseStateCharacterXpMin = 0;
+
+export const playGameTurnResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const playGameTurnResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const playGameTurnResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -3410,9 +4032,9 @@ export const playGameTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playGameTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
-export const playGameTurnResponseLevelUpOnePreviousLevelMax = 4;
+export const playGameTurnResponseLevelUpOnePreviousLevelMax = 5;
 
-export const playGameTurnResponseLevelUpOneNewLevelMax = 4;
+export const playGameTurnResponseLevelUpOneNewLevelMax = 5;
 
 
 export const playGameTurnResponseLevelUpOneHitPointsGainedMin = 0;
@@ -3665,6 +4287,25 @@ export const PlayGameTurnResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(playGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(playGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterRageUsesRemainingMin).max(playGameTurnResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(playGameTurnResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -3708,8 +4349,13 @@ export const PlayGameTurnResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(playGameTurnResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -3718,6 +4364,18 @@ export const PlayGameTurnResponse = zod.object({
   "xp": zod.number().int().min(playGameTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(playGameTurnResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(playGameTurnResponseStateSpellcastingOneSorceryPointsMaxMin).max(playGameTurnResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateSpellcastingOneSlotsMinOne)),
@@ -4334,6 +4992,8 @@ export const PlayGameTurnResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(playGameTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20Max),
@@ -4514,6 +5174,14 @@ export const getGameActionStatusResponseResponseTwoStateJournalQuestsItemObjecti
 
 export const getGameActionStatusResponseResponseTwoStateJournalQuestsMax = 100;
 
+export const getGameActionStatusResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const getGameActionStatusResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const getGameActionStatusResponseResponseTwoStateCharacterRageUsesRemainingMin = 0;
+export const getGameActionStatusResponseResponseTwoStateCharacterRageUsesRemainingMax = 3;
+
+export const getGameActionStatusResponseResponseTwoStateCharacterRageRemainingSecondsMax = 12;
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -4541,9 +5209,16 @@ export const getGameActionStatusResponseResponseTwoStateCharacterSpeedFtMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterOriginMax = 240;
 
+export const getGameActionStatusResponseResponseTwoStateCharacterTemporaryHitPointsMin = 0;
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterXpMin = 0;
+
+export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinOne = 0;
 
@@ -4745,9 +5420,9 @@ export const getGameActionStatusResponseResponseTwoQuestOutcomesItemSourceEventI
 
 export const getGameActionStatusResponseResponseTwoQuestOutcomesItemTurnIndexMin = 0;
 
-export const getGameActionStatusResponseResponseTwoLevelUpOnePreviousLevelMax = 4;
+export const getGameActionStatusResponseResponseTwoLevelUpOnePreviousLevelMax = 5;
 
-export const getGameActionStatusResponseResponseTwoLevelUpOneNewLevelMax = 4;
+export const getGameActionStatusResponseResponseTwoLevelUpOneNewLevelMax = 5;
 
 
 export const getGameActionStatusResponseResponseTwoLevelUpOneHitPointsGainedMin = 0;
@@ -5003,6 +5678,25 @@ export const GetGameActionStatusResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(getGameActionStatusResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMin).max(getGameActionStatusResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterRageUsesRemainingMin).max(getGameActionStatusResponseResponseTwoStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -5046,8 +5740,13 @@ export const GetGameActionStatusResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -5056,6 +5755,18 @@ export const GetGameActionStatusResponse = zod.object({
   "xp": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMin).max(getGameActionStatusResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
@@ -5672,6 +6383,8 @@ export const GetGameActionStatusResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getGameActionStatusResponseResponseTwoSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoSkillCheckResultOneD20Max),
@@ -5839,6 +6552,14 @@ export const abandonGameActionResponseResponseTwoStateJournalQuestsItemObjective
 
 export const abandonGameActionResponseResponseTwoStateJournalQuestsMax = 100;
 
+export const abandonGameActionResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const abandonGameActionResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const abandonGameActionResponseResponseTwoStateCharacterRageUsesRemainingMin = 0;
+export const abandonGameActionResponseResponseTwoStateCharacterRageUsesRemainingMax = 3;
+
+export const abandonGameActionResponseResponseTwoStateCharacterRageRemainingSecondsMax = 12;
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -5866,9 +6587,16 @@ export const abandonGameActionResponseResponseTwoStateCharacterSpeedFtMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterOriginMax = 240;
 
+export const abandonGameActionResponseResponseTwoStateCharacterTemporaryHitPointsMin = 0;
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterXpMin = 0;
+
+export const abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne = 0;
 
@@ -6070,9 +6798,9 @@ export const abandonGameActionResponseResponseTwoQuestOutcomesItemSourceEventIdM
 
 export const abandonGameActionResponseResponseTwoQuestOutcomesItemTurnIndexMin = 0;
 
-export const abandonGameActionResponseResponseTwoLevelUpOnePreviousLevelMax = 4;
+export const abandonGameActionResponseResponseTwoLevelUpOnePreviousLevelMax = 5;
 
-export const abandonGameActionResponseResponseTwoLevelUpOneNewLevelMax = 4;
+export const abandonGameActionResponseResponseTwoLevelUpOneNewLevelMax = 5;
 
 
 export const abandonGameActionResponseResponseTwoLevelUpOneHitPointsGainedMin = 0;
@@ -6328,6 +7056,25 @@ export const AbandonGameActionResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(abandonGameActionResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMin).max(abandonGameActionResponseResponseTwoStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterRageUsesRemainingMin).max(abandonGameActionResponseResponseTwoStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -6371,8 +7118,13 @@ export const AbandonGameActionResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -6381,6 +7133,18 @@ export const AbandonGameActionResponse = zod.object({
   "xp": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMin).max(abandonGameActionResponseResponseTwoStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
@@ -6997,6 +7761,8 @@ export const AbandonGameActionResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(abandonGameActionResponseResponseTwoSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoSkillCheckResultOneD20Max),
@@ -7168,6 +7934,14 @@ export const undoGameTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const undoGameTurnResponseStateJournalQuestsMax = 100;
 
+export const undoGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const undoGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const undoGameTurnResponseStateCharacterRageUsesRemainingMin = 0;
+export const undoGameTurnResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const undoGameTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -7195,9 +7969,16 @@ export const undoGameTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const undoGameTurnResponseStateCharacterOriginMax = 240;
 
+export const undoGameTurnResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const undoGameTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const undoGameTurnResponseStateCharacterXpMin = 0;
+
+export const undoGameTurnResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const undoGameTurnResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const undoGameTurnResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const undoGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -7506,6 +8287,25 @@ export const UndoGameTurnResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(undoGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(undoGameTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterRageUsesRemainingMin).max(undoGameTurnResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(undoGameTurnResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -7549,8 +8349,13 @@ export const UndoGameTurnResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(undoGameTurnResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -7559,6 +8364,18 @@ export const UndoGameTurnResponse = zod.object({
   "xp": zod.number().int().min(undoGameTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(undoGameTurnResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(undoGameTurnResponseStateSpellcastingOneSorceryPointsMaxMin).max(undoGameTurnResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(undoGameTurnResponseStateSpellcastingOneSlotsMinOne)),
@@ -7916,6 +8733,14 @@ export const acceptGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const acceptGameQuestResponseStateJournalQuestsMax = 100;
 
+export const acceptGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const acceptGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const acceptGameQuestResponseStateCharacterRageUsesRemainingMin = 0;
+export const acceptGameQuestResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const acceptGameQuestResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -7943,9 +8768,16 @@ export const acceptGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptGameQuestResponseStateCharacterOriginMax = 240;
 
+export const acceptGameQuestResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const acceptGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const acceptGameQuestResponseStateCharacterXpMin = 0;
+
+export const acceptGameQuestResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const acceptGameQuestResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const acceptGameQuestResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -8277,6 +9109,25 @@ export const AcceptGameQuestResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(acceptGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(acceptGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterRageUsesRemainingMin).max(acceptGameQuestResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(acceptGameQuestResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -8320,8 +9171,13 @@ export const AcceptGameQuestResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(acceptGameQuestResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -8330,6 +9186,18 @@ export const AcceptGameQuestResponse = zod.object({
   "xp": zod.number().int().min(acceptGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSorceryPointsMaxMin).max(acceptGameQuestResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSlotsMinOne)),
@@ -8709,6 +9577,14 @@ export const cancelGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const cancelGameQuestResponseStateJournalQuestsMax = 100;
 
+export const cancelGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const cancelGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const cancelGameQuestResponseStateCharacterRageUsesRemainingMin = 0;
+export const cancelGameQuestResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const cancelGameQuestResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -8736,9 +9612,16 @@ export const cancelGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const cancelGameQuestResponseStateCharacterOriginMax = 240;
 
+export const cancelGameQuestResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const cancelGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const cancelGameQuestResponseStateCharacterXpMin = 0;
+
+export const cancelGameQuestResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const cancelGameQuestResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const cancelGameQuestResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -9070,6 +9953,25 @@ export const CancelGameQuestResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(cancelGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(cancelGameQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterRageUsesRemainingMin).max(cancelGameQuestResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(cancelGameQuestResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -9113,8 +10015,13 @@ export const CancelGameQuestResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(cancelGameQuestResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -9123,6 +10030,18 @@ export const CancelGameQuestResponse = zod.object({
   "xp": zod.number().int().min(cancelGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSorceryPointsMaxMin).max(cancelGameQuestResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSlotsMinOne)),
@@ -9510,6 +10429,14 @@ export const resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesMa
 
 export const resolveAmbientEventActionResponseStateJournalQuestsMax = 100;
 
+export const resolveAmbientEventActionResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resolveAmbientEventActionResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resolveAmbientEventActionResponseStateCharacterRageUsesRemainingMin = 0;
+export const resolveAmbientEventActionResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resolveAmbientEventActionResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -9537,9 +10464,16 @@ export const resolveAmbientEventActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
 
+export const resolveAmbientEventActionResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resolveAmbientEventActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterXpMin = 0;
+
+export const resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -9852,6 +10786,25 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resolveAmbientEventActionResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resolveAmbientEventActionResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterRageUsesRemainingMin).max(resolveAmbientEventActionResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -9895,8 +10848,13 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -9905,6 +10863,18 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "xp": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsMaxMin).max(resolveAmbientEventActionResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne)),
@@ -10271,6 +11241,14 @@ export const acceptLegacyQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const acceptLegacyQuestResponseStateJournalQuestsMax = 100;
 
+export const acceptLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const acceptLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const acceptLegacyQuestResponseStateCharacterRageUsesRemainingMin = 0;
+export const acceptLegacyQuestResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const acceptLegacyQuestResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -10298,9 +11276,16 @@ export const acceptLegacyQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterOriginMax = 240;
 
+export const acceptLegacyQuestResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const acceptLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const acceptLegacyQuestResponseStateCharacterXpMin = 0;
+
+export const acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -10632,6 +11617,25 @@ export const AcceptLegacyQuestResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(acceptLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(acceptLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterRageUsesRemainingMin).max(acceptLegacyQuestResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(acceptLegacyQuestResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -10675,8 +11679,13 @@ export const AcceptLegacyQuestResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(acceptLegacyQuestResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -10685,6 +11694,18 @@ export const AcceptLegacyQuestResponse = zod.object({
   "xp": zod.number().int().min(acceptLegacyQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMin).max(acceptLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
@@ -11065,6 +12086,14 @@ export const cancelLegacyQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const cancelLegacyQuestResponseStateJournalQuestsMax = 100;
 
+export const cancelLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const cancelLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const cancelLegacyQuestResponseStateCharacterRageUsesRemainingMin = 0;
+export const cancelLegacyQuestResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const cancelLegacyQuestResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11092,9 +12121,16 @@ export const cancelLegacyQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterOriginMax = 240;
 
+export const cancelLegacyQuestResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const cancelLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const cancelLegacyQuestResponseStateCharacterXpMin = 0;
+
+export const cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -11426,6 +12462,25 @@ export const CancelLegacyQuestResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(cancelLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(cancelLegacyQuestResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterRageUsesRemainingMin).max(cancelLegacyQuestResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(cancelLegacyQuestResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -11469,8 +12524,13 @@ export const CancelLegacyQuestResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(cancelLegacyQuestResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -11479,6 +12539,18 @@ export const CancelLegacyQuestResponse = zod.object({
   "xp": zod.number().int().min(cancelLegacyQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMin).max(cancelLegacyQuestResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
@@ -11867,6 +12939,14 @@ export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemObject
 
 export const resolveAmbientEventActionCompatResponseStateJournalQuestsMax = 100;
 
+export const resolveAmbientEventActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resolveAmbientEventActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterRageUsesRemainingMin = 0;
+export const resolveAmbientEventActionCompatResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11894,9 +12974,16 @@ export const resolveAmbientEventActionCompatResponseStateCharacterSpeedFtMin = 0
 
 export const resolveAmbientEventActionCompatResponseStateCharacterOriginMax = 240;
 
+export const resolveAmbientEventActionCompatResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterXpMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -12209,6 +13296,25 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resolveAmbientEventActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resolveAmbientEventActionCompatResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterRageUsesRemainingMin).max(resolveAmbientEventActionCompatResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -12252,8 +13358,13 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -12262,6 +13373,18 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "xp": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsMaxMin).max(resolveAmbientEventActionCompatResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne)),
@@ -12548,34 +13671,275 @@ export const GetCharacterOptionsResponse = zod.object({
 /**
  * @summary Read D&D 2024 rules character creation options catalog
  */
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+
+
 export const GetCharacterCreationCatalogResponse = zod.object({
-  "races": zod.object({
-
-}).passthrough(),
-  "classes": zod.object({
-
-}).passthrough(),
-  "backgrounds": zod.object({
-
-}).passthrough(),
-  "ability_score_methods": zod.array(zod.object({
-
-}).passthrough()),
-  "alignments": zod.array(zod.object({
-
-}).passthrough()),
-  "origin_feats": zod.object({
-
-}).passthrough(),
-  "spells_catalog": zod.object({
-
-}).passthrough(),
-  "skills": zod.object({
-
-}).passthrough(),
-  "equipment_rules": zod.object({
-
-}).passthrough()
+  "sorcerer_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "metamagic_count": zod.number().int(),
+  "metamagic_options": zod.array(zod.string())
+}),
+  "level_3": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "subclass_options": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}))
+}),
+  "level_4": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "cantrip_count": zod.number().int(),
+  "cantrip_ids": zod.array(zod.string()),
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+}))
+}),
+  "level_5": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string())
+}),
+  "effects_pending_by_level": zod.object({
+  "1": zod.array(zod.string()),
+  "2": zod.array(zod.string()),
+  "3": zod.array(zod.string()),
+  "4": zod.array(zod.string()),
+  "5": zod.array(zod.string())
+})
+}),zod.null()]).optional(),
+  "barbarian_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("berserker"),
+  "name": zod.string()
+})),
+  "primal_knowledge_skill_options": zod.array(zod.string()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "races": zod.record(zod.string(), zod.unknown()),
+  "classes": zod.record(zod.string(), zod.unknown()),
+  "backgrounds": zod.record(zod.string(), zod.unknown()),
+  "ability_score_methods": zod.array(zod.record(zod.string(), zod.unknown())),
+  "alignments": zod.array(zod.record(zod.string(), zod.unknown())),
+  "origin_feats": zod.record(zod.string(), zod.unknown()),
+  "spells_catalog": zod.record(zod.string(), zod.unknown()),
+  "skills": zod.record(zod.string(), zod.unknown()),
+  "equipment_rules": zod.record(zod.string(), zod.unknown())
 })
 
 
@@ -12683,6 +14047,135 @@ export const GetCampaignsResponse = zod.array(GetCampaignsResponseItem)
  */
 export const createCampaignBodyNameMax = 100;
 
+export const createCampaignBodyCharacterOneStartingLevelDefault = 1;
+export const createCampaignBodyCharacterOneStartingLevelMax = 5;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne2MetamagicMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne2MetamagicMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4PreparedSpellsMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4CantripsMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createCampaignBodyCharacterOneNameMax = 40;
 
 export const createCampaignBodyCharacterOneOriginMax = 240;
@@ -12707,6 +14200,121 @@ export const CreateCampaignBody = zod.object({
   "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
   "character": zod.union([zod.object({
   "mode": zod.enum(['custom', 'random']),
+  "starting_level": zod.number().int().min(1).max(createCampaignBodyCharacterOneStartingLevelMax).default(createCampaignBodyCharacterOneStartingLevelDefault),
+  "level_choices": zod.union([zod.object({
+  "2": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMin).max(createCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMax),
+  "metamagic": zod.array(zod.string()).min(createCampaignBodyCharacterOneLevelChoicesOne2MetamagicMin).max(createCampaignBodyCharacterOneLevelChoicesOne2MetamagicMax)
+}).strict().optional(),
+  "3": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMin).max(createCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMax),
+  "subclass_id": zod.string()
+}).strict().optional(),
+  "4": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4PreparedSpellsMax),
+  "cantrips": zod.array(zod.string()).min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4CantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin).max(createCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax)
+}).strict().optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("berserker"),
+  "primal_knowledge_skill": zod.enum(['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival'])
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
   "class": zod.string().nullish(),
@@ -12738,15 +14346,15 @@ export const CreateCampaignBody = zod.object({
   "appearance": zod.string().max(createCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createCampaignBodyCharacterOneBackstoryMax).nullish()
-}).describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+}).strict().describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneSettingIdMax),
   "region_pack_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionPackIdMax),
   "region_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionIdMax),
   "starting_location_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneStartingLocationIdMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional(),
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createCampaignBodyDeathModeDefault)
-})
+}).strict()
 
 export const createCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
 
@@ -12861,6 +14469,14 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
+export const createCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const createCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const createCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const createCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const createCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12888,9 +14504,16 @@ export const createCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createCampaignResponseStateCharacterOriginMax = 240;
 
+export const createCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const createCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const createCampaignResponseStateCharacterXpMin = 0;
+
+export const createCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const createCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const createCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -13207,8 +14830,8 @@ export const CreateCampaignResponse = zod.object({
   "location_id": zod.string().max(createCampaignResponseStateJournalDiscoveredLocationsItemLocationIdMax),
   "name": zod.string().max(createCampaignResponseStateJournalDiscoveredLocationsItemNameMax),
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
-  "first_discovered_at": zod.coerce.date(),
-  "last_visited_at": zod.coerce.date(),
+  "first_discovered_at": zod.date(),
+  "last_visited_at": zod.date(),
   "first_discovered_turn": zod.number().int().min(createCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
   "last_visited_turn": zod.number().int().min(createCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
   "visit_count": zod.number().int().min(1)
@@ -13217,8 +14840,8 @@ export const CreateCampaignResponse = zod.object({
   "npc_id": zod.string().max(createCampaignResponseStateJournalKnownNpcsItemNpcIdMax),
   "name": zod.string().max(createCampaignResponseStateJournalKnownNpcsItemNameMax),
   "role": zod.string().max(createCampaignResponseStateJournalKnownNpcsItemRoleMax).nullable(),
-  "first_met_at": zod.coerce.date(),
-  "last_seen_at": zod.coerce.date(),
+  "first_met_at": zod.date(),
+  "last_seen_at": zod.date(),
   "first_met_turn": zod.number().int().min(createCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin),
   "last_seen_turn": zod.number().int().min(createCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin),
   "last_known_location_id": zod.string().max(createCampaignResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
@@ -13227,7 +14850,7 @@ export const CreateCampaignResponse = zod.object({
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
   "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
-  "created_at": zod.coerce.date(),
+  "created_at": zod.date(),
   "turn_index": zod.number().int().min(createCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
@@ -13254,9 +14877,9 @@ export const CreateCampaignResponse = zod.object({
   "description": zod.string().max(createCampaignResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
   "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
 })).max(createCampaignResponseStateJournalQuestsItemObjectivesMax),
-  "created_at": zod.coerce.date(),
-  "updated_at": zod.coerce.date(),
-  "completed_at": zod.coerce.date().nullable()
+  "created_at": zod.date(),
+  "updated_at": zod.date(),
+  "completed_at": zod.date().nullable()
 })).max(createCampaignResponseStateJournalQuestsMax)
 }).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
@@ -13268,6 +14891,25 @@ export const CreateCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(createCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(createCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterRageUsesRemainingMin).max(createCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(createCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -13311,8 +14953,13 @@ export const CreateCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(createCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -13321,6 +14968,18 @@ export const CreateCampaignResponse = zod.object({
   "xp": zod.number().int().min(createCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(createCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(createCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(createCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -13552,6 +15211,8 @@ export const CreateCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(createCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(createCampaignResponseHistoryItemSkillCheckResultD20Max),
@@ -13572,7 +15233,7 @@ export const CreateCampaignResponse = zod.object({
 }).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
-  "created_at": zod.coerce.date()
+  "created_at": zod.date()
 })),
   "combat_history": zod.array(zod.object({
   "event_id": zod.string().uuid().regex(createCampaignResponseCombatHistoryItemEventIdRegExp),
@@ -13905,6 +15566,14 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getCampaignResponseStateJournalQuestsMax = 100;
 
+export const getCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const getCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const getCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const getCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const getCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -13932,9 +15601,16 @@ export const getCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getCampaignResponseStateCharacterOriginMax = 240;
 
+export const getCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const getCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const getCampaignResponseStateCharacterXpMin = 0;
+
+export const getCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const getCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const getCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -14322,6 +15998,25 @@ export const GetCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(getCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(getCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterRageUsesRemainingMin).max(getCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(getCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -14365,8 +16060,13 @@ export const GetCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(getCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -14375,6 +16075,18 @@ export const GetCampaignResponse = zod.object({
   "xp": zod.number().int().min(getCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(getCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(getCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(getCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -14606,6 +16318,8 @@ export const GetCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(getCampaignResponseHistoryItemSkillCheckResultD20Max),
@@ -14946,6 +16660,14 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resumeCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resumeCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const resumeCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resumeCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -14973,9 +16695,16 @@ export const resumeCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resumeCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resumeCampaignResponseStateCharacterXpMin = 0;
+
+export const resumeCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resumeCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resumeCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -15353,6 +17082,25 @@ export const ResumeCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resumeCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resumeCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterRageUsesRemainingMin).max(resumeCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resumeCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -15396,8 +17144,13 @@ export const ResumeCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resumeCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -15406,6 +17159,18 @@ export const ResumeCampaignResponse = zod.object({
   "xp": zod.number().int().min(resumeCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(resumeCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -15637,6 +17402,8 @@ export const ResumeCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultD20Max),
@@ -15931,34 +17698,275 @@ export const GetLegacyCharacterOptionsResponse = zod.object({
  * Compatibility alias for /game/character-creation-catalog. Prefer the /game route family for new clients.
  * @summary Legacy character-creation-catalog alias
  */
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
+
+
 export const GetLegacyCharacterCreationCatalogResponse = zod.object({
-  "races": zod.object({
-
-}).passthrough(),
-  "classes": zod.object({
-
-}).passthrough(),
-  "backgrounds": zod.object({
-
-}).passthrough(),
-  "ability_score_methods": zod.array(zod.object({
-
-}).passthrough()),
-  "alignments": zod.array(zod.object({
-
-}).passthrough()),
-  "origin_feats": zod.object({
-
-}).passthrough(),
-  "spells_catalog": zod.object({
-
-}).passthrough(),
-  "skills": zod.object({
-
-}).passthrough(),
-  "equipment_rules": zod.object({
-
-}).passthrough()
+  "sorcerer_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "metamagic_count": zod.number().int(),
+  "metamagic_options": zod.array(zod.string())
+}),
+  "level_3": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "subclass_options": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}))
+}),
+  "level_4": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string()),
+  "cantrip_count": zod.number().int(),
+  "cantrip_ids": zod.array(zod.string()),
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseSorcererStartingCreationOneLevel4SupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+}))
+}),
+  "level_5": zod.object({
+  "prepared_spell_count": zod.number().int(),
+  "prepared_spell_ids": zod.array(zod.string())
+}),
+  "effects_pending_by_level": zod.object({
+  "1": zod.array(zod.string()),
+  "2": zod.array(zod.string()),
+  "3": zod.array(zod.string()),
+  "4": zod.array(zod.string()),
+  "5": zod.array(zod.string())
+})
+}),zod.null()]).optional(),
+  "barbarian_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("berserker"),
+  "name": zod.string()
+})),
+  "primal_knowledge_skill_options": zod.array(zod.string()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "races": zod.record(zod.string(), zod.unknown()),
+  "classes": zod.record(zod.string(), zod.unknown()),
+  "backgrounds": zod.record(zod.string(), zod.unknown()),
+  "ability_score_methods": zod.array(zod.record(zod.string(), zod.unknown())),
+  "alignments": zod.array(zod.record(zod.string(), zod.unknown())),
+  "origin_feats": zod.record(zod.string(), zod.unknown()),
+  "spells_catalog": zod.record(zod.string(), zod.unknown()),
+  "skills": zod.record(zod.string(), zod.unknown()),
+  "equipment_rules": zod.record(zod.string(), zod.unknown())
 })
 
 
@@ -16161,6 +18169,14 @@ export const createLegacySessionResponseStateJournalQuestsItemObjectivesMax = 10
 
 export const createLegacySessionResponseStateJournalQuestsMax = 100;
 
+export const createLegacySessionResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const createLegacySessionResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const createLegacySessionResponseStateCharacterRageUsesRemainingMin = 0;
+export const createLegacySessionResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const createLegacySessionResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16188,9 +18204,16 @@ export const createLegacySessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacySessionResponseStateCharacterOriginMax = 240;
 
+export const createLegacySessionResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const createLegacySessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const createLegacySessionResponseStateCharacterXpMin = 0;
+
+export const createLegacySessionResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const createLegacySessionResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const createLegacySessionResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -16496,6 +18519,25 @@ export const CreateLegacySessionResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(createLegacySessionResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(createLegacySessionResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterRageUsesRemainingMin).max(createLegacySessionResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(createLegacySessionResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -16539,8 +18581,13 @@ export const CreateLegacySessionResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(createLegacySessionResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -16549,6 +18596,18 @@ export const CreateLegacySessionResponse = zod.object({
   "xp": zod.number().int().min(createLegacySessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSorceryPointsMaxMin).max(createLegacySessionResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSlotsMinOne)),
@@ -16902,6 +18961,14 @@ export const getLegacySessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacySessionStateResponseJournalQuestsMax = 100;
 
+export const getLegacySessionStateResponseCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const getLegacySessionStateResponseCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const getLegacySessionStateResponseCharacterRageUsesRemainingMin = 0;
+export const getLegacySessionStateResponseCharacterRageUsesRemainingMax = 3;
+
+export const getLegacySessionStateResponseCharacterRageRemainingSecondsMax = 12;
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16929,9 +18996,16 @@ export const getLegacySessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getLegacySessionStateResponseCharacterOriginMax = 240;
 
+export const getLegacySessionStateResponseCharacterTemporaryHitPointsMin = 0;
+
 export const getLegacySessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
 
 export const getLegacySessionStateResponseCharacterXpMin = 0;
+
+export const getLegacySessionStateResponseSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const getLegacySessionStateResponseSpellcastingOneSorceryPointsMaxMin = 2;
+export const getLegacySessionStateResponseSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
@@ -17235,6 +19309,25 @@ export const GetLegacySessionStateResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(getLegacySessionStateResponseCharacterPrimalKnowledgeCheckSkillsMin).max(getLegacySessionStateResponseCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterRageUsesRemainingMin).max(getLegacySessionStateResponseCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(getLegacySessionStateResponseCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -17278,8 +19371,13 @@ export const GetLegacySessionStateResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(getLegacySessionStateResponseCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -17288,6 +19386,18 @@ export const GetLegacySessionStateResponse = zod.object({
   "xp": zod.number().int().min(getLegacySessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSorceryPointsMaxMin).max(getLegacySessionStateResponseSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSlotsMinOne)),
@@ -17531,6 +19641,8 @@ export const playLegacyTurnBodyCombatActionOneStepsItemResourceDefault = `action
 export const playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax = 128;
 
 
+export const playLegacyTurnBodyCombatActionOneStepsItemSlotLevelMax = 9;
+
 export const playLegacyTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax = 128;
 
 
@@ -17549,26 +19661,30 @@ export const playLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f
 
 
 export const PlayLegacyTurnBody = zod.object({
+  "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage']),
   "resource": zod.enum(['action', 'bonus']).default(playLegacyTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
   "opportunity_id": zod.string().nullish(),
   "ability": zod.string().nullish(),
   "form": zod.string().nullish(),
+  "slot_level": zod.number().int().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemSlotLevelMax).nullish(),
+  "metamagic": zod.union([zod.enum(['quickened_spell']),zod.null()]).optional().describe('Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.'),
+  "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
   "actor_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional(),
   "response": zod.union([zod.object({
   "kind": zod.enum(['attack', 'move']),
   "target_id": zod.string().nullish(),
   "distance_ft": zod.number().int().min(1).nullish()
-}),zod.null()]).optional()
-})).min(1).max(playLegacyTurnBodyCombatActionOneStepsMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional()
+}).strict()).min(1).max(playLegacyTurnBodyCombatActionOneStepsMax)
+}).strict(),zod.null()]).optional(),
   "combat_id": zod.string().min(1).max(playLegacyTurnBodyCombatIdMax).nullish(),
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playLegacyTurnBodyCombatTurnIndexMin).nullish(),
@@ -17576,7 +19692,7 @@ export const PlayLegacyTurnBody = zod.object({
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
-}).describe('The message must contain at least one non-whitespace character.')
+}).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playLegacyTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
 
@@ -17691,6 +19807,14 @@ export const playLegacyTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
+export const playLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const playLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const playLegacyTurnResponseStateCharacterRageUsesRemainingMin = 0;
+export const playLegacyTurnResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const playLegacyTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17718,9 +19842,16 @@ export const playLegacyTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playLegacyTurnResponseStateCharacterOriginMax = 240;
 
+export const playLegacyTurnResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const playLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const playLegacyTurnResponseStateCharacterXpMin = 0;
+
+export const playLegacyTurnResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const playLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const playLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -17922,9 +20053,9 @@ export const playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playLegacyTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
-export const playLegacyTurnResponseLevelUpOnePreviousLevelMax = 4;
+export const playLegacyTurnResponseLevelUpOnePreviousLevelMax = 5;
 
-export const playLegacyTurnResponseLevelUpOneNewLevelMax = 4;
+export const playLegacyTurnResponseLevelUpOneNewLevelMax = 5;
 
 
 export const playLegacyTurnResponseLevelUpOneHitPointsGainedMin = 0;
@@ -18177,6 +20308,25 @@ export const PlayLegacyTurnResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(playLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(playLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterRageUsesRemainingMin).max(playLegacyTurnResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(playLegacyTurnResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -18220,8 +20370,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(playLegacyTurnResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -18230,6 +20385,18 @@ export const PlayLegacyTurnResponse = zod.object({
   "xp": zod.number().int().min(playLegacyTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMin).max(playLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
@@ -18846,6 +21013,8 @@ export const PlayLegacyTurnResponse = zod.object({
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(playLegacyTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20Max),
@@ -19014,6 +21183,14 @@ export const undoLegacyTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const undoLegacyTurnResponseStateJournalQuestsMax = 100;
 
+export const undoLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const undoLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const undoLegacyTurnResponseStateCharacterRageUsesRemainingMin = 0;
+export const undoLegacyTurnResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const undoLegacyTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -19041,9 +21218,16 @@ export const undoLegacyTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterOriginMax = 240;
 
+export const undoLegacyTurnResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const undoLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const undoLegacyTurnResponseStateCharacterXpMin = 0;
+
+export const undoLegacyTurnResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const undoLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const undoLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -19352,6 +21536,25 @@ export const UndoLegacyTurnResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(undoLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(undoLegacyTurnResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterRageUsesRemainingMin).max(undoLegacyTurnResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(undoLegacyTurnResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -19395,8 +21598,13 @@ export const UndoLegacyTurnResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(undoLegacyTurnResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -19405,6 +21613,18 @@ export const UndoLegacyTurnResponse = zod.object({
   "xp": zod.number().int().min(undoLegacyTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(undoLegacyTurnResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(undoLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMin).max(undoLegacyTurnResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
@@ -19663,6 +21883,135 @@ export const GetLegacyCampaignsResponse = zod.array(GetLegacyCampaignsResponseIt
  */
 export const createLegacyCampaignBodyNameMax = 100;
 
+export const createLegacyCampaignBodyCharacterOneStartingLevelDefault = 1;
+export const createLegacyCampaignBodyCharacterOneStartingLevelMax = 5;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne2MetamagicMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne2MetamagicMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4PreparedSpellsMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4CantripsMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
 export const createLegacyCampaignBodyCharacterOneOriginMax = 240;
@@ -19687,6 +22036,121 @@ export const CreateLegacyCampaignBody = zod.object({
   "name": zod.string().min(1).max(createLegacyCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
   "character": zod.union([zod.object({
   "mode": zod.enum(['custom', 'random']),
+  "starting_level": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneStartingLevelMax).default(createLegacyCampaignBodyCharacterOneStartingLevelDefault),
+  "level_choices": zod.union([zod.object({
+  "2": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createLegacyCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne2PreparedSpellsMax),
+  "metamagic": zod.array(zod.string()).min(createLegacyCampaignBodyCharacterOneLevelChoicesOne2MetamagicMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne2MetamagicMax)
+}).strict().optional(),
+  "3": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createLegacyCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne3PreparedSpellsMax),
+  "subclass_id": zod.string()
+}).strict().optional(),
+  "4": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4PreparedSpellsMax),
+  "cantrips": zod.array(zod.string()).min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4CantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.object({
+  "prepared_spells": zod.array(zod.string()).min(createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesOne5PreparedSpellsMax)
+}).strict().optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("berserker"),
+  "primal_knowledge_skill": zod.enum(['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival'])
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createLegacyCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
   "class": zod.string().nullish(),
@@ -19718,15 +22182,15 @@ export const CreateLegacyCampaignBody = zod.object({
   "appearance": zod.string().max(createLegacyCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createLegacyCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createLegacyCampaignBodyCharacterOneBackstoryMax).nullish()
-}).describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+}).strict().describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneSettingIdMax),
   "region_pack_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionPackIdMax),
   "region_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionIdMax),
   "starting_location_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax)
-}),zod.null()]).optional(),
+}).strict(),zod.null()]).optional(),
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createLegacyCampaignBodyDeathModeDefault)
-})
+}).strict()
 
 export const createLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
 
@@ -19841,6 +22305,14 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const createLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const createLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const createLegacyCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const createLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const createLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -19868,9 +22340,16 @@ export const createLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const createLegacyCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const createLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const createLegacyCampaignResponseStateCharacterXpMin = 0;
+
+export const createLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const createLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const createLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -20187,8 +22666,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "location_id": zod.string().max(createLegacyCampaignResponseStateJournalDiscoveredLocationsItemLocationIdMax),
   "name": zod.string().max(createLegacyCampaignResponseStateJournalDiscoveredLocationsItemNameMax),
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
-  "first_discovered_at": zod.coerce.date(),
-  "last_visited_at": zod.coerce.date(),
+  "first_discovered_at": zod.date(),
+  "last_visited_at": zod.date(),
   "first_discovered_turn": zod.number().int().min(createLegacyCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
   "last_visited_turn": zod.number().int().min(createLegacyCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
   "visit_count": zod.number().int().min(1)
@@ -20197,8 +22676,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "npc_id": zod.string().max(createLegacyCampaignResponseStateJournalKnownNpcsItemNpcIdMax),
   "name": zod.string().max(createLegacyCampaignResponseStateJournalKnownNpcsItemNameMax),
   "role": zod.string().max(createLegacyCampaignResponseStateJournalKnownNpcsItemRoleMax).nullable(),
-  "first_met_at": zod.coerce.date(),
-  "last_seen_at": zod.coerce.date(),
+  "first_met_at": zod.date(),
+  "last_seen_at": zod.date(),
   "first_met_turn": zod.number().int().min(createLegacyCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin),
   "last_seen_turn": zod.number().int().min(createLegacyCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin),
   "last_known_location_id": zod.string().max(createLegacyCampaignResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
@@ -20207,7 +22686,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
   "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
-  "created_at": zod.coerce.date(),
+  "created_at": zod.date(),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
@@ -20234,9 +22713,9 @@ export const CreateLegacyCampaignResponse = zod.object({
   "description": zod.string().max(createLegacyCampaignResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
   "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
 })).max(createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax),
-  "created_at": zod.coerce.date(),
-  "updated_at": zod.coerce.date(),
-  "completed_at": zod.coerce.date().nullable()
+  "created_at": zod.date(),
+  "updated_at": zod.date(),
+  "completed_at": zod.date().nullable()
 })).max(createLegacyCampaignResponseStateJournalQuestsMax)
 }).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
@@ -20248,6 +22727,25 @@ export const CreateLegacyCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(createLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(createLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterRageUsesRemainingMin).max(createLegacyCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(createLegacyCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -20291,8 +22789,13 @@ export const CreateLegacyCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(createLegacyCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -20301,6 +22804,18 @@ export const CreateLegacyCampaignResponse = zod.object({
   "xp": zod.number().int().min(createLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(createLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -20532,6 +23047,8 @@ export const CreateLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),
@@ -20552,7 +23069,7 @@ export const CreateLegacyCampaignResponse = zod.object({
 }).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
-  "created_at": zod.coerce.date()
+  "created_at": zod.date()
 })),
   "combat_history": zod.array(zod.object({
   "event_id": zod.string().uuid().regex(createLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
@@ -20887,6 +23404,14 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const getLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const getLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const getLegacyCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const getLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const getLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -20914,9 +23439,16 @@ export const getLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const getLegacyCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const getLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const getLegacyCampaignResponseStateCharacterXpMin = 0;
+
+export const getLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const getLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const getLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -21304,6 +23836,25 @@ export const GetLegacyCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(getLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(getLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterRageUsesRemainingMin).max(getLegacyCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(getLegacyCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -21347,8 +23898,13 @@ export const GetLegacyCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(getLegacyCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -21357,6 +23913,18 @@ export const GetLegacyCampaignResponse = zod.object({
   "xp": zod.number().int().min(getLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(getLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -21588,6 +24156,8 @@ export const GetLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),
@@ -21929,6 +24499,14 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const resumeLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const resumeLegacyCampaignResponseStateCharacterRageUsesRemainingMin = 0;
+export const resumeLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const resumeLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -21956,9 +24534,16 @@ export const resumeLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeLegacyCampaignResponseStateCharacterTemporaryHitPointsMin = 0;
+
 export const resumeLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterXpMin = 0;
+
+export const resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
 
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -22336,6 +24921,25 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(resumeLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(resumeLegacyCampaignResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterRageUsesRemainingMin).max(resumeLegacyCampaignResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -22379,8 +24983,13 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "species_bonus_skills": zod.array(zod.string()).optional(),
   "origin_feats": zod.array(zod.string()).optional(),
   "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterTemporaryHitPointsMin).optional(),
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int(),
   "cantrips": zod.array(zod.string()),
@@ -22389,6 +24998,18 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "xp": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMin).max(resumeLegacyCampaignResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
   "cantrips": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "slots": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
@@ -22620,6 +25241,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
+  "check_feature": zod.enum(['primal_knowledge']).optional(),
+  "original_ability": zod.enum(['dexterity', 'wisdom', 'charisma']).optional(),
   "skill": zod.string().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),

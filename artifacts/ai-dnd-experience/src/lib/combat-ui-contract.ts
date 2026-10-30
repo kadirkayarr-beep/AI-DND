@@ -22,6 +22,20 @@ export function retainCombatTarget(
 }
 
 const COMBAT_ERRORS: Record<string, string> = {
+  reckless_attack_unavailable: 'Reckless Attack bu saldırıda kullanılamıyor. Güncel tur durumunu kontrol edip seçimini yeniden yap.',
+  spell_out_of_range: 'Seçilen hedef büyünün menzili dışında.',
+  spell_visibility_unknown: 'Büyü için hedefin açıkça görünür olması gerekiyor.',
+  spell_path_blocked: 'Büyünün hedefe giden yolu kapalı.',
+  spell_slot_unavailable: 'Seçilen seviyede büyü yuvası kalmadı. Başka bir yuva otomatik kullanılmadı.',
+  invalid_spell_target: 'Büyü için çatışmadaki geçerli bir hedefi seç.',
+  unsupported_spell_target_mode: 'Bu hedefin büyü veya savunma etkileri henüz desteklenmiyor.',
+  spell_not_available: 'Bu büyü hazırlanmış veya kullanılabilir değil.',
+  spell_components_unavailable: 'Büyünün gerekli söz veya el bileşenleri kullanılamıyor.',
+  spell_target_required: 'Büyü için açıkça bir hedef seç.',
+  unsupported_spell_mode: 'Seçilen büyü kullanım biçimi henüz desteklenmiyor.',
+  unsupported_spell: 'Bu büyünün etkisi henüz desteklenmiyor.',
+  unsupported_spell_damage_mode: 'Etkin büyü hasarı ek etkileri henüz desteklenmiyor.',
+
   stale_combat: 'Çatışmada sıra değişti. Güncel duruma bakıp hamleni yeniden seç.',
   invalid_combat_target: 'Bu hedef artık geçerli değil. Görünen rakiplerden birini seç.',
   no_weapon: 'Bu saldırı için uygun bir silahın yok.',

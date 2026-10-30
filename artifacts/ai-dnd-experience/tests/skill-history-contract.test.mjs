@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {createRequire} from 'node:module';
 import ts from 'typescript';
 import {readFile} from 'node:fs/promises';
 import {CreateCampaignResponse,GetCampaignResponse,ResumeCampaignResponse} from '../../../lib/api-zod/src/generated/api.ts';
+
+// Reuse api-spec's installed Orval YAML parser; no new dependency or install.
+const codegenRequire = createRequire(new URL('../../../lib/api-spec/package.json', import.meta.url));
+const {load: parseYaml} = createRequire(codegenRequire.resolve('orval'))('js-yaml');
 
 const specimen = {
   player_message:'Test için gizlenmeye çalışıyorum.',
@@ -37,10 +42,10 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
   const block=client.match(/export interface CampaignHistoryEntry \{([^}]+)\}/);
   assert.ok(block,'generated interface exists');
   assert.match(block[1],/skill_check_result\?: SkillCheckResult;/);
-  const specBlock=spec.match(/    CampaignHistoryEntry:\s*\n([\s\S]*?)    CampaignDetail:/);
-  assert.ok(specBlock,'authoritative OpenAPI schema exists');
-  assert.match(specBlock[1],/skill_check_result:\s*\n\s+\$ref: "#\/components\/schemas\/SkillCheckResult"/);
-  assert.match(specBlock[1],/required: \[player_message, narration, created_at\]/);
+  const historySchema = parseYaml(spec).components.schemas.CampaignHistoryEntry;
+  assert.ok(historySchema, 'authoritative OpenAPI schema exists');
+  assert.equal(historySchema.properties.skill_check_result.$ref, '#/components/schemas/SkillCheckResult');
+  assert.deepEqual(historySchema.required, ['player_message', 'narration', 'created_at']);
   assert.doesNotMatch(source,/HistoryWithSkillResult| as CampaignHistoryEntry & /,'no cast masks drift');
   const ast=ts.createSourceFile('game-browser.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
   const owners=new Map();

@@ -66,7 +66,7 @@ function storedActionId(ownerId: string, campaignId: string): string | null {
 }
 
 // The kind is bookkeeping about which flow owns the move; it is never part of the request body.
-export type PendingKind = "play" | "death_wait";
+export type PendingKind = "play" | "death_wait" | "level_up";
 export type StoredPending = { key: ActionKey; request: Record<string, unknown>; kind: PendingKind };
 
 function storedPending(ownerId: string, campaignId: string): StoredPending | null {
@@ -78,7 +78,7 @@ function storedPending(ownerId: string, campaignId: string): StoredPending | nul
     const parsed = JSON.parse(raw) as { actionId?: unknown; request?: unknown; kind?: unknown };
     if (typeof parsed.actionId !== "string") return null;
     const request = parsed.request && typeof parsed.request === "object" ? parsed.request as Record<string, unknown> : {};
-    const kind: PendingKind = parsed.kind === "death_wait" ? "death_wait" : "play";
+    const kind: PendingKind = parsed.kind === "level_up" ? "level_up" : parsed.kind === "death_wait" ? "death_wait" : "play";
     return { key: { ownerId, campaignId, actionId: parsed.actionId }, request, kind };
   } catch {
     return null;

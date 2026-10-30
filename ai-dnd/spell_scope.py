@@ -5,6 +5,7 @@ import copy
 import re
 
 import action_economy as economy
+import barbarian_rage
 import initiative
 import spatial_rules
 import weapon_attack as attacks
@@ -29,6 +30,7 @@ def fail(code, message):
 
 def initialize(session):
     """Only character creation may grant access and initial resources."""
+    session.world_state.pop("sorcery_points_v1", None)
     character = session.character
     cls = character["class"]
     definition = CLASS_DEFINITIONS[cls]
@@ -139,12 +141,20 @@ def explicit_request(message, command=None):
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))
 
 
-def cast(session, spell_id, target_id, slot_level=None):
+def cast(session, spell_id, target_id, slot_level=None, *, metamagic=None):
     with initiative.atomic(session):
+        barbarian_rage.settle(session)
+        if barbarian_rage.active(session):
+            fail("rage_spellcasting_forbidden", "Spells cannot be cast while Rage is active.")
+        if metamagic is not None:
+            if metamagic != "quickened_spell" or spell_id != "Magic Missile":
+                fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
+            with economy.quickened_cast_budget(session):
+                return _cast(session, spell_id, target_id, slot_level, metamagic=metamagic)
         return _cast(session, spell_id, target_id, slot_level)
 
 
-def _cast(session, spell_id, target_id, slot_level):
+def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
     session.require_player_can_act()
     if spell_id not in CATALOG:
         fail("unsupported_spell", "Spell mechanics are outside the bounded V1 catalog.")
@@ -153,8 +163,10 @@ def _cast(session, spell_id, target_id, slot_level):
     level, maximum_range, sides, damage_type = CATALOG[spell_id]
     if state is None or spell_id not in state["prepared" if level else "cantrips"]:
         fail("spell_not_available", "This spell is not available/prepared through this caster's feature.")
-    if slot_level is not None and (type(slot_level) is not int or slot_level != level):
-        fail("unsupported_spell_mode", "V1 does not support upcasting.")
+    if slot_level is not None and (type(slot_level) is not int or
+            (slot_level != level and not (spell_id == "Magic Missile" and slot_level in (2, 3)))):
+        fail("unsupported_spell_mode", "Only Magic Missile with a level-two or level-three slot supports upcasting.")
+    selected_level = level if slot_level is None else slot_level
     character = session.character
     character_level = character["level"]
     import character_progression
@@ -171,7 +183,8 @@ def _cast(session, spell_id, target_id, slot_level):
     combat = session.world_state.get("combat", {})
     if not combat.get("active"):
         fail("unsupported_spell_mode", "V1 spells use an existing active combat turn.")
-    economy.action_slot(session, "player", "magic")
+    resource = "bonus" if metamagic == "quickened_spell" else "action"
+    economy.action_slot(session, "player", "magic", resource=resource)
     hands = attacks.equipment(session, "player", character)
     actor_conditions = attacks.conditions(session, "player", character)
     if not any(value is None for value in hands.values()) or actor_conditions & {"silenced", "silence", "cannot_speak", "petrified"}:
@@ -237,16 +250,19 @@ def _cast(session, spell_id, target_id, slot_level):
     marker = [combat["combat_id"], combat["round"],
               economy.ensure(session)["player"]["attack_turn_counter"]]
     if level:
-        if state["slots"].get("1", 0) < 1:
-            fail("spell_slot_unavailable", "No level-one spell slot remains.")
+        if state["slots"].get(str(selected_level), 0) < 1:
+            fail("spell_slot_unavailable", "No spell slot of the selected level remains.")
         if state["slot_turn"] == marker:
             fail("spell_slot_turn_limit", "Only one spell slot may be expended on this turn.")
     # No canonical cast starts until every supported-mode prerequisite passes.
-    economy.consume_action(session, "player", "magic")
+    economy.consume_action(session, "player", "magic", resource=resource)
+    if metamagic is not None:
+        import sorcery_points
+        sorcery_points.spend_quickened(session)
     if level:
-        state["slots"]["1"] -= 1
+        state["slots"][str(selected_level)] -= 1
         state["slot_turn"] = marker
-    result = {"spell_id": spell_id, "target_id": target_id, "slot_level": level,
+    result = {"spell_id": spell_id, "target_id": target_id, "slot_level": selected_level,
               "spell_attack_modifier": modifier + pb, "spell_save_dc": 8 + modifier + pb,
               "damage": 0, "healing": 0, "resolution": None}
     if spell_id == "Cure Wounds":
@@ -275,7 +291,7 @@ def _cast(session, spell_id, target_id, slot_level):
         if hits:
             if spell_id == "Magic Missile":
                 # One recipient, simultaneous darts; mitigate each damage instance.
-                darts = [session.roll_damage(4, 1, 1) for _ in range(3)]
+                darts = [session.roll_damage(4, 1, 1) for _ in range(2 + selected_level)]
                 damage = sum(attacks.mitigate(session, target_id, "force", n)["final_damage"] for n in darts)
                 result["darts"] = darts
             else:

@@ -5,17 +5,25 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { BarbarianLevelChoices } from './barbarianLevelChoices';
 import type { CharacterCreateInputAbilityScores } from './characterCreateInputAbilityScores';
 import type { CharacterCreateInputBackgroundAbilityBonuses } from './characterCreateInputBackgroundAbilityBonuses';
 import type { CharacterCreateInputBackgroundEquipmentOption } from './characterCreateInputBackgroundEquipmentOption';
 import type { CharacterCreateInputGiantAncestry } from './characterCreateInputGiantAncestry';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
+import type { SorcererLevelChoices } from './sorcererLevelChoices';
 
 /**
  * Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
  */
 export interface CharacterCreateInput {
   mode: CharacterCreateInputMode;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  starting_level?: number;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40

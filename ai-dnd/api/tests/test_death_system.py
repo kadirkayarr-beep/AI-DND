@@ -72,6 +72,130 @@ def start_test_combat(session):
 
 
 class DeathSystemTests(unittest.TestCase):
+    def test_death_save_does_not_add_constitution_saving_throw_bonus(self):
+        from api.dnd_2024_rules import calculate_derived_stats
+
+        session = make_session()
+        scores = {
+            "strength": 10,
+            "dexterity": 10,
+            "constitution": 20,
+            "intelligence": 10,
+            "wisdom": 10,
+            "charisma": 10,
+        }
+        derived = calculate_derived_stats("Fighter", "Human", scores)
+        session.character.update({
+            "constitution": 20,
+            "proficiency_bonus": derived["proficiency_bonus"],
+            "saving_throws": derived["saving_throws"],
+            "saving_throw_mods": derived["saving_throw_mods"],
+        })
+        self.assertEqual(session.character["saving_throw_mods"]["constitution"], 7)
+
+        start_test_combat(session)
+        session.character["current_hp"] = 0
+        session.world_state["player_combat_status"] = "unconscious"
+        with patch("game.roll_d20", return_value=9) as death_save_roll:
+            result = game._resolve_player_death_turn(session=session)
+
+        self.assertEqual(death_save_roll.call_count, 1)
+        self.assertEqual(result["roll"], 9)
+        self.assertEqual(result["outcome"], "failure")
+        self.assertEqual((result["successes"], result["failures"]), (0, 1))
+
+    def test_external_temporary_hit_points_at_zero_do_not_revive_or_change_death_saves(self):
+        session = make_session()
+        session.character.update(race="Orc", species="Orc")
+        session.ensure_death_state()["mode"] = "PERMADEATH"
+        session._apply_player_damage(20, took_damage=True)
+        death = session.ensure_death_state()
+        death.update(successes=1, failures=1)
+        death_before = {
+            key: copy.deepcopy(death[key])
+            for key in ("successes", "failures", "stable", "dead", "recovery")
+        }
+
+        self.assertEqual(session.grant_temporary_hit_points(5), 5)
+        self.assertEqual(session.character["current_hp"], 0)
+        self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+        self.assertEqual(
+            {key: death[key] for key in death_before},
+            death_before,
+        )
+
+        with self.assertRaisesRegex(ValueError, "Bilinçsiz karakter"):
+            session.resolve_species_trait_action("adrenaline_rush")
+        self.assertEqual(session.character["current_hp"], 0)
+        self.assertEqual(session._species_trait_state()["temporary_hit_points"], 5)
+        self.assertEqual(
+            {key: death[key] for key in death_before},
+            death_before,
+        )
+
+    def test_external_temporary_hit_points_persist_for_non_trait_species(self):
+        session = make_session()
+
+        self.assertEqual(session.character["species"], "Human")
+        self.assertEqual(session.grant_temporary_hit_points(5), 5)
+        self.assertEqual(
+            session._species_trait_state()["temporary_hit_points"],
+            5,
+        )
+        self.assertEqual(session.character["temporary_hit_points"], 5)
+        self.assertEqual(
+            session.serialize_game_state()["player"]["temporary_hit_points"],
+            5,
+        )
+        self.assertEqual(
+            serialize_session_state(session)["character"]["temporary_hit_points"],
+            5,
+        )
+
+    def test_human_temporary_hit_points_expire_on_completed_long_rest(self):
+        session = scene()
+        self.assertEqual(session.character.get("species", session.character["race"]), "Human")
+        session.grant_temporary_hit_points(5)
+
+        session.resolve_species_trait_action("long_rest")
+
+        self.assertEqual(session.character.get("temporary_hit_points", 0), 0)
+        self.assertEqual(session._species_trait_state()["temporary_hit_points"], 0)
+        self.assertEqual(
+            session.serialize_game_state()["player"].get("temporary_hit_points", 0), 0
+        )
+        self.assertEqual(
+            serialize_session_state(session)["character"].get("temporary_hit_points", 0), 0
+        )
+
+    def test_human_temporary_hit_points_survive_short_rest(self):
+        session = scene()
+        session.grant_temporary_hit_points(5)
+
+        session.resolve_species_trait_action("short_rest")
+
+        self.assertEqual(session._species_trait_state()["temporary_hit_points"], 5)
+
+    def test_human_temporary_hit_points_survive_interrupted_long_rest(self):
+        session = scene()
+        session.grant_temporary_hit_points(5)
+        event(session, "rest-stop", 3700, 5400, behavior="FORCED",
+              summary="Dinlenmeye ara vermelisin.")
+
+        result = session.resolve_species_trait_action("long_rest")
+
+        self.assertFalse(result["effects"]["rest_completed"])
+        self.assertEqual(session._species_trait_state()["temporary_hit_points"], 5)
+
+    def test_damage_without_temporary_hp_does_not_add_a_save_field(self):
+        session = make_session()
+        self.assertNotIn("temporary_hit_points", session.character)
+
+        session._apply_attack_damage_to_player(1, False, True)
+
+        self.assertNotIn("temporary_hit_points", session.character)
+        self.assertNotIn("temporary_hit_points", session.serialize_game_state()["player"])
+
     def test_normal_mode_restores_precombat_state_after_massive_damage(self):
         session = make_session()
         rng_state = session.rng.getstate()

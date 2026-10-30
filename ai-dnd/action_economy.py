@@ -6,6 +6,7 @@ Only engine code can grant resources and publish perceivable trigger events.
 import copy
 import re
 import weapon_attack
+import character_progression
 import spatial_rules
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -75,6 +76,7 @@ def speed(session, actor):
     if actor == "player":
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
             value += 10
+        value += character_progression.fast_movement_bonus_ft(data, session.world_state)
     value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
@@ -143,6 +145,13 @@ def validate_saved(combat):
     for actor, r in resources.items():
         if not isinstance(r, dict):
             raise ValueError("Invalid turn resources.")
+        sequence = r.get("weapon_sequence")
+        if "weapon_sequence" in r and not isinstance(sequence, dict):
+            raise ValueError("Invalid weapon sequence.")
+        if sequence is not None and "attack_rolls" in sequence:
+            count = sequence["attack_rolls"]
+            if type(count) is not int or count < 0:
+                raise ValueError("Invalid attack-roll count.")
         for name in ("base_action_spent", "bonus_action_spent", "reaction_spent"):
             if type(r.get(name)) is not bool:
                 raise ValueError("Invalid resource availability.")
@@ -282,6 +291,33 @@ def consume_action(session, actor, kind="attack", resource="action"):
     if resource == "bonus":
         r["bonus_action_spent"] = True
     session._sync_combat_participant_records(session.world_state["combat"])
+
+
+@contextmanager
+def quickened_cast_budget(session):
+    """One source-validated ephemeral grant; never a generic magic permission."""
+    import sorcery_points
+    sorcery_points.require_quickened(session)
+    validate_actor(session)
+    resources = ensure(session)["player"]
+    if resources["bonus_action_spent"]:
+        fail("bonus_action_spent", "The Bonus Action was already taken.")
+    grant(session, "player", "quickened_spell", ["magic"], resource="bonus")
+    transient = resources["bonus_grants"].pop()
+    resources["bonus_grants"].insert(0, transient)
+    try:
+        yield
+    finally:
+        resources["bonus_grants"][:] = [g for g in resources["bonus_grants"] if g is not transient]
+
+
+def consume_rage_bonus(session):
+    """Only the separately validated Rage feature calls this budget owner."""
+    validate_actor(session)
+    r = ensure(session)["player"]
+    if r["bonus_action_spent"]:
+        fail("bonus_action_spent", "The Bonus Action was already spent.")
+    r["bonus_action_spent"] = True
 
 
 def use_species_bonus(session, ability):
@@ -590,13 +626,15 @@ def pending_reaction(session):
     return bool(ensure(session)["player"]["opportunity"])
 
 
-def react(session, opportunity_id, actor="player"):
+def react(session, opportunity_id, actor="player", *, reckless_attack=None):
     validate_actor(session, actor, reaction=True)
     r = ensure(session)[actor]
     if (r["reaction_spent"] or not r["ready"] or not r["opportunity"]
         or r["opportunity"]["id"] != opportunity_id):
         fail("invalid_reaction_trigger", "No matching authoritative reaction opportunity.")
     response = r["ready"]["response"]
+    if reckless_attack is not None and response["kind"] != "attack":
+        fail("invalid_attack_choice", "Reckless Attack requires an attack response.")
     if response["kind"] == "magic":
         fail("spell_mechanic_unavailable", "Spell resolution is outside this lock.")
     if response["kind"] == "attack":
@@ -605,7 +643,8 @@ def react(session, opportunity_id, actor="player"):
         if not weapon:
             fail("no_weapon", "No configured weapon is available.")
         with executing(session, "reaction", actor):
-            result = session.resolve_attack("Saldırıyorum.", weapon, data, npc, origin="reaction")
+            result = session.resolve_attack("Saldırıyorum.", weapon, data, npc, origin="reaction",
+                                            attack_choice={} if reckless_attack is None else {"reckless_attack": reckless_attack})
     else:
         distance = response["distance_ft"]
         cost = distance * (2 if actor_data(session, actor).get("prone") or "prone" in conditions(session, actor) else 1)
@@ -641,12 +680,19 @@ def projection(session):
             "effective_movement_available": movement_limit(session, actor),
             "movement_remaining": max(0, movement_limit(session, actor) - r["movement_used"]) if present(session, actor) and speed(session, actor) else 0,
             "legal_actions": [],
+            "reckless_attack": weapon_attack.reckless_state(session, actor),
         }
+        if actor == "player":
+            import sorcery_points
+            quickened = sorcery_points.quickened_availability(session)
+            if quickened is not None:
+                rows[actor]["quickened_spell"] = quickened
         for kind in sorted(ACTION_TYPES):
             reason = None
             try:
                 action_slot(session, actor, kind)
-                if kind not in {"attack", "dash", "ready"}:
+                # Slot eligibility only; spell owner still checks spell/target/range.
+                if kind not in {"attack", "dash", "ready", "magic"}:
                     reason = "Action-specific mechanic not connected by this lock."
             except CombatRequestError as error:
                 reason = str(error)
@@ -657,6 +703,15 @@ def projection(session):
 def movement_limit(session, actor):
     r = ensure(session)[actor]
     return speed(session, actor) * (1 + r.get("dash_count", 0)) + r.get("ready_movement_grant", 0)
+
+
+def attacks_per_action(session, actor):
+    """Attacks one Attack action allows: the engine hook, raised (never lowered) by the applied Barbarian Extra Attack."""
+    data = actor_data(session, actor)
+    value = data.get("attacks_per_action", 1)
+    if actor == "player" and type(value) is int and value >= 1:
+        return max(value, character_progression.attacks_per_attack_action(data))
+    return value
 
 
 def attack_step(session, identity, continuation=False, *, weapon_id=None, choice=None, origin=None):
@@ -670,8 +725,7 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
             fail("no_attack_continuation", "No rule-granted attack remains inside this Attack Action.")
     elif not extra:
         slot = action_slot(session, "player", "attack")
-        limit = (slot["restrictions"].get("max_attacks", 1) if slot else
-                 actor_data(session, "player").get("attacks_per_action", 1))
+        limit = (slot["restrictions"].get("max_attacks", 1) if slot else attacks_per_action(session, "player"))
         if type(limit) is not int or limit < 1:
             fail("invalid_attack_allowance", "Invalid server-defined attacks-per-Action.")
     npc = target(session, identity)
@@ -780,6 +834,14 @@ def _execute(session, command, action_id=None, session_id=None):
     """Structured/NL commands share the same mechanics and receipt transaction."""
     from api.core_resolution import resolution_action_scope
     steps = command.get("steps", [])
+    if any(step.get("kind") == "convert_spell_slot" for step in steps if isinstance(step, dict)):
+        import sorcery_points
+        if not sorcery_points.native_conversion_request(command):
+            fail("invalid_conversion_command", "Slot conversion requires one exact typed step.")
+    if any(step.get("kind") in {"activate_rage", "extend_rage"} for step in steps if isinstance(step, dict)):
+        import barbarian_rage
+        if not barbarian_rage.native_command(command):
+            fail("invalid_rage_command", "Rage requires one exact typed Bonus Action step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -789,12 +851,18 @@ def _execute(session, command, action_id=None, session_id=None):
     with resolution_action_scope(action_id or str(uuid4()), session_id):
         for step in steps:
             kind = step["kind"]
-            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack"}:
+            if step.get("reckless_attack") is not None and (kind not in {"attack", "continue_attack", "react"} or type(step["reckless_attack"]) is not bool):
+                fail("invalid_attack_choice", "Reckless Attack requires an attack and strict boolean.")
+            if step.get("metamagic") is not None and (kind != "magic" or step.get("ability") != "Magic Missile" or step["metamagic"] != "quickened_spell"):
+                fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
+            if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot"}:
+                fail("invalid_spell_slot_choice", "Only a Magic action can select a spell slot.")
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
             if kind == "react":
-                results.append(react(session, step.get("opportunity_id")))
+                results.append(react(session, step.get("opportunity_id"), reckless_attack=step.get("reckless_attack")))
                 results[-1]["enemy_actions"] = []
                 if session.world_state["combat"]["active"] and session.world_state["combat"]["current_actor_id"] != "player":
                     session.advance_combat_turn()
@@ -817,7 +885,8 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind in {"attack", "continue_attack"}:
                 results.append(attack_step(
                     session, step.get("target_id"), kind == "continue_attack",
-                    weapon_id=step.get("weapon_id"), choice=step.get("attack_choice"),
+                    weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
+                            **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {})},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
             elif kind == "species":
@@ -827,6 +896,13 @@ def _execute(session, command, action_id=None, session_id=None):
                     except ValueError as error:
                         fail("invalid_species_action", str(error))
                     results.append({"kind": kind, "result": result})
+            elif kind in {"activate_rage", "extend_rage"}:
+                import barbarian_rage
+                result = barbarian_rage.activate(session) if kind == "activate_rage" else barbarian_rage.extend(session)
+                results.append({"kind": kind, "result": result})
+            elif kind == "convert_spell_slot":
+                import sorcery_points
+                results.append({"kind": kind, "result": sorcery_points.convert_slot(session, step.get("slot_level"))})
             elif kind == "magic":
                 import spell_scope
                 if not step.get("ability"):
@@ -837,7 +913,7 @@ def _execute(session, command, action_id=None, session_id=None):
                 )):
                     fail("unsupported_spell_mode", "Magic accepts only an ability name and one creature target.")
                 results.append({"kind": kind, "result": spell_scope.cast(
-                    session, step.get("ability"), step.get("target_id"),
+                    session, step.get("ability"), step.get("target_id"), step.get("slot_level"), metamagic=step.get("metamagic"),
                 )})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
@@ -870,6 +946,19 @@ def resolved_narration(session, results):
     for step in results:
         if step["kind"] == "magic":
             narration_parts.append(spell_scope.narration(step["result"]))
+        elif step["kind"] in {"activate_rage", "extend_rage"}:
+            result = step.get("result")
+            if (isinstance(result, dict) and result.get("active") is True
+                and type(result.get("uses_remaining")) is int
+                and 0 <= result["uses_remaining"] <= 2):
+                narration_parts.append(
+                    f"Bonus Action ile Rage başlatırsın; kalan kullanım: {result['uses_remaining']}."
+                    if step["kind"] == "activate_rage"
+                    else "Bonus Action ile Rage süreni uzatırsın; ek kullanım harcanmaz."
+                )
+        elif step["kind"] == "convert_spell_slot":
+            result = step["result"]
+            narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")
         elif step["kind"] == "move":
             narration_parts.append(f"{step['distance_ft']} feet ilerlersin.")
         elif step["kind"] == "dash":

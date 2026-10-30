@@ -1,3 +1,9 @@
+import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
+import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
+import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
+import { RageStatus } from '@/components/rage-controls';
+import { LevelUpControls, type LevelUpRequest } from '@/components/level-up-controls';
+import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
 import { askServer, findUnresolvedOnServer, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
@@ -67,6 +73,7 @@ import {
   useAcceptGameQuest,
   useCancelGameQuest,
   playGameTurn,
+  applyGameSessionLevelUp,
   undoGameTurn,
   getCampaign,
   getGameActionStatus,
@@ -248,6 +255,14 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
   );
 }
 
+function StoredProgressionChoices({ character }: { character: GameCharacter }) {
+  return <>
+    {character.metamagic?.length ? <p>Kaydedilen Metamagic seçimleri: {character.metamagic.join(', ')}</p> : null}
+    {character.subclass_id && <p>Kaydedilen alt sınıf seçimi: {character.subclass_id}</p>}
+    <ProgressionEffectsNotice effects={character.progression_effects_pending} />
+  </>;
+}
+
 function CharacterPanel({ character, compact = false }: { character: GameCharacter; compact?: boolean }) {
   const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
   const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
@@ -260,6 +275,8 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
       {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
+      <RageStatus rage={character.rage} />
+      <StoredProgressionChoices character={character} />
       <CharacterIdentityNotes character={character} />
     </section>
   );
@@ -430,8 +447,8 @@ function DetailsPanel({ state }: { state: GameState }) {
   </section>;
 }
 
-function LeftColumn({ state }: { state: GameState }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></aside>;
+function LeftColumn({ state, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
@@ -676,9 +693,12 @@ function StoryColumn({
   conversationTargetId,
   setConversationTargetId,
   onEndConversation,
+  primalKnowledgeOptIn,
+  onPrimalKnowledgeChange,
   onSubmit,
   onKeyboardSubmit,
   onEconomyCommand,
+  decisionScope,
   sending,
   notice,
   scrollRef,
@@ -697,6 +717,7 @@ function StoryColumn({
   onRetryAmbientAction,
 }: {
   state: GameState;
+  decisionScope: string;
   entries: TranscriptEntry[];
   readingPreferences: ReadingPreferences;
   setReadingPreferences: (next: ReadingPreferences) => void;
@@ -709,6 +730,8 @@ function StoryColumn({
   conversationTargetId: string;
   setConversationTargetId: (value: string) => void;
   onEndConversation: () => void;
+  primalKnowledgeOptIn: boolean;
+  onPrimalKnowledgeChange: (checked: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyboardSubmit: () => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
@@ -781,7 +804,7 @@ function StoryColumn({
           <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
           <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
         </div>
-        <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
+        <ActionEconomyPanel decisionScope={decisionScope} state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
         <AmbientEventActionPanel
           event={ambientEvent}
           referents={state.scene?.referents ?? []}
@@ -856,6 +879,7 @@ function StoryColumn({
                 </select>
               </label>
             )}
+            <PrimalKnowledgeControl state={state} mode={interactionMode} targetId={getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId).target_id} checked={primalKnowledgeOptIn} blocked={sending} onChange={onPrimalKnowledgeChange} />
           </div>
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
           <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleMessageKeyDown} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
@@ -907,7 +931,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
+function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconomyCommand, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; decisionScope?: string; conversionBlocked?: boolean; onEconomyCommand?: (message: string, command: CombatActionInput) => void; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef(returnFocus);
@@ -969,10 +993,10 @@ function DrawerSheet({ drawer, state, onClose, returnFocus, focusAfterCloseRef, 
     };
   }, [drawer, focusAfterCloseRef]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }
 
-function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
+function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { state: GameState; equipmentClasses?: unknown; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
   const classPortraitCells: Record<string, number> = {
     fighter: 0, barbarian: 1, paladin: 2, ranger: 3, rogue: 4, monk: 5,
@@ -1029,6 +1053,8 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
               </div>
               <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
             </div>
+            <StartingEquipmentNotice characterClass={character.class} classes={equipmentClasses} />
+            <StoredProgressionChoices character={character} />
             {character.origin && (
               <div className="reveal-origin" data-testid="reveal-character-origin">
                 <Kicker>Kişisel köken</Kicker>
@@ -1327,7 +1353,12 @@ export default function GameBrowser() {
   // The unresolved turn lives in pending-action storage (owner + campaign). Retry buttons sit in notice
   // state, so they reach the latest submitTurn through this ref instead of a stale render's closure.
   const submitTurnRef = useRef<(text: string, combatAction?: CombatActionInput, mode?: InteractionMode, retryPending?: boolean) => void>(() => {});
-  const retryPendingTurn = () => submitTurnRef.current('', undefined, undefined, true);
+  const submitLevelUpRef = useRef<(request?: LevelUpRequest) => void>(() => {});
+  const retryPendingTurn = () => {
+    const pending = readPending(currentAccountOwner() ?? LOCAL_OWNER, campaignId || sessionId);
+    if (pending?.kind === 'level_up') submitLevelUpRef.current();
+    else submitTurnRef.current('', undefined, undefined, true);
+  };
   // Server-proven way out of an unresolved action (lost reply, damaged local request, second tab, re-login). The server's
   // stored receipt or durable refusal decides; a 404/503, a timeout or a missing receipt never closes anything, and nothing
   // here creates a new action id or resends a move.
@@ -1393,6 +1424,15 @@ export default function GameBrowser() {
     structuralSharing: stateStructuralSharing(queryClient, getGetGameSessionStateQueryKey(sessionId)),
   } });
   const state = stateQuery.data;
+  const primalKnowledgeRef = useRef<ReturnType<typeof createPrimalKnowledgeIntent> | null>(null);
+  if (!primalKnowledgeRef.current) primalKnowledgeRef.current = createPrimalKnowledgeIntent();
+  const primalKnowledgeIntent = primalKnowledgeRef.current;
+  const [, redrawPrimalKnowledge] = useState(0);
+  // Sync during render so no effect gap (or switch away and back) can resurrect consent.
+  primalKnowledgeIntent.sync({
+    key: JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId, interactionMode]),
+    available: primalKnowledgeAvailable(state, getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId)),
+  });
   const [ambientActionResult, setAmbientActionResult] = useState<AmbientEventResult | null>(null);
   const [ambientActionRequest, setAmbientActionRequest] = useState<AmbientEventActionRequest | null>(null);
   const [ambientActionError, setAmbientActionError] = useState(false);
@@ -1613,7 +1653,7 @@ export default function GameBrowser() {
         tone: 'error',
         title: 'Kampanya oluşturulamadı',
         detail: statusCode(error) === 422
-          ? 'İsim, ırk ya da sınıfını yeniden gözden geçir.'
+          ? 'İsim, tür, sınıf, başlangıç seviyesi ve gerekli seviye seçimlerini yeniden gözden geçir. Taslağın korunuyor.'
           : friendlyError(error, 'Dünya şu an yanıt vermiyor.'),
       });
       },
@@ -1775,6 +1815,7 @@ export default function GameBrowser() {
       if (stored) setNotice(pendingTurnNotice());
       return;
     }
+    if (stored?.kind === 'level_up') { submitLevelUpRef.current(); return; }
     const elsewhere = retryPending ? null : blockingMutation();
     if (elsewhere) {
       setNotice(elsewhere);
@@ -1790,6 +1831,11 @@ export default function GameBrowser() {
     const fresh = stored ? null : getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
     );
+    // Fresh consent is scoped again at dispatch. A stored retry never consults current controls.
+    if (!stored) primalKnowledgeIntent.sync({
+      key: JSON.stringify([ownerId, campaignId, sessionId, mode]),
+      available: primalKnowledgeAvailable(state, fresh, combatAction),
+    });
     // The original request body is stored with the pending action, so a retry resends exactly that.
     const request: Record<string, unknown> = stored ? stored.request : {
       message: draft,
@@ -1800,6 +1846,7 @@ export default function GameBrowser() {
         combat_turn_index: state.combat.current_turn_index,
       } : {}),
       ...(fresh?.target_id ? { target_id: fresh.target_id } : {}),
+      ...(primalKnowledgeIntent.selected ? { check_feature: 'primal_knowledge' } : {}),
     };
     let key: ReturnType<typeof createIntentKey>;
     try {
@@ -1810,6 +1857,9 @@ export default function GameBrowser() {
       setNotice({ tone: 'error', title: 'Hamle kaydedilemedi', detail: 'Hamle güvenle kaydedilemediği için gönderilmedi. Sayfayı yenileyip tekrar dene; yazdığın metin taslakta duruyor.' });
       return;
     }
+    // Consume only a newly recorded command. Unknown outcomes keep their original request in pending storage;
+    // retry/refusal/recovery must not consume consent belonging to an unrelated later draft.
+    if (!stored) { primalKnowledgeIntent.choose(false); redrawPrimalKnowledge(value => value + 1); }
     const actionId = key.actionId;
     const trimmed = String(request.message ?? '');
     const metadata = { interaction_mode: request.interaction_mode as InteractionMode };
@@ -1970,6 +2020,52 @@ export default function GameBrowser() {
   };
   submitTurnRef.current = submitTurn;
 
+  const submitLevelUp = (fresh?: LevelUpRequest) => {
+    if (!sessionId || !campaignId || !accountWriteAllowed(currentAuthEpoch()) || inFlightSessionsRef.current.has(sessionId)
+      || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId)) return;
+    const owner = currentAccountOwner() ?? LOCAL_OWNER;
+    const stored = readPending(owner, campaignId);
+    if (fresh ? Boolean(stored) : stored?.kind !== 'level_up') { setNotice(pendingTurnNotice()); return; }
+    if (fresh) { const blocked = blockingMutation(); if (blocked) { setNotice(blocked); return; } }
+    const started = turnLifetime.begin(); if (!started) return;
+    const operation = withActionDeadline(started, startDeadline());
+    const request = stored ? stored.request as LevelUpRequest : fresh!;
+    if (request.campaign_id !== campaignId) { operation.close(); return; }
+    let key: ReturnType<typeof createIntentKey>;
+    try { key = stored ? resumePending(stored.key, currentAuthEpoch()).key : createIntentKey(owner, campaignId, request, 'level_up'); }
+    catch { operation.close(); setNotice(pendingTurnNotice()); return; }
+    inFlightSessionsRef.current.add(sessionId);
+    setInFlightSessions(new Set(inFlightSessionsRef.current)); setNotice(null);
+    void (async () => {
+      const response = await applyGameSessionLevelUp(sessionId, { ...request, action_id: key.actionId }, { signal: operation.signal });
+      if (!operation.isCurrent()) return;
+      if (operation.deadlineExpired()) throw new ActionDeadlineError();
+      if (response.action_id !== key.actionId || response.session_id !== sessionId || response.result.status !== 'applied') throw new ReconciliationError();
+      await settlePending(key, { kind: 'applied', response }, async () => {
+        const revision = nextRevision();
+        const snapshot = await reconcileState(queryClient, getGetGameSessionStateQueryKey(sessionId), operation,
+          signal => getCampaign(campaignId, { signal }));
+        if (!operation.isCurrent() || operation.deadlineExpired()) throw new ReconciliationError();
+        if (!applyGameState(queryClient, sessionId, snapshot.state, { revision, isCurrent: operation.isCurrent })) throw new ReconciliationError();
+      });
+      if (!operation.isCurrent()) return;
+      setLastTurn(null);
+      setNotice({ tone: 'success', title: `${request.target_level}. seviye seçimleri kaydedildi`, detail: 'Seviye seçimleri sunucudan doğrulandı. Desteklenmeyen etkiler karakter kaydında ayrıca gösterilir.' });
+      void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+    })().catch(error => {
+      if (!operation.isCurrent()) return;
+      if (statusCode(error) === 422) closePending(key, 'cancelled', { kind: 'server_rejected', status: 422 });
+      setNotice({ tone: 'warning', title: 'Seviye işlemi doğrulanamadı', detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'İşlem uygulanmış olabilir. Aynı kimlikle yeniden dene veya sunucudan durumunu kontrol et.'),
+        ...(readPending(owner, campaignId) ? { retry: retryPendingTurn, recover: recoveryHandlers() } : {}) });
+    }).finally(() => {
+      inFlightSessionsRef.current.delete(sessionId);
+      if (operation.isCurrent()) setInFlightSessions(new Set(inFlightSessionsRef.current));
+      operation.close();
+    });
+  };
+  submitLevelUpRef.current = submitLevelUp;
+
+
   // Asks the server what it recorded for the unresolved action (or closes it for good on `abandon`). The browser record is
   // only a convenience: a verdict comes from the server's stored receipt or durable refusal, never from a timeout or a 404/503.
   const serverRecovery = async (mode: 'check' | 'abandon', serverActionId?: string, boundSessionId?: string) => {
@@ -1997,7 +2093,8 @@ export default function GameBrowser() {
           ? getCampaign(campaignId, { signal })
           : { state: await getGameSessionState(sessionId, { signal }), history: null, combat_history: null }));
       if (!operation.isCurrent()) throw new ReconciliationError();
-      applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
+      const accepted = applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
+      if (!accepted) throw new ReconciliationError();
       if (snapshot.history) {
         const next: TranscriptEntry[] = [
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
@@ -2041,6 +2138,7 @@ export default function GameBrowser() {
       if (!operation.isCurrent()) return;
       if (stored) await settlePending(stored.key, verdict, reconcileFromServer);
       else if (verdict.kind === 'applied') await reconcileFromServer();
+      if (stored?.kind === 'level_up' && verdict.kind === 'applied') setLastTurn(null);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
         setMessage(stored.request.message);
       }
@@ -2089,7 +2187,7 @@ export default function GameBrowser() {
     />
   );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
-  if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
+  if (phase === 'reveal' && state) return <CharacterReveal state={state} equipmentClasses={characterCatalogQuery.data?.classes} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="design-preview dnd-app play-shell" data-testid="app-session">
@@ -2138,15 +2236,20 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
+      {campaignId && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
+        disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
       <StoryColumn
+                decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])}
                 state={state}
                 entries={entries}
                 readingPreferences={readingPreferences}
                 setReadingPreferences={setReadingPreferences}
                 composerOpen={composerOpen}
-                setComposerOpen={setComposerOpen}
+                setComposerOpen={(open) => { if (!open) { primalKnowledgeIntent.choose(false); redrawPrimalKnowledge(value => value + 1); } setComposerOpen(open); }}
                 message={message}
                 setMessage={setMessage}
+                primalKnowledgeOptIn={primalKnowledgeIntent.selected}
+                onPrimalKnowledgeChange={(checked) => { primalKnowledgeIntent.choose(checked); redrawPrimalKnowledge(value => value + 1); }}
                 interactionMode={interactionMode}
                 setInteractionMode={setInteractionMode}
                 conversationTargetId={conversationTargetId}
@@ -2183,7 +2286,7 @@ export default function GameBrowser() {
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
           </main>
         </div>
-        {state && <DrawerSheet drawer={drawer} state={state} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
+        {state && <DrawerSheet drawer={drawer} state={state} decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])} conversionBlocked={turnSending || undoBusy || Boolean(blockingMutation())} onEconomyCommand={(text, command) => submitTurn(text, command, 'do')} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
         <div className="session-footnote" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}

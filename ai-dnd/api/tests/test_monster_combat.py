@@ -653,9 +653,11 @@ class MonsterTests(unittest.TestCase):
     def test_zero_speed_removes_dodge_dex_save_advantage(self):
         s, n = fixture(conditions=["restrained"])
         ae.ensure(s)[n["id"]]["dodging"] = True
-        with patch.object(s, "roll_d20", return_value=1) as roll:
-            attack.save(s, n["id"], ["dexterity"], 12)
-        self.assertEqual(roll.call_count, 1)
+        # PHB2024 Restrained (PDF372) still imposes disadvantage after Dodge is lost.
+        with patch.object(s, "roll_d20", side_effect=[1, 20]) as roll:
+            result = attack.save(s, n["id"], ["dexterity"], 12)
+        self.assertEqual(roll.call_count, 2)
+        self.assertEqual(result["outcome"], "FAILURE")
 
     def test_completed_child_replay_precedes_closed_combat_validation(self):
         s, n = fixture()

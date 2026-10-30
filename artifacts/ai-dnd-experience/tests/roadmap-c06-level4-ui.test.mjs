@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {before,after,test} from 'node:test';
+import path from 'node:path';
+import {existsSync} from 'node:fs';
+import {createIntentKey,readPending,closePending} from '../src/lib/pending-action.ts';
+import {settlePending,readVerdict} from '../src/lib/action-recovery.ts';
+let vite,ui={};
+before(async()=>{process.env.PORT||='4184';process.env.BASE_PATH||='/';const {createServer}=await import('vite');vite=await createServer({configFile:path.join(process.cwd(),'vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent'});if(existsSync('src/components/level-up-controls.tsx'))ui=await vite.ssrLoadModule('/src/components/level-up-controls.tsx');});
+after(async()=>{await vite?.close();});
+const preview={session_id:'s',campaign_id:'c',revision:7,status:'ready',reason:null,target_level:4,choices_required:{cantrips:1,prepared_spells:1,asi:1},cantrip_ids:['Light'],prepared_spell_ids:['Web'],supported_asi_choices:[{feat:'Ability Score Improvement',increase:{constitution:2}}],effects_pending:[]};
+function nodes(e){return Array.isArray(e)?e.flatMap(nodes):e&&typeof e==='object'?[e,...nodes(e.props?.children)]:[];}
+function storage(){const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};}
+test('controlled choices require explicit fixed CON+2 confirmation and do not compute mechanics',()=>{assert.equal(typeof ui.LevelUpChoices,'function');let draft={cantrip:'',preparedSpell:'',confirmed:false},sent;const render=()=>ui.LevelUpChoices({preview,draft,onChange:d=>draft=d,onConfirm:r=>sent=r,onCancel:()=>{},disabled:false});let tree=nodes(render());assert.equal(tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.disabled,true);tree.find(n=>n.props?.['data-testid']==='level-up-cantrip').props.onChange({target:{value:'Light'}});tree=nodes(render());tree.find(n=>n.props?.['data-testid']==='level-up-prepared').props.onChange({target:{value:'Web'}});tree=nodes(render());tree.find(n=>n.props?.type==='checkbox').props.onChange({target:{checked:true}});tree=nodes(render());tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.onClick();assert.deepEqual(sent,{campaign_id:'c',expected_revision:7,target_level:4,choices:{cantrips:['Light'],prepared_spells:['Web'],asi:{feat:'Ability Score Improvement',increase:{constitution:2}}}});});
+test('draft cancel invokes only draft dismissal; blocked preview cannot submit',()=>{assert.equal(typeof ui.LevelUpChoices,'function');let sent=0,cancelled=0;const props={preview,draft:{cantrip:'Light',preparedSpell:'Web',confirmed:true},onChange:()=>{},onConfirm:()=>sent++,onCancel:()=>cancelled++};nodes(ui.LevelUpChoices(props)).find(n=>n.props?.['data-testid']==='button-cancel-level-up').props.onClick();assert.equal(cancelled,1);assert.equal(sent,0);const blocked=nodes(ui.LevelUpChoices({...props,preview:{...preview,status:'blocked',reason:'xp_not_earned'}}));assert.equal(blocked.some(n=>n.props?.['data-testid']==='button-confirm-level-up'),false);});
+test('level-up uses same slot, retains exact retry body and applied-null waits for canonical read',async()=>{globalThis.window={sessionStorage:storage(),crypto:globalThis.crypto};const request={campaign_id:'c',expected_revision:7,target_level:4,choices:{cantrips:['Light'],prepared_spells:['Web'],asi:{feat:'Ability Score Improvement',increase:{constitution:2}}}};const key=createIntentKey('a','c',request,'level_up');assert.equal(readPending('a','c').kind,'level_up');assert.deepEqual(readPending('a','c').request,request);assert.throws(()=>createIntentKey('a','c',{},'play'));assert.equal(readPending('b','c'),null);assert.equal(readPending('a','other'),null);assert.throws(()=>closePending(key,'cancelled'));const verdict=readVerdict({action_id:key.actionId,state:'applied',response:null},key.actionId);await assert.rejects(settlePending(key,verdict,async()=>{throw Error('canonical read failed')}));assert.equal(readPending('a','c').key.actionId,key.actionId);await settlePending(key,verdict,async()=>{});assert.equal(readPending('a','c'),null);});
+test('level5 asks two distinct prepared spells and emits no ASI or cantrip keys',()=>{
+ const p={...preview,target_level:5,choices_required:{prepared_spells:2},cantrip_ids:[],supported_asi_choices:[],prepared_spell_ids:['Fog Cloud','Silent Image','Chaos Bolt']};
+ let draft={cantrip:'',preparedSpell:'',preparedSpells:[],confirmed:false},sent;
+ const render=()=>nodes(ui.LevelUpChoices({preview:p,draft,onChange:d=>draft=d,onConfirm:r=>sent=r,onCancel:()=>{}}));
+ let tree=render();assert.equal(tree.filter(n=>n.props?.['data-testid']?.startsWith('level-up-prepared')).length,2);
+ assert.equal(tree.some(n=>n.props?.['data-testid']==='level-up-cantrip'),false);assert.equal(tree.some(n=>n.props?.['data-testid']==='level-up-confirm-con'),false);
+ tree.find(n=>n.props?.['data-testid']==='level-up-prepared').props.onChange({target:{value:'Fog Cloud'}});
+ tree=render();tree.find(n=>n.props?.['data-testid']==='level-up-prepared-2').props.onChange({target:{value:'Fog Cloud'}});
+ tree=render();assert.equal(tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.disabled,true);
+ tree.find(n=>n.props?.['data-testid']==='level-up-prepared-2').props.onChange({target:{value:'Silent Image'}});
+ tree=render();assert.equal(tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.disabled,false);
+ tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.onClick();
+ assert.deepEqual(sent,{campaign_id:'c',expected_revision:7,target_level:5,choices:{prepared_spells:['Fog Cloud','Silent Image']}});
+});
+test('server target4 remains target4 when raw numeric level is5',()=>{let sent;const tree=nodes(ui.LevelUpChoices({preview:{...preview,raw_level:5},draft:{cantrip:'Light',preparedSpell:'Web',confirmed:true},onChange:()=>{},onConfirm:r=>sent=r,onCancel:()=>{}}));tree.find(n=>n.props?.['data-testid']==='button-confirm-level-up').props.onClick();assert.equal(sent.target_level,4);assert.deepEqual(sent.choices.asi,{feat:'Ability Score Improvement',increase:{constitution:2}});});

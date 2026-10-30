@@ -1,0 +1,377 @@
+{
+ "source": {
+  "book": "D&D 5e - Players Handbook 2024",
+  "class": "Druid",
+  "features_table": {
+   "pdf_page": 79,
+   "printed_page": 80
+  },
+  "verification": {
+   "level": "dual-source+render-read",
+   "package_label": "TAM_GORSEL (package author's narrow visual check; not independent)",
+   "package": "AI-DND-C06-PHB-KAYNAK-20261030 (local, never copied into the repo)",
+   "package_file": "ilerleme/druid_1_20.md",
+   "release": "kaynak_paketler/Druid/release_v2",
+   "dual_source": "package ilerleme table equals the older accepted release table in the archive PHB_20261028_e7d6b0bd/Druid_20261028/release_v2/druid.md cell for cell (script comparison, 0 differences)",
+   "render_read": "all numeric and feature cells re-read by an AI visual pass of the release render pdf079.png on 2026-10-30; not human certification",
+   "ocr_suspects_on_page": "none: PDF ordinal absent from SAYISAL_OCR_ADAYLARI.json (641 items) and SUPHELI_SAYFALAR.json; OCR_DUZELTME_KAYDI covers other pages",
+   "printed_page_basis": "footer read on the render",
+   "subclass_names_basis": "class intro sentence in the accepted release text (not re-read on the render)",
+   "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
+  },
+  "unverified_cells": [],
+  "scope": "progression table only; no feature effects, spell lists or choices"
+ },
+ "levels": {
+  "1": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Spellcasting",
+    "Druidic",
+    "Primal Order"
+   ],
+   "wild_shape": null,
+   "cantrips": 2,
+   "prepared_spells": 4,
+   "slots": {
+    "1": 2
+   }
+  },
+  "2": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Wild Shape",
+    "Wild Companion"
+   ],
+   "wild_shape": 2,
+   "cantrips": 2,
+   "prepared_spells": 5,
+   "slots": {
+    "1": 3
+   }
+  },
+  "3": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Druid Subclass"
+   ],
+   "wild_shape": 2,
+   "cantrips": 2,
+   "prepared_spells": 6,
+   "slots": {
+    "1": 4,
+    "2": 2
+   }
+  },
+  "4": {
+   "proficiency_bonus": 2,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "wild_shape": 2,
+   "cantrips": 3,
+   "prepared_spells": 7,
+   "slots": {
+    "1": 4,
+    "2": 3
+   }
+  },
+  "5": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Wild Resurgence"
+   ],
+   "wild_shape": 2,
+   "cantrips": 3,
+   "prepared_spells": 9,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 2
+   }
+  },
+  "6": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Subclass feature"
+   ],
+   "wild_shape": 3,
+   "cantrips": 3,
+   "prepared_spells": 10,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3
+   }
+  },
+  "7": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Elemental Fury"
+   ],
+   "wild_shape": 3,
+   "cantrips": 3,
+   "prepared_spells": 11,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 1
+   }
+  },
+  "8": {
+   "proficiency_bonus": 3,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "wild_shape": 3,
+   "cantrips": 3,
+   "prepared_spells": 12,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 2
+   }
+  },
+  "9": {
+   "proficiency_bonus": 4,
+   "features": [],
+   "wild_shape": 3,
+   "cantrips": 3,
+   "prepared_spells": 14,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 1
+   }
+  },
+  "10": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Subclass feature"
+   ],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 15,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2
+   }
+  },
+  "11": {
+   "proficiency_bonus": 4,
+   "features": [],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 16,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1
+   }
+  },
+  "12": {
+   "proficiency_bonus": 4,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 16,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1
+   }
+  },
+  "13": {
+   "proficiency_bonus": 5,
+   "features": [],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 17,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1
+   }
+  },
+  "14": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Subclass feature"
+   ],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 17,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1
+   }
+  },
+  "15": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Improved Elemental Fury"
+   ],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 18,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1
+   }
+  },
+  "16": {
+   "proficiency_bonus": 5,
+   "features": [
+    "Ability Score Improvement"
+   ],
+   "wild_shape": 3,
+   "cantrips": 4,
+   "prepared_spells": 18,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1
+   }
+  },
+  "17": {
+   "proficiency_bonus": 6,
+   "features": [],
+   "wild_shape": 4,
+   "cantrips": 4,
+   "prepared_spells": 19,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 1,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "18": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Beast Spells"
+   ],
+   "wild_shape": 4,
+   "cantrips": 4,
+   "prepared_spells": 20,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 1,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "19": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Epic Boon"
+   ],
+   "wild_shape": 4,
+   "cantrips": 4,
+   "prepared_spells": 21,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 2,
+    "7": 1,
+    "8": 1,
+    "9": 1
+   }
+  },
+  "20": {
+   "proficiency_bonus": 6,
+   "features": [
+    "Archdruid"
+   ],
+   "wild_shape": 4,
+   "cantrips": 4,
+   "prepared_spells": 22,
+   "slots": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 3,
+    "5": 3,
+    "6": 2,
+    "7": 2,
+    "8": 1,
+    "9": 1
+   }
+  }
+ },
+ "subclass_levels": [
+  3,
+  6,
+  10,
+  14
+ ],
+ "asi_levels": [
+  4,
+  8,
+  12,
+  16
+ ],
+ "epic_boon_level": 19,
+ "subclass_options": {
+  "phb2024:subclass:druid:circle-of-the-land": {
+   "name": "Circle of the Land"
+  },
+  "phb2024:subclass:druid:circle-of-the-moon": {
+   "name": "Circle of the Moon"
+  },
+  "phb2024:subclass:druid:circle-of-the-sea": {
+   "name": "Circle of the Sea"
+  },
+  "phb2024:subclass:druid:circle-of-the-stars": {
+   "name": "Circle of the Stars"
+  }
+ }
+}

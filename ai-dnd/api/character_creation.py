@@ -39,6 +39,18 @@ def _detect_armor_and_shield(equipment_choices: list[str] | None) -> tuple[str |
     return get_equipment_armor_and_shield(equipment_choices)
 
 
+def _barbarian_weapon_proficiencies(raw_level: int, applied_level: int) -> list[str]:
+    """Selected new-character grant, not load-time class inference or mastery."""
+    if (type(raw_level) is not int or type(applied_level) is not int
+            or applied_level not in (1, 2) or not applied_level <= raw_level <= 20):
+        raise CharacterCreationError("Barbarian weapon proficiency level is invalid.")
+    categories = {"Simple": "simple", "Martial": "martial"}
+    source = CLASS_DEFINITIONS["Barbarian"]["weapon_proficiencies"]
+    if source != ["Simple", "Martial"]:
+        raise CharacterCreationError("Unsupported Barbarian weapon proficiency source.")
+    return [categories[value] for value in source]
+
+
 def configure_character(
     session: Any,
     *,
@@ -637,6 +649,18 @@ def configure_character(
     current_hp = derived["current_hp"]
     armor_class = derived["armor_class"]
 
+    weapon_proficiencies = None
+    if character_class == "Barbarian":
+        if getattr(session, "_persisted_engine_format", game.SAVE_FORMAT_VERSION) not in (4, 5, 6):
+            raise CharacterCreationError("Weapon proficiency requires save format4–6.")
+        weapon_proficiencies = _barbarian_weapon_proficiencies(level, level)
+    # Recreation must not inherit an earlier character's weapon entitlement.
+    session.character.pop("weapon_proficiencies", None)
+    if weapon_proficiencies is not None:
+        session.character["weapon_proficiencies"] = weapon_proficiencies
+
+    session.character.pop("primal_knowledge_choice", None)
+    session.character.pop("asi_choices", None)  # new creation never inherits an earned ASI claim
     session.character.update(
         {
             "name": name,
@@ -693,6 +717,16 @@ def configure_character(
     # Other legacy class/background packages are not source-certified currency.
     # Transfer verified starting equipment to canonical gameplay inventory
     gameplay_items = list(equipment_choices)
+    class_starting_gp = None
+    if character_class == "Barbarian":
+        # Only this verified new-character package; never parse legacy labels.
+        class_starting_gp = {"A": 15, "B": 75}[equipment_package]
+        gameplay_items.remove(f"{class_starting_gp} GP")  # one class occurrence
+        if equipment_package == "A":
+            index = gameplay_items.index("4 Handaxes")
+            # Expansion follows display deduplication; a background Handaxe
+            # remains a fifth separately owned item. No generic quantity parser.
+            gameplay_items[index:index + 1] = ["Handaxe"] * 4
     if character_class == "Fighter" and equipment_package == "C":
         gameplay_items = [
             _FIGHTER_PACKAGE_C_WEAPON_LABELS.get(item, item)
@@ -702,6 +736,12 @@ def configure_character(
         gameplay_items.remove(coin_label)
     if hasattr(session, "world_state") and isinstance(session.world_state, dict):
         session.world_state["inventory"] = gameplay_items
+        if character_class == "Barbarian":
+            # New-character package selection, not runtime equipping or a save
+            # migration. Materialization binds this alias to the owned item ID;
+            # the attack owner still enforces two-handed grip requirements.
+            hands = session.world_state.setdefault("equipment", {})
+            hands.update(main_hand="greataxe" if equipment_package == "A" else None, off_hand=None)
         if character_class == "Fighter" and equipment_package == "C":
             hands = session.world_state.get("equipment")
             if isinstance(hands, dict) and set(hands) == {"main_hand", "off_hand"}:
@@ -716,7 +756,12 @@ def configure_character(
                     held_weapon = lookup_weapon(held)
                     if held_weapon and held_weapon["weapon_id"] not in owned_weapon_ids:
                         hands[hand] = None
-        if starting_gp is not None:
+        if class_starting_gp is not None:
+            # Unknown background cash remains its unconverted inventory record;
+            # this wallet is the tracked verified portion, not complete wealth.
+            verified_background_gp = starting_gp if starting_gp is not None else 0
+            session.world_state.setdefault("currency", {})["player"] = (class_starting_gp + verified_background_gp) * 100
+        elif starting_gp is not None:
             session.world_state.setdefault("currency", {})["player"] = starting_gp * 100
         session.world_state["starting_equipment_source"] = "PHB2024-background-v1"
     if hasattr(session, "inventory") and isinstance(session.inventory, list):
@@ -724,3 +769,5 @@ def configure_character(
     if isinstance(session, game.GameSession):
         import spell_scope
         spell_scope.initialize(session)
+        import barbarian_rage
+        barbarian_rage.initialize(session, known_unarmored=armor is None)

@@ -4460,8 +4460,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         save_calls = [0, 0]
         original_react = action_economy.react
 
-        def observe_react(session, opportunity_id, actor="player"):
-            result = original_react(session, opportunity_id, actor)
+        def observe_react(session, opportunity_id, actor="player", **options):
+            result = original_react(session, opportunity_id, actor, **options)
             index = next(i for i, record in enumerate(records)
                          if record.game_session is session)
             movement_resolutions.setdefault(index, []).append(copy.deepcopy((
@@ -5175,8 +5175,24 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(stores[loser].get_campaign(campaign_id).payload, stored.payload)
                 reopened = runtime_snapshot(restored)
                 retry = await send(clients[loser], loser, sid)
-                # Current owner allows consecutive short AND long rests: no
-                # cooldown is enforced. This is a new rest, not winner replay.
+                if actions[winner] == actions[loser] == "long_rest":
+                    # The distinct request is not replay: PHB2024 requires 16
+                    # game hours after the first completion before another starts.
+                    self.assertEqual(retry.status_code, 409, retry.text)
+                    self.assertEqual(retry.json()["detail"]["code"], "species_action_unavailable")
+                    self.assertIn("16", retry.json()["detail"]["message"])
+                    self.assertEqual(runtime_snapshot(restored), reopened)
+                    self.assertEqual(saved_rows(), committed["rows"])
+                    self.assertEqual(stores[loser].get_turn_action(campaign_id, action_ids[winner]), receipt)
+                    self.assertIsNone(stores[loser].get_turn_action(campaign_id, action_ids[loser]))
+                    waited = restored.game_session.advance_campaign_time(16 * 3600, "explicit_wait")
+                    self.assertEqual(waited["elapsed_seconds"], 16 * 3600)
+                    self.assertFalse(waited["interrupted"])
+                    managers[loser].save_campaign(campaign_id)
+                    stored = stores[loser].get_campaign(campaign_id)
+                    reopened = runtime_snapshot(restored)
+                    retry = await send(clients[loser], loser, sid)
+                # Once eligible, the distinct request commits a second rest.
                 self.assertEqual(retry.status_code, 200, retry.text)
                 self.assertEqual(retry.json()["action_id"], action_ids[loser])
                 self.assertEqual(retry.json()["result"]["action"], actions[loser])
@@ -5200,7 +5216,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 retried_store = stores[loser].get_campaign(campaign_id)
                 self.assertEqual(retried_store.history[:-1], stored.history)
                 self.assertEqual(retried_store.history[-1]["player_message"], actions[loser])
-                self.assertEqual(retried_store.metadata["revision"], token[1] + 2)
+                self.assertEqual(retried_store.metadata["revision"], stored.metadata["revision"] + 1)
                 self.assertEqual(stores[loser].get_turn_action(campaign_id, action_ids[winner]), receipt)
                 loser_receipt = stores[loser].get_turn_action(campaign_id, action_ids[loser])
                 self.assertEqual(loser_receipt["response"], retry.json())
