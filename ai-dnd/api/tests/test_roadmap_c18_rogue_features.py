@@ -571,6 +571,22 @@ class NoExtraAttack(unittest.TestCase):
             run(session, {"kind": "continue_attack", "target_id": npc["id"]})
 
 
+class OtherClassChoices(unittest.TestCase):
+    def test_a_monk_attack_cannot_carry_a_cunning_strike(self):
+        from api.tests.test_roadmap_c15_monk import created as monk
+        session = monk(5)
+        npc = start_combat(session)
+        for step in ({"kind": "attack", "target_id": npc["id"], "cunning_strike": "trip"},
+                     {"kind": "martial_arts_strike", "target_id": npc["id"], "cunning_strike": "trip"}):
+            with self.subTest(step["kind"]), self.assertRaises(CombatRequestError):
+                run(session, step)
+
+    def test_a_rogue_attack_cannot_carry_a_stunning_strike(self):
+        session, npc = fight(5)
+        with self.assertRaises(CombatRequestError):
+            run(session, {"kind": "attack", "target_id": npc["id"], "stunning_strike": True})
+
+
 class Disclosure(unittest.TestCase):
     def test_the_readings_are_named_at_level_five(self):
         pending = " ".join(cp.progression_disclosure("Rogue", 5)["pending"])
@@ -673,23 +689,33 @@ class SavedTurnState(unittest.TestCase):
         session, _ = fight(2)
         self.forged(session, lambda w: self.resources(w).update(steady_aim={"advantage": True}))
 
-    def other_class(self):
-        from api.tests.test_roadmap_c14_fighter import created as fighter
-        session = fighter(1)
-        return session, start_combat(session)
-
     def test_rogue_records_are_refused_on_every_other_class(self):
-        session, npc = self.other_class()
-        restore_campaign_session(game.create_session(seed=19), serialize_campaign_payload(session))  # the unforged save loads
-        poison = {"kind": "cunning_poison", "source_actor": "player", "target_id": npc["id"], "dc": 14, "expires_turn": 11, "expires_boundary": "end"}
-        cases = {
-            "steady aim": lambda w: self.resources(w).update(steady_aim={"advantage": True}),
-            "sneak marker": lambda w: self.resources(w).update(sneak_attack_turn=[1, "player"]),
-            "poison": lambda w: w.setdefault("attack_effects", []).append(dict(poison)),
-        }
-        for name, change in cases.items():
-            with self.subTest(name):
-                self.forged(session, change)
+        from api.tests.test_roadmap_c14_fighter import created as fighter
+        from api.tests.test_roadmap_c15_monk import created as monk
+        for make in (fighter, monk):
+            session = make(1)
+            npc = start_combat(session)
+            restore_campaign_session(game.create_session(seed=19), serialize_campaign_payload(session))  # the unforged save loads
+            poison = {"kind": "cunning_poison", "source_actor": "player", "target_id": npc["id"], "dc": 14, "expires_turn": 11, "expires_boundary": "end"}
+            cases = {
+                "steady aim": lambda w: self.resources(w).update(steady_aim={"advantage": True}),
+                "sneak marker": lambda w: self.resources(w).update(sneak_attack_turn=[1, "player"]),
+                "poison": lambda w: w.setdefault("attack_effects", []).append(dict(poison)),
+            }
+            for name, change in cases.items():
+                with self.subTest(name, character_class=session.character["class"]):
+                    self.forged(session, change)
+
+    def test_a_rogue_cannot_keep_monk_state_and_a_monk_no_uncanny_flag(self):
+        from api.tests.test_roadmap_c15_monk import created as monk
+        rogue = created(5)
+        rogue.character["monk_state"] = {"focus_spent": 0, "metabolism_spent": False, "deflect": "off"}
+        with self.assertRaises(ValueError):
+            cp.validate_saved(rogue.character, rogue.world_state)
+        other = monk(1)
+        other.character[features.UNCANNY_OFF] = True
+        with self.assertRaises(ValueError):
+            cp.validate_saved(other.character, other.world_state)
 
     def test_a_rogue_marker_needs_a_valid_rogue(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter
