@@ -138,6 +138,9 @@ class Rogue(ClassProgression):
     def validate_class_fields(self, player):
         features.validate_saved(player)
 
+    def validate_class_world(self, player, world):
+        features.validate_world(player, world)
+
     def validate_state(self, player, world):
         progression = player.get("progression_level")
         if (any(key in world for key in ("spellcasting_v1", "sorcery_points_v1", "rage_v1")) or player.get("metamagic")
@@ -145,7 +148,6 @@ class Rogue(ClassProgression):
                 or ("subclass_id" in player and (type(progression) is not int or progression < SUBCLASS_LEVEL
                                                  or player["subclass_id"] != features.SUBCLASS))):
             raise ValueError("Kayıt Rogue için kazanılmamış büyü, Rage veya alt sınıf durumu içeriyor.")
-        features.validate_world(player, world)
 
     def validate_applied(self, player, world, applied):
         if (applied >= SUBCLASS_LEVEL) != ("subclass_id" in player):
@@ -194,6 +196,8 @@ class Rogue(ClassProgression):
                 "Withdraw: the engine has no Opportunity Attacks against the player's movement, so 'without provoking' has no separate effect",
                 "Uncanny Dodge is decided before the enemy turn, not at each hit, and never spends a Reaction held by Ready",
                 "The turn text does not name Uncanny Dodge: the halved damage and the spent Reaction show in the numbers",
+                "Cunning Strike Poison or Trip on a target already Poisoned or Prone applies nothing, and the die stays forgone",
+                "Uncanny Dodge on a hit of several damage types: the total is halved before Resistance and the halved part leaves the types in listing order; this is a reading, not stated",
             ])
         return {"supported": supported, "pending": pending}
 

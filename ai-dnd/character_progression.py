@@ -371,6 +371,7 @@ def validate_saved(player: dict[str, Any], world: dict[str, Any], *, saved: bool
     _validate_asi_choice_storage(player, saved=saved)
     for each in registered():
         each.validate_class_fields(player)
+        each.validate_class_world(player, world)
     handler = for_class(player.get("class"))
     handler.validate_state(player, world)
     if not any(field in player for field in ("progression_level", "metamagic", "subclass_id")):

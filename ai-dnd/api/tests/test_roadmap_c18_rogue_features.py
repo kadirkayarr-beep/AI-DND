@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 import action_economy as economy
+import character_progression as cp
 import game
 import initiative
 import rogue_features as features
@@ -385,6 +386,16 @@ class CunningStrike(unittest.TestCase):
         hit(self.session, npc, **strike("trip"))
         self.assertIn("prone", npc["conditions"])
 
+    def test_a_capitalised_size_is_read_the_same_way(self):
+        self.npc["size"] = "Huge"
+        self.assertEqual(self.code(**strike("trip")), "cunning_strike_target_too_large")
+
+    def test_trip_on_a_target_already_prone_applies_nothing_and_the_die_stays_forgone(self):
+        self.npc["conditions"] = ["prone"]
+        result = hit(self.session, self.npc, **strike("trip"))
+        self.assertEqual(result["sneak_attack"]["dice"], 2)
+        self.assertEqual((result["cunning_strike"]["applied"], result["cunning_strike"]["reason"]), (False, "already_prone"))
+
     def test_trip_save_success_leaves_the_target_standing(self):
         with patch("game.roll_attack", return_value=15), patch("game.roll_d20", return_value=20), \
                 patch.object(self.session.rng, "randint", return_value=3):
@@ -491,7 +502,9 @@ class UncannyDodge(unittest.TestCase):
 
     def test_it_comes_before_resistance(self):
         self.session.character["resistances"] = ["slashing"]
-        self.assertEqual(incoming(self.session, self.npc, 11)["damage"], 2)
+        result = incoming(self.session, self.npc, 11)
+        self.assertEqual(result["damage_instances"][0]["pre_resistance_damage"], 5, "Resistance sees the halved amount")
+        self.assertEqual(result["damage"], 2)
 
     def test_only_one_hit_per_reaction(self):
         incoming(self.session, self.npc, 10)
@@ -546,6 +559,24 @@ class UncannyDodge(unittest.TestCase):
         with self.assertRaises(CombatRequestError) as caught:
             run(session, {"kind": "uncanny_dodge", "uncanny_dodge_enabled": False})
         self.assertEqual(caught.exception.code, "uncanny_dodge_not_available")
+
+
+class NoExtraAttack(unittest.TestCase):
+    def test_a_rogue_five_has_one_attack(self):
+        session, npc = fight(5)
+        self.assertEqual(cp.attacks_per_attack_action(session.character), 1)
+        hit(session, npc)
+        self.assertFalse(economy.ensure(session)["player"].get("attack_action", {}).get("remaining_attacks"))
+        with self.assertRaises(CombatRequestError):
+            run(session, {"kind": "continue_attack", "target_id": npc["id"]})
+
+
+class Disclosure(unittest.TestCase):
+    def test_the_readings_are_named_at_level_five(self):
+        pending = " ".join(cp.progression_disclosure("Rogue", 5)["pending"])
+        self.assertIn("already Poisoned or Prone", pending)
+        self.assertIn("several damage types", pending)
+        self.assertNotIn("several damage types", " ".join(cp.progression_disclosure("Rogue", 4)["pending"]))
 
 
 class Assassin(unittest.TestCase):
@@ -642,6 +673,39 @@ class SavedTurnState(unittest.TestCase):
         session, _ = fight(2)
         self.forged(session, lambda w: self.resources(w).update(steady_aim={"advantage": True}))
 
+    def other_class(self):
+        from api.tests.test_roadmap_c14_fighter import created as fighter
+        session = fighter(1)
+        return session, start_combat(session)
+
+    def test_rogue_records_are_refused_on_every_other_class(self):
+        session, npc = self.other_class()
+        restore_campaign_session(game.create_session(seed=19), serialize_campaign_payload(session))  # the unforged save loads
+        poison = {"kind": "cunning_poison", "source_actor": "player", "target_id": npc["id"], "dc": 14, "expires_turn": 11, "expires_boundary": "end"}
+        cases = {
+            "steady aim": lambda w: self.resources(w).update(steady_aim={"advantage": True}),
+            "sneak marker": lambda w: self.resources(w).update(sneak_attack_turn=[1, "player"]),
+            "poison": lambda w: w.setdefault("attack_effects", []).append(dict(poison)),
+        }
+        for name, change in cases.items():
+            with self.subTest(name):
+                self.forged(session, change)
+
+    def test_a_rogue_marker_needs_a_valid_rogue(self):
+        from api.tests.test_roadmap_c14_fighter import created as fighter
+        marker = {"combat": {"turn_resources": {"player": {"sneak_attack_turn": [1, "player"]}}}}
+        features.validate_world(created(1).character, marker)
+        with self.assertRaises(ValueError):
+            features.validate_world(fighter(1).character, marker)
+
+    def test_the_check_reads_any_old_combat_shape_for_any_class(self):
+        from api.tests.test_roadmap_c14_fighter import created as fighter
+        for session in (fighter(1), created(1)):
+            for world in ({}, {"combat": None}, {"combat": {"turn_resources": None}}, {"combat": {"turn_resources": {"player": None}}},
+                          {"combat": {"turn_resources": {"player": "old"}}}, {"attack_effects": None}, {"attack_effects": "old"}):
+                with self.subTest(session.character["class"], world=world):
+                    features.validate_world(session.character, world)
+
     def test_a_forged_record_on_another_class_has_no_effect_on_attacks(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter
         session = fighter(1)
@@ -681,6 +745,30 @@ class Projection(unittest.TestCase):
         session, _ = fight(3)
         del session.character["subclass_id"]
         self.assertIsNone(features.projection(session))
+
+    def test_a_missing_or_wrong_ability_cache_hides_the_block_instead_of_failing_the_read(self):
+        for field in ("dexterity_mod", "proficiency_bonus"):
+            for change in ("missing", "text", "bool"):
+                with self.subTest(field, change=change):
+                    session, _ = fight(5)
+                    if change == "missing":
+                        del session.character[field]
+                    else:
+                        session.character[field] = "3" if change == "text" else True
+                    with self.assertLogs("rogue_features", "WARNING"):
+                        self.assertIsNone(features.projection(session))
+
+    def test_trip_names_the_targets_it_would_refuse(self):
+        session, npc = fight(5)
+        block = lambda: features.projection(session)["cunning_strike"]
+        self.assertEqual(block()["trip_refused_targets"], [])
+        for size, refused in (("large", False), ("Large", False), ("huge", True), ("Huge", True), ("gargantuan", True), ("medium", False)):
+            with self.subTest(size):
+                npc["size"] = size
+                self.assertEqual(block()["trip_refused_targets"], [npc["id"]] if refused else [])
+
+    def test_trip_refused_targets_is_empty_outside_combat(self):
+        self.assertEqual(features.projection(created(5))["cunning_strike"]["trip_refused_targets"], [])
 
     def test_another_class_has_no_block(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter

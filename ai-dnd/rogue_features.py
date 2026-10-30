@@ -68,11 +68,16 @@ def validate_saved(player: dict[str, Any]) -> None:
         raise ValueError("Kayıt Uncanny Dodge alanı geçersiz.")
 
 
-def validate_world(player: dict[str, Any], world: dict[str, Any]) -> None:
-    """Rogue records inside combat state, read only for a Rogue: absent means none of them happened."""
+def validate_world(player: dict[str, Any], world: Any) -> None:
+    """Rogue records inside combat state, read for EVERY class: absent means none of them happened, and only a Rogue sets them.
+
+    Older saves of any class hold none of these fields; a combat shape this module does not recognise is not its to judge.
+    """
     level = rogue_level(player)
+    world = world if isinstance(world, dict) else {}
     combat = world.get("combat") if isinstance(world.get("combat"), dict) else {}
-    resources = (combat.get("turn_resources") or {}).get("player", {})
+    turn_resources = combat.get("turn_resources") if isinstance(combat.get("turn_resources"), dict) else {}
+    resources = turn_resources.get("player") if isinstance(turn_resources.get("player"), dict) else {}
     if "steady_aim" in resources:
         record = resources["steady_aim"]
         if (level is None or level < STEADY_AIM_LEVEL or type(record) is not dict or set(record) != {"advantage"}
@@ -80,10 +85,11 @@ def validate_world(player: dict[str, Any], world: dict[str, Any]) -> None:
             raise ValueError("Kayıt Steady Aim alanı geçersiz.")
     if "sneak_attack_turn" in resources:
         marker = resources["sneak_attack_turn"]
-        if (type(marker) is not list or len(marker) != 2 or type(marker[0]) is not int or marker[0] < 1
+        if (level is None or type(marker) is not list or len(marker) != 2 or type(marker[0]) is not int or marker[0] < 1
                 or type(marker[1]) is not str or not marker[1]):
             raise ValueError("Kayıt Sneak Attack alanı geçersiz.")
-    for effect in world.get("attack_effects", []):
+    effects = world.get("attack_effects")
+    for effect in effects if isinstance(effects, list) else []:
         if isinstance(effect, dict) and effect.get("kind") == POISON_EFFECT and (
                 set(effect) != {"kind", "source_actor", "target_id", "dc", "expires_turn", "expires_boundary"}
                 or level is None or level < CUNNING_STRIKE_LEVEL or effect["source_actor"] != "player"
@@ -178,14 +184,33 @@ def withdraw_limit(session: Any) -> int:
     return economy.speed(session, "player") // 2
 
 
-def _strike_reason(session: Any, option: str, defender: dict[str, Any] | None) -> str | None:
+def _too_large(defender: dict[str, Any]) -> bool:
+    """Trip reaches Large or smaller. A size the table does not know is left to the save, as it always was for a creature with none."""
     import weapon_attack
+    size = str(defender.get("size", "medium")).lower()
+    return size in weapon_attack.SIZES and weapon_attack.SIZES.index(size) > weapon_attack.SIZES.index("large")
+
+
+def _strike_reason(session: Any, option: str, defender: dict[str, Any] | None) -> str | None:
     if option == "poison" and not carries(session, POISONERS_KIT):
         return "cunning_strike_kit_required"
-    if option == "trip" and defender is not None and (
-            weapon_attack.SIZES.index(defender.get("size", "medium")) > weapon_attack.SIZES.index("large")):
+    if option == "trip" and defender is not None and _too_large(defender):
         return "cunning_strike_target_too_large"
     return None
+
+
+def _trip_refused_targets(session: Any) -> list[str]:
+    """Who Trip would refuse right now, so the public block can say so before the player picks a target."""
+    import weapon_attack
+    combat = session.world_state.get("combat", {})
+    refused = []
+    for other in combat.get("participants", []) if combat.get("active") else []:
+        try:
+            if other != "player" and _too_large(weapon_attack.actor_data(session, other)):
+                refused.append(other)
+        except CombatRequestError:
+            continue
+    return refused
 
 
 def check_choice(session: Any, actor: str, choice: dict[str, Any], defender: dict[str, Any]) -> None:
@@ -222,7 +247,10 @@ def sneak_attack(session: Any, c: dict[str, Any], critical: bool) -> dict[str, A
 
 
 def _strike_dc(character: dict[str, Any]) -> int:
-    return 8 + character["dexterity_mod"] + character["proficiency_bonus"]
+    dexterity, bonus = character.get("dexterity_mod"), character.get("proficiency_bonus")
+    if type(dexterity) is not int or type(bonus) is not int:
+        raise ValueError("Invalid Cunning Strike DC fields.")
+    return 8 + dexterity + bonus
 
 
 def _immune(defender: dict[str, Any], condition: str) -> bool:
@@ -461,6 +489,7 @@ def projection(session: Any) -> dict[str, Any] | None:
         strike = None
         if level >= CUNNING_STRIKE_LEVEL:
             strike = {"dc": _strike_dc(character), "withdraw_max_ft": withdraw_limit(session) if in_combat else 0,
+                      "trip_refused_targets": _trip_refused_targets(session),
                       "options": [{"id": option, "cost": cost, **_availability(_strike_reason(session, option, None))}
                                   for option, cost in CUNNING_STRIKES.items()]}
         return {
