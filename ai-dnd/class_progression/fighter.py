@@ -125,6 +125,7 @@ class Fighter(ClassProgression):
     supported_level = LAST_LEVEL
     selected_asi = True
     extra_attack_level = 5
+    class_weapon_proficiencies = ("simple", "martial")
 
     def progression_path_verified(self, character):
         return character.get("subclass_id") == features.SUBCLASS
@@ -154,7 +155,7 @@ class Fighter(ClassProgression):
             "Fighting Style: replacing the feat on a Fighter level, Protection (a kept legacy choice has no effect) and the feats not offered remain pending",
             "Dueling: a thrown Melee weapon keeps the bonus; the source sets no melee attack limit, but this is a reading, not stated",
             "Fighter equipment packages are the existing catalog lists, not yet the PHB packages",
-            "Weapon proficiency: a Fighter created before this change keeps its stored proficiency list; it is not inferred on load",
+            "Weapon proficiency: a Fighter save with no stored list has Simple and Martial, worked out at each attack and never written back; a stored list is kept as it is",
         ]
         if level >= 2:
             supported.append("Action Surge: one additional non-Magic action on your own combat turn, one use back on a Short or Long Rest")

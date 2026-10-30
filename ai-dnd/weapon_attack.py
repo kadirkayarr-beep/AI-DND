@@ -209,6 +209,15 @@ def rules_for(session, actor, data, weapon):
     return rules
 
 
+def proficiencies(actor, data):
+    """A stored list wins, even an empty one. Without one a player reads their class grant; nothing is written back."""
+    if "weapon_proficiencies" in data:
+        return data["weapon_proficiencies"]
+    if actor != "player":
+        return []
+    return character_progression.class_weapon_proficiencies(data) or ["longsword"]
+
+
 def turn_state(session, actor):
     combat = session.world_state["combat"]
     if not combat["active"]:
@@ -436,7 +445,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         fail("invalid_attack_state", "Unknown authoritative attack ability.")
     ability_mod = integer(attacker.get(f"{ability}_mod", 0), "ability modifier")
     pb = integer(attacker.get("proficiency_bonus", 0), "proficiency bonus", 0)
-    proficiency = attacker.get("weapon_proficiencies", ["longsword"] if actor == "player" else [])
+    proficiency = proficiencies(actor, attacker)
     proficient = unarmed or weapon["weapon_id"] in proficiency or weapon["category"] in proficiency
     attack_modifiers = copy.deepcopy(rules.get("attack_modifiers", []))
     damage_modifiers = copy.deepcopy(rules.get("damage_modifiers", []))

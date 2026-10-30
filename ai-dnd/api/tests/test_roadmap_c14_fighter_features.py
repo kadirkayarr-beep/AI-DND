@@ -446,6 +446,46 @@ class WeaponProficiency(unittest.TestCase):
         for level in (1, 3, 5):
             self.assertEqual(roundtrip(created(level))[0].character["weapon_proficiencies"], ["simple", "martial"])
 
+    def test_a_fighter_save_without_the_key_reads_the_class_grant_and_keeps_its_record(self):
+        """Repair at read time: a save from before the creation grant is neither refused nor rewritten."""
+        session = created(2)
+        del session.character["weapon_proficiencies"]
+        fresh, payload = roundtrip(session)
+        self.assertNotIn("weapon_proficiencies", payload["engine_save"]["player"])
+        npc = start_combat(fresh)
+        fresh.world_state["inventory"][:] = ["greatsword"]
+        fresh.world_state["equipment"] = {"main_hand": "greatsword", "off_hand": None}
+        self.assertTrue(swing(fresh, npc)["proficiency_applied"])
+        self.assertNotIn("weapon_proficiencies", fresh.character)
+        self.assertNotIn("weapon_proficiencies", fresh.serialize_game_state()["player"])
+
+    def test_the_read_time_grant_does_not_depend_on_the_save_format(self):
+        session, npc = weapon_session("Defense", weapon="dagger")
+        del session.character["weapon_proficiencies"]
+        session._persisted_engine_format = 3
+        self.assertTrue(swing(session, npc)["proficiency_applied"])
+
+    def test_a_stored_list_is_kept_exactly_even_an_empty_one(self):
+        for stored, wanted in ((["longsword"], False), ([], False), (["greatsword"], True)):
+            session, npc = weapon_session("Defense", weapon="greatsword")
+            session.character["weapon_proficiencies"] = stored
+            self.assertEqual(swing(session, npc)["proficiency_applied"], wanted, stored)
+            self.assertEqual(session.character["weapon_proficiencies"], stored)
+
+    def test_only_a_player_whose_class_declares_a_grant_reads_one(self):
+        self.assertEqual(attacks.proficiencies("player", {"class": "Fighter"}), ["simple", "martial"])
+        self.assertEqual(attacks.proficiencies("npc", {"class": "Fighter"}), [])
+        for name in ("Barbarian", "Sorcerer", "Wizard", None):
+            self.assertEqual(attacks.proficiencies("player", {"class": name}), ["longsword"], name)
+        from class_progression import barbarian
+        with patch.object(barbarian.HANDLER, "class_weapon_proficiencies", ("simple",)):
+            self.assertEqual(attacks.proficiencies("player", {"class": "Barbarian"}), ["simple"])
+
+    def test_the_disclosure_states_the_read_time_grant(self):
+        pending = " ".join(cp.progression_disclosure("Fighter", 1)["pending"])
+        self.assertIn("worked out at each attack", pending)
+        self.assertNotIn("not inferred on load", pending)
+
 
 class Styles(unittest.TestCase):
     def test_catalog_offers_only_styles_with_an_effect(self):

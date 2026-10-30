@@ -12,6 +12,7 @@ class ClassProgression:
     supported_level = 1  # highest level this class can reach; character_progression.MAX_SUPPORTED_LEVEL still caps it
     selected_asi = False  # True when the ordinary level-4 Ability Score Improvement path is open to this class
     extra_attack_level: int | None = None  # the class level whose APPLIED choices grant Extra Attack
+    class_weapon_proficiencies: tuple[str, ...] = ()  # read for a save with no stored list, whose class grant came after that save
 
     # Saved-state validation, in the order character_progression.validate_saved calls them.
     def validate_class_fields(self, player: dict[str, Any]) -> None:

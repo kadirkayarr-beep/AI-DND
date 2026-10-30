@@ -303,6 +303,11 @@ def _handler_of(character: Any) -> Any:
     return for_class(character.get("class") if isinstance(character, dict) else None)
 
 
+def class_weapon_proficiencies(character: Any) -> list[str]:
+    """The grant a save without a stored list reads at attack time; not a stored value and not a default for every class."""
+    return list(_handler_of(character).class_weapon_proficiencies)
+
+
 def _check_detached_asi_consistency(*, scores: Any, base_scores: Any,
                                     background_bonuses: Any, ability_score_method: Any,
                                     background: Any, class_name: Any, level: Any,

@@ -1985,7 +1985,7 @@ def _validate_player_condition_state(player):
 
 
 def _validate_player_weapon_proficiencies(player, version):
-    """Optional explicit capability; absent legacy state is never inferred."""
+    """Optional explicit capability; absent state stays absent here (weapon_attack.proficiencies reads a class grant at attack time)."""
     if "weapon_proficiencies" not in player:
         return
     from weapon_catalog import WEAPONS
