@@ -150,7 +150,7 @@ ORACLE = {
                                 slots=[slot_map(t) for t in FULL_SLOTS])),
 }
 CLASSES = tuple(ORACLE)
-NOT_PROGRESSED = tuple(name for name in CLASSES if name != "Fighter")  # Fighter's table moved to classes/ with real progression (C14)
+NOT_PROGRESSED = tuple(name for name in CLASSES if name not in {"Fighter", "Paladin"})  # these tables moved to classes/ with real progression (C14, C16)
 
 
 def oracle_row(name, level):
@@ -207,7 +207,7 @@ class TableOracleTests(unittest.TestCase):
                 self.assertEqual(src["verification"]["level"], "dual-source+render-read")
                 self.assertTrue(src["verification"]["package_file"].endswith(f"{name.lower()}_1_20.md"))
                 self.assertEqual(src["unverified_cells"], [], "no cell is unverified; a null is an em dash")
-                if name != "Fighter":  # Fighter's table moved to classes/ and states its progression scope
+                if name not in {"Fighter", "Paladin"}:  # a table moved to classes/ states its progression scope
                     self.assertEqual(src["scope"], "progression table only; no feature effects, spell lists or choices")
 
     def test_features_per_level_and_distinct_names(self):
@@ -381,7 +381,7 @@ class NoGameplayChangeTests(unittest.TestCase):
     """The new data must not make any class appear supported for creation or level-up."""
 
     def test_classes_directory_holds_only_the_classes_with_real_progression(self):
-        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "fighter.json", "sorcerer.json"])
+        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "fighter.json", "paladin.json", "sorcerer.json"])
 
     def test_progression_engine_still_has_no_table_and_level_one_support_for_the_ten_classes(self):
         for name in NOT_PROGRESSED:
@@ -407,7 +407,7 @@ class NoGameplayChangeTests(unittest.TestCase):
     def test_public_creation_catalog_offers_starting_levels_only_for_the_progressed_classes(self):
         catalog = get_character_creation_catalog()
         self.assertEqual(sorted(k for k in catalog if k.endswith("_starting_creation")),
-                         ["barbarian_starting_creation", "fighter_starting_creation", "sorcerer_starting_creation"])
+                         ["barbarian_starting_creation", "fighter_starting_creation", "paladin_starting_creation", "sorcerer_starting_creation"])
         self.assertEqual(catalog["sorcerer_starting_creation"]["supported_starting_levels"], [1, 2, 3, 4, 5])
         blob = json.dumps(catalog, sort_keys=True)
         self.assertNotIn("class_tables", blob)

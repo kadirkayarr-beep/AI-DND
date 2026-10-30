@@ -12,6 +12,7 @@ from uuid import uuid4
 import action_economy as economy
 import barbarian_rage
 import fighter_features
+import paladin_features
 import character_progression
 import initiative
 import spatial_rules
@@ -25,6 +26,7 @@ SIZES = ("tiny", "small", "medium", "large", "huge", "gargantuan")
 CHOICES = frozenset({
     "mode", "ability", "grip", "mastery", "push_ft", "cleave_target_id",
     "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id", "reckless_attack",
+    "sacred_weapon", "radiant_damage",
 })
 
 
@@ -435,6 +437,11 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     if cover == "total":
         fail("total_cover", "Total Cover prevents direct targeting.")
     rules = rules_for(session, actor, attacker, weapon)
+    if actor == "player":
+        for key, values in paladin_features.attack_rules(session, attacker, weapon, choice, origin).items():
+            rules.setdefault(key, []).extend(values)
+        if choice.get("radiant_damage"):
+            weapon["damage_type"] = "radiant"
     ability = rules.get("ability", "strength" if weapon["kind"] == "melee" else "dexterity")
     requested_ability = choice.get("ability")
     if requested_ability:
@@ -818,6 +825,8 @@ def _resolve(session, c):
     hp_before = defender["current_hp"]
     resolution, unarmed_save = None, None
     special = c["unarmed"] and c["unarmed_option"] != "damage"
+    if actor == "player" and c["choice"].get("sacred_weapon"):
+        paladin_features.begin_sacred_weapon(session, weapon)
     if special:
         dc = 8 + c["ability_modifier"] + c["proficiency_bonus"]
         unarmed_save = save(session, target, ("strength", "dexterity"), dc, c["choice"].get("target_save_ability"))
@@ -986,6 +995,8 @@ def _resolve(session, c):
     combat = session.world_state["combat"]
     if combat["active"]:
         sequence = turn_state(session, actor)
+        if actor == "player":
+            paladin_features.observe_attack(session, weapon=weapon, target=target, landed=hit and not special)
         sequence["attacks"] += 1
         if not special and "attack_rolls" in sequence:
             sequence["attack_rolls"] += 1

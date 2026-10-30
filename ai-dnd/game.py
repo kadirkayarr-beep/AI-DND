@@ -2080,6 +2080,8 @@ def _player_state_for_save():
         saved["hit_dice"] = dict(character["hit_dice"])
     if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
         saved["fighter_uses"] = dict(character["fighter_uses"])
+    if "paladin_uses" in character:  # additive: spent Paladin pools and timed effects
+        saved["paladin_uses"] = copy.deepcopy(character["paladin_uses"])
     if character.get("fighting_style") is not None:  # additive: the style keeps applying after a load
         saved["fighting_style"] = character["fighting_style"]
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
@@ -2746,6 +2748,9 @@ def load_game(path):
         character.pop("fighter_uses", None)
         if "fighter_uses" in player:
             character["fighter_uses"] = dict(player["fighter_uses"])
+        character.pop("paladin_uses", None)
+        if "paladin_uses" in player:
+            character["paladin_uses"] = copy.deepcopy(player["paladin_uses"])
         if "fighting_style" in player:
             character["fighting_style"] = player["fighting_style"]
         if "progression_level" in player:
@@ -3287,6 +3292,8 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False, resolv
     # any death checkpoint rollback (which owns restoration of prior history).
     import barbarian_rage
     barbarian_rage.end(session)
+    import paladin_features
+    paladin_features.end_divine_sense(session)
     if hp_before > 0:
         if hp_damage >= hp_before + max_hp:
             state["dead"] = True

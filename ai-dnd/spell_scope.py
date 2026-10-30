@@ -68,7 +68,7 @@ def validate(state, character):
          else 0 if cls in {"Wizard", "Cleric", "Druid"} else definition["spells_count"]),
     ):
         selected = state[field]
-        allowed = {s["id"] for s in catalog.get(source, [])}
+        allowed = {s["id"] for s in catalog.get(source, [])} | character_progression.extra_spell_ids(character, field)
         if (not isinstance(selected, list) or any(not isinstance(s, str) for s in selected)
                 or len(selected) != len(set(selected)) or len(selected) > limit
                 or not set(selected).issubset(allowed)):

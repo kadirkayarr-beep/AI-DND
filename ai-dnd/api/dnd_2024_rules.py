@@ -911,6 +911,32 @@ SPELLS_CATALOG = {
             {"id": "Bless", "name_tr": "Kutsama (Bless)", "desc": "Üç müttefikin saldırı ve kurtarma zarlarına destek verir."},
             {"id": "Cure Wounds", "name_tr": "Yara İyileştirme (Cure Wounds)", "desc": "Dokunulan bir canlının yaralarını iyileştirir."},
             {"id": "Command", "name_tr": "Emir (Command)", "desc": "Hedefe tek kelimelik bir emir verir."},
+            {"id": "Compelled Duel", "name_tr": "Zorunlu Düello (Compelled Duel)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Detect Evil and Good", "name_tr": "İyi ve Kötüyü Sezme (Detect Evil and Good)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Detect Magic", "name_tr": "Büyü Sezme (Detect Magic)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Detect Poison and Disease", "name_tr": "Zehir ve Hastalık Sezme (Detect Poison and Disease)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Divine Favor", "name_tr": "İlahi Lütuf (Divine Favor)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Divine Smite", "name_tr": "İlahi Darbe (Divine Smite)", "desc": "Yakın dövüş isabetinden hemen sonra Bonus Action ile ek Radiant hasar."},
+            {"id": "Heroism", "name_tr": "Kahramanlık (Heroism)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Protection from Evil and Good", "name_tr": "İyilik ve Kötülüğe Karşı Koruma (Protection from Evil and Good)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Purify Food and Drink", "name_tr": "Yiyecek ve İçecek Arındırma (Purify Food and Drink)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Searing Smite", "name_tr": "Dağlayan Darbe (Searing Smite)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Shield of Faith", "name_tr": "İnanç Kalkanı (Shield of Faith)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Thunderous Smite", "name_tr": "Gürleyen Darbe (Thunderous Smite)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Wrathful Smite", "name_tr": "Gazaplı Darbe (Wrathful Smite)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+        ],
+        "spells_level_2": [
+            {"id": "Aid", "name_tr": "Yardım (Aid)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Find Steed", "name_tr": "At Çağırma (Find Steed)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Gentle Repose", "name_tr": "Huzurlu Dinlenme (Gentle Repose)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Lesser Restoration", "name_tr": "Küçük Onarım (Lesser Restoration)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Locate Object", "name_tr": "Nesne Bulma (Locate Object)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Magic Weapon", "name_tr": "Büyülü Silah (Magic Weapon)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Prayer of Healing", "name_tr": "Şifa Duası (Prayer of Healing)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Protection from Poison", "name_tr": "Zehirden Korunma (Protection from Poison)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Shining Smite", "name_tr": "Parlayan Darbe (Shining Smite)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Warding Bond", "name_tr": "Koruyucu Bağ (Warding Bond)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
+            {"id": "Zone of Truth", "name_tr": "Doğruluk Alanı (Zone of Truth)", "desc": "Hazırlanabilir; oyunda etkisi henüz uygulanmadı."},
         ],
     },
     "Ranger": {
@@ -1053,12 +1079,13 @@ UNOFFERED_FIGHTING_STYLES = ("Protection",)
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
-                                       sorcerer_starting_creation_options)
+                                       paladin_starting_creation_options, sorcerer_starting_creation_options)
 
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
         "fighter_starting_creation": fighter_starting_creation_options(),
+        "paladin_starting_creation": paladin_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),

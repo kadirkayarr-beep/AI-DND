@@ -846,6 +846,10 @@ def _execute(session, command, action_id=None, session_id=None):
         import fighter_features
         if not fighter_features.native_command(command):
             fail("invalid_fighter_command", "Second Wind and Action Surge require one exact typed step.")
+    if any(step.get("kind") in {"lay_on_hands", "divine_smite", "divine_sense"} for step in steps if isinstance(step, dict)):
+        import paladin_features
+        if not paladin_features.native_command(command):
+            fail("invalid_paladin_command", "Lay On Hands, Divine Smite and Divine Sense require one exact typed Bonus Action step.")
     if not 1 <= len(steps) <= 8:
         fail("invalid_action_sequence", "Provide between one and eight action steps.")
     session.ensure_combat_state()
@@ -859,12 +863,16 @@ def _execute(session, command, action_id=None, session_id=None):
                 fail("invalid_attack_choice", "Reckless Attack requires an attack and strict boolean.")
             if step.get("metamagic") is not None and (kind != "magic" or step.get("ability") != "Magic Missile" or step["metamagic"] != "quickened_spell"):
                 fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
-            if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot"}:
+            if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot", "divine_smite"}:
                 fail("invalid_spell_slot_choice", "Only a Magic action can select a spell slot.")
-            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind"}:
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack", "activate_rage", "extend_rage", "second_wind", "lay_on_hands", "divine_smite", "divine_sense"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
+            import paladin_features
+            paladin_features.settle(session)
+            if kind != "divine_smite":
+                paladin_features.close_smite_window(session)
             if kind == "react":
                 results.append(react(session, step.get("opportunity_id"), reckless_attack=step.get("reckless_attack")))
                 results[-1]["enemy_actions"] = []
@@ -890,7 +898,8 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append(attack_step(
                     session, step.get("target_id"), kind == "continue_attack",
                     weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
-                            **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {})},
+                            **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {}),
+                            **{name: step[name] for name in ("sacred_weapon", "radiant_damage") if step.get(name) is not None}},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
             elif kind == "species":
@@ -910,6 +919,12 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind == "action_surge":
                 import fighter_features
                 results.append({"kind": kind, "result": fighter_features.activate_action_surge(session)})
+            elif kind == "lay_on_hands":
+                results.append({"kind": kind, "result": paladin_features.activate_lay_on_hands(session, step.get("healing_amount"), step.get("remove_poisoned"))})
+            elif kind == "divine_smite":
+                results.append({"kind": kind, "result": paladin_features.cast_divine_smite(session, step.get("slot_level"))})
+            elif kind == "divine_sense":
+                results.append({"kind": kind, "result": paladin_features.activate_divine_sense(session)})
             elif kind == "convert_spell_slot":
                 import sorcery_points
                 results.append({"kind": kind, "result": sorcery_points.convert_slot(session, step.get("slot_level"))})
@@ -972,6 +987,15 @@ def resolved_narration(session, results):
             narration_parts.append(f"Bonus Action ile Second Wind kullanırsın: {result['healing']} can puanı kazanırsın{moved}; kalan kullanım: {result['uses_remaining']}.")
         elif step["kind"] == "action_surge":
             narration_parts.append("Action Surge ile bu tur bir ek eylem kazanırsın (Magic eylemi hariç).")
+        elif step["kind"] == "lay_on_hands":
+            result = step["result"]
+            poison = " ve Poisoned durumunu kaldırırsın" if result["poisoned_removed"] else ""
+            narration_parts.append(f"Bonus Action ile Lay On Hands kullanırsın: {result['healing']} can puanı kazanırsın{poison}; havuzda {result['pool_remaining']} kaldı.")
+        elif step["kind"] == "divine_smite":
+            result = step["result"]
+            narration_parts.append(f"Bonus Action ile Divine Smite: hedef {result['damage']} Radiant hasar alır.")
+        elif step["kind"] == "divine_sense":
+            narration_parts.append(f"Bonus Action ile Divine Sense açarsın; kalan Channel Divinity: {step['result']['uses_remaining']}.")
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
             narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")

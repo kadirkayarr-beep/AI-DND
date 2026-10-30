@@ -20,7 +20,36 @@
    "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
   },
   "unverified_cells": [],
-  "scope": "progression table only; no feature effects, spell lists or choices"
+  "scope": "Paladin 1-5 with the selected Oath of Devotion. Table rows above level 5, other subclasses, Weapon Mastery selections and effects remain pending; effects and disclosures are owned by class_progression/paladin.py and paladin_features.py.",
+  "class_rules": {
+   "core_traits": {
+    "pdf_page": 108,
+    "level": "render read 2026-10-30"
+   },
+   "lay_on_hands_spellcasting": {
+    "pdf_page": 108,
+    "level": "render read 2026-10-30"
+   },
+   "smite_channel_divinity_fighting_style": {
+    "pdf_page": 109,
+    "level": "release text, page render read 2026-10-30"
+   },
+   "divine_sense_level_4_5": {
+    "pdf_page": 110,
+    "level": "render read 2026-10-30"
+   },
+   "oath_of_devotion": {
+    "pdf_page": [
+     112,
+     113
+    ],
+    "level": "render read 2026-10-30"
+   },
+   "divine_smite": {
+    "pdf_page": 264,
+    "level": "R3 REV2 text and page render read 2026-10-30; a spell, verified separately from class acceptance"
+   }
+  }
  },
  "levels": {
   "1": {

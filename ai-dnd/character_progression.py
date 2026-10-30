@@ -29,6 +29,7 @@ from class_progression.barbarian import (  # noqa: F401
     FAST_MOVEMENT_FT,
 )
 from class_progression.fighter import fighter_starting_creation_options  # noqa: F401
+from class_progression.paladin import paladin_starting_creation_options  # noqa: F401
 from class_progression.sorcerer import sorcerer_starting_creation_options  # noqa: F401
 
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
@@ -112,6 +113,10 @@ def capacity(character: dict[str, Any]) -> dict[str, Any] | None:
     if not has_table(character):
         return None
     return for_class(character.get("class")).capacity(character)
+
+
+def extra_spell_ids(character: dict[str, Any], field: str) -> set[str]:
+    return _handler_of(character).extra_spell_ids(character, field)
 
 
 def slot_capacity(character: dict[str, Any]) -> dict[str, int] | None:
@@ -458,7 +463,7 @@ def create_at_level(session: Any, spec: dict[str, Any], level: int = 1, level_ch
             raise ValueError(f"choices_required_for_levels_{','.join(missing)}")
     snapshot = session._capture_runtime_snapshot()
     try:
-        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice", "fighter_uses"):
+        for field in ("progression_level", "metamagic", "subclass_id", "hit_dice", "fighter_uses", "paladin_uses"):
             session.character.pop(field, None)
         configure_character(session, mode="custom", **spec)
         if level >= 4:

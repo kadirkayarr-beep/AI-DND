@@ -70,7 +70,7 @@ def action_surge_maximum(level: int) -> int:
 def validate_saved(player: dict[str, Any]) -> None:
     """Runs for every class on every save: these fields exist only on a verified Fighter, with counts its applied level allows."""
     style = player.get(STYLE)
-    if style is not None and (player.get("class") != "Fighter" or type(style) is not str or style not in KNOWN_STYLES):
+    if style is not None and player.get("class") != "Paladin" and (player.get("class") != "Fighter" or type(style) is not str or style not in KNOWN_STYLES):
         raise ValueError("Kayıt Fighting Style alanı geçersiz.")
     if KEY not in player:
         return
@@ -309,7 +309,10 @@ def projection(session: Any) -> dict[str, Any] | None:
 
 
 def style(character: Any) -> str | None:
-    return character.get(STYLE) if fighter_level(character) is not None else None
+    if fighter_level(character) is not None:
+        return character.get(STYLE)
+    import paladin_features  # the Fighting Style feats are shared; each class owns who holds one
+    return paladin_features.style(character)
 
 
 def attack_rules(character: Any, weapon: dict[str, Any], weapons_held: int) -> dict[str, Any]:

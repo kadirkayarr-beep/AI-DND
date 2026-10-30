@@ -41,6 +41,10 @@ class ClassProgression:
         """Spell resources at the applied level; None for a class without them."""
         return None
 
+    def extra_spell_ids(self, character: dict[str, Any], field: str) -> set[str]:
+        """Spells of `field` ("cantrips" or "prepared") a class feature allows beyond the class's own level-1 catalog lists."""
+        return set()
+
     def progression_path_verified(self, character: dict[str, Any]) -> bool:
         """The retained path this class needs for its applied features (a subclass choice, say)."""
         return True
