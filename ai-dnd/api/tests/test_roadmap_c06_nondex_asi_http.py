@@ -83,7 +83,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_shapes_reject_before_claim_without_partial_asi(self):
         body,r=await self.earned(); request=self.request(body,await self.ready(body))
         before=r.game_session._capture_runtime_snapshot()
-        invalid=[{}, {'dexterity':3}, {'CHA':2}, {'charisma':'2'}, {'charisma':True,'wisdom':1},
+        invalid=[{}, {'dexterity':3}, {'dexterity':1}, {'CHA':2}, {'charisma':'2'}, {'charisma':True,'wisdom':1},
                  {'charisma':None}, {'charisma':1}, {'charisma':1.5,'wisdom':0.5},
                  {'charisma':2,'wisdom':1}, {'strength':1,'wisdom':1,'charisma':1},
                  {'charisma':2,'dexterity':None}, {'constitution':2,'charisma':0}]

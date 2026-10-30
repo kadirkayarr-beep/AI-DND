@@ -152,6 +152,39 @@ class BindRefusal(unittest.TestCase):
             bind_loopback_socket("127.0.0.1", 8008)
         fake.return_value.close.assert_called_once()
 
+    def bind_with_platform(self, platform: str) -> Any:
+        opened = patch("api.local_play.socket.socket").start()
+        self.addCleanup(patch.stopall)
+        opened.return_value.getsockname.return_value = ("127.0.0.1", 8008)
+        with (
+            patch("api.local_play.sys.platform", platform),
+            patch("api.local_play.socket.SOL_SOCKET", 65535, create=True),
+            patch("api.local_play.socket.SO_EXCLUSIVEADDRUSE", -5, create=True),
+        ):
+            bind_loopback_socket("127.0.0.1", 8008)
+        return opened.return_value
+
+    def test_windows_claims_the_port_exclusively_before_it_binds(self) -> None:
+        listener = self.bind_with_platform("win32")
+        names = [call[0] for call in listener.method_calls]
+        self.assertLess(names.index("setsockopt"), names.index("bind"))
+        listener.setsockopt.assert_called_once_with(65535, -5, 1)
+
+    def test_other_systems_keep_the_default_exclusive_bind(self) -> None:
+        self.bind_with_platform("linux").setsockopt.assert_not_called()
+
+    def test_a_refused_exclusive_claim_closes_the_socket(self) -> None:
+        opened = patch("api.local_play.socket.socket").start()
+        self.addCleanup(patch.stopall)
+        opened.return_value.setsockopt.side_effect = OSError("refused")
+        with (
+            patch("api.local_play.sys.platform", "win32"),
+            patch("api.local_play.socket.SO_EXCLUSIVEADDRUSE", -5, create=True),
+        ):
+            with self.assertRaises(OSError):
+                bind_loopback_socket("127.0.0.1", 8008)
+        opened.return_value.close.assert_called_once()
+
     def test_uvicorn_keeps_the_real_peer_and_ignores_proxy_headers(self) -> None:
         settings = uvicorn_settings()
         self.assertIs(settings["proxy_headers"], False)

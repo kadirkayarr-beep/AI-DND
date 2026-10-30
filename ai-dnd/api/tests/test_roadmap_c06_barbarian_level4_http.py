@@ -140,7 +140,7 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_extra_null_alias_numeric_fields_reject_without_intent(self):
         a,r=await self.earned();p=await self.ready(a);before=self.snapshot(r)
         for choices in ({},None,{**self.pick(),'cantrips':[]},{**self.pick(),'prepared_spells':[]},{**self.pick(),'extra':None},
-                        {'asi':None},self.pick({'dexterity':3}),self.pick({'constitution':True}),self.pick({'constitution':'2'}),self.pick({'constitution':2.0}),
+                        {'asi':None},self.pick({'dexterity':3}),self.pick({'dexterity':1}),self.pick({'constitution':True}),self.pick({'constitution':'2'}),self.pick({'constitution':2.0}),
                         self.pick({'CON':2}),self.pick({'constitution':1}),self.pick({'strength':1,'constitution':2})):
             response=await self.http.post(self.url(a),json=self.command(a,choices,p))
             self.assertEqual(response.status_code,422,response.text);self.assertEqual(self.snapshot(r),before)

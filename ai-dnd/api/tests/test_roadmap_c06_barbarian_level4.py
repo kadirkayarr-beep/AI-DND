@@ -261,7 +261,7 @@ class BarbarianFourTests(unittest.TestCase):
             self.assertEqual(serialize_campaign_payload(target), p)
 
     def test_strict_increases_and_caps_reject_without_mutation(self):
-        for inc in ({}, {'constitution': True}, {'strength': 2.0}, {'wisdom': '2'}, {'dexterity': 3},
+        for inc in ({}, {'constitution': True}, {'strength': 2.0}, {'wisdom': '2'}, {'dexterity': 3}, {'dexterity': 1},
                     {'STR': 2}, {'unknown': 2}, {'strength': 1}, {'strength': 2, 'wisdom': 1}, {'strength': 1, 'wisdom': 1, 'charisma': 1}):
             s = selected_three(self); p = cp.preview_level_up(s, 4)
             self.assertEqual(p['status'], 'ready', p)

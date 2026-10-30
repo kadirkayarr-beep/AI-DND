@@ -62,7 +62,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
         self.store=CampaignStore(path,bound_principal=TEST_PLAYER)
         a=copy.deepcopy(fixture['campaign']);r=await self.reopen(a)
-        runtime=r.game_session.serialize_game_state();runtime['player'].pop('armor_origin',None);self.assertEqual(runtime,fixture['runtime'])  # the one additive read-time repair
+        runtime=r.game_session.serialize_game_state();self.assertEqual(runtime['player'].pop('armor_origin'),{'armor':None,'shield':False});self.assertEqual(runtime,fixture['runtime'])  # the one additive read-time repair
         expected=copy.deepcopy(fixture['response']);expected['session_id']=a['session_id']
         before=self.snapshot(r)
         with patch('game.perform_skill_check',side_effect=AssertionError('old receipt rerolled')):

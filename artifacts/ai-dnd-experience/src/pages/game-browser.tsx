@@ -220,7 +220,7 @@ function EngineHealth() {
 function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
     <main className="design-preview unwritten-entry" data-testid="app-start">
-      <div className="entry-ribbon"><span className="ribbon-dot" /><strong>GERÇEK OYUN</strong><span>/</span><span>Hesabınla giriş yap; kampanyaların kayıtlı kalır</span></div>
+      <div className="entry-ribbon"><span className="ribbon-dot" /><strong>GERÇEK OYUN</strong><span>/</span><span>{import.meta.env.VITE_AI_DND_LOCAL_PLAY === '1' ? 'Yerel oyun; kampanyaların bu bilgisayarda kayıtlı kalır' : 'Hesabınla giriş yap; kampanyaların kayıtlı kalır'}</span></div>
       <header className="entry-header">
         <div className="entry-brand"><span className="entry-brand-icon"><OuroborosMark /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
         <GateSoundControl />

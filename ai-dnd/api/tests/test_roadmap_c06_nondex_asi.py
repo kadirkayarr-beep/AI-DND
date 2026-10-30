@@ -108,7 +108,7 @@ class NonDexAsiTests(unittest.TestCase):
             self.assertEqual(s.world_state['sorcery_points_v1']['remaining'],level)
 
     def test_strict_patterns_and_cap_filter_without_mutation(self):
-        for increase in ({},{'constitution':True},{'charisma':2.0},{'wisdom':'2'},{'dexterity':3},{'charisma':1},{'charisma':2,'wisdom':1},{'charisma':1,'wisdom':1,'strength':1},{'unknown':2}):
+        for increase in ({},{'constitution':True},{'charisma':2.0},{'wisdom':'2'},{'dexterity':3},{'dexterity':1},{'charisma':1},{'charisma':2,'wisdom':1},{'charisma':1,'wisdom':1,'strength':1},{'unknown':2}):
             s=create(3);p=cp.preview_level_up(s,4);before=s._capture_runtime_snapshot()
             self.assertEqual(cp.apply_level_choices(s,p,pick(increase))['status'],'rejected',increase)
             self.assertEqual(s._capture_runtime_snapshot(),before)

@@ -7,12 +7,15 @@ Threat model
     Stopped: a LAN or internet peer (non-loopback peer, or a non-loopback local
     address), a hosted deployment that inherits the mode (Replit and production
     markers, and plain ``uvicorn --host 0.0.0.0`` never proves a bind), DNS
-    rebinding (Host and Origin), a tunnel or reverse proxy on this PC (forwarded
-    headers, Host), a web page in the owner's browser (Origin, Sec-Fetch-Site,
-    and the non-simple request marker on writes), and client-supplied identity
-    (no request field selects the principal).
-    Not stopped: another program or OS user on this PC. Any local process can
-    reach loopback, so this mode assumes the machine itself is trusted.
+    rebinding (Host and Origin), a reverse proxy on this PC that adds forwarding
+    headers or sends its own Host, a web page in the owner's browser (Origin,
+    Sec-Fetch-Site, and the non-simple request marker on writes), and
+    client-supplied identity (no request field selects the principal).
+    Not stopped: another program or OS user on this PC, and a header-less raw
+    TCP forwarder on it (netsh portproxy, ssh -R or -L, socat). Any local process
+    can reach loopback, and a raw forwarder arrives as a loopback peer with the
+    client's own headers, so this mode assumes the machine itself is trusted and
+    that the owner has not opened such a forward to it.
 
 Why an environment value is not enough
     ``AI_DND_AUTH_MODE=local`` only asks for this mode. It opens nothing without
@@ -156,6 +159,10 @@ def bind_loopback_socket(host: str, port: int) -> socket.socket:
     family = socket.AF_INET6 if ":" in host else socket.AF_INET
     listener = socket.socket(family, socket.SOCK_STREAM)
     try:
+        if sys.platform == "win32":
+            # Ask for sole use of this address, so sharing it is a bind error.
+            # A wildcard bind on the same port is another address; it still works.
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         listener.bind((host, port))
         if listener.getsockname()[0] != host:
             raise LocalPlayRefused("The bound address is not the requested loopback address.")
