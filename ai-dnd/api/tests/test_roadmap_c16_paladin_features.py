@@ -576,6 +576,13 @@ class PublishedContract(unittest.TestCase):
 
 
 class SharedOwners(unittest.TestCase):
+    def test_the_turn_check_comes_from_the_public_fighter_owner(self):
+        session, _ = fight(2)
+        with patch("fighter_features.turn_reason", return_value="owner_said_no") as owner:
+            self.assertEqual(features.projection(session)["lay_on_hands"]["activate"]["reason"], "owner_said_no")
+        owner.assert_any_call(session, "lay_on_hands")
+        self.assertIsNone(fighter_features.turn_reason(session, "lay_on_hands"))
+
     def test_extra_attack_comes_from_the_shared_owner(self):
         session, npc = fight(5)
         steps = hit(session, npc, attack(npc), follow(npc))

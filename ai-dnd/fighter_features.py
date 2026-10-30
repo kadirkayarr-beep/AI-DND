@@ -103,7 +103,7 @@ def rest_recovery(session: Any, kind: str) -> None:
     character[KEY] = uses
 
 
-def _turn_reason(session: Any, prefix: str) -> str | None:
+def turn_reason(session: Any, prefix: str) -> str | None:
     combat = session.world_state.get("combat", {})
     if not combat.get("active") or combat.get("current_actor_id") != "player":
         return f"{prefix}_current_combat_turn_required"
@@ -118,7 +118,7 @@ def _second_wind_reason(session: Any) -> str | None:
     level = fighter_level(session.character)
     if level is None:
         return "second_wind_not_available"
-    reason = _turn_reason(session, "second_wind")
+    reason = turn_reason(session, "second_wind")
     if reason:
         return reason
     if session.world_state["combat"].get("turn_resources", {}).get("player", {}).get("bonus_action_spent"):
@@ -132,7 +132,7 @@ def _action_surge_reason(session: Any) -> str | None:
     level = fighter_level(session.character)
     if level is None or level < ACTION_SURGE_LEVEL:
         return "action_surge_not_available"
-    reason = _turn_reason(session, "action_surge")
+    reason = turn_reason(session, "action_surge")
     if reason:
         return reason
     if _uses(session.character)["action_surge_spent"] >= action_surge_maximum(level):

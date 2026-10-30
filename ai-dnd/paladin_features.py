@@ -182,7 +182,7 @@ def sacred_weapon_active(session: Any, weapon_id: Any = None) -> bool:
 
 def _reason_in_turn(session: Any, prefix: str) -> str | None:
     import fighter_features
-    return fighter_features._turn_reason(session, prefix)
+    return fighter_features.turn_reason(session, prefix)
 
 
 def _bonus_spent(session: Any) -> bool:
