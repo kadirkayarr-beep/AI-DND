@@ -392,7 +392,7 @@ def begin_sacred_weapon(session: Any, weapon: dict[str, Any]) -> None:
     _store(session.character, uses)
 
 
-def observe_attack(session: Any, *, weapon: dict[str, Any], target: str, landed: bool) -> None:
+def observe_attack(session: Any, *, weapon: dict[str, Any], target: str, landed: bool, critical: bool) -> None:
     """Runs on every resolved player attack: only the latest one can open the window, and only a hit on the player's own turn does."""
     if paladin_level(session.character) is None:
         return
@@ -402,7 +402,7 @@ def observe_attack(session: Any, *, weapon: dict[str, Any], target: str, landed:
         return
     sequence.pop(SMITE_WINDOW, None)
     if landed and weapon.get("kind") == "melee" and combat.get("current_actor_id") == "player":
-        sequence[SMITE_WINDOW] = {"target_id": target}
+        sequence[SMITE_WINDOW] = {"target_id": target, "critical": critical}
 
 
 def close_smite_window(session: Any) -> None:
@@ -416,7 +416,9 @@ def _smite_window(session: Any) -> dict[str, Any] | None:
     sequence = session.world_state.get("combat", {}).get("turn_resources", {}).get("player", {}).get("weapon_sequence")
     window = sequence.get(SMITE_WINDOW) if isinstance(sequence, dict) else None
     participants = session.world_state.get("combat", {}).get("participants", [])
-    return window if isinstance(window, dict) and window.get("target_id") in participants and window["target_id"] != "player" else None
+    if not isinstance(window, dict) or window.get("target_id") not in participants or window["target_id"] == "player":
+        return None
+    return window if type(window.get("critical", False)) is bool else None  # a window saved before the flag has none and stays open
 
 
 def _smite_known(session: Any, level: int | None) -> bool:
@@ -465,7 +467,7 @@ def _free_smite_ready(session: Any, level: int | None) -> bool:
 
 
 def cast_divine_smite(session: Any, slot_level: Any) -> dict[str, Any]:
-    """`slot_level` None is the once-per-Long-Rest cast without a slot. The dice are not doubled by a Critical Hit (see the disclosure)."""
+    """`slot_level` None is the once-per-Long-Rest cast without a slot. A Critical Hit doubles every die: PDF 264 calls it damage from the attack, PDF 363 rolls all of the attack's dice twice."""
     from initiative import atomic
     import action_economy as economy
     import spell_scope
@@ -488,7 +490,8 @@ def cast_divine_smite(session: Any, slot_level: Any) -> dict[str, Any]:
             if state["slot_turn"] == _slot_marker(session):
                 raise CombatRequestError("spell_slot_turn_limit", "Only one spell slot may be expended on this turn.")
             spent_level = slot_level
-        target_id = _smite_window(session)["target_id"]
+        window = _smite_window(session)
+        target_id = window["target_id"]
         target = attacks.actor_data(session, target_id)
         economy.consume_feature_bonus(session)
         if slot_level is None:
@@ -499,7 +502,7 @@ def cast_divine_smite(session: Any, slot_level: Any) -> dict[str, Any]:
             state["slots"][str(slot_level)] -= 1
             state["slot_turn"] = _slot_marker(session)
         kind = _creature_type(target)
-        dice = SMITE_BASE_DICE + (spent_level - 1) + (1 if kind in SMITE_EXTRA_TYPES else 0)
+        dice = (SMITE_BASE_DICE + (spent_level - 1) + (1 if kind in SMITE_EXTRA_TYPES else 0)) * (2 if window.get("critical") else 1)
         raw = session.roll_damage(SMITE_DIE, dice, 0)
         damage = attacks.mitigate(session, target_id, "radiant", raw)["final_damage"]
         close_smite_window(session)

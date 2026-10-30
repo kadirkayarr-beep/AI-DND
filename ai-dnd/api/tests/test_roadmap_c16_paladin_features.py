@@ -5,6 +5,7 @@ Divine Smite 2d8 Radiant, +1d8 per slot level above 1, +1d8 against a Fiend or a
 Divinity two uses, one back on a Short Rest, all on a Long Rest; Divine Sense 10 minutes, 60 feet; Sacred Weapon Charisma modifier
 (minimum +1) for 10 minutes. Dice are deterministic; synthetic NPCs are unit fixtures.
 """
+import random
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ import fighter_features
 import paladin_features as features
 import spell_scope
 import weapon_attack as attacks
+from class_progression.paladin import Paladin
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
 from api.tests.test_roadmap_c16_paladin import created, earn, earned, roundtrip, spells, step
@@ -196,6 +198,61 @@ class DivineSmite(unittest.TestCase):
         _, dice = self.damage(self.session, self.npc, slot_level=1)
         self.assertEqual(dice.call_args.args, (8, 2, 0))
 
+    def test_a_critical_hit_doubles_the_free_cast_dice(self):
+        hit(self.session, self.npc, roll=20)
+        result, dice = self.damage(self.session, self.npc)
+        self.assertEqual(dice.call_args.args, (8, 4, 0))
+        self.assertEqual(result["dice"], 4)
+
+    def test_a_critical_hit_doubles_the_slot_and_the_creature_dice_too(self):
+        session, npc = fight(5)
+        hit(session, npc, roll=20)
+        npc["monster_stat_block"] = {"creature_type": "Undead"}
+        result, dice = self.damage(session, npc, slot_level=2)
+        self.assertEqual(dice.call_args.args, (8, 8, 0))
+        self.assertEqual(result["dice"], 8)
+
+    def test_an_automatic_critical_within_five_feet_counts(self):
+        self.npc["conditions"] = ["paralyzed"]
+        hit(self.session, self.npc, roll=15)
+        self.assertEqual(self.damage(self.session, self.npc)[1].call_args.args, (8, 4, 0))
+
+    def test_only_the_hit_that_opened_the_window_decides(self):
+        session, npc = fight(5)
+        hit(session, npc, attack(npc), roll=20)
+        hit(session, npc, follow(npc), roll=15)
+        self.assertEqual(self.damage(session, npc)[1].call_args.args, (8, 2, 0))
+        session, npc = fight(5)
+        hit(session, npc, attack(npc), roll=15)
+        hit(session, npc, follow(npc), roll=20)
+        self.assertEqual(self.damage(session, npc)[1].call_args.args, (8, 4, 0))
+
+    def test_the_doubling_survives_a_round_trip(self):
+        hit(self.session, self.npc, roll=20)
+        fresh, _ = roundtrip(self.session)
+        self.assertEqual(self.damage(fresh, self.npc)[1].call_args.args, (8, 4, 0))
+
+    def test_the_dice_stream_is_the_same_stream_and_stays_deterministic(self):
+        def play(roll):
+            session, npc = fight(3)
+            hit(session, npc, roll=roll)
+            session.rng.seed(7)
+            result = run(session, smite(slot_level=1))[0]["result"]
+            return result["raw_damage"], session.rng.random()
+        stream = random.Random(7)
+        rolls = [stream.randint(1, 8) for _ in range(4)]
+        critical = play(20)
+        self.assertEqual(critical, (sum(rolls), stream.random()), "the extra dice are the next draws and nothing else is drawn")
+        self.assertEqual(critical, play(20))
+        stream = random.Random(7)
+        rolls = [stream.randint(1, 8) for _ in range(2)]
+        self.assertEqual(play(19), (sum(rolls), stream.random()), "an ordinary hit draws what it always drew")
+
+    def test_a_window_saved_before_the_flag_stays_open_and_undoubled(self):
+        hit(self.session, self.npc, roll=20)
+        attacks.turn_state(self.session, "player")[features.SMITE_WINDOW] = {"target_id": self.npc["id"]}
+        self.assertEqual(self.damage(self.session, self.npc)[1].call_args.args, (8, 2, 0))
+
     def test_a_miss_or_no_attack_opens_nothing(self):
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
         hit(self.session, self.npc, roll=1)
@@ -203,14 +260,14 @@ class DivineSmite(unittest.TestCase):
 
     def test_a_ranged_weapon_opens_nothing(self):
         hit(self.session, self.npc)  # a live sequence: without one the observer returns before it reads the weapon
-        features.observe_attack(self.session, weapon={"kind": "ranged"}, target=self.npc["id"], landed=True)
+        features.observe_attack(self.session, weapon={"kind": "ranged"}, target=self.npc["id"], landed=True, critical=False)
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
 
     def test_a_hit_outside_the_players_turn_leaves_no_window_for_that_turn(self):
         hit(self.session, self.npc)
         combat = self.session.world_state["combat"]
         actor, combat["current_actor_id"] = combat["current_actor_id"], self.npc["id"]
-        features.observe_attack(self.session, weapon={"kind": "melee"}, target=self.npc["id"], landed=True)
+        features.observe_attack(self.session, weapon={"kind": "melee"}, target=self.npc["id"], landed=True, critical=False)
         combat["current_actor_id"] = actor
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
 
@@ -264,7 +321,9 @@ class DivineSmite(unittest.TestCase):
 
     def test_a_forged_window_opens_nothing(self):
         hit(self.session, self.npc)
-        for forged in ({"target_id": "nobody"}, {"target_id": "player"}, "x", {}):
+        real = self.npc["id"]
+        for forged in ({"target_id": "nobody"}, {"target_id": "player"}, "x", {}, {"target_id": real, "critical": 1},
+                       {"target_id": real, "critical": "yes"}, {"target_id": real, "critical": None}):
             attacks.turn_state(self.session, "player")[features.SMITE_WINDOW] = forged
             self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
             self.assertIsNone(features.projection(self.session)["divine_smite"]["target_id"])
@@ -524,9 +583,11 @@ class SharedOwners(unittest.TestCase):
 
     def test_disclosure_names_what_is_not_done(self):
         text = " ".join(cp.progression_effects_pending("Paladin", 5))
-        for word in ("Weapon Mastery", "catalog-only", "Find Steed", "Critical Hit", "replacing a spell", "already on the list",
-                     "subset of the Cleric cantrips", "no button"):
+        for word in ("Weapon Mastery", "catalog-only", "Find Steed", "thrown Melee weapon", "replacing a spell", "already on the list",
+                     "subset of the Cleric cantrips", "no button", "Great Weapon Fighting is not applied to the Smite dice"):
             self.assertIn(word, text)
+        self.assertNotIn("not doubled", text)
+        self.assertIn("doubled on a Critical Hit", " ".join(Paladin().disclosure(5)["supported"]))
 
     def test_invalid_state_hides_the_controls(self):
         session = created(3)

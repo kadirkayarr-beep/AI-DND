@@ -996,7 +996,7 @@ def _resolve(session, c):
     if combat["active"]:
         sequence = turn_state(session, actor)
         if actor == "player":
-            paladin_features.observe_attack(session, weapon=weapon, target=target, landed=hit and not special)
+            paladin_features.observe_attack(session, weapon=weapon, target=target, landed=hit and not special, critical=critical)
         sequence["attacks"] += 1
         if not special and "attack_rolls" in sequence:
             sequence["attack_rolls"] += 1

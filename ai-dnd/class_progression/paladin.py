@@ -297,12 +297,12 @@ class Paladin(ClassProgression):
                 "Fighting Style: Archery, Defense, Dueling, Great Weapon Fighting and Two-Weapon Fighting apply; Defense raises the Armor Class total once when the step is taken in armor",
                 "Blessed Warrior: two Cleric cantrips with Charisma; Sacred Flame has a resolver, others are catalog-only",
                 "Paladin's Smite: Divine Smite always prepared, a Bonus Action right after a Melee weapon or Unarmed Strike hit, 2d8 Radiant, +1d8 per slot level above 1, "
-                "+1d8 against a Fiend or Undead with a sourced type; one cast without a slot per Long Rest",
+                "+1d8 against a Fiend or Undead with a sourced type, all of it doubled on a Critical Hit; one cast without a slot per Long Rest",
             ])
             pending.extend([
                 "Fighting Style: replacing the feat on a Paladin level, Protection and the feats not offered remain pending",
                 "Blessed Warrior: replacing a cantrip on a Paladin level remains pending; the choices are the catalog's subset of the Cleric cantrips",
-                "Divine Smite: the dice are not doubled by a Critical Hit (the attack's own dice are); a thrown Melee weapon counts as a reading of the spell, not a stated rule",
+                "Divine Smite: a thrown Melee weapon counts as a reading of the spell, not a stated rule; Great Weapon Fighting is not applied to the Smite dice",
                 "Divine Smite: only on your own turn after a hit by the engine's attack owner; other Smite spells are catalog-only",
             ])
         if level >= 3:
