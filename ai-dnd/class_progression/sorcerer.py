@@ -218,6 +218,7 @@ def _apply_selected_level_four(session: Any, preview: dict[str, Any], choices: d
     previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
     try:
         character = copy.deepcopy(session.character)
+        armor_class = character["armor_class"]
         state = copy.deepcopy(session.world_state["spellcasting_v1"])
         old_slots = core.capacity(character)["slots"]
         state["slots"] = {k: state["slots"].get(k, 0) + maximum - old_slots.get(k, 0)
@@ -242,6 +243,9 @@ def _apply_selected_level_four(session: Any, preview: dict[str, Any], choices: d
         if points is not None:
             session.world_state[sorcery_points.KEY] = points
         session.set_player_max_hp(projection["resulting_maximum"])
+        combat = session.world_state.get("combat", {})
+        if combat.get("active") and session.character["armor_class"] != armor_class:
+            session._sync_combat_participant_records(combat)
         spell_scope.validate(state, session.character)
         core.validate_saved(session.character, session.world_state)
         # Game owner also enforces the retained save version and serialized shape.

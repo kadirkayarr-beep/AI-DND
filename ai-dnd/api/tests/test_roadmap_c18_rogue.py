@@ -194,12 +194,12 @@ class EarnedProgression(unittest.TestCase):
         step(self, session, 3)
         self.assertEqual(session.world_state["inventory"].count("Poisoner's Kit"), 1)
 
-    def test_level_four_reuses_the_shared_asi_family_without_dexterity(self):
+    def test_level_four_reuses_the_shared_asi_family(self):
         session = earned(self, 3)
         earn(session, 4)
         preview = cp.preview_level_up(session, 4)
         self.assertTrue(preview["supported_asi_choices"])
-        self.assertFalse(any("dexterity" in option["increase"] for option in preview["supported_asi_choices"]))
+        self.assertTrue(any("dexterity" in option["increase"] for option in preview["supported_asi_choices"]))
         before = session.character["intelligence"]
         step(self, session, 4)
         self.assertEqual(session.character["intelligence"], before + 2)

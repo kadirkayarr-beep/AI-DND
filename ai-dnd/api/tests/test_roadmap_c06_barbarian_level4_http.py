@@ -80,7 +80,7 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_public_preview_asi_only_filtered_and_no_mutation(self):
         a,r=await self.earned();before=self.snapshot(r);p=await self.ready(a)
         self.assertEqual(p['class_name'],'Barbarian');self.assertEqual(p['choices_required'],{'asi':1})
-        self.assertIsNone(p['capacity']);self.assertEqual(len(p['supported_asi_choices']),15)
+        self.assertIsNone(p['capacity']);self.assertEqual(len(p['supported_asi_choices']),21)
         self.assertEqual(p['prepared_spell_ids'],[]);self.assertEqual(p['cantrip_ids'],[])
         self.assertIn('Weapon Mastery',' '.join(p['effects_pending']))
         self.assertEqual(self.snapshot(r),before)
@@ -140,7 +140,7 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_extra_null_alias_numeric_fields_reject_without_intent(self):
         a,r=await self.earned();p=await self.ready(a);before=self.snapshot(r)
         for choices in ({},None,{**self.pick(),'cantrips':[]},{**self.pick(),'prepared_spells':[]},{**self.pick(),'extra':None},
-                        {'asi':None},self.pick({'dexterity':2}),self.pick({'constitution':True}),self.pick({'constitution':'2'}),self.pick({'constitution':2.0}),
+                        {'asi':None},self.pick({'dexterity':3}),self.pick({'constitution':True}),self.pick({'constitution':'2'}),self.pick({'constitution':2.0}),
                         self.pick({'CON':2}),self.pick({'constitution':1}),self.pick({'strength':1,'constitution':2})):
             response=await self.http.post(self.url(a),json=self.command(a,choices,p))
             self.assertEqual(response.status_code,422,response.text);self.assertEqual(self.snapshot(r),before)
@@ -230,7 +230,7 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
             connection.executescript(fixture['sqlite_dump']);connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
         self.store=CampaignStore(path,bound_principal=TEST_PLAYER)
         for name,oracle in fixture['oracles'].items():
-            a=copy.deepcopy(oracle['campaign']);r=await self.reopen(a);self.assertEqual(r.game_session.serialize_game_state(),oracle['runtime'])
+            a=copy.deepcopy(oracle['campaign']);r=await self.reopen(a);runtime=r.game_session.serialize_game_state();runtime['player'].pop('armor_origin',None);self.assertEqual(runtime,oracle['runtime'])  # the one additive read-time repair
             command=oracle['request'];self.assertEqual(LevelUpApplyRequest.model_validate(command).model_dump(mode='json'),command)
             frozen_hash={'sorcerer4':'f67acd162f1ca010d2578f835cd1b53356dddf5b61592803daad7fba56670211',
                          'barbarian3':'9fc2c61bea962fd4e6f2f2e6e5c34c74f0f1790947cd3091362ce23297c7f5dc'}[name]
@@ -281,6 +281,6 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
                 a,r=await self.earned();command=self.command(a,self.pick(inc),await self.ready(a));before=copy.deepcopy(r.game_session.world_state)
                 response=await self.http.post(self.url(a),json=command);self.assertEqual(response.status_code,200,response.text)
                 s=r.game_session;self.assertEqual(s.character['asi_choices'],[{'class_level':4,**self.pick(inc)['asi']}])
-                self.assertEqual((s.character['max_hp'],s.character['current_hp'],s.character['armor_class']),(45,41,16) if inc=={'constitution':2} else (41,41,15))
+                self.assertEqual((s.character['max_hp'],s.character['current_hp'],s.character['armor_class']),(45,41,16) if inc=={'constitution':2} else (41,41,16) if inc=={'dexterity':2} else (41,41,15))
                 self.assertEqual((s.character['xp'],s.character['level'],s.character['progression_level']),(2700,4,4))
                 self.assertEqual(s.world_state,before);self.assertNotIn('spellcasting_v1',s.world_state)

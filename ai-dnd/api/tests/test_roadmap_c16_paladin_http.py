@@ -45,7 +45,7 @@ class Catalog(unittest.TestCase):
         self.assertIn("Guidance", options["level_2"]["blessed_warrior_cantrip_ids"])
         self.assertNotIn("Divine Smite", options["level_2"]["prepared_spell_ids"], "always prepared from level 2")
         self.assertEqual(options["level_3"]["subclass_options"], [{"id": "oath_of_devotion", "name": "Oath of Devotion"}])
-        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 15)
+        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 21)
         self.assertIn("Lesser Restoration", options["level_5"]["prepared_spell_ids"])
         self.assertIn("catalog-only", " ".join(options["level_5"]["effects_pending"]))
         CharacterCreationCatalogResponse.model_validate(get_character_creation_catalog())

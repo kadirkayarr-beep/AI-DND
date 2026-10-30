@@ -735,19 +735,60 @@ class LevelUpWisdomCharismaIncrease(BaseModel):
     charisma: int = Field(strict=True, ge=1, le=1)
 
 
+class LevelUpDexterityIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dexterity: int = Field(strict=True, ge=2, le=2)
+
+
+class LevelUpStrengthDexterityIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    strength: int = Field(strict=True, ge=1, le=1)
+    dexterity: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpDexterityConstitutionIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dexterity: int = Field(strict=True, ge=1, le=1)
+    constitution: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpDexterityIntelligenceIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dexterity: int = Field(strict=True, ge=1, le=1)
+    intelligence: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpDexterityWisdomIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dexterity: int = Field(strict=True, ge=1, le=1)
+    wisdom: int = Field(strict=True, ge=1, le=1)
+
+
+class LevelUpDexterityCharismaIncrease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dexterity: int = Field(strict=True, ge=1, le=1)
+    charisma: int = Field(strict=True, ge=1, le=1)
+
+
 class LevelUpAsiChoice(BaseModel):
     model_config = ConfigDict(extra="forbid")
     feat: Literal["Ability Score Improvement"]
     increase: (
         LevelUpStrengthIncrease |
+        LevelUpDexterityIncrease |
         LevelUpConIncrease |
         LevelUpIntelligenceIncrease |
         LevelUpWisdomIncrease |
         LevelUpCharismaIncrease |
+        LevelUpStrengthDexterityIncrease |
         LevelUpStrengthConstitutionIncrease |
         LevelUpStrengthIntelligenceIncrease |
         LevelUpStrengthWisdomIncrease |
         LevelUpStrengthCharismaIncrease |
+        LevelUpDexterityConstitutionIncrease |
+        LevelUpDexterityIntelligenceIncrease |
+        LevelUpDexterityWisdomIncrease |
+        LevelUpDexterityCharismaIncrease |
         LevelUpConstitutionIntelligenceIncrease |
         LevelUpConstitutionWisdomIncrease |
         LevelUpConstitutionCharismaIncrease |

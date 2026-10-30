@@ -79,7 +79,7 @@ class CreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
                 if mode=='missing-step':value['level_choices'].pop('4')
                 if mode=='null-step':value['level_choices']['4']=None
                 if mode=='extra-step':value['level_choices']['6']={}
-                if mode=='unsupported-asi':value['level_choices']['4']['asi']['increase']={'dexterity':2}
+                if mode=='unsupported-asi':value['level_choices']['4']['asi']['increase']={'dexterity':3}
                 if mode=='duplicate-spell':value['level_choices']['4']['prepared_spells']=['Magic Missile']
                 if mode=='other-class':value['class']='Barbarian'
                 if mode=='bad-origin':value['ability_scores']['constitution']=99

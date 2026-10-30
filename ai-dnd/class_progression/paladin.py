@@ -157,9 +157,10 @@ def _check_style(choices) -> str | None:
 
 
 def _armor_worn(character: dict[str, Any]) -> bool:
-    """The creation calculator's reading of carried equipment, the same one the Fighter's Defense total used."""
+    """The creation calculator's reading of carried equipment, the same one the Fighter's Defense total used. A load drops the list and keeps the origin."""
     from api.dnd_2024_rules import get_equipment_armor_and_shield
-    armor, _ = get_equipment_armor_and_shield(character.get("equipment_choices"))
+    origin = character.get("armor_origin")
+    armor, _ = (origin["armor"], origin["shield"]) if type(origin) is dict else get_equipment_armor_and_shield(character.get("equipment_choices"))
     return armor is not None
 
 
@@ -318,8 +319,8 @@ class Paladin(ClassProgression):
                 "Oath of Devotion spells have no resolver; the Oath's later features and the other Oaths remain unsupported",
             ])
         if level >= 4:
-            supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
-            pending.append("DEX Ability Score Improvement and other feats remain unsupported")
+            supported.append("Selected level4 ordinary Ability Score Improvement supported, Dexterity included; a choice that moves the Dexterity modifier is refused only when the Armor Class total cannot be tied to its creation armor")
+            pending.append("Other feats remain unsupported")
         if level >= 5:
             supported.append("Extra Attack: an applied level-5 Paladin makes two attacks instead of one when taking the Attack action on their own turn")
             pending.append("Faithful Steed: Find Steed is listed as always prepared; casting it, the free cast and the steed itself remain pending (no summon owner, no resolver)")

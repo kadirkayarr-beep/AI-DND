@@ -39,7 +39,7 @@ class Catalog(unittest.TestCase):
         options = get_character_creation_catalog()["monk_starting_creation"]
         self.assertEqual(options["supported_starting_levels"], [1, 2, 3, 4, 5])
         self.assertEqual(options["level_3"]["subclass_options"], [{"id": "open_hand", "name": "Warrior of the Open Hand"}])
-        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 15)
+        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 21)
         self.assertIn("Stunning Strike", " ".join(options["level_5"]["effects_supported"]))
         self.assertIn("Higher-start equipment", " ".join(options["level_5"]["effects_pending"]))
         CharacterCreationCatalogResponse.model_validate(get_character_creation_catalog())

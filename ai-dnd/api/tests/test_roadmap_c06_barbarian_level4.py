@@ -114,8 +114,9 @@ class BarbarianFourTests(unittest.TestCase):
                 self.assertEqual(s.character['primal_knowledge_choice'], old['primal_knowledge_choice'])
                 self.assertEqual(s.character['primal_knowledge_choice']['class_level'], 3)
                 for key in ('proficient_skills', 'base_ability_scores', 'background_ability_bonuses', 'origin_feat',
-                            'origin_feats', 'inventory', 'initiative', 'species_bonus_skills', 'background'):
+                            'origin_feats', 'inventory', 'species_bonus_skills', 'background'):
                     self.assertEqual(s.character.get(key), old.get(key), key)
+                self.assertEqual(s.character['initiative'], old['initiative'] + s.character['dexterity_mod'] - old['dexterity_mod'])
                 for key in ('inventory', 'currency', 'equipment', 'rage_v1', 'worn_armor_v1', 'xp_awarded_event_ids'):
                     self.assertEqual(s.world_state.get(key), world.get(key), key)
                 self.assertNotIn('spellcasting_v1', s.world_state)
@@ -260,7 +261,7 @@ class BarbarianFourTests(unittest.TestCase):
             self.assertEqual(serialize_campaign_payload(target), p)
 
     def test_strict_increases_and_caps_reject_without_mutation(self):
-        for inc in ({}, {'constitution': True}, {'strength': 2.0}, {'wisdom': '2'}, {'dexterity': 2},
+        for inc in ({}, {'constitution': True}, {'strength': 2.0}, {'wisdom': '2'}, {'dexterity': 3},
                     {'STR': 2}, {'unknown': 2}, {'strength': 1}, {'strength': 2, 'wisdom': 1}, {'strength': 1, 'wisdom': 1, 'charisma': 1}):
             s = selected_three(self); p = cp.preview_level_up(s, 4)
             self.assertEqual(p['status'], 'ready', p)

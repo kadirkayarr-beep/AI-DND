@@ -3,7 +3,7 @@
 Facts come from `content/rules/phb2024/classes/<class>.json` (read from the book's page scans). `progression_level` is the level
 whose choices were applied; a level granted by XP above it is a PENDING level-up: the character keeps its previous resources
 (`capacity` follows `progression_level`, never `level`) until `apply_level_choices` applies the choices exactly once.
-Applied progression supports selected non-DEX ordinary ASI Sorcerer4 followed by selected5 / selected Berserker3→4→5 (level 5 has no choices); other paths are BLOCKED.
+Applied progression supports selected ordinary ASI Sorcerer4 followed by selected5 / selected Berserker3→4→5 (level 5 has no choices); other paths are BLOCKED.
 Subclass choice storage is not implementation of subclass features or full playability. Every delta lists effects that are not implemented under `effects_pending`.
 Class-specific rules live in `class_progression/<class>.py` behind a registry; this module keeps the shared flow and re-exports
 the class names other modules and tests read from here.
@@ -16,7 +16,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from api.dnd_2024_rules import proficiency_bonus_for_level
+from api.dnd_2024_rules import (  # noqa: F401
+    ARMOR_CLASS_RULES,
+    CLASS_DEFINITIONS,
+    armor_class_total,
+    armor_dexterity_term,
+    proficiency_bonus_for_level,
+)
 from class_progression import for_class, registered
 from class_progression.barbarian import (  # noqa: F401
     _barbarian_asi_options,
@@ -196,30 +202,77 @@ def preview_level_up(session: Any, target_level: Any) -> dict[str, Any]:
     )
 
 
-_NONDEX_ASI_ABILITIES = ("strength", "constitution", "intelligence", "wisdom", "charisma")
+_ASI_ABILITIES = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
 
 
 def _supported_asi_increase(increase: Any) -> bool:
-    return (type(increase) is dict and not set(increase) - set(_NONDEX_ASI_ABILITIES)
+    return (type(increase) is dict and not set(increase) - set(_ASI_ABILITIES)
             and all(type(amount) is int for amount in increase.values())
             and sorted(increase.values()) in ([2], [1, 1]))
 
 
-def supported_asi_choices(character: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Static engine family, or cap-eligible choices for the current character.
+def validate_armor_origin(player: dict[str, Any]) -> None:
+    """The retained creation fact behind the stored Armor Class total: which suit and Shield it was built from."""
+    if "armor_origin" not in player:
+        return
+    origin = player["armor_origin"]
+    if (type(origin) is not dict or set(origin) != {"armor", "shield"} or type(origin["shield"]) is not bool
+            or (origin["armor"] is not None and (type(origin["armor"]) is not str or origin["armor"] not in ARMOR_CLASS_RULES))):
+        raise ValueError("Invalid armor origin.")
 
-    C03 remains the score/eligibility owner; DEX requires worn-armor provenance.
+
+def _armor_class_explained_by(character: dict[str, Any], origin: dict[str, Any]) -> bool:
+    import feat_rules
+    scores = {ability: character.get(ability) for ability in feat_rules.ABILITIES}
+    if any(type(score) is not int for score in scores.values()) or character.get("class") not in CLASS_DEFINITIONS:
+        return False
+    modifiers = {ability: (score - 10) // 2 for ability, score in scores.items()}
+    return armor_class_total(character["class"], modifiers, origin["armor"], origin["shield"],
+                             character.get("fighting_style")) == character.get("armor_class")
+
+
+def _verified_armor_origin(character: dict[str, Any]) -> dict[str, Any] | None:
+    """The origin, only while the stored total is exactly what it explains. Anything else cannot be followed, so it is never guessed."""
+    try:
+        validate_armor_origin(character)
+    except ValueError:
+        return None
+    origin = character.get("armor_origin")
+    return origin if type(origin) is dict and _armor_class_explained_by(character, origin) else None
+
+
+def repaired_armor_origin(character: dict[str, Any], world: dict[str, Any]) -> dict[str, Any] | None:
+    """A save older than the origin: the retained known-unarmored proof, and only if the stored total agrees with it."""
+    proof = world.get("worn_armor_v1") if isinstance(world, dict) else None
+    if type(proof) is not dict or "armor_id" not in proof or proof["armor_id"] is not None:
+        return None
+    origin = {"armor": None, "shield": False}
+    return origin if _armor_class_explained_by(character, origin) else None
+
+
+def _asi_moves_dexterity_modifier(character: dict[str, Any], increase: dict[str, int]) -> bool:
+    score = character.get("dexterity")
+    return type(score) is int and (score + increase.get("dexterity", 0) - 10) // 2 != (score - 10) // 2
+
+
+def supported_asi_choices(character: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Static engine family, or the choices this character can take.
+
+    C03 remains the score/eligibility owner. A choice that moves the Dexterity modifier also moves Armor Class, so it is
+    offered only while the stored total can be tied to its origin; no other choice depends on that.
     """
     import feat_rules
-    increases = [{a: 2} for a in _NONDEX_ASI_ABILITIES]
-    increases += [{a: 1, b: 1} for i, a in enumerate(_NONDEX_ASI_ABILITIES)
-                  for b in _NONDEX_ASI_ABILITIES[i + 1:]]
+    increases = [{a: 2} for a in _ASI_ABILITIES]
+    increases += [{a: 1, b: 1} for i, a in enumerate(_ASI_ABILITIES)
+                  for b in _ASI_ABILITIES[i + 1:]]
     options = [{"feat": "Ability Score Improvement", "increase": inc} for inc in increases]
     if character is None:
         return options
     detached = {**copy.deepcopy(character), "level": 4}
+    verified = _verified_armor_origin(character) is not None
     return [option for option in options if feat_rules.apply_feat_choice(
-        detached, option["feat"], {"source": "class_asi", "increase": option["increase"]})["status"] == "applied"]
+        detached, option["feat"], {"source": "class_asi", "increase": option["increase"]})["status"] == "applied"
+        and (verified or not _asi_moves_dexterity_modifier(character, option["increase"]))]
 
 
 def _selected_asi_record(increase: dict[str, int] | None = None) -> list[dict[str, Any]]:
@@ -266,7 +319,7 @@ def _validate_con_caches(player: dict[str, Any], *, saved: bool = False) -> None
 
 
 def _validate_asi_choice_storage(player: dict[str, Any], *, saved: bool = False) -> None:
-    """Admit one selected non-DEX ordinary ASI with source-reconstructable scores."""
+    """Admit one selected ordinary ASI with source-reconstructable scores."""
     choices = player.get("asi_choices", [])
     applied = player.get("progression_level")
     if type(choices) is not list:
@@ -282,6 +335,10 @@ def _validate_asi_choice_storage(player: dict[str, Any], *, saved: bool = False)
     result = _check_detached_asi_consistency(**_score_context(player, saved=saved))
     if not result["consistent"]:
         raise ValueError("Invalid earned ASI provenance: " + result["reason"])
+    context = _score_context(player, saved=saved)
+    prior = context["base_scores"]["dexterity"] + context["background_bonuses"].get("dexterity", 0)
+    if (player["dexterity"] - 10) // 2 != (prior - 10) // 2 and _verified_armor_origin(player) is None:
+        raise ValueError("Invalid DEX ASI armor class.")
     _validate_con_caches(player, saved=saved)
     for_class(player.get("class")).validate_asi_storage(player, saved=saved)
 
@@ -374,6 +431,7 @@ def _check_detached_asi_consistency(*, scores: Any, base_scores: Any,
 
 def validate_saved(player: dict[str, Any], world: dict[str, Any], *, saved: bool = False) -> None:
     """Validate applied choices, not completion of the selected feature effects."""
+    validate_armor_origin(player)
     _validate_asi_choice_storage(player, saved=saved)
     for each in registered():
         each.validate_class_fields(player)
@@ -425,8 +483,13 @@ def apply_level_choices(session: Any, preview: Any, choices: Any) -> dict[str, A
 
 
 def _apply_asi_score_delta(character, feat_delta):
-    """Apply the recomputed C03 delta, preserving authoritative save offsets."""
+    """Apply the recomputed C03 delta, preserving authoritative save offsets.
+
+    Armor Class follows the Dexterity modifier through its origin. Initiative reads `dexterity_mod`; a kept creation total
+    moves by the same amount so an Alert offset survives. Every other Dexterity reader derives its value.
+    """
     import feat_rules
+    origin = _verified_armor_origin(character)
     for change in feat_delta["changes"]:
         ability = change["ability"]
         old_modifier = (change["from"] - 10) // 2
@@ -435,8 +498,15 @@ def _apply_asi_score_delta(character, feat_delta):
         character[ability + "_mod"] = new_modifier
         character["modifiers"][ability] = new_modifier
         character["saving_throw_mods"][ability] += new_modifier - old_modifier
+        if ability == "dexterity" and new_modifier != old_modifier:
+            if origin is None:
+                raise ValueError("Armor Class cannot follow an unverified origin.")
+            character["armor_class"] += (armor_dexterity_term(origin["armor"], new_modifier)
+                                         - armor_dexterity_term(origin["armor"], old_modifier))
+            if "initiative" in character:
+                character["initiative"] += new_modifier - old_modifier
     # Creation-only hints are not live authorities; actual consumers derive
-    # their values. Do not change DEX/AC/initiative or NPC caches.
+    # their values. Do not change NPC caches.
     for key in ("spell_save_dc", "spell_attack_bonus", "passive_perception"):
         character.pop(key, None)
     character["final_ability_scores"] = {a: character[a] for a in feat_rules.ABILITIES}

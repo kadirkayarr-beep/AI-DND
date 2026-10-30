@@ -1072,6 +1072,41 @@ def get_equipment_armor_and_shield(
     return armor, has_shield
 
 
+def armor_dexterity_term(armor: str | None, dex_mod: int) -> int:
+    """Dexterity's part of an Armor Class total (Armor table PDF 218): full, at most +2 in Medium armor, none in Heavy."""
+    rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
+    if rule is None or rule["dexterity_mode"] == "full":
+        return dex_mod
+    return min(rule["max_dexterity_bonus"], dex_mod) if rule["dexterity_mode"] == "capped" else 0
+
+
+def armor_class_total(
+    character_class: str,
+    modifiers: dict[str, int],
+    armor: str | None,
+    has_shield: bool,
+    fighting_style: str | None,
+) -> int:
+    """The one Armor Class formula, from creation facts. Shield +2 only with training (PDF 218)."""
+    dex_mod = modifiers["dexterity"]
+    armor_rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
+    if armor_rule:
+        ac = armor_rule["base_ac"] + armor_dexterity_term(armor, dex_mod)
+    elif character_class == "Barbarian":
+        ac = 10 + dex_mod + modifiers["constitution"]
+    elif character_class == "Monk" and not has_shield:
+        ac = 10 + dex_mod + modifiers["wisdom"]
+    else:
+        ac = 10 + dex_mod
+    # PHB 2024 p.219: possession alone does not grant the shield AC benefit.
+    # This is the level-one creation calculator; extra feature grants are absent.
+    if has_shield and "Shields" in CLASS_DEFINITIONS[character_class].get("armor_proficiencies", []):
+        ac += 2
+    if fighting_style == "Defense" and armor_rule is not None:
+        ac += 1
+    return ac
+
+
 # Valid as a kept saved record, not offered at creation: the engine has no owner for its effect yet.
 UNOFFERED_FIGHTING_STYLES = ("Protection",)
 
@@ -1271,32 +1306,7 @@ def calculate_derived_stats(
 
     # Armor class
     dex_mod = modifiers["dexterity"]
-    con_mod = modifiers["constitution"]
-    wis_mod = modifiers["wisdom"]
-
-    canonical_armor = ARMOR_NAME_ALIASES.get(equipped_armor, equipped_armor)
-    armor_rule = ARMOR_CLASS_RULES.get(canonical_armor)
-    armor_worn = armor_rule is not None
-    if armor_rule:
-        ac = armor_rule["base_ac"]
-        if armor_rule["dexterity_mode"] == "full":
-            ac += dex_mod
-        elif armor_rule["dexterity_mode"] == "capped":
-            ac += min(armor_rule["max_dexterity_bonus"], dex_mod)
-    elif character_class == "Barbarian":
-        ac = 10 + dex_mod + con_mod
-    elif character_class == "Monk" and not has_shield:
-        ac = 10 + dex_mod + wis_mod
-    else:
-        ac = 10 + dex_mod
-
-    # PHB 2024 p.219: possession alone does not grant the shield AC benefit.
-    # This is the level-one creation calculator; extra feature grants are absent.
-    if has_shield and "Shields" in cls_def.get("armor_proficiencies", []):
-        ac += 2
-
-    if fighting_style == "Defense" and armor_worn:
-        ac += 1
+    ac = armor_class_total(character_class, modifiers, equipped_armor, has_shield, fighting_style)
 
     proficiency_bonus = 2
 

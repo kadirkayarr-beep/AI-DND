@@ -181,8 +181,8 @@ class Rogue(ClassProgression):
                             "Disguise Kit and Poisoner's Kit have no craft or disguise routes yet",
                             "Other Rogue subclasses and higher-level features remain unsupported"])
         if level >= 4:
-            supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
-            pending.append("DEX Ability Score Improvement and other feats remain unsupported")
+            supported.append("Selected level4 ordinary Ability Score Improvement supported, Dexterity included; a choice that moves the Dexterity modifier is refused only when the Armor Class total cannot be tied to its creation armor")
+            pending.append("Other feats remain unsupported")
         if level >= 5:
             supported.extend([
                 "Cunning Strike: one of Poison, Trip or Withdraw for 1d6 of the Sneak Attack, save DC 8 + DEX modifier + Proficiency Bonus; the Poison needs a carried Poisoner's Kit",

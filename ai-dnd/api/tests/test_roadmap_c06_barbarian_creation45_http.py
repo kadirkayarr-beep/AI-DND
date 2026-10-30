@@ -123,7 +123,7 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
             mutate(lambda v: v['level_choices'].update({'4': None}))
             mutate(lambda v: v['level_choices'].update({'4': {}}))
             mutate(lambda v: v['level_choices']['4'].update({'extra': 1}))
-            mutate(lambda v: v['level_choices'].update({'4': {'asi': {'feat': 'Ability Score Improvement', 'increase': {'dexterity': 2}}}}))
+            mutate(lambda v: v['level_choices'].update({'4': {'asi': {'feat': 'Ability Score Improvement', 'increase': {'dexterity': 3}}}}))
             mutate(lambda v: v['level_choices'].update({'4': {'asi': {'feat': 'Tough', 'increase': {'strength': 2}}}}))
             mutate(lambda v: v['level_choices'].update({'4': {'asi': {'feat': 'Ability Score Improvement', 'increase': {'strength': 3}}}}))
             mutate(lambda v: v['level_choices'].update({'4': {'asi': {'feat': 'Ability Score Improvement', 'increase': {'strength': True}}}}))

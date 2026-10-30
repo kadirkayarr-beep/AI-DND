@@ -73,7 +73,7 @@ class AsiProjectionTests(unittest.TestCase):
             ({'constitution': True}, 4, {'increase': {'constitution': 2}}),
             ({'constitution': 19}, 4, {'increase': {'constitution': 2}}),
             ({}, 4, []), ({}, 4, {'increase': {'constitution': True}}),
-            ({}, 4, {'increase': {'dexterity': 2}}),  # CHA is supported; armor-dependent DEX remains blocked
+            ({}, 4, {'increase': {'dexterity': 3}}),  # not a family pattern
             ({}, 4, {'increase': {'constitution': 2}, 'source': 'any'}),
         ):
             with self.subTest(changes=changes, target=target, choice=choice):

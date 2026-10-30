@@ -168,9 +168,9 @@ class Fighter(ClassProgression):
                             "Remarkable Athlete: the half-Speed move after a Critical Hit remains pending",
                             "Other Fighter subclasses and higher-level features remain unsupported"])
         if level >= 4:
-            supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
+            supported.append("Selected level4 ordinary Ability Score Improvement supported, Dexterity included; a choice that moves the Dexterity modifier is refused only when the Armor Class total cannot be tied to its creation armor")
             pending.append("Level4 fourth Weapon Mastery selection and effects remain pending (C10/C04)")
-            pending.append("DEX Ability Score Improvement and other feats remain unsupported")
+            pending.append("Other feats remain unsupported")
         if level >= 5:
             supported.extend(["Extra Attack: an applied level-5 Fighter makes two attacks instead of one when taking the Attack action on their own turn, including an Attack action taken with Action Surge",
                               "Tactical Shift: Second Wind with a Bonus Action can move up to half your Speed in the same step"])

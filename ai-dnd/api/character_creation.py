@@ -693,6 +693,7 @@ def configure_character(
             "fighting_style": fighting_style,
             "equipment_package": equipment_package,
             "equipment_choices": list(equipment_choices),
+            "armor_origin": {"armor": armor, "shield": has_shield},
             "inventory": list(equipment_choices),
             "cantrips": list(cantrips),
             "spells": list(spells),

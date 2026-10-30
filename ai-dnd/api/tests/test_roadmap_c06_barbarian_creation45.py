@@ -176,7 +176,7 @@ class BarbarianStartFourFiveTests(unittest.TestCase):
             (4, {**ok4, '4': {'asi': None}}, 'selected_asi_not_supported'),
             (4, {**ok4, '4': {'asi': {'feat': 'Ability Score Improvement'}}}, 'selected_asi_not_supported'),
             (4, {**ok4, '4': {'asi': {'feat': 'Tough', 'increase': {'strength': 2}}}}, 'selected_asi_not_supported'),
-            (4, {**ok4, '4': asi({'dexterity': 2})}, 'selected_asi_not_supported'),
+            (4, {**ok4, '4': asi({'dexterity': 3})}, 'selected_asi_not_supported'),
             (4, {**ok4, '4': asi({'strength': 3})}, 'selected_asi_not_supported'),
             (4, {**ok4, '4': asi({'strength': 1, 'wisdom': 1, 'charisma': 1})}, 'selected_asi_not_supported'),
             (4, {**ok4, '4': asi({})}, 'selected_asi_not_supported'),
@@ -189,7 +189,7 @@ class BarbarianStartFourFiveTests(unittest.TestCase):
             (5, {**ok5, '5': {'prepared_spells': []}}, 'barbarian_level_five_choices_required'),
             (5, {**ok5, '6': {}}, 'barbarian_level_five_choices_required'),
             (5, {**ok5, '4': {}}, 'barbarian_level_five_choices_required'),
-            (5, {**ok5, '4': asi({'dexterity': 2})}, 'selected_asi_not_supported'),
+            (5, {**ok5, '4': asi({'dexterity': 3})}, 'selected_asi_not_supported'),
             (6, ok5, 'progression_level_not_supported'), (True, ok4, 'invalid_target_level'),
         ]
         session = barbarian()

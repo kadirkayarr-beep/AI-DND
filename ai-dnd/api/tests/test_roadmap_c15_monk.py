@@ -173,8 +173,8 @@ class EarnedProgression(unittest.TestCase):
         earn(session, 4)
         preview = cp.preview_level_up(session, 4)
         self.assertIn(STRENGTH_ASI, preview["supported_asi_choices"])
-        self.assertFalse([c for c in preview["supported_asi_choices"] if "dexterity" in c["increase"]])
-        for wrong in ({}, {"asi": {"feat": "Tough", "increase": {"strength": 2}}}, {"asi": {**STRENGTH_ASI, "increase": {"dexterity": 2}}}):
+        self.assertIn({"feat": "Ability Score Improvement", "increase": {"dexterity": 2}}, preview["supported_asi_choices"])
+        for wrong in ({}, {"asi": {"feat": "Tough", "increase": {"strength": 2}}}, {"asi": {**STRENGTH_ASI, "increase": {"dexterity": 3}}}):
             self.assertEqual(cp.apply_level_choices(session, preview, wrong)["status"], "rejected", wrong)
         strength, ac = session.character["strength"], session.character["armor_class"]
         step(self, session, 4)
@@ -363,7 +363,7 @@ class StartingLevels(unittest.TestCase):
     def test_start_bundles_are_exact_and_leave_nothing_on_refusal(self):
         bad = [(2, {}), (2, {"2": {"x": 1}}), (3, {"2": {}}), (3, {"2": {}, "3": {}}), (3, {"2": {}, "3": {"subclass_id": "champion"}}),
                (4, {"2": {}, "3": {"subclass_id": "open_hand"}}), (5, bundle(4)), (5, {**bundle(5), "5": {"x": 1}}),
-               (4, {**bundle(4), "4": {"asi": {"feat": "Ability Score Improvement", "increase": {"dexterity": 2}}}}), (6, bundle(5))]
+               (4, {**bundle(4), "4": {"asi": {"feat": "Ability Score Improvement", "increase": {"dexterity": 3}}}}), (6, bundle(5))]
         for level, choices in bad:
             with self.subTest(level=level, choices=choices):
                 session = game.create_session(seed=52)

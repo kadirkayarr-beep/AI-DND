@@ -43,7 +43,7 @@ class Catalog(unittest.TestCase):
         self.assertEqual(options["supported_starting_levels"], [1, 2, 3, 4, 5])
         self.assertEqual(options["level_2"]["choices"], {})
         self.assertEqual(options["level_3"]["subclass_options"], [{"id": "champion", "name": "Champion"}])
-        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 15)
+        self.assertEqual(len(options["level_4"]["supported_asi_choices"]), 21)
         self.assertIn("Tactical Shift", " ".join(options["level_5"]["effects_supported"]))
         self.assertIn("Higher-start equipment", " ".join(options["level_5"]["effects_pending"]))
         CharacterCreationCatalogResponse.model_validate(get_character_creation_catalog())

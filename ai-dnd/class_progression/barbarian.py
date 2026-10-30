@@ -351,7 +351,7 @@ class Barbarian(ClassProgression):
         pending.append("Weapon Mastery: selections and effects remain pending (C10/C04)")
         pending.append("General armor changes and broader Unarmored Defense routes remain unsupported")
         if level >= 4:
-            supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
+            supported.append("Selected level4 ordinary Ability Score Improvement supported, Dexterity included; a choice that moves the Dexterity modifier is refused only when the Armor Class total cannot be tied to its creation armor")
             pending.append("CON modifier-changing ASI requires canonical unarmored AC (10 + DEX + CON modifiers); shield or unexplained AC extras remain unsupported for those choices")
             pending.append("Level4 third Weapon Mastery selection and effects remain pending (C10/C04)")
         if level >= 2:

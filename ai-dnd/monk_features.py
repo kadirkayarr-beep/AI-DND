@@ -631,9 +631,9 @@ def disclosure(level: int) -> dict[str, list[str]]:
             "Open Hand Technique: Addle is not offered, the engine has no Opportunity Attacks to stop; Push needs a known clear line; the text names no DC, so the Focus save DC is the reading used",
         ])
     if level >= 4:
-        supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
+        supported.append("Selected level4 ordinary Ability Score Improvement supported, Dexterity included; a choice that moves the Dexterity modifier is refused only when the Armor Class total cannot be tied to its creation armor")
         pending.extend(["Slow Fall: no effect, the engine has no fall damage owner",
-                        "DEX Ability Score Improvement and other feats remain unsupported"])
+                        "Other feats remain unsupported"])
     if level >= STUNNING_STRIKE_LEVEL:
         supported.extend([
             "Extra Attack: two attacks instead of one when taking the Attack action on your own turn (shared allowance owner)",

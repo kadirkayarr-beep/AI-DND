@@ -224,7 +224,7 @@ class EarnedProgression(unittest.TestCase):
 
     def test_defense_without_armor_adds_nothing(self):
         session = created()
-        session.character["equipment_choices"] = []
+        session.character["armor_origin"] = {"armor": None, "shield": False}
         before = session.character["armor_class"]
         step(self, session, 2)
         self.assertEqual(session.character["armor_class"], before)
@@ -263,7 +263,7 @@ class EarnedProgression(unittest.TestCase):
         earn(session, 4)
         preview = cp.preview_level_up(session, 4)
         self.assertEqual(len(preview["supported_asi_choices"]), len(cp.supported_asi_choices(session.character)))
-        dex = {"prepared_spells": ["Divine Favor"], "asi": {"feat": "Ability Score Improvement", "increase": {"dexterity": 2}}}
+        dex = {"prepared_spells": ["Divine Favor"], "asi": {"feat": "Ability Score Improvement", "increase": {"dexterity": 3}}}
         self.assertEqual(cp.apply_level_choices(session, preview, dex)["reason"], "selected_asi_not_supported")
         cha = session.character["charisma"]
         step(self, session, 4)

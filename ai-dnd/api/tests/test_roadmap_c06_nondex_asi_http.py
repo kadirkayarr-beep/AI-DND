@@ -1,4 +1,4 @@
-"""Actual fifteen-pattern non-DEX ASI HTTP contract; no general feats/armor claim."""
+"""Actual twenty-one-pattern ASI HTTP contract; no general feats/armor claim."""
 import copy
 import hashlib
 import json
@@ -17,12 +17,7 @@ from api.tests import test_roadmap_c06_level4_http as previous
 from api.tests.test_roadmap_c06_creation45_http import request as creation_request
 from api.schemas import LevelUpAsiChoice
 
-PATTERNS = [
-    {'strength':2}, {'constitution':2}, {'intelligence':2}, {'wisdom':2}, {'charisma':2},
-    {'strength':1,'constitution':1}, {'strength':1,'intelligence':1}, {'strength':1,'wisdom':1}, {'strength':1,'charisma':1},
-    {'constitution':1,'intelligence':1}, {'constitution':1,'wisdom':1}, {'constitution':1,'charisma':1},
-    {'intelligence':1,'wisdom':1}, {'intelligence':1,'charisma':1}, {'wisdom':1,'charisma':1},
-]
+from api.tests.test_roadmap_c06_nondex_asi import PATTERNS
 FIXTURE = Path(__file__).parent/'fixtures/c06_checkpoint13_con_asi_receipt.json'
 
 def digest(value):
@@ -88,7 +83,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_shapes_reject_before_claim_without_partial_asi(self):
         body,r=await self.earned(); request=self.request(body,await self.ready(body))
         before=r.game_session._capture_runtime_snapshot()
-        invalid=[{}, {'dexterity':2}, {'CHA':2}, {'charisma':'2'}, {'charisma':True,'wisdom':1},
+        invalid=[{}, {'dexterity':3}, {'CHA':2}, {'charisma':'2'}, {'charisma':True,'wisdom':1},
                  {'charisma':None}, {'charisma':1}, {'charisma':1.5,'wisdom':0.5},
                  {'charisma':2,'wisdom':1}, {'strength':1,'wisdom':1,'charisma':1},
                  {'charisma':2,'dexterity':None}, {'constitution':2,'charisma':0}]

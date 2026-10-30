@@ -94,7 +94,7 @@ class LevelFourConTests(unittest.TestCase):
 
     def test_choices_are_exact_and_creation_four_remains_blocked(self):
         for edit in ({'cantrips': ['Fire Bolt']}, {'asi': {'feat': 'Alert', 'increase': {'constitution': 2}}},
-                     {'asi': {'feat': 'Ability Score Improvement', 'increase': {'dexterity': 2}}},
+                     {'asi': {'feat': 'Ability Score Improvement', 'increase': {'dexterity': 3}}},
                      {'asi': {'feat': 'Ability Score Improvement', 'increase': {'constitution': True}}},
                      {'asi': {'feat': 'Ability Score Improvement', 'increase': {'constitution': 2}, 'ignore_caps': True}}):
             s = create(3); p = cp.preview_level_up(s, 4)

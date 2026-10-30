@@ -120,7 +120,7 @@ class LevelFourHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.json()['detail']['code'], 'level_up_preview_stale')
         self.assertEqual(record.game_session._capture_runtime_snapshot(), before)
         request = self.request(body, await self.ready(body))
-        request['choices']['asi']['increase'] = {'dexterity': 2}
+        request['choices']['asi']['increase'] = {'dexterity': 3}
         bad = await self.http.post(self.url(body), json=request)
         self.assertIn(bad.status_code, (409, 422), bad.text)
         self.assertEqual(record.game_session._capture_runtime_snapshot(), before)
