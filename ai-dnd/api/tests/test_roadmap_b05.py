@@ -19,6 +19,16 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def crlf_sha256(path):
+    """Digest of the CRLF rendering, whatever line ending this checkout has.
+
+    The crosswalk pins were recorded on a CRLF working copy; git stores the
+    document with LF, so a plain digest depends on the checkout.
+    """
+    data = Path(path).read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 class RoadmapB05Tests(unittest.TestCase):
     def setUp(self):
         self.doc = json.loads(CROSSWALK.read_text(encoding="utf-8"))
@@ -119,7 +129,7 @@ class RoadmapB05Tests(unittest.TestCase):
             self.assertEqual(row["source_verification"], "REPO_HEADING_VERIFIED")
             ref = row["source_ref"]
             path = REPO / ref["file"]
-            self.assertEqual(sha256(path), ref["file_sha256"])
+            self.assertEqual(crlf_sha256(path), ref["file_sha256"])
             line = path.read_text(encoding="utf-8").splitlines()[ref["line"] - 1]
             self.assertEqual(line.lstrip("# ").strip(), ref["heading"])
             self.assertIn(row["historical_id"], ref["heading"])
