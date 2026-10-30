@@ -20,7 +20,7 @@ test('actual panel refresh/cancel/source-loss and stale context response never s
 
 test('existing actual CharacterPanel renders server HP41/45 AC16 and ability16 without client advancement arithmetic',async()=>{
  const source=await readFile('src/pages/game-browser.tsx','utf8');const ast=ts.createSourceFile('browser.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);const fn=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='CharacterPanel');assert.ok(fn);const code=ts.transpileModule(fn.getText(ast)+'\nglobalThis.Panel=CharacterPanel;',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React}}).outputText;
- const blank=()=>null;const env={React,Kicker:({children})=>React.createElement('span',null,children),Heart:blank,speciesLabel:x=>x,classLabel:x=>x,RageStatus:blank,FighterStatus:blank,StoredProgressionChoices:blank,CharacterIdentityNotes:blank};vm.runInNewContext(code,env);
+ const blank=()=>null;const env={React,Kicker:({children})=>React.createElement('span',null,children),Heart:blank,speciesLabel:x=>x,classLabel:x=>x,RageStatus:blank,FighterStatus:blank,PaladinStatus:blank,StoredProgressionChoices:blank,CharacterIdentityNotes:blank};vm.runInNewContext(code,env);
  const character={name:'Earned fixture',race:'Human',class:'Barbarian',level:4,strength:8,dexterity:16,constitution:16,intelligence:10,wisdom:12,charisma:15,max_hp:45,current_hp:41,armor_class:16,proficiency_bonus:2,xp:2700,proficient_skills:[]};
  const html=render(React.createElement(env.Panel,{character}));assert.match(html,/text-character-hp[^>]*>41 \/ 45/);assert.match(html,/ZIRH<\/span><span>16<\/span>/);assert.match(html,/DAY<\/span><div class="stat-value">16/);
 });

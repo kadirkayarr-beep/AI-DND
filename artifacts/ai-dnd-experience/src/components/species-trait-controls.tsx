@@ -5,6 +5,7 @@ import { readPending } from '@/lib/pending-action';
 import { askServer } from '@/lib/action-recovery';
 import { useRef, useState } from 'react';
 import { readFighterProjection } from '@/components/fighter-controls';
+import { readPaladinProjection } from '@/components/paladin-controls';
 import { playerAbilityMessage } from '@/lib/campaign-presentation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -119,6 +120,8 @@ export function SpeciesTraitControls({
   const species = character.species ?? character.race;
   const inCombat = state.combat.active;
   const fighter = readFighterProjection(character.fighter);
+  const paladin = readPaladinProjection(character.paladin);
+  const layAmount = Math.min(paladin?.lay_on_hands.pool_remaining ?? 0, character.max_hp - character.current_hp);
   const isPlayerTurn = !inCombat || (
     state.combat.current_actor_id === 'player'
     && state.combat.participant_records.find((item) => item.id === 'player')
@@ -389,6 +392,30 @@ export function SpeciesTraitControls({
           onClick={() => send({ action: 'second_wind' })}
         >
           Second Wind · {fighter?.second_wind.uses_remaining} kullanım
+        </button>
+      )}
+
+      {!inCombat && paladin && (
+        <button
+          type="button"
+          className="species-trait-button"
+          data-testid="species-action-lay-on-hands"
+          disabled={!notBusy || layAmount < 1}
+          onClick={() => send({ action: 'lay_on_hands', healing_amount: layAmount })}
+        >
+          Lay On Hands · {layAmount} can ({paladin.lay_on_hands.pool_remaining} havuz)
+        </button>
+      )}
+
+      {!inCombat && paladin?.divine_sense && (
+        <button
+          type="button"
+          className="species-trait-button"
+          data-testid="species-action-divine-sense"
+          disabled={!notBusy || !paladin.divine_sense.activate.available}
+          onClick={() => send({ action: 'divine_sense' })}
+        >
+          Divine Sense · {paladin.channel_divinity?.uses_remaining} kullanım
         </button>
       )}
 

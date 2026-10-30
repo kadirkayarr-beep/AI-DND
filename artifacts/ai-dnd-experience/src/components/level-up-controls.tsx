@@ -5,9 +5,10 @@ import { getGameSessionLevelUp, type LevelUpPreviewResponse, type LevelUpApplyRe
 import { useActionLifetime } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 import { ProgressionEffectsNotice } from './sorcerer-starting-creation';
+import { PaladinLevelChoices } from './paladin-level-up';
 
 export type LevelUpRequest = Omit<LevelUpApplyRequest, 'action_id'>;
-type Draft = { asi?: AsiChoice; cantrip: string; preparedSpell: string; preparedSpells?: string[]; metamagic?: string[]; subclassId?: string; primalKnowledgeSkill?: string; confirmed: boolean };
+type Draft = { asi?: AsiChoice; cantrip: string; preparedSpell: string; preparedSpells?: string[]; metamagic?: string[]; subclassId?: string; primalKnowledgeSkill?: string; fightingStyle?: string; blessedCantrips?: string[]; confirmed: boolean };
 const EMPTY: Draft = { cantrip: '', preparedSpell: '', confirmed: false };
 
 export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, disabled = false }: {
@@ -15,6 +16,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   onConfirm: (request: LevelUpRequest) => void; onCancel: () => void; disabled?: boolean;
 }) {
   if (preview.status !== 'ready') return <div role="status" data-testid="level-up-blocked">Seviye seçimi şu anda kullanılamıyor: {preview.reason ?? 'Desteklenmeyen ilerleme'}<button type="button" onClick={onCancel}>Kapat</button></div>;
+  if (preview.class_name === 'Paladin') return <PaladinLevelChoices preview={preview} draft={draft} onChange={next => onChange({ ...draft, ...next })} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
   const counts = preview.choices_required;
   const preparedCount = counts?.prepared_spells ?? 0;
   const needsCantrip = counts?.cantrips === 1;

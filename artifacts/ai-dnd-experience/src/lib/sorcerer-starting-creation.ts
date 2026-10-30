@@ -15,6 +15,9 @@ export type StartingDraft = {
   level4ConConfirmed?: boolean;
   level4Asi?: AsiChoice;
   level5Prepared?: string[];
+  /** Paladin start 2-5: the Fighting Style feat or Blessed Warrior, and its two Cleric cantrips. */
+  paladinStyle?: string;
+  paladinCantrips?: string[];
 };
 
 export type Metadata = Omit<SorcererStartingCreationOptions, 'level_4' | 'level_5'> & Partial<Pick<SorcererStartingCreationOptions, 'level_4' | 'level_5'>>;
@@ -100,6 +103,8 @@ export function changeStartingLevel(draft: StartingDraft, level: 1 | 2 | 3 | 4 |
     level4Asi: level >= 4 ? draft.level4Asi : undefined,
     level4ConConfirmed: level >= 4 ? draft.level4ConConfirmed === true : false,
     level5Prepared: level === 5 ? [...draft.level5Prepared ?? []] : [],
+    ...(draft.paladinStyle ? { paladinStyle: draft.paladinStyle } : {}),
+    ...(draft.paladinCantrips?.length ? { paladinCantrips: [...draft.paladinCantrips] } : {}),
   };
 }
 

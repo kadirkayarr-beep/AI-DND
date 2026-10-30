@@ -1,5 +1,7 @@
 import { RageControl, readRageProjection } from './rage-controls';
 import { FighterControl } from './fighter-controls';
+import { PaladinControl, SacredWeaponChoice, readPaladinProjection } from './paladin-controls';
+import { sacredWeaponFields } from '@/lib/paladin-projection';
 export { RageControl, RageStatus, readRageProjection } from './rage-controls';
 import { useRef, useState } from 'react';
 import { createRecklessIntent } from '../lib/reckless-intent';
@@ -114,6 +116,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   const [triggerEvent, setTriggerEvent] = useState<'actor_attacks' | 'actor_moves'>('actor_attacks');
   const [triggerActor, setTriggerActor] = useState('target');
   const [readyKind, setReadyKind] = useState<'attack' | 'move'>('attack');
+  const [sacredChoice, setSacredChoice] = useState({ wanted: false, radiant: false });
   const economy = state.combat.action_economy as { actors?: Record<string, ActorResources> } | null;
   const resources = economy?.actors?.player;
   if (!state.combat.active || !resources) {
@@ -140,6 +143,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
       state.combat.current_actor_id, resources.opportunity?.id, resources.ready?.response.kind]),
     projection: resources.reckless_attack, sending, attackEnabled, continueEnabled, reactionEnabled,
   });
+  const sacredFields = () => sacredWeaponFields(readPaladinProjection(state.character?.paladin), sacredChoice.wanted, sacredChoice.radiant);
   const send = (label: string, step: EconomyStepInput) => {
     const mode = step.kind === 'attack' ? 'attack' : step.kind === 'continue_attack' ? 'continue' : step.kind === 'react' ? 'reaction' : 'other';
     const enabled = step.kind === 'react' ? pending && resources.reaction_available : step.kind === 'decline_reaction' ? pending : !blocked;
@@ -177,9 +181,9 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
         <>
           <div className="action-suggestion-list mt-2">
             <button type="button" className="action-suggestion" disabled={blocked || !legal('attack') || !targetId}
-              onClick={() => send('Saldırı Action kullanıyorum.', { kind: 'attack', target_id: targetId })}>Saldır · Action</button>
+              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send('Saldırı Action kullanıyorum.', { kind: 'attack', target_id: targetId, ...fields }); }}>Saldır · Action</button>
             {!!resources.attack_action?.remaining_attacks && <button type="button" className="action-suggestion" disabled={blocked || !targetId}
-              onClick={() => send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId })}>Attack Action devamı</button>}
+              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId, ...fields }); }}>Attack Action devamı</button>}
             <button type="button" className="action-suggestion" disabled={blocked || !legal('dash')}
               onClick={() => send('Dash Action kullanıyorum.', { kind: 'dash' })}>Dash · Action</button>
             {resources.bonus_rules.map((ability) => <button key={ability} type="button" className="action-suggestion" disabled={blocked || !resources.bonus_action_available}
@@ -190,6 +194,8 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
               onClick={() => send('Turumu bitiriyorum.', { kind: 'end_turn' })}>Turu bitir</button>
           </div>
           <FighterControl fighter={state.character?.fighter} blocked={blocked} shift={tacticalShift} onShiftChange={setTacticalShift} onCommand={(label, step) => { setTacticalShift(''); send(label, step); }} />
+          <SacredWeaponChoice paladin={state.character?.paladin} wanted={sacredChoice.wanted} radiant={sacredChoice.radiant} disabled={blocked} onChange={setSacredChoice} />
+          <PaladinControl paladin={state.character?.paladin} blocked={blocked} onCommand={send} />
           <RageControl rage={rage} confirmed={rageIntent.selected} blocked={blocked} onChange={value => { rageIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <MagicMissileControl state={state} targetId={targetId} slot={magicSlot} onSlotChange={setMagicSlot} blocked={blocked} magicAvailable={legal('magic')} quickened={quickenedIntent.selected} onQuickenedChange={value => { quickenedIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <div className="flex flex-wrap items-center gap-2 mt-3 story-meta">
