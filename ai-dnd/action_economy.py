@@ -864,6 +864,8 @@ def _execute(session, command, action_id=None, session_id=None):
             kind = step["kind"]
             if step.get("reckless_attack") is not None and (kind not in {"attack", "continue_attack", "react"} or type(step["reckless_attack"]) is not bool):
                 fail("invalid_attack_choice", "Reckless Attack requires an attack and strict boolean.")
+            if (step.get("cunning_strike") is not None or step.get("cunning_strike_move_ft") is not None) and kind not in {"attack", "continue_attack"}:
+                fail("invalid_attack_choice", "Cunning Strike is chosen on an attack step.")
             if step.get("metamagic") is not None and (kind != "magic" or step.get("ability") != "Magic Missile" or step["metamagic"] != "quickened_spell"):
                 fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
             if step.get("slot_level") is not None and kind not in {"magic", "convert_spell_slot"}:
@@ -1007,6 +1009,8 @@ def resolved_narration(session, results):
             narration_parts.append("Belirlediğin an için hazır bekliyorsun.")
         elif step["kind"] == "attack":
             narration_parts.append(session._combat_narration(step["result"]))
+            import rogue_features
+            narration_parts.append(rogue_features.narration(step["result"]))
         elif step["kind"] == "species":
             narration_parts.append(step["result"].get("message", ""))
         elif step["kind"] in {"end_turn", "react", "decline_reaction"}:

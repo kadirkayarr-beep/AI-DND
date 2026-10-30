@@ -1,5 +1,6 @@
 import { RageControl, readRageProjection } from './rage-controls';
 import { FighterControl } from './fighter-controls';
+import { CunningStrikeControl, RogueControl, cunningStrikeFields, readRogueProjection } from './rogue-controls';
 export { RageControl, RageStatus, readRageProjection } from './rage-controls';
 import { useRef, useState } from 'react';
 import { createRecklessIntent } from '../lib/reckless-intent';
@@ -110,6 +111,8 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   if (!rageRef.current) rageRef.current = createQuickenedIntent();
   const rageIntent = rageRef.current;
   const [tacticalShift, setTacticalShift] = useState('');
+  const [cunningStrike, setCunningStrike] = useState('');
+  const [cunningDistance, setCunningDistance] = useState('');
   const [distance, setDistance] = useState('5');
   const [triggerEvent, setTriggerEvent] = useState<'actor_attacks' | 'actor_moves'>('actor_attacks');
   const [triggerActor, setTriggerActor] = useState('target');
@@ -140,11 +143,14 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
       state.combat.current_actor_id, resources.opportunity?.id, resources.ready?.response.kind]),
     projection: resources.reckless_attack, sending, attackEnabled, continueEnabled, reactionEnabled,
   });
+  const rogue = readRogueProjection(state.character?.rogue);
+  const strike = cunningStrikeFields(rogue, cunningStrike, cunningDistance);
   const send = (label: string, step: EconomyStepInput) => {
     const mode = step.kind === 'attack' ? 'attack' : step.kind === 'continue_attack' ? 'continue' : step.kind === 'react' ? 'reaction' : 'other';
     const enabled = step.kind === 'react' ? pending && resources.reaction_available : step.kind === 'decline_reaction' ? pending : !blocked;
     quickenedIntent.choose(false);
     rageIntent.choose(false);
+    if (mode === 'attack' || mode === 'continue') { setCunningStrike(''); setCunningDistance(''); }
     intent.submit(mode, step, onCommand, label, enabled);
     redrawIntent(value => value + 1);
   };
@@ -176,10 +182,10 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
       ) : (
         <>
           <div className="action-suggestion-list mt-2">
-            <button type="button" className="action-suggestion" disabled={blocked || !legal('attack') || !targetId}
-              onClick={() => send('Saldırı Action kullanıyorum.', { kind: 'attack', target_id: targetId })}>Saldır · Action</button>
-            {!!resources.attack_action?.remaining_attacks && <button type="button" className="action-suggestion" disabled={blocked || !targetId}
-              onClick={() => send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId })}>Attack Action devamı</button>}
+            <button type="button" className="action-suggestion" disabled={blocked || !legal('attack') || !targetId || !strike}
+              onClick={() => send('Saldırı Action kullanıyorum.', { kind: 'attack', target_id: targetId, ...strike })}>Saldır · Action</button>
+            {!!resources.attack_action?.remaining_attacks && <button type="button" className="action-suggestion" disabled={blocked || !targetId || !strike}
+              onClick={() => send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId, ...strike })}>Attack Action devamı</button>}
             <button type="button" className="action-suggestion" disabled={blocked || !legal('dash')}
               onClick={() => send('Dash Action kullanıyorum.', { kind: 'dash' })}>Dash · Action</button>
             {resources.bonus_rules.map((ability) => <button key={ability} type="button" className="action-suggestion" disabled={blocked || !resources.bonus_action_available}
@@ -189,6 +195,8 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
             <button type="button" className="action-suggestion" disabled={blocked}
               onClick={() => send('Turumu bitiriyorum.', { kind: 'end_turn' })}>Turu bitir</button>
           </div>
+          <CunningStrikeControl rogue={rogue} option={cunningStrike} distance={cunningDistance} disabled={blocked} onOptionChange={setCunningStrike} onDistanceChange={setCunningDistance} />
+          <RogueControl rogue={rogue} blocked={blocked} onCommand={send} />
           <FighterControl fighter={state.character?.fighter} blocked={blocked} shift={tacticalShift} onShiftChange={setTacticalShift} onCommand={(label, step) => { setTacticalShift(''); send(label, step); }} />
           <RageControl rage={rage} confirmed={rageIntent.selected} blocked={blocked} onChange={value => { rageIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <MagicMissileControl state={state} targetId={targetId} slot={magicSlot} onSlotChange={setMagicSlot} blocked={blocked} magicAvailable={legal('magic')} quickened={quickenedIntent.selected} onQuickenedChange={value => { quickenedIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />

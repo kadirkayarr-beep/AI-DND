@@ -262,6 +262,11 @@ export const FighterLevel3ChoicesValue = {
 } as const;
 export type FighterLevel3Choices = typeof FighterLevel3ChoicesValue;
 
+export const RogueLevel3ChoicesValue = {
+  subclass_id: 'assassin',
+} as const;
+export type RogueLevel3Choices = typeof RogueLevel3ChoicesValue;
+
 export interface LevelUpApplyRequest {
   action_id: string;
   campaign_id: string;
@@ -272,7 +277,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | RogueLevel3Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -1139,6 +1144,65 @@ export interface FighterState {
   action_surge: FighterActionSurgeState | null;
 }
 
+export interface RogueSneakAttackState {
+  /** @minimum 1 */
+  dice: number;
+  die: 6;
+  used_this_turn: boolean;
+}
+
+export interface RogueCunningActionState {
+  dash: FighterAvailability;
+  disengage: FighterAvailability;
+}
+
+export interface RogueSteadyAimState {
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+  active: boolean;
+}
+
+export type RogueCunningStrikeOptionId = typeof RogueCunningStrikeOptionId[keyof typeof RogueCunningStrikeOptionId];
+
+
+export const RogueCunningStrikeOptionId = {
+  poison: 'poison',
+  trip: 'trip',
+  withdraw: 'withdraw',
+} as const;
+
+export interface RogueCunningStrikeOption {
+  id: RogueCunningStrikeOptionId;
+  /** @minimum 1 */
+  cost: number;
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface RogueCunningStrikeState {
+  dc: number;
+  /** @minimum 0 */
+  withdraw_max_ft: number;
+  options: RogueCunningStrikeOption[];
+}
+
+export interface RogueUncannyDodgeState {
+  enabled: boolean;
+  reaction_available: boolean;
+}
+
+export interface RogueState {
+  /** @nullable */
+  subclass: string | null;
+  sneak_attack: RogueSneakAttackState;
+  cunning_action: RogueCunningActionState | null;
+  steady_aim: RogueSteadyAimState | null;
+  cunning_strike: RogueCunningStrikeState | null;
+  uncanny_dodge: RogueUncannyDodgeState | null;
+}
+
 /**
  * @nullable
  */
@@ -1212,6 +1276,7 @@ export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
   fighter?: FighterState;
+  rogue?: RogueState;
   name: string;
   race: string;
   species?: string;
@@ -1928,6 +1993,9 @@ export const EconomyStepInputKind = {
   extend_rage: 'extend_rage',
   second_wind: 'second_wind',
   action_surge: 'action_surge',
+  cunning_action: 'cunning_action',
+  steady_aim: 'steady_aim',
+  uncanny_dodge: 'uncanny_dodge',
 } as const;
 
 export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
@@ -1946,6 +2014,26 @@ export type EconomyStepInputMetamagic = typeof EconomyStepInputMetamagic[keyof t
 
 export const EconomyStepInputMetamagic = {
   quickened_spell: 'quickened_spell',
+} as const;
+
+export type EconomyStepInputCunningOption = typeof EconomyStepInputCunningOption[keyof typeof EconomyStepInputCunningOption] | null;
+
+
+export const EconomyStepInputCunningOption = {
+  dash: 'dash',
+  disengage: 'disengage',
+} as const;
+
+/**
+ * Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands.
+ */
+export type EconomyStepInputCunningStrike = typeof EconomyStepInputCunningStrike[keyof typeof EconomyStepInputCunningStrike] | null;
+
+
+export const EconomyStepInputCunningStrike = {
+  poison: 'poison',
+  trip: 'trip',
+  withdraw: 'withdraw',
 } as const;
 
 export type ReadyTriggerInputEvent = typeof ReadyTriggerInputEvent[keyof typeof ReadyTriggerInputEvent];
@@ -2012,6 +2100,16 @@ export interface EconomyStepInput {
   slot_level?: number | null;
   /** Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts. */
   metamagic?: EconomyStepInputMetamagic;
+  cunning_option?: EconomyStepInputCunningOption;
+  /** Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands. */
+  cunning_strike?: EconomyStepInputCunningStrike;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  cunning_strike_move_ft?: number | null;
+  /** @nullable */
+  uncanny_dodge_enabled?: boolean | null;
   /**
      * Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.
      * @nullable
@@ -2696,6 +2794,13 @@ export interface FighterLevelChoices {
   '5'?: BarbarianLevel2Choices;
 }
 
+export interface RogueLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: RogueLevel3Choices;
+  '4'?: BarbarianLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 /**
  * @nullable
  */
@@ -2742,7 +2847,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | RogueLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -2999,10 +3104,30 @@ export interface FighterStartingCreationOptions {
   level_5?: BarbarianStartingLevel5Options | null;
 }
 
+export interface RogueStartingSubclassOption {
+  id: 'assassin';
+  name: string;
+}
+
+export interface RogueStartingLevel3Options {
+  subclass_options: RogueStartingSubclassOption[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface RogueStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianStartingLevel2Options;
+  level_3?: RogueStartingLevel3Options | null;
+  level_4?: BarbarianStartingLevel4Options | null;
+  level_5?: BarbarianStartingLevel5Options | null;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
   fighter_starting_creation?: FighterStartingCreationOptions | null;
+  rogue_starting_creation?: RogueStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

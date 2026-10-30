@@ -33,4 +33,7 @@ export const EconomyStepInputKind = {
   extend_rage: 'extend_rage',
   second_wind: 'second_wind',
   action_surge: 'action_surge',
+  cunning_action: 'cunning_action',
+  steady_aim: 'steady_aim',
+  uncanny_dodge: 'uncanny_dodge',
 } as const;

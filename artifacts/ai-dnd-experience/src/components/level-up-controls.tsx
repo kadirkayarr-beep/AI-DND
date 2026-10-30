@@ -27,7 +27,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   const needsMetamagic = sorcerer && preview.target_level === 2 && exactCounts({ prepared_spells: 2, metamagic: 2 });
   const needsSubclass = sorcerer && preview.target_level === 3 && exactCounts({ prepared_spells: 2, subclass_id: 1 });
   // Barbarian 2 (Danger Sense/Reckless Attack) and 5 (Extra Attack/Fast Movement) have no choices: explicit confirmation of an empty object.
-  const fighter = preview.class_name === 'Fighter';
+  const fighter = preview.class_name === 'Fighter' || preview.class_name === 'Rogue';  // the same step shapes
   const emptyChoice = (preview.class_name === 'Barbarian' || fighter) && (preview.target_level === 2 || preview.target_level === 5) && exactCounts({});
   const needsChampion = fighter && preview.target_level === 3 && exactCounts({ subclass_id: 1 });
   const needsBerserker = preview.class_name === 'Barbarian' && preview.target_level === 3 && exactCounts({ subclass_id: 1, primal_knowledge_skill: 1 });
@@ -87,7 +87,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
     <button type="button" className="dnd-button" data-testid="button-confirm-level-up" disabled={disabled || !valid} onClick={() => {
       if (!valid || disabled || !preview.campaign_id || preview.revision == null || preview.target_level == null) return;
       onConfirm({ campaign_id: preview.campaign_id, expected_revision: preview.revision, target_level: preview.target_level,
-        choices: emptyChoice ? {} : needsChampion ? { subclass_id: draft.subclassId! as 'champion' } : needsBerserker ? { subclass_id: draft.subclassId!, primal_knowledge_skill: draft.primalKnowledgeSkill! } : needsMetamagic ? { prepared_spells: prepared, metamagic }
+        choices: emptyChoice ? {} : needsChampion ? { subclass_id: draft.subclassId! as 'champion' | 'assassin' } : needsBerserker ? { subclass_id: draft.subclassId!, primal_knowledge_skill: draft.primalKnowledgeSkill! } : needsMetamagic ? { prepared_spells: prepared, metamagic }
           : needsSubclass ? { prepared_spells: prepared, subclass_id: draft.subclassId! }
           : needsNoncasterAsi && asi ? { asi }
           : needsAsi && asi ? { cantrips: [draft.cantrip], prepared_spells: prepared, asi } : { prepared_spells: prepared } });

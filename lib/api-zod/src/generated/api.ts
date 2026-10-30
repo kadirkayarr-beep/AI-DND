@@ -391,6 +391,8 @@ export const ApplyGameSessionLevelUpBody = zod.object({
 }).strict()
 }).strict(),zod.object({
   "subclass_id": zod.literal("champion")
+}).strict(),zod.object({
+  "subclass_id": zod.literal("assassin")
 }).strict()])
 }).strict()
 
@@ -550,6 +552,10 @@ export const createGameSessionResponseStateCharacterFighterSecondWindUsesRemaini
 
 
 export const createGameSessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const createGameSessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -937,6 +943,43 @@ export const CreateGameSessionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(createGameSessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -1376,6 +1419,10 @@ export const getGameSessionStateResponseCharacterFighterSecondWindUsesRemainingM
 export const getGameSessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const getGameSessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1759,6 +1806,43 @@ export const GetGameSessionStateResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(getGameSessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -2205,6 +2289,10 @@ export const resolveSpeciesTraitActionResponseStateCharacterFighterSecondWindUse
 export const resolveSpeciesTraitActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resolveSpeciesTraitActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -2593,6 +2681,43 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -3046,6 +3171,10 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterFighterSecondW
 export const resolveSpeciesTraitActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -3436,6 +3565,43 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 })
 }),zod.null()])
 }).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -3756,6 +3922,7 @@ export const playGameTurnBodyCombatActionOneStepsItemTargetIdMax = 128;
 
 export const playGameTurnBodyCombatActionOneStepsItemSlotLevelMax = 9;
 
+
 export const playGameTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax = 128;
 
 
@@ -3777,7 +3944,7 @@ export const PlayGameTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge']),
   "resource": zod.enum(['action', 'bonus']).default(playGameTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -3786,6 +3953,10 @@ export const PlayGameTurnBody = zod.object({
   "form": zod.string().nullish(),
   "slot_level": zod.number().int().min(1).max(playGameTurnBodyCombatActionOneStepsItemSlotLevelMax).nullish(),
   "metamagic": zod.union([zod.enum(['quickened_spell']),zod.null()]).optional().describe('Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.'),
+  "cunning_option": zod.union([zod.enum(['dash', 'disengage']),zod.null()]).optional(),
+  "cunning_strike": zod.union([zod.enum(['poison', 'trip', 'withdraw']),zod.null()]).optional().describe('Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands.'),
+  "cunning_strike_move_ft": zod.number().int().min(1).nullish(),
+  "uncanny_dodge_enabled": zod.boolean().nullish(),
   "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
@@ -3933,6 +4104,10 @@ export const playGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin
 
 
 export const playGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const playGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -4473,6 +4648,43 @@ export const PlayGameTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(playGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -5359,6 +5571,10 @@ export const getGameActionStatusResponseResponseTwoStateCharacterFighterSecondWi
 export const getGameActionStatusResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const getGameActionStatusResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -5900,6 +6116,43 @@ export const GetGameActionStatusResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -6773,6 +7026,10 @@ export const abandonGameActionResponseResponseTwoStateCharacterFighterSecondWind
 export const abandonGameActionResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const abandonGameActionResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -7314,6 +7571,43 @@ export const AbandonGameActionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -8191,6 +8485,10 @@ export const undoGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin
 export const undoGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const undoGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -8579,6 +8877,43 @@ export const UndoGameTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(undoGameTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -9023,6 +9358,10 @@ export const acceptGameQuestResponseStateCharacterFighterSecondWindUsesRemaining
 export const acceptGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const acceptGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -9434,6 +9773,43 @@ export const AcceptGameQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(acceptGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -9900,6 +10276,10 @@ export const cancelGameQuestResponseStateCharacterFighterSecondWindUsesRemaining
 export const cancelGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const cancelGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -10311,6 +10691,43 @@ export const CancelGameQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(cancelGameQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -10785,6 +11202,10 @@ export const resolveAmbientEventActionResponseStateCharacterFighterSecondWindUse
 export const resolveAmbientEventActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resolveAmbientEventActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11177,6 +11598,43 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -11630,6 +12088,10 @@ export const acceptLegacyQuestResponseStateCharacterFighterSecondWindUsesRemaini
 export const acceptLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const acceptLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12041,6 +12503,43 @@ export const AcceptLegacyQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(acceptLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -12508,6 +13007,10 @@ export const cancelLegacyQuestResponseStateCharacterFighterSecondWindUsesRemaini
 export const cancelLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const cancelLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12919,6 +13422,43 @@ export const CancelLegacyQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(cancelLegacyQuestResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -13394,6 +13934,10 @@ export const resolveAmbientEventActionCompatResponseStateCharacterFighterSecondW
 export const resolveAmbientEventActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resolveAmbientEventActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -13786,6 +14330,43 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -14309,6 +14890,61 @@ export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4
 
 export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetCharacterCreationCatalogResponse = zod.object({
@@ -14517,6 +15153,74 @@ export const GetCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "rogue_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("assassin"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -14828,6 +15532,61 @@ export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveW
 
 export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createCampaignBodyCharacterOneNameMax = 40;
 
 export const createCampaignBodyCharacterOneOriginMax = 240;
@@ -15018,6 +15777,58 @@ export const CreateCampaignBody = zod.object({
 }).strict()
 }).strict().optional(),
   "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("assassin")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
 }).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
@@ -15186,6 +15997,10 @@ export const createCampaignResponseStateCharacterFighterSecondWindUsesRemainingM
 
 
 export const createCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const createCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -15647,6 +16462,43 @@ export const CreateCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(createCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -16321,6 +17173,10 @@ export const getCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin 
 export const getCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const getCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16790,6 +17646,43 @@ export const GetCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(getCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -17451,6 +18344,10 @@ export const resumeCampaignResponseStateCharacterFighterSecondWindUsesRemainingM
 export const resumeCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resumeCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17910,6 +18807,43 @@ export const ResumeCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resumeCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -18675,6 +19609,61 @@ export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOne
 
 export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetLegacyCharacterCreationCatalogResponse = zod.object({
@@ -18883,6 +19872,74 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "rogue_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("assassin"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseRogueStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -19118,6 +20175,10 @@ export const createLegacySessionResponseStateCharacterFighterSecondWindUsesRemai
 
 
 export const createLegacySessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const createLegacySessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -19505,6 +20566,43 @@ export const CreateLegacySessionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(createLegacySessionResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -19945,6 +21043,10 @@ export const getLegacySessionStateResponseCharacterFighterSecondWindUsesRemainin
 export const getLegacySessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const getLegacySessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -20330,6 +21432,43 @@ export const GetLegacySessionStateResponse = zod.object({
 })
 }),zod.null()])
 }).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(getLegacySessionStateResponseCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -20645,6 +21784,7 @@ export const playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax = 128;
 
 export const playLegacyTurnBodyCombatActionOneStepsItemSlotLevelMax = 9;
 
+
 export const playLegacyTurnBodyCombatActionOneStepsItemTriggerOneActorIdMax = 128;
 
 
@@ -20666,7 +21806,7 @@ export const PlayLegacyTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal('tactical_mind'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check (Rage active, or a Second Wind use left). No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge', 'cunning_action', 'steady_aim', 'uncanny_dodge']),
   "resource": zod.enum(['action', 'bonus']).default(playLegacyTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -20675,6 +21815,10 @@ export const PlayLegacyTurnBody = zod.object({
   "form": zod.string().nullish(),
   "slot_level": zod.number().int().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemSlotLevelMax).nullish(),
   "metamagic": zod.union([zod.enum(['quickened_spell']),zod.null()]).optional().describe('Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.'),
+  "cunning_option": zod.union([zod.enum(['dash', 'disengage']),zod.null()]).optional(),
+  "cunning_strike": zod.union([zod.enum(['poison', 'trip', 'withdraw']),zod.null()]).optional().describe('Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands.'),
+  "cunning_strike_move_ft": zod.number().int().min(1).nullish(),
+  "uncanny_dodge_enabled": zod.boolean().nullish(),
   "reckless_attack": zod.boolean().nullish().describe('Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.'),
   "trigger": zod.union([zod.object({
   "event": zod.enum(['actor_moves', 'actor_attacks']),
@@ -20822,6 +21966,10 @@ export const playLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingM
 
 
 export const playLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const playLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -21362,6 +22510,43 @@ export const PlayLegacyTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(playLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -22236,6 +23421,10 @@ export const undoLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingM
 export const undoLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const undoLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -22624,6 +23813,43 @@ export const UndoLegacyTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(undoLegacyTurnResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -23138,6 +24364,61 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOn
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
 export const createLegacyCampaignBodyCharacterOneOriginMax = 240;
@@ -23328,6 +24609,58 @@ export const CreateLegacyCampaignBody = zod.object({
 }).strict()
 }).strict().optional(),
   "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("assassin")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesFour4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
 }).strict(),zod.null()]).optional(),
   "name": zod.string().min(1).max(createLegacyCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
@@ -23496,6 +24829,10 @@ export const createLegacyCampaignResponseStateCharacterFighterSecondWindUsesRema
 
 
 export const createLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+
+export const createLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
 
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
@@ -23957,6 +25294,43 @@ export const CreateLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(createLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -24633,6 +26007,10 @@ export const getLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemaini
 export const getLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const getLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -25102,6 +26480,43 @@ export const GetLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(getLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),
@@ -25764,6 +27179,10 @@ export const resumeLegacyCampaignResponseStateCharacterFighterSecondWindUsesRema
 export const resumeLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
 
 
+
+export const resumeLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -26223,6 +27642,43 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}),zod.null()])
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
 }),zod.null()])
 }).optional(),
   "name": zod.string(),

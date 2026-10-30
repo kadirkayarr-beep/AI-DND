@@ -188,10 +188,12 @@ class Rogue(ClassProgression):
             ])
             pending.extend([
                 "Cunning Strike is chosen before the attack roll, not after the hit; no die is paid when no Sneak Attack lands",
+                "A readied Reaction attack can deal Sneak Attack but takes no Cunning Strike choice",
                 "Cunning Strike on a Critical Hit: the die is forgone before the remaining dice are doubled; this is a reading, not stated",
                 "Poison lasts at most the current combat; the minute is not tracked past its end",
                 "Withdraw: the engine has no Opportunity Attacks against the player's movement, so 'without provoking' has no separate effect",
                 "Uncanny Dodge is decided before the enemy turn, not at each hit, and never spends a Reaction held by Ready",
+                "The turn text does not name Uncanny Dodge: the halved damage and the spent Reaction show in the numbers",
             ])
         return {"supported": supported, "pending": pending}
 

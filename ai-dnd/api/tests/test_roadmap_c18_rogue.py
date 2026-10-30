@@ -292,6 +292,12 @@ class SavedState(unittest.TestCase):
         self.assertNotIn("weapon_proficiencies", fresh.character)
         self.assertIn("rapier", cp.class_weapon_proficiencies(fresh.character))
 
+    def test_a_legacy_rogue_keeps_the_performance_skill_the_old_list_offered(self):
+        session = created()
+        session.character["proficient_skills"] = [*session.character["proficient_skills"], "Performance"]
+        fresh, _ = roundtrip(session)
+        self.assertIn("Performance", fresh.character["proficient_skills"])
+
     def forged(self, level, change):
         session = created(level)
         payload = serialize_campaign_payload(session)

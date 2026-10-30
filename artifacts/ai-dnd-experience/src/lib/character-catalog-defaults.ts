@@ -328,7 +328,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       hit_die: 8,
       primary_ability: 'dexterity',
       skill_count: 4,
-      skill_options: ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion', 'Sleight of Hand', 'Stealth'],
+      skill_options: ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Persuasion', 'Sleight of Hand', 'Stealth'],
       expertise_progression: [{ level: 1, choices: 2 }, { level: 6, choices: 2 }],
       features: ['Gizli Saldırı (Sneak Attack +1d6)', 'Uzmanlık (Expertise)', 'Hırsız Dili', 'Silah Ustalığı'],
       is_spellcaster: false,

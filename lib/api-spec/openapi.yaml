@@ -1328,6 +1328,7 @@ components:
           - $ref: '#/components/schemas/BarbarianLevel3Choices'
           - $ref: '#/components/schemas/BarbarianLevel4Choices'
           - $ref: '#/components/schemas/FighterLevel3Choices'
+          - $ref: '#/components/schemas/RogueLevel3Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1994,6 +1995,9 @@ components:
           - extend_rage
           - second_wind
           - action_surge
+          - cunning_action
+          - steady_aim
+          - uncanny_dodge
         resource:
           type: string
           enum:
@@ -2035,6 +2039,26 @@ components:
             enum: [quickened_spell]
           - type: 'null'
           description: Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts.
+        cunning_option:
+          anyOf:
+          - type: string
+            enum: [dash, disengage]
+          - type: 'null'
+        cunning_strike:
+          anyOf:
+          - type: string
+            enum: [poison, trip, withdraw]
+          - type: 'null'
+          description: Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands.
+        cunning_strike_move_ft:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+        uncanny_dodge_enabled:
+          type:
+          - boolean
+          - 'null'
         reckless_attack:
           type:
           - boolean
@@ -4748,6 +4772,102 @@ components:
           - $ref: '#/components/schemas/FighterActionSurgeState'
           - type: 'null'
       required: [fighting_style, tactical_mind, second_wind, action_surge]
+    RogueSneakAttackState:
+      type: object
+      additionalProperties: false
+      properties:
+        dice:
+          type: integer
+          minimum: 1
+        die:
+          type: integer
+          const: 6
+        used_this_turn:
+          type: boolean
+      required: [dice, die, used_this_turn]
+    RogueCunningActionState:
+      type: object
+      additionalProperties: false
+      properties:
+        dash:
+          $ref: '#/components/schemas/FighterAvailability'
+        disengage:
+          $ref: '#/components/schemas/FighterAvailability'
+      required: [dash, disengage]
+    RogueSteadyAimState:
+      type: object
+      additionalProperties: false
+      properties:
+        available:
+          type: boolean
+        reason:
+          type: [string, 'null']
+        active:
+          type: boolean
+      required: [available, reason, active]
+    RogueCunningStrikeOption:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          enum: [poison, trip, withdraw]
+        cost:
+          type: integer
+          minimum: 1
+        available:
+          type: boolean
+        reason:
+          type: [string, 'null']
+      required: [id, cost, available, reason]
+    RogueCunningStrikeState:
+      type: object
+      additionalProperties: false
+      properties:
+        dc:
+          type: integer
+        withdraw_max_ft:
+          type: integer
+          minimum: 0
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/RogueCunningStrikeOption'
+      required: [dc, withdraw_max_ft, options]
+    RogueUncannyDodgeState:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        reaction_available:
+          type: boolean
+      required: [enabled, reaction_available]
+    RogueState:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass:
+          type: [string, 'null']
+        sneak_attack:
+          $ref: '#/components/schemas/RogueSneakAttackState'
+        cunning_action:
+          anyOf:
+          - $ref: '#/components/schemas/RogueCunningActionState'
+          - type: 'null'
+        steady_aim:
+          anyOf:
+          - $ref: '#/components/schemas/RogueSteadyAimState'
+          - type: 'null'
+        cunning_strike:
+          anyOf:
+          - $ref: '#/components/schemas/RogueCunningStrikeState'
+          - type: 'null'
+        uncanny_dodge:
+          anyOf:
+          - $ref: '#/components/schemas/RogueUncannyDodgeState'
+          - type: 'null'
+      required: [subclass, sneak_attack, cunning_action, steady_aim, cunning_strike, uncanny_dodge]
     RageState:
       type: object
       additionalProperties: false
@@ -4796,6 +4916,8 @@ components:
           $ref: '#/components/schemas/RageState'
         fighter:
           $ref: '#/components/schemas/FighterState'
+        rogue:
+          $ref: '#/components/schemas/RogueState'
         name:
           type: string
         race:
@@ -5601,6 +5723,7 @@ components:
           - $ref: '#/components/schemas/SorcererLevelChoices'
           - $ref: '#/components/schemas/BarbarianLevelChoices'
           - $ref: '#/components/schemas/FighterLevelChoices'
+          - $ref: '#/components/schemas/RogueLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -5901,6 +6024,10 @@ components:
         fighter_starting_creation:
           anyOf:
           - $ref: '#/components/schemas/FighterStartingCreationOptions'
+          - type: 'null'
+        rogue_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/RogueStartingCreationOptions'
           - type: 'null'
         races:
           additionalProperties: true
@@ -6227,6 +6354,95 @@ components:
       - supported_starting_levels
       - level_2
       title: FighterStartingCreationOptions
+    RogueLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass_id:
+          type: string
+          const: assassin
+      required: [subclass_id]
+    RogueLevelChoices:
+      properties:
+        '2':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        '3':
+          $ref: '#/components/schemas/RogueLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/BarbarianLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+      additionalProperties: false
+      type: object
+      required:
+      - '2'
+      title: RogueLevelChoices
+    RogueStartingSubclassOption:
+      properties:
+        id:
+          type: string
+          const: assassin
+          title: Id
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - name
+      title: RogueStartingSubclassOption
+    RogueStartingLevel3Options:
+      properties:
+        subclass_options:
+          items:
+            $ref: '#/components/schemas/RogueStartingSubclassOption'
+          type: array
+          title: Subclass Options
+        effects_supported:
+          items:
+            type: string
+          type: array
+          title: Effects Supported
+        effects_pending:
+          items:
+            type: string
+          type: array
+          title: Effects Pending
+      additionalProperties: false
+      type: object
+      required:
+      - subclass_options
+      - effects_supported
+      - effects_pending
+      title: RogueStartingLevel3Options
+    RogueStartingCreationOptions:
+      properties:
+        supported_starting_levels:
+          items:
+            type: integer
+          type: array
+          title: Supported Starting Levels
+        level_2:
+          $ref: '#/components/schemas/BarbarianStartingLevel2Options'
+        level_3:
+          anyOf:
+          - $ref: '#/components/schemas/RogueStartingLevel3Options'
+          - type: 'null'
+        level_4:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel4Options'
+          - type: 'null'
+        level_5:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel5Options'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - supported_starting_levels
+      - level_2
+      title: RogueStartingCreationOptions
     BarbarianLevel2Choices:
       properties: {}
       additionalProperties: false

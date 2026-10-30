@@ -327,6 +327,24 @@ class CunningStrike(unittest.TestCase):
         self.assertEqual(caught.exception.code, "cunning_strike_not_available")
         self.assertEqual(self.code(**strike("daze")), "invalid_cunning_strike")
 
+    def test_a_step_that_is_not_an_attack_cannot_carry_a_choice_it_would_drop(self):
+        before = copy.deepcopy(self.session.world_state["combat"])
+        for step in ({"kind": "react", "opportunity_id": "none", "cunning_strike": "trip"},
+                     {"kind": "move", "distance_ft": 5, "cunning_strike": "trip"},
+                     {"kind": "dash", "cunning_strike_move_ft": 5}):
+            with self.subTest(step), self.assertRaises(CombatRequestError) as caught:
+                run(self.session, step)
+            self.assertEqual(caught.exception.code, "invalid_attack_choice")
+        self.assertEqual(self.session.world_state["combat"], before)
+
+    def test_the_turn_text_names_the_die_and_the_outcome(self):
+        with patch("game.roll_attack", return_value=15), patch("game.roll_d20", return_value=1),                 patch.object(self.session.rng, "randint", return_value=3):
+            narration = economy.execute(self.session, {"steps": [
+                {"kind": "attack", "target_id": self.npc["id"], "cunning_strike": "trip"}]})["narration"]
+        self.assertIn("Sneak Attack: 2d6", narration)
+        self.assertIn("Cunning Strike (Trip)", narration)
+        self.assertIn("Prone", narration)
+
     def test_a_refused_choice_costs_nothing(self):
         before = copy.deepcopy(self.session.world_state["combat"]["turn_resources"]["player"])
         self.code(**strike("daze"))
@@ -559,6 +577,19 @@ class Assassin(unittest.TestCase):
         with patch.dict(session.world_state["combat"], {"current_turn_index": 1}):
             self.assertFalse(features.surprising_target(session, npc["id"]), "the target's own turn has begun")
 
+    def test_the_extra_damage_reaches_any_target_hit_in_the_first_round(self):
+        session, npc = fight(3, second_round=False)
+        advantage(npc)
+        with patch.object(features, "surprising_target", return_value=False):  # this target already took its turn
+            result = hit(session, npc, die=2)
+        self.assertNotIn("surprising_strikes", result["advantage_sources"])
+        self.assertEqual(result["sneak_attack"]["surprising_strikes"], 3)
+
+    def test_the_extra_damage_stops_after_the_first_round(self):
+        session, npc = fight(3)
+        advantage(npc)
+        self.assertEqual(hit(session, npc)["sneak_attack"]["surprising_strikes"], 0)
+
     def test_no_surprising_strikes_before_level_three(self):
         session, npc = fight(2, second_round=False)
         self.assertNotIn("surprising_strikes", hit(session, npc)["advantage_sources"])
@@ -600,7 +631,7 @@ class SavedTurnState(unittest.TestCase):
             "sneak marker": lambda w: self.resources(w).update(sneak_attack_turn=["x", "player"]),
             "poison dc": lambda w: bad_poison(w, dc="15"),
             "poison source": lambda w: bad_poison(w, source_actor=identity),
-            "poison target": lambda w: bad_poison(w, target_id="nobody"),
+            "poison target": lambda w: bad_poison(w, target_id=7),
             "poison extra key": lambda w: bad_poison(w, surprise=1),
         }
         for name, change in cases.items():

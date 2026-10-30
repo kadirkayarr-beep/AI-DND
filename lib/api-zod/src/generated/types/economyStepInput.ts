@@ -5,6 +5,8 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { EconomyStepInputCunningOption } from './economyStepInputCunningOption';
+import type { EconomyStepInputCunningStrike } from './economyStepInputCunningStrike';
 import type { EconomyStepInputKind } from './economyStepInputKind';
 import type { EconomyStepInputMetamagic } from './economyStepInputMetamagic';
 import type { EconomyStepInputResource } from './economyStepInputResource';
@@ -39,6 +41,16 @@ export interface EconomyStepInput {
   slot_level?: number | null;
   /** Explicit selected Quickened Magic Missile choice; omission preserves ordinary casts. */
   metamagic?: EconomyStepInputMetamagic;
+  cunning_option?: EconomyStepInputCunningOption;
+  /** Chosen before the roll; paid in Sneak Attack dice only when Sneak Attack lands. */
+  cunning_strike?: EconomyStepInputCunningStrike;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  cunning_strike_move_ft?: number | null;
+  /** @nullable */
+  uncanny_dodge_enabled?: boolean | null;
   /**
      * Explicit first-own-turn attack-roll decision; only attack, continue_attack or attack react. Omission preserves legacy behavior.
      * @nullable

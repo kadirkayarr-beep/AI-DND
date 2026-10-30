@@ -87,7 +87,7 @@ def validate_world(player: dict[str, Any], world: dict[str, Any]) -> None:
         if isinstance(effect, dict) and effect.get("kind") == POISON_EFFECT and (
                 set(effect) != {"kind", "source_actor", "target_id", "dc", "expires_turn", "expires_boundary"}
                 or level is None or level < CUNNING_STRIKE_LEVEL or effect["source_actor"] != "player"
-                or effect["target_id"] not in combat.get("participants", ()) or effect["expires_boundary"] != "end"
+                or type(effect["target_id"]) is not str or not effect["target_id"] or effect["expires_boundary"] != "end"
                 or type(effect["dc"]) is not int or effect["dc"] < 1 or type(effect["expires_turn"]) is not int):
             raise ValueError("Kayıt Cunning Strike zehir alanı geçersiz.")
 
@@ -218,7 +218,7 @@ def sneak_attack(session: Any, c: dict[str, Any], critical: bool) -> dict[str, A
     option = c["choice"].get("cunning_strike")
     dice = sneak_dice(level) - (CUNNING_STRIKES[option] if option else 0)
     return {"dice": dice, "die": SNEAK_DIE, "count": dice * (2 if critical else 1), "option": option,
-            "surprising_strikes": level if _assassin(session.character) and surprising_target(session, c["target_id"]) else 0}
+            "surprising_strikes": level if _assassin(session.character) and session.world_state["combat"].get("round") == 1 else 0}
 
 
 def _strike_dc(character: dict[str, Any]) -> int:
@@ -251,6 +251,25 @@ def _withdraw(session: Any, distance: int) -> dict[str, Any]:
     economy.ensure(session)["player"]["ready_movement_grant"] += _withdraw_cost(session, distance)
     economy.move(session, "player", distance)
     return {"applied": True, "moved_ft": distance}
+
+
+def narration(result: dict[str, Any]) -> str:
+    """Reads a completed attack result only; the public turn response carries no step results."""
+    sneak = result.get("sneak_attack")
+    if not sneak:
+        return ""
+    extra = f" +{sneak['surprising_strikes']}" if sneak["surprising_strikes"] else ""
+    text = f"Sneak Attack: {sneak['dice']}d{sneak['die']}{extra}."
+    strike = result.get("cunning_strike")
+    if not strike:
+        return text
+    name = strike["option"].capitalize()
+    if strike["option"] == "withdraw":
+        return f"{text} Cunning Strike ({name}): {strike['moved_ft']} feet uzaklaşırsın."
+    condition = {"trip": "Prone", "poison": "Poisoned"}[strike["option"]]
+    if strike["applied"]:
+        return f"{text} Cunning Strike ({name}): hedef {condition} olur (DC {strike['dc']})."
+    return f"{text} Cunning Strike ({name}): etki olmaz (DC {strike['dc']})."
 
 
 def after_attack(session: Any, c: dict[str, Any], result: dict[str, Any], sneak: dict[str, Any] | None) -> None:
@@ -296,10 +315,11 @@ def turn_boundary(session: Any, actor: str, event: str, counter: int) -> None:
     if event != "end":
         return
     if actor == "player":
-        session.world_state["combat"].get("turn_resources", {}).get("player", {}).pop("steady_aim", None)
+        session.world_state.get("combat", {}).get("turn_resources", {}).get("player", {}).pop("steady_aim", None)
     for effect in _poison_effects(session):
         ended = False
-        if effect["target_id"] == actor:
+        if effect["target_id"] == actor and any(npc.get("id") == actor and npc.get("location") == session.world_state.get("location")
+                                                for npc in session.world_state.get("npcs", []) if isinstance(npc, dict)):
             ended = weapon_attack.save(session, actor, ("constitution",), effect["dc"], effect_context={"severity": "minor"})["outcome"] == "SUCCESS"
         if ended or (actor == "player" and counter >= effect["expires_turn"]):
             _clear_poison(session, effect)
