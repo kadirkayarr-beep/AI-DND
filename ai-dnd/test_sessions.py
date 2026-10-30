@@ -16,6 +16,7 @@ import unittest
 from unittest.mock import patch
 
 import game
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 class SessionTests(unittest.TestCase):
@@ -4199,6 +4200,7 @@ class CompatibilityTests(unittest.TestCase):
         self.assertEqual(namespace["serialize_game_state"](session=session),
                          session.serialize_game_state())
 
+    @guard_bound(CHILD_PROCESS)
     def test_terminal_initialization_dice_and_exit(self):
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"

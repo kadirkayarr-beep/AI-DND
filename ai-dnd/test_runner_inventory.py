@@ -17,6 +17,7 @@ import unittest
 from unittest.mock import patch
 
 import run_tests
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
 class RunnerInventoryTests(unittest.TestCase):
@@ -424,6 +425,7 @@ class RunnerInventoryTests(unittest.TestCase):
                 self.assertIn("PREFLIGHT FAILED", stderr.getvalue())
 
 
+@guard_bound(CHILD_PROCESS)
 class RunnerProcessTests(unittest.TestCase):
     """Exercise real preflight and child processes using only offline toy gates."""
 
