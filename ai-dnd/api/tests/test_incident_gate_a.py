@@ -13,6 +13,7 @@ from unittest.mock import patch
 import emergence_audit
 import game
 from api import ollama_adapter
+from api.persistence.campaign_models import CampaignValidationError
 from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
@@ -409,17 +410,38 @@ class SqliteClaimTests(unittest.TestCase):
             outcome = attempts.run(store, campaign_id=self.campaign_id, envelope=self.envelope,
                                    world=copy.deepcopy(self.world), propose=propose, model_id="qwen3:8b")
             with lock:
-                outcomes.append(outcome.status)
+                outcomes.append(outcome)
         threads = [threading.Thread(target=worker) for _ in range(2)]
         for thread in threads:
             thread.start()
         for thread in threads:
             thread.join()
         self.assertEqual(len(calls), 1)
-        self.assertEqual(sorted(outcomes), ["consumed", "ready"])
+        # The loser sees "claiming" and is consumed, or sees the stored proposal
+        # and replays it: which one depends on timing. "ready" is only a right to
+        # try; the winner is decided where canon is written, inside the save.
+        statuses = sorted(outcome.status for outcome in outcomes)
+        self.assertIn(statuses, (["consumed", "ready"], ["ready", "ready"]))
         with closing(CampaignStore(self.path, bound_principal=TEST_PLAYER)._connect()) as db:
             count = db.execute("SELECT COUNT(*) FROM campaign_emergence_attempts").fetchone()[0]
         self.assertEqual(count, 1)
+        pending = next(o.pending_finish for o in outcomes if o.status == "ready")
+        store = CampaignStore(self.path, bound_principal=TEST_PLAYER)
+        self.assertTrue(self.finish_in_save(store, pending))
+        self.assertFalse(self.finish_in_save(store, pending))
+        finished = attempts.SqliteAttemptStore(store).get(self.campaign_id, self.envelope["trigger_id"])
+        self.assertEqual(finished["status"], "accepted")
+
+    def finish_in_save(self, store, pending):
+        try:
+            with store._transaction() as connection:
+                CampaignStore._finish_attempt(
+                    connection, self.campaign_id, dict(pending, incident_id="incident-one-winner"),
+                    "2026-10-30T00:00:00+00:00",
+                )
+        except CampaignValidationError:
+            return False
+        return True
 
     def test_committed_incident_survives_save_and_resume_without_a_quest(self):
         result = attempts.run(
