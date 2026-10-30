@@ -1543,6 +1543,8 @@ class ContractParityTests(unittest.TestCase):
                 payload["form"] = "heavenly_wings"
             elif action == "choose_giant_ancestry":
                 payload["ancestry"] = "cloud"
+            elif action == "lay_on_hands":
+                payload["healing_amount"] = 1
             with self.subTest(action=action):
                 self.assertEqual(SpeciesTraitActionRequest.model_validate(payload).action, action)
         for field, action in (
@@ -1655,7 +1657,7 @@ class ContractParityTests(unittest.TestCase):
             "standing",
         )
         # Feature projections exist only for a character that holds the feature.
-        conditional_character_fields = {"rage", "fighter", "primal_knowledge_check", "progression_effects_pending"}
+        conditional_character_fields = {"rage", "fighter", "paladin", "primal_knowledge_check", "progression_effects_pending"}
         self.assertLessEqual(conditional_character_fields, _property_names("GameCharacter"))
         self.assertEqual(
             set(public_state["character"]),

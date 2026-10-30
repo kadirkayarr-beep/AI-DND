@@ -105,7 +105,11 @@ class LevelFiveHttpTests(previous.LevelFourHttpTests):
             bad = {**copy.deepcopy(request), **change, 'action_id': str(uuid4())}
             before = record.game_session._capture_runtime_snapshot()
             response = await self.http.post(self.url(body), json=bad)
-            self.assertEqual(response.status_code, 422, response.text)
+            # One prepared spell is the exact Paladin 5 shape, so it parses and the route refuses the class instead.
+            one_spell = change == {'choices': {'prepared_spells': ['Fog Cloud']}}
+            self.assertEqual(response.status_code, 409 if one_spell else 422, response.text)
+            if one_spell:
+                self.assertEqual(response.json()['detail']['code'], 'level_up_choice_class_mismatch')
             self.assertEqual(record.game_session._capture_runtime_snapshot(), before)
         stale = {**request, 'expected_revision': request['expected_revision'] - 1}
         response = await self.http.post(self.url(body), json=stale)

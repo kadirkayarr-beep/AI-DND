@@ -6515,8 +6515,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -8738,8 +8738,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -10142,8 +10142,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -10220,8 +10220,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -10571,8 +10571,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -10610,8 +10610,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -11741,8 +11741,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -12638,8 +12638,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -13613,8 +13613,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -14510,8 +14510,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -14783,8 +14783,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -15095,8 +15095,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -16928,8 +16928,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -17240,8 +17240,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -17279,8 +17279,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -17318,8 +17318,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -18020,8 +18020,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -18332,8 +18332,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -18410,8 +18410,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -20321,8 +20321,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -21140,8 +21140,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -21569,8 +21569,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
@@ -21647,8 +21647,8 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": null,
-    "basis": "none_found",
+    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "basis": "static_name_match",
     "scanned": [
      "ai-dnd/api/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"

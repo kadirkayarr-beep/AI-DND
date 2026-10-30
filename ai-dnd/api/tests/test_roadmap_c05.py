@@ -137,7 +137,7 @@ class EngineAgreementTests(unittest.TestCase):
                     if spell is None:
                         missing.add(item["id"])
                         continue
-                    self.assertEqual(spell["level"], 0 if group == "cantrips" else 1, (cls, item["id"]))
+                    self.assertEqual(spell["level"], {"cantrips": 0, "spells_level_2": 2}.get(group, 1), (cls, item["id"]))
                     self.assertIn(cls, spell["classes"], (cls, item["id"]))
         self.assertEqual(missing, LEGACY_ENGINE_ONLY)
 
