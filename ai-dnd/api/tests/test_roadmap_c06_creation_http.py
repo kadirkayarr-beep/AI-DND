@@ -125,6 +125,8 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                         self.assertNotIn('rage', c)
                         if c['class'] == 'Fighter':  # the random class can be a Fighter, whose scope is always disclosed
                             self.assertIn('Second Wind', ' '.join(c['progression_effects_pending']))
+                        elif c['class'] == 'Paladin':  # the same for a random Paladin
+                            self.assertIn('catalog-only', ' '.join(c['progression_effects_pending']))
                         else:
                             self.assertNotIn('progression_effects_pending', c)
 
