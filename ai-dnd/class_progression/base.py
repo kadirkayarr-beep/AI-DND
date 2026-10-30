@@ -44,3 +44,24 @@ class ClassProgression:
     def level_prerequisite(self, session: Any, target_level: int) -> str | None:
         """Refusal reason for reaching `target_level`, or None."""
         return None
+
+    def choices_required(self, character: dict[str, Any], current: int, target_level: int,
+                         prior: dict[str, Any], goal: dict[str, Any]) -> dict[str, int]:
+        raise NotImplementedError
+
+    def preview_capacity(self, goal: dict[str, Any]) -> dict[str, Any] | None:
+        return None
+
+    def preview_options(self, session: Any, target_level: int) -> dict[str, Any]:
+        """Extra preview fields offering the choices."""
+        return {}
+
+    def check_choices(self, session: Any, preview: dict[str, Any], choices: dict[str, Any]) -> str | None:
+        raise NotImplementedError
+
+    def apply_level(self, session: Any, preview: dict[str, Any], choices: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def validate_start_choices(self, level: int, level_choices: Any) -> None:
+        """Outer shape of a creation bundle above level 1; the default refuses a higher start."""
+        raise ValueError("starting_level_class_not_supported")

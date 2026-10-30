@@ -19,14 +19,15 @@ from api.dnd_2024_rules import proficiency_bonus_for_level
 from class_progression import for_class, registered
 from class_progression.barbarian import (  # noqa: F401
     _barbarian_asi_options,
-    _noncaster_state_valid,
     _validate_primal_knowledge,
     barbarian_level_five_applied,
     BARBARIAN_SKILLS,
+    barbarian_starting_creation_options,
     berserker_eligible,
     EXTRA_ATTACK_ATTACKS,
     FAST_MOVEMENT_FT,
 )
+from class_progression.sorcerer import sorcerer_starting_creation_options  # noqa: F401
 
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
 _cache: dict[str, dict[str, Any] | None] = {}
@@ -132,137 +133,6 @@ def progression_effects_pending(class_name: str, level: int, **adopted: Any) -> 
 HIGHER_START_EQUIPMENT_PENDING = ("Higher-start equipment: normal starting gear only; optional extra wealth and magic items remain pending")
 
 
-def _noncaster_start_row_ok(row: Any, features: list[str], bonus: int, rages: int, damage: int, mastery: int) -> bool:
-    """Exact source row for a Barbarian start step: ints only (no bool), no caster keys; anything else hides the level."""
-    return (isinstance(row, dict) and row.get("features") == features
-            and type(row.get("proficiency_bonus")) is int and row["proficiency_bonus"] == bonus
-            and type(row.get("rages")) is int and row["rages"] == rages
-            and type(row.get("rage_damage")) is int and row["rage_damage"] == damage
-            and type(row.get("weapon_mastery")) is int and row["weapon_mastery"] == mastery
-            and not any(key in row for key in ("slots", "cantrips", "prepared_spells")))
-
-
-def barbarian_starting_creation_options() -> dict[str, Any] | None:
-    """Detached capability for the accepted noncaster start2, not full class effects."""
-    source = table("Barbarian")
-    if _supported_level("Barbarian") < 2 or not isinstance(source, dict):
-        return None
-    levels = source.get("levels")
-    if not isinstance(levels, dict):
-        return None
-    one, two = levels.get("1"), levels.get("2")
-    if (not isinstance(one, dict) or not isinstance(two, dict)
-            or one.get("features") != ["Rage", "Unarmored Defense", "Weapon Mastery"]
-            or two.get("features") != ["Danger Sense", "Reckless Attack"]
-            or any(type(row.get("proficiency_bonus")) is not int or row["proficiency_bonus"] != 2
-                   or row.get("rages") != 2 or row.get("rage_damage") != 2 or row.get("weapon_mastery") != 2
-                   for row in (one, two))
-            or any(key in row for row in (one, two) for key in ("slots", "cantrips", "prepared_spells"))):
-        return None
-    result = {"supported_starting_levels": [1, 2], "level_2": {
-        "choices": {},
-        "effects_supported": progression_disclosure("Barbarian", 2)["supported"],
-        "effects_pending": progression_effects_pending("Barbarian", 2),
-    }}
-    three = levels.get("3")
-    if (_supported_level("Barbarian") >= 3 and isinstance(three, dict)
-            and three.get("features") == ["Barbarian Subclass", "Primal Knowledge"]
-            and three.get("proficiency_bonus") == 2 and three.get("rages") == 3 and three.get("rage_damage") == 2
-            and three.get("weapon_mastery") == 2
-            and not any(key in three for key in ("slots", "cantrips", "prepared_spells"))):
-        # Source vocabulary only (not filtered per character): a malformed row 3 just omits level 3 and keeps verified 1/2.
-        result["supported_starting_levels"] = [1, 2, 3]
-        result["level_3"] = {
-            "subclass_options": [{"id": "berserker", "name": "Path of the Berserker"}],
-            "primal_knowledge_skill_options": list(BARBARIAN_SKILLS),
-            "effects_supported": progression_disclosure("Barbarian", 3)["supported"],
-            "effects_pending": progression_effects_pending("Barbarian", 3),
-        }
-        # Start 4 and 5 extend the verified prefix one row at a time: a bad row 4 hides both, a bad row 5 hides only level 5.
-        asi = supported_asi_choices()
-        if (_supported_level("Barbarian") >= 4 and asi
-                and _noncaster_start_row_ok(levels.get("4"), ["Ability Score Improvement"], 2, 3, 2, 3)):
-            result["supported_starting_levels"] = [1, 2, 3, 4]
-            result["level_4"] = {
-                "supported_asi_choices": asi,
-                "effects_supported": progression_disclosure("Barbarian", 4)["supported"],
-                "effects_pending": progression_effects_pending("Barbarian", 4) + [HIGHER_START_EQUIPMENT_PENDING],
-            }
-            if (_supported_level("Barbarian") >= 5
-                    and _noncaster_start_row_ok(levels.get("5"), ["Extra Attack", "Fast Movement"], 3, 3, 2, 3)):
-                result["supported_starting_levels"] = [1, 2, 3, 4, 5]
-                result["level_5"] = {
-                    "effects_supported": progression_disclosure("Barbarian", 5)["supported"],
-                    "effects_pending": progression_effects_pending("Barbarian", 5) + [HIGHER_START_EQUIPMENT_PENDING],
-                }
-    return result
-
-
-def sorcerer_starting_creation_options() -> dict[str, Any] | None:
-    """Detached metadata for the fixed HTTP level 1–5 choice bundle, not effects or grants."""
-    from api.dnd_2024_rules import SPELLS_CATALOG
-
-    if MAX_SUPPORTED_LEVEL < 5:
-        return None
-    source = table("Sorcerer")
-    if not isinstance(source, dict):
-        return None
-    try:
-        prepared = [source["levels"][str(level)]["prepared_spells"] for level in (1, 2, 3, 4, 5)]
-        cantrip_counts = [source["levels"][str(level)]["cantrips"] for level in (1, 2, 3, 4, 5)]
-        cantrip_ids = [spell["id"] for spell in SPELLS_CATALOG["Sorcerer"]["cantrips"]]
-        metamagic_count = source["metamagic_choice_counts"]["2"]
-        metamagic = source["metamagic_options"]
-        subclasses = source["subclass_options"]
-        spell_ids = [spell["id"] for spell in SPELLS_CATALOG["Sorcerer"]["spells_level_1"]]
-        # This projection advertises the fixed accepted HTTP adapter, whose
-        # requests take two initial spells, two additions per step and two
-        # level-two Metamagic choices. A changed source needs a new adapter.
-        if (any(type(count) is not int for count in prepared) or prepared != [2, 4, 6, 7, 9]
-                or type(metamagic_count) is not int or metamagic_count != 2
-                or any(source["metamagic_choice_counts"].get(str(level), 0) != 0 for level in (3, 4, 5))
-                or cantrip_counts != [4, 4, 4, 5, 5]
-                or len(set(cantrip_ids)) < 5 or any(type(identity) is not str or not identity for identity in cantrip_ids)
-                or not isinstance(metamagic, list) or len(metamagic) < metamagic_count
-                or any(not isinstance(option, str) or not option for option in metamagic)
-                or not isinstance(subclasses, dict) or not subclasses
-                or not spell_ids or any(not isinstance(identity, str) or not identity for identity in spell_ids)):
-            return None
-        if len(set(spell_ids)) < 9 or len(set(metamagic)) < 2:
-            return None
-        subclass_options = [{"id": identity, "name": option["name"]} for identity, option in subclasses.items()]
-        if any(not isinstance(option[key], str) or not option[key]
-               for option in subclass_options for key in ("id", "name")):
-            return None
-    except (KeyError, TypeError):
-        return None
-    return copy.deepcopy({
-        "supported_starting_levels": [1, 2, 3, 4, 5],
-        "level_2": {
-            "prepared_spell_count": prepared[1] - prepared[0],
-            "prepared_spell_ids": list(spell_ids),
-            "metamagic_count": metamagic_count,
-            "metamagic_options": metamagic,
-        },
-        "level_3": {
-            "prepared_spell_count": prepared[2] - prepared[1],
-            "prepared_spell_ids": list(spell_ids),
-            "subclass_options": subclass_options,
-        },
-        "level_4": {
-            "prepared_spell_count": 1, "prepared_spell_ids": list(spell_ids),
-            "cantrip_count": 1, "cantrip_ids": list(cantrip_ids),
-            "supported_asi_choices": supported_asi_choices(),
-        },
-        "level_5": {"prepared_spell_count": 2, "prepared_spell_ids": list(spell_ids)},
-        "effects_pending_by_level": {
-            str(level): progression_effects_pending("Sorcerer", level) +
-                ([HIGHER_START_EQUIPMENT_PENDING] if level >= 4 else [])
-            for level in (1, 2, 3, 4, 5)
-        },
-    })
-
-
 def preview_level_up(session: Any, target_level: Any) -> dict[str, Any]:
     """What reaching `target_level` needs and gives. Pure: nothing is changed."""
     character = session.character
@@ -293,36 +163,17 @@ def preview_level_up(session: Any, target_level: Any) -> dict[str, Any]:
     rows = [row(character, level) for level in range(current + 1, target_level + 1)]
     features = [feature for data in rows for feature in data["features"]]
     prior, goal = row(character, current), rows[-1]
-    metamagic = sum(table(character["class"]).get("metamagic_choice_counts", {}).get(str(level), 0)
-                    for level in range(current + 1, target_level + 1))
     import xp
-    noncaster = character["class"] == "Barbarian"
-    required = {} if noncaster else {"prepared_spells": goal["prepared_spells"] - prior["prepared_spells"]}
-    if target_level == 4:
-        if noncaster:
-            required["asi"] = 1
-        else:
-            required.update(cantrips=1, asi=1)
-    if metamagic:
-        required["metamagic"] = metamagic
-    if current < 3 <= target_level:
-        required["subclass_id"] = 1
-    if noncaster and target_level == 3:
-        required["primal_knowledge_skill"] = 1
-    disclosure = progression_disclosure(character["class"], target_level, **for_class(character["class"]).adoption(session.world_state))
+    required = handler.choices_required(character, current, target_level, prior, goal)
+    disclosure = progression_disclosure(character["class"], target_level, **handler.adoption(session.world_state))
     pending = disclosure["pending"]
     return _preview(
         "ready", None, class_name=character["class"], from_level=current, to_level=target_level, features=features,
         choices_required=required,
-        capacity=None if noncaster else {"cantrips": goal["cantrips"], "prepared_spells": goal["prepared_spells"], "slots": copy.deepcopy(goal["slots"]),
-                  "sorcery_points": goal["sorcery_points"]},
+        capacity=handler.preview_capacity(goal),
         hit_points={"gain": xp.hit_point_gain(character) * max(0, target_level - character["level"]), "already_applied": character["level"] >= target_level},
         effects_pending=pending, effects_supported=disclosure["supported"],
-        **({"primal_knowledge_skill_options": [skill for skill in BARBARIAN_SKILLS if skill not in character["proficient_skills"]],
-             "subclass_options": [{"id": "berserker", "name": "Path of the Berserker"}]}
-           if noncaster and target_level == 3 else {}),
-        **({"supported_asi_choices": _barbarian_asi_options(session) if noncaster else supported_asi_choices(character)}
-           if target_level == 4 else {}),
+        **handler.preview_options(session, target_level),
     )
 
 
@@ -514,65 +365,12 @@ def _reject(reason: str) -> dict[str, Any]:
 
 
 def _check_choices(session: Any, preview: dict[str, Any], choices: Any) -> str | None:
-    from api.dnd_2024_rules import SPELLS_CATALOG
     if not isinstance(choices, dict):
         return "choices_required"
     required = preview["choices_required"]
     if set(choices) - set(required):
         return "unsupported_choice"
-    if "asi" in required and session.character["class"] == "Barbarian":
-        asi = choices.get("asi")
-        if (type(asi) is not dict or set(asi) != {"feat", "increase"}
-                or asi["feat"] != "Ability Score Improvement"
-                or not _supported_asi_increase(asi["increase"])):
-            return "selected_asi_not_supported"
-        if asi not in _barbarian_asi_options(session):
-            return "asi_choice_not_eligible"
-    if session.character["class"] == "Barbarian":
-        if not _noncaster_state_valid(session.character, session.world_state):
-            return "noncaster_state_invalid"
-        if preview["to_level"] == 3:
-            if set(choices) != {"subclass_id", "primal_knowledge_skill"} or choices.get("subclass_id") != "berserker":
-                return "selected_barbarian_subclass_required"
-            skill = choices.get("primal_knowledge_skill")
-            if type(skill) is not str or skill not in BARBARIAN_SKILLS or skill in session.character["proficient_skills"]:
-                return "primal_knowledge_skill_invalid"
-        return None
-    state = session.world_state["spellcasting_v1"]
-    picked = choices.get("prepared_spells", [])
-    allowed = {s["id"] for s in SPELLS_CATALOG.get(session.character["class"], {}).get("spells_level_1", [])}
-    if not isinstance(picked, list) or len(picked) != required["prepared_spells"]:
-        return "prepared_spells_count"
-    if (any(not isinstance(s, str) for s in picked) or len(set(picked)) != len(picked) or not set(picked) <= allowed
-            or set(picked) & set(state["prepared"])):
-        return "prepared_spells_invalid"
-    if "asi" in required:
-        asi = choices.get("asi")
-        if (type(asi) is not dict or set(asi) != {"feat", "increase"}
-                or asi["feat"] != "Ability Score Improvement"
-                or not _supported_asi_increase(asi["increase"])):
-            return "selected_asi_not_supported"
-        if asi not in supported_asi_choices(session.character):
-            return "asi_choice_not_eligible"
-        cantrips = choices.get("cantrips")
-        allowed_cantrips = {s["id"] for s in SPELLS_CATALOG["Sorcerer"]["cantrips"]}
-        if (type(cantrips) is not list or len(cantrips) != 1 or type(cantrips[0]) is not str
-                or cantrips[0] not in allowed_cantrips or cantrips[0] in state["cantrips"]):
-            return "cantrips_invalid"
-    if "subclass_id" in required:
-        chosen = choices.get("subclass_id")
-        if not isinstance(chosen, str) or chosen not in table(session.character["class"]).get("subclass_options", {}):
-            return "subclass_invalid"
-    if "metamagic" in required:
-        options = table(session.character["class"])["metamagic_options"]
-        known = session.character.get("metamagic", [])
-        picks = choices.get("metamagic", [])
-        if not isinstance(picks, list) or len(picks) != required["metamagic"]:
-            return "metamagic_count"
-        if any(not isinstance(m, str) for m in picks) or len(set(picks)) != len(picks) or not set(picks) <= set(options) \
-                or set(picks) & set(known):
-            return "metamagic_invalid"
-    return None
+    return for_class(session.character["class"]).check_choices(session, preview, choices)
 
 
 def apply_level_choices(session: Any, preview: Any, choices: Any) -> dict[str, Any]:
@@ -588,137 +386,7 @@ def apply_level_choices(session: Any, preview: Any, choices: Any) -> dict[str, A
     problem = _check_choices(session, preview, choices)
     if problem:
         return _reject(problem)
-    if character["class"] == "Barbarian" and preview["to_level"] == 3:
-        return _apply_barbarian_three(session, preview, choices)
-    if character["class"] == "Barbarian" and preview["to_level"] == 5:
-        return _apply_barbarian_five(session, preview)
-    if preview["to_level"] == 4:
-        if character["class"] == "Barbarian":
-            return _apply_barbarian_four(session, preview, choices)
-        return _apply_selected_level_four(session, preview, choices)
-    import spell_scope
-    new_character = copy.deepcopy(character)
-    if character["class"] == "Barbarian":
-        to_level = preview["to_level"]
-        changes = []
-        if not preview["hit_points"]["already_applied"]:
-            gain = preview["hit_points"]["gain"]
-            new_character["max_hp"] += gain
-            if new_character["current_hp"] > 0:
-                new_character["current_hp"] += gain
-            changes.append({"kind": "hit_points", "gain": gain})
-        new_character["level"] = max(new_character["level"], to_level)
-        new_character["progression_level"] = to_level
-        new_character["proficiency_bonus"] = proficiency_bonus_for_level(new_character["level"])
-        try:
-            spell_scope.validate(session.world_state.get("spellcasting_v1"), new_character)
-            validate_saved(new_character, session.world_state)
-        except ValueError:
-            return _reject("resulting_state_invalid")
-        character.clear()
-        character.update(new_character)
-        changes.append({"kind": "level", "from": preview["from_level"], "to": to_level})
-        return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
-    state = copy.deepcopy(session.world_state["spellcasting_v1"])  # only the spell state is replaced, not the whole world
-    old_cap, new_cap = capacity(character), preview["capacity"]
-    to_level = preview["to_level"]
-    state["prepared"] = [*state["prepared"], *choices["prepared_spells"]]
-    state["slots"] = {k: state["slots"].get(k, 0) + n - old_cap["slots"].get(k, 0) for k, n in new_cap["slots"].items()}
-    changes = [{"kind": "prepared_spells", "added": list(choices["prepared_spells"])},
-               {"kind": "spell_slots", "maximum": copy.deepcopy(new_cap["slots"])}]
-    if not preview["hit_points"]["already_applied"]:
-        gain = preview["hit_points"]["gain"]
-        new_character["max_hp"] += gain
-        if new_character["current_hp"] > 0:
-            new_character["current_hp"] += gain
-        changes.append({"kind": "hit_points", "gain": gain})
-    new_character["level"] = max(new_character["level"], to_level)
-    new_character["progression_level"] = to_level
-    new_character["proficiency_bonus"] = proficiency_bonus_for_level(new_character["level"])
-    new_character["spells"] = list(state["prepared"])
-    new_character["spell_slots_remaining"] = copy.deepcopy(state["slots"])
-    if "metamagic" in choices:
-        new_character["metamagic"] = [*new_character.get("metamagic", []), *choices["metamagic"]]
-        changes.append({"kind": "metamagic", "added": list(choices["metamagic"])})
-    if "subclass_id" in choices:
-        new_character["subclass_id"] = choices["subclass_id"]
-        changes.append({"kind": "subclass_choice", "subclass_id": choices["subclass_id"], "effects_applied": False})
-    try:
-        import sorcery_points
-        points = sorcery_points.advanced(session, new_character)
-        spell_scope.validate(state, new_character)
-        validate_saved(new_character, {"spellcasting_v1": state})
-    except ValueError:
-        return _reject("resulting_state_invalid")
-    character.clear()
-    character.update(new_character)
-    session.world_state["spellcasting_v1"] = state
-    if points is not None:
-        session.world_state[sorcery_points.KEY] = points
-    changes.append({"kind": "level", "from": preview["from_level"], "to": to_level})
-    return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
-
-
-def _apply_barbarian_three(session, preview, choices):
-    snapshot = session._capture_runtime_snapshot()
-    try:
-        character = copy.deepcopy(session.character)
-        prior = list(character["proficient_skills"])
-        skill = choices["primal_knowledge_skill"]
-        character["primal_knowledge_choice"] = {"class_level": 3, "skill": skill, "prior_proficient_skills": prior}
-        character["proficient_skills"] = prior + [skill]
-        if skill == "Perception":
-            character.pop("passive_perception", None)
-        gain = preview["hit_points"]["gain"]
-        character["max_hp"] += gain
-        if character["current_hp"] > 0:
-            character["current_hp"] += gain
-        character.update(level=max(3, character["level"]), progression_level=3, subclass_id="berserker")
-        state = copy.deepcopy(session.world_state["rage_v1"])
-        state["remaining"] += 1  # capacity delta only; no refill or activation
-        session.character.clear()
-        session.character.update(character)
-        session.world_state["rage_v1"] = state
-        import barbarian_rage
-        barbarian_rage.validate(session.world_state, character, getattr(session, "_persisted_engine_format", 4))
-        validate_saved(character, session.world_state)
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        session._player_state_for_save()
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        return _reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None, "changes": [
-        {"kind": "level", "from": 2, "to": 3}, {"kind": "hit_points", "gain": gain},
-        {"kind": "skill_proficiency", "added": skill}, {"kind": "rage_capacity", "from": 2, "to": 3}],
-        "effects_pending": list(preview["effects_pending"])}
-
-
-def _apply_barbarian_five(session, preview):
-    """Atomic noncaster level 5: XP already paid Hit Points and Proficiency Bonus; no choice, Rage refill or new resource."""
-    snapshot = session._capture_runtime_snapshot()
-    had_format = "_persisted_engine_format" in session.__dict__
-    previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-    try:
-        character = copy.deepcopy(session.character)
-        character["progression_level"] = 5
-        session.character.clear()
-        session.character.update(character)
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        validate_saved(session.character, session.world_state)
-        session._validate_save_payload(session.serialize_game_state())
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        if had_format:
-            session._persisted_engine_format = previous_format
-        else:
-            session.__dict__.pop("_persisted_engine_format", None)
-        return _reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None, "changes": [{"kind": "level", "from": 4, "to": 5}],
-            "effects_pending": list(preview["effects_pending"])}
+    return for_class(character["class"]).apply_level(session, preview, choices)
 
 
 def _apply_asi_score_delta(character, feat_delta):
@@ -739,110 +407,6 @@ def _apply_asi_score_delta(character, feat_delta):
     character["final_ability_scores"] = {a: character[a] for a in feat_rules.ABILITIES}
 
 
-def _apply_barbarian_four(session, preview, choices):
-    """Atomic noncaster ASI; no Rage/Hit Dice refill and no caster fabrication."""
-    projection = _project_selected_asi_hp(session.character, 4, {"increase": choices["asi"]["increase"]})
-    if projection["status"] != "projected":
-        return _reject(projection["reason"])
-    snapshot = session._capture_runtime_snapshot()
-    had_format = "_persisted_engine_format" in session.__dict__
-    previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-    try:
-        character = copy.deepcopy(session.character)
-        old_con_modifier = (character["constitution"] - 10) // 2
-        base = projection["unpaid_base_gain"]
-        character["max_hp"] += base
-        if character["current_hp"] > 0:
-            character["current_hp"] += base
-        character.update(level=max(4, character["level"]), progression_level=4,
-                         asi_choices=_selected_asi_record(choices["asi"]["increase"]))
-        _apply_asi_score_delta(character, projection["feat_delta"])
-        con_delta = character["constitution_mod"] - old_con_modifier
-        if con_delta:
-            # Choice admission checked the old canonical total, never guesses
-            # whether inventory armor/shields are worn or contributing extras.
-            character["armor_class"] += con_delta
-        session.character.clear()
-        session.character.update(character)
-        session.set_player_max_hp(projection["resulting_maximum"])
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        validate_saved(session.character, session.world_state)
-        # Full canonical serialized admission follows combat synchronization.
-        session._validate_save_payload(session.serialize_game_state())
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        if had_format:
-            session._persisted_engine_format = previous_format
-        else:
-            session.__dict__.pop("_persisted_engine_format", None)
-        return _reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None,
-            "changes": [{"kind": "level", "from": 3, "to": 4},
-                        {"kind": "hit_points", "gain": base},
-                        {"kind": "maximum_hit_points", "gain": projection["retroactive_max_gain"]},
-                        {"kind": "asi", "feat_delta": projection["feat_delta"]}],
-            "effects_pending": list(preview["effects_pending"])}
-
-
-def _apply_selected_level_four(session: Any, preview: dict[str, Any], choices: dict[str, Any]) -> dict[str, Any]:
-    """Atomic selected path. Base HP is paid once; retroactive maximum never heals."""
-    import spell_scope
-    projection = _project_selected_asi_hp(session.character, 4, {"increase": choices["asi"]["increase"]})
-    if projection["status"] != "projected":
-        return _reject(projection["reason"])
-    snapshot = session._capture_runtime_snapshot()
-    had_format = "_persisted_engine_format" in session.__dict__
-    previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-    try:
-        character = copy.deepcopy(session.character)
-        state = copy.deepcopy(session.world_state["spellcasting_v1"])
-        old_slots = capacity(character)["slots"]
-        state["slots"] = {k: state["slots"].get(k, 0) + maximum - old_slots.get(k, 0)
-                          for k, maximum in preview["capacity"]["slots"].items()}
-        state["prepared"].extend(choices["prepared_spells"])
-        state["cantrips"].extend(choices["cantrips"])
-        base = projection["unpaid_base_gain"]
-        character["max_hp"] += base
-        if character["current_hp"] > 0:
-            character["current_hp"] += base
-        character.update(level=max(4, character["level"]), progression_level=4,
-                         asi_choices=_selected_asi_record(choices["asi"]["increase"]))
-        _apply_asi_score_delta(character, projection["feat_delta"])
-        character["spells"] = list(state["prepared"])
-        character["cantrips"] = list(state["cantrips"])
-        character["spell_slots_remaining"] = copy.deepcopy(state["slots"])
-        import sorcery_points
-        points = sorcery_points.advanced(session, character)
-        session.character.clear()
-        session.character.update(character)
-        session.world_state["spellcasting_v1"] = state
-        if points is not None:
-            session.world_state[sorcery_points.KEY] = points
-        session.set_player_max_hp(projection["resulting_maximum"])
-        spell_scope.validate(state, session.character)
-        validate_saved(session.character, session.world_state)
-        # Game owner also enforces the retained save version and serialized shape.
-        session._player_state_for_save()
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        if had_format:
-            session._persisted_engine_format = previous_format
-        else:
-            session.__dict__.pop("_persisted_engine_format", None)
-        return _reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None,
-            "changes": [{"kind": "level", "from": 3, "to": 4},
-                        {"kind": "hit_points", "gain": base},
-                        {"kind": "maximum_hit_points", "gain": projection["retroactive_max_gain"]},
-                        {"kind": "asi", "feat_delta": projection["feat_delta"]},
-                        {"kind": "cantrips", "added": list(choices["cantrips"])},
-                        {"kind": "prepared_spells", "added": list(choices["prepared_spells"])},
-                        {"kind": "spell_slots", "maximum": copy.deepcopy(preview["capacity"]["slots"])}],
-            "effects_pending": list(preview["effects_pending"])}
-
-
 def create_at_level(session: Any, spec: dict[str, Any], level: int = 1, level_choices: dict[str, Any] | None = None) -> dict[str, Any]:
     """Create a level-1 character with the real creation path, then reach `level` through the same preview/apply steps.
 
@@ -853,28 +417,7 @@ def create_at_level(session: Any, spec: dict[str, Any], level: int = 1, level_ch
         raise ValueError("invalid_target_level")
     if level > 1:
         class_name = spec.get("character_class")
-        if class_name not in ("Sorcerer", "Barbarian"):
-            raise ValueError("starting_level_class_not_supported")
-        if class_name == "Barbarian":
-            if level > 5:
-                raise ValueError("progression_level_not_supported")
-            # Start 3-5 reuse the accepted earned-3/4/5 owners; only the outer bundle shape is checked here, skill ownership,
-            # ASI eligibility and the rest belong to the real step owners (the whole creation is rolled back on refusal).
-            wanted = {str(n) for n in range(2, level + 1)}
-            required = {2: "barbarian_level_two_choices_required", 3: "barbarian_level_three_choices_required",
-                        4: "barbarian_level_four_choices_required", 5: "barbarian_level_five_choices_required"}[level]
-            if (type(level_choices) is not dict or set(level_choices) != wanted
-                    or type(level_choices["2"]) is not dict or level_choices["2"]):
-                raise ValueError(required)
-            if level >= 3:
-                three = level_choices["3"]
-                if (type(three) is not dict or set(three) != {"subclass_id", "primal_knowledge_skill"}
-                        or three["subclass_id"] != "berserker" or type(three["primal_knowledge_skill"]) is not str):
-                    raise ValueError(required)
-            if level >= 4 and (type(level_choices["4"]) is not dict or set(level_choices["4"]) != {"asi"}):
-                raise ValueError(required)
-            if level == 5 and (type(level_choices["5"]) is not dict or level_choices["5"]):
-                raise ValueError(required)
+        for_class(class_name).validate_start_choices(level, level_choices)
         if table(spec.get("character_class")) is None:
             raise ValueError("class_table_not_available")
         if level > 5:  # Higher creation stays bounded independently of future progression.
