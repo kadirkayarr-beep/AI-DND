@@ -18,15 +18,20 @@ const FIGHTER = () => ({ fighting_style: 'Defense', tactical_mind: { available: 
 const campaign_id = '11111111-1111-4111-8111-111111111111';
 const preview = (target, counts, extra = {}) => ({ session_id: 'session', campaign_id, revision: 7, status: 'ready', reason: null, class_name: 'Fighter', from_level: target - 1, target_level: target, choices_required: counts, capacity: null, prepared_spell_ids: [], cantrip_ids: [], supported_asi_choices: [], metamagic_options: [], subclass_options: [], effects_supported: ['Supported'], effects_pending: ['Weapon Mastery pending'], ...extra });
 
-let helper, ui, controls, levelUp, vite, React, render;
+let helper, ui, controls, levelUp, species, page, QueryClient, QueryClientProvider, vite, React, render;
 before(async () => {
   helper = await import('../src/lib/fighter-starting-creation.ts');
   process.env.PORT ||= '4186'; process.env.BASE_PATH ||= '/';
   const { createServer } = await import('vite');
-  vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
+  const exposeComposer = { name: 'fighter-test-view', enforce: 'pre', transform(code, id) { if (id.endsWith('/src/pages/game-browser.tsx')) return `${code}
+export { StoryColumn as TestStoryColumn };`; } };
+  vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent', plugins: [exposeComposer] });
   ui = await vite.ssrLoadModule('/src/components/fighter-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/fighter-controls.tsx');
   levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
+  species = await vite.ssrLoadModule('/src/components/species-trait-controls.tsx');
+  page = await vite.ssrLoadModule('/src/pages/game-browser.tsx');
+  ({ QueryClient, QueryClientProvider } = await import('@tanstack/react-query'));
   React = await import('react'); render = (await import('react-dom/server')).renderToStaticMarkup;
 });
 after(async () => await vite?.close());
@@ -216,6 +221,67 @@ test('Tactical Mind is one optional consent shown only from the server projectio
   assert.equal(chosen, true);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
   assert.equal(PlayGameTurnBody.parse({ message: 'x', interaction_mode: 'do', check_feature: 'tactical_mind' }).check_feature, 'tactical_mind');
+});
+
+function speciesPanel(character, combat = { active: false, current_actor_id: null, participant_records: [] }) {
+  const state = { combat, character: { species: 'Human', race: 'Human', species_trait_state: {}, current_hp: 5, max_hp: 20, ...character } };
+  return render(React.createElement(QueryClientProvider, { client: new QueryClient() },
+    React.createElement(species.SpeciesTraitControls, { state, sessionId: 'session', campaignId: 'campaign' })));
+}
+const secondWindButton = html => html.match(/<button[^>]*data-testid="species-action-second-wind"[^>]*>(.*?)<\/button>/);
+
+test('real species panel: out of combat Second Wind follows the projection, uses and Hit Points', () => {
+  const live = secondWindButton(speciesPanel({ fighter: FIGHTER() }));
+  assert.ok(live, 'shown for a wounded Fighter with a use left');
+  assert.doesNotMatch(live[0], /disabled/);
+  assert.match(live[1], /Second Wind · 2 kullanım/);
+  assert.match(secondWindButton(speciesPanel({ fighter: FIGHTER(), current_hp: 20 }))[0], /disabled/, 'nothing to heal');
+  const spent = FIGHTER(); spent.second_wind.uses_remaining = 0;
+  assert.equal(secondWindButton(speciesPanel({ fighter: spent })), null);
+  assert.equal(secondWindButton(speciesPanel({})), null, 'no projection, no button');
+  assert.equal(secondWindButton(speciesPanel({ class: 'Fighter' })), null, 'the class name never stands in for the projection');
+  const bad = FIGHTER(); bad.second_wind.die = 12;
+  assert.equal(secondWindButton(speciesPanel({ fighter: bad })), null);
+  assert.equal(secondWindButton(speciesPanel({ fighter: FIGHTER() }, { active: true, current_actor_id: 'player', participant_records: [] })), null, 'combat uses the Bonus Action control');
+});
+
+test('real species panel source: the out of combat button sends only the typed action', async () => {
+  const ts = await import('typescript'), vm = await import('node:vm');
+  const source = await readFile('src/components/species-trait-controls.tsx', 'utf8');
+  const ast = ts.createSourceFile('panel.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let button;
+  (function visit(n) {
+    if (ts.isBinaryExpression(n) && ts.isParenthesizedExpression(n.right) && ts.isJsxElement(n.right.expression) && n.right.getText(ast).includes('species-action-second-wind')) button = n.right.expression;
+    ts.forEachChild(n, visit); })(ast);
+  assert.ok(button, 'the guarded button exists');
+  const code = ts.transpileModule(`globalThis.__r=(${button.getText(ast)});`, { fileName: 'b.tsx', compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const element = notBusy => { const sent = [], env = { React, notBusy, character: { current_hp: 5, max_hp: 20 }, fighter: FIGHTER(), send: value => sent.push(JSON.stringify(value)) }; vm.runInNewContext(code, env); return { props: env.__r.props, sent }; };
+  const live = element(true);
+  live.props.onClick();
+  assert.deepEqual(live.sent, ['{"action":"second_wind"}']);
+  assert.equal(element(false).props.disabled, true);
+});
+
+function composer(fighter, extra = {}) {
+  const state = { turn_index: 2, character: { fighter }, combat: { active: false, participant_records: [] }, scene: { npcs: [] }, conversation: { active: false }, quests: [], ...extra.state };
+  return render(React.createElement(page.TestStoryColumn, { state, entries: [], readingPreferences: { fontSizePx: null, lineHeight: null }, composerOpen: true, message: '', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', sending: false, scrollRef: { current: null }, newResponseEntryIndex: null, primalKnowledgeOptIn: false, onPrimalKnowledgeChange() {}, tacticalMindOptIn: false, onTacticalMindChange() {}, ...extra.props }));
+}
+const confirmInput = html => html.match(/<input[^>]*data-testid="tactical-mind-confirm"[^>]*>/)?.[0];
+
+test('actual composer mounts Tactical Mind from the projection with the current mode and target', () => {
+  const live = confirmInput(composer(FIGHTER()));
+  assert.ok(live, 'mounted for a Fighter projection');
+  assert.doesNotMatch(live, /disabled/); assert.doesNotMatch(live, /checked/);
+  assert.match(confirmInput(composer(FIGHTER(), { props: { tacticalMindOptIn: true } })), /checked/);
+  assert.match(confirmInput(composer(FIGHTER(), { props: { sending: true } })), /disabled/);
+  assert.match(confirmInput(composer(FIGHTER(), { props: { interactionMode: 'say' } })), /disabled/);
+  assert.doesNotMatch(confirmInput(composer(FIGHTER(), { props: { interactionMode: 'say', tacticalMindOptIn: true } })), /checked/, 'never shown checked where it cannot apply');
+  const spent = FIGHTER(); spent.tactical_mind = { available: false, reason: 'tactical_mind_uses_exhausted' };
+  const html = composer(spent);
+  assert.match(confirmInput(html), /disabled/); assert.match(html, /tactical_mind_uses_exhausted/);
+  const low = FIGHTER(); low.tactical_mind = null;
+  assert.equal(confirmInput(composer(low)), undefined);
+  assert.equal(confirmInput(composer(undefined)), undefined, 'no Fighter projection, no control');
 });
 
 test('Tactical Shift distance is sent only when the server offers it and the value is a positive whole number', () => {
