@@ -93,7 +93,7 @@ def _spend(character: dict[str, Any], field: str) -> None:
 
 
 def rest_recovery(session: Any, kind: str) -> None:
-    """Short Rest: one Second Wind and Action Surge back. Long Rest: all. Nothing is written for a character that spent nothing."""
+    """Short Rest: one Second Wind use and the one Action Surge use back. Long Rest: all. A character with no record keeps none."""
     character = session.character
     if KEY not in character:
         return

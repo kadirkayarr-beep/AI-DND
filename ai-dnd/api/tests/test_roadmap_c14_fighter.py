@@ -190,14 +190,15 @@ class EarnedProgression(unittest.TestCase):
         self.assertEqual(session.character["asi_choices"], [{"class_level": 4, **STRENGTH_ASI}])
 
     def test_constitution_asi_pays_retroactive_hit_points_and_leaves_armor_class(self):
-        session = earned(self, 3)
-        earn(session, 4)
-        hp, ac, con = session.character["max_hp"], session.character["armor_class"], session.character["constitution"]
-        increase = {"constitution": 2} if (con - 10) % 2 == 0 else {"constitution": 1, "strength": 1}
-        gain = 4 if (con - 10) % 2 == 0 else 4
-        step(self, session, 4, {"asi": {"feat": "Ability Score Improvement", "increase": increase}})
-        self.assertEqual(session.character["max_hp"], hp + gain)
-        self.assertEqual(session.character["armor_class"], ac, "the Fighter's armor formula has no CON term")
+        """PDF 41: a Constitution modifier rise adds 1 Hit Point per level. Level 4 from CON 14: 16 pays 4, 15 keeps the modifier and pays 0."""
+        for increase, gain in (({"constitution": 2}, 4), ({"constitution": 1, "strength": 1}, 0)):
+            session = earned(self, 3)
+            earn(session, 4)
+            hp, ac = session.character["max_hp"], session.character["armor_class"]
+            self.assertEqual(session.character["constitution"], 14)
+            step(self, session, 4, {"asi": {"feat": "Ability Score Improvement", "increase": increase}})
+            self.assertEqual(session.character["max_hp"], hp + gain, increase)
+            self.assertEqual(session.character["armor_class"], ac, "the Fighter's armor formula has no CON term")
 
     def test_level_five_has_no_choice_and_raises_nothing_but_the_applied_level(self):
         session = earned(self, 4)
