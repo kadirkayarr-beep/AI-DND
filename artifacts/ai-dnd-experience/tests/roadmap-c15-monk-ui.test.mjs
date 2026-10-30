@@ -71,7 +71,7 @@ test('reader keeps the verified prefix and hides a bad block and everything abov
   assert.deepEqual(read(raw5()), raw5());
   const levels = mutate => { const v = raw5(); mutate(v); return read(v)?.supported_starting_levels; };
   assert.deepEqual(levels(v => { v.level_5.extra = 1; }), [1, 2, 3, 4]);
-  assert.deepEqual(levels(v => { v.level_4.supported_asi_choices = [{ feat: 'Ability Score Improvement', increase: { dexterity: 2 } }]; }), [1, 2, 3]);
+  assert.deepEqual(levels(v => { v.level_4.supported_asi_choices = [{ feat: 'Ability Score Improvement', increase: { dexterity: 3 } }]; }), [1, 2, 3]);
   assert.deepEqual(levels(v => { v.level_3.subclass_options = [{ id: 'champion', name: 'x' }]; }), [1, 2]);
   assert.deepEqual(levels(v => { delete v.level_3; }), [1, 2]);
   assert.equal(levels(v => { v.level_2.choices = { x: 1 }; }), undefined);
@@ -84,7 +84,7 @@ test('fields send the exact bundle for each level and refuse anything unconfirme
   assert.deepEqual(fields(draftN(2), source).fields, { starting_level: 2, level_choices: { 2: {} } });
   assert.deepEqual(fields(draftN(5), source).fields, { starting_level: 5, level_choices: { 2: {}, 3: { subclass_id: 'open_hand' }, 4: { asi: STR2 }, 5: {} } });
   for (const bad of [draftN(3, { subclassId: '' }), draftN(3, { subclassId: 'champion' }), draftN(4, { level4ConConfirmed: false }), draftN(4, { level4Asi: undefined }),
-    draftN(4, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 2 } } }), draftN(3, { primalSkill: 'Nature' }), draftN(2, { subclassId: 'open_hand' })])
+    draftN(4, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 3 } } }), draftN(3, { primalSkill: 'Nature' }), draftN(2, { subclassId: 'open_hand' })])
     assert.equal(fields(bad, source).ok, false, JSON.stringify(bad));
   assert.equal(fields(draftN(4), raw3()).ok, false);
   assert.equal(fields(draftN(2), undefined).ok, false);

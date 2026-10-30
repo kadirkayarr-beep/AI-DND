@@ -7,6 +7,6 @@ export function AsiChoicePicker({ choices, selected, onChange, disabled = false,
     <label>Ability Score Improvement <select data-testid={testId} disabled={disabled} value={selected ? asiChoiceKey(selected) : ''} onChange={event => {
       if (!disabled) onChange(options.find(choice => asiChoiceKey(choice) === event.target.value));
     }}><option value="">Bir artış seç</option>{options.map(choice => <option key={asiChoiceKey(choice)} value={asiChoiceKey(choice)}>{asiChoiceLabel(choice)}</option>)}</select></label>
-    <p>Desteklenen kapsam: Strength, Constitution, Intelligence, Wisdom veya Charisma için tek +2 ya da iki farklı +1. Üst sınır 20 ve son değerler sunucuda doğrulanır. Dexterity, zırh hesabının kaynağı henüz güvenle izlenemediği için bu uygulamada kapalıdır; bu bir PHB kısıtı değildir. Diğer feat seçenekleri desteklenmiyor.</p>
+    <p>Desteklenen kapsam: Strength, Dexterity, Constitution, Intelligence, Wisdom veya Charisma için tek +2 ya da iki farklı +1. Üst sınır 20 ve son değerler sunucuda doğrulanır. Dexterity artışı Zırh Sınıfını giyilen zırha göre günceller; zırhın kaynağı doğrulanamayan karakterde Dexterity değiştirici yükselten seçenek sunulmaz. Diğer feat seçenekleri desteklenmiyor.</p>
   </div>;
 }

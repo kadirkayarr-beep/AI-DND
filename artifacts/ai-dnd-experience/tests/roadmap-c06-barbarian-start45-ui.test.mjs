@@ -7,7 +7,7 @@ import {emptyStartingDraft,changeStartingLevel} from '../src/lib/sorcerer-starti
 // Barbarian creation at selected starting levels 4 and 5. Source values: PHB PDF 51 (rows 4/5) via the server catalog.
 // Behavioural tests only: real functions, real components called as functions, real screen code extracted by AST and run in vm.
 const SKILLS=['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'];
-const ABILITIES=['strength','constitution','intelligence','wisdom','charisma'];
+const ABILITIES=['strength','dexterity','constitution','intelligence','wisdom','charisma'];
 const ASI=[...ABILITIES.map(a=>({feat:'Ability Score Improvement',increase:{[a]:2}})),
   ...ABILITIES.flatMap((a,i)=>ABILITIES.slice(i+1).map(b=>({feat:'Ability Score Improvement',increase:{[a]:1,[b]:1}})))];
 const STR2={feat:'Ability Score Improvement',increase:{strength:2}};
@@ -31,8 +31,8 @@ test('reader serves 4 and 5 only with valid detached blocks and keeps the verifi
   assert.deepEqual(five.level_4,raw5().level_4);assert.deepEqual(five.level_5,raw5().level_5);
   assert.deepEqual(read(raw4()).supported_starting_levels,[1,2,3,4]);assert.equal('level_5' in read(raw4()),false);
   five.level_4.supported_asi_choices.pop();five.level_4.effects_pending.push('forged');
-  assert.equal(raw5().level_4.supported_asi_choices.length,15);  // detached copy
-  const badFour=[l=>{l.supported_asi_choices=[];},l=>{l.supported_asi_choices=[{feat:'Ability Score Improvement',increase:{dexterity:2}}];},
+  assert.equal(raw5().level_4.supported_asi_choices.length,21);  // detached copy
+  const badFour=[l=>{l.supported_asi_choices=[];},l=>{l.supported_asi_choices=[{feat:'Ability Score Improvement',increase:{dexterity:3}}];},
     l=>{l.supported_asi_choices=[STR2,STR2];},l=>{l.supported_asi_choices=[{feat:'Tough',increase:{strength:2}}];},
     l=>{l.supported_asi_choices=[{feat:'Ability Score Improvement',increase:{strength:3}}];},l=>{l.effects_supported=[1];},l=>{l.effects_pending='x';},
     l=>{delete l.supported_asi_choices;},l=>{l.extra=true;}];
@@ -67,7 +67,7 @@ test('request builder refuses every incomplete, stale or foreign start-4/5 draft
   const build=fn('barbarianStartingCreationFields'),read=fn('readBarbarianStartingCreationOptions'),meta=read(raw5());
   for(const level of [4,5]){
     const bad={noAsi:{level4Asi:undefined},unconfirmed:{level4ConConfirmed:false},unconfirmedUndefined:{level4ConConfirmed:undefined},
-      dexterity:{level4Asi:{feat:'Ability Score Improvement',increase:{dexterity:2}}},wrongFeat:{level4Asi:{feat:'Tough',increase:{strength:2}}},
+      dexterity:{level4Asi:{feat:'Ability Score Improvement',increase:{dexterity:3}}},wrongFeat:{level4Asi:{feat:'Tough',increase:{strength:2}}},
       three:{level4Asi:{feat:'Ability Score Improvement',increase:{strength:3}}},extraKey:{level4Asi:{...STR2,extra:1}},
       noSkill:{primalSkill:undefined},noSubclass:{subclassId:''},arcana:{primalSkill:'Arcana'},wild:{subclassId:'wild_heart'},
       sorcPrepared2:{level2Prepared:['Shield']},sorcMeta:{metamagic:['Quickened Spell']},sorcPrepared3:{level3Prepared:['Web']},
@@ -111,7 +111,7 @@ test('pruning clears a stale, owned or no-longer-offered pick at 4 and 5 and kee
   for(const level of [4,5]){
     const keep=draftN(level);assert.equal(prune(keep,meta,['Athletics']),keep,`identity ${level}`);
     const owned=prune(draftN(level),meta,['Survival']);assert.equal(owned.primalSkill,undefined);assert.equal(owned.subclassId,'berserker');assert.deepEqual(owned.level4Asi,STR2);
-    const stale=prune(draftN(level,{level4Asi:{feat:'Ability Score Improvement',increase:{dexterity:2}}}),meta,[]);
+    const stale=prune(draftN(level,{level4Asi:{feat:'Ability Score Improvement',increase:{dexterity:3}}}),meta,[]);
     assert.equal(stale.level4Asi,undefined);assert.equal(stale.level4ConConfirmed,false);assert.equal(stale.primalSkill,'Survival');
     const narrowed=raw5();narrowed.level_4.supported_asi_choices=ASI.filter(c=>!('strength' in c.increase));
     const dropped=prune(draftN(level),read(narrowed),[]);assert.equal(dropped.level4Asi,undefined);assert.equal(dropped.level4ConConfirmed,false);
@@ -148,7 +148,7 @@ test('choices component: ASI picker and explicit confirmation appear from level 
     const tree=nodes(ui.BarbarianStartingChoices({...base,draft}));
     const picker=tree.find(n=>n.props?.testId==='barbarian-asi-choice'),confirm=tree.find(n=>n.props?.['data-testid']==='barbarian-asi-confirm');
     assert.ok(picker&&confirm,`level ${level}`);
-    assert.equal(picker.props.choices.length,15);
+    assert.equal(picker.props.choices.length,21);
     assert.equal(confirm.props.disabled,true,'cannot confirm before choosing');
     picker.props.onChange(STR2);assert.deepEqual(next.level4Asi,STR2);assert.equal(next.level4ConConfirmed,false);assert.equal(draft.level4Asi,undefined);
     const chosen=nodes(ui.BarbarianStartingChoices({...base,draft:{...draft,level4Asi:STR2}}));

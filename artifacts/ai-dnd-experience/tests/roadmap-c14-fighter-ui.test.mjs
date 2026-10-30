@@ -68,7 +68,7 @@ test('reader keeps the verified prefix and hides a bad block and everything abov
   assert.equal(raw5().level_4.supported_asi_choices.length, 15);
   const levels = mutate => { const v = raw5(); mutate(v); return read(v)?.supported_starting_levels; };
   assert.deepEqual(levels(v => { v.level_5.extra = 1; }), [1, 2, 3, 4]);
-  assert.deepEqual(levels(v => { v.level_4.supported_asi_choices = [{ feat: 'Ability Score Improvement', increase: { dexterity: 2 } }]; }), [1, 2, 3]);
+  assert.deepEqual(levels(v => { v.level_4.supported_asi_choices = [{ feat: 'Ability Score Improvement', increase: { dexterity: 3 } }]; }), [1, 2, 3]);
   assert.deepEqual(levels(v => { v.level_3.subclass_options = [{ id: 'berserker', name: 'x' }]; }), [1, 2]);
   assert.deepEqual(levels(v => { v.level_3.subclass_options.push({ id: 'champion', name: 'Again' }); }), [1, 2]);
   assert.deepEqual(levels(v => { delete v.level_3; }), [1, 2]);
@@ -84,7 +84,7 @@ test('fields send the exact bundle for each level and refuse anything unconfirme
   assert.deepEqual(fields(draftN(3), source).fields, { starting_level: 3, level_choices: { 2: {}, 3: { subclass_id: 'champion' } } });
   assert.deepEqual(fields(draftN(5), source).fields, { starting_level: 5, level_choices: { 2: {}, 3: { subclass_id: 'champion' }, 4: { asi: STR2 }, 5: {} } });
   for (const bad of [draftN(3, { subclassId: '' }), draftN(3, { subclassId: 'berserker' }), draftN(4, { level4ConConfirmed: false }), draftN(4, { level4Asi: undefined }),
-    draftN(4, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 2 } } }), draftN(3, { primalSkill: 'Nature' }), draftN(2, { level3Prepared: ['x'] }), draftN(2, { subclassId: 'champion' })])
+    draftN(4, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 3 } } }), draftN(3, { primalSkill: 'Nature' }), draftN(2, { level3Prepared: ['x'] }), draftN(2, { subclassId: 'champion' })])
     assert.equal(fields(bad, source).ok, false, JSON.stringify(bad));
   assert.equal(fields(draftN(4), raw3()).ok, false);
   assert.equal(fields(draftN(2), undefined).ok, false);
@@ -102,7 +102,7 @@ test('pruning clears only a pick the verified source refuses and never rewrites 
   assert.equal(prune(keep, raw5()), keep);
   assert.equal(prune(keep, undefined), keep, 'a missing catalog blocks submission instead of erasing the pick');
   assert.equal(prune(draftN(5, { subclassId: 'berserker' }), raw5()).subclassId, '');
-  const stale = prune(draftN(5, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 2 } } }), raw5());
+  const stale = prune(draftN(5, { level4Asi: { feat: 'Ability Score Improvement', increase: { dexterity: 3 } } }), raw5());
   assert.equal('level4Asi' in stale, false); assert.equal(stale.level4ConConfirmed, false);
 });
 

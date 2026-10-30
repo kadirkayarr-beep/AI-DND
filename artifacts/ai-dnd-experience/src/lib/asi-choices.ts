@@ -1,6 +1,6 @@
 import type { LevelUpAsiChoice } from '@workspace/api-client-react';
 export type AsiChoice = LevelUpAsiChoice;
-const supported = new Set(['strength', 'constitution', 'intelligence', 'wisdom', 'charisma']);
+const supported = new Set(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']);
 /** Validate the advertised bounded family, never manufacture a choice or calculate derived scores. */
 export function readAsiChoices(raw: unknown): AsiChoice[] | undefined {
   if (!Array.isArray(raw) || !raw.length) return undefined;

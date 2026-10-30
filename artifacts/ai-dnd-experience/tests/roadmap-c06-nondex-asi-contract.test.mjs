@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ApplyGameSessionLevelUpBody, CreateCampaignBody, CreateLegacyCampaignBody } from '../../../lib/api-zod/src/generated/api.ts';
 const patterns = [
- {strength:2},{constitution:2},{intelligence:2},{wisdom:2},{charisma:2},
- {strength:1,constitution:1},{strength:1,intelligence:1},{strength:1,wisdom:1},{strength:1,charisma:1},
+ {strength:2},{dexterity:2},{constitution:2},{intelligence:2},{wisdom:2},{charisma:2},
+ {strength:1,dexterity:1},{strength:1,constitution:1},{strength:1,intelligence:1},{strength:1,wisdom:1},{strength:1,charisma:1},
+ {dexterity:1,constitution:1},{dexterity:1,intelligence:1},{dexterity:1,wisdom:1},{dexterity:1,charisma:1},
  {constitution:1,intelligence:1},{constitution:1,wisdom:1},{constitution:1,charisma:1},
  {intelligence:1,wisdom:1},{intelligence:1,charisma:1},{wisdom:1,charisma:1},
 ];
-const malformed = [{}, {dexterity:2}, {CHA:2}, {charisma:'2'}, {charisma:2.0,unknown:1}, {charisma:1},
+const malformed = [{}, {dexterity:3}, {dexterity:1}, {dexterity:'2'}, {CHA:2}, {charisma:'2'}, {charisma:2.0,unknown:1}, {charisma:1},
  {charisma:true,wisdom:1}, {charisma:null,wisdom:1}, {charisma:1.5,wisdom:0.5},
  {charisma:2,wisdom:1}, {strength:1,wisdom:1,charisma:1}, {charisma:2,dexterity:null},
  {constitution:2,charisma:0}, {charisma:3}, {wisdom:1,charisma:-1}];
@@ -21,10 +22,10 @@ const wrappers = [
  (r)=>r.character.level_choices['4'].asi.increase])
 ];
 for (const [name,schema,request,read] of wrappers) {
- test(`${name} generated parser preserves all fifteen exact non-DEX patterns`,()=>{
+ test(`${name} generated parser preserves all twenty-one exact patterns`,()=>{
   for(const pattern of patterns) assert.deepEqual(read(schema.parse(request(pattern))),pattern);
  });
- test(`${name} generated parser rejects malformed/DEX/alias/split/extra fields`,()=>{
+ test(`${name} generated parser rejects malformed/alias/split/extra fields`,()=>{
   for(const pattern of malformed) assert.equal(schema.safeParse(request(pattern)).success,false,JSON.stringify(pattern));
  });
 }
