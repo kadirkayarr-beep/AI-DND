@@ -5,6 +5,8 @@ whose choices were applied; a level granted by XP above it is a PENDING level-up
 (`capacity` follows `progression_level`, never `level`) until `apply_level_choices` applies the choices exactly once.
 Applied progression supports selected non-DEX ordinary ASI Sorcerer4 followed by selected5 / selected Berserker3→4→5 (level 5 has no choices); other paths are BLOCKED.
 Subclass choice storage is not implementation of subclass features or full playability. Every delta lists effects that are not implemented under `effects_pending`.
+Class-specific rules live in `class_progression/<class>.py` behind a registry; this module keeps the shared flow and re-exports
+the class names other modules and tests read from here.
 """
 from __future__ import annotations
 
@@ -14,6 +16,12 @@ from pathlib import Path
 from typing import Any
 
 from api.dnd_2024_rules import proficiency_bonus_for_level
+from class_progression import for_class, registered
+from class_progression.barbarian import (  # noqa: F401
+    barbarian_level_five_applied,
+    EXTRA_ATTACK_ATTACKS,
+    FAST_MOVEMENT_FT,
+)
 
 _CLASS_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "classes"
 _cache: dict[str, dict[str, Any] | None] = {}
@@ -21,7 +29,7 @@ MAX_SUPPORTED_LEVEL = 5  # progression state only; pending class/spell effects a
 
 
 def _supported_level(class_name: Any) -> int:
-    return min(MAX_SUPPORTED_LEVEL, {"Sorcerer": 5, "Barbarian": 5}.get(class_name, 1))
+    return min(MAX_SUPPORTED_LEVEL, for_class(class_name).supported_level)
 
 
 def _noncaster_state_valid(character: dict[str, Any], world: dict[str, Any]) -> bool:
@@ -117,7 +125,7 @@ def _project_selected_asi_hp(character: Any, target_level: Any, choice: Any) -> 
     raw, applied = character.get("level"), character.get("progression_level")
     if type(raw) is not int or type(applied) is not int:
         return refuse("invalid_projection_levels")
-    if character.get("class") not in ("Sorcerer", "Barbarian") or target_level != 4 or applied != 3 or raw not in (3, 4, 5):
+    if not for_class(character.get("class")).selected_asi or target_level != 4 or applied != 3 or raw not in (3, 4, 5):
         return refuse("projection_scope_not_supported", "unsupported")
     if (type(choice) is not dict or set(choice) != {"increase"}
             or not _supported_asi_increase(choice["increase"])):
@@ -170,14 +178,9 @@ def row(character: dict[str, Any], level: int) -> dict[str, Any]:
 
 def capacity(character: dict[str, Any]) -> dict[str, Any] | None:
     """Spell resources at the APPLIED level for a class with a table; None when the class has no table (old level-1 rule)."""
-    if character.get("class") != "Sorcerer" or not has_table(character):
+    if not has_table(character):
         return None
-    level = applied_level(character)
-    if level > MAX_SUPPORTED_LEVEL:
-        return None
-    data = row(character, level)
-    return {"cantrips": data["cantrips"], "prepared_spells": data["prepared_spells"], "slots": copy.deepcopy(data["slots"]),
-            "sorcery_points": data["sorcery_points"]}
+    return for_class(character.get("class")).capacity(character)
 
 
 def slot_capacity(character: dict[str, Any]) -> dict[str, int] | None:
@@ -189,55 +192,13 @@ def _preview(status: str, reason: str | None = None, **extra: Any) -> dict[str, 
     return {"status": status, "reason": reason, **extra}
 
 
-def progression_disclosure(class_name: str, level: int, *, rage_adopted=None, points_adopted=None) -> dict[str, list[str]]:
+def progression_disclosure(class_name: str, level: int, **adopted: Any) -> dict[str, list[str]]:
     """Pure supported/pending view. Capability facts never adopt resources."""
-    supported, pending = [], []
-    if class_name == "Barbarian":
-        if rage_adopted is False:
-            pending.append("Rage unavailable: this saved character has no verified unarmored Rage state; legacy state is not automatically adopted")
-        else:
-            supported.append(f"Rage: known-unarmored Barbarian {'1–2' if level <= 2 else '1–3' if level == 3 else '1–4' if level == 4 else '1–5'} combat Bonus activation/extension, supported attack/check/save/resistance routes and rest recovery; verified adopted state required")
-        pending.append("Weapon Mastery: selections and effects remain pending (C10/C04)")
-        pending.append("General armor changes and broader Unarmored Defense routes remain unsupported")
-        if level >= 4:
-            supported.append("Selected level4 ordinary non-DEX Ability Score Improvement supported")
-            pending.append("CON modifier-changing ASI requires canonical unarmored AC (10 + DEX + CON modifiers); shield or unexplained AC extras remain unsupported for those choices")
-            pending.append("Level4 third Weapon Mastery selection and effects remain pending (C10/C04)")
-        if level >= 2:
-            supported.extend(["Reckless Attack: explicit first own-turn attack choice and canonical advantage window supported",
-                              "Danger Sense: weapon/unarmed Dexterity-save route supported"])
-            pending.append("Danger Sense: other save routes remain pending (C10)")
-        if level >= 3:
-            supported.extend(["Selected Berserker Frenzy: first eligible own-turn Strength hit after Reckless while raging; 2d6 extra damage",
-                              "Primal Knowledge: one additional class skill proficiency supported",
-                              "Primal Knowledge: explicit optional Strength for selected untargeted immediate Acrobatics, Intimidation, Perception, Stealth or Survival checks while Rage is active"])
-            pending.append("Primal Knowledge: Strength substitution in targeted commands, timed tasks, tracking, travel, active combat and model-only check routes remains unsupported (engine scope, not a PHB restriction)")
-            pending.append("Other Barbarian subclasses and higher-level features remain unsupported")
-        if level >= 5:
-            supported.extend(["Extra Attack: an applied level-5 Barbarian makes two attacks instead of one when taking the Attack action on their own turn (existing attacks-per-Action allowance)",
-                              "Fast Movement: +10 ft Speed while the verified unarmored state is retained (the bonus never applies in Heavy armor)"])
-            pending.extend(["Fast Movement: general worn-armor tracking is unavailable; without the verified unarmored state no bonus is granted",
-                            "Other extra-Action attack grants keep their own attack limit; Extra Attack does not raise them"])
-    elif class_name == "Sorcerer":
-        pending.append("Innate Sorcery: activation and effects are not implemented")
-        if level >= 2:
-            if points_adopted is False:
-                pending.append("Font of Magic: Sorcery Points are not adopted in this legacy state; no load-time grant")
-            else:
-                supported.extend(["Font of Magic: Sorcery Points tracked; slot-to-point conversion supported; adopted state required",
-                                  "Metamagic: selected Quickened Magic Missile supported; selected choice and adopted points required"])
-            pending.extend(["Font of Magic: creating spell slots remains unsupported",
-                            "Other Metamagic effects remain unsupported"])
-        if level >= 3:
-            pending.append("Sorcerer subclass features and always-prepared grants are not implemented (C19)")
-        if level >= 5:
-            pending.append("Sorcerous Restoration: rest recovery remains pending (C19)")
-        pending.append("Optional spell, cantrip and Metamagic replacement choices remain unsupported")
-    return {"supported": supported, "pending": pending}
+    return for_class(class_name).disclosure(level, **adopted)
 
 
-def progression_effects_pending(class_name: str, level: int, *, rage_adopted=None, points_adopted=None) -> list[str]:
-    return progression_disclosure(class_name, level, rage_adopted=rage_adopted, points_adopted=points_adopted)["pending"]
+def progression_effects_pending(class_name: str, level: int, **adopted: Any) -> list[str]:
+    return progression_disclosure(class_name, level, **adopted)["pending"]
 
 
 HIGHER_START_EQUIPMENT_PENDING = ("Higher-start equipment: normal starting gear only; optional extra wealth and magic items remain pending")
@@ -428,9 +389,7 @@ def preview_level_up(session: Any, target_level: Any) -> dict[str, Any]:
         required["subclass_id"] = 1
     if noncaster and target_level == 3:
         required["primal_knowledge_skill"] = 1
-    disclosure = progression_disclosure(character["class"], target_level,
-        rage_adopted="rage_v1" in session.world_state,
-        points_adopted="sorcery_points_v1" in session.world_state)
+    disclosure = progression_disclosure(character["class"], target_level, **for_class(character["class"]).adoption(session.world_state))
     pending = disclosure["pending"]
     return _preview(
         "ready", None, class_name=character["class"], from_level=current, to_level=target_level, features=features,
@@ -615,47 +574,18 @@ def _barbarian_four_prerequisite(session) -> str | None:
     return None
 
 
-FAST_MOVEMENT_FT = 10  # Barbarian Fast Movement, features table level 5 (+10 ft Speed)
-EXTRA_ATTACK_ATTACKS = 2  # Barbarian Extra Attack, features table level 5 (two attacks instead of one)
-
-
-def barbarian_level_five_applied(character: Any) -> bool:
-    """The only source of level-5 Barbarian features: applied level 5 of the selected Berserker.
-
-    Cheap on purpose (Speed and attack allowance read it often); the retained choices behind it are admitted by `validate_saved`
-    on every save, restore and level-up, so a numeric XP level 5 or a forged field never reaches here with a valid state.
-    """
-    return (isinstance(character, dict) and character.get("class") == "Barbarian"
-            and type(character.get("level")) is int and type(character.get("progression_level")) is int
-            and character["progression_level"] == 5 and character["level"] >= 5
-            and character.get("subclass_id") == "berserker")
-
-
 def attacks_per_attack_action(character: Any) -> int:
     """Attacks one Attack action allows from class features (the existing attacks-per-Action allowance owner reads this)."""
-    return EXTRA_ATTACK_ATTACKS if barbarian_level_five_applied(character) else 1
+    return _handler_of(character).attacks_per_attack_action(character)
 
 
 def fast_movement_bonus_ft(character: Any, world: Any) -> int:
-    """Fast Movement: +10 ft Speed while not wearing Heavy armor.
+    """Speed bonus from class features (the existing Speed owner reads this)."""
+    return _handler_of(character).speed_bonus_ft(character, world)
 
-    The engine has no general worn-armor owner. The only retained fact is the Barbarian `worn_armor_v1` proof: `armor_id` None is
-    the verified unarmored state. A named suit is read from the existing PHB armor table (Heavy => no bonus); a missing proof or an
-    unknown armor cannot be verified as non-Heavy, so no bonus is granted (honest under-grant, never an invented armor state).
-    """
-    if not barbarian_level_five_applied(character) or not isinstance(world, dict):
-        return 0
-    proof = world.get("worn_armor_v1")
-    if type(proof) is not dict or "armor_id" not in proof:
-        return 0
-    armor = proof["armor_id"]
-    if armor is None:
-        return FAST_MOVEMENT_FT
-    if type(armor) is not str:
-        return 0
-    from api.dnd_2024_rules import ARMOR_CLASS_RULES, ARMOR_NAME_ALIASES
-    rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
-    return FAST_MOVEMENT_FT if rule is not None and rule["category"] in ("light", "medium") else 0
+
+def _handler_of(character: Any) -> Any:
+    return for_class(character.get("class") if isinstance(character, dict) else None)
 
 
 def _barbarian_five_prerequisite(session) -> str | None:
@@ -730,9 +660,8 @@ def _check_detached_asi_consistency(*, scores: Any, base_scores: Any,
     def reject(reason):
         return {"consistent": False, "reason": reason}
 
-    if (class_name not in ("Sorcerer", "Barbarian") or type(level) is not int or level not in (4, 5)
-            or type(applied_level) is not int or applied_level not in (4, 5) or applied_level > level
-            or (class_name == "Barbarian" and applied_level not in (4, 5))):
+    if (not for_class(class_name).selected_asi or type(level) is not int or level not in (4, 5)
+            or type(applied_level) is not int or applied_level not in (4, 5) or applied_level > level):
         return reject("unsupported_hypothetical_context")
     abilities = set(feat_rules.ABILITIES)
     for values in (scores, base_scores):
