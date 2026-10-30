@@ -21,7 +21,7 @@ class ModelIsolationTests(unittest.TestCase):
             self.assertEqual(target.chat, adapter.chat)
             target.chat(model="qwen3:8b", messages=[])
             client.chat.assert_called_once_with(
-                model="qwen3:8b", messages=[], options={"num_ctx": CONTEXT_WINDOW_TOKENS},
+                model="qwen3:8b", messages=[], think=False, options={"num_ctx": CONTEXT_WINDOW_TOKENS},
             )
 
     def test_nested_scopes_restore_exact_callbacks_after_exception(self):
