@@ -31,4 +31,6 @@ export const EconomyStepInputKind = {
   convert_spell_slot: 'convert_spell_slot',
   activate_rage: 'activate_rage',
   extend_rage: 'extend_rage',
+  second_wind: 'second_wind',
+  action_surge: 'action_surge',
 } as const;

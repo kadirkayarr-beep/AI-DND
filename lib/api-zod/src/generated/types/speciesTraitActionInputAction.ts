@@ -20,4 +20,5 @@ export const SpeciesTraitActionInputAction = {
   short_rest: 'short_rest',
   long_rest: 'long_rest',
   spend_hit_die: 'spend_hit_die',
+  second_wind: 'second_wind',
 } as const;

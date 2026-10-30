@@ -8,6 +8,7 @@
 import type { BarbarianLevel2Choices } from './barbarianLevel2Choices';
 import type { BarbarianLevel3Choices } from './barbarianLevel3Choices';
 import type { BarbarianLevel4Choices } from './barbarianLevel4Choices';
+import type { FighterLevel3Choices } from './fighterLevel3Choices';
 import type { LevelUpChoices } from './levelUpChoices';
 import type { LevelUpFiveChoices } from './levelUpFiveChoices';
 import type { SorcererLevel2Choices } from './sorcererLevel2Choices';
@@ -23,5 +24,5 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices;
 }

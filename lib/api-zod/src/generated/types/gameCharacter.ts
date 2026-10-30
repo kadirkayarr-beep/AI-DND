@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { FighterState } from './fighterState';
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
 import type { PrimalKnowledgeCheck } from './primalKnowledgeCheck';
@@ -14,6 +15,7 @@ import type { SpeciesTraitState } from './speciesTraitState';
 export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
+  fighter?: FighterState;
   name: string;
   race: string;
   species?: string;

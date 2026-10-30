@@ -37,7 +37,8 @@ class ReadyResponseInput(BaseModel):
 class EconomyStepInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["attack", "continue_attack", "move", "dash", "ready", "react", "decline_reaction", "end_turn", "species",
-                  "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize", "convert_spell_slot", "activate_rage", "extend_rage"]
+                  "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize", "convert_spell_slot", "activate_rage", "extend_rage",
+                  "second_wind", "action_surge"]
     resource: Literal["action", "bonus"] = "action"
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     distance_ft: int | None = Field(default=None, gt=0, strict=True)
@@ -55,6 +56,14 @@ class EconomyStepInput(BaseModel):
         if self.kind in {"activate_rage", "extend_rage"}:
             if self.resource != "bonus" or self.model_fields_set != {"kind", "resource"}:
                 raise ValueError("Rage requires one explicit Bonus Action and no other step fields.")
+            return self
+        if self.kind == "second_wind":
+            if self.resource != "bonus" or "resource" not in self.model_fields_set or self.model_fields_set - {"kind", "resource", "distance_ft"}:
+                raise ValueError("Second Wind requires one explicit Bonus Action and at most a Tactical Shift distance.")
+            return self
+        if self.kind == "action_surge":
+            if self.model_fields_set != {"kind"}:
+                raise ValueError("Action Surge takes no other step fields.")
             return self
         if self.kind == "convert_spell_slot":
             if self.slot_level not in {1, 2, 3} or self.resource != "action":
@@ -79,6 +88,8 @@ class CombatActionInput(BaseModel):
     def conversion_is_single_step(self):
         if any(step.kind in {"activate_rage", "extend_rage"} for step in self.steps) and len(self.steps) != 1:
             raise ValueError("Rage must be submitted as one explicit step.")
+        if any(step.kind in {"second_wind", "action_surge"} for step in self.steps) and len(self.steps) != 1:
+            raise ValueError("Second Wind and Action Surge must be submitted as one explicit step.")
         if any(step.kind == "convert_spell_slot" for step in self.steps) and len(self.steps) != 1:
             raise ValueError("Slot conversion must be submitted as one explicit step.")
         return self
@@ -517,6 +528,7 @@ class SpeciesTraitActionRequest(BaseModel):
         "short_rest",
         "long_rest",
         "spend_hit_die",
+        "second_wind",
     ]
     form: Literal[
         "heavenly_wings", "inner_radiance", "necrotic_shroud"
@@ -708,6 +720,20 @@ class BarbarianLevel2Choices(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class FighterLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_id: Literal["champion"]
+
+
+class FighterLevelChoices(BaseModel):
+    """Levels 2 and 5 have no choices and level 4 is the ordinary ASI: the same strict objects as Barbarian."""
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: BarbarianLevel2Choices = Field(alias="2")
+    level_3: FighterLevel3Choices = Field(default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None)
+    level_4: BarbarianLevel4Choices = Field(default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None)
+    level_5: BarbarianLevel2Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
+
+
 class BarbarianLevelChoices(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
     level_2: BarbarianLevel2Choices = Field(alias="2")
@@ -734,7 +760,7 @@ class CharacterCreateInput(BaseModel):
 
     mode: Literal["custom", "random"]
     starting_level: int = Field(default=1, ge=1, le=5, strict=True)
-    level_choices: SorcererLevelChoices | BarbarianLevelChoices | None = None
+    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | None = None
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
@@ -787,6 +813,11 @@ class CharacterCreateInput(BaseModel):
                 if self.character_class == "Barbarian":
                     if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, BarbarianLevelChoices):
                         raise ValueError("Barbarian supports only the exact level2 to level5 choice bundle for its starting level.")
+                elif self.character_class == "Fighter":
+                    # {"2": {}} is the same strict body for both classes and the union resolves it to the first; nothing else is shared.
+                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
+                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, FighterLevelChoices)):
+                        raise ValueError("Fighter supports only the exact level2 to level5 choice bundle for its starting level.")
                 elif self.character_class == "Sorcerer":
                     if not isinstance(self.level_choices, SorcererLevelChoices):
                         raise ValueError("Sorcerer requires its own per-level choices.")
@@ -952,11 +983,34 @@ class BarbarianStartingCreationOptions(BaseModel):
     level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class FighterStartingSubclassOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: Literal["champion"]
+    name: str
+
+
+class FighterStartingLevel3Options(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_options: list[FighterStartingSubclassOption]
+    effects_supported: list[str]
+    effects_pending: list[str]
+
+
+class FighterStartingCreationOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: BarbarianStartingLevel2Options
+    level_3: FighterStartingLevel3Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_4: BarbarianStartingLevel4Options | None = Field(default=None, exclude_if=lambda value: value is None)
+    level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
 class CharacterCreationCatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     sorcerer_starting_creation: SorcererStartingCreationOptions | None = None
     barbarian_starting_creation: BarbarianStartingCreationOptions | None = None
+    fighter_starting_creation: FighterStartingCreationOptions | None = None
     races: dict[str, Any]
     classes: dict[str, Any]
     backgrounds: dict[str, Any]
@@ -1088,11 +1142,11 @@ class LevelUpApplyRequest(BaseModel):
     campaign_id: UUID
     expected_revision: int = Field(strict=True, ge=0)
     target_level: int = Field(strict=True, ge=2, le=5)
-    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices
+    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices
 
     @model_validator(mode="after")
     def choices_match_target(self):
-        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices),
+        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices),
                     4: (LevelUpChoices, BarbarianLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices)}[self.target_level]
         if not isinstance(self.choices, expected):
             raise ValueError("Level-up choice shape does not match target level.")

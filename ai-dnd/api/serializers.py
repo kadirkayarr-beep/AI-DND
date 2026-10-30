@@ -13,6 +13,7 @@ import game
 import character_progression
 import sorcery_points
 import barbarian_rage
+import fighter_features
 import living_world
 import campaign_time
 import scheduled_events
@@ -647,7 +648,10 @@ def serialize_session_state(
     primal_check = barbarian_rage.primal_knowledge_projection(session) if isinstance(session, game.GameSession) else None
     if primal_check is not None:
         character["primal_knowledge_check"] = primal_check
-    if player.get("class") == "Barbarian" or (player.get("class") == "Sorcerer" and "progression_level" in player):
+    fighter = fighter_features.projection(session) if isinstance(session, game.GameSession) else None
+    if fighter is not None:
+        character["fighter"] = fighter
+    if player.get("class") in ("Barbarian", "Fighter") or (player.get("class") == "Sorcerer" and "progression_level" in player):
         disclosure = character_progression.progression_disclosure(
             player["class"], character_progression.applied_level(player),
             rage_adopted=rage is not None, points_adopted=points is not None,

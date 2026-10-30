@@ -389,6 +389,8 @@ export const ApplyGameSessionLevelUpBody = zod.object({
   "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesSevenAsiIncreaseOnefiveCharismaMax)
 }).strict()])
 }).strict()
+}).strict(),zod.object({
+  "subclass_id": zod.literal("champion")
 }).strict()])
 }).strict()
 
@@ -542,6 +544,13 @@ export const createGameSessionResponseStateCharacterRageUsesRemainingMin = 0;
 export const createGameSessionResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const createGameSessionResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const createGameSessionResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const createGameSessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -903,6 +912,28 @@ export const CreateGameSessionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -1334,6 +1365,13 @@ export const getGameSessionStateResponseCharacterRageUsesRemainingMax = 3;
 
 export const getGameSessionStateResponseCharacterRageRemainingSecondsMax = 12;
 
+export const getGameSessionStateResponseCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const getGameSessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1693,6 +1731,28 @@ export const GetGameSessionStateResponse = zod.object({
   "reason": zod.string().nullable()
 })
 }).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -2003,7 +2063,7 @@ export const ResolveSpeciesTraitActionParams = zod.object({
 
 export const ResolveSpeciesTraitActionBody = zod.object({
   "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die']),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind']),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "armed": zod.boolean().nullish()
@@ -2129,6 +2189,13 @@ export const resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMin
 export const resolveSpeciesTraitActionResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const resolveSpeciesTraitActionResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const resolveSpeciesTraitActionResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resolveSpeciesTraitActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -2494,6 +2561,28 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "reason": zod.string().nullable()
 })
 }).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -2811,7 +2900,7 @@ export const ResolveSpeciesTraitActionCompatParams = zod.object({
 
 export const ResolveSpeciesTraitActionCompatBody = zod.object({
   "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die']),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind']),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "armed": zod.boolean().nullish()
@@ -2937,6 +3026,13 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemain
 export const resolveSpeciesTraitActionCompatResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -3302,6 +3398,28 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "reason": zod.string().nullable()
 })
 }).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -3643,7 +3761,7 @@ export const PlayGameTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
   "resource": zod.enum(['action', 'bonus']).default(playGameTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playGameTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -3793,6 +3911,13 @@ export const playGameTurnResponseStateCharacterRageUsesRemainingMin = 0;
 export const playGameTurnResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const playGameTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const playGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const playGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -4305,6 +4430,28 @@ export const PlayGameTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -5182,6 +5329,13 @@ export const getGameActionStatusResponseResponseTwoStateCharacterRageUsesRemaini
 
 export const getGameActionStatusResponseResponseTwoStateCharacterRageRemainingSecondsMax = 12;
 
+export const getGameActionStatusResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const getGameActionStatusResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -5696,6 +5850,28 @@ export const GetGameActionStatusResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -6560,6 +6736,13 @@ export const abandonGameActionResponseResponseTwoStateCharacterRageUsesRemaining
 
 export const abandonGameActionResponseResponseTwoStateCharacterRageRemainingSecondsMax = 12;
 
+export const abandonGameActionResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const abandonGameActionResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -7074,6 +7257,28 @@ export const AbandonGameActionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -7942,6 +8147,13 @@ export const undoGameTurnResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const undoGameTurnResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const undoGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const undoGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -8305,6 +8517,28 @@ export const UndoGameTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -8741,6 +8975,13 @@ export const acceptGameQuestResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const acceptGameQuestResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const acceptGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const acceptGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -9127,6 +9368,28 @@ export const AcceptGameQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -9585,6 +9848,13 @@ export const cancelGameQuestResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const cancelGameQuestResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const cancelGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const cancelGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -9971,6 +10241,28 @@ export const CancelGameQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -10437,6 +10729,13 @@ export const resolveAmbientEventActionResponseStateCharacterRageUsesRemainingMax
 
 export const resolveAmbientEventActionResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const resolveAmbientEventActionResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resolveAmbientEventActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -10804,6 +11103,28 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -11249,6 +11570,13 @@ export const acceptLegacyQuestResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const acceptLegacyQuestResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const acceptLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const acceptLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11635,6 +11963,28 @@ export const AcceptLegacyQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -12094,6 +12444,13 @@ export const cancelLegacyQuestResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const cancelLegacyQuestResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const cancelLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const cancelLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12480,6 +12837,28 @@ export const CancelLegacyQuestResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -12947,6 +13326,13 @@ export const resolveAmbientEventActionCompatResponseStateCharacterRageUsesRemain
 
 export const resolveAmbientEventActionCompatResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const resolveAmbientEventActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resolveAmbientEventActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -13314,6 +13700,28 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -13781,6 +14189,61 @@ export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLeve
 
 export const getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetCharacterCreationCatalogResponse = zod.object({
@@ -13921,6 +14384,74 @@ export const GetCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "fighter_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("champion"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -14177,6 +14708,61 @@ export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWis
 
 export const createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin = 2;
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax = 2;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createCampaignBodyCharacterOneNameMax = 40;
 
 export const createCampaignBodyCharacterOneOriginMax = 240;
@@ -14311,6 +14897,58 @@ export const CreateCampaignBody = zod.object({
 }).strict(),zod.object({
   "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("champion")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -14477,6 +15115,13 @@ export const createCampaignResponseStateCharacterRageUsesRemainingMin = 0;
 export const createCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const createCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const createCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const createCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -14910,6 +15555,28 @@ export const CreateCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -15575,6 +16242,13 @@ export const getCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const getCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const getCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const getCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16017,6 +16691,28 @@ export const GetCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -16669,6 +17365,13 @@ export const resumeCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const resumeCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const resumeCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resumeCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17101,6 +17804,28 @@ export const ResumeCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -17809,6 +18534,61 @@ export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationO
 
 export const getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
 
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin = 2;
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax = 2;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax = 1;
+
+export const getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax = 1;
+
 
 
 export const GetLegacyCharacterCreationCatalogResponse = zod.object({
@@ -17949,6 +18729,74 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
 }),zod.object({
   "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseBarbarianStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
+})])
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_5": zod.union([zod.object({
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "fighter_starting_creation": zod.union([zod.object({
+  "supported_starting_levels": zod.array(zod.number().int()),
+  "level_2": zod.object({
+  "choices": zod.record(zod.string(), zod.never().optional()),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),
+  "level_3": zod.union([zod.object({
+  "subclass_options": zod.array(zod.object({
+  "id": zod.literal("champion"),
+  "name": zod.string()
+})),
+  "effects_supported": zod.array(zod.string()),
+  "effects_pending": zod.array(zod.string())
+}),zod.null()]).optional(),
+  "level_4": zod.union([zod.object({
+  "supported_asi_choices": zod.array(zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneStrengthMax)
+}),zod.object({
+  "constitution": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseTwoConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseThreeIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFourWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMin).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseFiveCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSixConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseSevenIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseEightWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseNineCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnezeroIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOneoneWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnetwoCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnethreeWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefourCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(getLegacyCharacterCreationCatalogResponseFighterStartingCreationOneLevel4OneSupportedAsiChoicesItemIncreaseOnefiveCharismaMax)
 })])
 })),
   "effects_supported": zod.array(zod.string()),
@@ -18178,6 +19026,13 @@ export const createLegacySessionResponseStateCharacterRageUsesRemainingMin = 0;
 export const createLegacySessionResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const createLegacySessionResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const createLegacySessionResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const createLegacySessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -18539,6 +19394,28 @@ export const CreateLegacySessionResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -18971,6 +19848,13 @@ export const getLegacySessionStateResponseCharacterRageUsesRemainingMax = 3;
 
 export const getLegacySessionStateResponseCharacterRageRemainingSecondsMax = 12;
 
+export const getLegacySessionStateResponseCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const getLegacySessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -19330,6 +20214,28 @@ export const GetLegacySessionStateResponse = zod.object({
   "reason": zod.string().nullable()
 })
 }).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
+}).optional(),
   "name": zod.string(),
   "race": zod.string(),
   "species": zod.string().optional(),
@@ -19666,7 +20572,7 @@ export const PlayLegacyTurnBody = zod.object({
   "check_feature": zod.union([zod.literal('primal_knowledge'),zod.literal(null)]).nullish().describe('Explicit one-shot choice for an untargeted immediate Do check while Rage is active. No combat context; omission or null preserves ordinary behavior.'),
   "combat_action": zod.union([zod.object({
   "steps": zod.array(zod.object({
-  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage']),
+  "kind": zod.enum(['attack', 'continue_attack', 'move', 'dash', 'ready', 'react', 'decline_reaction', 'end_turn', 'species', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'search', 'study', 'utilize', 'convert_spell_slot', 'activate_rage', 'extend_rage', 'second_wind', 'action_surge']),
   "resource": zod.enum(['action', 'bonus']).default(playLegacyTurnBodyCombatActionOneStepsItemResourceDefault),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyCombatActionOneStepsItemTargetIdMax).nullish(),
   "distance_ft": zod.number().int().min(1).nullish(),
@@ -19816,6 +20722,13 @@ export const playLegacyTurnResponseStateCharacterRageUsesRemainingMin = 0;
 export const playLegacyTurnResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const playLegacyTurnResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const playLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const playLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -20328,6 +21241,28 @@ export const PlayLegacyTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -21193,6 +22128,13 @@ export const undoLegacyTurnResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const undoLegacyTurnResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const undoLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const undoLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -21556,6 +22498,28 @@ export const UndoLegacyTurnResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -22014,6 +22978,61 @@ export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnef
 
 export const createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax = 1;
 
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin = 2;
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax = 2;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax = 1;
+
+export const createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax = 1;
+
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
 export const createLegacyCampaignBodyCharacterOneOriginMax = 240;
@@ -22148,6 +23167,58 @@ export const CreateLegacyCampaignBody = zod.object({
 }).strict(),zod.object({
   "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveWisdomMax),
   "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesTwo4AsiIncreaseOnefiveCharismaMax)
+}).strict()])
+}).strict()
+}).strict().optional(),
+  "5": zod.record(zod.string(), zod.never().optional()).optional()
+}).strict(),zod.object({
+  "2": zod.record(zod.string(), zod.never().optional()),
+  "3": zod.object({
+  "subclass_id": zod.literal("champion")
+}).strict().optional(),
+  "4": zod.object({
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseTwoConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseThreeIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFourWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMin).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseFiveCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixStrengthMax),
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSixConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenStrengthMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseSevenIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightStrengthMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseEightWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineStrengthMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseNineCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnezeroIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOneoneWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoConstitutionMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnetwoCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnethreeWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefourCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveWisdomMax),
+  "charisma": zod.number().int().min(1).max(createLegacyCampaignBodyCharacterOneLevelChoicesThree4AsiIncreaseOnefiveCharismaMax)
 }).strict()])
 }).strict()
 }).strict().optional(),
@@ -22314,6 +23385,13 @@ export const createLegacyCampaignResponseStateCharacterRageUsesRemainingMin = 0;
 export const createLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const createLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const createLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const createLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -22747,6 +23825,28 @@ export const CreateLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -23414,6 +24514,13 @@ export const getLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const getLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const getLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const getLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -23856,6 +24963,28 @@ export const GetLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),
@@ -24509,6 +25638,13 @@ export const resumeLegacyCampaignResponseStateCharacterRageUsesRemainingMax = 3;
 
 export const resumeLegacyCampaignResponseStateCharacterRageRemainingSecondsMax = 12;
 
+export const resumeLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const resumeLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -24941,6 +26077,28 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
 })
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
 }).optional(),
   "name": zod.string(),
   "race": zod.string(),

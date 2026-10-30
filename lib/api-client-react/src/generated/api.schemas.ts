@@ -257,6 +257,11 @@ export interface BarbarianLevel4Choices {
   asi: LevelUpAsiChoice;
 }
 
+export const FighterLevel3ChoicesValue = {
+  subclass_id: 'champion',
+} as const;
+export type FighterLevel3Choices = typeof FighterLevel3ChoicesValue;
+
 export interface LevelUpApplyRequest {
   action_id: string;
   campaign_id: string;
@@ -267,7 +272,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -1100,6 +1105,39 @@ export interface RageState {
   extend: RageAvailability;
 }
 
+export interface FighterAvailability {
+  available: boolean;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface FighterSecondWindState {
+  /** @minimum 0 */
+  uses_remaining: number;
+  /** @minimum 1 */
+  max_uses: number;
+  die: 10;
+  /** @minimum 1 */
+  level_bonus: number;
+  activate: FighterAvailability;
+  tactical_shift: boolean;
+}
+
+export interface FighterActionSurgeState {
+  /** @minimum 0 */
+  uses_remaining: number;
+  /** @minimum 1 */
+  max_uses: number;
+  activate: FighterAvailability;
+}
+
+export interface FighterState {
+  /** @nullable */
+  fighting_style: string | null;
+  second_wind: FighterSecondWindState;
+  action_surge: FighterActionSurgeState | null;
+}
+
 /**
  * @nullable
  */
@@ -1172,6 +1210,7 @@ export type GameCharacterSpellSlotsRemaining = {[key: string]: number};
 export interface GameCharacter {
   primal_knowledge_check?: PrimalKnowledgeCheck;
   rage?: RageState;
+  fighter?: FighterState;
   name: string;
   race: string;
   species?: string;
@@ -1885,6 +1924,8 @@ export const EconomyStepInputKind = {
   convert_spell_slot: 'convert_spell_slot',
   activate_rage: 'activate_rage',
   extend_rage: 'extend_rage',
+  second_wind: 'second_wind',
+  action_surge: 'action_surge',
 } as const;
 
 export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
@@ -2544,6 +2585,7 @@ export const SpeciesTraitActionInputAction = {
   short_rest: 'short_rest',
   long_rest: 'long_rest',
   spend_hit_die: 'spend_hit_die',
+  second_wind: 'second_wind',
 } as const;
 
 /**
@@ -2639,6 +2681,13 @@ export interface BarbarianLevelChoices {
   '5'?: BarbarianLevel2Choices;
 }
 
+export interface FighterLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: FighterLevel3Choices;
+  '4'?: BarbarianLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 /**
  * @nullable
  */
@@ -2685,7 +2734,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -2923,9 +2972,29 @@ export interface BarbarianStartingCreationOptions {
   level_5?: BarbarianStartingLevel5Options | null;
 }
 
+export interface FighterStartingSubclassOption {
+  id: 'champion';
+  name: string;
+}
+
+export interface FighterStartingLevel3Options {
+  subclass_options: FighterStartingSubclassOption[];
+  effects_supported: string[];
+  effects_pending: string[];
+}
+
+export interface FighterStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianStartingLevel2Options;
+  level_3?: FighterStartingLevel3Options | null;
+  level_4?: BarbarianStartingLevel4Options | null;
+  level_5?: BarbarianStartingLevel5Options | null;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
+  fighter_starting_creation?: FighterStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

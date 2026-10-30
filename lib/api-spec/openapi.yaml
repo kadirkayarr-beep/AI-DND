@@ -1327,6 +1327,7 @@ components:
           - $ref: '#/components/schemas/BarbarianLevel2Choices'
           - $ref: '#/components/schemas/BarbarianLevel3Choices'
           - $ref: '#/components/schemas/BarbarianLevel4Choices'
+          - $ref: '#/components/schemas/FighterLevel3Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1991,6 +1992,8 @@ components:
           - convert_spell_slot
           - activate_rage
           - extend_rage
+          - second_wind
+          - action_surge
         resource:
           type: string
           enum:
@@ -2560,6 +2563,7 @@ components:
           - short_rest
           - long_rest
           - spend_hit_die
+          - second_wind
         form:
           type:
           - string
@@ -4680,6 +4684,62 @@ components:
         reason:
           type: [string, 'null']
       required: [available, reason]
+    FighterAvailability:
+      type: object
+      additionalProperties: false
+      properties:
+        available:
+          type: boolean
+        reason:
+          type: [string, 'null']
+      required: [available, reason]
+    FighterSecondWindState:
+      type: object
+      additionalProperties: false
+      properties:
+        uses_remaining:
+          type: integer
+          minimum: 0
+        max_uses:
+          type: integer
+          minimum: 1
+        die:
+          type: integer
+          const: 10
+        level_bonus:
+          type: integer
+          minimum: 1
+        activate:
+          $ref: '#/components/schemas/FighterAvailability'
+        tactical_shift:
+          type: boolean
+      required: [uses_remaining, max_uses, die, level_bonus, activate, tactical_shift]
+    FighterActionSurgeState:
+      type: object
+      additionalProperties: false
+      properties:
+        uses_remaining:
+          type: integer
+          minimum: 0
+        max_uses:
+          type: integer
+          minimum: 1
+        activate:
+          $ref: '#/components/schemas/FighterAvailability'
+      required: [uses_remaining, max_uses, activate]
+    FighterState:
+      type: object
+      additionalProperties: false
+      properties:
+        fighting_style:
+          type: [string, 'null']
+        second_wind:
+          $ref: '#/components/schemas/FighterSecondWindState'
+        action_surge:
+          anyOf:
+          - $ref: '#/components/schemas/FighterActionSurgeState'
+          - type: 'null'
+      required: [fighting_style, second_wind, action_surge]
     RageState:
       type: object
       additionalProperties: false
@@ -4726,6 +4786,8 @@ components:
           $ref: '#/components/schemas/PrimalKnowledgeCheck'
         rage:
           $ref: '#/components/schemas/RageState'
+        fighter:
+          $ref: '#/components/schemas/FighterState'
         name:
           type: string
         race:
@@ -5530,6 +5592,7 @@ components:
           anyOf:
           - $ref: '#/components/schemas/SorcererLevelChoices'
           - $ref: '#/components/schemas/BarbarianLevelChoices'
+          - $ref: '#/components/schemas/FighterLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -5827,6 +5890,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/BarbarianStartingCreationOptions'
           - type: 'null'
+        fighter_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/FighterStartingCreationOptions'
+          - type: 'null'
         races:
           additionalProperties: true
           type: object
@@ -6063,6 +6130,95 @@ components:
           type: string
           enum: [Animal Handling, Athletics, Intimidation, Nature, Perception, Survival]
       required: [subclass_id, primal_knowledge_skill]
+    FighterLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass_id:
+          type: string
+          const: champion
+      required: [subclass_id]
+    FighterLevelChoices:
+      properties:
+        '2':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        '3':
+          $ref: '#/components/schemas/FighterLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/BarbarianLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+      additionalProperties: false
+      type: object
+      required:
+      - '2'
+      title: FighterLevelChoices
+    FighterStartingSubclassOption:
+      properties:
+        id:
+          type: string
+          const: champion
+          title: Id
+        name:
+          type: string
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - name
+      title: FighterStartingSubclassOption
+    FighterStartingLevel3Options:
+      properties:
+        subclass_options:
+          items:
+            $ref: '#/components/schemas/FighterStartingSubclassOption'
+          type: array
+          title: Subclass Options
+        effects_supported:
+          items:
+            type: string
+          type: array
+          title: Effects Supported
+        effects_pending:
+          items:
+            type: string
+          type: array
+          title: Effects Pending
+      additionalProperties: false
+      type: object
+      required:
+      - subclass_options
+      - effects_supported
+      - effects_pending
+      title: FighterStartingLevel3Options
+    FighterStartingCreationOptions:
+      properties:
+        supported_starting_levels:
+          items:
+            type: integer
+          type: array
+          title: Supported Starting Levels
+        level_2:
+          $ref: '#/components/schemas/BarbarianStartingLevel2Options'
+        level_3:
+          anyOf:
+          - $ref: '#/components/schemas/FighterStartingLevel3Options'
+          - type: 'null'
+        level_4:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel4Options'
+          - type: 'null'
+        level_5:
+          anyOf:
+          - $ref: '#/components/schemas/BarbarianStartingLevel5Options'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - supported_starting_levels
+      - level_2
+      title: FighterStartingCreationOptions
     BarbarianLevel2Choices:
       properties: {}
       additionalProperties: false
