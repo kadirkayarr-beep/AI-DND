@@ -1494,7 +1494,7 @@ def resolve_python_world_action(player_input):
     door_action = ("kapı" in text or "kapıya" in text or "kilit" in text) and any(
         token in text for token in ("aç", "kapat", "zorla", "kır", "it", "kilit", "bak", "incele")
     )
-    if door_action and _model_query_type_is_plausible(player_input):
+    if door_action:
         import grounded_action
         parsed = grounded_action.plan(_session(), player_input)
         physical = any(
@@ -2912,7 +2912,10 @@ def _current_door():
     import grounded_action
     near = grounded_action.near_door_id(world_state)
     chosen = next((door for door in here if door.get("id") == near), None)
-    return chosen or next(iter(here), None)
+    # Inside a venue the door at hand is the one the player came through.
+    return chosen or next(iter(here), None) or grounded_action._entry_door_of(
+        world_state, world_state.get("location")
+    )
 
 
 def _narration_fact_packet(action_result):

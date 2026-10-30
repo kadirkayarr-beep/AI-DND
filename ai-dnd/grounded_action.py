@@ -424,6 +424,12 @@ def candidates(session) -> list[dict[str, Any]]:
         found.append({"id": door["id"], "kind": "door", "names": [fold(door.get("name", ""))],
                       "nouns": list(_DOOR_NOUNS), "label": door.get("name", "Kapı"),
                       "record": door, "place_id": place_id})
+    entry = _entry_door_of(world, here)
+    if entry is not None:
+        # Inside a venue its street door is the door at hand; no side to walk to.
+        found.append({"id": entry["id"], "kind": "door", "names": [fold(entry.get("name", ""))],
+                      "nouns": list(_DOOR_NOUNS), "label": entry.get("name", "Kapı"),
+                      "record": entry, "place_id": None, "inside": True})
     for location_id, location in locations.items():
         if not isinstance(location, dict) or location_id == here:
             continue
@@ -473,6 +479,20 @@ def candidates(session) -> list[dict[str, Any]]:
                       "label": ref.get("name") or f"{ref.get('noun', 'yer')} (söylenen)",
                       "record": ref, "place_kind": ref.get("place_kind")})
     return found
+
+
+def _entry_door_of(world: dict[str, Any], place_id: Any) -> dict[str, Any] | None:
+    """A venue's street-side door, as seen by someone inside that venue."""
+    locations = world.get("locations", {})
+    place = locations.get(place_id) if isinstance(locations, dict) else None
+    parent = place.get("parent_location_id") if isinstance(place, dict) else None
+    if not isinstance(parent, str) or parent not in locations:
+        return None
+    door = next((d for d in world.get("doors", []) if isinstance(d, dict)
+                 and d.get("id") == f"venue-door:{place_id}"), None)
+    if door is None or door.get("location") != parent or door.get("hidden"):
+        return None
+    return door
 
 
 def _noun_hit(noun: str, tokens: list[str]) -> bool:
@@ -833,6 +853,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
             ]
             if len(matching_places) == 1 and not step["named"]:
                 step["target"] = matching_places[0]
+                # "Hanın kapısını açıyorum": a door verb acts on that place's door.
+                if verb in {"knock", "open", "unlock", "force", "close"}:
+                    step["target"] = _prefer_side(step["target"], [], verb, binding["part"], cands)
         target = step.get("target")
         implicit_followup_door = (target is None and not step["place_noun"]) or (
             isinstance(target, dict)
@@ -853,9 +876,6 @@ def plan(session, player_input: str) -> dict[str, Any]:
                 # the movement step has actually placed the player at its target.
                 step["target"] = None
                 step["ambiguous"] = []
-                # "Hanın kapısını açıyorum": a door verb acts on that place's door.
-                if verb in {"knock", "open", "unlock", "force", "close"}:
-                    step["target"] = _prefer_side(step["target"], [], verb, binding["part"], cands)
                 step["door_by_default"] = True
         pending_condition = None
         # "Şu kapalı dükkânın kapısına": the kind of place named wins over a door
@@ -870,7 +890,7 @@ def plan(session, player_input: str) -> dict[str, Any]:
         # "İçeri giriyorum" with no name: the door the player stands at, or the only one here.
         if step["verb"] == "enter" and step["target"] is None and not step["place_noun"]:
             near = (world.get(KEY) or {}).get("near_target_id")
-            doors = [c for c in cands if c["kind"] == "door"]
+            doors = [c for c in cands if c["kind"] == "door" and not c.get("inside")]
             chosen = next((c for c in doors if c["id"] == near), None) or (doors[0] if len(doors) == 1 else None)
             if chosen:
                 step["target"] = chosen
@@ -1411,16 +1431,7 @@ def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
 
 def _inside_entry_door(run: _Run) -> dict[str, Any] | None:
     """Expose only this venue's canonical street-side entry while inside it."""
-    place = run.location(run.here)
-    if not isinstance(place, dict):
-        return None
-    parent = place.get("parent_location_id")
-    if not isinstance(parent, str) or not parent or run.location(parent) is None:
-        return None
-    door = run.door(f"venue-door:{run.here}")
-    if not isinstance(door, dict) or door.get("location") != parent or door.get("hidden"):
-        return None
-    return door
+    return _entry_door_of(run.world, run.here)
 
 
 def _lock_policy(door):
@@ -1461,6 +1472,8 @@ def _do_knock(run: _Run, step) -> dict[str, Any]:
     run.near(door["id"])
     name = door.get("name", "Kapı")
     if door.get("open") or door.get("broken"):
+        if door.get("location") != run.here:
+            return _receipt("knock", "completed", door_target, text=f"{name} zaten açık.")
         return _receipt("knock", "completed", door_target, text=f"{name} zaten açık; vurmana gerek kalmadan içerisi görünüyor.")
     try:
         import campaign_time
@@ -1573,9 +1586,9 @@ def _do_open(run: _Run, step) -> dict[str, Any]:
         return _receipt("open", "completed", door_target, text=f"{door.get('name')} zaten açık.")
     if door.get("locked"):
         part = {"latch": "Mandalı kaldırıyorsun", "handle": "Kolu çeviriyorsun"}.get(step.get("part"), "Kapıyı itiyorsun")
+        run.game._mark_lock_seen(run.world, door)
         return _receipt("open", "blocked", door_target, reason="door_locked", door_state=_door_public(door),
-                        text=f"{part} ama {door.get('name')} kilitli; yerinden oynamıyor. "
-                             "Kilidi açmayı, kapıyı çalmayı ya da başka bir giriş aramayı deneyebilirsin.")
+                        text=f"{part} ama {door.get('name')} kilitli; yerinden oynamıyor.")
     door["open"] = True
     return _receipt("open", "completed", door_target, text=f"{door.get('name')} gıcırdayarak açılıyor.",
                     door_state=_door_public(door))
@@ -1586,7 +1599,6 @@ def _do_close(run: _Run, step) -> dict[str, Any]:
     if door_target is None:
         return _receipt("close", "blocked", None, reason="no_door", text="Kapatabileceğin bir kapı görmüyorsun.")
     door = door_target["record"]
-        run.game._mark_lock_seen(run.world, door)
     if door.get("broken"):
         return _receipt("close", "blocked", door_target, reason="door_broken", text="Kırık kapı kapanmıyor.")
     if not door.get("open"):
