@@ -28,8 +28,8 @@ from api.campaign_journal import (
     empty_campaign_journal,
     validate_campaign_journal,
 )
-from api.auth import FixedAuthenticator
-from api.main import app, create_app
+from api.auth import FailClosedAuthenticator, FixedAuthenticator
+from api.main import create_app
 from api.schemas import (
     CampaignCreateRequest,
     CampaignDetailResponse,
@@ -92,6 +92,29 @@ WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 OPENAPI_PATH = WORKSPACE_ROOT / "lib" / "api-spec" / "openapi.yaml"
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 SPEC_TEXT = OPENAPI_PATH.read_text(encoding="utf-8")
+app = None
+
+
+def setUpModule():
+    """Build the runtime app these checks compare with the published contract.
+
+    api.main leaves its default app as None whenever
+    AI_DND_DISABLE_DEFAULT_APP=1, which the guarded runners and many test
+    modules set, so importing that name gave these checks nothing to compare.
+    create_app is what the default app is made from: same routes, same
+    schemas, and fail-closed auth as an unconfigured server. The store is a
+    throwaway one because the default app's store is the live database.
+    """
+    global app
+    directory = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(directory.cleanup)
+    app = create_app(
+        session_manager=SessionManager(
+            campaign_store=CampaignStore(Path(directory.name) / "parity.sqlite3"),
+        ),
+        ollama_adapter=None,
+        authenticator=FailClosedAuthenticator(),
+    )
 
 
 _SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
@@ -843,8 +866,9 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon).
-        self.assertEqual(len(documented_routes), 45)
+        # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon)
+        # + GET and POST level-up in both alias families.
+        self.assertEqual(len(documented_routes), 49)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -855,6 +879,8 @@ class ContractParityTests(unittest.TestCase):
             ("POST", "/api/game/sessions/{session_id}/turn", "/api/sessions/{session_id}/turn"),
             ("POST", "/api/game/sessions/{session_id}/undo", "/api/sessions/{session_id}/undo"),
             ("POST", "/api/game/sessions/{session_id}/species-actions", "/api/sessions/{session_id}/species-actions"),
+            ("GET", "/api/game/sessions/{session_id}/level-up", "/api/sessions/{session_id}/level-up"),
+            ("POST", "/api/game/sessions/{session_id}/level-up", "/api/sessions/{session_id}/level-up"),
             ("GET", "/api/game/campaigns", "/api/campaigns"),
             ("POST", "/api/game/campaigns", "/api/campaigns"),
             ("GET", "/api/game/campaigns/{campaign_id}", "/api/campaigns/{campaign_id}"),

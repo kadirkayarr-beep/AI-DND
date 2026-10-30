@@ -3374,6 +3374,174 @@ export const useUndoLegacyTurn = <TError = ErrorType<AuthenticationRequiredRespo
       return useMutation(getUndoLegacyTurnMutationOptions(options));
     }
 
+export const getGetLegacySessionLevelUpUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/level-up`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/level-up.
+ * @summary Legacy earned level up preview alias
+ */
+export const getLegacySessionLevelUp = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<LevelUpPreviewResponse> => {
+
+  return customFetch<LevelUpPreviewResponse>(getGetLegacySessionLevelUpUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLegacySessionLevelUpQueryKey = (sessionId: string,) => {
+    return [
+    `/api/sessions/${sessionId}/level-up`
+    ] as const;
+    }
+
+
+export const getGetLegacySessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLegacySessionLevelUpQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLegacySessionLevelUp>>> = ({ signal }) => getLegacySessionLevelUp(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLegacySessionLevelUpQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacySessionLevelUp>>>
+export type GetLegacySessionLevelUpQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Legacy earned level up preview alias
+ */
+
+export function useGetLegacySessionLevelUp<TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<unknown>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLegacySessionLevelUpQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApplyLegacySessionLevelUpUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/level-up`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/level-up.
+ * @summary Legacy earned level up apply alias
+ */
+export const applyLegacySessionLevelUp = async (sessionId: string,
+    levelUpApplyRequest: LevelUpApplyRequest, options?: Parameters<typeof customFetch>[1]): Promise<LevelUpCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LevelUpCommandResult>(getApplyLegacySessionLevelUpUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(levelUpApplyRequest)
+  }
+);}
+
+
+
+
+
+export const getApplyLegacySessionLevelUpMutationKey = () => ['applyLegacySessionLevelUp'] as const;
+
+export const getApplyLegacySessionLevelUpMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext> => {
+
+const mutationKey = getApplyLegacySessionLevelUpMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, ApplyLegacySessionLevelUpMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  applyLegacySessionLevelUp(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyLegacySessionLevelUpMutationResult = NonNullable<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>>
+    export type ApplyLegacySessionLevelUpMutationBody = BodyType<LevelUpApplyRequest>
+    export type ApplyLegacySessionLevelUpMutationError = ErrorType<unknown>
+    export type ApplyLegacySessionLevelUpMutationVariables = {sessionId: string;data: BodyType<LevelUpApplyRequest>}
+
+    /**
+ * @summary Legacy earned level up apply alias
+ */
+export const useApplyLegacySessionLevelUp = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyLegacySessionLevelUp>>,
+        TError,
+        ApplyLegacySessionLevelUpMutationVariables,
+        TContext
+      > => {
+      return useMutation(getApplyLegacySessionLevelUpMutationOptions(options));
+    }
+
 export const getGetLegacyCampaignsUrl = () => {
 
 

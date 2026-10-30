@@ -1086,6 +1086,53 @@ paths:
           $ref: '#/components/responses/ApiError'
         '503':
           $ref: '#/components/responses/ApiError'
+  /sessions/{session_id}/level-up:
+    get:
+      summary: Legacy earned level up preview alias
+      description: Compatibility alias for /game/sessions/{session_id}/level-up.
+      operationId: getLegacySessionLevelUp
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Session Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LevelUpPreviewResponse'
+      tags:
+      - game
+    post:
+      summary: Legacy earned level up apply alias
+      description: Compatibility alias for /game/sessions/{session_id}/level-up.
+      operationId: applyLegacySessionLevelUp
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Session Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LevelUpApplyRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LevelUpCommandResult'
+      tags:
+      - game
   /campaigns:
     get:
       operationId: getLegacyCampaigns
