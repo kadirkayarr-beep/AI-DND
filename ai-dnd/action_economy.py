@@ -7,6 +7,7 @@ import copy
 import re
 import weapon_attack
 import character_progression
+import rogue_features
 import spatial_rules
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -850,7 +851,6 @@ def _execute(session, command, action_id=None, session_id=None):
         if not fighter_features.native_command(command):
             fail("invalid_fighter_command", "Second Wind and Action Surge require one exact typed step.")
     if any(step.get("kind") in {"cunning_action", "steady_aim", "uncanny_dodge"} for step in steps if isinstance(step, dict)):
-        import rogue_features
         if not rogue_features.native_command(command):
             fail("invalid_rogue_command", "Cunning Action, Steady Aim and Uncanny Dodge require one exact typed step.")
     if not 1 <= len(steps) <= 8:
@@ -900,7 +900,7 @@ def _execute(session, command, action_id=None, session_id=None):
                     session, step.get("target_id"), kind == "continue_attack",
                     weapon_id=step.get("weapon_id"), choice={**(step.get("attack_choice") or {}),
                             **({"reckless_attack": step["reckless_attack"]} if step.get("reckless_attack") is not None else {}),
-                            **__import__("rogue_features").step_choice(step)},
+                            **rogue_features.step_choice(step)},
                     origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
                 ))
             elif kind == "species":
@@ -921,7 +921,6 @@ def _execute(session, command, action_id=None, session_id=None):
                 import fighter_features
                 results.append({"kind": kind, "result": fighter_features.activate_action_surge(session)})
             elif kind in {"cunning_action", "steady_aim", "uncanny_dodge"}:
-                import rogue_features
                 results.append({"kind": kind, "result": (
                     rogue_features.cunning_action(session, step["cunning_option"]) if kind == "cunning_action"
                     else rogue_features.steady_aim(session) if kind == "steady_aim"
@@ -1009,7 +1008,6 @@ def resolved_narration(session, results):
             narration_parts.append("Belirlediğin an için hazır bekliyorsun.")
         elif step["kind"] == "attack":
             narration_parts.append(session._combat_narration(step["result"]))
-            import rogue_features
             narration_parts.append(rogue_features.narration(step["result"]))
         elif step["kind"] == "species":
             narration_parts.append(step["result"].get("message", ""))
