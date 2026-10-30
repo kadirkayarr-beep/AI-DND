@@ -189,7 +189,7 @@ class Fixture:
         self.manager.save_campaign(self.cid, principal=TEST_PLAYER)
 
     def snapshot(self):
-        with closing(sqlite3.connect(f"file:{self.store.path.as_posix()}?mode=ro", uri=True)) as db:
+        with closing(sqlite3.connect(f"{self.store.path.resolve().as_uri()}?mode=ro", uri=True)) as db:
             db.row_factory = sqlite3.Row
             rows = {table: [dict(r) for r in db.execute(f'SELECT * FROM "{table}" ORDER BY rowid')]
                     for table in ("campaign_turn_actions", "campaign_emergence_attempts")}
@@ -215,7 +215,7 @@ class FrozenFaultTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.temporary.cleanup)
         self.folder = Path(self.temporary.name)
         output = os.environ.get("F04_FAULT_EVIDENCE")
-        self.output = (Path(output) if output else self.folder / "evidence") / self._testMethodName
+        self.output = (Path(output) if output else self.folder / "fault-output") / self._testMethodName
         self.output.mkdir(parents=True, exist_ok=True)
 
     async def test_D01_pre_resolution_failure_rollback_and_diagnostics(self):

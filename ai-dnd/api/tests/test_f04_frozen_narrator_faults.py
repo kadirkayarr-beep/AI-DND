@@ -22,7 +22,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix='f04-narrator-fault-')
         self.addCleanup(self.temporary.cleanup)
         self.folder = Path(self.temporary.name)
-        self.output = Path(os.environ.get('F04_FAULT_EVIDENCE', str(self.folder/'evidence'))) / self._testMethodName
+        self.output = Path(os.environ.get('F04_FAULT_EVIDENCE', str(self.folder/'fault-output'))) / self._testMethodName
         self.output.mkdir(parents=True, exist_ok=True)
 
     async def test_D02_resolved_mechanics_survive_narrator_exception(self):

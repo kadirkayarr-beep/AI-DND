@@ -189,7 +189,7 @@ class LocalPersonReplayReviewTests(unittest.IsolatedAsyncioTestCase):
         )
 
     def _db_counts(self, campaign_id):
-        connection = sqlite3.connect(f"file:{self.db_path.as_posix()}?mode=ro", uri=True)
+        connection = sqlite3.connect(f"{self.db_path.resolve().as_uri()}?mode=ro", uri=True)
         try:
             history = connection.execute(
                 "SELECT COUNT(*) FROM campaign_history WHERE campaign_id = ?",
