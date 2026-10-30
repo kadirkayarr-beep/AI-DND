@@ -2080,6 +2080,8 @@ def _player_state_for_save():
         saved["hit_dice"] = dict(character["hit_dice"])
     if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
         saved["fighter_uses"] = dict(character["fighter_uses"])
+    if "monk_state" in character:  # additive: spent Focus Points, Uncanny Metabolism, Deflect Attacks setting
+        saved["monk_state"] = dict(character["monk_state"])
     if character.get("fighting_style") is not None:  # additive: the style keeps applying after a load
         saved["fighting_style"] = character["fighting_style"]
     # Formats 4 and 5 store spell lists, slots, and an origin feat.
@@ -2405,6 +2407,8 @@ def _validate_save_payload(payload):
         raise ValueError("Primal Knowledge requires save format4–6.")
     character_progression.validate_saved(player, saved_world, saved=True)
     weapon_attack.validate_saved_reckless(saved_world, player)
+    import monk_features
+    monk_features.validate_saved_effects(saved_world, player)
     _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
@@ -2746,6 +2750,9 @@ def load_game(path):
         character.pop("fighter_uses", None)
         if "fighter_uses" in player:
             character["fighter_uses"] = dict(player["fighter_uses"])
+        character.pop("monk_state", None)
+        if "monk_state" in player:
+            character["monk_state"] = dict(player["monk_state"])
         if "fighting_style" in player:
             character["fighting_style"] = player["fighting_style"]
         if "progression_level" in player:
@@ -5403,6 +5410,9 @@ def end_combat(reason="combat_ended"):
     combat.update(_combat_defaults(end_reason=reason))
     combat["combat_id"] = identity
     if "attack_effects" in _session().world_state:
+        import monk_features
+        for entry in _session().world_state["attack_effects"]:
+            monk_features.effect_ended(_session(), entry)
         _session().world_state["attack_effects"] = []
     scheduled_events.combat_finished(_session().world_state)
     ensure_death_state()["combat_checkpoint"] = None

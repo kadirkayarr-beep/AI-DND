@@ -745,7 +745,7 @@ def configure_character(
             # the attack owner still enforces two-handed grip requirements.
             hands = session.world_state.setdefault("equipment", {})
             hands.update(main_hand="greataxe" if equipment_package == "A" else None, off_hand=None)
-        if character_class == "Fighter" and equipment_package == "C":
+        if character_class == "Monk" or (character_class == "Fighter" and equipment_package == "C"):
             hands = session.world_state.get("equipment")
             if isinstance(hands, dict) and set(hands) == {"main_hand", "off_hand"}:
                 owned_weapon_ids = {
@@ -774,3 +774,5 @@ def configure_character(
         spell_scope.initialize(session)
         import barbarian_rage
         barbarian_rage.initialize(session, known_unarmored=armor is None)
+        import monk_features
+        monk_features.initialize(session, known_unarmored=armor is None and not has_shield)

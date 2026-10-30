@@ -201,7 +201,7 @@ class BarbarianStartFourFiveTests(unittest.TestCase):
                 self.assertEqual(session._capture_runtime_snapshot(), before)
 
     def test_only_the_two_supported_classes_and_levels_reach_the_new_steps(self):
-        for class_name in ('Wizard', 'Monk'):
+        for class_name in ('Wizard', 'Druid'):
             session = barbarian()
             before = session._capture_runtime_snapshot()
             request = spec(); request['character_class'] = class_name

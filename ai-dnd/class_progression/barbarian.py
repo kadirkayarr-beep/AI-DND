@@ -414,7 +414,7 @@ class Barbarian(ClassProgression):
         if preview["to_level"] == 5:
             return noncaster.apply_earned_final_step(session, preview)
         if preview["to_level"] == 4:
-            return noncaster.apply_asi_step(session, preview, choices, armor_class_has_con=True)
+            return noncaster.apply_asi_step(session, preview, choices, armor_class_ability="constitution")
         return noncaster.apply_plain_step(session, preview)
 
     def validate_start_choices(self, level, level_choices):

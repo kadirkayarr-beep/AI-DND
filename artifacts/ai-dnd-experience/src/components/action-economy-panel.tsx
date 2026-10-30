@@ -1,5 +1,7 @@
 import { RageControl, readRageProjection } from './rage-controls';
 import { FighterControl } from './fighter-controls';
+import { MonkControl } from './monk-controls';
+import type { OpenHandChoice } from '@/lib/monk-projection';
 export { RageControl, RageStatus, readRageProjection } from './rage-controls';
 import { useRef, useState } from 'react';
 import { createRecklessIntent } from '../lib/reckless-intent';
@@ -110,6 +112,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   if (!rageRef.current) rageRef.current = createQuickenedIntent();
   const rageIntent = rageRef.current;
   const [tacticalShift, setTacticalShift] = useState('');
+  const [monkTechnique, setMonkTechnique] = useState<OpenHandChoice>('');
   const [distance, setDistance] = useState('5');
   const [triggerEvent, setTriggerEvent] = useState<'actor_attacks' | 'actor_moves'>('actor_attacks');
   const [triggerActor, setTriggerActor] = useState('target');
@@ -190,6 +193,8 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
               onClick={() => send('Turumu bitiriyorum.', { kind: 'end_turn' })}>Turu bitir</button>
           </div>
           <FighterControl fighter={state.character?.fighter} blocked={blocked} shift={tacticalShift} onShiftChange={setTacticalShift} onCommand={(label, step) => { setTacticalShift(''); send(label, step); }} />
+          <MonkControl monk={state.character?.monk} blocked={blocked} targetId={targetId} attackEnabled={legal('attack')} continueEnabled={!!resources.attack_action?.remaining_attacks}
+            technique={monkTechnique} onTechniqueChange={setMonkTechnique} onCommand={(label, step) => send(label, step)} />
           <RageControl rage={rage} confirmed={rageIntent.selected} blocked={blocked} onChange={value => { rageIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <MagicMissileControl state={state} targetId={targetId} slot={magicSlot} onSlotChange={setMagicSlot} blocked={blocked} magicAvailable={legal('magic')} quickened={quickenedIntent.selected} onQuickenedChange={value => { quickenedIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <div className="flex flex-wrap items-center gap-2 mt-3 story-meta">

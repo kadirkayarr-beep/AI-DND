@@ -1053,12 +1053,13 @@ UNOFFERED_FIGHTING_STYLES = ("Protection",)
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
-                                       sorcerer_starting_creation_options)
+                                       monk_starting_creation_options, sorcerer_starting_creation_options)
 
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
         "fighter_starting_creation": fighter_starting_creation_options(),
+        "monk_starting_creation": monk_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
         "classes": copy.deepcopy(CLASS_DEFINITIONS),
         "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),

@@ -33,4 +33,11 @@ export const EconomyStepInputKind = {
   extend_rage: 'extend_rage',
   second_wind: 'second_wind',
   action_surge: 'action_surge',
+  martial_arts_strike: 'martial_arts_strike',
+  flurry_of_blows: 'flurry_of_blows',
+  flurry_strike: 'flurry_strike',
+  patient_defense: 'patient_defense',
+  step_of_the_wind: 'step_of_the_wind',
+  uncanny_metabolism: 'uncanny_metabolism',
+  set_deflect_attacks: 'set_deflect_attacks',
 } as const;

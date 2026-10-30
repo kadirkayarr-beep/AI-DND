@@ -71,8 +71,8 @@ def apply_earned_final_step(session, preview):
             "effects_pending": list(preview["effects_pending"])}
 
 
-def apply_asi_step(session, preview, choices, *, armor_class_has_con=False):
-    """Atomic ordinary ASI; no resource refill and no caster fabrication."""
+def apply_asi_step(session, preview, choices, *, armor_class_ability=None):
+    """Atomic ordinary ASI; no resource refill and no caster fabrication. `armor_class_ability` names the class AC formula's own term."""
     projection = core._project_selected_asi_hp(session.character, 4, {"increase": choices["asi"]["increase"]})
     if projection["status"] != "projected":
         return core._reject(projection["reason"])
@@ -80,7 +80,7 @@ def apply_asi_step(session, preview, choices, *, armor_class_has_con=False):
     captured = _capture_format(session)
     try:
         character = copy.deepcopy(session.character)
-        old_con_modifier = (character["constitution"] - 10) // 2
+        old_ac_modifier = (character[armor_class_ability] - 10) // 2 if armor_class_ability else 0
         base = projection["unpaid_base_gain"]
         character["max_hp"] += base
         if character["current_hp"] > 0:
@@ -88,11 +88,11 @@ def apply_asi_step(session, preview, choices, *, armor_class_has_con=False):
         character.update(level=max(4, character["level"]), progression_level=4,
                          asi_choices=core._selected_asi_record(choices["asi"]["increase"]))
         core._apply_asi_score_delta(character, projection["feat_delta"])
-        con_delta = character["constitution_mod"] - old_con_modifier
-        if armor_class_has_con and con_delta:
+        ac_delta = character[armor_class_ability + "_mod"] - old_ac_modifier if armor_class_ability else 0
+        if ac_delta:
             # Choice admission checked the old canonical total, never guesses
             # whether inventory armor/shields are worn or contributing extras.
-            character["armor_class"] += con_delta
+            character["armor_class"] += ac_delta
         session.character.clear()
         session.character.update(character)
         session.set_player_max_hp(projection["resulting_maximum"])
