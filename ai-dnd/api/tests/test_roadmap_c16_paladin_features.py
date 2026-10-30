@@ -245,6 +245,13 @@ class DivineSmite(unittest.TestCase):
         self.npc["current_hp"] = 0
         self.assertEqual(code_of(self, self.session, smite()), "divine_smite_target_gone")
 
+    def test_a_forged_window_opens_nothing(self):
+        hit(self.session, self.npc)
+        for forged in ({"target_id": "nobody"}, {"target_id": "player"}, "x", {}):
+            attacks.turn_state(self.session, "player")[features.SMITE_WINDOW] = forged
+            self.assertEqual(code_of(self, self.session, smite()), "divine_smite_requires_a_melee_hit")
+            self.assertIsNone(features.projection(self.session)["divine_smite"]["target_id"])
+
     def test_it_closes_the_combat_when_it_finishes_the_last_enemy(self):
         hit(self.session, self.npc)
         self.npc["current_hp"] = 3
@@ -263,6 +270,12 @@ class DivineSmite(unittest.TestCase):
             with self.assertRaises(CombatRequestError) as caught:
                 economy.execute(self.session, {"steps": steps})
             self.assertEqual(caught.exception.code, "invalid_paladin_command")
+
+    def test_lay_on_hands_takes_only_the_boolean_true_for_poison(self):
+        step = {"kind": "lay_on_hands", "resource": "bonus", "remove_poisoned": 1}
+        with self.assertRaises(CombatRequestError) as caught:
+            economy.execute(self.session, {"steps": [step]})
+        self.assertEqual(caught.exception.code, "invalid_paladin_command")
 
     def test_the_window_survives_a_round_trip(self):
         hit(self.session, self.npc)
@@ -399,6 +412,14 @@ class SacredWeapon(unittest.TestCase):
         features.begin_sacred_weapon(self.session, {"instance_id": "dagger"})
         self.assertEqual(self.session.character["paladin_uses"]["sacred_weapon"]["weapon_id"], "dagger")
 
+    def test_an_unarmed_strike_gains_nothing_from_an_imbued_weapon(self):
+        self.session.character["paladin_uses"] = {**features.fresh_uses(), "sacred_weapon": {
+            "until": self.session.world_state["campaign_time"]["elapsed_seconds"] + 600, "weapon_id": "longsword"}}
+        context = attacks.prepare(self.session, "player", self.npc["id"], "unarmed", {})
+        self.assertEqual(context["attack_modifiers"], [])
+        self.assertEqual(code_of(self, self.session, attack(self.npc, weapon_id="unarmed", radiant_damage=True)), "sacred_weapon_not_active")
+        self.assertEqual(code_of(self, self.session, attack(self.npc, weapon_id="unarmed", sacred_weapon=True)), "sacred_weapon_melee_weapon_required")
+
     def test_other_classes_cannot_ask_for_it(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter
         session = fighter()
@@ -486,7 +507,8 @@ class SharedOwners(unittest.TestCase):
 
     def test_disclosure_names_what_is_not_done(self):
         text = " ".join(cp.progression_effects_pending("Paladin", 5))
-        for word in ("Weapon Mastery", "catalog-only", "Find Steed", "Critical Hit", "replacing a spell"):
+        for word in ("Weapon Mastery", "catalog-only", "Find Steed", "Critical Hit", "replacing a spell", "already on the list",
+                     "subset of the Cleric cantrips", "no button"):
             self.assertIn(word, text)
 
     def test_invalid_state_hides_the_controls(self):

@@ -235,9 +235,8 @@ def _apply(session, preview, choices):
     return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
 
 
-def _catalog_only_note(level: int) -> str:
-    return ("Paladin spells may be prepared at the table's counts, but only Cure Wounds has a resolver: every other prepared spell is "
-            "catalog-only and has no effect in play yet")
+CATALOG_ONLY_NOTE = ("Paladin spells may be prepared at the table's counts, but only Cure Wounds has a resolver: every other prepared spell is "
+                     "catalog-only and has no effect in play yet")
 
 
 class Paladin(ClassProgression):
@@ -284,9 +283,11 @@ class Paladin(ClassProgression):
         ]
         pending = [
             MASTERY_PENDING,
-            _catalog_only_note(level),
+            CATALOG_ONLY_NOTE,
             "Lay On Hands: only yourself; touching another creature has no healing owner yet",
+            "Lay On Hands: outside combat the screen offers healing only; removing Poisoned there works on the route but has no button",
             "Prepared spells: replacing a spell on a Long Rest remains pending",
+            "Prepared spells: a spell already on the list when it becomes always prepared keeps its place and still counts until that replacement exists",
             "Spellcasting: the existing spell path needs a free hand; a Holy Symbol on a Shield as a focus is not modelled",
             "Paladin equipment packages are the existing catalog lists, not yet the PHB packages",
             "Weapon proficiency: a Paladin with no stored list has Simple and Martial, worked out at each attack and never written back",
@@ -300,7 +301,7 @@ class Paladin(ClassProgression):
             ])
             pending.extend([
                 "Fighting Style: replacing the feat on a Paladin level, Protection and the feats not offered remain pending",
-                "Blessed Warrior: replacing a cantrip on a Paladin level remains pending",
+                "Blessed Warrior: replacing a cantrip on a Paladin level remains pending; the choices are the catalog's subset of the Cleric cantrips",
                 "Divine Smite: the dice are not doubled by a Critical Hit (the attack's own dice are); a thrown Melee weapon counts as a reading of the spell, not a stated rule",
                 "Divine Smite: only on your own turn after a hit by the engine's attack owner; other Smite spells are catalog-only",
             ])

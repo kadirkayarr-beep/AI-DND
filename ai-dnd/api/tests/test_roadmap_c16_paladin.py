@@ -238,6 +238,16 @@ class EarnedProgression(unittest.TestCase):
         self.assertEqual(session.character["fighting_style"], "Blessed Warrior")
         spell_scope.validate(spells(session), session.character)
 
+    def test_a_spell_picked_before_it_became_always_prepared_keeps_its_place(self):
+        request = {**spec(), "spells": ["Divine Smite", "Command"]}
+        session = created(request=request)
+        earn(session, 2)
+        step(self, session, 2)
+        self.assertEqual(len(session.world_state["spellcasting_v1"]["prepared"]), 3)
+        self.assertIn("Divine Smite", session.world_state["spellcasting_v1"]["prepared"])
+        self.assertEqual(features.projection(session)["always_prepared"], ["Divine Smite"])
+        cp.validate_saved(session.character, session.world_state)
+
     def test_level_three_takes_exactly_the_supported_oath(self):
         session = earned(self, 2)
         earn(session, 3)
@@ -370,6 +380,21 @@ class SavedState(unittest.TestCase):
         for index, (level, mutate) in enumerate(cases):
             with self.subTest(index):
                 self.forged(level, mutate)
+
+    def test_a_style_without_the_applied_level_is_refused_even_on_a_save_with_no_progression_field(self):
+        session = created()
+        session.character.pop("progression_level")
+        session.character["fighting_style"] = "Dueling"
+        with self.assertRaises(ValueError):
+            cp.validate_saved(session.character, session.world_state)
+        self.assertIsNone(features.style(session.character))
+
+    def test_forged_uses_fail_at_the_campaign_boundary(self):
+        session = earned(self, 3)
+        payload = serialize_campaign_payload(session)
+        payload["engine_save"]["player"]["paladin_uses"] = {**features.fresh_uses(), "channel_divinity_spent": 9}
+        with self.assertRaises(Exception):
+            restore_campaign_session(game.create_session(seed=1), payload)
 
     def test_paladin_fields_are_refused_on_other_classes(self):
         from api.tests.test_roadmap_c14_fighter import created as fighter

@@ -90,6 +90,8 @@ def _bad(message: str) -> ValueError:
 
 def validate_saved(player: dict[str, Any]) -> None:
     """Runs for every class on every save: this field exists only on a verified Paladin, with counts its applied level allows."""
+    if player.get("class") == "Paladin" and player.get("fighting_style") is not None and (paladin_level(player) or 0) < STYLE_LEVEL:
+        raise _bad("Fighting Style")
     if KEY not in player:
         return
     level, uses = paladin_level(player), player[KEY]
@@ -360,7 +362,7 @@ def attack_rules(session: Any, data: dict[str, Any], weapon: dict[str, Any], cho
         reason = _sacred_weapon_reason(session, weapon, origin)
         if reason:
             raise CombatRequestError(reason, "Sacred Weapon is unavailable: " + reason, 400)
-    elif not sacred_weapon_active(session, instance):
+    elif not instance or not sacred_weapon_active(session, instance):
         if radiant:
             raise CombatRequestError("sacred_weapon_not_active", "Radiant damage needs an active Sacred Weapon on this weapon.", 400)
         return {}
@@ -413,7 +415,8 @@ def close_smite_window(session: Any) -> None:
 def _smite_window(session: Any) -> dict[str, Any] | None:
     sequence = session.world_state.get("combat", {}).get("turn_resources", {}).get("player", {}).get("weapon_sequence")
     window = sequence.get(SMITE_WINDOW) if isinstance(sequence, dict) else None
-    return window if isinstance(window, dict) else None
+    participants = session.world_state.get("combat", {}).get("participants", [])
+    return window if isinstance(window, dict) and window.get("target_id") in participants and window["target_id"] != "player" else None
 
 
 def _smite_known(session: Any, level: int | None) -> bool:
@@ -522,19 +525,19 @@ def native_command(command: Any) -> bool:
     if step.get("kind") == "lay_on_hands":
         return (fields <= {"healing_amount", "remove_poisoned"} and bool(fields)
                 and (step.get("healing_amount") is None or (type(step["healing_amount"]) is int and step["healing_amount"] > 0))
-                and step.get("remove_poisoned") in (None, True))
+                and (step.get("remove_poisoned") is None or step["remove_poisoned"] is True))
     return False
 
 
 def style(character: Any) -> str | None:
-    return character.get("fighting_style") if paladin_level(character) is not None else None
+    return character.get("fighting_style") if (paladin_level(character) or 0) >= STYLE_LEVEL else None
 
 
 def _availability(reason: str | None) -> dict[str, Any]:
     return {"available": reason is None, "reason": reason}
 
 
-def _spell_rows(session: Any, level: int) -> list[dict[str, Any]]:
+def _spell_rows(session: Any) -> list[dict[str, Any]]:
     import spell_registry
     state = session.world_state.get("spellcasting_v1")
     prepared = list(state.get("prepared", [])) if isinstance(state, dict) else []
@@ -584,7 +587,7 @@ def projection(session: Any) -> dict[str, Any] | None:
             "divine_sense": sense,
             "sacred_weapon": sacred,
             "always_prepared": always_prepared(level, oath),
-            "prepared_spells": _spell_rows(session, level),
+            "prepared_spells": _spell_rows(session),
         }
     except ValueError as error:
         logger.warning("Paladin controls hidden: %s", error)
