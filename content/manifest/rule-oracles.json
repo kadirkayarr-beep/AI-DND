@@ -1187,7 +1187,7 @@
     {
       "leaf_id": "K07.death_saves_and_stable.temp_hp_at_zero",
       "family": "hit_points",
-      "source_ref": {"pdf_page": 28, "text": "If you have 0 Hit Points, receiving Temporary Hit Points doesn't restore you to consciousness. Only true healing can save you."},
+      "source_ref": {"pdf_page": 28, "text": "Temporary Hit Points never wake a creature at 0 Hit Points; only real healing does (Damage and Healing)."},
       "engine_resolvers": ["game._apply_player_damage", "game.grant_temporary_hit_points"],
       "cases": [
         {"id": "01", "kind": "boundary", "input": {"max_hp": 20, "damage": 20, "temporary_hit_points": 5, "successes": 1, "failures": 1}, "expected": {"temporary_hit_points": 5, "hp": 0, "status": "unconscious", "successes": 1, "failures": 1, "stable": false, "dead": false}}

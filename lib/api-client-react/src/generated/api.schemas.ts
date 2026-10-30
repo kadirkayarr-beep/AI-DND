@@ -2884,6 +2884,8 @@ export type CharacterCreationCatalogResponseSkills = { [key: string]: unknown };
 
 export type CharacterCreationCatalogResponseEquipmentRules = { [key: string]: unknown };
 
+export type CharacterCreationCatalogResponseLanguages = { [key: string]: unknown };
+
 export interface BarbarianStartingLevel2Options {
   choices: BarbarianLevel2Choices;
   effects_supported: string[];
@@ -2933,6 +2935,7 @@ export interface CharacterCreationCatalogResponse {
   spells_catalog: CharacterCreationCatalogResponseSpellsCatalog;
   skills: CharacterCreationCatalogResponseSkills;
   equipment_rules: CharacterCreationCatalogResponseEquipmentRules;
+  languages: CharacterCreationCatalogResponseLanguages;
 }
 
 export interface CampaignSummary {

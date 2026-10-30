@@ -545,6 +545,10 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
     },
   },
   equipment_rules: DEFAULT_EQUIPMENT_RULES,
+  languages: {
+    standard: ['Common', 'Common Sign Language', 'Draconic', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc'],
+    rare: ['Abyssal', 'Celestial', 'Deep Speech', 'Druidic', 'Infernal', 'Primordial', 'Sylvan', "Thieves' Cant", 'Undercommon'],
+  },
   spells_catalog: {
     Wizard: {
       cantrips: [

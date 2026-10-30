@@ -5867,6 +5867,10 @@ components:
           additionalProperties: true
           type: object
           title: Equipment Rules
+        languages:
+          additionalProperties: true
+          type: object
+          title: Languages
       type: object
       required:
       - races
@@ -5878,7 +5882,9 @@ components:
       - spells_catalog
       - skills
       - equipment_rules
+      - languages
       title: CharacterCreationCatalogResponse
+      additionalProperties: false
     CampaignSummary:
       type: object
       additionalProperties: false

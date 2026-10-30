@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {GetCharacterCreationCatalogResponse, GetLegacyCharacterCreationCatalogResponse} from '../../../lib/api-zod/src/generated/api.ts';
-const base = {races:{},classes:{},backgrounds:{},ability_score_methods:[],alignments:[],origin_feats:{},spells_catalog:{},skills:{},equipment_rules:{}};
+const base = {races:{},classes:{},backgrounds:{},ability_score_methods:[],alignments:[],origin_feats:{},spells_catalog:{},skills:{},equipment_rules:{},languages:{}};
 // Synthetic structural catalogue; live option mechanics are backend-owned.
 import {metadata as options} from './fixtures/c06-starts45-metadata.mjs';
 for (const [name,schema] of [['canonical',GetCharacterCreationCatalogResponse],['legacy',GetLegacyCharacterCreationCatalogResponse]]) {

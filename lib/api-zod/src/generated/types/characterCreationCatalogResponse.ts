@@ -11,6 +11,7 @@ import type { CharacterCreationCatalogResponseAlignmentsItem } from './character
 import type { CharacterCreationCatalogResponseBackgrounds } from './characterCreationCatalogResponseBackgrounds';
 import type { CharacterCreationCatalogResponseClasses } from './characterCreationCatalogResponseClasses';
 import type { CharacterCreationCatalogResponseEquipmentRules } from './characterCreationCatalogResponseEquipmentRules';
+import type { CharacterCreationCatalogResponseLanguages } from './characterCreationCatalogResponseLanguages';
 import type { CharacterCreationCatalogResponseOriginFeats } from './characterCreationCatalogResponseOriginFeats';
 import type { CharacterCreationCatalogResponseRaces } from './characterCreationCatalogResponseRaces';
 import type { CharacterCreationCatalogResponseSkills } from './characterCreationCatalogResponseSkills';
@@ -29,4 +30,5 @@ export interface CharacterCreationCatalogResponse {
   spells_catalog: CharacterCreationCatalogResponseSpellsCatalog;
   skills: CharacterCreationCatalogResponseSkills;
   equipment_rules: CharacterCreationCatalogResponseEquipmentRules;
+  languages: CharacterCreationCatalogResponseLanguages;
 }

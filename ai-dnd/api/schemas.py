@@ -953,6 +953,8 @@ class BarbarianStartingCreationOptions(BaseModel):
 
 
 class CharacterCreationCatalogResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     sorcerer_starting_creation: SorcererStartingCreationOptions | None = None
     barbarian_starting_creation: BarbarianStartingCreationOptions | None = None
     races: dict[str, Any]
@@ -964,6 +966,7 @@ class CharacterCreationCatalogResponse(BaseModel):
     spells_catalog: dict[str, Any]
     skills: dict[str, Any]
     equipment_rules: dict[str, Any]
+    languages: dict[str, Any]
 
 
 class CampaignStartSelection(BaseModel):

@@ -13939,7 +13939,8 @@ export const GetCharacterCreationCatalogResponse = zod.object({
   "origin_feats": zod.record(zod.string(), zod.unknown()),
   "spells_catalog": zod.record(zod.string(), zod.unknown()),
   "skills": zod.record(zod.string(), zod.unknown()),
-  "equipment_rules": zod.record(zod.string(), zod.unknown())
+  "equipment_rules": zod.record(zod.string(), zod.unknown()),
+  "languages": zod.record(zod.string(), zod.unknown())
 })
 
 
@@ -17966,7 +17967,8 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
   "origin_feats": zod.record(zod.string(), zod.unknown()),
   "spells_catalog": zod.record(zod.string(), zod.unknown()),
   "skills": zod.record(zod.string(), zod.unknown()),
-  "equipment_rules": zod.record(zod.string(), zod.unknown())
+  "equipment_rules": zod.record(zod.string(), zod.unknown()),
+  "languages": zod.record(zod.string(), zod.unknown())
 })
 
 

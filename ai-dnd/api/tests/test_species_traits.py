@@ -58,6 +58,14 @@ def make_session(species: str, *, ancestry: str | None = None, level: int = 5):
 
 
 class SpeciesTraitTests(unittest.TestCase):
+    def test_saved_species_temporary_hit_points_cannot_exceed_proficiency_bonus(self):
+        state = game._new_species_trait_state("Orc", 2)
+        state["temporary_hit_points"] = 2
+        game._validate_species_trait_state(state, "Orc", 2)
+        state["temporary_hit_points"] = 3
+        with self.assertRaises(ValueError):
+            game._validate_species_trait_state(state, "Orc", 2)
+
     def test_healing_hands_rolls_and_consumes_long_rest_use(self):
         session = make_session("Aasimar", level=3)
         result = session.resolve_species_trait_action("healing_hands")

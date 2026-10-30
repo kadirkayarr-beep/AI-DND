@@ -76,6 +76,7 @@ export * from './characterCreationCatalogResponseAlignmentsItem';
 export * from './characterCreationCatalogResponseBackgrounds';
 export * from './characterCreationCatalogResponseClasses';
 export * from './characterCreationCatalogResponseEquipmentRules';
+export * from './characterCreationCatalogResponseLanguages';
 export * from './characterCreationCatalogResponseOriginFeats';
 export * from './characterCreationCatalogResponseRaces';
 export * from './characterCreationCatalogResponseSkills';

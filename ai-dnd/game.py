@@ -1863,6 +1863,7 @@ def _validate_species_trait_state(value, species, proficiency_bonus=2):
             species not in {"Orc", "Half-Orc"}
             and value["relentless_endurance_available"]
         )
+        or value["temporary_hit_points"] > proficiency_bonus
     ):
         raise ValueError("Kayıt tür yeteneği durumu tutarsız.")
     used_round = value.get("bonus_action_used_round")

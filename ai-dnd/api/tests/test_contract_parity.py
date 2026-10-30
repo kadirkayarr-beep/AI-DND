@@ -1656,6 +1656,7 @@ class ContractParityTests(unittest.TestCase):
         )
         # Feature projections exist only for a character that holds the feature.
         conditional_character_fields = {"rage", "primal_knowledge_check", "progression_effects_pending"}
+        self.assertLessEqual(conditional_character_fields, _property_names("GameCharacter"))
         self.assertEqual(
             set(public_state["character"]),
             _property_names("GameCharacter") - conditional_character_fields,
