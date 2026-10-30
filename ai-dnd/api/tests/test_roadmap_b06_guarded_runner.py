@@ -16,6 +16,35 @@ import source_identity
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
+def head_sha_from_git_files(repo):
+    """HEAD read from the files alone, so the oracle shares no code with git.
+
+    Covers a normal clone and a linked worktree, on a branch or detached, with
+    the ref loose or packed.
+    """
+    entry = repo / ".git"
+    if entry.is_dir():
+        admin = entry
+    else:
+        marker = entry.read_text(encoding="utf-8").strip()
+        if not marker.startswith("gitdir: "):
+            raise AssertionError(f"unexpected .git file: {marker!r}")
+        admin = (repo / marker.removeprefix("gitdir: ").strip()).resolve()
+    head = (admin / "HEAD").read_text(encoding="utf-8").strip()
+    if not head.startswith("ref: "):
+        return head
+    ref = head.removeprefix("ref: ")
+    common = admin
+    if (admin / "commondir").is_file():
+        common = (admin / (admin / "commondir").read_text(encoding="utf-8").strip()).resolve()
+    if (common / ref).is_file():
+        return (common / ref).read_text(encoding="utf-8").strip()
+    for line in (common / "packed-refs").read_text(encoding="utf-8").splitlines():
+        if line.endswith(f" {ref}"):
+            return line.split(" ", 1)[0]
+    raise AssertionError(f"HEAD ref not found: {ref}")
+
+
 class GuardedRunnerTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="b06-guard-test-")
@@ -357,12 +386,8 @@ class GuardedRunnerTests(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_source_identity_uses_isolated_candidate_root_and_head(self):
-        marker = (REPO / ".git").read_text(encoding="utf-8").strip()
-        self.assertTrue(marker.startswith("gitdir: "))
-        admin = Path(marker.removeprefix("gitdir: ").strip())
-        if not admin.is_absolute():
-            admin = (REPO / admin).resolve()
-        expected_head = (admin / "HEAD").read_text(encoding="utf-8").strip()
+        expected_head = head_sha_from_git_files(REPO)
+        self.assertRegex(expected_head, r"^[0-9a-f]{40}$")
         self.assertEqual(source_identity.git_root(REPO), REPO.resolve())
         self.assertEqual(source_identity.ref_sha(REPO, "HEAD"), expected_head)
 

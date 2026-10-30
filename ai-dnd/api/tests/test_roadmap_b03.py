@@ -38,6 +38,10 @@ def failing_rows(run):
 @guard_bound(EVIDENCE_READ)
 class RoadmapB03Tests(unittest.TestCase):
     def setUp(self):
+        # The retained runs were never committed, so a clean checkout has none.
+        # Only a wholly absent tree skips: a partial one still fails below.
+        if not EVIDENCE.is_dir():
+            self.skipTest(f"retained B03 evidence is not in this checkout: {EVIDENCE.relative_to(REPO).as_posix()}")
         self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         self.rows = self.contract["rows"]
         self.run = load_run(RUN_TWO)

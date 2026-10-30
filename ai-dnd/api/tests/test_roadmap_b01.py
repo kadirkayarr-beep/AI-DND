@@ -25,6 +25,16 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def crlf_sha256(path):
+    """Digest of the CRLF rendering, whatever line ending this checkout has.
+
+    The lockfile pins were recorded on a CRLF working copy; git stores them
+    with LF, so a plain digest depends on the checkout.
+    """
+    data = Path(path).read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 @guard_bound(CHILD_PROCESS)
 class RoadmapB01Tests(unittest.TestCase):
     def setUp(self):
@@ -131,7 +141,7 @@ class RoadmapB01Tests(unittest.TestCase):
             self.assertIn(name, baseline["entrypoints"])
             self.assertTrue((REPO / name).is_file(), name)
         for name, digest in baseline["lockfiles"].items():
-            self.assertEqual(sha256(REPO / name), digest, name)
+            self.assertEqual(crlf_sha256(REPO / name), digest, name)
         self.assertEqual(set(baseline["lockfiles"]), {"pnpm-lock.yaml", "uv.lock"})
 
     def test_readonly_inventory_leaves_product_files_unchanged(self):

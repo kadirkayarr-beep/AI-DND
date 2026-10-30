@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 
 
