@@ -39,3 +39,8 @@ class ClassProgression:
 
     def speed_bonus_ft(self, character: dict[str, Any], world: Any) -> int:
         return 0
+
+    # Level-up. The hooks below the prerequisite are required once `supported_level` is above 1.
+    def level_prerequisite(self, session: Any, target_level: int) -> str | None:
+        """Refusal reason for reaching `target_level`, or None."""
+        return None
