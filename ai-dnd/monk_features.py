@@ -607,8 +607,8 @@ def disclosure(level: int) -> dict[str, list[str]]:
         supported.extend([
             f"Focus Points: {focus_maximum(level)} points, all back on a finished Short or Long Rest; save DC 8 + WIS + Proficiency Bonus",
             "Flurry of Blows: 1 Focus Point and the Bonus Action for two Unarmed Strikes, each its own step",
-            "Patient Defense: Disengage as a Bonus Action, or 1 Focus Point for Disengage and Dodge",
-            "Step of the Wind: Dash as a Bonus Action, or 1 Focus Point for Disengage and Dash",
+            "Patient Defense: Disengage as a Bonus Action (records the state only, no effect yet), or 1 Focus Point to add Dodge",
+            "Step of the Wind: Dash as a Bonus Action, or 1 Focus Point to add Disengage (records the state only, no effect yet)",
             f"Unarmored Movement: +{_movement_cell(level)} ft Speed while known to be unarmored",
             "Uncanny Metabolism: all Focus Points and the Martial Arts die + Monk level Hit Points, once per Long Rest",
         ])
@@ -627,6 +627,7 @@ def disclosure(level: int) -> dict[str, list[str]]:
         pending.extend([
             "Deflect Attacks is decided by the setting at the hit, with no prompt, so it takes the first eligible hit each round; a held Ready keeps its Reaction",
             "Deflect Attacks redirect targets only the attacker, never another creature",
+            "Deflect Attacks reduces the damage before Resistance and other typed reductions; the text does not fix the order, so this is the reading used",
             "Open Hand Technique: Addle is not offered, the engine has no Opportunity Attacks to stop; Push needs a known clear line; the text names no DC, so the Focus save DC is the reading used",
         ])
     if level >= 4:
