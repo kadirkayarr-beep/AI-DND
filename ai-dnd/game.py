@@ -6001,6 +6001,16 @@ def _is_end_conversation_request(player_input):
     ))
 
 
+def _without_place_names(text, world_state):
+    """The player's text with every place name blanked, Turkish endings included."""
+    for location in world_state.get("locations", {}).values():
+        name = location.get("name") if isinstance(location, dict) else None
+        normalized = _normalize_turkish_typos(name) if isinstance(name, str) else ""
+        if normalized:
+            text = re.sub(rf"(?<![a-z0-9]){re.escape(normalized)}[a-z0-9]*", " ", text)
+    return text
+
+
 def resolve_npc_reference(
     player_input, force_dialogue=False, allow_active_fallback=True
 ):
@@ -6036,19 +6046,22 @@ def resolve_npc_reference(
             matches.append(npc)
     # Hidden canonical identity must never become target authority just because
     # the player guessed an internal name/role string. Generic pronouns may still
-    # use the active conversation below.
+    # use the active conversation below. A person the player does know, or a
+    # place that shares the hidden name, is not such a guess: names come from
+    # one pool and can read as a plain word ("Basim" in "başımla").
+    hidden_scan_text = _without_place_names(text, world_state)
     hidden_identity_reference = any(
         (
             not living_world.npc_name_known_to_player(npc)
-            and _entity_reference_in_text(npc.get("name", ""), text)
+            and _entity_reference_in_text(npc.get("name", ""), hidden_scan_text)
         )
         or (
             not living_world.npc_role_known_to_player(npc)
-            and _entity_reference_in_text(npc.get("role", ""), text)
+            and _entity_reference_in_text(npc.get("role", ""), hidden_scan_text)
         )
         for npc in available
     )
-    if hidden_identity_reference:
+    if hidden_identity_reference and not matches:
         return {"status": "none", "npc": None}
 
     if len(matches) > 1:

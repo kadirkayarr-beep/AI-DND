@@ -98,6 +98,12 @@ class Lr00P1IntentTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post(self.turn_url, json=body)
         return response, (self.receipts[-1] if self.receipts else None)
 
+    def hidden_stranger(self, name):
+        stranger = {**copy.deepcopy(self.marek), "id": f"npc_hidden_{name.casefold()}",
+                    "name": name, "name_known_to_player": False}
+        self.session.world_state["npcs"].append(stranger)
+        return stranger
+
     def door(self):
         return copy.deepcopy(next(
             d for d in self.session.world_state["doors"] if d["id"].startswith("venue-door:")
@@ -347,6 +353,19 @@ class Lr00P1IntentTests(unittest.IsolatedAsyncioTestCase):
         text = response.json()["narration"]
         self.assertNotIn("bir şey bilmiyorum", text)
         self.assertEqual((receipt or {}).get("npc_id"), self.marek["id"], receipt)
+
+    async def test_hidden_name_reading_as_a_word_does_not_veto_a_named_target(self):
+        stranger = self.hidden_stranger("Basim")
+        response, receipt = await self.turn("Marek'in yanına gidip başımla selam veriyorum.")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual((receipt or {}).get("npc_id"), self.marek["id"], receipt)
+
+    async def test_guessing_a_hidden_name_alone_still_grants_no_target(self):
+        stranger = self.hidden_stranger("Basim")
+        response, receipt = await self.turn("Basim'in yanına gidiyorum.")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertNotEqual((receipt or {}).get("npc_id"), stranger["id"], receipt)
+        self.assertNotEqual((receipt or {}).get("target_id"), stranger["id"], receipt)
 
     async def test_negated_and_conditional_entry_never_moves_through_a_locked_door(self):
         location = self.session.world_state["location"]

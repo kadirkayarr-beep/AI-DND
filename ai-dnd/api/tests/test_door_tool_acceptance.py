@@ -170,6 +170,20 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual((receipt or {}).get('skill'),'Athletics')
                 self.assertNotEqual((receipt or {}).get('status'),'resolved')
 
+    async def test_hidden_person_named_like_the_place_keeps_the_conversation(self):
+        await self.scene()
+        stranger=next(n for n in self.world['npcs'] if n['id']!=self.npc['id'])
+        stranger.update(name='Orryn',name_known_to_player=False)
+        for message in ('Orryn Hanı Kapısını zorlarsam ne olur?',
+                        'Orryn Hanı Kapısını zorlamıyorum'):
+            with self.subTest(message=message):
+                before=self.protected()
+                with patch.object(self.app.state.ollama_adapter,'_client',ControlledVenueOllamaClient(intent='narrative')):
+                    _,receipt,_=await self.post(message)
+                self.assertEqual(before,self.protected())
+                self.assertNotEqual((receipt or {}).get('status'),'resolved')
+                self.assertEqual(self.world['flags'].get('active_npc_id'),self.npc['id'])
+
     async def test_want_to_force_is_python_attempt_not_automatic_success(self):
         await self.scene(seed=2)
         rng=self.session.rng.getstate(); door=copy.deepcopy(self.door()); calls=self.client.calls
