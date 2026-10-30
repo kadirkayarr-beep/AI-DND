@@ -139,7 +139,7 @@ def loopback_allowed(environ: Mapping[str, str] | None = None, listen_host: str 
 def select_authenticator(
     environ: Mapping[str, str] | None = None,
     listen_host: str | None = None,
-) -> FailClosedAuthenticator | FixedAuthenticator | OidcAuthenticator:
+) -> Authenticator:
     """Choose the server verifier. Incomplete OIDC and loopback stay closed.
 
     ``AI_DND_AUTH_MODE=clerk`` uses the Clerk bearer verifier or fails closed.
@@ -148,8 +148,11 @@ def select_authenticator(
     explicit test injection at ``create_app``.
     """
     source = os.environ if environ is None else environ
-    del listen_host
     mode = source.get("AI_DND_AUTH_MODE")
+    if mode == "local":
+        from api.local_play import local_authenticator_from_environ
+
+        return local_authenticator_from_environ(source, listen_host)
     if mode == "loopback":
         return FailClosedAuthenticator()
     if mode == "clerk":

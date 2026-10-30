@@ -5,6 +5,12 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
+import {
+  LOCAL_PLAY_ALLOWED_HOSTS,
+  localPlayPlugin,
+  localPlayRequested,
+} from './local-play-vite';
+
 const rawPort = process.env.PORT;
 
 if (!rawPort) {
@@ -23,7 +29,8 @@ if (Number.isNaN(port) || port <= 0) {
 // Replit needs a public listener, but only explicitly known hostnames are trusted.
 const replitRuntime = process.env.REPL_ID !== undefined;
 const listenHost = replitRuntime ? '0.0.0.0' : '127.0.0.1';
-const allowedHosts = Array.from(new Set([
+const localPlay = localPlayRequested(process.env);
+const allowedHosts = localPlay ? LOCAL_PLAY_ALLOWED_HOSTS : Array.from(new Set([
   'localhost',
   '127.0.0.1',
   process.env.REPLIT_DEV_DOMAIN,
@@ -46,6 +53,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    ...(localPlay ? [localPlayPlugin()] : []),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
       ? [

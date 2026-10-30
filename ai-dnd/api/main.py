@@ -86,6 +86,7 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
     CampaignStaleError,
 )
+from api.local_play import LocalPlayAuthenticator
 from api.persistence.campaign_store import CampaignStore, StartupCampaignStore
 from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import (
@@ -531,11 +532,15 @@ def create_app(
     @application.middleware("http")
     async def require_verified_principal(request: Any, call_next: Any) -> Any:
         path = request.url.path
-        if not path.startswith("/api") or path in _PUBLIC_API_PATHS:
-            return await call_next(request)
         verifier = application.state.authenticator
+        # Local play proves locality on every path, public ones included.
+        local_play = type(verifier) is LocalPlayAuthenticator
+        if not local_play and (not path.startswith("/api") or path in _PUBLIC_API_PATHS):
+            return await call_next(request)
         try:
-            if type(verifier) is OidcAuthenticator:
+            if local_play:
+                principal = verifier.authenticate_asgi(request.scope)
+            elif type(verifier) is OidcAuthenticator:
                 if (
                     request.method in {"POST", "PUT", "PATCH", "DELETE"}
                     and not request_marker_present(request.headers)

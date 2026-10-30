@@ -3,7 +3,9 @@
 param(
     [int]$ApiPort = 8008,
     [int]$UiPort = 22785,
-    [int]$WaitSeconds = 30
+    [int]$WaitSeconds = 30,
+    # Owner alone on this PC: fixed local player, no Clerk. See ai-dnd/api/local_play.py.
+    [switch]$LocalPlay
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,6 +63,15 @@ if (-not $env:OLLAMA_PROXY_TOKEN -and $env:OLLAMA_HOST -match '^https?://(127\.0
 }
 $env:AI_DND_OLLAMA_MODEL = $requiredModel
 $env:AI_DND_API_ORIGIN = "http://127.0.0.1:$ApiPort"
+if ($LocalPlay) {
+    $env:AI_DND_AUTH_MODE = "local"
+    $env:VITE_AI_DND_LOCAL_PLAY = "1"
+    if (-not $env:AI_DND_CAMPAIGN_DB) {
+        $saveDir = Join-Path $env:LOCALAPPDATA "AI-DND"
+        New-Item -ItemType Directory -Force -Path $saveDir | Out-Null
+        $env:AI_DND_CAMPAIGN_DB = Join-Path $saveDir "local-play.sqlite3"
+    }
+}
 
 $health = "http://127.0.0.1:$ApiPort/api/game/health"
 $existingApi = Test-HttpOk $health
@@ -70,11 +81,15 @@ if ($existingApi -and -not (Test-SelectedGameApi $health)) {
 }
 if (-not $existingApi) {
     Write-Host "Starting FastAPI on :$ApiPort"
-    $apiArgs = @(
-        "-m", "uvicorn", "api.main:app",
-        "--host", "127.0.0.1",
-        "--port", "$ApiPort"
-    )
+    $apiArgs = if ($LocalPlay) {
+        @("-m", "api.local_play", "--host", "127.0.0.1", "--port", "$ApiPort")
+    } else {
+        @(
+            "-m", "uvicorn", "api.main:app",
+            "--host", "127.0.0.1",
+            "--port", "$ApiPort"
+        )
+    }
     Start-Process -FilePath "python" -ArgumentList $apiArgs -WorkingDirectory (Join-Path $root "ai-dnd") -WindowStyle Minimized
 }
 
