@@ -1,0 +1,67 @@
+import type { EconomyStepInput, FighterAvailability, FighterState } from '@workspace/api-client-react';
+
+const SECOND_WIND_DIE = 10;
+
+function whole(value: unknown, minimum: number): value is number {
+  return Number.isSafeInteger(value) && Number(value) >= minimum;
+}
+function availability(value: FighterAvailability | undefined): boolean {
+  return !!value && typeof value.available === 'boolean' && (value.reason === null || typeof value.reason === 'string');
+}
+
+/** Read-only projection validation; class name and inventory never stand in for it. A malformed block shows nothing. */
+export function readFighterProjection(value: unknown): FighterState | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as FighterState;
+  const wind = raw.second_wind;
+  const surge = raw.action_surge;
+  if (!wind || !whole(wind.max_uses, 1) || !whole(wind.uses_remaining, 0) || wind.uses_remaining > wind.max_uses
+    || wind.die !== SECOND_WIND_DIE || !whole(wind.level_bonus, 1) || !availability(wind.activate) || typeof wind.tactical_shift !== 'boolean'
+    || (raw.fighting_style !== null && typeof raw.fighting_style !== 'string')) return null;
+  if (surge !== null && (!surge || !whole(surge.max_uses, 1) || !whole(surge.uses_remaining, 0) || surge.uses_remaining > surge.max_uses
+    || !availability(surge.activate))) return null;
+  return raw;
+}
+
+/** The typed step for Second Wind; a Tactical Shift distance is sent only when the server says it exists. Null means do not send. */
+export function secondWindStep(fighter: FighterState, shift: string): EconomyStepInput | null {
+  if (shift.trim() === '') return { kind: 'second_wind', resource: 'bonus' };
+  const distance = Number(shift);
+  if (!fighter.second_wind.tactical_shift || !Number.isSafeInteger(distance) || distance < 1) return null;
+  return { kind: 'second_wind', resource: 'bonus', distance_ft: distance };
+}
+
+export function FighterStatus({ fighter }: { fighter: unknown }) {
+  const value = readFighterProjection(fighter);
+  if (!value) return null;
+  return <div className="story-meta mt-3" data-testid="fighter-status">
+    <p data-testid="fighter-second-wind-uses">Second Wind: {value.second_wind.uses_remaining}/{value.second_wind.max_uses} · 1d{value.second_wind.die} + {value.second_wind.level_bonus}</p>
+    {value.action_surge && <p data-testid="fighter-action-surge-uses">Action Surge: {value.action_surge.uses_remaining}/{value.action_surge.max_uses}</p>}
+    {value.fighting_style && <p data-testid="fighter-style">Dövüş tarzı: {value.fighting_style}</p>}
+  </div>;
+}
+
+export function FighterControl({ fighter, blocked, shift, onShiftChange, onCommand }: {
+  fighter: unknown; blocked: boolean; shift: string; onShiftChange: (value: string) => void;
+  onCommand: (label: string, step: EconomyStepInput) => void;
+}) {
+  const value = readFighterProjection(fighter);
+  if (!value) return null;
+  const windStep = secondWindStep(value, shift);
+  const windEnabled = !blocked && value.second_wind.activate.available && windStep !== null;
+  const surge = value.action_surge;
+  const surgeEnabled = !blocked && surge?.activate.available === true;
+  return <div className="story-meta mt-3" data-testid="fighter-controls">
+    <FighterStatus fighter={value} />
+    {value.second_wind.tactical_shift && <label>Tactical Shift (ft, en çok Speed'in yarısı) <input aria-label="Tactical Shift mesafesi" data-testid="fighter-tactical-shift" type="number" min="1" step="1"
+      className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={shift} onChange={event => onShiftChange(event.target.value)} /></label>}
+    <button type="button" className="action-suggestion" data-testid="button-second-wind" disabled={!windEnabled} onClick={() => {
+      if (windEnabled && windStep) onCommand('Second Wind kullanıyorum.', windStep);
+    }}>Second Wind · Bonus Action</button>
+    {value.second_wind.activate.reason && <p role="status">Second Wind kullanılamıyor: {value.second_wind.activate.reason}</p>}
+    {surge && <button type="button" className="action-suggestion" data-testid="button-action-surge" disabled={!surgeEnabled} onClick={() => {
+      if (surgeEnabled) onCommand('Action Surge kullanıyorum.', { kind: 'action_surge' });
+    }}>Action Surge · ek eylem (Magic hariç)</button>}
+    {surge?.activate.reason && <p role="status">Action Surge kullanılamıyor: {surge.activate.reason}</p>}
+  </div>;
+}

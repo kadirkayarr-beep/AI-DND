@@ -27,20 +27,23 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   const needsMetamagic = sorcerer && preview.target_level === 2 && exactCounts({ prepared_spells: 2, metamagic: 2 });
   const needsSubclass = sorcerer && preview.target_level === 3 && exactCounts({ prepared_spells: 2, subclass_id: 1 });
   // Barbarian 2 (Danger Sense/Reckless Attack) and 5 (Extra Attack/Fast Movement) have no choices: explicit confirmation of an empty object.
-  const emptyChoice = preview.class_name === 'Barbarian' && (preview.target_level === 2 || preview.target_level === 5) && exactCounts({});
+  const fighter = preview.class_name === 'Fighter';
+  const emptyChoice = (preview.class_name === 'Barbarian' || fighter) && (preview.target_level === 2 || preview.target_level === 5) && exactCounts({});
+  const needsChampion = fighter && preview.target_level === 3 && exactCounts({ subclass_id: 1 });
   const needsBerserker = preview.class_name === 'Barbarian' && preview.target_level === 3 && exactCounts({ subclass_id: 1, primal_knowledge_skill: 1 });
-  const needsBarbarianAsi = preview.class_name === 'Barbarian' && preview.target_level === 4 && exactCounts({ asi: 1 }) && preview.capacity === null;
-  const supported = needsBarbarianAsi || needsBerserker || needsMetamagic || needsSubclass || emptyChoice
+  const needsNoncasterAsi = (preview.class_name === 'Barbarian' || fighter) && preview.target_level === 4 && exactCounts({ asi: 1 }) && preview.capacity === null;
+  const supported = needsNoncasterAsi || needsBerserker || needsChampion || needsMetamagic || needsSubclass || emptyChoice
     || (retainedSorcerer && preview.target_level === 4 && exactCounts({ prepared_spells: 1, cantrips: 1, asi: 1 }))
     || (retainedSorcerer && preview.target_level === 5 && exactCounts({ prepared_spells: 2 }));
   if (!supported) return <p role="status">Bu seviye seçimleri henüz desteklenmiyor.</p>;
-  const prepared = emptyChoice || needsBerserker || needsBarbarianAsi ? [] : draft.preparedSpells ?? [draft.preparedSpell];
+  const prepared = emptyChoice || needsBerserker || needsChampion || needsNoncasterAsi ? [] : draft.preparedSpells ?? [draft.preparedSpell];
   const metamagic = draft.metamagic ?? [];
   const asi = sourceAsiChoice(preview.supported_asi_choices, draft.asi, draft.confirmed);
   const valid = !!preview.campaign_id && Number.isInteger(preview.revision)
     && (!needsAsi || (!!asi && draft.confirmed))
     && (!emptyChoice || draft.confirmed)
     && (!needsBerserker || (draft.confirmed && preview.subclass_options?.some(option => option.id === draft.subclassId) && preview.primal_knowledge_skill_options?.includes(draft.primalKnowledgeSkill ?? '')))
+    && (!needsChampion || (draft.confirmed && preview.subclass_options?.some(option => option.id === draft.subclassId)))
     && (!needsMetamagic || (metamagic.length === 2 && new Set(metamagic).size === 2 && metamagic.every(id => preview.metamagic_options?.includes(id))))
     && (!needsSubclass || !!preview.subclass_options?.some(option => option.id === draft.subclassId))
     && (!needsCantrip || preview.cantrip_ids?.includes(draft.cantrip))
@@ -72,6 +75,10 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
       <label>Primal Knowledge — ek beceri <select data-testid="level-up-primal-skill" value={draft.primalKnowledgeSkill ?? ''} onChange={event => onChange({ ...draft, primalKnowledgeSkill: event.target.value, confirmed: false })}><option value="">Sunucunun sunduğu yeni beceriyi seç</option>{preview.primal_knowledge_skill_options?.map(skill => <option key={skill} value={skill}>{skill}</option>)}</select></label>
       <label><input type="checkbox" data-testid="level-up-confirm-berserker" checked={draft.confirmed} disabled={disabled} onChange={event => onChange({ ...draft, confirmed: event.target.checked })} /> Alt sınıf ve ek beceri seçimlerimi onaylıyorum.</label>
     </>}
+    {needsChampion && <>
+      <label>Alt sınıf <select data-testid="level-up-subclass" value={draft.subclassId ?? ''} onChange={event => onChange({ ...draft, subclassId: event.target.value, confirmed: false })}><option value="">Alt sınıf seç</option>{preview.subclass_options?.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+      <label><input type="checkbox" data-testid="level-up-confirm-subclass" checked={draft.confirmed} disabled={disabled} onChange={event => onChange({ ...draft, confirmed: event.target.checked })} /> Alt sınıf seçimimi onaylıyorum.</label>
+    </>}
     {emptyChoice && <label><input type="checkbox" data-testid="level-up-confirm-empty" checked={draft.confirmed} disabled={disabled}
       onChange={event => onChange({ ...draft, confirmed: event.target.checked })} /> Bu kazanılmış adımın uygulanmasını onaylıyorum.</label>}
     {needsAsi && <label><input data-testid="level-up-confirm-con" type="checkbox" disabled={disabled || !asi} checked={draft.confirmed} onChange={event => { if (!disabled && asi) onChange({ ...draft, confirmed: event.target.checked }); }} /> Ability Score Improvement: {asiChoiceLabel(asi)} seçimini onaylıyorum.</label>}
@@ -80,9 +87,9 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
     <button type="button" className="dnd-button" data-testid="button-confirm-level-up" disabled={disabled || !valid} onClick={() => {
       if (!valid || disabled || !preview.campaign_id || preview.revision == null || preview.target_level == null) return;
       onConfirm({ campaign_id: preview.campaign_id, expected_revision: preview.revision, target_level: preview.target_level,
-        choices: emptyChoice ? {} : needsBerserker ? { subclass_id: draft.subclassId!, primal_knowledge_skill: draft.primalKnowledgeSkill! } : needsMetamagic ? { prepared_spells: prepared, metamagic }
+        choices: emptyChoice ? {} : needsChampion ? { subclass_id: draft.subclassId! as 'champion' } : needsBerserker ? { subclass_id: draft.subclassId!, primal_knowledge_skill: draft.primalKnowledgeSkill! } : needsMetamagic ? { prepared_spells: prepared, metamagic }
           : needsSubclass ? { prepared_spells: prepared, subclass_id: draft.subclassId! }
-          : needsBarbarianAsi && asi ? { asi }
+          : needsNoncasterAsi && asi ? { asi }
           : needsAsi && asi ? { cantrips: [draft.cantrip], prepared_spells: prepared, asi } : { prepared_spells: prepared } });
     }}>Seçimleri uygula</button>
     <button type="button" className="dnd-button secondary" data-testid="button-cancel-level-up" disabled={disabled} onClick={onCancel}>Taslağı iptal et</button>

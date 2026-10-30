@@ -193,7 +193,7 @@ async function screen(){
 test('real screen: the class step opens for Barbarian 4 and 5 only when the live catalog advertises them',async()=>{
   const {evaluate,declaration}=await screen(),read=fn('readBarbarianStartingCreationOptions');
   const stepValid=declaration('isStepValid');
-  const run=(metadata,startingLevel,characterClass='Barbarian')=>evaluate(stepValid,{characterClass,startingDraft:{...emptyStartingDraft(),startingLevel},barbarianStartingMetadata:metadata,startingMetadata:undefined,Boolean})('class');
+  const run=(metadata,startingLevel,characterClass='Barbarian')=>evaluate(stepValid,{characterClass,startingDraft:{...emptyStartingDraft(),startingLevel},barbarianStartingMetadata:metadata,fighterStartingMetadata:undefined,startingMetadata:undefined,Boolean})('class');
   for(const level of [1,2,3,4,5])assert.equal(run(read(raw5()),level),true,`level ${level} advertised`);
   assert.equal(run(read(raw4()),5),false);assert.equal(run(read(raw3()),4),false);assert.equal(run(read(raw2()),3),false);
   assert.equal(run(undefined,4),false);assert.equal(run(undefined,1),true);

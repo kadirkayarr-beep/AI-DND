@@ -263,7 +263,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       hit_die: 10,
       primary_ability: 'strength',
       skill_count: 2,
-      skill_options: ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Perception', 'Survival'],
+      skill_options: ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Persuasion', 'Perception', 'Survival'],
       features: ['İkinci Soluk (Second Wind)', 'Dövüş Tarzı (Fighting Style)', 'Silah Ustalığı'],
       is_spellcaster: false,
       fighting_styles: [
@@ -271,7 +271,6 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
         { id: 'Defense', name_tr: 'Savunma (+1 Zırh Sınıfı Bonusu)' },
         { id: 'Dueling', name_tr: 'Düello (Tek Elle Silah Kullanırken +2 Hasar)' },
         { id: 'Great Weapon Fighting', name_tr: 'Büyük Silah Dövüşü (İki Elle Silah Zarlarında 1 ve 2’leri Yenile)' },
-        { id: 'Protection', name_tr: 'Koruma (Yanındaki Müttefike Yapılan Saldırıyı Zorlaştır)' },
         { id: 'Two-Weapon Fighting', name_tr: 'Çift Silah Dövüşü (Bonus Eylem Saldırısına Yetenek Bonusunu Ekle)' },
       ],
       equipment_packages: [

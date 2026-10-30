@@ -4,6 +4,7 @@ import { currentAccountOwner } from '@/lib/account-session';
 import { readPending } from '@/lib/pending-action';
 import { askServer } from '@/lib/action-recovery';
 import { useRef, useState } from 'react';
+import { readFighterProjection } from '@/components/fighter-controls';
 import { playerAbilityMessage } from '@/lib/campaign-presentation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -117,6 +118,7 @@ export function SpeciesTraitControls({
   const traits = character.species_trait_state;
   const species = character.species ?? character.race;
   const inCombat = state.combat.active;
+  const fighter = readFighterProjection(character.fighter);
   const isPlayerTurn = !inCombat || (
     state.combat.current_actor_id === 'player'
     && state.combat.participant_records.find((item) => item.id === 'player')
@@ -376,6 +378,18 @@ export function SpeciesTraitControls({
         <div className="species-trait-resource">
           Amansız Dayanıklılık · {traits?.relentless_endurance_available ? 'hazır' : 'uzun dinlenmeye kadar kullanıldı'}
         </div>
+      )}
+
+      {!inCombat && (fighter?.second_wind.uses_remaining ?? 0) > 0 && (
+        <button
+          type="button"
+          className="species-trait-button"
+          data-testid="species-action-second-wind"
+          disabled={!notBusy || character.current_hp >= character.max_hp}
+          onClick={() => send({ action: 'second_wind' })}
+        >
+          Second Wind · {fighter?.second_wind.uses_remaining} kullanım
+        </button>
       )}
 
       <div className="species-trait-rests">
