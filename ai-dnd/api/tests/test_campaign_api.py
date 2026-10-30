@@ -1426,6 +1426,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             dict,
         )
         batches_before_lore_question = len(client.message_batches)
+        world_before_lore_question = {
+            "locations": copy.deepcopy(session.world_state["locations"]),
+            "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
+            "marek_knowledge": copy.deepcopy(marek["knowledge"]),
+        }
         response = await self.post_scene_turn(turn_url, client, {
             "message": "Marek, Neverwinter neden gizlice bir ejderha tarafından yönetiliyor?",
             "interaction_mode": "say",
@@ -1452,9 +1457,20 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "ejderha", response.json()["narration"].casefold(),
             "The unverified dragon rumour must not be repeated as fact.",
         )
+        # An addressed NPC is attributed speech, so the admission gate does not
+        # answer for it: one speech packet, and the check is what it may change.
         self.assertEqual(
-            len(client.message_batches), batches_before_lore_question,
-            "Unsupported lore remains on the deterministic safety path.",
+            len(client.message_batches), batches_before_lore_question + 1,
+            "A resolved NPC answers through one speech packet.",
+        )
+        self.assertEqual(
+            world_before_lore_question,
+            {
+                "locations": session.world_state["locations"],
+                "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
+                "marek_knowledge": marek["knowledge"],
+            },
+            "Unsupported lore must not become world state through speech.",
         )
 
         entities_before_recommendation = {
@@ -1758,29 +1774,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         }
         session.world_state.setdefault("npcs", []).append(marek)
         client = CapturingConversationContextClient()
-        evidence_id = f"npc-profile:{marek['id']}:v1:reason_for_being_here"
-        client.conversation_replies = [
-            {
-                "conversation": {
-                    "addressee_id": marek["id"],
-                    "subject_phrase": "Marek",
-                    "subject_role": "addressee",
-                    "meaning": "personal_purpose",
-                    "topic_relation": "new",
-                    "candidate_evidence_ids": [evidence_id],
-                }
-            },
-            {
-                "conversation": {
-                    "addressee_id": marek["id"],
-                    "subject_phrase": "Marek",
-                    "subject_role": "addressee",
-                    "meaning": "personal_purpose",
-                    "topic_relation": "new",
-                    "candidate_evidence_ids": [evidence_id],
-                }
-            },
-        ]
+        # No lexical gate recognises these phrasings: the speech packet carries
+        # the verified fact and the model decides to use it.
+        client.conversation_replies = [{"narration": purpose}, {"narration": purpose}]
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
 
         for message in (
             "Marek, seni bu şehre getiren şey neydi?",
@@ -1798,7 +1795,17 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(response.status_code, 200, response.text)
             self.assertIn(purpose, response.json()["narration"])
-        self.assertEqual(len(client.intent_schemas), 2)
+            packet = next(
+                item["content"] for item in reversed(client.message_batches[-1])
+                if marker in item.get("content", "")
+            )
+            context, _ = json.JSONDecoder().raw_decode(packet.split(marker, 1)[1])
+            self.assertIn(
+                ("reason_for_being_here", purpose),
+                [(fact.get("field"), fact.get("value"))
+                 for fact in context["shareable_profile_facts"]],
+            )
+        self.assertEqual(len(client.intent_schemas), 0)
         self.assertEqual(client.conversation_replies, [])
 
     async def test_free_npc_profile_statement_uses_shared_resolution_without_forced_target(self):
@@ -1941,7 +1948,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(
             purpose,
             json.dumps(
-                current_context.get("conversation_candidates", []),
+                current_context.get("shareable_profile_facts", []),
                 ensure_ascii=False,
             ),
         )
@@ -2101,9 +2108,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ]
         for message, override in zip(
             (
-                "Marek, kervan neden geldi?",
+                # Only a recognised profile question reaches the classifier;
+                # other turns are speech and have no proposal to reject.
+                "Marek, mesleğin nedir?",
                 "Marek, şu an ne yapıyorsun?",
-                "Marek, bana bunu açıkla.",
+                "Marek, nereden geldin?",
             ),
             invalid_proposals,
         ):
@@ -2172,7 +2181,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         client = CapturingConversationContextClient()
         proposals = (
             ("occupation", "occupation", "mesleğin nedir?"),
-            ("origin", "origin", "nereli olduğunu anlatır mısın?"),
+            ("origin", "origin", "nereden geldin?"),
         )
         client.conversation_replies = [
             {
@@ -2473,7 +2482,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 },
             ),
             (
-                "Marek, nerelisin?",
+                "Marek, nereden geldin?",
                 {
                     "subject_phrase": "Marek",
                     "subject_role": "addressee",
