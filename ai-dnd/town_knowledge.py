@@ -21,6 +21,7 @@ from typing import Any
 import living_world
 import local_places
 import npc_statements
+import relationships
 import world_threads
 
 MAX_ITEMS = 5
@@ -60,7 +61,8 @@ def owned_threads(world: dict[str, Any], npc: dict[str, Any]) -> list[dict[str, 
 
 def is_closed_mouthed(world: dict[str, Any], npc: dict[str, Any]) -> bool:
     """The same person always answers the same way; someone with work to give does talk."""
-    return not owned_threads(world, npc) and _percent(world, npc.get("id"), "closed") < CLOSED_PERCENT
+    return (not owned_threads(world, npc) and not world_threads.recent_closed(world, npc)
+            and _percent(world, npc.get("id"), "closed") < CLOSED_PERCENT)
 
 
 def _places(world, settlement_id, npc):
@@ -94,17 +96,18 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     threads.sort(key=lambda item: _percent(world, npc.get("id"), "order", item["thread_id"]))
     gone = []
     now = world_threads._now(world)
-    line = world_threads.catalog().get("gone_lines", {}).get("filled_by_other")
+    lines = world_threads.catalog().get("gone_lines") or {}
     for thread in state["history"]:
         place = world.get("locations", {}).get(thread["place_id"])
+        line = lines.get(thread["status"])
         if (
-            line and isinstance(place, dict) and thread["status"] == "filled_by_other"
+            line and isinstance(place, dict)
             and thread["settlement_id"] == settlement_id and now - (thread.get("closed_at") or 0) < GONE_WINDOW
             and _percent(world, npc.get("id"), thread["thread_id"]) < share
         ):
             gone.append({"kind": "news", "text": line.replace("{place}", place["name"]).replace(
                 "{who}", thread.get("filled_by_name") or "başkası"),
-                         "location_id": thread["place_id"], "thread_id": None})
+                         "location_id": thread["place_id"], "thread_id": thread["thread_id"]})
     known, size = [], 0
     for item in (*threads, *gone, *_places(world, settlement_id, npc)):
         cost = len(item["text"].encode("utf-8"))
@@ -140,10 +143,91 @@ def _brush_off_place(world: dict[str, Any], npc: dict[str, Any]) -> str:
     return _name_of(world, chosen["place_id"])
 
 
-def speech_note(world: dict[str, Any], npc: Any) -> str:
+def _tone(world, npc):
+    score = relationships.score(world, npc.get("id"))
+    shared = world_threads.job_lines("shared") or {}
+    return shared.get("cold", "") if score <= -1 else shared.get("warm", "") if score >= 1 else ""
+
+
+def _offerable(world, npc):
+    """The one job this person could put to the player now; none while another is running."""
+    jobs = world_threads.jobs_of(world, npc)
+    if any(thread["status"] in {"offered", "accepted"} for thread in jobs):
+        return None
+    return next((t for t in jobs if t["status"] in world_threads.PUBLIC), None)
+
+
+def _lines_for(world, thread, npc, decision):
+    shared = world_threads.job_lines("shared") or {}
+    status = thread["status"]
+    if decision == "questioning_terms":
+        return [world_threads._fill(shared.get("questioning_terms", ""), pay_text=world_threads.pay_text(thread),
+                                    timing_text=world_threads.timing_text(thread))]
+    if status in {"accepted", "declined", "done", "failed", "abandoned", "expired"}:
+        line = world_threads.status_line(world, thread, status)
+        extra = []
+        if status == "accepted" and thread.get("type") == "errand":
+            extra.append(_parcel_line(world, thread))
+        return [line, *extra]
+    if status == "filled_by_other":
+        return [world_threads.status_line(world, thread, "filled")]
+    if status == "offered":
+        return [shared.get("unclear", "")]
+    return []
+
+
+def _parcel_line(world, thread):
+    noun = thread.get("item_noun") or "paket"
+    quest_id = thread.get("quest_id")
+    item_id = f"parcel:{quest_id}"
+    held = any(isinstance(i, dict) and i.get("item_id") == item_id for i in world.get("inventory", []))
+    return f"{noun.capitalize()} şu an {'oyuncunun elinde' if held else 'sende, henüz vermedin'}."
+
+
+def _job_note(world, npc, decision):
+    """Where this person's work stands, for them to say. Python decided all of it already."""
+    if not isinstance(npc, dict) or not npc.get("place_role_of"):
+        return (world_threads.job_lines("shared") or {}).get("no_job", "")
+    shared = world_threads.job_lines("shared") or {}
+    decided = world_threads.by_id(world, (decision or {}).get("thread_id"))
+    jobs = world_threads.jobs_of(world, npc)
+    if decided is not None and decided["status"] in world_threads.PUBLIC:
+        decided = None  # talked about, not yet offered: the note below covers it
+    chosen = decided or next((t for t in jobs if t["status"] in {"accepted", "offered", "declined"}), None)
+    tone = _tone(world, npc)
+    lines = []
+    if chosen is not None:
+        lines = _lines_for(world, chosen, npc, (decision or {}).get("decision"))
+    elif (past := world_threads.recent_closed(world, npc)):
+        lines = _lines_for(world, past[0], npc, None)
+    available = _offerable(world, npc)
+    if available is not None and chosen is None:
+        mood = world_threads.owner_mood(world, available, npc)
+        if mood == "no":
+            lines.append(shared.get("unwilling", ""))
+        elif mood == "wary":
+            lines.append(shared.get("wary_stranger", ""))
+        else:
+            lines.append(
+                f"Bu senin kendi işin: {available['owner_line']} Sorulursa ücreti ve süreyi aynen söyle; "
+                "kabul edip etmemek onun kararı. Peşin para verme."
+            )
+    for thread in owned_threads(world, npc):
+        if thread.get("type") == "trouble":
+            lines.append(f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')}")
+            break
+    if not lines:
+        lines.append(shared.get("no_job", ""))
+    return " " + " ".join(line for line in lines if line) + tone
+
+
+def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None = None) -> str:
     """Plain lines for this person's prompt; empty when the town is not in play here."""
     if not isinstance(npc, dict) or world_threads.view(world) is None or not _settlement(world):
         return ""
+    job = _job_note(world, npc, decision)
+    if job and not job.startswith(" "):
+        job = " " + job
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
         place = _brush_off_place(world, npc)
@@ -152,6 +236,7 @@ def speech_note(world: dict[str, Any], npc: Any) -> str:
             + (f" En fazla, başından savmak için {place} tarafına sormasını söyleyebilirsin; ne olduğunu anlatma."
                if place else "")
             + " Başka kimseyi ve hiçbir başka yeri adıyla anma."
+            + job
         )
     known = public_knowledge(world, npc)
     lines = []
@@ -165,12 +250,45 @@ def speech_note(world: dict[str, Any], npc: Any) -> str:
     else:
         lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa bilmediğini söyle.")
     lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
-    for thread in owned_threads(world, npc)[:1]:
-        lines.append(
-            f" Bu senin kendi meselen: {thread['owner_line']} Sorulursa bunu kendi ağzınla anlat; "
-            "söz verme, anlaşma yapma, para verme."
-        )
+    lines.append(job)
     return "".join(lines)
+
+
+def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:
+    """'Bana iş ver', 'adam arıyormuşsun': the player brought up work, however they put it."""
+    import local_dialogue
+    if local_dialogue.personal_question_kind(player_text) == "local_work":
+        return True
+    table = world_threads.answer_table()
+    words = world_threads._folded(player_text).split()
+    return bool(set(words) & table.get("work_terms", frozenset()))
+
+
+def _shows_terms(thread, text):
+    terms = thread.get("terms") or {}
+    return world_threads.names_number(text, terms.get("pay")) and (
+        not terms.get("work_days") or world_threads.names_number(text, terms.get("work_days")))
+
+
+def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) -> str | None:
+    """The owner's terms, when they were asked for the work and the reply left the figures out."""
+    thread = _offerable(world, npc) if isinstance(npc, dict) else None
+    if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply)
+            or world_threads.owner_mood(world, thread, npc) != "yes" or not asks_about_work(player_text, thread)):
+        return None
+    return thread["owner_line"]
+
+
+def _open_offer(world, npc, shown_text, turn, job_talk):
+    """An offer exists once its terms were on screen. Nothing else opens one."""
+    for thread in world_threads.jobs_of(world, npc):
+        if thread["status"] == "offered" and job_talk:
+            thread["offer_line"] = shown_text.strip()[:400]
+    thread = _offerable(world, npc)
+    if thread is None or not _shows_terms(thread, shown_text):
+        return
+    if world_threads.owner_mood(world, thread, npc, this_exchange=1) == "yes":
+        world_threads.mark_offered(world, thread, npc, shown_text, turn)
 
 
 def fallback_line(world: dict[str, Any], npc: Any) -> str | None:
@@ -220,7 +338,7 @@ def _mentioned(world, known, words):
     return hits
 
 
-def note_mention(world: dict[str, Any], npc: Any, shown_text: Any) -> None:
+def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: bool = False) -> None:
     """Tie what was just said to the real record it means, so the player can follow it."""
     if not isinstance(npc, dict) or not isinstance(shown_text, str):
         return
@@ -234,9 +352,15 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any) -> None:
         turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
         for item in known:  # only the thread this line is about, never another at the same place
             if item["thread_id"] and (item in hits or item["location_id"] in spoken):
-                thread = next((t for t in world_threads.active(world) if t["thread_id"] == item["thread_id"]), None)
-                if thread is not None:
+                thread = world_threads.by_id(world, item["thread_id"])
+                if thread is None:
+                    continue
+                if item["kind"] == "news":
+                    if thread.get("outcome_known_turn") is None:
+                        thread["outcome_known_turn"] = turn
+                else:
                     world_threads.mark_heard(thread, turn)
+        _open_offer(world, npc, shown_text, turn, job_talk)
         world_threads.note_heard_names(world, words)
         # A place said outright is what "oraya" means; a person only stands in for theirs.
         place_id = spoken[0] if spoken else (hits[0]["location_id"] if hits else None)

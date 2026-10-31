@@ -7958,7 +7958,7 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
     npc = next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
     if npc is not None:
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
-        town_knowledge.note_mention(world, npc, npc_text)
+        town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc))
 
 
 _CLAIM_REJECTION_RE = re.compile(
@@ -8149,10 +8149,94 @@ def _town_note(world, npc):
     import world_threads
     try:
         world_threads.ensure(world)
-        return town_knowledge.speech_note(world, npc)
+        turn = getattr(_session(), "_thread_turn", None) if _has_session() else None
+        return town_knowledge.speech_note(world, npc, turn)
     except Exception:
         town_knowledge.log_failure()
         return ""
+
+
+def _has_session():
+    return _ACTIVE_SESSION.get(None) is not None
+
+
+def _job_talk_with(npc):
+    """This turn was about this person's work, whatever the model made of it."""
+    turn = getattr(_session(), "_thread_turn", None)
+    return bool(turn and isinstance(npc, dict) and turn.get("npc_id") == npc.get("id"))
+
+
+def _offer_terms_shown(world, npc, player_input, shown):
+    """An owner asked for the work always shows the real terms; a reply that left them out gets them added."""
+    import town_knowledge
+    try:
+        return town_knowledge.terms_to_add(world, npc, player_input, shown)
+    except Exception:
+        town_knowledge.log_failure()
+        return None
+
+
+def _thread_person(player_input, target_id):
+    """Who this line is for, if anyone is here to answer for a job."""
+    people = active_npcs()
+    if target_id is not None:
+        return next((npc for npc in people if npc.get("id") == target_id), None)
+    named = _explicit_addressee(player_input, people)
+    if isinstance(named, dict):
+        return named
+    active = _active_interlocutor()
+    if isinstance(active, dict) and any(npc.get("id") == active.get("id") for npc in people):
+        return active
+    last = _session().world_state.get("flags", {}).get("last_npc_id")
+    spoken = next((npc for npc in people if last and npc.get("id") == last), None)
+    return spoken or (people[0] if len(people) == 1 else None)
+
+
+def _physical_line(player_input):
+    import grounded_action
+    session = _session()
+    plan = grounded_action.plan(session, player_input)
+    acts = [step for step in plan["steps"] if not any(step.get(k) for k in ("question", "reported", "not_now", "negated"))
+            and step["verb"] not in {"talk", "other"}]
+    return bool(acts) or session._has_explicit_attack_verb(player_input)
+
+
+def _thread_gate(player_input, target_id, interaction_mode):
+    """A line about someone's work is decided here, before any phrase owner reads it.
+
+    Python reads the player's own words and writes the state; the model only voices the
+    result. Works the same in the UI's default mode and in say mode. Nothing here fails a turn.
+    """
+    import town_knowledge
+    import world_threads
+    session = _session()
+    world = session.world_state
+    if interaction_mode == "ask_dm" or world_threads.view(world) is None or world.get("combat", {}).get("active"):
+        return None
+    journey = world.get("journey")
+    if journey and journey.get("status") != "ARRIVED":
+        return None
+    try:
+        person = _thread_person(player_input, target_id)
+        gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
+        if gate is None:
+            return None
+        if gate["decision"] is None and interaction_mode != "say" and _physical_line(player_input):
+            return None
+        session.require_player_can_act()
+        thread = world_threads.by_id(world, gate["thread_id"])
+        if gate["decision"] in {"accepted", "declined", "abandoned"}:
+            turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
+            if not world_threads.apply_decision(world, thread, gate["decision"], turn):
+                gate["decision"] = None
+        session._thread_turn = gate
+        return gate
+    except PlayerCannotAct:
+        raise
+    except Exception:
+        town_knowledge.log_failure()
+        session._thread_turn = None
+        return None
 
 
 def _turns_to_someone_else(player_input):
@@ -17451,6 +17535,7 @@ def _dispatch_player_turn(
     check_feature=None, check_evidence=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
+    _session()._thread_turn = None
     if ensure_death_state()["dead"]:
         raise PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
     if _session().character.get("current_hp", 0) <= 0:
@@ -17537,6 +17622,10 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
+    if combat_action is None:
+        gate = _thread_gate(player_input, target_id, interaction_mode)
+        if gate is not None:
+            interaction_mode, target_id = "say", gate["npc_id"]
     if combat_action is None:
         import dialogue_runtime
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
@@ -19424,8 +19513,9 @@ def _run_player_turn_internal(
             is_final=True,
         )
 
+    thread_talk = _job_talk_with(npc_target)
     interaction_hint = (
-        None if interaction_mode == "ask_dm"
+        None if interaction_mode == "ask_dm" or thread_talk
         or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
@@ -19790,6 +19880,7 @@ def _run_player_turn_internal(
     spoken_reference = False
     if (
         interaction_mode != "ask_dm"
+        and not thread_talk
         and is_npc_historical_claim(player_input)
         and not _reported_npc_claim_followed_by_player_inspection(player_input)
         and not _report_of_someone_else(player_input, npc_target)
@@ -20394,6 +20485,9 @@ def _run_player_turn_internal(
             ):
                 narration_source = "deterministic_fallback"
                 if experimental_npc_dialogue:
+                    terms = _offer_terms_shown(world_state, npc_target, player_input, text)
+                    if terms:
+                        text = f"{text} “{terms}”"
                     _remember_experimental_npc_speech(
                         npc_target["id"], player_input, text
                     )
@@ -20408,11 +20502,11 @@ def _run_player_turn_internal(
                     safety_handling="python_fallback",
                 )
             if experimental_npc_dialogue:
-                _remember_experimental_npc_speech(
-                    npc_target["id"], player_input,
-                    attributed_speech["spoken_text"]
-                    if accepted_model_speech else text,
-                )
+                spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
+                terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
+                if terms:
+                    text, spoken = f"{text} “{terms}”", f"{spoken} {terms}"
+                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken)
             return finish_turn(
                 action_result,
                 text,

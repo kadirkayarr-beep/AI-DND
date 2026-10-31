@@ -888,6 +888,116 @@ def decline(world: dict[str, Any], thread: dict[str, Any], turn: int) -> bool:
     return True
 
 
+JOBS = ("hiring", "errand")
+RECENT_CLOSE = 48 * HOUR
+
+
+def _speaks_of_work(text, reading, thread, table):
+    words = _folded(text).split()
+    stems = _item_stems(thread)
+    return bool(set(words) & table["work_terms"]) or _has_phrase(words, table["question_terms"]) or any(
+        word.startswith(stem) for stem in stems for word in words) or reading["meaning"] is not None
+
+
+def recent_closed(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """Jobs of this person that ended in the last two days, newest first."""
+    state = view(world)
+    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
+    if state is None or not place_id:
+        return []
+    now = _now(world)
+    return [t for t in reversed(state["history"]) if t.get("place_id") == place_id and t.get("type") in JOBS
+            and t.get("offered_at") is not None and now - (t.get("closed_at") or 0) < RECENT_CLOSE]
+
+
+def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """This person's own work, the one in hand first."""
+    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
+    order = {"accepted": 0, "offered": 1, "declined": 2}
+    return sorted((t for t in owned(world) if place_id and t.get("place_id") == place_id and t.get("type") in JOBS),
+                  key=lambda t: order.get(t["status"], 3))
+
+
+def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | None:
+    """What this line does to this person's work: a decision, talk about it, or nothing."""
+    mine = jobs_of(world, npc)
+    closed = recent_closed(world, npc)
+    if not (mine or closed) or answer_table() == {}:
+        return None
+    for thread in mine:
+        decision = bind_player_decision(world, thread, text, npc)
+        if decision:
+            return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
+    for thread in (*mine, *closed):
+        reading = read_answer(text, npc, thread)
+        about = _speaks_of_work(text, reading, thread, answer_table())
+        current = thread.get("status") == "offered" and answers_the_offer(world, thread, npc)
+        if about or current:
+            return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id")}
+    return None
+
+
+def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
+    """Write what the player said. Money and goods stay with their own owners."""
+    if decision == "accepted":
+        return accept_hired(world, thread)
+    if decision == "declined":
+        return decline(world, thread, turn)
+    if decision == "abandoned":
+        if not transition(thread, "abandoned"):
+            return False
+        now = _now(world)
+        thread["closed_at"] = now
+        _log(thread, now, "abandoned")
+        state = view(world)
+        state["threads"], closed = _split_closed(state["threads"])
+        state["history"].extend(closed)
+        _trim_history(state)
+        _apply_effects(world, [(thread["thread_id"], "abandoned")])
+        return True
+    return False
+
+
+def pay_text(thread: dict[str, Any]) -> str:
+    words = job_lines("text") or {}
+    pay = (thread.get("terms") or {}).get("pay")
+    name = {"daily": "pay_daily", "total": "pay_total", "per_trip": "pay_delivery"}.get(pay_basis(thread), "pay_delivery")
+    return _fill(words.get(name, "{pay} bakır"), pay=pay)
+
+
+def timing_text(thread: dict[str, Any]) -> str:
+    words = job_lines("text") or {}
+    return words.get(f"timing_{(thread.get('terms') or {}).get('pay_timing')}", "")
+
+
+def start_text(world: dict[str, Any], thread: dict[str, Any]) -> str:
+    """Python's answer to 'when do I start'; the model only repeats it."""
+    import campaign_time
+    words = job_lines("text") or {}
+    hour = (campaign_time.public_time(world) or {}).get("hour", 9)
+    if thread.get("night_only"):
+        return words.get("start_tonight", "")
+    return words.get("start_today", "") if hour < 16 else words.get("start_tomorrow", "")
+
+
+def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str:
+    """The plain fact of where this job stands, for this person to say in their own words."""
+    own = thread.get("status_lines") if isinstance(thread.get("status_lines"), dict) else {}
+    line = own.get(kind)
+    if not line:
+        lines = job_lines(thread.get("type"), kind) or []
+        if not lines:
+            return ""
+        line = lines[_rank(living_world._campaign_seed(world), thread["thread_id"], kind) % len(lines)]
+    terms = thread.get("terms") or {}
+    place = world.get("locations", {}).get(thread.get("target_place_id")) or {}
+    noun = thread.get("item_noun") or ""
+    return _fill(line, days=terms.get("work_days") or "", pay_text=pay_text(thread), timing_text=timing_text(thread),
+                 start=start_text(world, thread), item=noun[:1].upper() + noun[1:],
+                 recipient=thread.get("recipient_name") or "", target=place.get("name", ""),
+                 deadline_text=terms.get("deadline_text") or "", who=thread.get("filled_by_name") or "başkası")
+
+
 def _replenish(world, state, now):
     seed = living_world._campaign_seed(world)
     for settlement_id in state["seeded"]:
