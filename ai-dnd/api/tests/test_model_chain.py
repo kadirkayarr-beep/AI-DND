@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 
@@ -170,9 +173,21 @@ class LocalModel:
         return self.answer
 
 
-def chain_for(cloud, clock=None):
-    providers = [model_chain.gemini(KEY), model_chain.haiku(KEY)]
-    return model_chain.ModelChain(providers, transport=httpx.MockTransport(cloud), now=clock or Clock())
+def setUpModule():
+    global _TEMP
+    _TEMP = tempfile.TemporaryDirectory()
+    unittest.addModuleCleanup(_TEMP.cleanup)
+
+
+def spend_file():
+    return Path(tempfile.mkdtemp(dir=_TEMP.name)) / "play" / "model-chain-spend.json"
+
+
+def chain_for(cloud, clock=None, path=None):
+    clock = clock or Clock()
+    spend = model_chain.HaikuSpend(path or spend_file(), clock)
+    providers = [model_chain.gemini(KEY), model_chain.haiku(KEY, spend)]
+    return model_chain.ModelChain(providers, transport=httpx.MockTransport(cloud), now=clock)
 
 
 class TheChain(unittest.TestCase):
@@ -323,6 +338,72 @@ class TheChain(unittest.TestCase):
         self.assertIn("provider=gemini", text)
         self.assertIn("reason=http_503", text)
         self.assertIn("provider=haiku", text)
+
+
+class TheSpendCap(unittest.TestCase):
+    def haiku_only(self, path, clock=None, reply=None):
+        self.cloud = FakeCloud(gemini=httpx.Response(503), haiku=reply or ok(haiku_reply()))
+        return chain_for(self.cloud, clock, path)
+
+    def spent(self, path, month="2026-10", input_tokens=0, output_tokens=0):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"month": month, "input_tokens": input_tokens, "output_tokens": output_tokens}))
+
+    def test_haiku_tokens_are_counted_in_a_file_without_the_key(self):
+        path = spend_file()
+        chain = self.haiku_only(path)
+        chain.chat(CALL, LocalModel())
+        chain.chat(CALL, LocalModel())
+        saved = json.loads(path.read_text())
+        self.assertEqual(saved, {"month": "2026-10", "input_tokens": 2000, "output_tokens": 400})
+        self.assertNotIn(KEY, path.read_text())
+
+    def test_gemini_is_not_counted(self):
+        path = spend_file()
+        chain_for(FakeCloud(gemini=ok(gemini_reply())), path=path).chat(CALL, LocalModel())
+        self.assertFalse(path.exists())
+
+    def test_a_reply_the_game_cannot_use_is_still_paid_for(self):
+        path = spend_file()
+        self.haiku_only(path, reply=ok(haiku_reply("yarım"))).chat(CALL, LocalModel())
+        self.assertEqual(json.loads(path.read_text())["input_tokens"], 1000)
+
+    def test_below_two_dollars_haiku_still_answers(self):
+        path = spend_file()
+        self.spent(path, input_tokens=19_000_000, output_tokens=199_999)
+        self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
+
+    def test_at_two_dollars_haiku_is_not_called_at_all(self):
+        path = spend_file()
+        self.spent(path, input_tokens=19_000_000, output_tokens=200_000)
+        local = LocalModel()
+        self.assertIsNone(self.haiku_only(path).chat(CALL, local)[1])
+        self.assertEqual(local.calls, 1)
+        self.assertEqual(self.cloud.hosts(), [GOOGLE])
+
+    def test_a_new_month_starts_at_zero(self):
+        path = spend_file()
+        self.spent(path, month="2026-09", input_tokens=40_000_000)
+        self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 1000, "output_tokens": 200})
+
+    def test_a_spend_file_that_cannot_be_read_stops_haiku(self):
+        for content in ("not json", "[]", '{"month": "2026-10", "input_tokens": "many", "output_tokens": 0}'):
+            with self.subTest(content):
+                path = spend_file()
+                path.parent.mkdir(parents=True)
+                path.write_text(content)
+                self.assertIsNone(self.haiku_only(path).chat(CALL, LocalModel())[1])
+                self.assertEqual(self.cloud.hosts(), [GOOGLE])
+                self.assertEqual(path.read_text(), content)
+
+    def test_a_count_that_cannot_be_saved_stops_haiku_for_this_run(self):
+        path = spend_file()
+        chain = self.haiku_only(path)
+        with patch.object(model_chain.os, "replace", side_effect=OSError("disk")):
+            self.assertEqual(chain.chat(CALL, LocalModel())[1], "haiku")
+        self.assertIsNone(chain.chat(CALL, LocalModel())[1])
+        self.assertEqual(self.cloud.hosts(), [GOOGLE, ANTHROPIC, GOOGLE])
 
 
 if __name__ == "__main__":

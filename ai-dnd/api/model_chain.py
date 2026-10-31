@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
+import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -26,6 +29,9 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"
 CALL_TIMEOUT_SECONDS = 20
 DEFAULT_COOLDOWN_SECONDS = 60
+HAIKU_MONTHLY_CAP_USD = 2.0
+_HAIKU_INPUT_USD_PER_MILLION = 0.10
+_HAIKU_OUTPUT_USD_PER_MILLION = 0.50
 # Gemini's free daily quota resets at midnight Pacific, which is 07:00 or 08:00 UTC.
 _QUOTA_RESET_HOUR_UTC = 8
 _DAILY_QUOTA = re.compile(r"per.?day|daily", re.IGNORECASE)
@@ -164,6 +170,56 @@ def haiku_read(payload: Mapping[str, Any]) -> Reply:
     )
 
 
+class HaikuSpend:
+    """This calendar month's Haiku tokens in a local file. When in doubt it stops Haiku."""
+
+    def __init__(self, path: Path, now: Callable[[], datetime]):
+        self._path = path
+        self._now = now
+        self._lock = threading.Lock()
+        self._save_failed = False
+
+    def _month(self) -> str:
+        return self._now().strftime("%Y-%m")
+
+    def _load(self) -> tuple[int, int] | None:
+        """Tokens so far this month; None when the file cannot be trusted."""
+        try:
+            saved = json.loads(self._path.read_text(encoding="utf-8"))
+            month, tokens = saved["month"], (saved["input_tokens"], saved["output_tokens"])
+        except FileNotFoundError:
+            return 0, 0
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        if not all(type(count) is int for count in tokens):
+            return None
+        return tokens if month == self._month() else (0, 0)
+
+    def allows_a_call(self) -> bool:
+        with self._lock:
+            tokens = self._load()
+            if tokens is None or self._save_failed:
+                return False
+            usd = (tokens[0] * _HAIKU_INPUT_USD_PER_MILLION + tokens[1] * _HAIKU_OUTPUT_USD_PER_MILLION) / 1_000_000
+            return usd < HAIKU_MONTHLY_CAP_USD
+
+    def add(self, reply: Reply) -> None:
+        with self._lock:
+            tokens = self._load()
+            if tokens is None:
+                return
+            saved = {"month": self._month(), "input_tokens": tokens[0] + reply.input_tokens,
+                     "output_tokens": tokens[1] + reply.output_tokens}
+            temporary = self._path.with_suffix(".tmp")
+            try:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                temporary.write_text(json.dumps(saved), encoding="utf-8")
+                os.replace(temporary, self._path)
+            except OSError:
+                self._save_failed = True
+                _logger.warning("Model chain could not save the Haiku count; Haiku stops for this run.")
+
+
 @dataclass(frozen=True)
 class Provider:
     name: str
@@ -172,6 +228,7 @@ class Provider:
     headers: Mapping[str, str] = field(repr=False)
     body: Callable[[Mapping[str, Any]], dict[str, Any]] = field(repr=False)
     read: Callable[[Mapping[str, Any]], Reply] = field(repr=False)
+    spend: HaikuSpend | None = field(default=None, repr=False)
 
 
 def gemini(key: str) -> Provider:
@@ -182,10 +239,10 @@ def gemini(key: str) -> Provider:
     )
 
 
-def haiku(key: str) -> Provider:
+def haiku(key: str, spend: HaikuSpend) -> Provider:
     return Provider(
         "haiku", HAIKU_MODEL, "https://api.anthropic.com/v1/messages",
-        {"x-api-key": key, "anthropic-version": "2023-06-01"}, haiku_body, haiku_read,
+        {"x-api-key": key, "anthropic-version": "2023-06-01"}, haiku_body, haiku_read, spend,
     )
 
 
@@ -243,7 +300,9 @@ class ModelChain:
 
     def _ready(self, provider: Provider) -> bool:
         until = self._resting_until.get(provider.name)
-        return until is None or self._now() >= until
+        if until is not None and self._now() < until:
+            return False
+        return provider.spend is None or provider.spend.allows_a_call()
 
     def _rest(self, provider: Provider, response: httpx.Response) -> None:
         moment = self._now()
@@ -261,6 +320,8 @@ class ModelChain:
         if response.status_code != 200:
             raise _Skipped(f"http_{response.status_code}")
         reply = provider.read(response.json())
+        if provider.spend is not None:
+            provider.spend.add(reply)  # billed whether or not the game can use it
         if not _usable(reply.text, call):
             raise _Skipped("unusable_reply")
         return reply
