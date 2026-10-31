@@ -17,7 +17,7 @@ import re
 import threading
 import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -54,6 +54,8 @@ _HAIKU_UNSUPPORTED = frozenset({
 _PROMPT_SCHEMA_NOISE = frozenset({"default", "title"})
 _HAIKU_JSON_REQUIREMENT = "Return one JSON object only, with no code fence, matching this JSON schema: "
 _GEMINI_UNSUPPORTED = frozenset({"$defs", "additionalProperties", "const", "default", "title"})
+_FENCE = re.compile(r"^\s*```(?:json)?\s*(.*?)\s*```\s*$", re.DOTALL)
+_KINDS = {"object": dict, "array": list, "string": str, "integer": int, "number": (int, float), "boolean": bool}
 _logger = logging.getLogger("ai_dnd.api.ollama")
 
 
@@ -292,16 +294,83 @@ class _Skipped(Exception):
         super().__init__(reason)
 
 
-def _usable(text: str, call: Mapping[str, Any]) -> bool:
+class _Unfit(Exception):
+    """A reply no repair can bring inside the call's schema."""
+
+
+def _is_kind(value: Any, kind: str) -> bool:
+    if kind == "null":
+        return value is None
+    if isinstance(value, bool):
+        return kind == "boolean"
+    return isinstance(value, _KINDS[kind])
+
+
+def _shaped(value: Any, schema: Mapping[str, Any], definitions: Mapping[str, Any]) -> Any:
+    """The value as the local model's grammar would have left it: cut to the limits, or _Unfit.
+
+    No compiled format holds a cloud provider to these limits, and the game drops a whole
+    reply over one extra item. Repairing here keeps the answer and needs no second call.
+    """
+    if "$ref" in schema:
+        return _shaped(value, definitions[schema["$ref"].rsplit("/", 1)[-1]], definitions)
+    if "anyOf" in schema:
+        for branch in sorted(schema["anyOf"], key=lambda branch: branch.get("type") == "null"):
+            try:
+                return _shaped(value, branch, definitions)
+            except _Unfit:
+                continue
+        raise _Unfit
+    kinds = schema.get("type")
+    kinds = [kinds] if isinstance(kinds, str) else kinds
+    if kinds == ["null"]:
+        return None
+    if kinds and not any(_is_kind(value, kind) for kind in kinds):
+        raise _Unfit
+    if ("enum" in schema and value not in schema["enum"]) or ("const" in schema and value != schema["const"]):
+        raise _Unfit
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            raise _Unfit
+        return value[:schema.get("maxLength")]
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value < schema.get("minimum", value) or value > schema.get("maximum", value):
+            raise _Unfit
+    if isinstance(value, list):
+        kept = value[:schema.get("maxItems")]
+        if len(kept) < schema.get("minItems", 0):
+            raise _Unfit
+        return [_shaped(item, schema.get("items", {}), definitions) for item in kept]
+    if isinstance(value, dict):
+        if any(name not in value for name in schema.get("required", ())):
+            raise _Unfit
+        properties = schema.get("properties", {})
+        closed = schema.get("additionalProperties") is False
+        return {
+            name: _shaped(item, properties[name], definitions) if name in properties else item
+            for name, item in value.items()
+            if name in properties or not closed
+        }
+    return value
+
+
+def _for_the_game(text: str, call: Mapping[str, Any]) -> str | None:
+    """The text the game should receive, or None when the next provider should answer."""
     if not text.strip():
-        return False
+        return None
     if not call.get("format"):
-        return True
+        return text
+    fence = _FENCE.match(text)
+    text = fence.group(1) if fence else text
+    schema = _schema(call)
     try:
         parsed = json.loads(text)
-    except ValueError:
-        return False
-    return isinstance(parsed, dict) and bool(parsed)
+        shaped = parsed if schema is None else _shaped(parsed, schema, schema.get("$defs", {}))
+    except (ValueError, _Unfit):
+        return None
+    if not (isinstance(shaped, dict) and shaped):
+        return None
+    return text if shaped == parsed else json.dumps(shaped, ensure_ascii=False)
 
 
 def _retry_after_seconds(value: str | None, moment: datetime) -> float:
@@ -384,9 +453,10 @@ class ModelChain:
         reply = provider.read(json.loads(text))
         if provider.spend is not None:
             provider.spend.add(reply)  # billed whether or not the game can use it
-        if not _usable(reply.text, call):
+        text = _for_the_game(reply.text, call)
+        if text is None:
             raise _Skipped("unusable_reply")
-        return reply
+        return replace(reply, text=text)
 
     def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
         """One engine call: the response in Ollama's shape, and the cloud provider that answered it.

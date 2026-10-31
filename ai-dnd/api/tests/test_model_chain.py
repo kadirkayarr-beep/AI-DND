@@ -508,6 +508,73 @@ class TheChain(unittest.TestCase):
         self.assertIn("provider=haiku", text)
 
 
+class TheReplyShape(unittest.TestCase):
+    """A cloud reply leaves shaped as Gemma's grammar would have shaped it, or the next provider is asked."""
+
+    def answer(self, reply, call=CALL):
+        return chain_for(FakeCloud(gemini=ok(gemini_reply(reply)), haiku=ok(haiku_reply()))).chat(call, LocalModel())
+
+    def test_a_reply_that_fits_stays_as_it_came(self):
+        text = '{ "narration":  "Sokak", "npc": null, "tier": 3, "claims": [] }'
+        response, answered = self.answer(text)
+        self.assertEqual((answered, response.message.content), ("gemini", text))
+
+    def test_what_the_limits_forbid_is_cut_and_the_provider_keeps_the_turn(self):
+        response, answered = self.answer(json.dumps({"narration": "a" * 301, "claims": ["uydurma"]}))
+        self.assertEqual(answered, "gemini")
+        self.assertEqual(json.loads(response.message.content), {"narration": "a" * 300, "claims": []})
+
+    def test_a_field_the_schema_closes_is_dropped(self):
+        response, answered = self.answer('{"narration": "Sokak", "extra": 1}')
+        self.assertEqual((answered, json.loads(response.message.content)), ("gemini", {"narration": "Sokak"}))
+
+    def test_a_fenced_reply_is_unwrapped_rather_than_paid_for_twice(self):
+        response, answered = self.answer('```json\n{"narration": "Sokak"}\n```')
+        self.assertEqual((answered, response.message.content), ("gemini", '{"narration": "Sokak"}'))
+
+    def test_a_reply_that_cannot_be_shaped_moves_to_the_next_provider(self):
+        for name, reply in (
+            ("missing required field", '{"tier": 3}'),
+            ("wrong type", '{"narration": 5}'),
+            ("out of range", '{"narration": "Sokak", "tier": 9}'),
+            ("a true is not a number", '{"narration": "Sokak", "tier": true}'),
+            ("nested wrong type", '{"narration": "Sokak", "npc": {"name": 5}}'),
+        ):
+            with self.subTest(name):
+                self.assertEqual(self.answer(reply)[1], "haiku")
+
+    def test_a_narration_only_reply_loses_the_world_changes_it_may_not_make(self):
+        call = dict(CALL, format=game._dm_response_schema_for_turn(narration_only=True))
+        updates = {name: [] for name in game.WORLD_UPDATE_SCHEMA["required"]}
+        updates["events"] = [{"anything": "invented"}]
+        response, answered = self.answer(
+            json.dumps({"narration": "Sokak", "world_updates": updates, "lore_claims": ["invented"]}), call)
+        self.assertEqual(answered, "gemini")
+        reply = json.loads(response.message.content)
+        self.assertEqual(reply["world_updates"]["events"], [])
+        self.assertEqual(reply["lore_claims"], [])
+
+    def test_a_turn_without_candidates_keeps_its_conversation_reading(self):
+        schema = interaction_adventure.close_proposal_schema(
+            interaction_adventure.intent_schema(game.INTENT_SCHEMA, require_conversation=True), {"addressee": None})
+        proposal = dict(schema["$defs"]["ConversationProposal"], **{"$defs": schema["$defs"]})
+        reply = {"addressee_id": "marek", "subject_phrase": "", "subject_role": "unknown", "meaning": "unclear",
+                 "topic_relation": "unclear", "candidate_evidence_ids": [""]}
+        response, answered = self.answer(json.dumps(reply), dict(CALL, format=proposal))
+        self.assertEqual(answered, "gemini")
+        shaped = json.loads(response.message.content)
+        self.assertIsNone(shaped["addressee_id"])
+        self.assertEqual(shaped["candidate_evidence_ids"], [])
+
+    def test_an_id_that_is_not_on_offer_becomes_null_where_null_is_allowed(self):
+        schema = {"type": "object", "properties": {
+            "addressee_id": {"anyOf": [{"type": "string", "enum": ["marek"]}, {"type": "null"}]},
+            "thread": {"anyOf": [{"$ref": "#/$defs/Id"}, {"type": "null"}]},
+        }, "$defs": {"Id": {"type": "string", "maxLength": 4}}}
+        response, _ = self.answer('{"addressee_id": "kimse", "thread": 7}', dict(CALL, format=schema))
+        self.assertEqual(json.loads(response.message.content), {"addressee_id": None, "thread": None})
+
+
 class TheSpendCap(unittest.TestCase):
     def haiku_only(self, path, clock=None, reply=None):
         self.cloud = FakeCloud(gemini=httpx.Response(503), haiku=reply or ok(haiku_reply()))
