@@ -14168,8 +14168,8 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
 NARRATOR_VOICE = (
     "Oyuncuya tekil sen de. Anlatımın tamamı şimdiki zaman: fiiller -iyor, -iyorsun ile biter "
     "(Kapıyı itiyorsun; menteşe gıcırdıyor). -dı, -mıştı, -yordu yazma; yalnız bu turdan önce "
-    "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma; adına söz, his, karar, eylem "
-    "uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. Motor gerçeğini koru."
+    "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma, ağzından konuşma; adına söz, his, "
+    "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir."
 )
 
 system_prompt = """

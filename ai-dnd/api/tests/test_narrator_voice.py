@@ -90,6 +90,10 @@ class NarratorVoiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(form, game.NARRATOR_VOICE)
         self.assertNotIn("geçmişi geçmiş zamanda", game.NARRATOR_VOICE)
 
+    def test_the_paragraph_bars_speaking_as_the_player(self):
+        # Real line after a shorter draft dropped this: Sen: “Şehrin en zengin mahallesine gidiyorum.”
+        self.assertIn("ağzından", game.NARRATOR_VOICE)
+
     def test_the_paragraph_bars_the_third_person_word(self):
         self.assertIn("oyuncu kelimesini yazma", game.NARRATOR_VOICE)
 
