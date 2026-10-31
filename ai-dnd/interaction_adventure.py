@@ -1296,7 +1296,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
                              location_id=world["location"]).model_dump()
         _event(world, state, "plan_recorded", "Adımlarını düşündün; henüz yola koyulmadın.")
         result = _result(operation, "recorded",
-                         f'{steps[0]["quote"]}: bir an bunu tartıyorsun.')
+                         "Bir an durup bunu tartıyorsun; çevrede herkes işine devam ediyor.")
     elif operation == "continue_plan":
         plan = state["plan"]
         if not plan or plan["status"] in {"completed", "abandoned"}:

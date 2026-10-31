@@ -1651,7 +1651,7 @@ def analyze_player_action(
 # ---------------------------------------------------------
 
 
-def clean_dm_response(text):
+def clean_dm_response(text, *, spoken=False):
 
     text = re.sub(
         r"<think>.*?</think>",
@@ -1676,12 +1676,13 @@ def clean_dm_response(text):
         text
     )
 
-    # Oyuncuya soru/karar yükleyen ifadeleri temizle.
-    text = re.sub(
-        r"(?im)^.*(?:hangisini seçersin|ne yaparsın|ne yapmak istersin)\??.*$",
-        "",
-        text
-    )
+    # Oyuncuya soru/karar yükleyen ifadeleri temizle. Bir NPC bunu sorabilir.
+    if not spoken:
+        text = re.sub(
+            r"(?im)^.*(?:hangisini seçersin|ne yaparsın|ne yapmak istersin)\??.*$",
+            "",
+            text
+        )
 
     lines = [
         line.strip()
@@ -5893,31 +5894,42 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
 
 
 _PROPOSAL_MARKER_RE = re.compile(r"\[\[([nlfs][1-9]\d?)\]\] ?")
-_INTERNAL_MARK_RE = re.compile(r"\[\[\s*([^\[\]]{0,60}?)\s*\]\]|\b(npc_[a-z0-9_]+)\b")
+_INTERNAL_MARK_RE = re.compile(
+    r"\[\[\s*([^\[\]]{0,60}?)\s*\]\]|\b(npc_[a-z0-9_]+)\b|\[([^\[\]]{1,40})\]"
+)
 
 
 def _strip_proposal_markers(narration):
-    return _PROPOSAL_MARKER_RE.sub("", narration) if isinstance(narration, str) else narration
+    return _repair_internal_marks(narration)
 
 
 def _repair_internal_marks(narration):
     """An id copied from the context reads as the public label; any other mark goes."""
     if not isinstance(narration, str) or not _INTERNAL_MARK_RE.search(narration):
         return narration
-    narration = _PROPOSAL_MARKER_RE.sub("", narration)
+    world_state = _session().world_state
     labels = {
         npc["id"]: living_world.public_npc_name(npc)
-        for npc in _session().world_state.get("npcs", [])
+        for npc in world_state.get("npcs", [])
         if isinstance(npc, dict) and isinstance(npc.get("id"), str)
     }
+    present = active_npcs()
 
     def label_for(match):
-        label = labels.get(match.group(1) or match.group(2))
+        if match.group(3) is not None:
+            return match.group(3)
+        key = match.group(1) or match.group(2)
+        label = labels.get(key)
+        if label is None and _PROPOSAL_MARKER_RE.fullmatch(match.group(0)):
+            # "tezgahın arkasındaki [[n1]] sakinlikle": the mark stood for the person.
+            rest = narration[match.end():].lstrip()
+            if len(present) == 1 and rest[:1].islower():
+                label = living_world.public_npc_name(present[0])
         if label is None:
             return ""
         before = narration[:match.start()].rstrip()
         at_start = not before or before[-1] in ".!?\n“\""
-        return label if at_start else label[:1].lower() + label[1:]
+        return label if at_start or not _is_generic_speaker_label(label) else label[:1].lower() + label[1:]
 
     repaired = _INTERNAL_MARK_RE.sub(label_for, narration)
     return re.sub(r"[ \t]{2,}", " ", re.sub(r"[ \t]+([,.;:!?])", r"\1", repaired)).strip()
@@ -7957,7 +7969,9 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "sahte ad söyleme."
         )
     elif name_stance == "reveal":
-        lines.append(f"Adın {name}. Oyuncu adını soruyor: cevabında adını açıkça söyle.")
+        lines.append(
+            f"Adın {name}. Oyuncu adını soruyor: adını kısa, doğal bir cümleyle söyle (Adım {name}.)."
+        )
     elif living_world.npc_name_known_to_player(npc):
         lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
     else:
@@ -9136,7 +9150,9 @@ def _fallback_narration(player_input, npc_target=None):
     door_action = "kapı" in text or "kapıyı" in text or "kilit" in text
     known_npcs = [npc for npc in world_state["npcs"] if npc.get("location") == world_state["location"]]
 
-    if "kılıc" in text or "kılıç" in text or "silah" in text:
+    if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
+        r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text
+    ):
         if "Kılıç" in world_state["ground_items"]:
             return "Kılıç yerde duruyor ve envanterinde bulunmuyor."
         if "Kılıç" in world_state["inventory"]:
@@ -9412,7 +9428,7 @@ _HELD_SKIP = frozenset({
 
 def _unregistered_held_object(world_state, narration):
     """A thing in a hand, or a named prop, that the scene does not have."""
-    normalized = _normalize_turkish_typos(narration)
+    normalized = re.sub(r"\bdikkat cekici\b", " ", _normalize_turkish_typos(narration))
     names = " ".join(
         _normalize_turkish_typos(name)
         for name in _registered_persistent_object_names(world_state, include_carried=True)
@@ -12579,7 +12595,9 @@ def ask_dungeon_master(
                    "world_updates": {}, "lore_claims": [], "valid_response": valid,
                    "fallback_reason_code": None if valid else "EXPLORATION_NARRATION_REJECTED"}
         return details if return_details else details["narration"]
-    if (action_result or {}).get("action") == "interaction":
+    if (action_result or {}).get("action") == "interaction" and (
+        action_result.get("operation") != "plan"
+    ):
         # Never include the global world/lore/legacy memory packet in NPC agency.
         scoped = interaction_adventure.context(
             world_state, npc_target, player_input
@@ -12592,7 +12610,8 @@ def ask_dungeon_master(
             "Bilmeyen NPC doğal biçimde bilmediğini söyler; AI, veri, model, kayıt, "
             "Python veya sunucudan söz etme. Başka NPC adına konuşma. "
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
-            + json.dumps({"perspective": scoped, "resolved": action_result,
+            + json.dumps({"perspective": scoped,
+                          "resolved": {k: v for k, v in action_result.items() if k != "direct_response"},
                           "player_intent": player_input}, ensure_ascii=False)
         )
         try:
@@ -12811,6 +12830,8 @@ def ask_dungeon_master(
         f"CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n{living_scene_context}\n\n"
         f"RECENT NARRATION (yalnızca tekrar etmeme için; olgusal dayanak değil):\n{recent_narration_context}\n\n"
         f"VERIFIED NPC MEMORY (önceki gerçek NPC yanıtları; oyuncu iddiaları değil) yukarıdaki context'te yer alır.\n\n"
+        + "Önce oyuncunun denediği şeyin nasıl sonuçlandığını ve çevredekilerin buna tepkisini anlat; "
+        "sahneyi baştan tarif etme.\n"
         + _untrusted_player_block("CURRENT PLAYER MESSAGE (doğrulanmamış yeni girdi):\n", player_input)
     )
     try:
@@ -13227,19 +13248,23 @@ def _remove_trigger_sentence(narration, decision):
     """Remove one complete unsafe sentence only for deterministic agency repairs."""
     if decision.get("reason_code") not in {
         "INVENTED_PLAYER_ACTION", "INVENTED_PLAYER_OBJECTIVE",
-        "INVENTED_PLAYER_MENTAL_STATE",
+        "INVENTED_PLAYER_MENTAL_STATE", "UNREGISTERED_PERSISTENT_OBJECT",
+        "UNREGISTERED_NAMED_ENTITY",
     }:
         return None
     trigger = str(decision.get("trigger_span") or "").casefold()
     if not trigger:
         return None
+    # The object check reports folded text.
+    folded = decision.get("reason_code") == "UNREGISTERED_PERSISTENT_OBJECT"
     paragraphs = []
     removed = False
     for paragraph in str(narration).split("\n\n"):
         sentences = re.split(r"(?<=[.!?])\s+", paragraph.strip())
         kept = []
         for sentence in sentences:
-            if not removed and trigger in sentence.casefold():
+            haystack = _normalize_turkish_typos(sentence) if folded else sentence.casefold()
+            if not removed and trigger in haystack:
                 removed = True
                 continue
             if sentence:
@@ -13496,7 +13521,9 @@ def finalize_narration(
         if not decision["reason_code"]:
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
-    narration = clean_dm_response(_repair_internal_marks(narration))
+    narration = clean_dm_response(
+        _repair_internal_marks(narration), spoken=attributed_speech is not None
+    )
     if attributed_speech is None:
         narration = _drop_absent_counter_sentences(narration)
     if not narration.strip():
@@ -13977,6 +14004,7 @@ yeri anlat; CURRENT LOCAL SCENE STATE içinde olmayan tezgâh, oda veya mekânı
 Doğal bir macera anlatımı kullan: önemli anlarda destansı, uygun yerde hafif ve duruma özgü esprili. Her cümleyi şakaya, her küçük
 işi destana çevirme. NPC'lerin farklı seslerini koru. Mizah bedeli, tehlikeyi veya ölümü önemsizleştirmesin; kuralları, bilgiyi ve
 oyuncunun iradesini değiştirmesin. Şimdi değişene odaklan; aynı özetleri, kalıpları ve tur sonu sorusunu alışkanlık haline getirme.
+Zar, kontrol veya "yetenek kontrolü" sözünü anlatıya yazma; sonucu olay olarak anlat.
 Narrative Director bağlamını doğal kullan, anıları döküm halinde sıralama. Tekrarlanan NPC/lokasyon
 girişlerini, jestleri, metaforları, paragraf açılışlarını, savaş ifadelerini ve hava açılışlarını
 çeşitlendir; geçici betimlemeleri kalıcı kanon gibi sunma.
@@ -17864,7 +17892,8 @@ def _run_player_turn_internal(
         action_result = interaction_adventure.resolve(_session(), player_input, compound)
         # Recording intentions is not executing them, but the player still gets
         # the attempt narrated; the prose cannot move anyone or change anything.
-        return finish_turn(action_result, action_result["direct_response"])
+        fallback = action_result.pop("direct_response", "")
+        return finish_turn(action_result, fallback)
 
     ensure_campaign_clock()
     if scene_plan is None and interaction_mode not in {"say", "ask_dm"}:

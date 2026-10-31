@@ -2044,7 +2044,9 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
         run.game._set_scene_active_npc(npc, int(flags.get("turn_index", 0)) + 1)
         npc["distance_ft"] = 5
         run.near(npc["id"])
-        return _receipt(verb, "completed", target, text=f"{target['label']} yanına gidiyorsun; seni fark edip sana dönüyor.")
+        return _receipt(verb, "completed", target, text=f"Yanına gidiyorsun; {target['label'][:1].lower()}{target['label'][1:]} seni fark edip sana dönüyor."
+                        if target["label"].startswith("Bir ") or target["label"].endswith(" biri")
+                        else f"{target['label']} seni fark edip sana dönüyor.")
     if kind == "outside":
         return _do_leave(run, step)
     if kind == "feature":

@@ -91,9 +91,9 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
     async def test_a_new_proposal_marker_with_no_proposal_costs_only_the_marker(self):
         shown = await self.assert_narrated_without_state(
             "Yan masadakilere yazı tura oynamayı teklif ediyorum.",
-            "Tezgâhın arkasındaki [[n1]] Marek göz ucuyla bakıyor. Birkaç kişi başını kaldırıyor.",
+            "Köşedeki [[n1]] Marek göz ucuyla bakıyor. Birkaç kişi başını kaldırıyor.",
         )
-        self.assertEqual(shown, "Tezgâhın arkasındaki Marek göz ucuyla bakıyor. Birkaç kişi başını kaldırıyor.")
+        self.assertEqual(shown, "Köşedeki Marek göz ucuyla bakıyor. Birkaç kişi başını kaldırıyor.")
 
     async def test_an_id_copied_from_the_context_becomes_the_public_label(self):
         await self.asyncSetUpScene()
@@ -139,6 +139,47 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
         data = await self.play(client, "İçeri girip tezgâha geçiyorum, bir bira istiyorum.")
         self.assertIn("speech", client.kinds, data["narration"])
         self.assertIn("Hemen koyuyorum.", data["narration"])
+
+    async def test_an_npc_may_ask_what_the_player_would_do(self):
+        await self.asyncSetUpScene()
+        self.session.world_state["inventory"].append("Kılıç")
+        client = NarratingClient(spoken="Kılıçla ne yaparsın ki? Bir bira, parayla alınır.")
+        data = await self.play(client, "Marek, kılıcımı hafifçe gösterip içkinin bedava olması gerektiğini söylüyorum.")
+        self.assertIn("parayla alınır", data["narration"])
+        self.assertNotIn("envanterinde", data["narration"])
+
+    async def test_catching_the_eye_is_not_a_hammer(self):
+        shown = await self.assert_narrated_without_state(
+            "Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.",
+            "Bu, salonda dikkat çekici bir hareket oluyor. Birkaç kişi başını çeviriyor.",
+        )
+        self.assertIn("dikkat çekici", shown)
+
+    async def test_a_prop_the_scene_lacks_costs_one_sentence_not_the_turn(self):
+        shown = await self.assert_narrated_without_state(
+            "Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.",
+            "Yerdeki eski sandık açık duruyor. Birkaç kişi başını çeviriyor.",
+        )
+        self.assertNotIn("sandık", shown, self.session.last_narration_safety)
+        self.assertIn("Birkaç kişi başını çeviriyor.", shown, self.session.last_narration_safety)
+
+    async def test_single_brackets_and_a_marker_used_as_a_subject_read_as_prose(self):
+        await self.asyncSetUpScene()
+        world = self.session.world_state
+        for npc in world["npcs"]:
+            if npc is not self.npc:
+                npc["location"] = "tavern"
+        client = NarratingClient(narration="Yanındaki [Marek] sakin. Köşedeki [[n1]] sakinlikle işine devam ediyor.")
+        shown = (await self.play(client, "Yan masadakilere yazı tura oynamayı teklif ediyorum."))["narration"]
+        self.assertEqual(shown, "Yanındaki Marek sakin. Köşedeki Marek sakinlikle işine devam ediyor.")
+
+    async def test_the_plan_receipt_never_reaches_the_prompt_as_a_line_to_copy(self):
+        await self.asyncSetUpScene()
+        client = NarratingClient()
+        await self.play(client, "Teklifimi geri çekiyorum, kimseyle uğraşmak istemiyorum.")
+        prompt = "\n".join(item["content"] for item in client.batches[-1])
+        self.assertNotIn("tartıyorsun", prompt)
+        self.assertIn("Önce oyuncunun denediği şeyin", prompt)
 
     def test_stock_performance_lines_are_gone(self):
         for message in ("Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.", "ıslık çalıyorum", "dans ediyorum"):
