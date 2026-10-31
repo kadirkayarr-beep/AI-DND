@@ -3069,17 +3069,21 @@ def ensure_death_state():
     return state
 
 
+class PlayerCannotAct(ValueError):
+    """The turn never started; the API answers it with player_cannot_act_turn."""
+
+
 def require_player_can_act():
     """Reject player-originated mutations while unconscious or dead."""
     state = ensure_death_state()
     world_state = _session().world_state
     if state["dead"] or world_state.get("player_combat_status") == "dead":
-        raise ValueError("Ölü karakter eylem gerçekleştiremez.")
+        raise PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
     if (
         _session().character.get("current_hp", 0) <= 0
         or world_state.get("player_combat_status") == "unconscious"
     ):
-        raise ValueError("Bilinçsiz karakter eylem gerçekleştiremez.")
+        raise PlayerCannotAct("Bilinçsiz karakter eylem gerçekleştiremez.")
     return True
 
 
@@ -17208,6 +17212,44 @@ def _run_player_turn(
     return result
 
 
+def _death_save_line(save_result):
+    """One breath of the fight for your life, in the fiction, with the count that matters."""
+    death = ensure_death_state()
+    if death["dead"]:
+        return "Son nefesin göğsünden çekiliyor, ses de ışık da uzaklaşıyor. Öldün."
+    if save_result["outcome"] == "revived":
+        return "Bir anda ciğerlerine hava doluyor; gözlerini açıyorsun, canın az da olsa geri döndü."
+    if death["stable"]:
+        return "Kanın yavaşlıyor; bilincin kapalı ama artık ölmüyorsun."
+    held = "tutunuyorsun" if save_result["outcome"] == "success" else "elinden kayıyor"
+    return (
+        f"Karanlıkta yatıyorsun, bedenin sana uymuyor; hayata {held}. "
+        f"Ölüm kurtarma: {death['successes']} başarı, {death['failures']} başarısızlık."
+    )
+
+
+def player_cannot_act_turn():
+    """A dead or senseless player's line is answered in the world, never as a server error."""
+    state = ensure_death_state()
+    if state["dead"] or _session().world_state.get("player_combat_status") == "dead":
+        closing = ("Bu kampanya burada kapandı." if state["terminal"]
+                   else "Yeni bir karakterle yeniden başlayabilirsin.")
+        narration = f"Kıpırtısız yatıyorsun; öldün ve bu dünyada seni geri getirecek kimse yok. {closing}"
+        status = "player_dead"
+    else:
+        narration = "Bilincin kapalı; ne konuşabiliyor ne kıpırdayabiliyorsun. Dünya sensiz akıyor."
+        status = "player_unconscious"
+    return {
+        "messages": _session().messages,
+        "narration": narration,
+        "model_calls": 0,
+        "action_result": {
+            "action": "narrative", "status": status, "success": False,
+            "state_changes": [], "direct_response": narration,
+        },
+    }
+
+
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
@@ -17974,7 +18016,7 @@ def _run_player_turn_internal(
     entry_identity = entry_combat.get("combat_id") if entry_combat["active"] else None
     entry_actor = entry_combat.get("current_actor_id")
     if entry_death_state["dead"]:
-        raise ValueError("Ölü karakter eylem gerçekleştiremez.")
+        raise PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
     if (_session().character.get("current_hp", 0) == 0 and not entry_combat["active"]
             and re.search(r"\b(?:bekle|bekliyorum|wait)\b", campaign_time.normalize(player_input))):
         duration = campaign_time.requested_duration(player_input)
@@ -17999,7 +18041,7 @@ def _run_player_turn_internal(
         entry_combat["active"]
         and entry_combat["current_actor_id"] == "player"
     ):
-        raise ValueError("Bilinçsiz karakter eylem gerçekleştiremez.")
+        raise PlayerCannotAct("Bilinçsiz karakter eylem gerçekleştiremez.")
     local_npc_place_request = (
         interaction_mode != "ask_dm"
         and local_dialogue.is_local_place_recommendation_request(player_input)
@@ -18543,12 +18585,7 @@ def _run_player_turn_internal(
                 "enemy_action": enemy_actions[0] if enemy_actions else None,
                 "combat_ended": not combat["active"],
                 "end_reason": combat.get("end_reason"),
-                "direct_response": (
-                    "Canın bir nebze geri döndü; sıradaki hamlene karar verebilirsin."
-                    if save_result["outcome"] == "revived" else
-                    "Ölüm kurtarma zarı otomatik çözüldü; karakterin "
-                    "bilinçsiz olduğu için gönderdiğin eylem kullanılmadı."
-                ),
+                "direct_response": _death_save_line(save_result),
             }
             resolution = (
                 save_result.get("death_resolution")

@@ -1383,7 +1383,11 @@ def create_app(
                                         run_kwargs["session_id"] = session_id
                                     if effective_target_id is not None:
                                         run_kwargs["target_id"] = effective_target_id
-                                    result = run_turn(request.message, **run_kwargs)
+                                    try:
+                                        result = run_turn(request.message, **run_kwargs)
+                                    except game.PlayerCannotAct:
+                                        restore_turn_snapshot()
+                                        result = session.player_cannot_act_turn()
                     finally:
                         if previous_claims is missing_claims:
                             delattr(session, "_supported_player_claims")

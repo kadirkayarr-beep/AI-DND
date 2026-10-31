@@ -138,3 +138,27 @@ class StartingWeaponTests(ThreePlaysTests):
                 out = await self.say(line, PlayClient(intent="attack"))
                 self.assertTrue(self.world["combat"]["active"], out["narration"])
 
+
+
+class DeathTests(ThreePlaysTests):
+    async def test_every_line_after_permadeath_gets_a_death_scene(self):
+        await self.begin(BARBARIAN, death_mode="PERMADEATH")
+        self.session.character["current_hp"] = 0
+        self.world["player_combat_status"] = "dead"
+        self.world["death_state"].update(dead=True, failures=3, terminal=True)
+        for line, mode in (("ne oldu, öldüm mü", None), ("kalkmaya çalışıyorum", "do"), ("selam", "say")):
+            with self.subTest(line=line):
+                client = PlayClient()
+                out = await self.say(line, client, mode=mode)
+                self.assertIn("öldün", out["narration"].casefold())
+                self.assertEqual(client.calls, 0)
+                self.assertEqual(self.world["player_combat_status"], "dead")
+
+    async def test_speaking_while_unconscious_rolls_the_save_instead_of_an_error(self):
+        await self.begin(BARBARIAN, death_mode="PERMADEATH")
+        self.session.character["current_hp"] = 0
+        self.world["player_combat_status"] = "unconscious"
+        for line, mode in (("yardım edin", "say"), ("kalkmaya çalışıyorum", None)):
+            with self.subTest(line=line):
+                out = await self.say(line, PlayClient(), mode=mode)
+                self.assertTrue(out["narration"].strip())

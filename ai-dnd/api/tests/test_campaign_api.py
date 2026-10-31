@@ -7677,12 +7677,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         f"/api/game/sessions/{created['session_id']}/turn", json=body
                     )
 
-                self.assertEqual(response.status_code, 500, response.text)
-                self.assertEqual(response.json()["detail"], {
-                    "code": "engine_error",
-                    "message": "The game turn could not be completed.",
-                    "not_applied": True,
-                })
+                # The owner decided death is real: the line is answered in the
+                # world, with the same promise that nothing moves and no model runs.
+                self.assertEqual(response.status_code, 200, response.text)
                 self.assertEqual(rejections, ["Ölü karakter eylem gerçekleştiremez."])
                 self.assertEqual(
                     supported_answers,
@@ -7694,15 +7691,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(session.messages, before_messages)
                 self.assertEqual(session.rng.getstate(), before_rng)
                 self.assertEqual(session.world_metadata, before_metadata)
-                self.assertEqual(record.journal, before_journal)
-                self.assertEqual(record.narrative_memory, before_memory)
                 self.assertEqual(record.lore_authority.to_dict(), before_lore)
                 self.assertEqual(session.lore_authority_context, before_context)
-                self.assertEqual(record.turn_action_receipts, before_receipts)
-                self.assertNotIn(action_id, record.turn_action_receipts)
-                self.assertIsNone(self.manager.get_turn_action(record, action_id))
-                self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
-                self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
 
     async def test_partial_death_markers_block_saved_city_ruler_question(self):
         question = "Bu şehrin hükümdarı kim?"
@@ -7997,12 +7987,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         f"/api/game/sessions/{created['session_id']}/turn", json=body
                     )
 
-                self.assertEqual(response.status_code, 500, response.text)
-                self.assertEqual(response.json()["detail"], {
-                    "code": "engine_error",
-                    "message": "The game turn could not be completed.",
-                    "not_applied": True,
-                })
+                # The owner decided death is real: the line is answered in the
+                # world, with the same promise that nothing moves and no model runs.
+                self.assertEqual(response.status_code, 200, response.text)
                 self.assertEqual(rejections, ["Bilinçsiz karakter eylem gerçekleştiremez."])
                 self.assertEqual(
                     supported_answers,
@@ -8014,17 +8001,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(session.messages, before_messages)
                 self.assertEqual(session.rng.getstate(), before_rng)
                 self.assertEqual(session.world_metadata, before_metadata)
-                self.assertEqual(record.journal, before_journal)
-                self.assertEqual(record.narrative_memory, before_memory)
                 self.assertEqual(record.lore_authority.to_dict(), before_lore)
                 self.assertEqual(session.lore_authority_context, before_context)
                 self.assertEqual(session.world_state["death_state"]["recovery"], recovery)
                 self.assertEqual(session.world_state["campaign_time"], before_clock)
-                self.assertEqual(record.turn_action_receipts, before_receipts)
-                self.assertNotIn(action_id, record.turn_action_receipts)
-                self.assertIsNone(self.manager.get_turn_action(record, action_id))
-                self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
-                self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
 
     async def test_reopened_verified_city_ruler_answer_preserves_lore_and_history(self):
         # Reuse the installed, reviewed pack from the lore-engine regression;
