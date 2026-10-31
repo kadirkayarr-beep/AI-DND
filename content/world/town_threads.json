@@ -1,52 +1,626 @@
 {
   "schema_version": 1,
-  "note": "Generic starter kinds of town work. Replaceable: world_threads.py reads this file and nothing in the code names a template. Slots: {place} {owner} {target} {recipient} {pay} {days} {issue}. Lines are facts a person may voice, never shown raw unless the model failed. Text stays free of case endings after a slot.",
+  "note": "Generic starter kinds of town work. Replaceable: world_threads.py reads this file and nothing in the code names a template. Slots: {place} {owner} {target} {recipient} {pay} {days} {issue}. Lines are facts a person may voice, never shown raw unless the model failed. Text stays free of case endings after a slot. Offer words live in offer_answers below and in offer_answers.json: a word list read after a shown, current offer, never by substring.",
   "coverage": {
     "default": 35,
-    "roles": {"barmen": 70, "hanci": 70, "meyhaneci": 70, "satici": 70, "tuccar": 70, "muhafiz": 50, "katip": 50, "arabaci": 45, "hamal": 45, "yolcu": 10, "gezgin": 10}
+    "roles": {
+      "barmen": 70,
+      "hanci": 70,
+      "meyhaneci": 70,
+      "satici": 70,
+      "tuccar": 70,
+      "muhafiz": 50,
+      "katip": 50,
+      "arabaci": 45,
+      "hamal": 45,
+      "yolcu": 10,
+      "gezgin": 10
+    }
   },
   "place_coverage": 80,
   "gone_line": "{place} işini başkası kapmış.",
   "templates": [
-    {"id": "hand_wanted", "type": "hiring", "place_kinds": ["smithy", "workshop", "bakery", "stable", "market"],
-     "pay": [8, 20], "work_days": [1, 3], "offer_hours": [36, 72],
-     "public_lines": ["{place} birkaç günlüğüne el arıyor.", "{owner} işe yarar bir çift kol arıyor, {place} için."],
-     "owner_lines": ["{days} gün için yardımcı lazım; günlüğü {pay} bakır. Ağır iş, ama hile yok."]},
-    {"id": "night_watch", "type": "hiring", "place_kinds": ["estate", "market", "harbor", "temple", "graveyard"],
-     "pay": [15, 40], "work_days": [1, 3], "offer_hours": [24, 60],
-     "public_lines": ["{place} geceleri nöbet tutacak güvenilir birini arıyor.", "{owner} gece bekçisi arıyor, {place} için."],
-     "owner_lines": ["Geceleri kapıda duracak biri gerek, {days} gece. Gecesi {pay} bakır; önce seni bir görmem lazım."]},
-    {"id": "guard_for_goods", "type": "hiring", "place_kinds": ["market", "harbor", "estate", "workshop"], "target_place_kinds": ["market", "harbor", "barracks", "temple"],
-     "pay": [20, 45], "work_days": [1, 2], "offer_hours": [24, 48],
-     "public_lines": ["{owner} yükünü {target} tarafına götürürken yanında silahlı biri olsun istiyor."],
-     "owner_lines": ["Yükü {target} kapısına kadar yanımda biri olsun istiyorum. Yol başına {pay} bakır, {days} günde biter."]},
-    {"id": "records_help", "type": "hiring", "place_kinds": ["archive", "library", "temple", "estate"],
-     "pay": [6, 15], "work_days": [1, 4], "offer_hours": [48, 96],
-     "public_lines": ["{place} eski kayıtları düzenleyecek sabırlı birine ihtiyaç duyuyor."],
-     "owner_lines": ["{days} gün kayıt ayıklamak gerek; günlüğü {pay} bakır. Okuman yetmez, sabrın da olmalı."]},
-    {"id": "courier", "type": "errand", "place_kinds": ["smithy", "market", "workshop", "bakery", "harbor", "temple"], "target_place_kinds": ["stable", "barracks", "estate", "temple", "market", "harbor"],
-     "pay": [5, 15], "offer_hours": [24, 60],
-     "public_lines": ["{owner}, {target} için bir paket yollatacak birini arıyor.", "{place} üzerinden {target} tarafına bir paket gidecekmiş."],
-     "owner_lines": ["Paket {recipient} eline geçecek, {target} içinde. Teslim edene {pay} bakır."]},
-    {"id": "sealed_letter", "type": "errand", "place_kinds": ["archive", "temple", "estate", "library"], "target_place_kinds": ["barracks", "harbor", "market", "graveyard", "workshop"],
-     "pay": [6, 18], "offer_hours": [18, 48],
-     "public_lines": ["{place} mühürlü bir mektup için güvenilir bir ulak arıyor."],
-     "owner_lines": ["Mektup {recipient} eline gidecek, {target} içinde. Mührü açılmamış olmalı. Ücret {pay} bakır."]},
-    {"id": "place_matter", "type": "trouble", "place_kinds": ["archive", "temple", "harbor", "market", "smithy", "stable", "graveyard", "bakery", "library", "workshop", "barracks", "estate"],
-     "offer_hours": [48, 120],
-     "public_lines": ["{place} tarafında bir dert varmış, {owner} ondan yakınıyor."],
-     "owner_lines": ["{issue}"]},
-    {"id": "quarrel", "type": "trouble", "place_kinds": ["market", "workshop", "smithy", "harbor"], "target_place_kinds": ["market", "stable", "bakery", "workshop", "harbor"],
-     "offer_hours": [36, 96],
-     "public_lines": ["{place} ile {target} arasında bir alacak verecek kavgası dönüyor."],
-     "owner_lines": ["{recipient} ile aramız bozuk, {target} tarafında bulursun. Bir şahit ya da aracı işime yarar."]},
-    {"id": "unpaid_debt", "type": "trouble", "place_kinds": ["smithy", "bakery", "stable", "workshop", "market"], "target_place_kinds": ["harbor", "estate", "barracks", "market"],
-     "pay": [5, 15], "offer_hours": [36, 96],
-     "public_lines": ["{owner} ödenmemiş bir hesabın peşinde; {target} tarafına gitmeye vakti yokmuş."],
-     "owner_lines": ["{recipient} bana borçlu, {target} içinde bulursun. Tahsil edene {pay} bakır bırakırım."]},
-    {"id": "missing_helper", "type": "trouble", "place_kinds": ["workshop", "smithy", "bakery", "stable", "temple", "harbor"], "target_place_kinds": ["harbor", "market", "graveyard", "barracks"],
-     "offer_hours": [24, 72],
-     "public_lines": ["{owner} iki gündür yardımcısını göremiyor; son olarak {target} tarafında görülmüş."],
-     "owner_lines": ["Yardımcım iki gündür gelmedi. Son {target} tarafına gitmişti; {recipient} bir şey biliyor olabilir."]}
-  ]
+    {
+      "id": "hand_wanted",
+      "type": "hiring",
+      "place_kinds": [
+        "smithy",
+        "workshop",
+        "bakery",
+        "stable",
+        "market"
+      ],
+      "pay": [
+        8,
+        20
+      ],
+      "work_days": [
+        1,
+        3
+      ],
+      "offer_hours": [
+        36,
+        72
+      ],
+      "public_lines": [
+        "{place} birkaç günlüğüne el arıyor.",
+        "{owner} işe yarar bir çift kol arıyor, {place} için."
+      ],
+      "owner_lines": [
+        "{days} gün için yardımcı lazım; günlüğü {pay} bakır. Ağır iş, ama hile yok."
+      ],
+      "pay_basis": "daily"
+    },
+    {
+      "id": "night_watch",
+      "type": "hiring",
+      "place_kinds": [
+        "estate",
+        "market",
+        "harbor",
+        "temple",
+        "graveyard"
+      ],
+      "pay": [
+        15,
+        40
+      ],
+      "work_days": [
+        1,
+        3
+      ],
+      "offer_hours": [
+        24,
+        60
+      ],
+      "public_lines": [
+        "{place} geceleri nöbet tutacak güvenilir birini arıyor.",
+        "{owner} gece bekçisi arıyor, {place} için."
+      ],
+      "owner_lines": [
+        "Geceleri kapıda duracak biri gerek, {days} gece. Gecesi {pay} bakır; önce seni bir görmem lazım."
+      ],
+      "pay_basis": "daily",
+      "night_only": true
+    },
+    {
+      "id": "records_help",
+      "type": "hiring",
+      "place_kinds": [
+        "archive",
+        "library",
+        "temple",
+        "estate"
+      ],
+      "pay": [
+        6,
+        15
+      ],
+      "work_days": [
+        1,
+        4
+      ],
+      "offer_hours": [
+        48,
+        96
+      ],
+      "public_lines": [
+        "{place} eski kayıtları düzenleyecek sabırlı birine ihtiyaç duyuyor."
+      ],
+      "owner_lines": [
+        "{days} gün kayıt ayıklamak gerek; günlüğü {pay} bakır. Okuman yetmez, sabrın da olmalı."
+      ],
+      "pay_basis": "daily"
+    },
+    {
+      "id": "courier",
+      "type": "errand",
+      "place_kinds": [
+        "smithy",
+        "market",
+        "workshop",
+        "bakery",
+        "harbor",
+        "temple"
+      ],
+      "target_place_kinds": [
+        "stable",
+        "barracks",
+        "estate",
+        "temple",
+        "market",
+        "harbor"
+      ],
+      "pay": [
+        5,
+        15
+      ],
+      "offer_hours": [
+        24,
+        60
+      ],
+      "public_lines": [
+        "{owner}, {target} için bir paket yollatacak birini arıyor.",
+        "{place} üzerinden {target} tarafına bir paket gidecekmiş."
+      ],
+      "owner_lines": [
+        "Paket {recipient} eline geçecek, {target} içinde. Teslim edene {pay} bakır."
+      ],
+      "item_noun": "paket"
+    },
+    {
+      "id": "sealed_letter",
+      "type": "errand",
+      "place_kinds": [
+        "archive",
+        "temple",
+        "estate",
+        "library"
+      ],
+      "target_place_kinds": [
+        "barracks",
+        "harbor",
+        "market",
+        "graveyard",
+        "workshop"
+      ],
+      "pay": [
+        6,
+        18
+      ],
+      "offer_hours": [
+        18,
+        48
+      ],
+      "public_lines": [
+        "{place} mühürlü bir mektup için güvenilir bir ulak arıyor."
+      ],
+      "owner_lines": [
+        "Mektup {recipient} eline gidecek, {target} içinde. Mührü açılmamış olmalı. Ücret {pay} bakır."
+      ],
+      "item_noun": "mektup"
+    },
+    {
+      "id": "place_matter",
+      "type": "trouble",
+      "place_kinds": [
+        "archive",
+        "temple",
+        "harbor",
+        "market",
+        "smithy",
+        "stable",
+        "graveyard",
+        "bakery",
+        "library",
+        "workshop",
+        "barracks",
+        "estate"
+      ],
+      "offer_hours": [
+        48,
+        120
+      ],
+      "public_lines": [
+        "{place} tarafında bir dert varmış, {owner} ondan yakınıyor."
+      ],
+      "owner_lines": [
+        "{issue}"
+      ]
+    },
+    {
+      "id": "quarrel",
+      "type": "trouble",
+      "place_kinds": [
+        "market",
+        "workshop",
+        "smithy",
+        "harbor"
+      ],
+      "target_place_kinds": [
+        "market",
+        "stable",
+        "bakery",
+        "workshop",
+        "harbor"
+      ],
+      "offer_hours": [
+        36,
+        96
+      ],
+      "public_lines": [
+        "{place} ile {target} arasında bir alacak verecek kavgası dönüyor."
+      ],
+      "owner_lines": [
+        "{recipient} ile aramız bozuk, {target} tarafında bulursun. Bir şahit ya da aracı işime yarar."
+      ]
+    },
+    {
+      "id": "unpaid_debt",
+      "type": "trouble",
+      "place_kinds": [
+        "smithy",
+        "bakery",
+        "stable",
+        "workshop",
+        "market"
+      ],
+      "target_place_kinds": [
+        "harbor",
+        "estate",
+        "barracks",
+        "market"
+      ],
+      "offer_hours": [
+        36,
+        96
+      ],
+      "public_lines": [
+        "{owner} ödenmemiş bir hesabın peşinde; {target} tarafına gitmeye vakti yokmuş."
+      ],
+      "owner_lines": [
+        "{recipient} bana borçlu, {target} içinde bulursun. Hesap açık duruyor, gitmeye vaktim yok."
+      ]
+    },
+    {
+      "id": "missing_helper",
+      "type": "trouble",
+      "place_kinds": [
+        "workshop",
+        "smithy",
+        "bakery",
+        "stable",
+        "temple",
+        "harbor"
+      ],
+      "target_place_kinds": [
+        "harbor",
+        "market",
+        "graveyard",
+        "barracks"
+      ],
+      "offer_hours": [
+        24,
+        72
+      ],
+      "public_lines": [
+        "{owner} iki gündür yardımcısını göremiyor; son olarak {target} tarafında görülmüş."
+      ],
+      "owner_lines": [
+        "Yardımcım iki gündür gelmedi. Son {target} tarafına gitmişti; {recipient} bir şey biliyor olabilir."
+      ]
+    }
+  ],
+  "offer_answers": {
+    "accept": [
+      "evet",
+      "olur",
+      "tamam",
+      "peki",
+      "yaparım",
+      "yapalım",
+      "yaparız",
+      "varım",
+      "kabul",
+      "anlaştık",
+      "tamam yaparım",
+      "olur yaparım",
+      "evet yaparım",
+      "işi alıyorum",
+      "alıyorum işi",
+      "iş benim",
+      "o işi yaparım",
+      "bu işi yaparım"
+    ],
+    "decline": [
+      "yok",
+      "yok ya",
+      "yok sağ ol",
+      "hayır",
+      "olmaz",
+      "istemiyorum",
+      "istemem",
+      "yapmam",
+      "kalsın",
+      "gerek yok",
+      "ilgilenmiyorum",
+      "almayayım",
+      "kabul etmem"
+    ],
+    "withdraw": [
+      "vazgeçtim",
+      "vazgeçiyorum",
+      "bırakıyorum",
+      "yapmayacağım",
+      "iptal",
+      "bu işi yapamam",
+      "cayıyorum"
+    ],
+    "start": [
+      "işe başlıyorum",
+      "başlayalım",
+      "başlıyorum",
+      "hazırım",
+      "çalışmaya başlıyorum",
+      "çalışıyorum",
+      "işe başlayalım",
+      "çalışmaya başlayalım"
+    ],
+    "take": [
+      "al",
+      "alayım",
+      "alıyorum",
+      "ver",
+      "uzat",
+      "götürürüm",
+      "götüreyim",
+      "veriyorum",
+      "götürüyorum"
+    ],
+    "give": [
+      "teslim",
+      "getirdim",
+      "işte",
+      "al",
+      "buyur",
+      "teslim ediyorum",
+      "veriyorum",
+      "verdim",
+      "bırakıyorum",
+      "getirdim işte"
+    ],
+    "give_verbs": [
+      "teslim",
+      "ediyorum",
+      "ettim",
+      "getirdim",
+      "verdim",
+      "veriyorum",
+      "bırakıyorum",
+      "bıraktım",
+      "koyuyorum",
+      "uzatıyorum"
+    ],
+    "move": [
+      "gidiyorum",
+      "giderim",
+      "gideyim",
+      "gidelim",
+      "yola çıkıyorum",
+      "çıkıyorum",
+      "gidiyom"
+    ],
+    "question_terms": [
+      "ne kadar",
+      "para",
+      "parayı",
+      "paran",
+      "ücret",
+      "ücreti",
+      "kaç bakır",
+      "bakır",
+      "gümüş",
+      "altın",
+      "önce",
+      "peşin",
+      "avans",
+      "şartıyla"
+    ],
+    "question_words": [
+      "ne zaman",
+      "nerede",
+      "nerde",
+      "neresi",
+      "kim",
+      "kime",
+      "nasıl",
+      "hangi",
+      "nereye"
+    ],
+    "hedges": [
+      "düşüneyim",
+      "düşüneceğim",
+      "düşüneyim bakayım",
+      "bakayım",
+      "bakalım",
+      "sanmam",
+      "belki",
+      "yarın konuşuruz"
+    ],
+    "reference": [
+      "iş",
+      "işi",
+      "işin",
+      "işini",
+      "işe",
+      "o iş",
+      "teklif",
+      "teklifi",
+      "teklifini",
+      "teklifin",
+      "görev",
+      "görevi",
+      "anlaşma"
+    ],
+    "item_words": [
+      "bunu",
+      "onu",
+      "şunu",
+      "paket",
+      "paketi",
+      "emanet",
+      "emaneti",
+      "mektup",
+      "mektubu"
+    ],
+    "work_terms": [
+      "iş",
+      "işi",
+      "işin",
+      "işe",
+      "işçi",
+      "eleman",
+      "yardımcı",
+      "çalışmak",
+      "çalışırım",
+      "çalışayım",
+      "kol",
+      "adam",
+      "görev",
+      "teklif",
+      "kazanacak",
+      "kazanmak",
+      "kazanayım",
+      "ücret",
+      "yevmiye",
+      "paket",
+      "mektup"
+    ],
+    "fillers": [
+      "abi",
+      "usta",
+      "kanka",
+      "dostum",
+      "efendi",
+      "hanım",
+      "kardeş",
+      "be",
+      "ya",
+      "hadi",
+      "o",
+      "zaman",
+      "bakalım",
+      "kabul",
+      "sana",
+      "ben",
+      "bir",
+      "şey"
+    ],
+    "discourse": [
+      "iyi",
+      "pekala",
+      "e",
+      "ee",
+      "hmm",
+      "yani",
+      "şey",
+      "neyse"
+    ],
+    "repair": [
+      "neyse",
+      "aslında",
+      "yok yok",
+      "dur"
+    ],
+    "close_words": [
+      "iş",
+      "teklif",
+      "yapar",
+      "alır",
+      "var",
+      "gelir",
+      "razı",
+      "anlaştık",
+      "uyar",
+      "ne dersin",
+      "kabul",
+      "ister"
+    ]
+  },
+  "job_lines": {
+    "shared": {
+      "questioning_terms": "Parayı soruyor. Teklif duruyor; ücret {pay_text}, ödeme {timing_text}. Peşin ya da avans veremezsin, ücreti değiştiremezsin; bunu kendi ağzınla söyle.",
+      "unclear": "Net cevap vermedi: teklif duruyor, üsteleme, soru sormak zorunda değilsin.",
+      "wary_stranger": "Bu kişiyi tanımıyorsun. İşini anlatmadan önce kim olduğunu, neden sorduğunu öğrenmek istiyorsun; ücret söyleme.",
+      "unwilling": "Bu kişiye iş vermek istemiyorsun; önceki iş kötü bitti. Kendi tavrınla söyle, teklif etme.",
+      "trouble": "Bu bir dert, iş değil: kimseye para ya da ücret teklif etme.",
+      "cold": " Bu kişiye karşı soğuksun.",
+      "warm": " Bu kişiye ısınmışsın.",
+      "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
+      "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
+    },
+    "hiring": {
+      "accepted": [
+        "Anlaştınız: {days} gün, ücret {pay_text}, ödeme {timing_text}. Başlangıç: {start}. Şartları tekrar etme."
+      ],
+      "done": [
+        "Anlaştığınız iş bitti, ücreti eksiksiz aldı. Teşekkür edebilirsin; borcun yok.",
+        "İş tamamlandı, hesap kapandı: ona borcun kalmadı."
+      ],
+      "failed": [
+        "Söz verdiği işi bitirmedi; ücret ödenmedi. Hayal kırıklığını kendi tavrınla söylersin."
+      ],
+      "declined": [
+        "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta."
+      ],
+      "abandoned": [
+        "Anlaştığı işi yarıda bıraktı. Kırgınsın; ödeme yok."
+      ],
+      "filled": [
+        "Bu işi {who} aldı; artık boş değil."
+      ],
+      "expired": [
+        "Beklediğin kişi gelmedi, teklifini geri çektin."
+      ]
+    },
+    "errand": {
+      "accepted": [
+        "Anlaştınız: {item} {recipient} eline, {target} içinde. Ücret {pay_text}, ödeme {timing_text}, süre {deadline_text}. Şartları tekrar etme."
+      ],
+      "done": [
+        "{item} yerine ulaştı, ücretini teslimde aldı. Hesap kapandı, ona borcun yok; parayı tekrar verme.",
+        "Teslimat tamam: ücreti teslim yerinde ödendi, ona borcun kalmadı."
+      ],
+      "failed": [
+        "{item} zamanında ulaşmadı; ücret yok. Kızgınlığını kendi tavrınla söylersin."
+      ],
+      "declined": [
+        "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta."
+      ],
+      "abandoned": [
+        "Anlaştığı teslimatı bıraktı. Kırgınsın; ödeme yok."
+      ],
+      "filled": [
+        "Bu teslimatı {who} üstlendi; artık boş değil."
+      ],
+      "expired": [
+        "Beklediğin kişi gelmedi, teklifini geri çektin."
+      ]
+    },
+    "arrival": {
+      "filled_by_other": [
+        "{who} burada, {owner} işini artık o görüyor; {place} önünde seni süzüp başını çeviriyor.",
+        "{place} önünde {who} ter döküyor; o işi senden önce kapmış."
+      ],
+      "done": [
+        "{place} önünden geçerken işinin izini görüyorsun; yaptığın iş yerinde duruyor."
+      ],
+      "failed": [
+        "{place} önünde {owner} seni görünce yüzünü çeviriyor; söz verdiğin iş yarım kaldı."
+      ]
+    },
+    "shift": [
+      "{place} içinde gün boyu {owner} ile birlikte çalıştın; işin ağırlığını omuzlarında hissediyorsun.",
+      "Saatler {place} içinde iş başında geçti; {owner} ara ara başını kaldırıp yapılanı süzdü.",
+      "{owner} işi gösterdi, sen de bitene kadar başından ayrılmadın."
+    ],
+    "shift_hours": 8,
+    "text": {
+      "pay_daily": "günlüğü {pay} bakır",
+      "pay_total": "toplam {pay} bakır",
+      "pay_delivery": "{pay} bakır",
+      "timing_end_of_day": "her çalışılan günün sonunda",
+      "timing_on_delivery": "teslimde",
+      "deadline_errand": "bir gün içinde",
+      "deadline_hiring": "{days} gün içinde",
+      "start_today": "bugün",
+      "start_tomorrow": "yarın sabah",
+      "start_tonight": "bu akşam"
+    }
+  },
+  "gone_lines": {
+    "filled_by_other": "{place} işini {who} kapmış.",
+    "done": "{place} işi bitmiş, teslim edilmiş.",
+    "failed": "{place} işi yarım kalmış, söz veren gelmemiş."
+  }
 }

@@ -1,0 +1,1832 @@
+{
+  "schema_version": "1.0.0",
+  "language": "tr-TR",
+  "status": "veri_adayı_test_edilmedi",
+  "field_descriptions": {
+    "id": "Liste içinde ve dosya genelinde benzersiz ifade kimliği.",
+    "expression": "Türkçe doğal cevap örneği; yazım hataları bilerek korunur.",
+    "meaning": "Tek kelimelik aday anlam etiketi: kabul, ret, vazgeçme veya belirsiz.",
+    "context_dependent": "Anlamı bağlama özellikle bağımlıysa true. false değeri bağlam kontrolünü kaldırmaz.",
+    "required_context": "Etiketin değerlendirilebilmesi için gereken teklif ve konuşma durumu.",
+    "register": "İfade biçimi: gündelik, argo veya yazım_hatası."
+  },
+  "interpretation_rules": [
+    "Bu dosya çalıştırılabilir kural veya ürün kodu değil, test edilmemiş veri adaylarıdır.",
+    "Alt dize eşleştirmesi yapılmamalı; ifade tümcesi, olumsuzluk kapsamı, konuşmacı ve diyalog bağlamı birlikte değerlendirilmelidir.",
+    "Hiçbir ifade otomatik taahhüt, ödeme, kabul kaydı veya iptal işlemi başlatmamalıdır.",
+    "Evet, tamam ve benzeri kısa yanıtlar ancak gerçek, güncel, kimliği belirlenmiş bekleyen teklife doğrudan yanıt oldukları doğrulanırsa kabul adayıdır.",
+    "Ret ile vazgeçme, ilgili teklifin bekleyen mi yoksa önceden kabul edilmiş/aktif mi olduğuna göre ayrıştırılmalıdır.",
+    "Olumsuzluk, soru, koşul, alıntı ve başkasının sözünü aktarma otomatik kabul üretmez. Kabul sözcüğü içermeleri yeterli değildir.",
+    "Çift olumsuzluk içeren kabul adayları da yalnızca tümce anlamı doğrulanırsa değerlendirilebilir; otomatik kabul edilmez.",
+    "Koşullu, eksik veya çelişkili yanıtlar bağlamla netleşmeden kesin karar sayılmamalıdır.",
+    "context_dependent=false yalnızca ifadenin dilsel olarak daha açık olduğunu gösterir; required_context şartları yine geçerlidir."
+  ],
+  "kabul": [
+    {
+      "id": "kabul_001",
+      "expression": "evet",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_002",
+      "expression": "hayır demiyorum, kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_003",
+      "expression": "tamam",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_004",
+      "expression": "olur",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_005",
+      "expression": "peki",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_006",
+      "expression": "anlaştık",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_007",
+      "expression": "kabul",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_008",
+      "expression": "kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_009",
+      "expression": "teklifi kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_010",
+      "expression": "bu teklife evet diyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_011",
+      "expression": "yaparım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_012",
+      "expression": "bu işi alıyorum",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_013",
+      "expression": "bu şartlarla anlaştık",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_014",
+      "expression": "bu fiyatı kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_015",
+      "expression": "iş bende",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_016",
+      "expression": "konuştuğumuz bedelde anlaştık",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_017",
+      "expression": "bu anlaşmaya varım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_018",
+      "expression": "teklifine varım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_019",
+      "expression": "ben kabulüm",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_020",
+      "expression": "benden yana tamamdır",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_021",
+      "expression": "benim için uygun",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_022",
+      "expression": "bu görevi kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_023",
+      "expression": "hallederim",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_024",
+      "expression": "ben üstlenirim",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_025",
+      "expression": "anlaşmayı kabul ettim",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_026",
+      "expression": "ben yaparım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_027",
+      "expression": "varım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_028",
+      "expression": "yanıtım evet",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_029",
+      "expression": "tamam, görevi aldım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_030",
+      "expression": "oldu bil",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_031",
+      "expression": "tamamdır",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_032",
+      "expression": "olur, kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_033",
+      "expression": "peki, bu teklife razıyım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_034",
+      "expression": "anlaştık, teklifini kabul ettim",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_035",
+      "expression": "tamam, ben hallederim",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_036",
+      "expression": "önerdiğin ücret tamam",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_037",
+      "expression": "bu tutara tamamım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_038",
+      "expression": "bu anlaşmaya razıyım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_039",
+      "expression": "şartların bana uydu, kabul",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_040",
+      "expression": "ver görevi, kabulüm",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_041",
+      "expression": "bu göreve varım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_042",
+      "expression": "tamam, bu şartlarda el sıkışalım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_043",
+      "expression": "bu teklif için el sıkıştık",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_044",
+      "expression": "bana uyar, kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_045",
+      "expression": "ben varım, teklifini kabul ettim",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_046",
+      "expression": "teklifini kabul ediyom",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_047",
+      "expression": "kabul ediom",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_048",
+      "expression": "teklifini kabül ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_049",
+      "expression": "teklifi kabul ediorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_050",
+      "expression": "evett",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_051",
+      "expression": "tmm",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_052",
+      "expression": "kabul ettm",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_053",
+      "expression": "anlaştkk",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "kabul_054",
+      "expression": "tamam kanka, teklifini kabul ettim",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_055",
+      "expression": "eyvallah, bu anlaşmaya varım",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_056",
+      "expression": "olur abi, bu şartları kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_057",
+      "expression": "he ya, kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_058",
+      "expression": "aynen, teklifini kabul ettim",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_059",
+      "expression": "bana uyar",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_060",
+      "expression": "ben talibim, görevi kabul ediyorum",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_061",
+      "expression": "peki, işi üstleniyorum",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_062",
+      "expression": "teklifin üzerinde anlaştığımız gibi, kabul",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_063",
+      "expression": "anlaştık dostum",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "argo"
+    },
+    {
+      "id": "kabul_064",
+      "expression": "teklife cevabım kesinlikle evet",
+      "meaning": "kabul",
+      "context_dependent": false,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade konuşmacının o teklife güncel yanıtı olmalı. Tek başına otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    },
+    {
+      "id": "kabul_065",
+      "expression": "tamam, bu işi ben yapacağım",
+      "meaning": "kabul",
+      "context_dependent": true,
+      "required_context": "Konuşmacıya yöneltilmiş, kimliği ve güncel koşulları belirli bekleyen teklif bulunmalı; ifade o teklifi üstlenmeye yönelik doğrudan, güncel yanıt olmalı. Genel beceri, istek, adaylık veya geleceğe ilişkin tahmin anlamındaysa kabul sayılmamalı. Otomatik taahhüt oluşturmaz.",
+      "register": "gündelik"
+    }
+  ],
+  "ret": [
+    {
+      "id": "ret_001",
+      "expression": "hayır",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_002",
+      "expression": "olmaz",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_003",
+      "expression": "istemiyorum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_004",
+      "expression": "kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_005",
+      "expression": "teklifi reddediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_006",
+      "expression": "bu teklife hayır diyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_007",
+      "expression": "teklifini kabul edemem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_008",
+      "expression": "bu şartlarda anlaşamam",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_009",
+      "expression": "bu bedeli kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_010",
+      "expression": "yok ya",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_011",
+      "expression": "bu fiyat bana uymuyor",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_012",
+      "expression": "kalsın",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_013",
+      "expression": "ilgilenmiyorum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_014",
+      "expression": "bu teklife yokum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_015",
+      "expression": "ben bu teklifi pas geçiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_016",
+      "expression": "pas",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_017",
+      "expression": "teşekkürler, kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_018",
+      "expression": "sağ ol, teklifini reddediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_019",
+      "expression": "yok, istemiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_020",
+      "expression": "hayır, bu anlaşmayı kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_021",
+      "expression": "ben yokum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_022",
+      "expression": "başkasını bul",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_023",
+      "expression": "uğraşamam",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_024",
+      "expression": "cevabım hayır",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_025",
+      "expression": "bensiz yapın",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_026",
+      "expression": "beni sayma",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_027",
+      "expression": "bu teklifi geri çeviriyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_028",
+      "expression": "bu işe girmem",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_029",
+      "expression": "ben almayayım",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_030",
+      "expression": "mevcut şartlarla olmaz",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_031",
+      "expression": "bu bedelle anlaşma yapmam",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_032",
+      "expression": "bu tutara tamam diyemem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_033",
+      "expression": "hiç bana göre değil",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_034",
+      "expression": "teklifin içime sinmedi, reddediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_035",
+      "expression": "bu teklif bana göre değil",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_036",
+      "expression": "bunu kabul etmek istemiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_037",
+      "expression": "yok dostum, beni pas geç",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_038",
+      "expression": "benden olmaz",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_039",
+      "expression": "bu işte yokum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_040",
+      "expression": "bu anlaşmaya hayır",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_041",
+      "expression": "yokum ben bu teklifte",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_042",
+      "expression": "bana uymaz",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_043",
+      "expression": "bu şartlarla hayatta kabul etmem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_044",
+      "expression": "teklifini kabul etmicem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_045",
+      "expression": "kabul etmiyom",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_046",
+      "expression": "istemiyom",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_047",
+      "expression": "hayr",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "ret_048",
+      "expression": "olmazz",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "ret_049",
+      "expression": "teklifi red ediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "ret_050",
+      "expression": "teklifini reddediyom",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_051",
+      "expression": "yok kanka, kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_052",
+      "expression": "olmaz abi, bu teklif bana uymaz",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_053",
+      "expression": "yok ya, bu anlaşmaya girmem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_054",
+      "expression": "kusura bakma, teklifini reddediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_055",
+      "expression": "eyvallah ama bu teklifi kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_056",
+      "expression": "nah kabul ederim bu teklifi",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "argo"
+    },
+    {
+      "id": "ret_057",
+      "expression": "bu teklifi almam",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_058",
+      "expression": "bu anlaşmayı istemem",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_059",
+      "expression": "yok, bu teklifi istemiyorum",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_060",
+      "expression": "kesinlikle kabul etmiyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_061",
+      "expression": "buna yanaşmam",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_062",
+      "expression": "başkasına teklif et",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_063",
+      "expression": "bu bedeli düşük buldum, teklifini reddediyorum",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_064",
+      "expression": "şartların ağır, bu teklife hayır",
+      "meaning": "ret",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli bekleyen teklif bulunmalı; aynı teklif için yürürlükte kabul/anlaşma varsa ret yerine vazgeçme olasılığı bağlamla ayrıştırılmalı.",
+      "register": "gündelik"
+    },
+    {
+      "id": "ret_065",
+      "expression": "bu görev için beni düşünme",
+      "meaning": "ret",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli bekleyen teklife doğrudan olumsuz yanıt olmalı; yalnızca memnuniyetsizlik, erteleme veya genel ilgisizlik anlatıyorsa ret kesinleştirilmemeli. Önceden kabul edilmiş/aktif teklif varsa vazgeçme olasılığı ayrıştırılmalı.",
+      "register": "gündelik"
+    }
+  ],
+  "vazgeçme": [
+    {
+      "id": "vazgeçme_001",
+      "expression": "vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_002",
+      "expression": "vazgeçiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_003",
+      "expression": "anlaşmadan vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_004",
+      "expression": "kabulümü geri çekiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_005",
+      "expression": "bırakıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_006",
+      "expression": "kabul etmiştim ama vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_007",
+      "expression": "anlaşmıştık ama artık istemiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_008",
+      "expression": "bu anlaşmadan çekiliyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_009",
+      "expression": "bu işi bıraktım",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_010",
+      "expression": "kabul ettiğim tekliften vazgeçiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_011",
+      "expression": "ben çekiliyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_012",
+      "expression": "bu anlaşmayı iptal etmek istiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_013",
+      "expression": "anlaşmamızı iptal edelim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_014",
+      "expression": "ben artık yokum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_015",
+      "expression": "az önce kabul ettim, şimdi vazgeçiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_016",
+      "expression": "devam etmeyeceğim",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_017",
+      "expression": "artık bu anlaşmada yokum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_018",
+      "expression": "bu anlaşmadan çıkmak istiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_019",
+      "expression": "buraya kadarmış, bırakıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_020",
+      "expression": "verdiğim onayı geri çekiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_021",
+      "expression": "işi yarıda bırakıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_022",
+      "expression": "bu görevi bıraktım",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_023",
+      "expression": "görevden çekiliyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_024",
+      "expression": "ben buraya kadarım",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_025",
+      "expression": "kabulümden döndüm",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_026",
+      "expression": "sözümü geri alıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_027",
+      "expression": "anlaştık demiştim, geri alıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_028",
+      "expression": "tamam demiştim ama vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_029",
+      "expression": "evet demiştim ama artık hayır",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_030",
+      "expression": "tamam demiştim, artık yapmıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_031",
+      "expression": "bu anlaşmadan caymak istiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_032",
+      "expression": "anlaşmadan caydım",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_033",
+      "expression": "cayıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_034",
+      "expression": "anlaştığımız işi iptal edelim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_035",
+      "expression": "bu anlaşmayı iptal et",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_036",
+      "expression": "aldığım işi geri bırakıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_037",
+      "expression": "görevi aldım ama devam etmiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_038",
+      "expression": "artık devam etmek istemiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_039",
+      "expression": "burada bırakmak istiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_040",
+      "expression": "bu işten çekildim",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_041",
+      "expression": "anlaştığımız işten vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_042",
+      "expression": "benden bu kadar, işi bırakıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_043",
+      "expression": "anlaştığımız görevi saldım",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_044",
+      "expression": "bu anlaşmayı burada bitirelim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_045",
+      "expression": "yapacağım demiştim ama vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_046",
+      "expression": "onay vermiştim, onayımı geri alıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_047",
+      "expression": "vazgeçtm",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "vazgeçme_048",
+      "expression": "vazgeçtimmm",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "vazgeçme_049",
+      "expression": "vazgeciyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "vazgeçme_050",
+      "expression": "anlaşmadan vazgeçiyom",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_051",
+      "expression": "kabulümü geri alıyom",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_052",
+      "expression": "vaz geçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "vazgeçme_053",
+      "expression": "caydımm",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "yazım_hatası"
+    },
+    {
+      "id": "vazgeçme_054",
+      "expression": "kanka, kabul etmiştim ama vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_055",
+      "expression": "abi, anlaşmadan çekiliyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_056",
+      "expression": "yok ya, anlaştığımız işi bırakalım",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_057",
+      "expression": "boş ver, mevcut anlaşmadan vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_058",
+      "expression": "eyvallah ama yaptığımız anlaşmayı sürdürmeyeceğim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "argo"
+    },
+    {
+      "id": "vazgeçme_059",
+      "expression": "ben bu anlaşmadan caydım ya",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_060",
+      "expression": "kabul ettim diye devam etmeyeceğim, vazgeçtim",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_061",
+      "expression": "anlaşmış olsak da artık devam etmiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_062",
+      "expression": "önceden kabul ettiğim teklifi artık istemiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": false,
+      "required_context": "Kimliği belirli, daha önce kabul edilmiş teklif veya devam eden anlaşma bulunmalı; yoksa vazgeçme varsayılmamalı. İptalin hukuki ya da işlemsel tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_063",
+      "expression": "bu işi artık üstlenmiyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_064",
+      "expression": "görevden çıktım",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "gündelik"
+    },
+    {
+      "id": "vazgeçme_065",
+      "expression": "ben bu işi salıyorum",
+      "meaning": "vazgeçme",
+      "context_dependent": true,
+      "required_context": "Kimliği belirli, önceden kabul edilmiş teklif veya devam eden görev/anlaşma bulunmalı; sözün o işten çekilme niyetini anlattığı doğrulanmalı. Oyun oturumunu terk etme veya başka bir şeyi bırakma anlamı dışlanmalı. İptal işleminin tamamlandığını göstermez.",
+      "register": "argo"
+    }
+  ],
+  "belirsizler": [
+    {
+      "id": "belirsizler_001",
+      "expression": "önce parayı görelim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_002",
+      "expression": "bakarız",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_003",
+      "expression": "tamam da ne kadar",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_004",
+      "expression": "olabilir",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_005",
+      "expression": "bir düşüneyim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_006",
+      "expression": "bi bakayım",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_007",
+      "expression": "emin değilim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_008",
+      "expression": "ne kadar vereceksin",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_009",
+      "expression": "şartlar ne",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_010",
+      "expression": "peki ama nasıl",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_011",
+      "expression": "teklif hâlâ geçerli mi",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_012",
+      "expression": "sen bilirsin",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_013",
+      "expression": "hmm",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_014",
+      "expression": "he",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_015",
+      "expression": "aynen",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_016",
+      "expression": "eyvallah",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "argo"
+    },
+    {
+      "id": "belirsizler_017",
+      "expression": "sıkıntı yok",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_018",
+      "expression": "güzelmiş",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_019",
+      "expression": "mantıklı",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_020",
+      "expression": "anladım",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_021",
+      "expression": "tamam mı diyeyim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_022",
+      "expression": "kabul etsem ne olur",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_023",
+      "expression": "kabul ederim dedim mi",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_024",
+      "expression": "hayır demedim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_025",
+      "expression": "kabul etmiyor değilim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_026",
+      "expression": "kabul edecektim ama",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_027",
+      "expression": "vazgeçsem mi",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_028",
+      "expression": "teklife “tamam” dedi",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_029",
+      "expression": "“kabul ediyorum” yazmış",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    },
+    {
+      "id": "belirsizler_030",
+      "expression": "ücret artarsa kabul ederim",
+      "meaning": "belirsiz",
+      "context_dependent": true,
+      "required_context": "İlgili teklif, konuşmacı niyeti ve güncel durum açıklığa kavuşturulmalı; bu ifade tek başına kabul, ret veya vazgeçme kararı üretmemeli.",
+      "register": "gündelik"
+    }
+  ]
+}

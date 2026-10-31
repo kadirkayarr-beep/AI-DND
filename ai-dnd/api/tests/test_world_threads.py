@@ -192,7 +192,8 @@ class TimePasses(unittest.TestCase):
         state = self.world[world_threads.KEY]
         self.assertTrue(state["history"])
         self.assertTrue(all(t["status"] in world_threads.TERMINAL for t in state["history"]))
-        self.assertEqual({t["closed_at"] for t in state["history"]}, {late})
+        # Closed when each window ran out, not when the clock happened to be read.
+        self.assertTrue(all(t["closed_at"] == t["expires_at"] <= late for t in state["history"]))
         self.assertGreaterEqual(len(world_threads.active(self.world)), 1)
 
     def test_the_same_moment_twice_does_nothing(self):
@@ -316,7 +317,7 @@ class TheAuthoredCatalog(unittest.TestCase):
 
     def test_only_public_and_owner_words_are_read(self):
         allowed = {"id", "type", "place_kinds", "target_place_kinds", "public_lines", "owner_lines",
-                   "offer_hours", "pay", "work_days"}
+                   "offer_hours", "pay", "work_days", "pay_basis", "item_noun", "status_lines"}
         for template in thread_catalog.load():
             self.assertLessEqual(set(template), allowed)
 
@@ -335,3 +336,244 @@ class TheAuthoredCatalog(unittest.TestCase):
     def test_a_missing_catalog_leaves_the_starter_kinds(self):
         with patch.object(thread_catalog, "CATALOG_DIR", thread_catalog.CATALOG_DIR / "absent"):
             self.assertEqual(thread_catalog.load(), [])
+
+
+def walled(seed="seed-job"):
+    """A town with threads, before anyone has answered anything."""
+    world = city(seed)
+    world_threads.ensure(world)
+    return world, world[world_threads.KEY]
+
+
+def stage(world, status, **fields):
+    """The first thread, moved to a status the way a played turn leaves it."""
+    thread = world[world_threads.KEY]["threads"][0]
+    thread.update(status=status, type=fields.pop("type", "hiring"), offered_at=fields.pop("offered_at", 0),
+                  offered_turn=1, **fields)
+    return thread
+
+
+def person(world, npc_id, place_id, **fields):
+    npc = dict(id=npc_id, name=npc_id.title(), role="usta", location=place_id, place_role_of=place_id, **fields)
+    world["npcs"].append(npc)
+    return npc
+
+
+class TheJobMachine(unittest.TestCase):
+    def test_the_edges_are_the_only_paths(self):
+        expected = {
+            "open": {"heard", "offered", "filled_by_other", "expired"},
+            "heard": {"offered", "filled_by_other", "expired"},
+            "offered": {"accepted", "declined", "expired"},
+            "declined": {"accepted", "filled_by_other", "expired"},
+            "accepted": {"done", "failed", "expired", "abandoned"},
+        }
+        self.assertEqual(world_threads.TRANSITIONS, expected)
+        for status in world_threads.STATUSES:
+            for wanted in world_threads.STATUSES:
+                thread = {"status": status}
+                self.assertEqual(world_threads.transition(thread, wanted), wanted in expected.get(status, ()))
+
+    def test_a_refusal_has_no_way_back_to_the_public_list(self):
+        self.assertFalse({"open", "heard", "offered"} & world_threads.TRANSITIONS["declined"])
+
+    def test_the_lists_mean_what_they_say(self):
+        self.assertEqual(world_threads.PUBLIC, ("open", "heard"))
+        self.assertEqual(set(world_threads.OWNED), {"open", "heard", "offered", "accepted", "declined"})
+        self.assertNotIn("accepted", world_threads.CLOSABLE_BY_TIME)
+
+    def test_an_offer_nobody_answers_is_taken_back_within_a_day(self):
+        world, _ = walled()
+        thread = stage(world, "offered", expires_at=10 * DAY, offered_at=HOUR)
+        tid = thread["thread_id"]
+        world_threads.tick(world, HOUR + 24 * HOUR - 1)
+        self.assertEqual(world_threads.by_id(world, tid)["status"], "offered")
+        world_threads.tick(world, HOUR + 24 * HOUR)
+        closed = world_threads.by_id(world, tid)
+        self.assertEqual((closed["status"], closed["closed_at"]), ("expired", 25 * HOUR))
+
+    def test_an_offer_also_ends_with_its_own_window(self):
+        world, _ = walled()
+        thread = stage(world, "offered", expires_at=5 * HOUR)
+        world_threads.tick(world, 9 * HOUR)
+        closed = world_threads.by_id(world, thread["thread_id"])
+        self.assertEqual((closed["status"], closed["closed_at"]), ("expired", 5 * HOUR))
+
+    def test_a_turned_down_job_nearly_always_goes_to_a_real_person(self):
+        filled = 0
+        for number in range(30):
+            world, _ = walled(f"decline-{number}")
+            thread = world[world_threads.KEY]["threads"][0]
+            local = person(world, "neighbour", world[world_threads.KEY]["threads"][1]["place_id"])
+            stage(world, "declined", expires_at=HOUR)
+            world_threads.tick(world, 2 * HOUR)
+            closed = world_threads.by_id(world, thread["thread_id"])
+            if closed["status"] == "filled_by_other":
+                filled += 1
+                self.assertEqual(closed["filled_by_npc_id"], local["id"])
+                self.assertEqual(closed["filled_by_name"], living_world.public_npc_name(local))
+        self.assertGreaterEqual(filled, 24)
+
+    def test_nobody_living_means_a_reserved_name_not_a_blank(self):
+        for number in range(40):
+            world, _ = walled(f"empty-{number}")
+            thread = stage(world, "declined", expires_at=HOUR)
+            world_threads.tick(world, 2 * HOUR)
+            closed = world_threads.by_id(world, thread["thread_id"])
+            if closed["status"] == "filled_by_other":
+                self.assertTrue(closed["filled_by_name"])
+                self.assertIsNone(closed["filled_by_npc_id"])
+                return
+        self.fail("no filled job in forty campaigns")
+
+    def test_an_accepted_job_is_never_given_away(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", type="errand", expires_at=HOUR, starts_at=0)
+        world_threads.tick(world, 30 * DAY)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+
+    def test_short_days_fail_a_hired_job_once_its_time_is_up(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=3 * DAY, days_worked=1)
+        thread["terms"]["work_days"] = 2
+        world_threads.tick(world, 3 * DAY)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+        world_threads.tick(world, 3 * DAY + 1)
+        closed = world_threads.by_id(world, thread["thread_id"])
+        self.assertEqual((closed["status"], closed["closed_at"]), ("failed", 3 * DAY))
+
+    def test_a_job_is_not_failed_while_the_shift_is_running(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY, days_worked=0, shift_until=9 * DAY)
+        thread["terms"]["work_days"] = 2
+        world_threads.tick(world, 8 * DAY)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+
+    def test_a_dead_owner_ends_the_job_without_blame(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY)
+        owner = person(world, "owner", thread["place_id"], combat_status="dead")
+        world_threads.tick(world, HOUR)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "expired")
+        self.assertNotIn(owner["id"], world.get("relationships", {}))
+
+    def test_an_unconscious_owner_only_means_waiting(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY)
+        person(world, "owner", thread["place_id"], combat_status="unconscious")
+        world_threads.tick(world, HOUR)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+
+    def test_a_lost_place_ends_the_job_without_blame(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY)
+        place = world["locations"].pop(thread["place_id"])
+        world_threads.tick(world, HOUR)
+        world["locations"][thread["place_id"]] = place
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "expired")
+
+    def test_one_seven_day_wait_is_seven_days_passing(self):
+        def run(steps):
+            world, _ = walled("week")
+            thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=2 * DAY, days_worked=0)
+            thread["terms"]["work_days"] = 1
+            for now in steps:
+                world_threads.tick(world, now)
+            return world_threads.by_id(world, thread["thread_id"])["closed_at"]
+        self.assertEqual(run([7 * DAY]), run([d * DAY for d in range(1, 8)]))
+
+    def test_one_broken_accepted_job_closes_alone(self):
+        world, _ = walled()
+        first, second = world[world_threads.KEY]["threads"][:2]
+        stage(world, "accepted", expires_at=HOUR, starts_at="noon")
+        world_threads.tick(world, HOUR)
+        self.assertEqual(world_threads.by_id(world, first["thread_id"])["status"], "expired")
+        self.assertEqual(world[world_threads.KEY]["last_tick"], HOUR)
+        world_threads.validate(world[world_threads.KEY])
+        self.assertIsNotNone(world_threads.by_id(world, second["thread_id"]))
+
+    def test_nothing_outside_the_thread_is_written_when_the_state_cannot_be_kept(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY)
+        person(world, "owner", thread["place_id"], combat_status="dead")
+        before = copy.deepcopy(world)
+        with patch.object(world_threads, "validate", side_effect=ValueError("no")):
+            world_threads.tick(world, HOUR)
+        self.assertEqual(world, before)
+
+    def test_a_save_without_the_new_fields_still_reads(self):
+        world, state = walled()
+        for thread in state["threads"]:
+            thread["terms"] = {"pay": thread["terms"]["pay"], "work_days": thread["terms"]["work_days"]}
+        world_threads.validate(state)
+        world_threads.tick(world, HOUR)
+        world_threads.validate(world[world_threads.KEY])
+
+    def test_pay_basis_of_an_old_save_comes_from_its_kind(self):
+        self.assertEqual(world_threads.pay_basis({"type": "hiring", "template_id": "hand_wanted", "terms": {}}), "daily")
+        self.assertEqual(world_threads.pay_basis({"type": "hiring", "template_id": "gone", "terms": {}}), "total")
+        self.assertEqual(world_threads.pay_basis({"type": "errand", "terms": {}}), "per_trip")
+
+    def test_the_journal_closing_a_job_closes_the_thread_with_no_clock(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", type="errand", expires_at=HOUR, starts_at=0, quest_id="job:one")
+        owner = person(world, "owner", thread["place_id"])
+        world["quests"] = [{"quest_id": "job:one", "status": "COMPLETED"}]
+        world_threads.sync_from_quests(world)
+        world_threads.sync_from_quests(world)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "done")
+        self.assertEqual(world["relationships"][owner["id"]]["score"], 1)
+
+    def test_a_job_the_player_touched_outlives_a_full_history(self):
+        world, _ = walled()
+        thread = stage(world, "accepted", type="errand", expires_at=HOUR, starts_at=0, quest_id="job:one")
+        world["quests"] = [{"quest_id": "job:one", "status": "FAILED"}]
+        world_threads.sync_from_quests(world)
+        state = world[world_threads.KEY]
+        for number in range(12):
+            state["history"].append(dict(copy.deepcopy(thread), thread_id=f"later_{number}", offered_at=None,
+                                         status="expired"))
+        world_threads._trim_history(state)
+        self.assertIsNotNone(world_threads.by_id(world, thread["thread_id"]))
+        self.assertLessEqual(len(state["history"]), world_threads.MAX_HISTORY * 2)
+        world_threads.validate(state)
+
+    def test_a_reload_is_the_same_world(self):
+        world, _ = walled()
+        stage(world, "accepted", expires_at=HOUR, starts_at=0, work_until=DAY, days_worked=0)
+        again = json.loads(json.dumps(world))
+        self.assertEqual(again[world_threads.KEY], world[world_threads.KEY])
+        world_threads.validate(again[world_threads.KEY])
+
+
+class TheWorkOnOffer(unittest.TestCase):
+    def test_nobody_offers_work_that_needs_a_second_place_yet(self):
+        for template in world_threads.catalog()["templates"]:
+            if template["type"] == "hiring":
+                self.assertFalse(template.get("target_place_kinds"), template["id"])
+
+    def test_a_debt_promises_nobody_money(self):
+        debt = next(t for t in world_threads.catalog()["templates"] if t["id"] == "unpaid_debt")
+        self.assertNotIn("pay", debt)
+        self.assertNotIn("{pay}", " ".join(debt["owner_lines"]))
+
+    def test_the_answer_words_are_loaded_for_all_four_meanings(self):
+        table = world_threads.answer_table()
+        self.assertIn(npc_statements.fold("Anlaştık"), table["accept"])
+        self.assertIn(npc_statements.fold("Teklifi reddediyorum"), table["decline"])
+        self.assertIn(npc_statements.fold("Anlaşmadan vazgeçtim"), table["withdraw"])
+        self.assertIn(npc_statements.fold("önce parayı görelim"), table["unclear"])
+
+    def test_every_errand_knows_what_it_carries_and_every_job_how_it_pays(self):
+        for template in world_threads.catalog()["templates"]:
+            if template["type"] == "errand":
+                self.assertTrue(template.get("item_noun"), template["id"])
+            if template["type"] == "hiring":
+                self.assertIn(template.get("pay_basis"), {"daily", "total"}, template["id"])
+
+    def test_catalog_outcomes_lose_their_bookkeeping_or_stay_out(self):
+        for template in world_threads.catalog()["templates"]:
+            for line in (template.get("status_lines") or {}).values():
+                self.assertNotIn("{", line)
+                self.assertNotIn("önerisi", line)
+                self.assertNotIn("oyuncu", line.casefold())

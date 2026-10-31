@@ -55,7 +55,7 @@ def _coverage(npc: dict[str, Any]) -> int:
 
 def owned_threads(world: dict[str, Any], npc: dict[str, Any]) -> list[dict[str, Any]]:
     place_id = npc.get("place_role_of")
-    return [t for t in world_threads.active(world) if place_id and t.get("place_id") == place_id]
+    return [t for t in world_threads.owned(world) if place_id and t.get("place_id") == place_id]
 
 
 def is_closed_mouthed(world: dict[str, Any], npc: dict[str, Any]) -> bool:
@@ -94,7 +94,7 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     threads.sort(key=lambda item: _percent(world, npc.get("id"), "order", item["thread_id"]))
     gone = []
     now = world_threads._now(world)
-    line = world_threads.catalog().get("gone_line")
+    line = world_threads.catalog().get("gone_lines", {}).get("filled_by_other")
     for thread in state["history"]:
         place = world.get("locations", {}).get(thread["place_id"])
         if (
@@ -102,7 +102,8 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and thread["settlement_id"] == settlement_id and now - (thread.get("closed_at") or 0) < GONE_WINDOW
             and _percent(world, npc.get("id"), thread["thread_id"]) < share
         ):
-            gone.append({"kind": "news", "text": line.replace("{place}", place["name"]),
+            gone.append({"kind": "news", "text": line.replace("{place}", place["name"]).replace(
+                "{who}", thread.get("filled_by_name") or "başkası"),
                          "location_id": thread["place_id"], "thread_id": None})
     known, size = [], 0
     for item in (*threads, *gone, *_places(world, settlement_id, npc)):
@@ -116,7 +117,7 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
 def place_of_person(world: dict[str, Any], name: Any) -> dict[str, Any] | None:
     """Where a person the threads name can be found, by their reserved name."""
     wanted = npc_statements.fold(name)
-    for thread in world_threads.active(world):
+    for thread in world_threads.owned(world):
         for who, place_id in ((thread.get("owner_name"), thread.get("place_id")),
                               (thread.get("recipient_name"), thread.get("target_place_id"))):
             if who and wanted and npc_statements.fold(who) == wanted:

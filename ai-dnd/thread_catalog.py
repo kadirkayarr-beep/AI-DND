@@ -2,8 +2,9 @@
 
 The catalog (content/world/catalog/thread_templates.json) is a richer source than
 the starter file and is not an import format. This adapter reads only the public
-line, the owner terms, the place tags and the offer window; every other field
-(refusal and expiry outcomes, rewards, private conditions) stays out of play.
+line, the owner terms, the place tags and the offer window, plus a refusal or
+expiry outcome once its bookkeeping words are off and every slot in it is bound;
+every other field (rewards, private conditions) stays out of play.
 content/world/catalog/mapping.json holds the explicit decisions: which catalog
 place tag is which engine place kind (no match means the tag is not used, it is
 never guessed), and the pay and day ranges, because the catalog gives none.
@@ -72,6 +73,26 @@ def _owner_line(item: dict[str, Any]) -> str | None:
     return None if set(re.findall(r"\{(\w+)\}", line)) - {"place", "recipient", "target", "pay", "days"} else line
 
 
+_EXPIRY_PREFIX = re.compile(r"^Yalnız kabul edilmemiş ipin teklif vadesi dolduğunda, motorun doğruladığı yerel gelişme önerisi:\s*")
+_REFUSAL_TAIL = re.compile(r"[;,]\s*(?:notun ulaştırılmaması )?oyuncu\w*\b.*$")
+
+
+def _outcome_line(text: Any, *, expiry: bool = False) -> str | None:
+    """A consequence as the owner could say it, or None when it only speaks to the engine."""
+    line = str(text or "").strip()
+    line = _EXPIRY_PREFIX.sub("", line) if expiry else _REFUSAL_TAIL.sub(".", line)
+    if not line or "{" in line or "oyuncu" in line.casefold() or "motor" in line.casefold():
+        return None
+    return line
+
+
+def _item_noun(owner: str, public: str) -> str | None:
+    if "{delivery_package}" not in owner:
+        return None
+    package = _package(public)
+    return package.casefold().replace("i̇", "i") if package else None
+
+
 def adapt(item: Any, mapping: dict[str, Any]) -> dict[str, Any] | None:
     """One engine template, or None when the catalog record cannot be bound honestly."""
     if not isinstance(item, dict) or item.get("type") not in {"hiring", "errand", "trouble"}:
@@ -94,6 +115,16 @@ def adapt(item: Any, mapping: dict[str, Any]) -> dict[str, Any] | None:
         template["pay"] = list(mapping["pay"][item["type"]])
     if "{days}" in owner:
         template["work_days"] = list(mapping["work_days"])
+    if item["type"] == "hiring":
+        template["pay_basis"] = "total"
+    noun = _item_noun(str(item.get("owner_terms_template") or ""), public)
+    if noun:
+        template["item_noun"] = noun
+    lines = {"declined": _outcome_line(item.get("refusal_consequence_template")),
+             "expired": _outcome_line(item.get("expiry_consequence_template"), expiry=True)}
+    lines = {key: value for key, value in lines.items() if value}
+    if lines:
+        template["status_lines"] = lines
     return template
 
 
