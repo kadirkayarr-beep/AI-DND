@@ -7097,6 +7097,13 @@ def _narrator_fact_view(packet, action_result):
     return {key: value for key, value in packet.items() if key != "door_locked"}
 
 
+def _bodies_here_context(world_state):
+    """Nobody narrates an empty room over a body the world says is lying in it."""
+    import fallen
+    bodies = fallen.here(world_state)
+    return {"bodies_here": [living_world.public_npc_name(npc) for npc in bodies[:4]]} if bodies else {}
+
+
 def build_world_context(npc_target=None):
     world_state = _session().world_state
     _normalize_ground_items()
@@ -7149,6 +7156,7 @@ def build_world_context(npc_target=None):
                 world_state["location"], {}
             ).get("reality_layer", "UNKNOWN_OR_UNLOADED"),
         },
+        **_bodies_here_context(world_state),
         "npcs": [
             {key: npc.get(key) for key in (
                 "id", "name", "role", "personality", "appearance", "relationship",

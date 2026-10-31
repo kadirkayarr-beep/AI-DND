@@ -210,7 +210,9 @@ def _burn(session) -> dict[str, Any]:
     return _reply(session, narration, "arson", "lit", check, ["features"])
 
 
-_SEARCH_BODY = re.compile(r"\b(?:ustunu|cebini|ceplerini|cesedi|kesesini)\b.*\b(?:ar\w*|al\w*|bak\w*|yokl\w*)|\bsoyuyorum\b")
+_POCKETS = re.compile(r"\b(?:ustunu|uzerini|cebini|ceplerini|kesesini)\b.*\b(?:ar\w*|al\w*|bak\w*|yokl\w*)|\bsoyuyorum\b")
+_CORPSE = re.compile(r"\b(?:ceset\w*|cesed\w*|olunun|oluyu|oluye)\b")
+_CORPSE_VERB = re.compile(r"\b(?:ar[ai]\w*|al\w*|bak\w*|yokl\w*|incele\w*|soy\w*|karistir\w*)")
 _PRICES = (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30))
 _BUY = re.compile(r"\b(?:alayim|alirim|aliyorum|ver|versene|getir|getirsene|istiyorum|isterim)\b")
 _SERVER = re.compile(r"\b(?:barmen|hanci|meyhaneci|garson|satici|asci)")
@@ -218,15 +220,28 @@ _SERVER = re.compile(r"\b(?:barmen|hanci|meyhaneci|garson|satici|asci)")
 
 def _search_body(session, text: str) -> dict[str, Any] | None:
     import fallen
-    bodies = [npc for npc in fallen.here(session.world_state) if not npc.get("searched")]
-    if not bodies or not _SEARCH_BODY.search(fold(session, text)):
+    folded = fold(session, text)
+    corpse = bool(_CORPSE.search(folded) and _CORPSE_VERB.search(folded))
+    if not corpse and not _POCKETS.search(folded):
         return None
-    body = bodies[0]
+    world = session.world_state
+    bodies = fallen.here(world)
+    named = fallen.named_in(session, text, bodies)
+    if named is None:
+        far = fallen.named_elsewhere(session, text)
+        if far is not None:
+            return _reply(session, fallen.lies_elsewhere(world, far), "loot", "body_elsewhere", None, [])
+    if not bodies or (not corpse and named is None
+                      and any(session.named_by_sight(npc, folded) for npc in session.active_npcs())):
+        return None
+    body = named or next((npc for npc in bodies if not npc.get("searched")), bodies[0])
+    who = living_world.public_npc_name(body)
+    if body.get("searched"):
+        return _reply(session, f"{who} üzerinde alınacak başka bir şey kalmamış.", "loot", "already_searched", None, [])
     body["searched"] = True
     coins = session.rng.randint(0, 30)
     wallets = session.world_state.setdefault("currency", {})
     wallets["player"] = wallets.get("player", 0) + coins
-    who = living_world.public_npc_name(body)
     narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
                  else f"{who} üzerinde işe yarar bir şey çıkmıyor.")
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)

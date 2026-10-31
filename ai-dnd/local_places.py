@@ -434,7 +434,7 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
         parts.append(f"Yeniden {record['name']} içindesin; her şey bıraktığın gibi.")
     if isinstance(feature, dict):
         parts.append(str(feature.get("description") or ""))
-    if isinstance(npc, dict):
+    if isinstance(npc, dict) and npc.get("combat_status") != "dead":
         who = living_world.public_npc_name(npc)
         activity = _pick(world, record["id"], spec["activities"], "activity")[0]
         parts.append(f"{who} burada. {activity}")
