@@ -93,22 +93,30 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         await self.go(TravellingClient({"create_locations": [PLACE]}))
         self.assertTrue(game.living_world.on_open_street(self.world))
 
-    async def test_a_road_encounter_keeps_the_player_and_drops_the_arrival_text(self):
+    async def test_a_short_walk_inside_the_city_meets_no_road_encounter(self):
         await self.scene()
-        class LowDice:
-            def randint(self, low, high):
-                return low
-
-        real_dice = timed_gameplay.travel_dice
         client = TravellingClient({"create_locations": [PLACE]})
-        with patch.object(timed_gameplay, "travel_dice", side_effect=lambda rng, recent: real_dice(LowDice(), recent)):
+        with patch.object(timed_gameplay, "travel_dice", side_effect=AssertionError("no roll on a local walk")):
+            response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self, self.turn_url, client, {"message": GO, "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.world["location"], self.new_places()[0]["id"])
+        self.assertEqual(self.world["journey"]["status"], "ARRIVED")
+
+    async def test_a_walk_stopped_on_the_way_keeps_the_player_and_drops_the_arrival_text(self):
+        # The road dice no longer reach this walk, which this test used; a scheduled event still can stop it.
+        await self.scene()
+        client = TravellingClient({"create_locations": [PLACE]})
+        stopped = lambda session: timed_gameplay._result("travel", "Yolda karar vermen gereken bir durum oluştu.", status="interrupted")
+        with patch.object(timed_gameplay, "continue_travel", side_effect=stopped):
             response = await test_campaign_api.CampaignApiTests.post_scene_turn(
                 self, self.turn_url, client, {"message": GO, "action_id": str(uuid.uuid4())},
             )
         self.assertEqual(response.status_code, 200, response.text)
         shown = response.json()["narration"]
         self.assertEqual(self.world["location"], self.city)
-        self.assertIn(timed_gameplay.TRAVEL_CATALOG[0]["text"], shown)
+        self.assertIn("durum oluştu", shown)
         self.assertNotIn("taş konaklar", shown)
 
     async def test_a_far_place_is_a_plausible_failure_not_a_new_city(self):
@@ -147,3 +155,43 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+ENCOUNTER = {"pattern": "wagon", "text": "Yol kenarında yükünü düzenleyen bir arabacı var.", "disposition": "sakin",
+             "dice": {"occurrence": 1, "type": 2, "disposition": 1}}
+NO_ENCOUNTER = (None, {"occurrence": 6, "type": None, "disposition": None})
+
+
+class RealJourneyTests(unittest.TestCase):
+    """The road dice stay on real journeys, and the player can always go on after one."""
+
+    def setUp(self):
+        self.session = game.create_session(seed=11)
+        self.session.commit_location_change("tavern")
+        self.world = self.session.world_state
+        self.world["locations"]["tavern"]["travel_routes"] = {"forest": [600, 600]}
+        with patch.object(timed_gameplay, "travel_dice", return_value=(ENCOUNTER, ENCOUNTER["dice"])) as self.dice:
+            self.stopped = timed_gameplay.start_travel(self.session, "forest")
+
+    def test_a_real_journey_still_rolls_and_can_be_stopped(self):
+        self.dice.assert_called_once()
+        self.assertEqual(self.stopped["status"], "interrupted")
+        self.assertEqual(self.world["journey"]["status"], "INTERRUPTED")
+        self.assertIn(ENCOUNTER["text"], self.stopped["direct_response"])
+
+    def walk_on(self, *messages):
+        with patch.object(timed_gameplay, "travel_dice", return_value=NO_ENCOUNTER):
+            return [timed_gameplay.resolve_input(self.session, message) for message in messages]
+
+    def test_saying_go_on_finishes_the_walk(self):
+        self.walk_on("Yoluma devam ediyorum.", "Devam ediyorum.")
+        self.assertEqual(self.world["location"], "forest")
+        self.assertEqual(self.world["journey"]["status"], "ARRIVED")
+
+    def test_naming_the_same_place_again_goes_on_instead_of_turning_back(self):
+        spent = self.world["campaign_time"]["elapsed_seconds"]
+        result = self.walk_on("Forest konumuna gidiyorum.")[0]
+        self.assertNotIn("geri dön", result["direct_response"])
+        self.assertFalse(self.world["journey"].get("returning"))
+        self.assertEqual(self.world["journey"]["destination"], "forest")
+        self.assertLessEqual(self.world["campaign_time"]["elapsed_seconds"] - spent, 300, "only the rest of this stage")

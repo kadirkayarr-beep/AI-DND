@@ -435,6 +435,16 @@ def route_stages(world, destination, pace=None, session=None):
     return None
 
 
+def _short_local_walk(world, journey):
+    """A few streets inside one settlement: the road dice belong to real journeys."""
+    import local_places
+    settlement = local_places.settlement_of(world, journey.get("origin"))
+    return bool(
+        settlement and "route_id" not in journey
+        and settlement == local_places.settlement_of(world, journey.get("destination"))
+    )
+
+
 def start_travel(session, destination):
     world = session.world_state
     import exploration
@@ -456,6 +466,10 @@ def start_travel(session, destination):
             return return_travel(session)
         return _result("travel", "Zaten buradasın.")
     previous = world.get("journey")
+    if (previous and previous["status"] != "ARRIVED" and not previous.get("returning")
+            and previous["destination"] == destination):
+        # The player names the place the road already leads to: that is going on, not turning back.
+        return continue_travel(session)
     navigation = None
     lost = False
     retraced = 0
@@ -595,7 +609,7 @@ def continue_travel(session):
             journey["status"] = "INTERRUPTED"
             return _result("travel", "Yolculukta karar vermen gereken bir durum oluştu.", advance)
         journey["stage_checked"] = True
-        encounter, dice = travel_dice(session.rng, journey["recent_patterns"])
+        encounter, dice = (None, None) if _short_local_walk(world, journey) else travel_dice(session.rng, journey["recent_patterns"])
         if encounter:
             journey["encounter"] = encounter
             journey["status"] = "INTERRUPTED"
