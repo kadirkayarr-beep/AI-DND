@@ -152,6 +152,46 @@ def _single_valid_target(session, targets):
             and (combat.get("active") or targets[0].get("current_hp", 1) > 0))
 
 
+_FLIGHT = re.compile(
+    r"\b(?:kac(?:iyorum|ip|acagim|ayim|alim)|sivis\w*|uzaklasiyorum|geri cekiliyorum|tabanlari yagl\w*|"
+    r"\w+(?:dan|den|tan|ten) cik(?:iyorum|acagim|ayim))\b|\bdisari cik\w*"
+)
+
+
+def is_flight(session, message):
+    """In a fight, walking off is running away."""
+    world = session.world_state
+    return (isinstance(message, str) and "?" not in message and bool(world.get("combat", {}).get("active"))
+            and bool(_FLIGHT.search(session._normalize_turkish_typos(message))))
+
+
+def flee(session, action_id=None, session_id=None):
+    """A real attempt: away and out of the place, or the turn is lost and the blows land."""
+    world = session.world_state
+    combat = world["combat"]
+    if combat.get("current_actor_id") != "player" or session.character.get("current_hp", 0) <= 0:
+        return None
+    character = session.character
+    check = session.perform_skill_check(
+        "Acrobatics", 12, character["modifiers"], character.get("proficient_skills") or [],
+        character.get("proficiency_bonus") or 2, expertise_skills=character.get("expertise_skills") or (),
+    )
+    if check["result"] == "BAŞARILI":
+        here = world.get("locations", {}).get(world.get("location"), {})
+        way_out = here.get("exit_location_id") or here.get("parent_location_id") if isinstance(here, dict) else None
+        session.end_combat("player_fled")
+        if isinstance(way_out, str) and way_out in world.get("locations", {}):
+            session.commit_location_change(way_out)
+        narration = "Bir boşluk yakalayıp sıyrılıyorsun; ardından gelen bağırışlar geride kalıyor."
+        return {"messages": session.messages, "narration": narration, "model_calls": 0,
+                "action_result": {"action": "flee", "status": "resolved", "success": True,
+                                  "state_changes": ["combat", "location"], "direct_response": narration}}
+    import action_economy
+    result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
+    result["narration"] = f"Kaçacak bir açık bulamıyorsun; yolun kesiliyor. {result.get('narration', '')}".strip()
+    return result
+
+
 def unbound_attack_reply(session, message, target_id=None):
     """An attack with no single target is asked about in the world."""
     if (
@@ -217,6 +257,9 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
                 or npc.get("combat_status", "active") not in {"active", "unconscious"}):
                 raise CombatRequestError("invalid_combat_target", "Target is not an active local participant.", 400)
         text = session._normalize_turkish_typos(message)
+        import action_economy
+        if is_flight(session, message) or action_economy.wants_rage(session, text):
+            return
         if (re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text)
                 or re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?", text)
                 or living_world.classify_scene_action(message) == "exit"):

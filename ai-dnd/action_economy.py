@@ -763,11 +763,26 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
             "action_resource_cost": 0 if continuation or extra else 1}
 
 
+_RAGE_WORDS = re.compile(r"\b(?:rage|ofkeye\s+(?:gir|kapil)\w*|kudur(?:uyorum|dum)|ofke\s+nobet\w*)")
+_WAITING = re.compile(r"\b(?:bekliyorum|bekle|nefes aliyorum|duruyorum|savunmada\w*|savunmaya gec\w*|kolluyorum)\b")
+
+
+def wants_rage(session, text):
+    """"Rage!", "öfkeye kapılıyorum": a Barbarian's own word for it, when it can be used."""
+    import barbarian_rage
+    return (session.character.get("class") == "Barbarian" and bool(_RAGE_WORDS.search(text))
+            and not barbarian_rage._reason(session))
+
+
 def natural_command(session, message, selected_target=None):
     """Small extension of existing intent routing, not a second model parser."""
     if not session.world_state.get("combat", {}).get("active"):
         return None
     text = session._normalize_turkish_typos(message)
+    if wants_rage(session, text):
+        return {"steps": [{"kind": "activate_rage", "resource": "bonus"}]}
+    if _WAITING.search(text) and "?" not in message:
+        return {"steps": [{"kind": "end_turn"}]}
     opportunity = ensure(session)["player"]["opportunity"]
     if opportunity and re.search(r"reaksiyon.*(?:kullan|ver)|use.*reaction", text):
         return {"steps": [{"kind": "react", "opportunity_id": opportunity["id"]}]}

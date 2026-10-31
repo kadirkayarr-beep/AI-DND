@@ -8,6 +8,7 @@ import json
 import unittest
 import uuid
 
+import barbarian_rage
 import local_places
 import npc_statements
 import weapon_catalog
@@ -295,6 +296,40 @@ class WorldAnswersTests(ThreePlaysTests):
         self.assertIn("paranı masaya", out["narration"])
 
 
+class InAFightTests(ThreePlaysTests):
+    async def fight(self, character=BARBARIAN):
+        await self.begin(character)
+        self.world["npcs"].clear()
+        self.session.character.update(current_hp=300, max_hp=300)
+        self.foe = self.add_person("Dorn", "Liman işçisi", current_hp=500, max_hp=500, armor_class=30)
+        await self.say("liman işçisine vuruyorum", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+
+    async def test_rage_starts_from_plain_words(self):
+        for line in ("öfkeye kapılıyorum, rage!", "rage kullanıyorum", "Rage başlatıyorum.", "Öfkeye giriyorum."):
+            with self.subTest(line=line):
+                await self.fight()
+                uses = self.world[barbarian_rage.KEY]["remaining"]
+                await self.say(line, PlayClient(intent="combat"))
+                self.assertEqual(self.world[barbarian_rage.KEY]["remaining"], uses - 1)
+
+    async def test_running_away_is_a_real_attempt(self):
+        for line in ("tamam bu iş sıkıcı, kaçıyorum buradan", "iskeleden çıkıyorum"):
+            with self.subTest(line=line):
+                await self.fight()
+                round_before = self.world["combat"]["round"]
+                out = await self.say(line, PlayClient(narration="Rıhtım boyunca uzaklaşıyorsun."))
+                self.assertTrue(not self.world["combat"]["active"] or self.world["combat"]["round"] > round_before,
+                                out["narration"])
+
+    async def test_waiting_passes_the_turn_in_the_fiction(self):
+        await self.fight()
+        round_before = self.world["combat"]["round"]
+        out = await self.say("bekliyorum", PlayClient())
+        self.assertNotIn("sürümünde", out["narration"])
+        self.assertGreater(self.world["combat"]["round"], round_before)
+
+
 class FireTests(ThreePlaysTests):
     async def test_a_fire_is_at_least_attempted(self):
         for line in ("çantamdan yağ ve kav çıkarıyorum, şu duvar dibindeki çöp yığınını ateşe veriyorum",
@@ -313,7 +348,8 @@ class SparedTests(ThreePlaysTests):
         with self.app.state.ollama_adapter.engine_binding():
             person = self.session.create_npc_from_ai(
                 {"name": "Tariq", "role": "Muhafız", "location": self.world["location"]})
-        person.update(current_hp=300, max_hp=300, role_known_to_player=True)
+        person.update(current_hp=300, max_hp=300, role_known_to_player=True,
+                      reality_layer="PROCEDURAL_LOCAL_FICTION")
         self.session.character["current_hp"] = 1
         out = None
         for _ in range(40):

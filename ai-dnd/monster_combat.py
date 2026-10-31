@@ -255,7 +255,8 @@ def candidates(session, actor, memory, capabilities, view, source="action", even
                     continue
                 if "dead" in target["conditions"]:
                     continue
-                if target["downed"] and data.get("spares_the_fallen"):
+                if (target["downed"] and data.get("hostile") is not True
+                        and data.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"):
                     continue  # A townsman who floors you does not finish you off.
                 if cap.get("target_restriction") == "trigger_actor" and (not event or target["id"] != event["actor_id"]):
                     continue

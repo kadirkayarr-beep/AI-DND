@@ -3669,8 +3669,6 @@ def _person_fight(npc):
     role = _normalize_turkish_typos(f"{npc.get('role', '')}")
     kind = "armed" if _ARMED_ROLE.search(role) else "strong" if _STRONG_ROLE.search(role) else "plain"
     armor, hit_points, bonus, die, damage_type = _PERSON_FIGHT[kind]
-    if "attack_bonus" not in npc and npc.get("hostile") is not True:
-        npc["spares_the_fallen"] = True
     npc.setdefault("armor_class", armor)
     if "max_hp" not in npc:
         npc["max_hp"] = hit_points
@@ -14882,8 +14880,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             status="unsupported",
             outcome="unsupported_combat_action",
             direct_response=(
-                "Bu çatışma sürümünde desteklenen tek mekanik hamle saldırıdır; "
-                "bu eylem durumu değiştirmedi."
+                "Rakibin gözünü senden ayırmıyor; bunun için bir açık bulamıyorsun."
             ),
         )
         return _finish_combat_result(result, before)
@@ -17558,6 +17555,11 @@ def _dispatch_player_turn(
             proposal_result = monster_combat.player_response(_session(), player_input, target_id)
             if proposal_result is not None:
                 return proposal_result
+    if combat_action is None and combat_lifecycle.is_flight(_session(), player_input):
+        with resolution_action_scope(action_id, session_id):
+            fled = combat_lifecycle.flee(_session(), action_id, session_id)
+        if fled is not None:
+            return fled
     command = combat_action or (None if planning else
                                action_economy.natural_command(_session(), player_input, target_id))
     if command:
