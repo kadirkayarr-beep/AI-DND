@@ -352,9 +352,78 @@ class TheChain(unittest.TestCase):
         response, answered = chain_for(FakeCloud(gemini=ok(gemini_reply("Sokak sessiz.")))).chat(call, LocalModel())
         self.assertEqual((answered, response.message.content), ("gemini", "Sokak sessiz."))
 
-    def test_the_call_waits_twenty_seconds_at_most(self):
-        timeout = chain_for(FakeCloud())._http.timeout
-        self.assertEqual((timeout.connect, timeout.read, timeout.write, timeout.pool), (20, 20, 20, 20))
+    def test_a_call_waits_three_seconds_to_connect_and_twenty_for_the_rest(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply()))
+        chain_for(cloud).chat(CALL, LocalModel())
+        timeout = cloud.requests[0].extensions["timeout"]
+        self.assertEqual((timeout["connect"], timeout["read"], timeout["write"]), (3, 20, 20))
+
+    def test_the_next_provider_gets_only_what_is_left_of_the_walk(self):
+        clock = Clock()
+
+        def hang():
+            clock.advance(20)
+            return httpx.ReadTimeout("slow")
+
+        cloud = FakeCloud(gemini=hang, haiku=ok(haiku_reply()))
+        self.assertEqual(chain_for(cloud, clock).chat(CALL, LocalModel())[1], "haiku")
+        timeout = cloud.requests[1].extensions["timeout"]
+        self.assertEqual((timeout["connect"], timeout["read"]), (3, 5))
+
+    def test_the_local_model_starts_when_the_walk_runs_out(self):
+        clock = Clock()
+
+        def hang():
+            clock.advance(25)
+            return httpx.ReadTimeout("slow")
+
+        local = LocalModel()
+        cloud = FakeCloud(gemini=hang, haiku=ok(haiku_reply()))
+        self.assertIsNone(chain_for(cloud, clock).chat(CALL, local)[1])
+        self.assertEqual(cloud.hosts(), [GOOGLE])
+        self.assertEqual(local.calls, 1)
+
+    def test_a_reply_that_trickles_in_stops_at_the_end_of_the_walk(self):
+        clock = Clock()
+
+        def drip():
+            for chunk in (b'{"candidates":', b"[]", b"}"):
+                clock.advance(13)
+                yield chunk
+
+        local = LocalModel()
+        cloud = FakeCloud(gemini=lambda: httpx.Response(200, content=drip()), haiku=ok(haiku_reply()))
+        self.assertIsNone(chain_for(cloud, clock).chat(CALL, local)[1])
+        self.assertEqual(cloud.hosts(), [GOOGLE])
+        self.assertEqual(local.calls, 1)
+
+    def test_a_timeout_or_a_lost_connection_rests_the_provider_a_minute(self):
+        for name, failure in (("timeout", httpx.ConnectTimeout("slow")), ("read", httpx.ReadTimeout("slow")),
+                              ("no network", httpx.ConnectError("down"))):
+            with self.subTest(name):
+                clock = Clock()
+                cloud = FakeCloud(gemini=failure, haiku=ok(haiku_reply()))
+                chain = chain_for(cloud, clock)
+                chain.chat(CALL, LocalModel())
+                clock.advance(59)
+                self.assertEqual(chain.chat(CALL, LocalModel())[1], "haiku")
+                self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC, ANTHROPIC])
+                clock.advance(2)
+                cloud.plans[GOOGLE] = ok(gemini_reply())
+                self.assertEqual(chain.chat(CALL, LocalModel())[1], "gemini")
+
+    def test_a_dead_network_costs_the_turn_one_wait_not_one_per_call(self):
+        clock = Clock()
+
+        def hang():
+            clock.advance(20)
+            return httpx.ConnectTimeout("slow")
+
+        cloud = FakeCloud(gemini=hang, haiku=ok(haiku_reply()))
+        chain = chain_for(cloud, clock)
+        for _ in range(3):
+            chain.chat(CALL, LocalModel())
+        self.assertEqual(cloud.hosts().count(GOOGLE), 1)
 
     def test_a_rate_limited_provider_rests_for_its_retry_after(self):
         clock = Clock()

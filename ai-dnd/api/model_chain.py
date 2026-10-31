@@ -33,7 +33,11 @@ LOCAL_NAME = "gemma"
 SPEND_FILE_NAME = "model-chain-spend.json"
 _GEMINI_KEY_FILE = ".aidnd-gemini-key"
 _ANTHROPIC_KEY_FILE = ".aidnd-anthropic-key"
+CONNECT_TIMEOUT_SECONDS = 3
 CALL_TIMEOUT_SECONDS = 20
+# All cloud providers together, so the local model always starts in time. The slowest good
+# answer measured was under 4 s, and two walks plus the adapter's 90 s stay inside the 240 s turn limit.
+CLOUD_WALK_SECONDS = 25
 DEFAULT_COOLDOWN_SECONDS = 60
 HAIKU_MONTHLY_CAP_USD = 4.0
 _HAIKU_INPUT_USD_PER_MILLION = 0.10
@@ -327,7 +331,7 @@ class ModelChain:
         self._now = now
         self._resting_until: dict[str, datetime] = {}
         # No redirects and no proxy or netrc from the environment: a key goes to its own host only.
-        self._http = httpx.Client(timeout=CALL_TIMEOUT_SECONDS, transport=transport, trust_env=False)
+        self._http = httpx.Client(transport=transport, trust_env=False)
 
     def provider_names(self) -> list[str]:
         return [provider.name for provider in self._providers if self._may_spend(provider)]
@@ -345,22 +349,36 @@ class ModelChain:
             return False
         return self._may_spend(provider)
 
-    def _rest(self, provider: Provider, response: httpx.Response) -> None:
+    def _rest(self, provider: Provider, text: str, retry_after: str | None) -> None:
         moment = self._now()
-        if _DAILY_QUOTA.search(response.text):
+        if _DAILY_QUOTA.search(text):
             self._resting_until[provider.name] = _next_quota_day(moment)
             return
-        seconds = _retry_after_seconds(response.headers.get("Retry-After"), moment)
+        seconds = _retry_after_seconds(retry_after, moment)
         self._resting_until[provider.name] = moment + timedelta(seconds=seconds)
 
-    def _ask(self, provider: Provider, call: Mapping[str, Any]) -> Reply:
-        response = self._http.post(provider.url, headers=dict(provider.headers), json=provider.body(call))
-        if response.status_code == 429:
-            self._rest(provider, response)
+    def _post(self, provider: Provider, call: Mapping[str, Any], deadline: datetime) -> tuple[int, str, str | None]:
+        """One request inside the time left. The deadline also stops a reply that trickles in."""
+        limit = min(CALL_TIMEOUT_SECONDS, (deadline - self._now()).total_seconds())
+        timeout = httpx.Timeout(limit, connect=min(CONNECT_TIMEOUT_SECONDS, limit))
+        with self._http.stream(
+            "POST", provider.url, headers=dict(provider.headers), json=provider.body(call), timeout=timeout,
+        ) as response:
+            body = bytearray()
+            for chunk in response.iter_bytes():
+                body += chunk
+                if self._now() >= deadline:
+                    raise httpx.ReadTimeout("The cloud walk ran out of time.")
+            return response.status_code, body.decode("utf-8", "replace"), response.headers.get("Retry-After")
+
+    def _ask(self, provider: Provider, call: Mapping[str, Any], deadline: datetime) -> Reply:
+        status, text, retry_after = self._post(provider, call, deadline)
+        if status == 429:
+            self._rest(provider, text, retry_after)
             raise _Skipped("rate_limited")
-        if response.status_code != 200:
-            raise _Skipped(f"http_{response.status_code}")
-        reply = provider.read(response.json())
+        if status != 200:
+            raise _Skipped(f"http_{status}")
+        reply = provider.read(json.loads(text))
         if provider.spend is not None:
             provider.spend.add(reply)  # billed whether or not the game can use it
         if not _usable(reply.text, call):
@@ -372,13 +390,19 @@ class ModelChain:
 
         The provider is None when the local model answered; its errors are the caller's.
         """
+        deadline = self._now() + timedelta(seconds=CLOUD_WALK_SECONDS)
         for provider in self._providers:
             if not self._ready(provider):
                 continue
+            if self._now() >= deadline:
+                break
             started = time.monotonic()
             try:
-                reply = self._ask(provider, call)
+                reply = self._ask(provider, call, deadline)
             except Exception as error:
+                if isinstance(error, httpx.TransportError):
+                    # A dead route would cost this wait again on every call. A 5xx answers at once, so it rests nobody.
+                    self._resting_until[provider.name] = self._now() + timedelta(seconds=DEFAULT_COOLDOWN_SECONDS)
                 reason = error.reason if isinstance(error, _Skipped) else type(error).__name__
                 _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
                              provider.name, reason, time.monotonic() - started)
