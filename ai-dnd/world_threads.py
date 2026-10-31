@@ -4,7 +4,8 @@ A thread is a small saved record: a real place, a real named person, public word
 anyone may have heard, and terms only its owner speaks. Python owns all of it; the
 model only voices lines handed to it and decides nothing.
 
-Kinds are data (content/world/town_threads.json). Every campaign draws its own
+Kinds are data (content/world/town_threads.json, plus the authored catalog read
+through thread_catalog.py). Every campaign draws its own
 number, mix and wiring of places from its seed, so two campaigns differ in shape
 as well as in names. Nothing here is written for one character or one story.
 
@@ -50,8 +51,9 @@ def catalog() -> dict[str, Any]:
     global _catalog_cache
     if _catalog_cache is None:
         try:
+            import thread_catalog
             data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-            templates = [item for item in data.get("templates", []) if _usable(item)]
+            templates = [item for item in (*data.get("templates", []), *thread_catalog.load()) if _usable(item)]
             _catalog_cache = {**data, "templates": templates}
         except (OSError, ValueError, TypeError, AttributeError):
             _LOG.warning("World thread kinds could not be read.")
@@ -270,6 +272,18 @@ def street_talk(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | N
         seen.append(thread["thread_id"])
         del seen[:-MAX_ACTIVE * 2]
     return thread
+
+
+def note_heard_names(world: dict[str, Any], text: str) -> None:
+    """Once a resident's name was said in the player's hearing, it is theirs to use."""
+    words = living_world.normalize_text(text).split()
+    for record in world.get("locations", {}).values():
+        name = living_world.normalize_text(record.get("resident_name")) if isinstance(record, dict) else ""
+        if name and any(word.startswith(name) for word in words):
+            record["resident_known"] = True
+            npc = local_places.resident_of(world, record["id"])
+            if npc is not None:
+                npc["name_known_to_player"] = True
 
 
 def transition(thread: dict[str, Any], status: str) -> bool:

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 import re
 import unicodedata
+from pathlib import Path
 from typing import Any
 
 
@@ -115,6 +117,34 @@ EVENT_CATALOG: tuple[dict[str, Any], ...] = (
     _event("building_prayer", "GREEN", "building|temple", "Bir ziyaretçi başını eğip sessizce dua eder, sonra kapıya yönelir.", group="faith", times="dawn|day|evening", environments="temple"),
     _event("building_wind", "GREEN", "building|castle|ruins", "Koridordan geçen hava, gevşek bir perdeyi hafifçe kıpırdatır.", group="weather", environments="castle|ruins"),
 )
+
+
+# Authored catalog tags and hours, mapped to what a scene can actually verify. A market,
+# harbor or temple is a "building" scene with no such tag yet, so those events wait.
+_AUTHORED_KINDS = {"sokak": "city", "han": "tavern"}
+_AUTHORED_TIMES = {"sabah": "day", "gunduz": "day", "aksam": "evening", "gece": "night"}
+
+
+def _authored_events() -> tuple[dict[str, Any], ...]:
+    """More small things that can happen in a street or an inn; to look at, never to act on."""
+    path = Path(__file__).resolve().parents[1] / "content" / "world" / "catalog" / "ambient_events.json"
+    try:
+        items = json.loads(path.read_text(encoding="utf-8"))["items"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return ()
+    events = []
+    for item in items:
+        kinds = [_AUTHORED_KINDS[tag] for tag in item["location_types"] if tag in _AUTHORED_KINDS]
+        times = sorted({_AUTHORED_TIMES[tag] for tag in item["time_tags"] if tag in _AUTHORED_TIMES})
+        if kinds and times and not item["required_bindings"] and "{" not in item["event_template"]:
+            events.append(_event(
+                item["id"].casefold(), "GREEN", "|".join(kinds), item["event_template"],
+                group=f"authored_{item['id']}", times="|".join(times),
+            ))
+    return tuple(events)
+
+
+EVENT_CATALOG = (*EVENT_CATALOG, *_authored_events())
 
 
 def _normalize(value: Any) -> str:

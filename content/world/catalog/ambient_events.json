@@ -1,0 +1,2628 @@
+{
+  "schema_version": "1.0.0",
+  "content_status": "özgün_aday",
+  "field_descriptions": {
+    "schema_version": "Bu veri zarfının şema sürümü.",
+    "content_status": "İçeriğin özgün ve henüz entegrasyonu doğrulanmamış aday olduğunu belirtir.",
+    "field_descriptions": "Alanların kısa Türkçe açıklamaları.",
+    "binding_rules": "Motorun seçim, bağlama ve gösterim kuralları.",
+    "items": "Tam olarak 100 bağımsız ortam olayı adayı.",
+    "id": "EVT001–EVT100 aralığında benzersiz olay kimliği.",
+    "event_template": "Kişi portresi değil, dışarıdan gözlenebilen kısa bir eylem veya gündelik olayın kamusal metni.",
+    "location_types": "Olayın seçilebileceği doğrulanmış konum türleri.",
+    "time_tags": "Motorca mevcut saate uygunluğu doğrulanacak zaman etiketleri.",
+    "time_windows": "Başlangıcı dahil, sonu hariç dünya içi yerel saat aralıkları.",
+    "start_hour": "0–23 arasında başlangıç saati; aralığa dahildir.",
+    "end_hour": "1–24 arasında bitiş saati; aralığa dahil değildir.",
+    "participant_roles": "Sahnedeki kişilerin Türkçe, adsız işlev rolleri; kimlik veya karakter portresi değildir.",
+    "approach_result_template": "Yaklaş seçilirse motorun ayrıca değerlendirebileceği kısa koşullu tepki önerisi; gerçekleşmiş sonuç değildir.",
+    "preconditions": "Seçimden önce motorun doğrulayacağı koşullar; oyuncuya veya anlatı modeline gönderilmez.",
+    "required_bindings": "Metindeki yer tutucular ve bunları doldurmak için gerekli doğrulanmış kamusal bilginin açıklamaları."
+  },
+  "binding_rules": [
+    "İçerik özgün bir ek aday kataloğudur. OYNANACAK_SEY_PLAN_20261031.md planının motorun karar vermesi, tohumlu seçim ve sıfır ek model çağrısı ilkeleri esas alınmıştır; bu alanlar planın tanımladığı mevcut çalışma zamanı şeması değildir. Ürün entegrasyonu veya canlı kullanım doğrulanmamıştır.",
+    "İzinli location_types değerleri: sokak, han, pazar, liman, tapinak, soylu_konagi, muhafiz_karakolu, lonca_atolyesi, sehir_kapisi, sehir_cevresi. Gece bir konum türü değildir.",
+    "Bu dosyada beş temel konum kullanılır. Motor mevcut gerçek konum türünü doğrulamadan bir kayıt seçemez.",
+    "Saatler dünya içindeki yerel saattir. Aralıklar başlangıç dahil, bitiş hariçtir. Gece 20–24 ve 0–6 olmak üzere iki aralıktır; 24 ertesi günün sınırıdır.",
+    "Sabah 6–11, gündüz 11–17, akşam 17–20, gece 20–24 ile 0–6 aday etiketleridir. Motorun mevcut saat ve zaman etiketi onayı olmadan uygulanmaz; oyun başlangıç saati dayatılmaz.",
+    "Önkoşullar ve bağlama açıklamaları yalnızca motor içindir. Anlatı modeline yalnızca tüm yer tutucuları doldurulmuş, seçilmiş kamusal satır aktarılır; ham kayıt, motor koşulları veya bağlama kuralları aktarılmaz.",
+    "Süslü parantezli her yer tutucu required_bindings içindeki açıklamaya göre motorun doğruladığı kamusal bağlamdan doldurulur. Bağlama eksikse tahmin yürütmek yerine kayıt elenir. Boş nesne, bağlanacak yer tutucu olmadığını belirtir.",
+    "Mekân adı bağlamak, o mekâna yeni kanon tarihi, inanç, kişi, görev, özel oda veya erişim izni eklemez. Metinler Neverwinter uyumlu genel şehir fantezisi için özgün adaylardır; resmî kaynak alıntısı veya kanon beyanı değildir.",
+    "Belirtilen açık alan veya gece işletmesi ayrıca doğrulanmalıdır. Hanların, pazarların ve tapınakların tamamının aynı saatte açık ya da kapalı olduğu varsayılmaz.",
+    "Bir adayın seçilmesi oyuncunun hareket ettiğini, konuştuğunu, hizmet aldığını, alışveriş yaptığını, savaşa girdiğini veya görev kabul ettiğini ileri sürmez.",
+    "Yaklaş yalnızca yaklaşma niyetidir. approach_result_template otomatik diyalog, satın alma, ödeme, eşya aktarımı, görev kabulü, çatışma, hasar veya ödül başlatamaz.",
+    "Koşullu tepki metni motor içi öneridir. Motor koşulu değerlendirir; koşul sağlanırsa yalnızca izin verilen gözlenebilir tepkiyi ayrı bir kamusal satıra dönüştürür. Koşulun kendisi anlatı modeline aktarılmaz.",
+    "Olayın oyuncu müdahalesinden bağımsız eylemi ile oyuncunun seçebileceği yaklaşma sonucu birbirinden ayrı tutulur.",
+    "Motor uygun kayıtları kampanya tohumu, doğrulanmış konum ve zaman bağlamıyla deterministik olarak seçer; yer tutucuları ve katılımcıları bağlar, gözlenebilir olay ya da sahne örneğini önce dünya durumuna kaydeder, sonra yalnızca o örneğin kamusal satırını mevcut anlatım yoluna iletir. Bu katalog kendiliğinden durum değiştirmez.",
+    "Seçim, bağlama, koşul değerlendirme ve Yaklaş tepkisinin karara bağlanması ek model çağrısı gerektirmeyen motor işleri olarak tasarlanır. Yeni model, model ayarı veya ayrı üretim çağrısı istenmez; anlatıcı yalnız motorun kesinleştirdiği kamusal satırı seslendirir.",
+    "Katalogların bütünü, koşullar veya katılımcı listeleri prompta dökülmez. Anlatıma yalnız seçilmiş ve bağlanmış gerekli kamusal satır gönderilir.",
+    "Katılımcı rolleri motor içi seçim ipuçlarıdır. Bir kişinin adı yalnız kamusal kimliği gerçekten biliniyorsa, rolü yalnız gözlenmiş veya kamusal olarak doğrulanmışsa kullanılabilir; gizli kimlik, gizli sınıf, özel kayıt ve iç bilgi türetilmez.",
+    "Tür etiketleri bu aday dosyanın Türkçe sözlüğüdür; mevcut çalışma zamanı place kind anahtarlarına doğrudan ithal edilebilir olduğu iddia edilmez. Örneğin han/tavern, pazar/market, tapinak/temple eşlemeleri için ayrı, doğrulanmış bir uyarlama gerekir; bu dosya uyarlayıcı uygulamaz.",
+    "Şablondaki bütün kişi, nesne, eylem, ışık, hava ve erişim ayrıntıları motorun dünya kaydıyla doğrulanır. Eksik bir ayrıntı ancak mevcut motor kuralları yaratılmasına izin veriyorsa üretilip kaydedilebilir; aksi halde aday elenir. Hiçbir şablon tek başına gerçek kişi, nesne veya olay yaratma yetkisi vermez."
+  ],
+  "items": [
+    {
+      "id": "EVT001",
+      "event_template": "Bir temizlikçi, taşların arasından çıkardığı düğmeleri kaldırımın kenarında renklere göre sıralıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "sokak temizlikçisi"
+      ],
+      "approach_result_template": "Temizlikçi müsaitse bulduklarını gösterebilir.",
+      "preconditions": [
+        "Kaldırım kenarında kısa süre durmaya elverişli alan bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT002",
+      "event_template": "Bir su taşıyıcısı, sızdıran fıçının altına kovasını yetiştirmeye çalışırken damlalar taşlarda kıvrımlı bir iz bırakıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "su taşıyıcısı"
+      ],
+      "approach_result_template": "Taşıyıcı konuşabilecek durumdaysa sızıntıyı işaret edebilir.",
+      "preconditions": [
+        "Su taşıma işi ve dolu bir fıçı sahneye uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT003",
+      "event_template": "Bir sokak müzisyeni tek bir notayı tekrar tekrar denerken karşı penceredeki kuş her seferinde başka bir sesle karşılık veriyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "sokak müzisyeni",
+        "penceredeki kuşun bakıcısı"
+      ],
+      "approach_result_template": "Müzisyen ara verirse kuşla kurduğu tuhaf düeti anlatabilir.",
+      "preconditions": [
+        "Bir çalgıcı ve açık pencere bu çevrede bulunabilmeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT004",
+      "event_template": "{gecit_adi} önünde bir yük arabası dar dönüşe sığmıyor; sürücüsü tekerlek izlerine bakarak yeni bir açı hesaplıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "araba sürücüsü",
+        "yoldan geçenler"
+      ],
+      "approach_result_template": "Sürücü meşgul değilse açık kalan geçişi gösterebilir.",
+      "preconditions": [
+        "Adı bağlanan geçit dar bir araba dönüşü içermeli."
+      ],
+      "required_bindings": {
+        "gecit_adi": "Mevcut sokak çevresinde motorun doğruladığı dar geçidin adı."
+      }
+    },
+    {
+      "id": "EVT005",
+      "event_template": "Bir tabelacı yeni astığı levhayı düzeltirken altından geçenler sırayla sağa, sonra sola eğilmesini öneriyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "tabelacı",
+        "yoldan geçenler"
+      ],
+      "approach_result_template": "Tabelacı dinlemeye açıksa levhanın eğimini sorabilir.",
+      "preconditions": [
+        "Tabelası onarılan bir işyeri cephesi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT006",
+      "event_template": "Bir kedi, güneşte ısınan basamağın tam ortasına yayılmış; kapıdan çıkan herkes sessizce çevresinden dolaşıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "kapıdan çıkanlar",
+        "kedi"
+      ],
+      "approach_result_template": "Kapıdaki biri uygunsa kedinin geçit alışkanlığından söz edebilir.",
+      "preconditions": [
+        "Kediye zarar vermeden yanından geçilebilen bir basamak bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT007",
+      "event_template": "Bir satıcı, rüzgârda ters dönen güneşliğini katlamaya uğraşırken kumaş her hamlede başka yöne şişiyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "gezici satıcı"
+      ],
+      "approach_result_template": "Satıcı ara verebiliyorsa güneşliğin inatçılığına gülebilir.",
+      "preconditions": [
+        "Rüzgâr ve açık bir gezici tezgâh motor tarafından doğrulanmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT008",
+      "event_template": "İki komşu, sokak çeşmesinin başında aynı testinin hangisine ait olduğunu tabanındaki çizikleri karşılaştırarak tartışıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "iki komşu"
+      ],
+      "approach_result_template": "Komşular konuşmaya açıksa testinin ayırt edici izlerini gösterebilir.",
+      "preconditions": [
+        "Kullanılabilir bir sokak çeşmesi ve kişisel olmayan iki benzer testi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT009",
+      "event_template": "Bir gölge oyunu ustası, duvara düşen tavşan siluetini ejderhaya çevirmeye çalışıyor; küçük izleyiciler her değişime ayrı ad takıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "gölge oyunu ustası",
+        "küçük izleyiciler"
+      ],
+      "approach_result_template": "Gösterici uygun bir aralıkta sıradaki silueti tanıtabilir.",
+      "preconditions": [
+        "Gölge oluşturmaya elverişli ışık ve boş bir duvar bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT010",
+      "event_template": "Bir fenerci, yaktığı sokak fenerlerinden birinin camındaki isi bezle ovalarken aşağıdaki ışık giderek genişliyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "fenerci"
+      ],
+      "approach_result_template": "Fenerci güvenle durabiliyorsa camın neden sık temizlendiğini anlatabilir.",
+      "preconditions": [
+        "Yakılmakta olan erişilebilir bir sokak feneri bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT011",
+      "event_template": "Bir çırak, yeni boyanan kapının önüne uyarı ipi çekiyor; ipi fark eden bir köpek bu kez çevresinde uzun bir tur atıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "boyacı çırağı",
+        "köpeğin bakıcısı"
+      ],
+      "approach_result_template": "Çırak müsaitse boyalı yüzeyleri gösterebilir.",
+      "preconditions": [
+        "Yeni boyanmış bir kapı ve geçişi tamamen kapatmayan uyarı ipi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT012",
+      "event_template": "{meydan_adi} yönünden gelen küçük bir alay, taşıdığı uzun süs direğini alçak bir çıkmanın altından geçirmeye çalışıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "süs direğini taşıyanlar"
+      ],
+      "approach_result_template": "Taşıyıcılardan biri müsaitse bekleme nedenini açıklayabilir.",
+      "preconditions": [
+        "Yerel bir süsleme hazırlığı ve alçak çıkma bağlamla doğrulanmalı."
+      ],
+      "required_bindings": {
+        "meydan_adi": "Motorun mevcut sokakla bağlantısını doğruladığı meydanın adı."
+      }
+    },
+    {
+      "id": "EVT013",
+      "event_template": "Bir sokak anlatıcısı öyküsündeki sesleri ayırmak için üç şapka kullanıyor, fakat rüzgâr her seferinde yanlış şapkayı önüne getiriyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "sokak anlatıcısı",
+        "dinleyiciler"
+      ],
+      "approach_result_template": "Anlatıcı ara verirse karışan karakterleri kısaca ayırt edebilir.",
+      "preconditions": [
+        "Açık havada küçük bir anlatı gösterisi ve hafif rüzgâr bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT014",
+      "event_template": "Bir gece bekçisi, devriye sırasında kaldırıma düşmüş boş bir kovayı duvara dayayıp geçiş yolunu açıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece bekçisi"
+      ],
+      "approach_result_template": "Bekçi görevini aksatmayacaksa açık geçişi gösterebilir.",
+      "preconditions": [
+        "Bu çevrede gece devriyesi ve taşınabilir boş bir kova bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT015",
+      "event_template": "Bir pencerenin içinden duyulan çalgı alıştırması aynı yerde duruyor; karşı pencereden biri doğru notayı ıslıkla tamamlıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "çalgı çalışan kişi",
+        "karşı penceredeki komşu"
+      ],
+      "approach_result_template": "Penceredeki kişi konuşmaya açıksa kısa bir selam verebilir.",
+      "preconditions": [
+        "İki evden sokağa ses ulaşabilmeli; özel iç mekân görünümü gerekmemeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT016",
+      "event_template": "Sokak fenerinin çevresinde dönen güveler, duvara hareketli benekler düşürüyor; bir duvar ressamı bu gölgeleri kömürle izliyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "duvar ressamı"
+      ],
+      "approach_result_template": "Ressam rahatsız edilmiyorsa çizdiği biçimleri gösterebilir.",
+      "preconditions": [
+        "Yanan fener, güveler ve çizime izin verilen bir yüzey bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT017",
+      "event_template": "Geç saatte dönen iki hamal, birbirine dolanan boş el arabalarını dar bir köşede sessizce ayırmaya çalışıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "iki hamal"
+      ],
+      "approach_result_template": "Hamallardan biri müsaitse beklemenin kısa sürebileceğini söyleyebilir.",
+      "preconditions": [
+        "İki boş el arabası ve güvenli bekleme alanı bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT018",
+      "event_template": "Bir sundurmanın altında oturan birkaç komşu, fincanlarını sırayla küçük bir mangalın çevresine çekiyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece sohbetindeki komşular"
+      ],
+      "approach_result_template": "Sohbettekiler yabancıya açıksa kısa bir selamla karşılık verebilir.",
+      "preconditions": [
+        "Kamusal alana açılan sundurma ve güvenle kullanılan küçük bir mangal bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT019",
+      "event_template": "Yağmur oluğundan düşen damlalar, ters çevrilmiş üç teneke kaba farklı seslerle vuruyor; bir kapı görevlisi kapların yerini ritme göre değiştiriyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "kapı görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse damlaların çıkardığı ritmi işaret edebilir.",
+      "preconditions": [
+        "Yağış ya da doğrulanmış çatı akıntısı ve boş metal kaplar bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT020",
+      "event_template": "Bir kervanın son arabası duraklamış; sürücü, uyuklayan yük hayvanının çıngırağını bezle sararak sesi azaltıyor.",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "kervan sürücüsü"
+      ],
+      "approach_result_template": "Sürücü duraklaması sırasında konuşabiliyorsa sessiz geçişin nedenini açıklayabilir.",
+      "preconditions": [
+        "Bu sokakta gece yük geçişine izin verildiği ve duran bir kervan bulunduğu doğrulanmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT021",
+      "event_template": "Bir han çalışanı, gece yerleri değişmiş sandalyeleri dizerken bir masanın altında unutulmuş tek bir terlik buluyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "han çalışanı"
+      ],
+      "approach_result_template": "Çalışan müsaitse bulunan terliği ortak kayıp eşya yerine koyduğunu söyleyebilir.",
+      "preconditions": [
+        "Hanın ortak salonu açık ve sabah düzenlemesi yapılıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT022",
+      "event_template": "Mutfak kapısında bir aşçı, yeni alınmış kepçelerin her birini aynı tencereye batırıp ölçülerini karşılaştırıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "aşçı"
+      ],
+      "approach_result_template": "Aşçı uygun görürse kepçelerin neden farklı ölçtüğünü açıklayabilir.",
+      "preconditions": [
+        "Mutfak işi ortak alandan güvenle görülebilmeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT023",
+      "event_template": "Bir konuk, avluya astığı çizme bağlarını çözmeye çalışıyor; düğüm açıldıkça başka bir bağın çevresine dolanıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "han konuğu"
+      ],
+      "approach_result_template": "Konuk konuşmaya açıksa karışan bağları gösterebilir.",
+      "preconditions": [
+        "Misafirlerin kullanabildiği açık bir han avlusu bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT024",
+      "event_template": "Bir seyis, avludaki yem teknesini doldururken küçük bir keçi teknenin boş tarafını kararlılıkla koruyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "seyis",
+        "keçinin bakıcısı"
+      ],
+      "approach_result_template": "Seyis müsaitse keçinin alışkanlığını anlatabilir.",
+      "preconditions": [
+        "Hana ait hayvan avlusu ve uygun bakım koşulları bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT025",
+      "event_template": "Ortak masadaki bir yolcu, haritasını düz tutmak için kullandığı kaşıkları her yeni kıvrımda yeniden yerleştiriyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "haritasını açan yolcu"
+      ],
+      "approach_result_template": "Yolcu paylaşmaya açıksa haritanın herkese açık bir bölümünü gösterebilir.",
+      "preconditions": [
+        "Yolcuya ait sır içermeyen bir yol haritası ortak alanda açık olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT026",
+      "event_template": "Bir usta, sallanan masa ayağının altına ince tahta parçaları sürüyor; masadaki su kabı her denemede biraz daha az titreşiyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "marangoz",
+        "masa çevresindeki konuklar"
+      ],
+      "approach_result_template": "Usta ara verirse masanın hangi ayağının sorun çıkardığını gösterebilir.",
+      "preconditions": [
+        "Ortak salonda küçük bir masa onarımı yapılıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT027",
+      "event_template": "İki konuk, oyunun kurallarını küçük taşlarla masaya çizerken aynı hamle için bambaşka adlar kullanıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "iki oyun meraklısı"
+      ],
+      "approach_result_template": "Konuklar ilgileniyorsa kural farkını anlatabilir; oyuna katılım ayrıca seçilmelidir.",
+      "preconditions": [
+        "Bahis ya da zorunlu katılım gerektirmeyen bir masa oyunu oynanabilmeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT028",
+      "event_template": "Bir hizmetli, birbirine benzeyen üç şişenin etiketini ayırmak için mantarlarına farklı renklerde ip bağlıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "han hizmetlisi"
+      ],
+      "approach_result_template": "Hizmetli müsaitse renklerin hangi içecekleri ayırdığını açıklayabilir.",
+      "preconditions": [
+        "Şişeler sıradan içecekler içermeli ve etiketleme ortak alandan görülebilmeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT029",
+      "event_template": "Bir gezgin, ıslanmış kâğıt yelpazesini açtıkça solmuş desenler ortaya çıkıyor; yan masadan biri desenleri çiçeklere benzetiyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "gezgin",
+        "yan masadaki konuk"
+      ],
+      "approach_result_template": "Gezgin paylaşmaya açıksa yelpazenin desenlerini yakından gösterebilir.",
+      "preconditions": [
+        "Ortak alanda kurutulan bir yelpaze bulunmalı; yağışın güncel olması gerekmez."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT030",
+      "event_template": "Bir ozan, çalgısının telini ayarlarken hanın kapı menteşesi her açılışta aynı tiz sesle ona eşlik ediyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "ozan",
+        "kapıdan geçen konuklar"
+      ],
+      "approach_result_template": "Ozan ara verirse menteşeyle yakaladığı uyuma şaka yapabilir.",
+      "preconditions": [
+        "Ortak salon açık, çalgı ve ses çıkaran bir kapı bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT031",
+      "event_template": "Han işletmecisi, ortak salonun bir köşesine boş iskemleler ekliyor; oturanlar dizleri çarpışmasın diye masalarını biraz kaydırıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "han işletmecisi",
+        "salondaki konuklar"
+      ],
+      "approach_result_template": "İşletmeci müsaitse boş oturma yerini gösterebilir; oturma veya sipariş ayrıca seçilmelidir.",
+      "preconditions": [
+        "Salon kullanıma açık ve ek oturmaya güvenle yer ayrılabiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT032",
+      "event_template": "Bir servis çırağı, tepsisindeki boş kupaları uzunluklarına göre dizip dar masaların arasından geçmeden önce dizilişi yeniden değiştiriyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "servis çırağı"
+      ],
+      "approach_result_template": "Çırak duraklayabiliyorsa geçiş için kısa süre beklenmesini isteyebilir.",
+      "preconditions": [
+        "Ortak salonda servis dolaşımı sürüyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT033",
+      "event_template": "{han_adi} salonunda birkaç konuk eski bir şarkının nakaratına katılıyor, fakat her masa son dizeyi başka türlü bitiriyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "şarkı söyleyen konuklar"
+      ],
+      "approach_result_template": "Konuklar karşılık vermeye açıksa nakaratın kendi bildikleri sonunu söyleyebilir.",
+      "preconditions": [
+        "Ortak salon açık olmalı; kullanılan şarkı metni özgün ve telifsiz bir aday olarak motorca seçilmeli."
+      ],
+      "required_bindings": {
+        "han_adi": "Motorun doğruladığı mevcut hanın görünen adı."
+      }
+    },
+    {
+      "id": "EVT034",
+      "event_template": "Ocak başındaki görevli, közleri yavaşça bir araya toplarken bir konuk boş fincanını sıcak taşlara yaklaştırıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "ocak görevlisi",
+        "geç saat konuğu"
+      ],
+      "approach_result_template": "Görevli müsaitse ocağın sıcak kalan bölümünü gösterebilir.",
+      "preconditions": [
+        "Hanın ortak salonu gece açık ve ocak güvenle kullanımda olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT035",
+      "event_template": "Bir gece hizmetlisi, sönen mumları ayırırken kısa kalan mum uçlarını küçük bir kutuda topluyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece hizmetlisi"
+      ],
+      "approach_result_template": "Hizmetli konuşmaya açıksa mum uçlarını nasıl değerlendirdiklerini anlatabilir.",
+      "preconditions": [
+        "Gece erişilebilir ortak alanda mumla aydınlatma kullanılıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT036",
+      "event_template": "Geç gelen bir yolcu, pelerininin yağmurunu girişte silkeleyince duvar dibinde uyuyan köpek başını kaldırıp yeniden kıvrılıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "geç gelen yolcu",
+        "hanın köpeği"
+      ],
+      "approach_result_template": "Yolcu konuşmaya elverişliyse kısa bir selam verebilir.",
+      "preconditions": [
+        "Han girişi gece erişilebilir olmalı; yolcunun ıslak gelişi hava bağlamıyla doğrulanmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT037",
+      "event_template": "İki konuk, uyuyanları rahatsız etmemek için zarlarını keçe kaplı bir tepsiye atıyor; çıkan sessizlik ikisini de güldürüyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "iki masa oyunu konuğu"
+      ],
+      "approach_result_template": "Konuklar ilgileniyorsa sessiz oyun yöntemlerini gösterebilir; oyuna katılım ayrıca seçilmelidir.",
+      "preconditions": [
+        "Ortak salon gece açık, etkinlik bahissiz ve yerel sessizlik kuralına uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT038",
+      "event_template": "Bir çalışan, koridor boyunca taşıdığı boş sürahilerin birbirine vurmasını önlemek için aralarına bez sıkıştırıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece çalışanı"
+      ],
+      "approach_result_template": "Çalışan duraklayabiliyorsa geçiş yönünü belirtebilir.",
+      "preconditions": [
+        "Ortak kullanıma açık bir koridor bulunmalı; özel odalara giriş gerekmemeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT039",
+      "event_template": "Pencere kenarında oturan bir yazıcı, hesabını bitirdiğinde mürekkep şişesinin kapağını bulamıyor; kapak kendi dirseğinin yanında duruyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "hesap tutan yazıcı"
+      ],
+      "approach_result_template": "Yazıcı konuşmaya açıksa kapağı aradığını söyleyebilir; hesap içeriğini paylaşması varsayılmaz.",
+      "preconditions": [
+        "Yazıcının varlığı ortak salonla uyumlu olmalı; özel hesap metni görünür anlatıya alınmamalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT040",
+      "event_template": "Gece nöbetindeki han çalışanı, kapıdaki asılı çıngırağın sesini deneyip çok yüksek bulunca tokmağına ince bir keçe sarıyor.",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece nöbetçisi"
+      ],
+      "approach_result_template": "Nöbetçi müsaitse gece haber verme usulünü açıklayabilir.",
+      "preconditions": [
+        "Han gece konuk kabul ediyor ve çıngırak ortak girişte bulunuyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT041",
+      "event_template": "Bir sebzeci, eğri havuçları ayrı bir sepete dizerken her birine bakıp benzettikleri şekilleri çırağına söylüyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "sebzeci",
+        "sebzeci çırağı"
+      ],
+      "approach_result_template": "Satıcı müsaitse en tuhaf şekilli havucu gösterebilir; satın alma ayrıca seçilmelidir.",
+      "preconditions": [
+        "Sebze tezgâhı açık ve mevsime uygun ürünler satışa hazırlanıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT042",
+      "event_template": "Bir kumaşçı, rulo uçlarını tezgâha yayarak renkleri gün ışığında karşılaştırıyor; gölgede kalan kumaşı sürekli öne çekiyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "kumaşçı"
+      ],
+      "approach_result_template": "Kumaşçı ilgileniyorsa iki rengin ışıkta nasıl değiştiğini gösterebilir; satış başlamış sayılmaz.",
+      "preconditions": [
+        "Kumaş tezgâhı kuruluyor ve doğal ışık renk ayırmaya elverişli olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT043",
+      "event_template": "Pazar görevlisi, tezgâh aralarını ölçtüğü ipi geriyor; satıcılar sepetlerini ipin gerisinde kalacak kadar geri çekiyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "pazar görevlisi",
+        "tezgâh sahipleri"
+      ],
+      "approach_result_template": "Görevli müsaitse açık tutulacak geçiş çizgisini gösterebilir.",
+      "preconditions": [
+        "Pazarda geçiş düzenlemesi yapılıyor ve görevlinin rolü doğrulanmış olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT044",
+      "event_template": "Bir çömlekçi, iç içe geçen iki kâseyi ayırmak için aralarına ince bir bez gezdirirken çırağı boş rafı hazır tutuyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "çömlekçi",
+        "çömlekçi çırağı"
+      ],
+      "approach_result_template": "Çömlekçi ara verirse sıkışan kâseleri işaret edebilir.",
+      "preconditions": [
+        "Çömlek tezgâhı açık ve küçük bir hazırlık işi güvenle görülebiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT045",
+      "event_template": "Bir baharatçı, hapşırmamak için başını yana çevirince terazinin kefesindeki hafif kabuklar tezgâha saçılıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "baharatçı"
+      ],
+      "approach_result_template": "Baharatçı müsaitse dağılmış kabukları tanıtabilir; ürün denemesi veya satın alma ayrıca seçilmelidir.",
+      "preconditions": [
+        "Açık baharat tezgâhı ve hafif kuru kabuklu ürün bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT046",
+      "event_template": "Bir ip satıcısı, sergilediği düğümlerin adlarını sayarken küçük bir izleyici en basit düğüme en uzun adı öneriyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "ip satıcısı",
+        "küçük izleyici"
+      ],
+      "approach_result_template": "Satıcı ilgileniyorsa düğümler arasındaki farkı gösterebilir; mal alımı ayrıca seçilmelidir.",
+      "preconditions": [
+        "İp ve düğüm örnekleri sergileyen açık bir tezgâh bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT047",
+      "event_template": "İki müşteri aynı aynaya bakmak için yana çekiliyor, fakat her seferinde birbirlerinin görüntüsünü kapatıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "iki müşteri",
+        "ayna satıcısı"
+      ],
+      "approach_result_template": "Satıcı müsaitse aynanın önünde boş bir görüş yeri gösterebilir.",
+      "preconditions": [
+        "Ayna sergileyen açık bir tezgâh bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT048",
+      "event_template": "Bir sepetçi, büyük bir sepetin içine tam olarak kaç küçük sepet sığdığını gösteriyor; sonuncusu her denemede dışarıda kalıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "sepetçi",
+        "gösteriyi izleyenler"
+      ],
+      "approach_result_template": "Sepetçi konuşmaya açıksa yerleştirme denemesini açıklayabilir; sipariş verilmiş sayılmaz.",
+      "preconditions": [
+        "Sepet tezgâhı açık ve sergileme için yeterli alan bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT049",
+      "event_template": "Pazarın bir köşesinde bir tamirci, bozuk çıngırakları tek tek çalıyor; bekleyenler sesleri ince, boğuk ve neredeyse sessiz diye ayırıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "küçük eşya tamircisi",
+        "bekleyen müşteriler"
+      ],
+      "approach_result_template": "Tamirci ara verirse iki farklı arızanın sesini gösterebilir.",
+      "preconditions": [
+        "Küçük eşya onarımı yapan açık bir tezgâh bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT050",
+      "event_template": "Bir meyve satıcısı, kalan ürünleri boylarına göre üç yığına ayırıyor; iri görünen bir meyve yuvarlanıp en küçüklerin arasına karışıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "meyve satıcısı"
+      ],
+      "approach_result_template": "Satıcı müsaitse ayırma ölçüsünü anlatabilir; ürün ayırma veya satın alma ayrıca seçilmelidir.",
+      "preconditions": [
+        "Meyve tezgâhı açık ve yerel mevsime uygun ürün içeriyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT051",
+      "event_template": "Bir kalaycı, tezgâhını toplarken parlak tasları iç içe koyuyor; son tasın yankısı kapanan pazar örtülerinin arasından duyuluyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "kalaycı"
+      ],
+      "approach_result_template": "Kalaycı duraklayabiliyorsa hangi işi bitirmekte olduğunu söyleyebilir.",
+      "preconditions": [
+        "Kalaycı tezgâhı kapanış hazırlığında olmalı; tüm pazarın kapanmış olması gerekmez."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT052",
+      "event_template": "{pazar_adi} girişinde bir duyurucu, ilan levhasına sığmayan büyük kâğıdın kenarını katlamanın yazıyı kapattığını fark edip yeniden açıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "pazar duyurucusu"
+      ],
+      "approach_result_template": "Duyurucu müsaitse yalnızca motorun onayladığı kamusal ilan başlığını söyleyebilir.",
+      "preconditions": [
+        "Kamusal ilan asılması bağlamla doğrulanmalı; ilan içeriği yeni bir görev veya kanon olayı üretmemeli."
+      ],
+      "required_bindings": {
+        "pazar_adi": "Motorun doğruladığı mevcut pazarın görünen adı."
+      }
+    },
+    {
+      "id": "EVT053",
+      "event_template": "Bir oyuncakçı, tezgâh örtüsünü çekmeden önce kurmalı küçük kuşları durdurmaya çalışıyor; son kuş kısa bir ötüşle yeniden hareket ediyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "oyuncakçı"
+      ],
+      "approach_result_template": "Oyuncakçı ilgileniyorsa oyuncağın basit mekanizmasını gösterebilir; alışveriş ayrıca seçilmelidir.",
+      "preconditions": [
+        "Basit mekanik oyuncakların bulunduğu açık bir tezgâh bu yerle uyumlu olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT054",
+      "event_template": "Gece açık kalan çorba tezgâhında bir aşçı, kepçeden yükselen buhar yüzünden levhadaki yazıyı göremeyip levhayı yana çeviriyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece aşçısı"
+      ],
+      "approach_result_template": "Aşçı müsaitse sunulan çorbayı tarif edebilir; sipariş veya ödeme ayrıca seçilmelidir.",
+      "preconditions": [
+        "Bu pazarda doğrulanmış gece yiyecek satışı ve açık bir çorba tezgâhı bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT055",
+      "event_template": "Bir gece bekçisi, kapalı tezgâhların örtülerinde biriken suyu uzun bir çubukla kenara doğru akıtıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "pazar gece bekçisi"
+      ],
+      "approach_result_template": "Bekçi görevini aksatmayacaksa kuru geçiş yönünü gösterebilir.",
+      "preconditions": [
+        "Pazarın kamusal yolu gece erişilebilir ve örtülerde birikmiş yağmur suyu bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT056",
+      "event_template": "Gece pazarındaki bir kandil satıcısı, üç farklı fitilin ışığını yan yana gösterirken ziyaretçiler duvarda oluşan gölgeleri karşılaştırıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "kandil satıcısı",
+        "tezgâh ziyaretçileri"
+      ],
+      "approach_result_template": "Satıcı müsaitse fitiller arasındaki farkı açıklayabilir; satın alma ayrıca seçilmelidir.",
+      "preconditions": [
+        "Gece pazarı açık ve alevli gösterim güvenli bir tezgahta yapılabiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT057",
+      "event_template": "Bir taşıyıcı, boş meyve kasalarını üst üste dizerken her üçüncü kasayı ters çevirerek yığının sallanmasını engelliyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "pazar taşıyıcısı"
+      ],
+      "approach_result_template": "Taşıyıcı ara verirse kasaları neden ters çevirdiğini gösterebilir.",
+      "preconditions": [
+        "Pazarın erişilebilir bölümünde gece toplama işi sürüyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT058",
+      "event_template": "Gece açık bir çiçek tezgâhında satıcı, soluk renkli yaprakları kandilin önünden geçirerek müşteriye gerçek tonlarını göstermeye çalışıyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "çiçek satıcısı",
+        "müşteri"
+      ],
+      "approach_result_template": "Satıcı meşgul değilse çiçeklerin ışığa göre değişen görünüşünü anlatabilir; satış ayrıca seçilmelidir.",
+      "preconditions": [
+        "Gece çiçek satışı, uygun mevsim ve güvenli aydınlatma doğrulanmış olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT059",
+      "event_template": "Bir tencere satıcısı, gece serinliğinde birbirine sıkışan kapakları eşleştirmek için her kapağı tezgâha ayrı ayrı diziyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "tencere satıcısı"
+      ],
+      "approach_result_template": "Satıcı müsaitse uymayan iki kapağı gösterebilir.",
+      "preconditions": [
+        "Pazarın bu bölümü gece erişilebilir ve satıcı düzenleme yapıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT060",
+      "event_template": "Gece pazarının dar örtüsü altında bir tartıcı, kandili teraziden uzağa alıyor; titreyen ışık sakinleşince küçük ağırlıklar daha belirgin görünüyor.",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "pazar tartıcısı"
+      ],
+      "approach_result_template": "Tartıcı uygun görürse ağırlık işaretlerini gösterebilir; tartım hizmeti ayrıca seçilmelidir.",
+      "preconditions": [
+        "Gece pazarı açık ve kamusal tartım masası bu yerde bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT061",
+      "event_template": "Bir halatçı, iskeleye serdiği uzun ipin bükümünü düzeltirken ipin ucuna oturan martı her çekişte biraz yana kayıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "halatçı"
+      ],
+      "approach_result_template": "Halatçı güvenle ara verebiliyorsa işlediği bükümü gösterebilir.",
+      "preconditions": [
+        "Halka açık iskele bölümünde halat işi yapılıyor ve martılar bulunabiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT062",
+      "event_template": "Balık kasalarını sayan bir görevli, sayıyı unutunca boş kasaları yan çevirerek yeniden saymaya başlıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "kasa sayım görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse kullandığı sayma yöntemini açıklayabilir; sevkiyat kayıtları paylaşılmaz.",
+      "preconditions": [
+        "Kamusal alandan görülen bir balık yükleme işi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT063",
+      "event_template": "Bir tekne boyacısı, yeni boyadığı küreği kurutacak yer ararken iki destek arasındaki açıklığı avucuyla ölçüyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "tekne boyacısı"
+      ],
+      "approach_result_template": "Boyacı konuşmaya açıksa ıslak boyanın bulunduğu alanı gösterebilir.",
+      "preconditions": [
+        "Küçük tekne bakımı yapılan güvenli bir kıyı bölümü bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT064",
+      "event_template": "Bir iskele çalışanı, gece gevşeyen tahta basamağı sökmeden önce geçişe küçük bir uyarı sehpası koyuyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "iskele çalışanı"
+      ],
+      "approach_result_template": "Çalışan müsaitse sağlam geçiş yolunu gösterebilir.",
+      "preconditions": [
+        "Kamusal iskelede küçük bir bakım işi ve güvenli alternatif geçiş bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT065",
+      "event_template": "Bir yelkenci, onarılmış bezin önüne geçip gün ışığına karşı delik arıyor; arkasında duran çırağın şapkası kocaman bir gölge oluşturuyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "yelkenci",
+        "yelkenci çırağı"
+      ],
+      "approach_result_template": "Yelkenci ara verirse yamaları nasıl denetlediğini açıklayabilir.",
+      "preconditions": [
+        "Yelken onarımı kamusal alandan görülebilmeli ve ışık denetime uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT066",
+      "event_template": "Bir yük kâtibi, rüzgârın çevirdiği boş sayfaları tutmak için masasına üç farklı büyüklükte taş yerleştiriyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "yük kâtibi"
+      ],
+      "approach_result_template": "Kâtip müsaitse rüzgârlı masasına dair kısa bir yorum yapabilir; kayıtların içeriği açılmaz.",
+      "preconditions": [
+        "Kamusal alandan görülen bir kâtip masası ve rüzgâr bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT067",
+      "event_template": "Bir kayıkçı, teknesinin adını tazelerken son harfe yer kalmadığını fark edip fırçasını havada tutuyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "kayıkçı"
+      ],
+      "approach_result_template": "Kayıkçı konuşmaya açıksa yazıyı nasıl sığdıracağını düşünebilir.",
+      "preconditions": [
+        "Kıyıda duran küçük bir tekne ve boya işi bulunmalı; tekne adı ayrı bir kanon iddiası içermemeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT068",
+      "event_template": "İki hamal, çok uzun bir sandığı aynı anda farklı yöne çevirmeye çalışınca durup işaretlerle yeni bir düzen kuruyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "iki liman hamalı"
+      ],
+      "approach_result_template": "Hamallar güvenle durabiliyorsa açık tutulması gereken alanı gösterebilir.",
+      "preconditions": [
+        "Halka açık bölümden görülen yük taşıması ve güvenli izleme mesafesi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT069",
+      "event_template": "Kıyıdaki bir ağ ustası, ağı onarırken düğümleri bir ezginin vuruşlarına göre sayıyor; çırağı her tekrarın sonunda fazladan bir vuruş ekliyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "ağ ustası",
+        "ağ ustasının çırağı"
+      ],
+      "approach_result_template": "Usta müsaitse düğüm sayma yöntemini gösterebilir.",
+      "preconditions": [
+        "Balık ağı onarımı bu kıyı bölümüne uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT070",
+      "event_template": "Bir iskele görevlisi, kıyı fenerinin camını kapatmadan önce içeride kalmış bir güveyi dışarı yönlendiriyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "iskele görevlisi"
+      ],
+      "approach_result_template": "Görevli güvenle durabiliyorsa fenerin yakılma hazırlığını açıklayabilir.",
+      "preconditions": [
+        "Kıyı aydınlatması yakılıyor ve görevli erişimi doğrulanmış olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT071",
+      "event_template": "{iskele_adi} kıyısında bir mürettebat, kuruması için serilmiş yelkeni katlıyor; kumaşın son kıvrımı her seferinde içeri hava alıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "yelken katlayan mürettebat"
+      ],
+      "approach_result_template": "Mürettebattan biri müsaitse geçişin hangi taraftan açık olduğunu gösterebilir.",
+      "preconditions": [
+        "Adı bağlanan iskele kamusal alandan görülebilmeli; yelken toplama işi sürüyor olmalı."
+      ],
+      "required_bindings": {
+        "iskele_adi": "Mevcut limanda motorun doğruladığı iskelenin adı."
+      }
+    },
+    {
+      "id": "EVT072",
+      "event_template": "Bir su taşıyıcısı, boş fıçıları dolulardan ayırmak için her birine eklemiyle vuruyor; yankı iskele boyunca değişiyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "liman su taşıyıcısı"
+      ],
+      "approach_result_template": "Taşıyıcı ara verirse boş ve dolu fıçıların ses farkını gösterebilir.",
+      "preconditions": [
+        "Kamusal kıyı bölümünde su fıçıları düzenleniyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT073",
+      "event_template": "Kıyıdaki bir aşçı, rüzgârın söndürdüğü küçük ocağın çevresine taş bir siper yerleştirirken bekleyenler buharı takip ediyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "kıyı aşçısı",
+        "bekleyen müşteriler"
+      ],
+      "approach_result_template": "Aşçı müsaitse bekleme nedenini açıklayabilir; sipariş veya ödeme ayrıca seçilmelidir.",
+      "preconditions": [
+        "Kıyıda yiyecek satışı açık, rüzgâr mevcut ve ocak güvenle korunabiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT074",
+      "event_template": "Bir liman bekçisi, iskeledeki işaret lambasını yakarken ışığın su üzerindeki yansıması dalgalarla parçalanıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "liman bekçisi"
+      ],
+      "approach_result_template": "Bekçi görevini aksatmayacaksa yalnızca halka açık geçiş yönünü gösterebilir.",
+      "preconditions": [
+        "Gece erişilebilir kıyı bölümü ve doğrulanmış işaret lambası bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT075",
+      "event_template": "Demirli küçük bir teknede iki tayfa, gıcırdayan halatın altına koruyucu bez geçirip sesi azaltmaya çalışıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "iki tayfa"
+      ],
+      "approach_result_template": "Tayfalardan biri güvenle konuşabiliyorsa sesin kaynağını işaret edebilir; tekneye binme izni varsayılmaz.",
+      "preconditions": [
+        "Tekne kamusal kıyıdan görülebilmeli; bordaya erişim gerekmemeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT076",
+      "event_template": "Bir gece balıkçısı, boş oltasını suyun üzerinden kaldırıp fenerin önünde dolaşan ince misinayı çözmeye uğraşıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece balıkçısı"
+      ],
+      "approach_result_template": "Balıkçı konuşmaya açıksa karışan misinayı gösterebilir.",
+      "preconditions": [
+        "Bu kıyıda gece olta kullanımı uygun ve izleme noktası güvenli olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT077",
+      "event_template": "Gece yüklemesi yapan işçiler, ağır adımlarını eşleştirmek için kısa bir ritim tutuyor; boşta bekleyen biri ritme bir vuruş geç katılıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece yükleme işçileri"
+      ],
+      "approach_result_template": "İşçiler güvenle ara verebilirse yükleme sırasını kısaca açıklayabilir.",
+      "preconditions": [
+        "Gece yüklemesi doğrulanmalı ve kamusal izleme mesafesi korunabilmeli."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT078",
+      "event_template": "Bir iskele temizlikçisi, fener ışığında tahtalar arasına düşmüş parlak bir balık pulunu çöp sanıp üç kez süpürmeye çalışıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "iskele temizlikçisi"
+      ],
+      "approach_result_template": "Temizlikçi müsaitse yerinden oynamayan parlak lekeyi gösterebilir.",
+      "preconditions": [
+        "Gece erişilebilir, aydınlatılmış bir iskelede temizlik yapılıyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT079",
+      "event_template": "Suyun çekildiği kıyıda bir teknenin gevşek kancası düzenli aralıklarla direğe vuruyor; kıyı görevlisi sesi dinleyerek kaynağı arıyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "kıyı görevlisi"
+      ],
+      "approach_result_template": "Görevli güvenli konumdaysa aradığı sesin yönünü belirtebilir.",
+      "preconditions": [
+        "Su seviyesindeki çekilme ve erişilebilir kıyı bölümü motor tarafından doğrulanmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT080",
+      "event_template": "Bir tekne fenerinin önüne asılan yıkanmış bez, rüzgârla açılıp kapanarak kıyıdaki boş sandıklara aralıklı ışık düşürüyor.",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "çamaşır asan tayfa"
+      ],
+      "approach_result_template": "Tayfa konuşmaya elverişliyse ışığı örten bezi fark ettiğini söyleyebilir; tekneye giriş varsayılmaz.",
+      "preconditions": [
+        "Kamusal kıyıdan görülen demirli tekne, güvenli fener ve hafif rüzgâr bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT081",
+      "event_template": "Bir tapınak görevlisi, avludaki su kabının yüzeyine düşen yaprakları küçük bir süzgeçle topluyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "tapınak görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse kabın kamusal kullanım biçimini açıklayabilir.",
+      "preconditions": [
+        "Tapınak avlusu ziyarete açık ve su kabı yerel uygulamayla uyumlu olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT082",
+      "event_template": "Bir çırak, ortak geçişteki minderleri havalandırırken aynı köşeye üşüşen serçileri alkışlamadan uzaklaştırmaya çalışıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "tapınak çırağı"
+      ],
+      "approach_result_template": "Çırak ara verirse geçiş için ayrılan boş alanı gösterebilir.",
+      "preconditions": [
+        "Ziyarete açık alanda minder kullanımı ve serçilerin varlığı uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT083",
+      "event_template": "Avludaki bir bahçıvan, sarmaşığın yeni sürgünlerini ahşap kafese bağlarken eğri bir dal için fazladan bir halka bırakıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "tapınak bahçıvanı"
+      ],
+      "approach_result_template": "Bahçıvan konuşmaya açıksa yeni sürgünleri gösterebilir.",
+      "preconditions": [
+        "Ziyarete açık avluda sarmaşık ve mevsime uygun bakım işi bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT084",
+      "event_template": "Bir ziyaretçi, girişteki ayak temizleme fırçasından kalan kılları pelerininin eteğinden tek tek ayıklıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "participant_roles": [
+        "tapınak ziyaretçisi"
+      ],
+      "approach_result_template": "Ziyaretçi rahatsız edilmiyorsa küçük aksiliğe dair kısa bir yorum yapabilir.",
+      "preconditions": [
+        "Giriş ziyarete açık olmalı; ayak temizleme düzeni bu tapınağa uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT085",
+      "event_template": "Bir taş ustası, avludaki çatlak oturağın ölçüsünü alırken yanındaki görevli gölgede kalan çizgiyi fenerle aydınlatıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "taş ustası",
+        "tapınak görevlisi"
+      ],
+      "approach_result_template": "Usta güvenle ara verebiliyorsa onarılacak bölümü gösterebilir.",
+      "preconditions": [
+        "Kamusal avluda küçük bir onarım ve güvenli geçiş bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT086",
+      "event_template": "Bir görevli, herkesin görebildiği duyuru panosundaki eğri kâğıtları düzeltirken alt sıradaki not tekrar yana kayıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "duyuru görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse motorun doğruladığı kamusal bir duyurunun başlığını söyleyebilir.",
+      "preconditions": [
+        "Panonun ziyarete açık olması ve gösterilecek içeriğin motorca ayrıca onaylanması gerekir."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT087",
+      "event_template": "Avluda oturan birkaç ziyaretçi, aynı sessizliği bozmamak için birbirlerine yer tarifini yalnızca el hareketleriyle anlatıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "avlu ziyaretçileri"
+      ],
+      "approach_result_template": "Ziyaretçiler iletişime açıksa boş oturağın yönünü işaret edebilir.",
+      "preconditions": [
+        "Avlu açık olmalı; sessiz durma uygulaması yerel bağlamla doğrulanmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT088",
+      "event_template": "Bir temizlik görevlisi, yüksek pencereden düşen renkli ışık lekesini ıslak zemin sanıp bezini uzatıyor, sonra gülümseyerek geri çekiyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "temizlik görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse zemindeki renkli yansımayı gösterebilir.",
+      "preconditions": [
+        "Ziyarete açık alanda renkli cam ve doğrudan ışık bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT089",
+      "event_template": "Bir çiçek düzenleyicisi, avludaki vazoya sığmayan uzun dalı çevirdikçe yanındaki çan biçimli süs hafifçe sallanıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "participant_roles": [
+        "çiçek düzenleyicisi"
+      ],
+      "approach_result_template": "Düzenleyici konuşmaya açıksa vazoya uygun dal uzunluğunu açıklayabilir.",
+      "preconditions": [
+        "Çiçek ve asılı süs kullanımı bu tapınağa uygun olmalı; ikisi de kamusal alanda bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT090",
+      "event_template": "Bir görevli, giriş yolundaki kandillerin fitillerini aynı uzunluğa getiriyor; biri diğerlerinden daha parlak yanınca onu yeniden ayarlıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "kandil görevlisi"
+      ],
+      "approach_result_template": "Görevli güvenle ara verebiliyorsa kandil bakımını kısaca anlatabilir.",
+      "preconditions": [
+        "Tapınağın giriş yolu açık ve kandil kullanımı yerel uygulamaya uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT091",
+      "event_template": "Tapınağın açık avlusunda bir görevli, gün boyu kullanılan su testilerini durulayıp ağızları aşağı gelecek biçimde sıralıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "avlu görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse kullanılabilir testilerin yerini gösterebilir.",
+      "preconditions": [
+        "Avlu açık ve ortak su testileri bu tapınağın uygulamasına uygun olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT092",
+      "event_template": "Bir ziyaretçi, çıkışta kendi atkısı yerine benzer renkli bir örtüyü eline alıyor; görevlinin işaretiyle ikisini yan yana karşılaştırıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "ziyaretçi",
+        "giriş görevlisi"
+      ],
+      "approach_result_template": "Görevli uygun görürse eşya karışıklığının çözülmekte olduğunu söyleyebilir.",
+      "preconditions": [
+        "Ziyarete açık girişte herkesçe görülebilen bir eşya askılığı bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT093",
+      "event_template": "{tapinak_adi} avlusunda bir görevli, akşam serinliğine hazırlık için oturakların ıslak kalan köşelerini kuru bezle siliyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "participant_roles": [
+        "avlu görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse kuru oturağın yönünü gösterebilir.",
+      "preconditions": [
+        "Adı bağlanan tapınağın avlusu açık olmalı; oturakların ıslaklığı yakın yağış veya temizlikle doğrulanmalı."
+      ],
+      "required_bindings": {
+        "tapinak_adi": "Motorun doğruladığı mevcut tapınağın görünen adı; tanrı veya mezhep bilgisi buradan türetilmez."
+      }
+    },
+    {
+      "id": "EVT094",
+      "event_template": "Gece görevindeki biri, açık girişin yanındaki küçük masada yıpranmış kandil fitillerini yenileriyle ayırıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse gece ziyaretine açık sınırı gösterebilir.",
+      "preconditions": [
+        "Bu tapınağın girişi gece ziyarete açık olmalı; diğer bölümlerin açıklığı varsayılmamalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT095",
+      "event_template": "Avludaki sığ havuza düşen ay ışığı, su içen bir kuşun hareketiyle parçalanıyor; nöbetçi kuş ürkmesin diye adımlarını yavaşlatıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "avlu nöbetçisi"
+      ],
+      "approach_result_template": "Nöbetçi konuşmaya elverişliyse kuşu ürkütmeden kısa bir selam verebilir.",
+      "preconditions": [
+        "Avlu gece açık, gökyüzü ay ışığına elverişli ve sığ havuz bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT096",
+      "event_template": "Bir görevli, rüzgârda vurup duran avlu perdesini bağlamak için uzun bir şeridi düğümlüyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "avlu görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse perdenin açık bıraktığı geçişi gösterebilir.",
+      "preconditions": [
+        "Avlu gece erişilebilir, kumaş perde bu yapıya uygun ve rüzgâr mevcut olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT097",
+      "event_template": "Geç saat ziyaretçileri, çıkış yolunu aydınlatan iki kandilden birinin gölgede kaldığını fark ediyor; bir görevli kandili daha yüksek bir kancaya taşıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "geç saat ziyaretçileri",
+        "kandil görevlisi"
+      ],
+      "approach_result_template": "Görevli güvenle durabiliyorsa aydınlık çıkışın yönünü gösterebilir.",
+      "preconditions": [
+        "Tapınak gece ziyaret kabul ediyor ve kandil güvenli biçimde taşınabiliyor olmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT098",
+      "event_template": "Bir gece temizlikçisi, boş taş salondaki süpürgesinin yankısını fark edince daha kısa ve yavaş hareketlerle çalışıyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece temizlikçisi"
+      ],
+      "approach_result_template": "Temizlikçi konuşmaya açıksa sesin salonda nasıl yayıldığını gösterebilir.",
+      "preconditions": [
+        "Taş salon bu saatte kamusal erişime açık olmalı; devam eden ayin veya özel tören bulunmamalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT099",
+      "event_template": "Gece girişinde bekleyen bir ziyaretçi, ellerini ısıtmak için boş fincanını avuçlarında çevirirken görevli ona rüzgâr almayan oturağı işaret ediyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "gece ziyaretçisi",
+        "giriş görevlisi"
+      ],
+      "approach_result_template": "Görevli müsaitse kamusal bekleme alanını gösterebilir.",
+      "preconditions": [
+        "Giriş gece açık, hava serin ve ziyaretçilere ayrılmış oturak bulunmalı."
+      ],
+      "required_bindings": {}
+    },
+    {
+      "id": "EVT100",
+      "event_template": "Avludaki nöbetçi, alçak duvara tırmanan salyangozun yolundan fenerini çekiyor; kabuğun gölgesi bir anda küçülüyor.",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "participant_roles": [
+        "avlu nöbetçisi"
+      ],
+      "approach_result_template": "Nöbetçi görevini aksatmayacaksa küçük gölge oyununu işaret edebilir.",
+      "preconditions": [
+        "Avlu gece erişilebilir, hava ve mevsim salyangoz varlığına uygun olmalı."
+      ],
+      "required_bindings": {}
+    }
+  ]
+}

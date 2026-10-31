@@ -7,10 +7,12 @@ import json
 import unittest
 from unittest.mock import patch
 
+import ambient_event_catalog
 import campaign_time
 import living_world
 import local_places
 import npc_statements
+import thread_catalog
 import world_threads
 
 HOUR = 3600
@@ -264,3 +266,67 @@ class SavedState(unittest.TestCase):
         state["threads"][0]["status"] = "paid"
         with self.assertRaises(ValueError):
             world_threads.validate(state)
+
+
+class TheAuthoredAmbientEvents(unittest.TestCase):
+    def test_only_scenes_a_place_can_verify_and_only_to_look_at(self):
+        authored = [e for e in ambient_event_catalog.EVENT_CATALOG if e["event_id"].startswith("evt")]
+        self.assertGreaterEqual(len(authored), 30)
+        self.assertEqual({e["event_type"] for e in authored}, {"GREEN"})
+        self.assertLessEqual({kind for e in authored for kind in e["kinds"]}, {"city", "tavern"})
+        self.assertLessEqual({time for e in authored for time in e["times"]}, {"day", "evening", "night"})
+
+    def test_the_hour_still_decides(self):
+        context = {"time_of_day": "night", "weather": "clear", "environment": "urban", "npc_density": 0}
+        for turn in range(30):
+            event = ambient_event_catalog.select_ambient_event(
+                scene_kind="city", location_id="city", turn_index=turn, context=context, history=[],
+                campaign_seed=f"seed-{turn}", allowed_types={"GREEN"})
+            self.assertTrue(not event["times"] or "night" in event["times"], event)
+
+
+class TheAuthoredCatalog(unittest.TestCase):
+    def setUp(self):
+        self.raw = json.loads((thread_catalog.CATALOG_DIR / "thread_templates.json").read_text(encoding="utf-8"))["items"]
+        self.mapping = json.loads((thread_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+
+    def test_every_catalog_tag_and_background_has_an_explicit_decision(self):
+        tags = {tag for item in self.raw for tag in item["location_types"]}
+        self.assertEqual(tags - set(self.mapping["place_tags"]), set())
+        labels = {hook["background"] for item in self.raw for hook in item["background_hooks"]}
+        self.assertEqual(labels - set(self.mapping["background_labels"]), set())
+
+    def test_a_tag_with_no_engine_kind_is_not_guessed(self):
+        self.assertEqual(thread_catalog.place_kinds(["sokak", "han"], self.mapping), [])
+
+    def test_most_of_the_catalog_can_be_bound_and_all_three_types_survive(self):
+        loaded = thread_catalog.load()
+        self.assertGreaterEqual(len(loaded), 45)
+        self.assertEqual({t["type"] for t in loaded}, {"hiring", "errand", "trouble"})
+
+    def test_offer_window_work_days_and_pay_stay_separate(self):
+        hiring = next(t for t in thread_catalog.load() if t["type"] == "hiring")
+        self.assertTrue({"offer_hours", "work_days", "pay"} <= set(hiring))
+        self.assertNotEqual(hiring["offer_hours"], hiring["work_days"])
+
+    def test_only_public_and_owner_words_are_read(self):
+        allowed = {"id", "type", "place_kinds", "target_place_kinds", "public_lines", "owner_lines",
+                   "offer_hours", "pay", "work_days"}
+        for template in thread_catalog.load():
+            self.assertLessEqual(set(template), allowed)
+
+    def test_a_filled_catalog_line_fits_and_leaves_no_slot(self):
+        seen = 0
+        for index in range(60):
+            world = city(f"catalog-{index}")
+            world_threads.ensure(world)
+            for thread in world_threads.active(world):
+                seen += thread["template_id"].startswith("THR")
+                self.assertLessEqual(len(thread["public_line"]), world_threads.MAX_PUBLIC_LINE)
+                self.assertLessEqual(len(thread["owner_line"]), world_threads.MAX_OWNER_LINE)
+                self.assertNotIn("{", thread["public_line"] + thread["owner_line"])
+        self.assertGreater(seen, 60)
+
+    def test_a_missing_catalog_leaves_the_starter_kinds(self):
+        with patch.object(thread_catalog, "CATALOG_DIR", thread_catalog.CATALOG_DIR / "absent"):
+            self.assertEqual(thread_catalog.load(), [])
