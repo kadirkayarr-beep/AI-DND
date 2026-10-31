@@ -2381,6 +2381,9 @@ def _validate_save_payload(payload):
     if "adventure_arcs" in saved_world:
         import adventure.arcs as adventure_arcs
         adventure_arcs.validate(saved_world["adventure_arcs"])
+    if "world_threads_v1" in saved_world:
+        import world_threads
+        world_threads.validate(saved_world["world_threads_v1"])
     if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
