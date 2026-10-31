@@ -13,11 +13,22 @@ const EMPTY: Draft = { cantrip: '', preparedSpell: '', confirmed: false };
 type SubclassPick = (FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices)['subclass_id'];
 const SUBCLASS_PICKS: readonly SubclassPick[] = ['champion', 'open_hand', 'assassin'];  // the generated contract's ids: an offered id outside them cannot be sent
 
+const BLOCKED_REASONS: Record<string, string> = {
+  level_not_earned: 'Henüz yeni bir seviye kazanmadın.',
+  target_not_above_applied_level: 'Şimdilik gidebileceğin en yüksek seviyedesin.',
+  campaign_persistence_required: 'Seviye seçmek için kayıtlı bir macera gerekir.',
+};
+
+/** Level choices only exist once XP has carried the character past the level already applied. */
+export function levelUpEarned(character: { level?: number | null; progression_level?: number | null } | null | undefined) {
+  return !!character && typeof character.level === 'number' && character.level > (character.progression_level ?? 1);
+}
+
 export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, disabled = false }: {
   preview: LevelUpPreviewResponse; draft: Draft; onChange: (draft: Draft) => void;
   onConfirm: (request: LevelUpRequest) => void; onCancel: () => void; disabled?: boolean;
 }) {
-  if (preview.status !== 'ready') return <div role="status" data-testid="level-up-blocked">Seviye seçimi şu anda kullanılamıyor: {preview.reason ?? 'Desteklenmeyen ilerleme'}<button type="button" onClick={onCancel}>Kapat</button></div>;
+  if (preview.status !== 'ready') return <div role="status" data-testid="level-up-blocked"><p>{BLOCKED_REASONS[preview.reason ?? ''] ?? 'Seviye seçimi şu anda kullanılamıyor.'}</p><button type="button" className="dnd-button secondary" onClick={onCancel}>Kapat</button></div>;
   if (preview.class_name === 'Paladin') return <PaladinLevelChoices preview={preview} draft={draft} onChange={next => onChange({ ...draft, ...next })} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
   const counts = preview.choices_required;
   const preparedCount = counts?.prepared_spells ?? 0;

@@ -7,7 +7,7 @@ import { FighterStatus } from '@/components/fighter-controls';
 import { PaladinStatus } from '@/components/paladin-controls';
 import { RogueStatus } from '@/components/rogue-controls';
 import { MonkStatus } from '@/components/monk-controls';
-import { LevelUpControls, type LevelUpRequest } from '@/components/level-up-controls';
+import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
@@ -2274,7 +2274,7 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
-      {campaignId && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
+      {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
       <StoryColumn
                 decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])}
