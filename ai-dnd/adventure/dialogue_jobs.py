@@ -4,6 +4,7 @@ import copy
 import hashlib
 import re
 import equipment_economy
+import living_world
 import local_dialogue
 import local_places
 import scheduled_events
@@ -26,7 +27,7 @@ def eligible_targets(world,npc_id):
                 or local_places.settlement_of(world,location)!=settlement
                 or world.get('blocked_travel_routes',{}).get(settlement,{}).get(location)):
             continue
-        targets.append({'npc_id':npc['id'],'name':npc.get('name',''),'location_id':location})
+        targets.append({'npc_id':npc['id'],'name':living_world.public_npc_name(npc),'location_id':location})
     return targets
 
 def prepare(session, proposal, npc_id):
@@ -63,7 +64,7 @@ def prepare(session, proposal, npc_id):
     turn=world.get('flags',{}).get('turn_index',0)
     q=templates.instantiate(proposal['template_id'],quest_id=qid,turn=turn,opportunity_key='dialogue-job:'+qid,
        creation_evidence='dialogue-job:'+qid,bindings=templates.prepared_bindings(source_npc_id=npc_id,
-       target_npc_id=recipient['id'],location_ids=[proposal['location_id']]),rumor=(f"Paketi {place['name']} konumundaki {recipient['name']} adlı kişiye teslim et." if proposal['template_id']=='DELIVERY' else f"Tanığı dinle, {place['name']} konumuna git ve izleri araştır."))
+       target_npc_id=recipient['id'],location_ids=[proposal['location_id']]),rumor=(f"Paketi {place['name']} konumundaki {living_world.public_recipient_phrase(recipient)} teslim et." if proposal['template_id']=='DELIVERY' else f"Tanığı dinle, {place['name']} konumuna git ve izleri araştır."))
     # Model title/description are non-authoritative labels; mechanics owns the journal.
     q['title']+=f": {place['name']}"
     world.setdefault('quests',[]).append(q)
@@ -133,7 +134,7 @@ def resolve(session,text,mode):
     equipment_economy.move(w,item,source,destination,npc_id if take else 'player')
     equipment_economy.validate_world(w)
     flags=w.setdefault('flags',{});flags['turn_index']=flags.get('turn_index',0)+1
-    shown='Teslimat paketini alıyorsun.' if take else f"Paketi {npc.get('name')} adlı kişiye teslim ediyorsun."
+    shown='Teslimat paketini alıyorsun.' if take else f"Paketi {living_world.public_recipient_phrase(npc)} teslim ediyorsun."
     action={'action':'item_transfer','status':'completed','success':True,'npc_id':npc_id,'action_id':f"turn:{flags['turn_index']}",
       'state_changes':['inventory','npcs','quests'],'direct_response':shown}
     action['quest_outcomes']=session.evaluate_quest_events(before,action)

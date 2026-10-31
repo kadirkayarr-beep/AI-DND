@@ -331,6 +331,13 @@ def public_npc_name(npc: Any) -> str:
     return public_npc_descriptor(npc)
 
 
+def public_recipient_phrase(npc: Any) -> str:
+    """Who gets a parcel, in the dative, without naming an unknown person."""
+    if npc_name_known_to_player(npc) and str(npc.get("name") or "").strip():
+        return f"{npc['name'].strip()} adlı kişiye"
+    return f"şu kişiye ({public_npc_descriptor(npc)})"
+
+
 def public_scene_people(npcs: list) -> str:
     """A Turkish prose list, keeping identity/appearance and state separate."""
     labels = []

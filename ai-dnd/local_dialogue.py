@@ -778,6 +778,8 @@ def persona_context(world: dict, npc: dict) -> dict:
     import copy
     import relationships
     stable = ensure_dialogue_persona(copy.deepcopy(npc))
+    if not living_world.npc_role_known_to_player(npc):
+        stable.pop('temperament', None)
     profile = npc.get('personal_profile')
     profile = profile if isinstance(profile,dict) else {}
     current = {k:profile[k] for k in ('mood','current_activity') if isinstance(profile.get(k),str)}

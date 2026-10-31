@@ -101,7 +101,7 @@ def build_context(world: dict, npc: dict, player_text: str) -> dict:
         'deception': deception_context(world,npc,{'text':player_text}),
         'initiative': initiative_context(world,npc,npc.get('dialogue_observation')),
         'speaker': {'id': npc['id'], 'name': living_world.public_npc_name(npc) if local_dialogue.name_withheld_reason(world,npc) else npc.get('name'), 'role': npc.get('role'),
-                    'personality': npc.get('personality', '')},
+                    **({'personality': npc.get('personality', '')} if living_world.npc_role_known_to_player(npc) else {})},
         'persona': local_dialogue.persona_context(world,npc),
         'narration_style': {'routine':'short_and_lively','new_or_dramatic':'richer_when_relevant'},
         'relevant_background': facts,

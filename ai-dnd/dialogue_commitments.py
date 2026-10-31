@@ -6,6 +6,7 @@ arbitrary natural-language claims. Live quality acceptance remains separate.
 """
 from __future__ import annotations
 import re
+import living_world
 import local_dialogue
 import npc_statements
 import local_places
@@ -44,7 +45,7 @@ def job_cards(world,jobs):
     for q in jobs:
         b=q['bindings'];target=next(n for n in world['npcs'] if n['id']==b['target_npc_id'])
         location=world['locations'][b['location_ids'][0]]
-        objective=(f"Paketi al, {location['name']} konumuna git ve {target['name']} adlı kişiye teslim et."
+        objective=(f"Paketi al, {location['name']} konumuna git ve {living_world.public_recipient_phrase(target)} teslim et."
                    if q['template_id']=='DELIVERY' else f"Görevi vereni dinle, {location['name']} konumuna git ve izleri araştır.")
         reward=q['reward_plan']['success']
         cards.append({'quest_id':q['quest_id'],'title':q['title'],'objective':objective,
