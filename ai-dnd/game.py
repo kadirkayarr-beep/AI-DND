@@ -15833,8 +15833,9 @@ def _scene_look_text(location_id):
         )
     if features:
         parts.append(
-            "Gözüne " + ", ".join(feature.get("name", "bir ayrıntı") for feature in features[:3])
-            + " çarpıyor."
+            living_world.turkish_initial_upper(
+                ", ".join(feature.get("name", "bir ayrıntı") for feature in features[:3])
+            ) + " gözüne çarpıyor."
         )
     referent = next(
         (
@@ -15911,7 +15912,7 @@ def _promote_scene_referent(referent, location_id):
         ),
         "role": "Yolcu",
         "location": location_id,
-        "appearance": referent.get("description", ""),
+        "appearance": "",  # the referent describes what happened, not this person
         "personality": "Kibar, konuşmaya açık ve temkinli.",
         "relationship": "neutral",
     })
