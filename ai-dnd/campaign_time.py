@@ -74,8 +74,8 @@ def initialize(world, canonical_start=None):
     return clock
 
 
-# Night is left out: a first scene should not start with every door shut.
-_SEEDED_START_HOURS = (6, 10, 14, 17, 18)
+# Night and dawn are left out: a first scene should not start with every door shut, and the inn opens at 07:00.
+_SEEDED_START_HOURS = (7, 10, 14, 17, 18)
 
 
 def seed_start(world, seed):

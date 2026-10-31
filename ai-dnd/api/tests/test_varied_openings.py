@@ -66,14 +66,19 @@ class SeededCastTests(unittest.TestCase):
 
 
 class SeededClockTests(unittest.TestCase):
-    def test_first_hour_varies_and_stays_out_of_the_night(self):
-        hours = set()
+    def test_first_hour_varies_and_finds_the_inn_open(self):
+        # This pinned a dawn start, an hour before the inn opens at 07:00: the owner's first scene met a shut door.
+        hours, periods = set(), set()
         for seed in SEEDS:
             world = {"locations": {CITY: {}}, "location": CITY}
             campaign_time.initialize(world)
             campaign_time.seed_start(world, seed)
-            hours.add(campaign_time.public_time(world)["time_of_day"])
-        self.assertEqual(hours, {"dawn", "day", "evening"})
+            now = campaign_time.public_time(world)
+            hours.add(now["hour"])
+            periods.add(now["time_of_day"])
+        self.assertGreaterEqual(min(hours), 7)
+        self.assertGreaterEqual(len(hours), 4)
+        self.assertEqual(periods, {"day", "evening"})
 
     def test_a_running_or_anchored_clock_keeps_its_time(self):
         world = {"locations": {CITY: {}}, "location": CITY}
