@@ -803,10 +803,18 @@ function StoryColumn({
       || window.matchMedia?.('(max-width: 760px)').matches
       || navigator.maxTouchPoints > 0);
   useEffect(() => {
-    if (composerOpen) messageInputRef.current?.focus();
+    if (composerOpen && !wasComposerOpen.current) messageInputRef.current?.focus();
     else if (wasComposerOpen.current) composerTriggerRef.current?.focus({ preventScroll: true });
     wasComposerOpen.current = composerOpen;
   }, [composerOpen]);
+  const wasSending = useRef(sending);
+  useEffect(() => {
+    // The input is disabled while a move is sent, which drops focus; give it back on a keyboard device.
+    if (wasSending.current && !sending && desktopEnterSupported && document.activeElement === document.body) {
+      messageInputRef.current?.focus({ preventScroll: true });
+    }
+    wasSending.current = sending;
+  }, [sending, desktopEnterSupported]);
   const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
     if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
@@ -862,6 +870,7 @@ function StoryColumn({
         if (state.combat.active && targetId) setCombatTargetId(targetId);
         setMessage(text);
         setComposerOpen(true);
+        messageInputRef.current?.focus();
       }} />
       {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
       {composerOpen && <div className="command-box" data-testid="command-box">
@@ -1179,7 +1188,7 @@ export default function GameBrowser() {
   // The draft as it is when an async result lands (a retry must not clear text typed in the meantime).
   const messageRef = useRef(message);
   messageRef.current = message;
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(true);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
@@ -2003,7 +2012,6 @@ export default function GameBrowser() {
   // player changed or typed meanwhile belongs to a later, deliberate move and stays.
   if (stillVisible && (!stored || messageRef.current.trim() === trimmed)) {
     setMessage('');
-    setComposerOpen(false);
   }
         if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });

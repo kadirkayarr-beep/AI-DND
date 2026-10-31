@@ -206,9 +206,12 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     const play = await createPage(browserPort, `${baseUrl}${fixturePath}?screen=play`, viewport.width, viewport.height);
     await waitForSelector(play.page, '[data-testid="app-session"]');
     await waitForSelector(play.page, '[data-testid="transcript-scroll"]');
-    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"input-player-message\"]'))"), false, "composer should stay closed while reading");
-    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-composer\"]'))"), true);
+    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"input-player-message\"]'))"), true, "the input is simply there");
+    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-composer\"]'))"), false);
+    assert.notEqual(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "input-player-message", "loading the page must not raise a phone keyboard");
     if (viewport.width === 390 || viewport.width === 1920) await saveScreenshot(play.page, `play-reading-${viewport.width}.jpg`);
+    const inputBox = await play.page.evaluate("(() => { const r=document.querySelector('[data-testid=\"input-player-message\"]').getBoundingClientRect(); return {top:r.top,bottom:r.bottom,height:innerHeight}; })()");
+    assert.ok(inputBox.top >= 0 && inputBox.bottom <= inputBox.height, `the input must be on screen without scrolling at ${viewport.width}x${viewport.height}: ${JSON.stringify(inputBox)}`);
     const longStory = await play.page.evaluate(`(() => { const nodes = [...document.querySelectorAll('.story-text')]; const area = document.querySelector('[data-testid="transcript-scroll"]'); const rect = (node) => { const r = node?.getBoundingClientRect(); return r ? { top: r.top, bottom: r.bottom, width: r.width, height: r.height } : null; }; const areaRect = rect(area); const lastParagraph = rect(nodes.at(-1)); const context=document.querySelector('[aria-label="Sahne bilgileri"]'); return { count:nodes.length,chars:nodes.map(n=>n.innerText).join('').length,scrollHeight:area.scrollHeight,clientHeight:area.clientHeight,scrollTop:area.scrollTop,scrollWidth:document.documentElement.scrollWidth,storyColumn:rect(document.querySelector('[data-testid="panel-story"]')),sceneContext:rect(context),transcript:areaRect,lastParagraph,lastParagraphVisible:Boolean(lastParagraph&&areaRect&&lastParagraph.bottom>areaRect.top&&lastParagraph.top<areaRect.bottom),css:{contextOverflow:getComputedStyle(context).overflow,transcriptOverflow:getComputedStyle(area).overflowY,transcriptMaxHeight:getComputedStyle(area).maxHeight,playDisplay:getComputedStyle(document.querySelector('.preview-play')).display}}; })()`);
     assert.ok(longStory.count >= 18);
     assert.ok(longStory.chars > 1000);
@@ -245,13 +248,13 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await play.page.evaluate("document.querySelector('#reading-line-height').focus()");
     await press(play.page, "ArrowRight", "ArrowRight", 39);
     await waitForValue(play.page, "document.querySelector('#reading-font-size')?.value === '25' && document.querySelector('#reading-line-height')?.value === '1.7'");
-    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:panelRect.bottom>firstStory.top,storedKeys:Object.keys(stored).sort()}; })()");
+    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:panelRect.bottom>Math.max(firstStory.top,document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect().top),storedKeys:Object.keys(stored).sort()}; })()");
     assert.equal(adjustedReading.fontSize, "25px");
     assert.equal(adjustedReading.lineHeight, "42.5px");
     assert.ok(adjustedReading.scrollWidth <= adjustedReading.innerWidth, `reading controls overflow at ${viewport.width}px`);
     assert.ok(adjustedReading.panelLeft >= 0 && adjustedReading.panelRight <= adjustedReading.innerWidth, `reading settings panel is clipped at ${viewport.width}px: ${JSON.stringify(adjustedReading)}`);
     assert.equal(adjustedReading.menuPosition, "static", "settings must stay in document flow instead of covering the story");
-    assert.equal(adjustedReading.overlapsStory, false, "settings panel must not cover narrative text");
+    assert.equal(adjustedReading.overlapsStory, false, `settings panel must not cover narrative text at ${viewport.width}x${viewport.height}: ${JSON.stringify(adjustedReading)}`);
     assert.deepEqual(adjustedReading.storedKeys, ["fontSizePx", "lineHeight"]);
     await play.page.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
     assert.equal(await play.page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
@@ -280,6 +283,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-active-combat\"]'))"), false, "exploration fixture unexpectedly has active combat");
 
     const draft = "Kuzgun avlusunda dikkatlice yaklaşıyorum. ".repeat(20).slice(0, 825);
+    await play.page.evaluate("document.querySelector('[data-testid=\"button-close-composer\"]').click()");
+    await waitForSelector(play.page, '[data-testid="button-open-composer"]');
     await play.page.evaluate("document.querySelector('[data-testid=\"button-open-composer\"]').scrollIntoView({block:'center'})");
     await mouseClick(play.page, '[data-testid="button-open-composer"]');
     await waitForSelector(play.page, '[data-testid="input-player-message"]');
@@ -411,17 +416,18 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     }
     await waitForValue(play.page, "window.__playFixture.lastTurn?.message?.length === 825");
     await waitForValue(play.page, "Array.from(document.querySelectorAll('.story-text')).some(node => node.innerText.includes('Yankı:'))");
-    await waitForSelector(play.page, '[data-testid="button-open-composer"]');
-    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"input-player-message\"]'))"), false, "successful turn should collapse the composer");
+    await waitForValue(play.page, "document.querySelector('[data-testid=\"input-player-message\"]')?.value === ''");
+    assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-composer\"]'))"), false, "a turn leaves the input in place");
     assert.equal(await play.page.evaluate("Array.from(document.querySelectorAll('.player-entry')).at(-1)?.querySelector('.player-text')?.textContent"), draft, "the transcript must show the original player words verbatim");
     assert.match(await play.page.evaluate("Array.from(document.querySelectorAll('.player-entry')).at(-1)?.querySelector('.player-label')?.innerText ?? ''"), /Hamlen/i);
     if (preservedScrollTop !== null) {
-      assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), preservedScrollTop, "a new response must not jump away from history being read");
+      // The cleared draft shrinks the input, so the story region grows a line or two; the reader stays where they were.
+      assert.ok(Math.abs(await play.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop") - preservedScrollTop) <= 120, "a new response must not jump away from history being read");
       await waitForSelector(play.page, '[data-testid=\"button-new-response\"]');
-      assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "button-open-composer", "new responses must not steal focus");
+      assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "input-player-message", "new responses must leave the focus in the input");
       await mouseClick(play.page, '[data-testid="button-new-response"]');
       await waitForValue(play.page, "(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); const t=Array.from(document.querySelectorAll('.story-entry')).at(-1)?.getBoundingClientRect(); const r=a.getBoundingClientRect(); return Boolean(t&&t.bottom>r.top&&t.top<r.bottom&&a.scrollTop>0); })()");
-      assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "button-open-composer", "pointer jump must preserve the existing focus");
+      assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "input-player-message", "pointer jump must preserve the existing focus");
     }
 
     await play.page.evaluate("document.querySelector('[data-testid=\"button-open-character\"]').scrollIntoView({block:'center'})");
@@ -529,7 +535,10 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
           await play.page.evaluate("document.querySelector('[data-testid=\"button-open-composer\"]').click()");
           await waitForSelector(play.page, '[data-testid=\"input-player-message\"]');
         }
-        if (mode === 'say') await mouseClick(play.page, '[aria-label=\"Sonraki hamle türü\"]');
+        if (mode === 'say') {
+          await play.page.evaluate("document.querySelector('[aria-label=\"Sonraki hamle türü\"]').scrollIntoView({block:'center'})");
+          await mouseClick(play.page, '[aria-label=\"Sonraki hamle türü\"]');
+        }
         await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').focus()");
         await play.page.send("Input.insertText", { text });
         await play.page.evaluate("document.querySelector('[data-testid=\"button-send-turn\"]').click()");
@@ -578,7 +587,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
       await play.page.evaluate("document.querySelector('[data-testid=\"button-retry-turn\"]').click()");
       await waitForValue(play.page, "Array.from(document.querySelectorAll('.story-text')).some(node => node.innerText.includes('Yankı: retry-marker'))");
       assert.equal(await play.page.evaluate("window.__playFixture.lastTurn.action_id"), failedActionId, "retry must retain the original action id");
-      await waitForSelector(play.page, '[data-testid=\"button-open-composer\"]');
+      await waitForValue(play.page, "document.querySelector('[data-testid=\"input-player-message\"]')?.value === ''");
     }
     const errors = play.page.exceptions;
     assert.deepEqual(errors, []);
@@ -599,9 +608,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   const touchDesktop = await createPage(browserPort, `${baseUrl}${fixturePath}?screen=play&touch=1`, 1440, 900);
   await waitForSelector(touchDesktop.page, '[data-testid="app-session"]');
   assert.equal(await touchDesktop.page.evaluate("navigator.maxTouchPoints"), 1);
-  await touchDesktop.page.evaluate("document.querySelector('[data-testid=\"button-open-composer\"]').scrollIntoView({block:'center'})");
-  await mouseClick(touchDesktop.page, '[data-testid="button-open-composer"]');
   await waitForSelector(touchDesktop.page, '[data-testid="input-player-message"]');
+  await touchDesktop.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').focus()");
   assert.equal(await touchDesktop.page.evaluate("Boolean(document.querySelector('[data-testid=\"desktop-enter-hint\"]'))"), false, "touch-enabled desktop must hide the Enter hint while the composer is open");
   await touchDesktop.page.send("Input.insertText", { text: "touch-enter-marker" });
   await press(touchDesktop.page, "Enter", "Enter", 13, 0, false);

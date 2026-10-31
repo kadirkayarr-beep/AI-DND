@@ -64,3 +64,15 @@ test('the wizard heading follows the chosen level', async () => {
   const source = await readFile('src/components/character-creation-screen.tsx', 'utf8');
   assert.match(source, /Karakter Defteri · Seviye \{startingDraft\.startingLevel\}/);
 });
+
+test('the input is simply there: open at the start and still open after a turn', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /const \[composerOpen, setComposerOpen\] = useState\(true\);/);
+  const afterTurn = source.slice(source.indexOf('if (stillVisible && (!stored'), source.indexOf('if (stillVisible) setLastTurn'));
+  assert.doesNotMatch(afterTurn, /setComposerOpen\(false\)/);
+});
+
+test('the composer does not grab focus when the page loads, so a phone keyboard stays down', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /if \(composerOpen && !wasComposerOpen\.current\) messageInputRef\.current\?\.focus\(\);/);
+});
