@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import unittest
 import uuid
+from unittest.mock import patch
 
 import grounded_action
 import living_world
 import npc_statements
+from api.tests import test_campaign_api
 from api.tests import test_lr00_grounded_human as human
+from api.tests.test_lr00_p1_intent import ProbeShapedClient
 from api.tests.test_lr00_grounded_human import CITY, GARRICK, GARRICK_DOOR
 
 
@@ -148,3 +151,59 @@ class EnteringAnAmbientEvent(OwnerPlayBase):
         await self.act("observe")
         text, _ = await self.turn("Bir süre durup çevremi gözlemliyorum.")
         self.assertIn("İki esnaf", text)
+
+
+CARIUS = {
+    "mode": "custom", "starting_level": 3,
+    "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
+    "name": "Carius", "species": "Human", "class": "Fighter", "background": "Soldier", "alignment": "True Neutral",
+    "ability_score_method": "standard_array",
+    "ability_scores": {"strength": 15, "constitution": 14, "dexterity": 13, "wisdom": 12, "intelligence": 10, "charisma": 8},
+    "background_ability_bonuses": {"strength": 2, "constitution": 1},
+    "proficient_skills": ["Athletics", "Intimidation", "Perception", "Insight", "History"],
+    "species_bonus_skills": ["History"], "species_bonus_feat": "Tough",
+    "fighting_style": "Defense", "equipment_package": "A", "background_equipment_option": "A",
+    "languages": ["Common", "Dwarvish", "Giant"],
+    "backstory": "Geç yirmili yaşlarda genç bir asker.",
+}
+START = {"character": CARIUS, "campaign_start": {
+    "setting_id": "forgotten_realms",
+    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+    "region_id": "fr:region:the_north",
+    "starting_location_id": "fr:city:neverwinter",
+}}
+
+
+class NewCampaign(unittest.IsolatedAsyncioTestCase):
+    """A real new campaign, the way the owner started one."""
+
+    async def asyncSetUp(self):
+        await test_campaign_api.CampaignApiTests.asyncSetUp(self)
+        self.client = ProbeShapedClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        created = await self.http.post("/api/game/campaigns", json=START)
+        self.assertEqual(created.status_code, 200, created.text)
+        self.body = created.json()
+        self.session_id = self.body["session_id"]
+
+    async def asyncTearDown(self):
+        await test_campaign_api.CampaignApiTests.asyncTearDown(self)
+
+    @property
+    def world(self):
+        return self.manager.get(self.session_id).game_session.world_state
+
+    async def turn(self, message):
+        self.client.message = message
+        response = await self.http.post(
+            f"/api/game/sessions/{self.session_id}/turn",
+            json={"message": message, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["narration"]
+
+    async def test_who_is_here_on_the_first_turn_names_the_people_who_are_here(self):
+        text = await self.turn("Burada kimler var?")
+        self.assertNotIn("görünmüyor", text)
+        people = [n for n in self.world["npcs"] if n.get("location") == self.world["location"]]
+        self.assertTrue(people)
