@@ -34,8 +34,7 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def enter(self):
         place, door, feature, hidden = self.seed()
-        await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
-        entered = await self.turn('İçeri giriyorum.', interaction_mode='do')
+        entered = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
         self.assertEqual(self.world['location'], place['id'])
         self.assertTrue(next(d for d in self.world['doors'] if d['id'] == door['id'])['open'])
         self.assertEqual(self.client.calls, 0)

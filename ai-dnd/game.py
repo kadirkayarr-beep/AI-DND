@@ -16062,8 +16062,12 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                        if living_world.is_visible_contents_query(player_input) else {}),
                 }
         elif action == "approach":
-            speech_part = "?" in str(player_input) or re.search(
+            speech_part = "?" in str(action_input) or re.search(
                 r"\b(?:sor\w*|selam\w*|anlat\w*|soyle\w*|danis\w*)\b",
+                _normalize_turkish_typos(str(action_input)),
+            ) or re.search(
+                # "Birine yaklaşıyorum. Selamlar, ismin nedir?": the rest speaks to that person.
+                r"\b(?:ismin|adin|isminiz|adiniz|kimsin|kimsiniz|nasilsin|nerelisin|misin|musun)\b",
                 _normalize_turkish_typos(str(player_input)),
             )
             if resolved_npc and speech_part:

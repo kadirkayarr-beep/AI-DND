@@ -265,7 +265,10 @@ class WorldQuestionsReachThePerson(TownCase):
 
 class SomeoneWhoIsNotHere(TownCase):
     async def test_a_man_at_a_counter_that_is_not_here_gets_a_plain_reply(self):
-        data = await self.say("Tezgâhtaki adama adını soruyorum.")
+        # An ambient passer-by can really be at a stall; here nobody is.
+        nobody = {"status": "none", "referent": None}
+        with patch.object(living_world, "resolve_scene_referent", return_value=nobody):
+            data = await self.say("Tezgâhtaki adama adını soruyorum.")
         self.assert_no_wall(data)
         self.assertIn("Tezgâh", data["narration"])
         self.assertNotIn(self.other["name"], data["narration"])

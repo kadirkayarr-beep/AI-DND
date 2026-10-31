@@ -59,7 +59,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def arrive(self):
         await self.turn("Çevreme bakıyorum.")
-        await self.turn("dükkan gidiyorum")
+        await self.turn("dükkana yaklaşıyorum")
         door = self.world["doors"][0]
         door["open"], door["locked"] = False, False
         place = next(v for v in self.world["locations"].values() if v.get("scene_kind") == "building")
@@ -104,12 +104,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         city, place, door = self.known_shop()
         await self.turn('Çevreme bakıyorum.', interaction_mode='do')
         await self.turn('Adını öğrenebilir miyim?', target_id=self.world['npcs'][0]['id'])
-        arrival = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
-        self.assertEqual(self.world['location'], city)
-        self.assertFalse(door['open'])
-        self.assertEqual(arrival['turn_outcome']['status'], 'blocked')
-        self.assertEqual(self.world['scene_state']['entry_target_reference']['source_kind'], 'blocked_travel')
-        entered = await self.turn('İçeri giriyorum.', interaction_mode='do')
+        entered = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
         self.assertEqual(self.world['location'], place['id'])
         self.assertTrue(door['open'])
         self.assertIn('içeri giriyorsun', entered['narration'])
@@ -250,8 +245,9 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         await self.assert_entry_reference_survives_resume(place, 'grounded_arrival')
 
     async def test_blocked_travel_reference_survives_save_resume(self):
-        city, place, door = self.known_shop()
+        city, place, door = self.known_shop(locked=True)
         await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
+        door['locked'] = False  # unlocked since: the reference is what is under test
         await self.assert_entry_reference_survives_resume(place, 'blocked_travel')
 
     async def assert_entry_reference_survives_resume(self, place, source_kind):

@@ -284,6 +284,8 @@ class LocalTavernEntryTests(unittest.TestCase):
                 item for item in session.world_state["doors"]
                 if item.get("id") == f"venue-door:{tavern['id']}"
             )
+            self.assertTrue(door["open"])  # found by day, an inn is simply open
+            door.update(open=False, locked=True)
             entered = session.run_player_turn("tavernaya gidiyorum")
         self.assertEqual(found["action_result"]["status"], "found")
         self.assertFalse(door["open"])

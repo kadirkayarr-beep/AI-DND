@@ -421,7 +421,7 @@ def candidates(session) -> list[dict[str, Any]]:
         found.append({"id": npc["id"], "kind": "npc", "names": names, "nouns": nouns,
                       "label": living_world.public_npc_name(npc), "record": npc})
     for door in exploration.visible_doors(world):
-        if not isinstance(door, dict) or door.get("location") != here or door.get("hidden"):
+        if not isinstance(door, dict) or door.get("location") != here or door.get("hidden") or "id" not in door:
             continue
         place_id = door["id"].split(":", 1)[1] if str(door.get("id", "")).startswith("venue-door:") else None
         found.append({"id": door["id"], "kind": "door", "names": [fold(door.get("name", ""))],
@@ -518,10 +518,10 @@ def _noun_hit(noun: str, tokens: list[str]) -> bool:
     return False
 
 
-def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """The place the talk was just about, else the place last in play."""
+def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_only: bool = False) -> dict[str, Any] | None:
+    """The place the talk was just about, else (for a pointing word) the place last in play."""
     said = npc_statements.last_said_place(world)
-    wanted = (said.get("location_id") or said.get("id")) if said else last_target_id(world)
+    wanted = (said.get("location_id") or said.get("id")) if said else (None if said_only else last_target_id(world))
     return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference"}), None)
 
 
@@ -2825,7 +2825,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
                 and not step["detail"] and not step.get("outside"):
             step["commitment"] = _implicit_escort_target(session, step)
             if step["commitment"] is None and _is_bare_go(step):
-                step["target"] = _topic_place(world, p["candidates"])
+                step["target"] = _topic_place(world, p["candidates"], said_only=True)
                 step["via_pronoun"] = step["target"] is not None
     if first["verb"] in DEFER_VERBS:
         return defer
@@ -3077,13 +3077,12 @@ def _spoken_label(option: dict[str, Any]) -> str:
 
 def _finish_clarification(run: _Run, options) -> dict[str, Any]:
     labels = [_spoken_label(o) for o in options][:4]
-    labels[:1] = [label[:1].upper() + label[1:] for label in labels[:1]]
     if not labels:
         text = clarification_text(run.session)
     elif len(labels) == 1:
-        text = f"{labels[0]} mi demek istiyorsun?"
+        text = f"{labels[0][:1].upper()}{labels[0][1:]} mi demek istiyorsun?"
     else:
-        text = ", ".join(labels[:-1]) + " ya da " + labels[-1] + ": hangisine yöneliyorsun?"
+        text = "Hangisine yöneliyorsun: " + ", ".join(labels[:-1]) + " ya da " + labels[-1] + "?"
     return _bookkeeping(run, text, {
         "action": "grounded_action", "status": "clarification", "success": False, "steps": [],
         "candidates": [o["id"] for o in options], "state_changes": [],
