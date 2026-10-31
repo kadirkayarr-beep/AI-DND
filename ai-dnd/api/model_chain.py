@@ -27,6 +27,11 @@ import ollama
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"
+CHAIN_SETTING = "AI_DND_MODEL_CHAIN"
+LOCAL_NAME = "gemma"
+SPEND_FILE_NAME = "model-chain-spend.json"
+_GEMINI_KEY_FILE, _GEMINI_KEY_ENV = ".aidnd-gemini-key", "GEMINI_API_KEY"
+_ANTHROPIC_KEY_FILE, _ANTHROPIC_KEY_ENV = ".aidnd-anthropic-key", "ANTHROPIC_API_KEY"
 CALL_TIMEOUT_SECONDS = 20
 DEFAULT_COOLDOWN_SECONDS = 60
 HAIKU_MONTHLY_CAP_USD = 2.0
@@ -298,11 +303,21 @@ class ModelChain:
         # No redirects and no proxy or netrc from the environment: a key goes to its own host only.
         self._http = httpx.Client(timeout=CALL_TIMEOUT_SECONDS, transport=transport, trust_env=False)
 
+    def provider_names(self) -> list[str]:
+        return [provider.name for provider in self._providers if self._may_spend(provider)]
+
+    def model_names(self) -> list[str]:
+        return [provider.model for provider in self._providers if self._may_spend(provider)]
+
+    @staticmethod
+    def _may_spend(provider: Provider) -> bool:
+        return provider.spend is None or provider.spend.allows_a_call()
+
     def _ready(self, provider: Provider) -> bool:
         until = self._resting_until.get(provider.name)
         if until is not None and self._now() < until:
             return False
-        return provider.spend is None or provider.spend.allows_a_call()
+        return self._may_spend(provider)
 
     def _rest(self, provider: Provider, response: httpx.Response) -> None:
         moment = self._now()
@@ -350,3 +365,39 @@ class ModelChain:
                 prompt_eval_count=reply.input_tokens, eval_count=reply.output_tokens,
             ), provider.name
         return local(), None
+
+
+def _read_key(file_name: str, environment_name: str) -> str:
+    home = os.environ.get("USERPROFILE")
+    if home:
+        try:
+            key = (Path(home) / file_name).read_text(encoding="utf-8-sig").strip()
+        except (OSError, UnicodeError):
+            key = ""
+        if key:
+            return key
+    return os.environ.get(environment_name, "").strip()
+
+
+def _spend_path() -> Path:
+    from api.persistence.campaign_store import default_campaign_db_path
+
+    return default_campaign_db_path().parent / SPEND_FILE_NAME
+
+
+def from_environment() -> ModelChain | None:
+    """The configured chain, or None for today's local-only game. Reads keys only when asked to."""
+    names = [name.strip().lower() for name in os.environ.get(CHAIN_SETTING, "").split(",") if name.strip()]
+    if not names:
+        return None
+    if LOCAL_NAME in names:
+        names = names[:names.index(LOCAL_NAME)]
+    providers = []
+    for name in dict.fromkeys(names):
+        if name == "gemini" and (key := _read_key(_GEMINI_KEY_FILE, _GEMINI_KEY_ENV)):
+            providers.append(gemini(key))
+        elif name == "haiku" and (key := _read_key(_ANTHROPIC_KEY_FILE, _ANTHROPIC_KEY_ENV)):
+            providers.append(haiku(key, HaikuSpend(_spend_path(), lambda: datetime.now().astimezone())))
+    chain = ModelChain(providers) if providers else None
+    _logger.info("Model chain providers on: %s", ",".join([*(chain.provider_names() if chain else ()), "local"]))
+    return chain

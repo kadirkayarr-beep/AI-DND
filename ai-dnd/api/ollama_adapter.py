@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from typing import Any, Iterator
 
 import game
+from api import model_chain
 from api.model_phase import ModelFailure
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
@@ -117,10 +118,18 @@ class AuthenticatedOllamaAdapter:
     def __init__(self, client: Any, *, model_name: str = DEFAULT_LOCAL_MODEL):
         self._model_name = validate_local_model(model_name)
         self._client = client
+        self._chain = model_chain.from_environment()
 
     @property
     def model_name(self) -> LocalModelName:
         return self._model_name
+
+    @property
+    def model_chain(self) -> list[str] | None:
+        """Every model that may answer, in order. None means the local model alone."""
+        if self._chain is None:
+            return None
+        return [*self._chain.model_names(), self.model_name]
 
     @classmethod
     def from_environment(cls) -> AuthenticatedOllamaAdapter | None:
@@ -215,7 +224,12 @@ class AuthenticatedOllamaAdapter:
             prepared = {"think": False, **prepared, "model": self.model_name}
             options = prepared.get("options")
             prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
-            return self._client.chat(*args, **prepared)
+            if self._chain is None:
+                return self._client.chat(*args, **prepared)
+            response, provider = self._chain.chat(prepared, lambda: self._client.chat(*args, **prepared))
+            if provider is not None and calls is not None:
+                calls[-1] = provider
+            return response
         except Exception as error:
             failures = _MODEL_FAILURES.get()
             if failures is not None:

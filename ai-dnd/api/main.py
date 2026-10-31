@@ -1733,6 +1733,8 @@ def create_app(
                 len(model_calls),
                 safety_code,
             )
+            if getattr(adapter, "model_chain", None):
+                _logger.info("Turn providers (answered=%s)", ",".join(model_calls))
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
                 adapter.model_name if adapter is not None else MODEL_NAME,

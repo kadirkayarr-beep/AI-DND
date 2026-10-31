@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,13 @@ from unittest.mock import patch
 
 import httpx
 
-from api import model_chain
+import game
+from api import model_chain, ollama_adapter
+from api.auth import FixedAuthenticator
+from api.local_model_config import SUPPORTED_LOCAL_MODELS
+from api.main import create_app
+from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 
 KEY = "test-key-not-real-7f3a"
 SCHEMA = {
@@ -404,6 +411,212 @@ class TheSpendCap(unittest.TestCase):
             self.assertEqual(chain.chat(CALL, LocalModel())[1], "haiku")
         self.assertIsNone(chain.chat(CALL, LocalModel())[1])
         self.assertEqual(self.cloud.hosts(), [GOOGLE, ANTHROPIC, GOOGLE])
+
+
+class TheSetting(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp(dir=_TEMP.name))
+        self.database = self.home / "play" / "game.sqlite3"
+        self.saved = patch.dict(os.environ, {"USERPROFILE": str(self.home), "AI_DND_CAMPAIGN_DB": str(self.database)})
+        self.saved.start()
+        self.addCleanup(self.saved.stop)
+        for name in ("AI_DND_MODEL_CHAIN", "GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
+            os.environ.pop(name, None)
+
+    def keys(self, gemini="gemini-file-key", haiku="haiku-file-key"):
+        if gemini:
+            (self.home / ".aidnd-gemini-key").write_text(gemini, encoding="utf-8-sig")
+        if haiku:
+            (self.home / ".aidnd-anthropic-key").write_text(f"{haiku}\n", encoding="utf-8")
+
+    def test_no_setting_means_no_chain_and_no_key_is_read(self):
+        self.keys()
+        with patch.object(model_chain, "_read_key") as read, self.assertNoLogs("ai_dnd.api.ollama", "INFO"):
+            self.assertIsNone(model_chain.from_environment())
+        read.assert_not_called()
+
+    def test_the_setting_gives_the_order_and_the_local_model_ends_it(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini", "haiku"])
+        os.environ["AI_DND_MODEL_CHAIN"] = "haiku, gemini"
+        self.assertEqual(model_chain.from_environment().provider_names(), ["haiku", "gemini"])
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemma,gemini"
+        self.assertIsNone(model_chain.from_environment())
+
+    def test_a_missing_key_skips_that_provider_quietly(self):
+        self.keys(gemini=None)
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        self.assertEqual(model_chain.from_environment().provider_names(), ["haiku"])
+
+    def test_no_key_at_all_means_no_chain(self):
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        self.assertIsNone(model_chain.from_environment())
+
+    def test_keys_can_come_from_the_environment(self):
+        os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku", GEMINI_API_KEY="g-env", ANTHROPIC_API_KEY="a-env")
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini", "haiku"])
+
+    def test_an_unknown_name_is_left_out(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,gpt"
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
+
+    def test_the_spend_file_sits_next_to_the_saves(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "haiku,gemma"
+        chain = model_chain.from_environment()
+        self.assertEqual(chain._providers[0].spend._path, self.database.parent / "model-chain-spend.json")
+
+    def test_a_haiku_over_its_cap_is_not_listed_as_on(self):
+        self.keys()
+        self.database.parent.mkdir(parents=True)
+        spend = self.database.parent / "model-chain-spend.json"
+        month = datetime.now().astimezone().strftime("%Y-%m")
+        spend.write_text(json.dumps({"month": month, "input_tokens": 30_000_000, "output_tokens": 0}))
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
+
+    def test_the_status_line_names_providers_and_no_secret(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        with self.assertLogs("ai_dnd.api.ollama", "INFO") as logs:
+            model_chain.from_environment()
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("gemini,haiku,local", logs.output[0])
+        self.assertNotIn("file-key", logs.output[0])
+
+
+class EngineStub:
+    def __init__(self):
+        self.calls = []
+
+    def list(self):
+        return {"models": [{"model": "gemma4:e4b"}]}
+
+    def chat(self, *args, **kwargs):
+        self.calls.append(kwargs)
+        return {"message": {"role": "assistant", "content": '{"narration": "yerel"}'}, "done_reason": "stop"}
+
+
+class TheAdapter(unittest.TestCase):
+    def adapter(self, cloud):
+        stub = EngineStub()
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b")
+        adapter._chain = chain_for(cloud)
+        return adapter, stub
+
+    def engine_call(self, adapter):
+        return adapter.chat(model=ollama_adapter.MODEL_NAME, messages=list(CALL["messages"]), format=SCHEMA,
+                            think=False, options={"temperature": 0.3, "num_predict": 400})
+
+    def test_with_no_setting_the_adapter_has_no_chain(self):
+        os.environ.pop("AI_DND_MODEL_CHAIN", None)
+        self.assertIsNone(AuthenticatedOllamaAdapter(EngineStub())._chain)
+
+    def test_the_cloud_reply_reaches_the_engine_through_the_old_contract(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
+        response = self.engine_call(adapter)
+        self.assertEqual(game.ollama_response_content(response), '{"narration": "Sokak sessiz."}')
+        self.assertFalse(game.ollama_reply_was_cut(response))
+        self.assertEqual(stub.calls, [])
+
+    def test_gemma_keeps_its_current_options_when_it_answers_last(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        response = self.engine_call(adapter)
+        self.assertEqual(game.ollama_response_content(response), '{"narration": "yerel"}')
+        plain_adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        plain_adapter._chain = None
+        self.engine_call(plain_adapter)
+        self.assertEqual(stub.calls, plain_adapter._client.calls)
+        self.assertEqual(stub.calls[0]["options"], {"num_ctx": 8192, "temperature": 0.3, "num_predict": 400})
+        self.assertIs(stub.calls[0]["think"], False)
+
+    def test_falling_through_costs_one_counted_call(self):
+        adapter, _ = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        with adapter.capture_model_calls() as calls, adapter.capture_model_failures() as failures:
+            self.engine_call(adapter)
+        self.assertEqual(calls, ["gemma4:e4b"])
+        self.assertEqual(failures, [])
+
+    def test_the_turn_records_which_provider_answered_each_call(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply()), haiku=ok(haiku_reply()))
+        adapter, _ = self.adapter(cloud)
+        with adapter.capture_model_calls() as calls:
+            self.engine_call(adapter)
+            cloud.plans[GOOGLE] = httpx.Response(500)
+            self.engine_call(adapter)
+        self.assertEqual(calls, ["gemini", "haiku"])
+
+    def test_the_call_cap_still_holds_with_the_chain_on(self):
+        adapter, _ = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
+        with adapter.capture_model_calls():
+            self.engine_call(adapter)
+            self.engine_call(adapter)
+            with self.assertRaises(RuntimeError):
+                self.engine_call(adapter)
+
+    def test_the_world_metadata_rule_still_shapes_the_prompt_sent_to_the_cloud(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply()))
+        adapter, _ = self.adapter(cloud)
+        metadata = {"environment": "city", "time_of_day": "evening", "weather": "clear"}
+        with ollama_adapter.canonical_world_metadata_context(lambda: metadata):
+            self.engine_call(adapter)
+        self.assertIn("time_of_day=evening", json.loads(cloud.requests[0].content)["systemInstruction"]["parts"][0]["text"])
+
+    def test_a_local_failure_stays_the_adapters_sanitized_error(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        stub.chat = lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("down"))
+        with adapter.capture_model_failures() as failures, self.assertRaisesRegex(RuntimeError, "Ollama request failed"):
+            self.engine_call(adapter)
+        self.assertEqual(failures, ["ConnectionError"])
+
+    def test_the_model_chain_lists_cloud_names_then_the_local_model(self):
+        adapter, _ = self.adapter(FakeCloud())
+        self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+        adapter._chain = None
+        self.assertIsNone(adapter.model_chain)
+
+
+class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        self.enterContext(self.adapter.engine_binding())
+        self.manager = TestPlayerSessionManager()
+        app = create_app(session_manager=self.manager, ollama_adapter=self.adapter,
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
+        self.addAsyncCleanup(self.http.aclose)
+
+    async def test_health_stays_as_it_was_with_no_chain(self):
+        health = await self.http.get("/api/game/health")
+        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4:e4b"})
+
+    async def test_no_cloud_model_joins_the_local_allow_list(self):
+        self.assertFalse({"gemini-3.5-flash-lite", "claude-haiku-5-5"} & set(SUPPORTED_LOCAL_MODELS))
+
+    async def turn(self, narrate):
+        created = (await self.http.post("/api/sessions")).json()
+        self.manager.get(created["session_id"]).game_session.run_player_turn = narrate
+        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"message": "Bekle"})
+
+    async def test_the_turn_log_names_the_provider_that_answered(self):
+        self.adapter._chain = chain_for(FakeCloud(gemini=ok(gemini_reply())))
+
+        def narrate(message):
+            game.ollama.chat(model=ollama_adapter.MODEL_NAME, messages=list(CALL["messages"]), format=SCHEMA, think=False, options={})
+            return {"action_result": {"action": "wait", "status": "resolved"}, "narration": "Bekliyorsun."}
+
+        with self.assertLogs("ai_dnd.api", "INFO") as logs:
+            response = await self.turn(narrate)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Turn providers (answered=gemini)", "\n".join(logs.output))
+
+    async def test_no_provider_line_with_no_chain(self):
+        narrate = lambda message: {"action_result": {"action": "wait", "status": "resolved"}, "narration": "Bekliyorsun."}
+        with self.assertLogs("ai_dnd.api", "INFO") as logs:
+            await self.turn(narrate)
+        self.assertNotIn("Turn providers", "\n".join(logs.output))
 
 
 if __name__ == "__main__":
