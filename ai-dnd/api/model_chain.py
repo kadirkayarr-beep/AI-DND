@@ -9,15 +9,30 @@ error, and Gemini's goes in a header, never the URL.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
+import json
+import logging
+import re
+import time
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
+
+import httpx
+import ollama
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"
+CALL_TIMEOUT_SECONDS = 20
+DEFAULT_COOLDOWN_SECONDS = 60
+# Gemini's free daily quota resets at midnight Pacific, which is 07:00 or 08:00 UTC.
+_QUOTA_RESET_HOUR_UTC = 8
+_DAILY_QUOTA = re.compile(r"per.?day|daily", re.IGNORECASE)
 _DEFAULT_MAX_TOKENS = 1000
 # Haiku's structured output rejects these keywords; Python still checks the reply.
 _HAIKU_UNSUPPORTED = frozenset({"minLength", "maxLength", "minimum", "maximum", "minItems", "maxItems", "pattern"})
+_logger = logging.getLogger("ai_dnd.api.ollama")
 
 
 @dataclass(frozen=True)
@@ -147,3 +162,130 @@ def haiku_read(payload: Mapping[str, Any]) -> Reply:
         input_tokens=usage.get("input_tokens", 0),
         output_tokens=usage.get("output_tokens", 0),
     )
+
+
+@dataclass(frozen=True)
+class Provider:
+    name: str
+    model: str
+    url: str
+    headers: Mapping[str, str] = field(repr=False)
+    body: Callable[[Mapping[str, Any]], dict[str, Any]] = field(repr=False)
+    read: Callable[[Mapping[str, Any]], Reply] = field(repr=False)
+
+
+def gemini(key: str) -> Provider:
+    return Provider(
+        "gemini", GEMINI_MODEL,
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+        {"x-goog-api-key": key}, gemini_body, gemini_read,
+    )
+
+
+def haiku(key: str) -> Provider:
+    return Provider(
+        "haiku", HAIKU_MODEL, "https://api.anthropic.com/v1/messages",
+        {"x-api-key": key, "anthropic-version": "2023-06-01"}, haiku_body, haiku_read,
+    )
+
+
+class _Skipped(Exception):
+    """A provider gave no usable answer. Carries a fixed reason, never provider text."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
+
+def _usable(text: str, call: Mapping[str, Any]) -> bool:
+    if not text.strip():
+        return False
+    if not call.get("format"):
+        return True
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        return False
+    return isinstance(parsed, dict) and bool(parsed)
+
+
+def _retry_after_seconds(value: str | None, moment: datetime) -> float:
+    if value is None:
+        return DEFAULT_COOLDOWN_SECONDS
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        return max(0.0, (parsedate_to_datetime(value) - moment).total_seconds())
+    except (TypeError, ValueError):
+        return DEFAULT_COOLDOWN_SECONDS
+
+
+def _next_quota_day(moment: datetime) -> datetime:
+    reset = moment.astimezone(timezone.utc).replace(hour=_QUOTA_RESET_HOUR_UTC, minute=0, second=0, microsecond=0)
+    return reset if reset > moment else reset + timedelta(days=1)
+
+
+class ModelChain:
+    def __init__(
+        self,
+        providers: list[Provider],
+        *,
+        transport: httpx.BaseTransport | None = None,
+        now: Callable[[], datetime] = lambda: datetime.now().astimezone(),
+    ):
+        self._providers = providers
+        self._now = now
+        self._resting_until: dict[str, datetime] = {}
+        # No redirects and no proxy or netrc from the environment: a key goes to its own host only.
+        self._http = httpx.Client(timeout=CALL_TIMEOUT_SECONDS, transport=transport, trust_env=False)
+
+    def _ready(self, provider: Provider) -> bool:
+        until = self._resting_until.get(provider.name)
+        return until is None or self._now() >= until
+
+    def _rest(self, provider: Provider, response: httpx.Response) -> None:
+        moment = self._now()
+        if _DAILY_QUOTA.search(response.text):
+            self._resting_until[provider.name] = _next_quota_day(moment)
+            return
+        seconds = _retry_after_seconds(response.headers.get("Retry-After"), moment)
+        self._resting_until[provider.name] = moment + timedelta(seconds=seconds)
+
+    def _ask(self, provider: Provider, call: Mapping[str, Any]) -> Reply:
+        response = self._http.post(provider.url, headers=dict(provider.headers), json=provider.body(call))
+        if response.status_code == 429:
+            self._rest(provider, response)
+            raise _Skipped("rate_limited")
+        if response.status_code != 200:
+            raise _Skipped(f"http_{response.status_code}")
+        reply = provider.read(response.json())
+        if not _usable(reply.text, call):
+            raise _Skipped("unusable_reply")
+        return reply
+
+    def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
+        """One engine call: the response in Ollama's shape, and the cloud provider that answered it.
+
+        The provider is None when the local model answered; its errors are the caller's.
+        """
+        for provider in self._providers:
+            if not self._ready(provider):
+                continue
+            started = time.monotonic()
+            try:
+                reply = self._ask(provider, call)
+            except Exception as error:
+                reason = error.reason if isinstance(error, _Skipped) else type(error).__name__
+                _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
+                             provider.name, reason, time.monotonic() - started)
+                continue
+            _logger.info("Model chain answered (provider=%s, seconds=%.2f, thought_tokens=%d)",
+                         provider.name, time.monotonic() - started, reply.thought_tokens)
+            return ollama.ChatResponse(
+                model=provider.model, done=True, done_reason=reply.done_reason,
+                message=ollama.Message(role="assistant", content=reply.text),
+                prompt_eval_count=reply.input_tokens, eval_count=reply.output_tokens,
+            ), provider.name
+        return local(), None
