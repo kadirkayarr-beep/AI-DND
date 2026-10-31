@@ -179,16 +179,14 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
         self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc()
         self.client = speech.ScriptedNpcSpeechClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.session = self.manager.get(self.session_id).game_session
         world = self.session.world_state
-        world["scene_state"]["campaign_seed"] = "through-the-turn"
+        # Who knows what has its own tests; here this person simply knows.
+        self.enterContext(patch.object(town_knowledge, "_coverage", return_value=100))
+        self.enterContext(patch.object(town_knowledge, "is_closed_mouthed", return_value=False))
         world["flags"].update(active_npc_id=self.npc["id"], last_npc_id=self.npc["id"], active_npc_until_turn=99)
+        self.npc = next(n for n in world["npcs"] if n["id"] == self.npc["id"])
         self.npc["role"] = "Barmen"
-        # A person who heard something, whatever this seed gives a fixed test id.
-        world_threads.ensure(world)
-        if town_knowledge.is_closed_mouthed(world, self.npc) or not any(
-                item["kind"] == "thread" for item in town_knowledge.public_knowledge(world, self.npc)):
-            self.npc["place_role_of"] = world_threads.active(world)[0]["place_id"]
-        world.pop(world_threads.KEY)
 
     async def say(self, message, line=None, mode="say"):
         if line is not None:
@@ -242,3 +240,75 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
         lines = [t["public_line"] for t in world_threads.active(world)]
         self.assertTrue(any(line in text for line in lines), text)
         self.assertIn(grounded_action.last_target_id(world), [t["place_id"] for t in world_threads.active(world)])
+
+
+class PointingGoesSomewhere(ThroughTheRealTurn):
+    """A named place is real and the player reaches it by saying so."""
+
+    async def heard(self):
+        await self.start()
+        world = self.session.world_state
+        await self.say("Selam.", "Selam.")
+        known = town_knowledge.public_knowledge(world, self.npc)
+        item = next(i for i in known if i["kind"] == "thread")
+        self.thread = next(t for t in world_threads.active(world) if t["thread_id"] == item["thread_id"])
+        self.place = world["locations"][self.thread["place_id"]]
+        return world
+
+    async def go(self, message):
+        self.client.narration = "Bir an durup çevrene kulak veriyorsun."
+        response = await self.http.post(self.turn_url, json={"message": message, "action_id": str(uuid.uuid4())})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["narration"]
+
+    async def test_going_there_after_a_person_named_it_arrives_and_meets_that_person(self):
+        world = await self.heard()
+        await self.say("Burada nerede iş bulabilirim?", f"{self.place['name']} tarafına bir uğra.")
+        text = await self.go("Tamam, oraya gidiyorum.")
+        self.assertEqual(world["location"], self.place["id"], text)
+        resident = local_places.resident_of(world, self.place["id"])
+        self.assertEqual(resident["name"], self.thread["owner_name"])
+
+    async def test_going_there_after_only_the_person_was_named_arrives_too(self):
+        world = await self.heard()
+        await self.say("Burada nerede iş bulabilirim?", f"{self.thread['owner_name']} ile konuş.")
+        text = await self.go("Oraya gidiyorum.")
+        self.assertEqual(world["location"], self.place["id"], text)
+
+    async def test_going_to_a_person_by_name_goes_to_their_place(self):
+        world = await self.heard()
+        await self.say("Burada nerede iş bulabilirim?", "Bir bakayım.")
+        text = await self.go(f"{self.thread['owner_name']} yanına gidiyorum.")
+        self.assertEqual(world["location"], self.place["id"], text)
+
+    async def test_the_place_name_with_a_case_ending_reaches_it(self):
+        world = await self.heard()
+        text = await self.go(f"{self.place['name']}ne gidiyorum.")
+        self.assertEqual(world["location"], self.place["id"], text)
+
+    async def test_two_places_of_one_kind_are_told_apart_by_name(self):
+        world = await self.heard()
+        other = local_places.create_local_place(world, self.city if isinstance(self.city, str) else
+                                                local_places.settlement_of(world, world["location"]),
+                                                self.place["place_kind"], name="Kuzgun " + self.place["name"].split()[-1])
+        text = await self.go(f"{other['name']}ne gidiyorum.")
+        self.assertEqual(world["location"], other["id"], text)
+
+    async def test_calling_someone_who_is_elsewhere_says_where_they_are(self):
+        world = await self.heard()
+        text = await self.go(f"{self.thread['owner_name']}, burada mısın?")
+        self.assertNotIn("adıyla tanıdığın biri görünmüyor", text)
+        self.assertIn(self.place["name"], text)
+        self.assertEqual(grounded_action.last_target_id(world), self.place["id"])
+
+    async def test_wandering_the_city_turns_up_a_real_lead(self):
+        await self.start()
+        world = self.session.world_state
+        world["location"] = local_places.settlement_of(world, world["location"]) or world["location"]
+        self.npc["location"] = "elsewhere"
+        world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=0)
+        text = await self.go("Şehirde geziyorum.")
+        lines = [t["public_line"] for t in world_threads.active(world)]
+        self.assertTrue(any(line in text for line in lines), text)
+        again = await self.go("Şehirde geziyorum.")
+        self.assertNotEqual(text, again)

@@ -102,7 +102,8 @@ class WanderingTheCity(OwnerPlayBase):
 
     async def test_a_new_place_found_wandering_is_named_once(self):
         npc_statements.ensure(self.world)["references"].clear()
-        text, _ = await self.turn("şehirde geziyorum")
+        with patch("world_threads.street_talk", return_value=None):  # this pins how a found place is named
+            text, _ = await self.turn("şehirde geziyorum")
         self.assertNotIn("önüne çıkarıyor", text)
         self.assertEqual(text.count("önüne"), 1, text)
 

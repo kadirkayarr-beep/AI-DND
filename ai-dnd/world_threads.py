@@ -259,6 +259,19 @@ def ensure(world: dict[str, Any]) -> dict[str, Any] | None:
         return view(world)
 
 
+def street_talk(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | None:
+    """The next thread a walker could catch wind of; each only once, the first never revisited."""
+    state = view(world)
+    if state is None:
+        return None
+    seen = state.setdefault("overheard", [])
+    thread = next((t for t in active(world, settlement_id) if t["thread_id"] not in seen), None)
+    if thread is not None:
+        seen.append(thread["thread_id"])
+        del seen[:-MAX_ACTIVE * 2]
+    return thread
+
+
 def transition(thread: dict[str, Any], status: str) -> bool:
     """Move a thread only along a listed edge; anything else leaves it as it is."""
     if status not in TRANSITIONS.get(thread.get("status"), ()):

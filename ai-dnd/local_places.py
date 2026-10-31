@@ -182,17 +182,32 @@ def place_kind_in(text: Any) -> str | None:
     return None
 
 
+def _is_going(text: str) -> bool:
+    folded = _fold(text)
+    return bool(_MOTION.search(folded)) and not (
+        _NEGATED_MOTION.search(folded) or _CONDITIONAL.search(folded) or _QUESTION.search(text.casefold())
+    )
+
+
 def is_local_place_visit(text: Any) -> str | None:
     """'Arşive gidiyorum', 'Marek'in bahsettiği demirciye uğruyorum' -> kind."""
     if not isinstance(text, str):
         return None
-    folded = _fold(text)
     kind = place_kind_in(text)
-    if kind is None or not _MOTION.search(folded):
+    return kind if kind is not None and _is_going(text) else None
+
+
+def resident_visit(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
+    """'Serenna'nın yanına gidiyorum': going to someone is going where they are."""
+    if not isinstance(text, str) or not _is_going(text):
         return None
-    if _NEGATED_MOTION.search(folded) or _CONDITIONAL.search(folded) or _QUESTION.search(text.casefold()):
-        return None
-    return kind
+    words = _fold(text).split()
+    for record in world.get("locations", {}).values():
+        if isinstance(record, dict) and record.get("parent_location_id") == settlement_id:
+            name = _fold(record.get("resident_name"))
+            if name and any(word.startswith(name) for word in words):
+                return record
+    return None
 
 
 def _pick(world: dict[str, Any], location_id: str, options: tuple, salt: str) -> Any:
@@ -225,6 +240,17 @@ def find_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> di
         ),
         None,
     )
+
+
+def named_in(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
+    """The saved place of this settlement the player called by its name, longest name first."""
+    folded = _fold(text)
+    places = [
+        record for record in world.get("locations", {}).values()
+        if isinstance(record, dict) and record.get("parent_location_id") == settlement_id
+        and record.get("place_kind") and _fold(record.get("name")) and _fold(record.get("name")) in folded
+    ]
+    return max(places, key=lambda record: len(_fold(record.get("name"))), default=None)
 
 
 def mentioned_by(world: dict[str, Any], kind: str) -> str | None:

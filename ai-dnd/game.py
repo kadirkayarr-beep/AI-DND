@@ -8074,6 +8074,21 @@ def _town_note(world, npc):
         return ""
 
 
+def _elsewhere_line(world, name):
+    """Someone the town talks about is real, just not here."""
+    import grounded_action
+    import town_knowledge
+    try:
+        place = town_knowledge.place_of_person(world, name)
+        if place is None:
+            return None
+        grounded_action.note_last(world, place["id"])
+        return f"{name} burada değil; {place['name']} tarafında bulursun."
+    except Exception:
+        town_knowledge.log_failure()
+        return None
+
+
 def _overheard_work(world):
     """Nobody here to ask: what a stranger picks up in the street, tied to a real place."""
     import grounded_action
@@ -16902,14 +16917,16 @@ def _local_place_turn(player_input):
 
     session = _session()
     world = session.world_state
-    kind = local_places.is_local_place_visit(player_input)
-    if kind is None or session.character.get("current_hp", 0) <= 0:
-        return None
     current = world.get("location")
     settlement = local_places.settlement_of(world, current)
-    if settlement is None:
+    if settlement is None or session.character.get("current_hp", 0) <= 0:
         return None
-    record = local_places.find_local_place(world, settlement, kind)
+    person_place = local_places.resident_visit(world, settlement, player_input)
+    kind = local_places.is_local_place_visit(player_input) or (person_place or {}).get("place_kind")
+    if kind is None:
+        return None
+    record = (person_place or local_places.named_in(world, settlement, player_input)
+              or local_places.find_local_place(world, settlement, kind))
     if record is not None and record.get("id") == current:
         narration = f"Zaten {record['name']} içindesin."
         return {
@@ -18993,7 +19010,12 @@ def _run_player_turn_internal(
     if unresolved_address and target_id is None and not combat["active"]:
         npc_target = None
         result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
-        return finish_turn(result, f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor.", is_final=True)
+        return finish_turn(
+            result,
+            _elsewhere_line(world_state, unresolved_address)
+            or f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor.",
+            is_final=True,
+        )
 
     if interaction_mode == "say" and npc_target is None:
         result = {

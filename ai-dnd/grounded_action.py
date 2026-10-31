@@ -2329,6 +2329,16 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
             return _receipt("wander", "completed", {"id": record["id"], "label": record.get("name")},
                             text=f"{lead}Bir köşede {record.get('name')} tabelasını görüyorsun{said}.")
         break
+    import world_threads
+    world_threads.ensure(run.world)
+    talk = world_threads.street_talk(run.world, settlement)
+    place = run.location(talk["place_id"]) if talk else None
+    if place:  # a walker hears what the town is on about, and the place is real
+        world_threads.mark_heard(talk, int(run.world.get("flags", {}).get("turn_index", 0) or 0))
+        run.near(None)
+        run.memory["last_target_id"] = place["id"]
+        return _receipt("wander", "completed", {"id": place["id"], "label": place.get("name")},
+                        text=f"{lead}Bir köşede laflayanlardan bir söz kapıyorsun: {talk['public_line']}")
     order = sorted(_DISCOVERY_KINDS, key=lambda k: _seed(run.world, settlement, "discover", k))
     for kind in order:
         if _places_of_kind(run, settlement, kind):

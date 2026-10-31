@@ -113,6 +113,18 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     return known
 
 
+def place_of_person(world: dict[str, Any], name: Any) -> dict[str, Any] | None:
+    """Where a person the threads name can be found, by their reserved name."""
+    wanted = npc_statements.fold(name)
+    for thread in world_threads.active(world):
+        for who, place_id in ((thread.get("owner_name"), thread.get("place_id")),
+                              (thread.get("recipient_name"), thread.get("target_place_id"))):
+            if who and wanted and npc_statements.fold(who) == wanted:
+                place = world.get("locations", {}).get(place_id)
+                return place if isinstance(place, dict) else None
+    return None
+
+
 def _name_of(world: dict[str, Any], place_id: Any) -> str:
     place = world.get("locations", {}).get(place_id)
     return place.get("name", "") if isinstance(place, dict) else ""
