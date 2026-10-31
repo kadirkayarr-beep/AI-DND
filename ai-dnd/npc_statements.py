@@ -32,6 +32,8 @@ MAX_RESTATED_TURNS = 5
 COMMITMENT_STATUSES = frozenset({"open", "fulfilled", "broken", "cancelled", "closed"})
 _RECIPIENT = "player"  # one player per session; the recipient is part of a promise's identity
 _FILLER = frozenset({"evet", "hayir", "tamam", "dedim", "dedi", "dediydim", "demistim", "soyledim", "ya", "yani", "iste"})
+# Words a speaker opens a clause with; capitalised, but never the start of a name.
+_NAME_OPENERS = _FILLER | {"peki", "tabii", "tabi", "elbette", "hmm", "bak", "aslinda"}
 
 # folded noun stem -> place kind (tavern is the existing venue kind; others are
 # local_places kinds; "generic" places have no catalogue content).
@@ -234,7 +236,18 @@ def _named_places(text: str) -> list[tuple[str, str, str]]:
 
 def _named_places_in_sentence(text: str) -> list[tuple[str, str, str]]:
     found = []
-    tokens = re.findall(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+(?:['’][A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+)?", text)
+    spans = list(re.finditer(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+(?:['’][A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+)?", text))
+    tokens = [span.group() for span in spans]
+
+    def continues_name(index: int) -> bool:
+        """Whether this token extends a proper name begun by the one before it."""
+        previous = tokens[index - 1]
+        return (
+            tokens[index][:1].isupper()
+            and previous[:1].isupper()
+            and "," not in text[spans[index - 1].end(): spans[index].start()]
+            and fold(previous) not in _NAME_OPENERS
+        )
 
     def denied(name: str) -> bool:
         folded_text = fold(text)
@@ -254,9 +267,9 @@ def _named_places_in_sentence(text: str) -> list[tuple[str, str, str]]:
 
     for index, token in enumerate(tokens):
         bare = token.split("'")[0]
-        if not bare or not bare[0].isupper():
+        if not bare or not bare[0].isupper() or fold(bare) in _NAME_OPENERS:
             continue
-        if index > 0 and tokens[index - 1][:1].isupper():
+        if index > 0 and continues_name(index):
             continue  # a place head belongs to the full proper-name span
         folded = fold(bare)
         # Single word: "Kızılhan", "Kızılhanda" -> name before the case ending.
@@ -276,11 +289,11 @@ def _named_places_in_sentence(text: str) -> list[tuple[str, str, str]]:
             if index + 1 < len(tokens):
                 follow = fold(tokens[index + 1].split("'")[0])
                 hit = place_kind_of(follow)
-                if hit and tokens[index + 1][:1].isupper():
+                if hit and continues_name(index + 1):
                     noun, kind = hit
                     words = [bare]
                     back = index - 1
-                    while back >= 0 and tokens[back][:1].isupper() and back > 0:
+                    while back > 0 and continues_name(back + 1):
                         words.insert(0, tokens[back].split("'")[0])
                         back -= 1
                     head = tokens[index + 1].split("'")[0]
@@ -292,17 +305,13 @@ def _named_places_in_sentence(text: str) -> list[tuple[str, str, str]]:
     # span and treat its type as generic; do not promote the quote to world fact.
     for index, token in enumerate(tokens):
         bare = token.split("'")[0]
-        if not bare or not bare[0].isupper():
+        if not bare or not bare[0].isupper() or fold(bare) in _NAME_OPENERS:
             continue
-        if index > 0 and tokens[index - 1][:1].isupper():
+        if index > 0 and continues_name(index):
             continue  # keep the maximal proper-name span, not its suffixes
         words = [bare]
         following = index + 1
-        while (
-            following < len(tokens)
-            and tokens[following]
-            and tokens[following][0].isupper()
-        ):
+        while following < len(tokens) and continues_name(following):
             words.append(tokens[following].split("'")[0])
             following += 1
         if len(words) < 2:
