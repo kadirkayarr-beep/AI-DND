@@ -2312,17 +2312,23 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
         return _receipt("wander", "blocked", None, reason="interrupted", text="Dolaşırken bir şey yolunu kesiyor.")
     signs = any(t.startswith("tabela") for t in step.get("tokens", [])) or how
     lead = "Tabelalara göz atarak sokak sokak dolaşıyorsun. " if signs else "Sokak sokak dolaşıyorsun. "
-    refs = [r for r in npc_statements.place_references(run.world, settlement_id=settlement) if not r.get("location_id")]
-    if refs:
-        ref = refs[-1]
+    for ref in reversed(npc_statements.place_references(run.world, settlement_id=settlement)):
+        if ref.get("location_id"):
+            continue
+        known = ref.get("name") and npc_statements._existing_location_named(run.world, ref["name"])
+        if known:  # the place was reached some other way: nothing new to see
+            npc_statements.resolve_reference(run.world, ref["id"], known)
+            continue
         record = _materialize_reference(run, ref)
         speaker = npc_statements._npc(run.world, ref.get("said_by"))
         if record:
+            # A sign seen in passing: the player chose to wander, not to walk there.
             said = f" — {living_world.public_npc_name(speaker)} söz etmişti" if speaker else ""
-            result = _found_place(run, record, how=f"{lead}Bir köşede {record.get('name')} tabelasını görüyorsun{said}. ",
-                                  move=False, step=step)
-            result["verb"] = "wander"
-            return result
+            run.near(None)
+            run.memory["last_target_id"] = record["id"]
+            return _receipt("wander", "completed", {"id": record["id"], "label": record.get("name")},
+                            text=f"{lead}Bir köşede {record.get('name')} tabelasını görüyorsun{said}.")
+        break
     order = sorted(_DISCOVERY_KINDS, key=lambda k: _seed(run.world, settlement, "discover", k))
     for kind in order:
         if _places_of_kind(run, settlement, kind):
@@ -2330,7 +2336,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
         record = _create_venue(run, settlement, name=None, kind=kind,
                                provenance={"source": "player_wander"})
         if record:
-            result = _found_place(run, record, how=f"{lead}Yolun seni {record.get('name')} önüne çıkarıyor. ",
+            result = _found_place(run, record, how=lead,
                                   move=False, step=step)
             result["verb"] = "wander"
             if kind in local_places.PLACE_KINDS:
@@ -2843,6 +2849,8 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             chosen = session.most_plausible_addressee([c["record"] for c in people], player_input)
             step["target"] = next((c for c in people if c["record"] is chosen), None)
             step["ambiguous"] = []
+        if step["verb"] == "leave":
+            step["ambiguous"] = []  # leaving is always from here, however many inns are known
         if step["verb"] in {"go", "approach"} and step["target"] is None and not step["place_noun"] \
                 and not step["detail"] and not step.get("outside"):
             step["commitment"] = _implicit_escort_target(session, step)
