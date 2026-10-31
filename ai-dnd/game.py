@@ -965,7 +965,7 @@ def is_npc_dialogue_input(player_input):
         text,
     ):
         return True
-    if re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*|sor\w*)\b", text):
+    if re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*|sor\w*|söylüyorum|söylerim)\b", text):
         return True
     return bool(re.match(
         r"^(selam|merhaba|iyi günler|teşekkür|sağ ol|korkuyorum|"
@@ -13003,7 +13003,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
                 f"{place} konumuna ulaştın."
                 + (f" {presence}" if presence else "")
             )
-        return "Bu seyahat hedefi doğrulanamadı; konumun değişmedi."
+        return "Oraya giden yolu bilmiyorsun; olduğun yerdesin."
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
     if action == "explore":
@@ -14281,7 +14281,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         if (not reference or reference in ("orada", "oraya", "içeri")) and pending:
             reference = pending
         if not reference:
-            result.update({"success": False, "status": "clarification", "direct_response": "Hangi konuma gitmek istediğini belirt."})
+            result.update({"success": False, "status": "clarification", "direct_response": "Nereye gittiğini söylemedin."})
             return result
         previous = world_state.get("location")
         target_id = resolve_location_reference(reference)
@@ -14648,15 +14648,20 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     elif intent_type in {"interact", "door"}:
         # LR00 fix: no owner acted on this. Saying "resolved" here produced
         # "Çevrede şimdilik belirgin bir değişiklik olmuyor" for a lockpicking
-        # attempt; an unowned act is unresolved and the player is asked.
+        # attempt. A door or lock act with no target is told what is here; any
+        # other attempt is an event in the world, so the narrator describes it.
         import grounded_action
-        result.update({
-            "action": intent_type,
-            "success": False,
-            "status": "unresolved",
-            "state_changes": [],
-            "direct_response": grounded_action.clarification_text(_session()),
-        })
+        parsed = grounded_action.plan(_session(), player_input)
+        if intent_type == "door" or any(step.get("part") or step.get("ambiguous") for step in parsed["steps"]):
+            result.update({
+                "action": intent_type,
+                "success": False,
+                "status": "unresolved",
+                "state_changes": [],
+                "direct_response": grounded_action.clarification_text(_session()),
+            })
+        else:
+            result.update({"action": "narrative", "success": False, "status": "attempted", "state_changes": []})
     else:
         result.update({"action": "dialogue" if intent_type == "dialogue" else intent_type, "state_changes": []})
     return result
@@ -18233,8 +18238,7 @@ def _run_player_turn_internal(
                 status = "created_local_person" if created_now else "reused_local_person"
                 text = (
                     f"{local_proposal['appearance']} {local_proposal['role']} "
-                    f"{'görünür hale geliyor' if created_now else 'yeniden dikkatini çekiyor'}. "
-                    "Bu kişi yalnızca bu kampanyanın mevcut sahnesine eklendi."
+                    f"{'görünür hale geliyor' if created_now else 'yeniden dikkatini çekiyor'}."
                 )
                 return finish_turn(
                     {
@@ -18254,7 +18258,7 @@ def _run_player_turn_internal(
                 "success": False,
                 "state_changes": [],
             }
-            text = "Bu kişi önerisi mevcut kampanya durumuyla doğrulanamadı; sahnede değişiklik yapmadım."
+            text = "Öyle birini göremiyorsun."
             return finish_turn(
                 result, text, safety_handling="python_fallback", is_final=True
             )

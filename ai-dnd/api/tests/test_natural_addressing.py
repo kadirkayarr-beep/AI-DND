@@ -32,6 +32,7 @@ class TownClient:
     def __init__(self):
         self.calls = 0
         self.kinds = []
+        self.intent = "narrative"
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
@@ -53,7 +54,7 @@ class TownClient:
             }, ensure_ascii=False)}}
         self.kinds.append("intent")
         return {"message": {"content": json.dumps({
-            "intent": "narrative", "action": "narrative",
+            "intent": self.intent, "action": self.intent,
             "target": {"type": "none", "reference": ""},
             "completion": "intended", "confidence": 1.0,
             "interaction": {
@@ -281,6 +282,21 @@ class SomeoneWhoIsNotHere(TownCase):
         data = await self.say("Tezgâhtaki adama adını soruyorum.")
         self.assert_no_wall(data)
         self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+
+
+class AnAttemptIsNeverRefused(TownCase):
+    async def test_telling_the_partner_something_reaches_the_partner(self):
+        await self.say("Burada ne iş yapıyorsun?")
+        self.client.intent = "interact"
+        data = await self.say("Kılıcımı hafifçe gösterip içkinin bedava olması gerektiğini söylüyorum.")
+        self.assertNotIn("Tarif ettiğine", data["narration"])
+        self.assertIn(TownClient.SPOKEN, data["narration"])
+
+    async def test_an_act_with_no_owner_is_narrated(self):
+        self.client.intent = "interact"
+        data = await self.say("Yan masadakilere yazı tura oynamayı teklif ediyorum.")
+        self.assertNotIn("Tarif ettiğine", data["narration"])
+        self.assertIn("narration", self.client.kinds)
 
 
 class ExistingAddressesStayPut(TownCase):

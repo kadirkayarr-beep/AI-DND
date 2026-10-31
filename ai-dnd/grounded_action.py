@@ -1414,8 +1414,8 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
                            "npc_id": npc.get("id") if isinstance(npc, dict) else None}
         arrival = local_places.arrival_text(run.world, record, npc, feature, first_visit=first)
         return _receipt("enter", "completed", place, text=f"{prefix}{opened}{arrival}".strip())
-    people = [living_world.public_npc_name(n) for n in run.game.active_npcs(place["id"])][:3]
-    inside = f" İçeride {', '.join(people)} var." if people else " İçerisi sessiz."
+    people = run.game.active_npcs(place["id"])[:3]
+    inside = f" İçeride {living_world.public_scene_people(people)} var." if people else " İçerisi sessiz."
     description = record.get("description") or ""
     return _receipt("enter", "completed", place,
                     text=f"{prefix}{opened}Kapıdan içeri giriyorsun. {record.get('name')} içindesin. {description}{inside}".strip())
@@ -2050,6 +2050,8 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
         feature = target["record"]
         run.near(feature["id"])
         return _receipt(verb, "completed", target, text=f"{feature.get('name')} yanına geliyorsun. {feature.get('description', '')}".strip())
+    if kind == "door" and target.get("inside") and verb in {"go", "enter"}:
+        return _receipt(verb, "completed", target, text="")  # already through it
     if kind == "door":
         door = target["record"]
         run.near(door["id"])

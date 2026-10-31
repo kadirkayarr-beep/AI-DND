@@ -164,6 +164,11 @@ class TheDoorFromInside(DoorCase):
         data = await self.say("Kapıyı inceliyorum.")
         self.assertNotIn("göremiyorsun", data["narration"])
 
+    async def test_walking_further_in_does_not_walk_back_to_the_street_door(self):
+        data = await self.say("İçeri girip tezgâha geçiyorum.")
+        self.assertNotIn("önüne geliyorsun", data["narration"])
+        self.assertEqual(self.world["location"], self.inn["id"])
+
     async def test_a_remark_about_a_door_is_no_door_operation(self):
         data = await self.say("Kapı kilitliydi.")
         self.assertNotIn("açıp kapatabileceğin", data["narration"])
@@ -194,6 +199,14 @@ class AWalkDoesNotEndAtAClosedDoor(DoorCase):
 
     async def test_timed_travel_to_a_closed_door_is_not_refused(self):
         self.assertIsNone(game._venue_entry_door(self.world, self.world["location"], self.inn["id"]))
+
+
+class AnUnknownDestination(DoorCase):
+    async def test_it_is_told_without_system_words(self):
+        self.client.intent = "travel"
+        data = await self.say("Şehrin en zengin mahallesine gidiyorum.")
+        self.assertNotIn("doğrula", data["narration"])
+        self.assertNotIn("hedefi", data["narration"])
 
 
 class WhatAPersonSaidAboutAPlaceStands(DoorCase):
