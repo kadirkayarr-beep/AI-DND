@@ -57,6 +57,8 @@ MAX_QUEUE = 8
 MAX_IN_FLIGHT = 1
 MAX_STORED = 32
 RETENTION_SECONDS = 900
+# Every real Gemini and Haiku note stopped at the local model's limit of 60.
+CLOUD_NOTE_TOKENS = 200
 SuggestionProvider = Callable[[str], str]
 OwnerKey = tuple[str, str]
 
@@ -210,7 +212,8 @@ def chain_provider(chain: ModelChain) -> SuggestionProvider:
 
     def provider(prompt: str) -> str:
         call = _suggestion_call(prompt)
-        return _note_text(chain.chat(call, lambda: _local_client().chat(**call))[0])
+        cloud_call = {**call, "options": {**call["options"], "num_predict": CLOUD_NOTE_TOKENS}}
+        return _note_text(chain.chat(cloud_call, lambda: _local_client().chat(**call))[0])
 
     return provider
 

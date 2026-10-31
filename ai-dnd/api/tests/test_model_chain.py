@@ -744,8 +744,15 @@ class TheCharacterNote(unittest.TestCase):
         cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir arşivci.")))
         self.assertEqual(identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik."), "Sessiz bir arşivci.")
         sent = json.loads(cloud.requests[0].content)
-        self.assertEqual(sent["generationConfig"]["maxOutputTokens"], 60)
+        self.assertEqual(sent["generationConfig"]["maxOutputTokens"], 200)
         self.assertEqual(sent["contents"][0]["parts"][0]["text"], "Alan: Kişilik.")
+
+    def test_the_local_model_keeps_its_own_short_note_limit(self):
+        seen = []
+        self.local.chat = lambda **call: seen.append(call) or {"message": {"role": "assistant", "content": "Yerel not."}}
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))
+        identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik.")
+        self.assertEqual(seen[0]["options"]["num_predict"], 60)
 
     def test_a_note_cut_short_is_not_a_note(self):
         cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir", finish="MAX_TOKENS")), haiku=ok(haiku_reply("Bütün bir not.")))
