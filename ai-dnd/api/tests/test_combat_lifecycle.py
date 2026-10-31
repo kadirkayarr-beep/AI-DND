@@ -212,13 +212,17 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
                                 ({"message": "Orman'a gidiyorum."}, 400)):
             await self.assert_rejected_unchanged(session, self.request(session, npc, **changes), status)
 
-    async def test_wrong_actor_and_no_weapon_do_not_roll(self):
+    async def test_wrong_actor_does_not_roll(self):
         session, npc = self.setup_combat()
         session.advance_combat_turn()
         await self.assert_rejected_unchanged(session, self.request(session, npc), 409)
-        session.advance_combat_turn()
+
+    async def test_no_weapon_left_is_a_bare_hand_blow_not_a_refusal(self):
+        session, npc = self.setup_combat()
         session.world_state["inventory"] = []
-        await self.assert_rejected_unchanged(session, self.request(session, npc), 400)
+        response = await self.post(self.request(session, npc))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["combat_result"]["actor"], "player")
 
     async def test_valid_miss_is_canonical_and_replay_survives_resume(self):
         session, npc = self.setup_combat()

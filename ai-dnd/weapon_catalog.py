@@ -4,6 +4,8 @@ One catalog, including the historical Turkish starter-sword alias. Prices are GP
 Catalog entries never grant proficiency or mastery to their wielder.
 """
 
+import re
+
 
 def weapon(name, category, kind, dice, damage_type, properties, mastery,
            weight, cost, *, ranges=None, ammo=None, versatile=None, aliases=()):
@@ -69,6 +71,33 @@ WEAPONS = {row[0]: weapon(*row[:9], **row[9]) for row in _ROWS}
 WEAPONS["Kılıç"] = WEAPONS["Longsword"]
 
 
+# Starting-gear labels and everyday Turkish words, folded, longest first where
+# they overlap. A label like "2 Hançer" or "Kısa Yay & 20 Ok" is one of these.
+TURKISH_NAMES = {
+    "kisa kilic": "shortsword", "uzun kilic": "longsword", "kilic": "longsword",
+    "hancer": "dagger", "ceyrek asa": "quarterstaff", "asa": "quarterstaff",
+    "kisa yay": "shortbow", "uzun yay": "longbow", "hafif tatar yayi": "light_crossbow",
+    "pala": "scimitar", "mizrak": "spear", "buyuk balta": "greataxe",
+    "el baltasi": "handaxe", "sopa": "club", "gurz": "mace", "mec": "rapier",
+    "kirbac": "whip",
+}
+# Everyday stems that only ever mean a weapon the speaker already owns.
+OWNED_STEMS = {**TURKISH_NAMES, "balta": "greataxe", "yay": "shortbow"}
+_FOLD = str.maketrans({"ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u", "â": "a"})
+_BY_ID = {item["weapon_id"]: item for item in WEAPONS.values()}
+
+
+def fold(text):
+    return text.replace("İ", "i").replace("I", "ı").casefold().replace("̇", "").translate(_FOLD)
+
+
+def _label_core(text):
+    """"2 Hançer" -> hançer, "Kısa Yay & 20 Ok" -> kısa yay, "Pala (Scimitar)" -> scimitar."""
+    inner = re.search(r"\(([^)]+)\)", text)
+    core = inner.group(1) if inner else text.split("&")[0]
+    return re.sub(r"^\s*\d+\s+", "", core).strip()
+
+
 def lookup(identity):
     if not isinstance(identity, str):
         return None
@@ -77,4 +106,7 @@ def lookup(identity):
         if text in {item["weapon_id"], item["name"].casefold(),
                     *(alias.casefold() for alias in item["aliases"])}:
             return item
-    return None
+    core = _label_core(text)
+    if core != text and core:
+        return lookup(core)
+    return _BY_ID.get(TURKISH_NAMES.get(fold(text)))

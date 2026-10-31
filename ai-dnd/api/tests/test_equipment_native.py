@@ -444,8 +444,9 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
                     ),
                 )
                 if intent == "attack":
-                    self.assertEqual(response.status_code, 400, response.text)
-                    self.assertEqual(response.json()["detail"]["code"], "no_weapon")
+                    # No weapon of their own: a punch, never a refusal or a request.
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()["turn_outcome"]["action"], "attack")
                 elif intent == "travel":
                     self.assertEqual(response.status_code, 200, response.text)
                     self.assertEqual(response.json()["turn_outcome"]["action"], "travel")

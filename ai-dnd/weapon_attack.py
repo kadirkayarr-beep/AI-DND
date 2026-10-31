@@ -1121,6 +1121,32 @@ def _held_weapon_profiles(session, actor, data, hands=None):
     return profiles
 
 
+def _owned_weapon_ids(session):
+    """Catalog weapons the player owns, melee first, in inventory order."""
+    found = []
+    for item in session.world_state.get("inventory", []):
+        identity = item.get("weapon_id", item.get("name")) if isinstance(item, dict) else item
+        weapon = lookup(identity)
+        if weapon is not None and weapon["weapon_id"] not in found:
+            found.append(weapon["weapon_id"])
+    kind = lambda identity: lookup(identity)["kind"] != "melee"
+    return sorted(found, key=kind)
+
+
+def _owned_named(normalized, owned, held):
+    """"Hançerimi çekip", "baltayla": the longest everyday word for a weapon they own."""
+    import weapon_catalog
+    named = sorted(((stem, identity) for stem, identity in weapon_catalog.OWNED_STEMS.items()
+                    if re.search(rf"(?<!\w){stem}", normalized)), key=lambda pair: -len(pair[0]))
+    for stem, identity in named:
+        kin = [weapon for weapon in owned
+               if identity == weapon or stem in weapon_catalog.fold(lookup(weapon)["name"])
+               or (stem in ("balta", "yay") and ("axe" if stem == "balta" else "bow") in weapon)]
+        if kin:
+            return sorted(kin, key=lambda weapon: weapon not in held)
+    return []
+
+
 def natural_choice(session, text):
     """Choices only; no model-derived stats, grants, distance or hand state."""
     normalized = session._normalize_turkish_typos(text)
@@ -1130,16 +1156,19 @@ def natural_choice(session, text):
         if any(re.search(r"(?<!\w)" + re.escape(session._normalize_turkish_typos(term)) + r"(?!\w)", normalized) for term in terms):
             if weapon["weapon_id"] not in selected:
                 selected.append(weapon["weapon_id"])
-    if len(selected) > 1:
-        fail("ambiguous_weapon", "Specify one weapon for each attack.")
-    unarmed = bool(re.search(r"yumruk|tekme|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
-    identity = "unarmed" if unarmed else selected[0] if selected else None
-    if identity is None:
-        held = _held_weapon_profiles(session, "player", getattr(session, "character", {}))
-        if not held and monk_features.monk_level(getattr(session, "character", {})) is None:
-            fail("no_weapon", "Specify an available held weapon or Unarmed Strike.")
-        identity = held[0]["weapon_id"] if held else "unarmed"
+    owned = _owned_weapon_ids(session)
+    held = [weapon["weapon_id"] for weapon in
+            _held_weapon_profiles(session, "player", getattr(session, "character", {}))
+            if weapon["weapon_id"] in owned]
+    selected = [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
+    unarmed = bool(re.search(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
+    # Only what the player owns can strike. A weapon they do not have, or no
+    # word for one, is the weapon in hand, then one drawn, then bare hands.
+    identity = ("unarmed" if unarmed else selected[0] if selected
+                else held[0] if held else owned[0] if owned else "unarmed")
     choice = {}
+    if identity not in ("unarmed", *held):
+        choice["draw"] = True
     if re.search(r"iki elim|two.hand", normalized):
         choice["grip"] = 2
     if re.search(r"firlat|throw", normalized):
