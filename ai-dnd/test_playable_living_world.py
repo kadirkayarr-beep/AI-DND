@@ -2253,7 +2253,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(
             response,
-            "Orin, “Ben Orin. Barmen olarak buradayım.” diye yanıt verir.",
+            "Orin, “Ben Orin.” diye yanıt verir.",
         )
 
     def test_v11_reentering_the_current_tavern_is_idempotent(self):

@@ -634,6 +634,19 @@ DISCOURSE_ADDRESSES = frozenset({
 })
 
 
+def name_withheld_reason(world: Any, npc: Any) -> str | None:
+    """Why this NPC keeps its name back, or None: a stranger normally gives it."""
+    if not isinstance(npc, dict):
+        return None
+    reason = npc.get("name_withheld_reason")
+    if isinstance(reason, str) and reason.strip():
+        return reason.strip()
+    import relationships
+    if isinstance(world, dict) and relationships.score(world, npc.get("id")) < 0:
+        return "bu kişiye kırgınsın"
+    return None
+
+
 def identity_disclosure_is_negated(value: Any) -> bool:
     """An explicit refusal/prohibition is not permission to reveal an identity."""
     text = normalize_text(value)

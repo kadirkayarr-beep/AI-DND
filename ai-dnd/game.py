@@ -1378,6 +1378,13 @@ def _detect_query_type(player_input, npc_target=None):
     if asks_name or named_identity or re.search(r"\bkimsin(?:iz)?\b", text):
         if len(explicit_npcs) == 1:
             return "npc_identity"
+        # "İsmi nedir?" is about someone or something else; only "ismin", "adını"
+        # and the like address the person spoken to.
+        if (
+            re.search(r"\b(?:adi|ismi)\b", text)
+            and not re.search(r"\b(?:adin\w*|ismin\w*|kimsin\w*)\b", text)
+        ):
+            return None
         if not explicit_npcs and not location_id and not location_phrase and npc_target in active_npcs():
             return "npc_identity"
         if not explicit_npcs and not location_id and not location_phrase and not npc_target:
@@ -1462,26 +1469,15 @@ def _handle_query(player_input, query_type, npc_target=None):
     if query_type == "npc_identity" and npc_target:
         if local_dialogue.identity_disclosure_is_negated(player_input):
             return None
-        # Learning an introduced identity is a Python-owned player-knowledge transition.
+        if (
+            not living_world.npc_name_known_to_player(npc_target)
+            and local_dialogue.name_withheld_reason(world_state, npc_target)
+        ):
+            return None
+        # A name question teaches a name and nothing else: the role stays hidden
+        # until it is noticed or told.
         npc_target["name_known_to_player"] = True
-        npc_target["role_known_to_player"] = True
-        profile = npc_target.get("personal_profile")
-        occupation = (
-            profile.get("occupation").strip()
-            if isinstance(profile, dict) and isinstance(profile.get("occupation"), str)
-            and profile.get("occupation").strip()
-            else None
-        )
-        role = living_world.public_npc_role(npc_target)
-        role_line = (
-            f"{role[:1].upper()}{role[1:]} olarak buradayım."
-            if role and role != "buralı" else "Buralıyım."
-        )
-        about = f"{role_line} {occupation}" if occupation else role_line
-        return (
-            f'{npc_target["name"]}, “Ben {npc_target["name"]}. {about}” '
-            "diye yanıt verir."
-        )
+        return f'{npc_target["name"]}, “Ben {npc_target["name"]}.” diye yanıt verir.'
 
     return None
 
@@ -7856,6 +7852,72 @@ def _npc_speech_is_claim_refusal(text, npc=None):
     )
 
 
+def _npc_name_stance(world, npc, player_input):
+    """Python's answer to a question about this NPC's own name: reveal, withhold or None."""
+    if (
+        not isinstance(npc, dict)
+        or _detect_query_type(player_input, npc) != "npc_identity"
+        or local_dialogue.identity_disclosure_is_negated(player_input)
+    ):
+        return None
+    if (
+        not living_world.npc_name_known_to_player(npc)
+        and local_dialogue.name_withheld_reason(world, npc)
+    ):
+        return "withhold"
+    return "reveal"
+
+
+def _spoken_name_answer(spoken_text, npc):
+    """The engine decided to give the name, so the shown reply carries it."""
+    name = str(npc.get("name") or "").strip()
+    import npc_speech_boundary
+    if npc_speech_boundary.says_own_name(spoken_text, name):
+        return spoken_text
+    kept = [
+        sentence for sentence in re.split(r"(?<=[.!?…])\s+", str(spoken_text).strip())
+        if sentence and not re.search(r"\b(?:adım\w*|ismim\w*)", sentence, re.IGNORECASE)
+    ]
+    return " ".join([f"Adım {name}.", *kept])
+
+
+_SPEECH_ANSWER_RULES = (
+    "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
+    "Biliyorsan söyle, bilmiyorsan bilmediğini sade bir cümleyle söyle; gizem, kaçamak veya "
+    "fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
+    "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
+    "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
+    "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
+    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
+    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma.\n"
+)
+
+
+def _experimental_speech_note(world, npc, name_stance, player_input):
+    """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
+    label = living_world.public_npc_name(npc)
+    lines = [f"Konuşan sensin; sahnedeki “{label}” sensin, oyuncu karşındaki kişidir."]
+    name = str(npc.get("name") or "").strip()
+    if name_stance == "withhold":
+        reason = local_dialogue.name_withheld_reason(world, npc)
+        lines.append(
+            f"Adını söylemek istemiyorsun ({reason}); ad vermeden doğal biçimde geçiştir, "
+            "sahte ad söyleme."
+        )
+    elif name_stance == "reveal":
+        lines.append(f"Adın {name}. Oyuncu adını soruyor: cevabında adını açıkça söyle.")
+    elif living_world.npc_name_known_to_player(npc):
+        lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
+    else:
+        lines.append("Adın sorulmadı: kendini tanıtma, kendine ad uydurma.")
+    if local_dialogue.personal_question_kind(player_input) == "local_work":
+        lines.append(
+            "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
+            "varsa onu söyle, yoksa bilmediğini söyle."
+        )
+    return _SPEECH_ANSWER_RULES + " ".join(lines) + "\n"
+
+
 def _experimental_npc_dialogue_context(
     world, npc, *, unverified_claim=False, followup=False, personal_context=True
 ):
@@ -7863,7 +7925,11 @@ def _experimental_npc_dialogue_context(
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return {}
     source = interaction_adventure.context(world, npc)
-    speech_profile_facts = list(source.get("conversation_candidates", []))
+    # "Burada nerede iş bulabilirim?" is not about this person: a profile in the
+    # prompt was answered instead of the question.
+    speech_profile_facts = (
+        list(source.get("conversation_candidates", [])) if personal_context else []
+    )
     # Small talk about the person, not a stock fact to reach for on any question.
     public_detail = (
         local_dialogue.public_personal_detail(world, npc)
@@ -8272,7 +8338,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                         allow_scene_detail_proposals=False,
                         allow_local_person_proposal=False,
                         experimental_npc_dialogue=False,
-                        recent_scene_narration="", strict=False):
+                        recent_scene_narration="", strict=False, speech_note=""):
     """Ask Qwen only to label the current input; it cannot read or write state.
 
     With strict=True a classifier reply that is not usable JSON raises
@@ -8399,6 +8465,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
             )
+            + speech_note
             + _experimental_speech_final_line(player_input, interaction_context)
         )
     elif dialogue_narration:
@@ -18973,6 +19040,13 @@ def _run_player_turn_internal(
         experimental_npc_dialogue = experimental_dialogue_session
         intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
+        # Python settles the name first, so the prompt and the label agree.
+        name_stance = (
+            _npc_name_stance(world_state, npc_target, player_input)
+            if experimental_npc_dialogue else None
+        )
+        if name_stance == "reveal":
+            npc_target["name_known_to_player"] = True
         raw_intent = parse_player_intent(
             player_input,
             interaction_context=(
@@ -18992,6 +19066,10 @@ def _run_player_turn_internal(
             ),
             dialogue_narration=not experimental_npc_dialogue,
             experimental_npc_dialogue=experimental_npc_dialogue,
+            speech_note=(
+                _experimental_speech_note(world_state, npc_target, name_stance, player_input)
+                if experimental_npc_dialogue else ""
+            ),
         )
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
@@ -19169,6 +19247,8 @@ def _run_player_turn_internal(
                     if _is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):
                         cleaned_spoken = ""
                         invalid_spoken_stage_direction = True
+                    if name_stance == "reveal" and cleaned_spoken.strip():
+                        cleaned_spoken = _spoken_name_answer(cleaned_spoken, npc_target)
                     attributed_speech = {
                         # These authority fields are stamped by Python, never
                         # accepted from the model response.
@@ -19201,8 +19281,9 @@ def _run_player_turn_internal(
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
             if invalid_or_empty:
-                text = interaction_adventure.immersive_unknown(
-                    npc_target, player_input
+                text = (
+                    _spoken_name_answer("", npc_target) if name_stance == "reveal"
+                    else interaction_adventure.immersive_unknown(npc_target, player_input)
                 )
             else:
                 text = raw_narration

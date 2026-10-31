@@ -11,6 +11,55 @@ import re
 from narration_claims import fold
 
 
+def claims_own_name(text, name):
+    """True only for a first-person statement of this name, never a letter match."""
+    if not isinstance(text, str) or not isinstance(name, str) or not name.strip():
+        return False
+    exact = re.escape(name.strip())
+    claim = (
+        r"(?:(?:benim\s+)?ad[ıi]m|ismim|\bben)\s+" + exact + r"(?:['’]y?[ıiuü]m)?"
+        r"|\bbana\s+" + exact + r"\s+(?:derler|der|diyorlar|diyebilirsin|de)"
+    )
+    match = re.search(r"(?<![\wçğıöşü])(?:" + claim + r")(?![\wçğıöşü])", text, re.IGNORECASE)
+    return match is not None and not re.match(r"\s*değil", text[match.end():], re.IGNORECASE)
+
+
+def says_own_name(text, name):
+    """The name stands as a word of its own and is not denied."""
+    if claims_own_name(text, name):
+        return True
+    if not isinstance(text, str) or not isinstance(name, str) or not name.strip():
+        return False
+    return re.search(
+        r"(?<![\wçğıöşü])" + re.escape(name.strip()) + r"(?![\wçğıöşü])(?!\s+değil)",
+        text, re.IGNORECASE,
+    ) is not None
+
+
+def hide_unknown_name(text, npc):
+    """Put the public label where a stage direction used a name the player has not learned."""
+    import living_world
+    if (
+        not isinstance(text, str) or not isinstance(npc, dict)
+        or living_world.npc_name_known_to_player(npc)
+    ):
+        return text
+    name = str(npc.get("name") or "").strip()
+    if not name:
+        return text
+    label = living_world.public_npc_name(npc)
+
+    def replace(match):
+        before = text[:match.start()].rstrip()
+        at_start = not before or before[-1] in ".!?"
+        return label if at_start else label[:1].lower() + label[1:]
+
+    return re.sub(
+        r"(?<![\wçğıöşü])" + re.escape(name) + r"(?:['’]\w+)?(?![\wçğıöşü])",
+        replace, text, flags=re.IGNORECASE,
+    )
+
+
 def normalize_bound_speech_label(raw, npc, *, visible=False):
     """Remove one redundant public-speaker wrapper, never narrative content."""
     import living_world

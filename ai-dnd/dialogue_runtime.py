@@ -11,6 +11,7 @@ from typing import Any
 import living_world
 import local_dialogue
 import local_places
+import npc_speech_boundary
 import npc_statements
 import scheduled_events
 
@@ -99,7 +100,7 @@ def build_context(world: dict, npc: dict, player_text: str) -> dict:
         'history_authority':'attributed_speech_not_fact',
         'deception': deception_context(world,npc,{'text':player_text}),
         'initiative': initiative_context(world,npc,npc.get('dialogue_observation')),
-        'speaker': {'id': npc['id'], 'name': npc.get('name'), 'role': npc.get('role'),
+        'speaker': {'id': npc['id'], 'name': living_world.public_npc_name(npc) if local_dialogue.name_withheld_reason(world,npc) else npc.get('name'), 'role': npc.get('role'),
                     'personality': npc.get('personality', '')},
         'persona': local_dialogue.persona_context(world,npc),
         'narration_style': {'routine':'short_and_lively','new_or_dramatic':'richer_when_relevant'},
@@ -203,9 +204,9 @@ def prepare_turn(session, npc_id: str, player_text: str, raw_reply: dict, action
     flags=world.setdefault('flags', {})
     flags['turn_index']=flags.get('turn_index',0)+1
     flags.update(active_npc_id=npc_id,last_npc_id=npc_id,active_npc_until_turn=flags['turn_index']+6)
-    name=npc.get('name')
-    if isinstance(name,str) and name.casefold() in reply['spoken_text'].casefold():
+    if not local_dialogue.name_withheld_reason(world,npc) and npc_speech_boundary.claims_own_name(reply['spoken_text'],npc.get('name')):
         npc['name_known_to_player']=True
+    reply['stage_direction']=npc_speech_boundary.hide_unknown_name(reply['stage_direction'],npc)
     if eligible: npc['dialogue_initiative_handled']=eligible['event_id']
     if motive: npc['dialogue_deception']['remaining_uses']=0
     label=living_world.public_npc_name(npc)
@@ -295,7 +296,7 @@ def _generate_reply(session,npc,player_text,*,optional_initiative=False,action_i
     prompt += (
         " Konuşmacı speaker içindeki NPC'dir; muhatap addressee içindeki oyuncudur. "
         "Oyuncunun adı bilinmiyorsa ona sen diye hitap et; NPC'nin adını oyuncunun adı olarak kullanma. "
-        "Bilinen oyuncu adını da her cümlede tekrarlama. NPC kendi adını doğal tanışmada söyleyebilir; adını bir rol etiketi gibi sürekli açıklamaz. "
+        "Bilinen oyuncu adını da her cümlede tekrarlama. NPC kendi adını doğal tanışmada ve adı sorulunca söyler; adını bir rol etiketi gibi sürekli açıklamaz. Adını vermemek için nedeni varsa adını ne spoken_text ne stage_direction içinde kullanır. "
         "Önce player_message içindeki güncel isteğe yanıt ver; eski konuşma yalnız gerekli takip bağlamıdır. "
         "Eski sözler gerçekleşmiş olay kanıtı değildir; güncel scene, current_time ve access bilgileri onlardan üstündür. "
         "Oyuncu konu değiştirdiyse eski han teklifini sürdürme. Eksik bilgin varsa dar kapsamda bilmediğini söyle; "
