@@ -184,6 +184,18 @@ test('the real unresolved_action refusal is the never-applied proof for the NEW 
   assert.equal(recovery.unresolvedActionFrom(other), null, 'only unresolved_action names an open action');
 });
 
+test('a move a model failed reads as the server line, and only that kind of refusal does', async () => {
+  const refused = (status, detail) => {
+    installTransport(() => ({ status, body: { detail } }));
+    return getGameActionStatus('s1', contract.ids.newer).then(() => null, (e) => e);
+  };
+  const line = 'Bunu tam yakalayamadım; bir daha, belki biraz farklı söyler misin?';
+  assert.equal(recovery.modelRefusalLine(await refused(503, { code: 'intent_json_invalid', message: line, not_applied: true })), line);
+  assert.equal(recovery.modelRefusalLine(await refused(503, { code: 'campaign_storage_unavailable', message: 'x' })), null, 'no claim, no line');
+  assert.equal(recovery.modelRefusalLine(await refused(500, { code: 'engine_error', message: 'x', not_applied: true })), null);
+  assert.equal(recovery.modelRefusalLine(new Error('network')), null);
+});
+
 test('a new auth epoch or a signed-out clean slate never turns an unresolved action into a closed one', () => {
   const key = pending.createIntentKey(OWNER, CAMPAIGN, { message: 'x', interaction_mode: 'do' });
   rotateAuthEpoch();

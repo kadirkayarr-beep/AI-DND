@@ -79,6 +79,13 @@ export async function settlePending(
   return 'kept';
 }
 
+/** The server's own short line for a move a model failed and it let go of: nothing is stuck, the player only says it again. */
+export function modelRefusalLine(error: unknown): string | null {
+  const failure = error as { status?: unknown; data?: { detail?: { not_applied?: unknown; message?: unknown } } } | null;
+  const detail = failure?.data?.detail;
+  return failure?.status === 503 && detail?.not_applied === true && typeof detail.message === 'string' ? detail.message : null;
+}
+
 /** The open action a refused request ran into, when the server said `unresolved_action`; otherwise null. */
 export function unresolvedActionFrom(error: unknown): { actionId: string; code: 'unresolved_action' } | null {
   const detail = (error as { data?: { detail?: { code?: unknown; unresolved_action_id?: unknown } } } | null)?.data?.detail;

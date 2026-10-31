@@ -11,7 +11,7 @@ import { LevelUpControls, type LevelUpRequest } from '@/components/level-up-cont
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
-import { askServer, findUnresolvedOnServer, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
+import { askServer, findUnresolvedOnServer, modelRefusalLine, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
@@ -150,7 +150,7 @@ function friendlyError(error: unknown, fallback: string) {
   if (code === 401) return 'Kimlik doğrulaması gerekli.';
   if (code === 404) return 'Bu macera bulunamadı.';
   if (code === 422) return 'Bu söz şimdilik yankı bulmadı. 1–4000 karakter arasında yeniden dene.';
-  if (code === 503) return 'Dünya şu an sessiz.';
+  if (code === 503) return modelRefusalLine(error) ?? 'Dünya şu an sessiz.';
   if (typeof code === 'number' && code >= 500) return 'Sunucuda bir aksaklık oldu; yeniden dene.';
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'Bağlantı yok. İnternet bağlantını kontrol edip tekrar dene.';
   return fallback;
