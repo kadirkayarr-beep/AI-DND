@@ -541,9 +541,20 @@ class TheSetting(unittest.TestCase):
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
         self.assertIsNone(model_chain.from_environment())
 
-    def test_keys_can_come_from_the_environment(self):
+    def test_a_key_in_the_environment_turns_nothing_on(self):
         os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku", GEMINI_API_KEY="g-env", ANTHROPIC_API_KEY="a-env")
-        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini", "haiku"])
+        self.assertIsNone(model_chain.from_environment())
+
+    def test_deleting_a_key_file_turns_that_provider_off_whatever_the_environment_holds(self):
+        self.keys(haiku=None)
+        os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku", ANTHROPIC_API_KEY="a-env")
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
+
+    def test_an_unreadable_key_file_leaves_that_provider_off(self):
+        self.keys(haiku=None)
+        (self.home / ".aidnd-anthropic-key").write_bytes("haiku-file-key".encode("utf-16"))
+        os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku", ANTHROPIC_API_KEY="a-env")
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
 
     def test_an_unknown_name_is_left_out(self):
         self.keys()

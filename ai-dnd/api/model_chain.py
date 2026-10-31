@@ -30,8 +30,8 @@ HAIKU_MODEL = "claude-haiku-5-5"
 CHAIN_SETTING = "AI_DND_MODEL_CHAIN"
 LOCAL_NAME = "gemma"
 SPEND_FILE_NAME = "model-chain-spend.json"
-_GEMINI_KEY_FILE, _GEMINI_KEY_ENV = ".aidnd-gemini-key", "GEMINI_API_KEY"
-_ANTHROPIC_KEY_FILE, _ANTHROPIC_KEY_ENV = ".aidnd-anthropic-key", "ANTHROPIC_API_KEY"
+_GEMINI_KEY_FILE = ".aidnd-gemini-key"
+_ANTHROPIC_KEY_FILE = ".aidnd-anthropic-key"
 CALL_TIMEOUT_SECONDS = 20
 DEFAULT_COOLDOWN_SECONDS = 60
 HAIKU_MONTHLY_CAP_USD = 4.0
@@ -392,16 +392,14 @@ class ModelChain:
         return local(), None
 
 
-def _read_key(file_name: str, environment_name: str) -> str:
+def _read_key(file_name: str) -> str:
     home = os.environ.get("USERPROFILE")
-    if home:
-        try:
-            key = (Path(home) / file_name).read_text(encoding="utf-8-sig").strip()
-        except (OSError, UnicodeError):
-            key = ""
-        if key:
-            return key
-    return os.environ.get(environment_name, "").strip()
+    if not home:
+        return ""
+    try:
+        return (Path(home) / file_name).read_text(encoding="utf-8-sig").strip()
+    except (OSError, UnicodeError):
+        return ""
 
 
 def _spend_path() -> Path:
@@ -418,9 +416,9 @@ def from_environment() -> ModelChain | None:
         names = names[:names.index(LOCAL_NAME)]
     providers = []
     for name in dict.fromkeys(names):
-        if name == "gemini" and (key := _read_key(_GEMINI_KEY_FILE, _GEMINI_KEY_ENV)):
+        if name == "gemini" and (key := _read_key(_GEMINI_KEY_FILE)):
             providers.append(gemini(key))
-        elif name == "haiku" and (key := _read_key(_ANTHROPIC_KEY_FILE, _ANTHROPIC_KEY_ENV)):
+        elif name == "haiku" and (key := _read_key(_ANTHROPIC_KEY_FILE)):
             providers.append(haiku(key, HaikuSpend(_spend_path(), lambda: datetime.now().astimezone())))
     chain = ModelChain(providers) if providers else None
     _logger.info("Model chain providers on: %s", ",".join([*(chain.provider_names() if chain else ()), "local"]))
