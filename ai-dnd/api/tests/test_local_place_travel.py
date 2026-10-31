@@ -122,6 +122,27 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         await self.go(TravellingClient({"create_locations": [PLACE]}))
         self.assertTrue(game.living_world.on_open_street(self.world))
 
+    async def test_the_people_left_behind_are_not_in_the_walk_prompt(self):
+        # Real line: "Yolun kenarındaki kapüşonlu biri ve nöbetçi muhafız ... bu yeni bölgeye girerken ... seni izledi."
+        await self.scene()
+        names = [npc["name"] for npc in self.world["npcs"] if npc.get("location") == self.city]
+        self.assertTrue(names)
+        self.session.recent_dm_narrations.append(f"{names[0]} sokakta seni süzüyor.")
+        client = TravellingClient({"create_locations": [PLACE]})
+        await self.go(client)
+        prompt = next(b for b, kind in zip(client.batches, client.kinds) if kind == "narration")[-1]["content"]
+        for name in names:
+            self.assertNotIn(name, prompt)
+        self.assertNotIn("çevredekilerin buna tepkisini", prompt)
+        self.assertIn("geride kalır", prompt)
+
+    async def test_lines_from_the_old_street_do_not_reach_the_next_scene(self):
+        # Real line one turn later: "Daha önce fark ettiğin kapüşonlu figür hâlâ yol kenarında duruyor".
+        await self.scene()
+        self.session.recent_dm_narrations.append("Kapüşonlu biri yol kenarında oturuyor.")
+        await self.go(TravellingClient({"create_locations": [PLACE]}))
+        self.assertFalse(any("Kapüşonlu" in line for line in self.session.recent_dm_narrations))
+
     async def test_a_short_walk_inside_the_city_meets_no_road_encounter(self):
         await self.scene()
         client = TravellingClient({"create_locations": [PLACE]})

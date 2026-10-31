@@ -7516,6 +7516,8 @@ def commit_location_change(location_id, turn_index=None):
     if previous_location != location_id:
         import grounded_action
         grounded_action.clear_near(world_state)
+        # Narrator lines about the street just left are not this place's facts.
+        _session().recent_dm_narrations.clear()
         if ensure_combat_state()["active"]:
             end_combat("location_changed")
         flags = world_state.setdefault("flags", {})
@@ -12780,10 +12782,25 @@ def ask_dungeon_master(
         if lore_context is not None
         else getattr(_session(), "lore_authority_context", None)
     )
-    context = json.dumps(build_world_context(npc_target), ensure_ascii=False, separators=(",", ":"))
+    travel_status = (
+        action_result.get("status")
+        if isinstance(action_result, dict) and action_result.get("action") == "travel"
+        else None
+    )
+    # This call writes the arrival before the walk: the street it still sees stays behind.
+    walking_away = (
+        travel_status == "awaiting_proposal" and action_result.get("completion") == "completed"
+    )
+    world_context = build_world_context(npc_target)
     living_scene_context = _living_world_prompt_context(
         scene_plan, npc_target, player_input
     )
+    if walking_away:
+        world_context.update(npcs=[], features=[])
+        leaving = json.loads(living_scene_context) if living_scene_context else {}
+        leaving.update(visible_npcs=[], features=[], background_referents=[], recent_beat=None)
+        living_scene_context = json.dumps(leaving, ensure_ascii=False, separators=(",", ":"))
+    context = json.dumps(world_context, ensure_ascii=False, separators=(",", ":"))
     lore_context_json = json.dumps(
         lore_context, ensure_ascii=False, separators=(",", ":")
     )
@@ -12914,7 +12931,7 @@ def ask_dungeon_master(
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
         )
-    recent_narrations = _session().recent_dm_narrations[-8:]
+    recent_narrations = [] if walking_away else _session().recent_dm_narrations[-8:]
     recent_narration_context = "\n".join(
         f"- {item[:240]}"
         for item in recent_narrations
@@ -12983,8 +13000,13 @@ def ask_dungeon_master(
         f"CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n{living_scene_context}\n\n"
         f"RECENT NARRATION (yalnızca tekrar etmeme için; olgusal dayanak değil):\n{recent_narration_context}\n\n"
         f"VERIFIED NPC MEMORY (önceki gerçek NPC yanıtları; oyuncu iddiaları değil) yukarıdaki context'te yer alır.\n\n"
-        + "Önce oyuncunun denediği şeyin nasıl sonuçlandığını ve çevredekilerin buna tepkisini anlat; "
-        "sahneyi baştan tarif etme. Sahne verisinde geçmeyen koku veya yiyecek ayrıntısı ekleme.\n"
+        + (
+            "Geride kalan kişiler geride kalır, peşinden gelmez ve varılan yerde yoktur; onları anlatma. "
+            "Yürüyüşü ve varılan yeri anlat. Sahne verisinde geçmeyen koku veya yiyecek ayrıntısı ekleme.\n"
+            if walking_away or travel_status == "completed" else
+            "Önce oyuncunun denediği şeyin nasıl sonuçlandığını ve çevredekilerin buna tepkisini anlat; "
+            "sahneyi baştan tarif etme. Sahne verisinde geçmeyen koku veya yiyecek ayrıntısı ekleme.\n"
+        )
         + _untrusted_player_block("CURRENT PLAYER MESSAGE (doğrulanmamış yeni girdi):\n", player_input)
     )
     try:
