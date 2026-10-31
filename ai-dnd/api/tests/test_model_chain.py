@@ -375,14 +375,14 @@ class TheSpendCap(unittest.TestCase):
         self.haiku_only(path, reply=ok(haiku_reply("yarım"))).chat(CALL, LocalModel())
         self.assertEqual(json.loads(path.read_text())["input_tokens"], 1000)
 
-    def test_below_two_dollars_haiku_still_answers(self):
+    def test_below_four_dollars_haiku_still_answers(self):
         path = spend_file()
-        self.spent(path, input_tokens=19_000_000, output_tokens=199_999)
+        self.spent(path, input_tokens=39_000_000, output_tokens=199_999)
         self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
 
-    def test_at_two_dollars_haiku_is_not_called_at_all(self):
+    def test_at_four_dollars_haiku_is_not_called_at_all(self):
         path = spend_file()
-        self.spent(path, input_tokens=19_000_000, output_tokens=200_000)
+        self.spent(path, input_tokens=39_000_000, output_tokens=200_000)
         local = LocalModel()
         self.assertIsNone(self.haiku_only(path).chat(CALL, local)[1])
         self.assertEqual(local.calls, 1)
@@ -390,7 +390,7 @@ class TheSpendCap(unittest.TestCase):
 
     def test_a_new_month_starts_at_zero(self):
         path = spend_file()
-        self.spent(path, month="2026-09", input_tokens=40_000_000)
+        self.spent(path, month="2026-09", input_tokens=80_000_000)
         self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
         self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 1000, "output_tokens": 200})
 
@@ -473,7 +473,7 @@ class TheSetting(unittest.TestCase):
         self.database.parent.mkdir(parents=True)
         spend = self.database.parent / "model-chain-spend.json"
         month = datetime.now().astimezone().strftime("%Y-%m")
-        spend.write_text(json.dumps({"month": month, "input_tokens": 30_000_000, "output_tokens": 0}))
+        spend.write_text(json.dumps({"month": month, "input_tokens": 50_000_000, "output_tokens": 0}))
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
         self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
 
