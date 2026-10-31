@@ -181,6 +181,16 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("tartıyorsun", prompt)
         self.assertIn("Önce oyuncunun denediği şeyin", prompt)
 
+    async def test_walking_up_to_a_feature_reads_as_turkish(self):
+        await self.asyncSetUpScene()
+        world = self.session.world_state
+        world.setdefault("features", []).append({
+            "id": "f1", "location": world["location"], "name": "Ahşap masa",
+            "description": "Sağlam bir masa.", "aliases": ["masa"],
+        })
+        shown = (await self.play(NarratingClient(), "Masaya yaklaşıyorum."))["narration"]
+        self.assertIn("Ahşap masanın yanına geliyorsun.", shown)
+
     def test_stock_performance_lines_are_gone(self):
         for message in ("Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.", "ıslık çalıyorum", "dans ediyorum"):
             self.assertIsNone(everyday_actions.classify(message))

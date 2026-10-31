@@ -7947,7 +7947,7 @@ def _spoken_name_answer(spoken_text, npc):
 
 _SPEECH_ANSWER_RULES = (
     "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
-    "Biliyorsan söyle, bilmiyorsan bilmediğini sade bir cümleyle söyle; gizem, kaçamak veya "
+    "Biliyorsan söyle, bilmiyorsan bilmediğini kendi sesinle tam bir cümleyle söyle; gizem, kaçamak veya "
     "fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
     "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
@@ -13155,7 +13155,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
                 f"{place} konumuna ulaştın."
                 + (f" {presence}" if presence else "")
             )
-        return "Oraya giden yolu bilmiyorsun; olduğun yerdesin."
+        return "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin."
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
     if action == "explore":

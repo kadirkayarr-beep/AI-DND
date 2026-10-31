@@ -2030,7 +2030,7 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
         if feature:
             run.near(feature["id"])
             return _receipt(verb, "completed", {"id": feature["id"], "label": feature.get("name")},
-                            text=f"{feature.get('name')} yanına geliyorsun. {feature.get('description', '')}".strip())
+                            text=f"{run.game._turkish_genitive_form(feature.get('name')).replace("'", "")} yanına geliyorsun. {feature.get('description', '')}".strip())
         return _receipt(verb, "blocked", None, reason="not_here",
                         text=f"Yakında bir {DETAILS[step['detail']]['name'].lower()} görmüyorsun.")
     if target is None:
@@ -2052,7 +2052,7 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
     if kind == "feature":
         feature = target["record"]
         run.near(feature["id"])
-        return _receipt(verb, "completed", target, text=f"{feature.get('name')} yanına geliyorsun. {feature.get('description', '')}".strip())
+        return _receipt(verb, "completed", target, text=f"{run.game._turkish_genitive_form(feature.get('name')).replace("'", "")} yanına geliyorsun. {feature.get('description', '')}".strip())
     if kind == "door" and target.get("inside") and verb in {"go", "enter"}:
         return _receipt(verb, "completed", target, text="")  # already through it
     if kind == "door":
