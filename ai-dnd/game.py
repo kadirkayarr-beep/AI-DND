@@ -3822,6 +3822,7 @@ def create_npc_from_ai(proposal, request_key=None):
     }
     living_world.assign_visible_trait(world_state, npc)
     local_dialogue.ensure_personal_profile(npc)
+    npc["voice_trait"] = local_dialogue.voice_trait(world_state, npc)
     ensure_npc_combat_stats(npc)
     world_state["npcs"].append(npc)
     return npc
@@ -8028,14 +8029,18 @@ _SPEECH_ANSWER_RULES = (
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
     "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
-    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma.\n"
+    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
+    "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan.\n"
 )
 
 
 def _experimental_speech_note(world, npc, name_stance, player_input):
     """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
     label = living_world.public_npc_name(npc)
-    lines = [f"Konuşan sensin; sahnedeki “{label}” sensin, oyuncu karşındaki kişidir."]
+    lines = [
+        f"Konuşan sensin; sahnedeki “{label}” sensin, oyuncu karşındaki kişidir.",
+        f"Konuşma biçimin: {local_dialogue.voice_trait(world, npc)} Sıradan birisin, herkese yardım etmek zorunda değilsin.",
+    ]
     name = str(npc.get("name") or "").strip()
     if name_stance == "withhold":
         reason = local_dialogue.name_withheld_reason(world, npc)
@@ -8045,7 +8050,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         )
     elif name_stance == "reveal":
         lines.append(
-            f"Adın {name}. Oyuncu adını soruyor: adını kısa, doğal bir cümleyle söyle (Adım {name}.)."
+            f"Adın {name}. Oyuncu adını soruyor: adını kendi sesinle söyle; tek kelimeyle bırakma, yanına konuşma biçimine uyan kısa bir söz ekle."
         )
     elif living_world.npc_name_known_to_player(npc):
         lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
@@ -9645,6 +9650,7 @@ _PLAYER_MENTAL_STATE_AFFECT_RE = re.compile(
 _PLAYER_FEELING_RE = re.compile(
     r"\b(?:(?:gerginlik|tedirginlik|huzursuzluk|korku|endişe|kaygı|heyecan|rahatsızlık|öfke|"
     r"utanç|sevinç|merak|şüphe|gurur|rahatlama|ürperti|pişmanlık)\w*(?:\s+\w+){0,2}|"
+    r"\w+[dt][ıiuü]ğ[ıiuü]n[ıiuü]|gibi|"
     r"(?:gergin|tedirgin|huzursuz|rahatsız|endişeli|güvende|rahat))\s+"
     r"(?:hissed\w*|hisset\w*|duyuyorsun|duydun)\b",
     re.IGNORECASE,
@@ -14098,7 +14104,7 @@ gerçeği değildir ve önemli NPC, görev, eşya veya mekanik sonuç yaratmaz.
 Sıradan sahne eşyaları, NPC jestleri ve ifadeleri de geçici doku olabilir; yalnızca önemli veya kalıcıysa world_updates öner.
 Oyuncunun duyduğu, gördüğü veya kokladığı şeyleri anlatabilirsin; onun adına karar, inanç, söz, hareket, saldırı ya da eşya transferi uydurma.
 Oyuncuyu yönetmeden dünyayı karşılık verir halde tut. Oyuncuya yeni karar, rıza, söz, duygu, tepki veya ek hareket yazma;
-iç durum yerine görünen, duyulan, koklanan şeyi anlat. Oyuncunun denediği şeyi anlat, denemeyi yok sayma ve "bir şey olmuyor" deme:
+iç durum yerine görünen, duyulan, koklanan şeyi anlat; "hissediyorsun" diyerek oyuncunun yerine sezgi yazma. Oyuncunun denediği şeyi anlat, denemeyi yok sayma ve "bir şey olmuyor" deme:
 motorun bir kuralı olmasa bile makul bir sonuç ya da doğal bir başarısızlıkla sürdür, başarıyı garanti etme. Bu anlatım para, eşya,
 konum, kilit veya kalıcı kişi değiştirmez; bekletmek için yeni kilit, şart, ücret veya zar üretme. Yalnız oyuncunun şu an bulunduğu
 yeri anlat; CURRENT LOCAL SCENE STATE içinde olmayan tezgâh, oda veya mekânı sahneye koyma. Yalnız açığa çıkarılmış bilgiyi kullan.

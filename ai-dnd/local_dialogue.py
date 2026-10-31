@@ -743,6 +743,31 @@ def remember_explicit_player_name(npc: Any, name: str) -> None:
     del memory[:-16]
 
 
+# How a person talks, public from the first word. Not everyone is helpful.
+VOICE_TRAITS = (
+    "Kısa konuşur, lafı uzatmaz.",
+    "Sıcak ve içten konuşur.",
+    "Ters ve sabırsızdır; yardım etmek zorunda değildir.",
+    "Şüphecidir; önce karşısındakini tartar.",
+    "Gevezedir; sorulandan biraz fazlasını anlatır.",
+    "Alaycıdır; kuru bir laf sokuşturur.",
+    "Yorgun ve isteksizdir; gereğinden fazlasını söylemez.",
+    "Meraklıdır; karşısındakine de bir şey sorabilir.",
+    "Resmî ve mesafelidir.",
+    "Neşelidir; laf atmayı sever.",
+)
+
+
+def voice_trait(world: Any, npc: dict) -> str:
+    """The stored voice, or the one the seed gives a person from an older save. Read-only."""
+    stored = npc.get('voice_trait')
+    if isinstance(stored, str) and stored:
+        return stored
+    seed = living_world._campaign_seed(world) if isinstance(world, dict) else ''
+    digest = hashlib.sha256(f"{seed}|{npc.get('id')}|voice".encode('utf-8')).digest()
+    return VOICE_TRAITS[digest[0] % len(VOICE_TRAITS)]
+
+
 # Stable character identity is separate from transient mood and relationship.
 def ensure_dialogue_persona(npc: dict) -> dict:
     """Persist a small persona once; never regenerate it on movement or mood."""
@@ -784,5 +809,5 @@ def persona_context(world: dict, npc: dict) -> dict:
     profile = profile if isinstance(profile,dict) else {}
     current = {k:profile[k] for k in ('mood','current_activity') if isinstance(profile.get(k),str)}
     relationship = relationships.read(world).get(npc.get('id'), {'score':0,'events':[]})
-    return {'stable':stable,'current':current,
+    return {'stable':stable,'voice_trait':voice_trait(world,npc),'current':current,
             'relationship':{'score':relationship['score'],'evidence':relationship['events'][-6:]}}

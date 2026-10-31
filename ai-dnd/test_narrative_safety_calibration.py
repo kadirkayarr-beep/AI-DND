@@ -204,12 +204,20 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             decision["reason_code"], "CANONICAL_NPC_LOCATION_CONTRADICTION"
         )
 
-    def test_perception_and_subjective_impression_are_allowed(self):
+    def test_a_hunch_written_for_the_player_is_not_allowed(self):
+        decision = self.decide(
+            "Sessizliğin içinde bir şeylerin farklı olduğunu hissedersin.",
+            player_input="Bir süre sessizce bekliyorum.",
+            action_result={"action": "explore", "status": "resolved", "explore_type": "observe"},
+        )
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["reason_code"], "INVENTED_PLAYER_MENTAL_STATE")
+
+    def test_perception_is_allowed(self):
         narration = (
             "Korucu Elira, toprağı incelerken sessizce yanına gelir. "
             '"Orman seninle konuşmak istiyor," diye mırıldanır. '
-            "Sessizliğin içinde, doğal sesler arasında bir şeylerin farklı "
-            "olduğunu hissedersin."
+            "Sessizliğin içinde, doğal sesler arasında bir dal çıtırtısı duyarsın."
         )
         elira = {
             "id": "npc_002",
