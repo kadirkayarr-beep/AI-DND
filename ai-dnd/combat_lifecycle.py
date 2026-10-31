@@ -104,8 +104,10 @@ def pointed_targets(session, message):
     text = session._normalize_turkish_typos(message)
     available = session.active_npcs()
     named = [n for n in available if
-             session._entity_reference_in_text(n.get("name", ""), text)
-             or session._entity_reference_in_text(n.get("role", ""), text)
+             (living_world.npc_name_known_to_player(n)
+              and session._entity_reference_in_text(n.get("name", ""), text))
+             or (living_world.npc_role_known_to_player(n)
+                 and session._entity_reference_in_text(n.get("role", ""), text))
              or session.named_by_sight(n, text)]
     if named:
         return named
@@ -129,9 +131,16 @@ def _attack_targets(session, message, target_id):
         return [n for n in world.get("npcs", [])
                 if n.get("location") == world.get("location") and n.get("id") == target_id]
     targets = pointed_targets(session, message)
-    if not targets and re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", session._normalize_turkish_typos(message)):
-        return session.active_npcs()
-    return targets
+    if targets:
+        return targets
+    text = session._normalize_turkish_typos(message)
+    # A guessed hidden name passes this preflight; the attack's owner then asks who.
+    guessed = [n for n in session.active_npcs() if
+               session._entity_reference_in_text(n.get("name", ""), text)
+               or session._entity_reference_in_text(n.get("role", ""), text)]
+    if guessed or not re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text):
+        return guessed
+    return session.active_npcs()
 
 
 def _single_valid_target(session, targets):

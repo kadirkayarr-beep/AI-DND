@@ -5301,6 +5301,11 @@ def _start_combat_with_initiative(player_target_npc):
         "end_reason": None,
     })
     _clear_active_interlocutor()
+    for npc in enemies:
+        # People in one room see the one who just hit them; no scenario has to say so.
+        facts = world_state.setdefault("monster_perception", {}).setdefault(npc["id"], {})
+        facts.setdefault("player", {"visible": True, "source": "same_scene"})
+        npc.setdefault("distance_ft", 5)
     combat["participant_records"] = [
         _combat_record_for_actor(
             participant_id,
@@ -15958,8 +15963,14 @@ def _scene_presence_text(location_id):
         if ref.get("lifecycle") == "presented"
         and isinstance(ref.get("description"), str)
     ]
+    import fallen
+    bodies = fallen.scene_line(world_state)
+    if bodies and not visible:
+        return bodies
     if visible:
         response = f"Yakınında {visible} var."
+        if bodies:
+            response += " " + bodies
         if ref_descriptions:
             response += " " + ref_descriptions[0]
         if shops:
@@ -16044,6 +16055,8 @@ def _scene_look_text(location_id):
             for npc in people[:2]
             if isinstance(npc.get("appearance"), str) and npc["appearance"].strip()
         )
+    import fallen
+    parts.append(fallen.scene_line(world_state))
     if features:
         parts.append(
             living_world.turkish_initial_upper(
@@ -16063,7 +16076,7 @@ def _scene_look_text(location_id):
         parts.append("Burası sakin; doğal sesler dışında belirgin bir hareket yok.")
     elif scene.get("last_beat"):
         parts.append(scene["last_beat"])
-    return " ".join(parts)
+    return " ".join(part for part in parts if part)
 
 
 def _look_scene_changed():
@@ -17308,6 +17321,11 @@ def player_cannot_act_turn():
     }
 
 
+def _reads_as_address(player_input):
+    """Spoken at someone: a question, a greeting or a name at the head of the line."""
+    return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
+
+
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
@@ -17361,6 +17379,16 @@ def _dispatch_player_turn(
                 "state_changes": ["conversation"] if active is not None else [],
             },
         }
+    if combat_action is None:
+        import fallen
+        body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
+        if body is not None and _reads_as_address(player_input):
+            line = fallen.silence(body)
+            return {
+                "messages": _session().messages, "narration": line, "model_calls": 0,
+                "action_result": {"action": "narrative", "status": "body_silent", "success": True,
+                                  "state_changes": [], "direct_response": line},
+            }
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         question = combat_lifecycle.unbound_attack_reply(_session(), player_input, target_id)
         if question:

@@ -194,11 +194,14 @@ class FightBackTests(ThreePlaysTests):
         with self.app.state.ollama_adapter.engine_binding():
             person = self.session.create_npc_from_ai(
                 {"name": "Tariq", "role": "Liman işçisi", "location": self.world["location"]})
-        person.update(current_hp=500, max_hp=500)
+        person.update(current_hp=500, max_hp=500, role_known_to_player=True)
         before = self.session.character["current_hp"]
+        log = []
         for _ in range(12):
-            await self.say("liman işçisine vuruyorum", PlayClient(intent="attack"))
-        self.assertLess(self.session.character["current_hp"], before)
+            out = await self.say("liman işçisine vuruyorum", PlayClient(intent="attack"))
+            log.append(out["narration"])
+            log.append(str(out.get("combat_result"))[:700])
+        self.assertLess(self.session.character["current_hp"], before, log)
 
     async def test_an_armed_guard_is_harder_than_a_passer_by(self):
         await self.begin(BARBARIAN)
@@ -211,6 +214,37 @@ class FightBackTests(ThreePlaysTests):
         self.assertGreater(guard["armor_class"], worker["armor_class"])
         self.assertGreater(guard["max_hp"], worker["max_hp"])
         self.assertGreater(guard["attack_bonus"], worker["attack_bonus"])
+
+
+class TheDeadTests(ThreePlaysTests):
+    async def scene_with_a_body(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.dead = self.add_person("Tariq", "Muhafız", current_hp=0, combat_status="dead")
+        self.living = self.add_person("Ilyra", "Barmen", visible_trait="gençten")
+
+    async def test_the_dead_leave_the_scene_list(self):
+        await self.scene_with_a_body()
+        out = await self.say("burada kimler var, bakıyorum", PlayClient())
+        ids = [person.get("id") for person in out["state"]["scene"]["npcs"]]
+        self.assertNotIn(self.dead["id"], ids)
+        self.assertIn(self.living["id"], ids)
+
+    async def test_a_look_shows_the_body_on_the_floor(self):
+        await self.scene_with_a_body()
+        out = await self.say("etrafa bakıyorum", PlayClient())
+        self.assertIn("yerde", out["narration"].casefold())
+
+    async def test_the_dead_do_not_answer(self):
+        await self.scene_with_a_body()
+        client = PlayClient(spoken="Karşında dimdik duruyorum, hayattayım işte.")
+        out = await self.say("muhafız, ölmüş olman lazım senin, nasılsın", client)
+        self.assertNotIn("hayattayım", out["narration"])
+
+    async def test_an_attack_on_the_dead_asks_about_the_living(self):
+        await self.scene_with_a_body()
+        out = await self.say("saldırıyorum", PlayClient(intent="attack"))
+        self.assertNotIn("muhafız", out["narration"].casefold())
 
 
 class DeathTests(ThreePlaysTests):

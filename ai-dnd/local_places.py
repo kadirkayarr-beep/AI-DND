@@ -413,4 +413,6 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
         parts.append(f"{who} burada. {activity}")
     if first_visit and record.get("local_issue"):
         parts.append(str(record["local_issue"]))
+    import fallen
+    parts.append(fallen.scene_line(world))
     return " ".join(part.strip() for part in parts if part and part.strip())

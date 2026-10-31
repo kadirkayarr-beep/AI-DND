@@ -56,6 +56,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         "damage_modifier": 0,
                     }
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(5)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)
@@ -379,6 +381,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         "damage_modifier": 0,
                     }
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(5)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)
@@ -474,6 +478,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         "damage_modifier": 0,
                     }
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(5)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)
@@ -580,6 +586,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         "damage_modifier": 0,
                     }
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(5)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)
@@ -695,6 +703,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     await fixture.create(client)
                     fixture.tavern()
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(seed)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)
@@ -835,6 +845,8 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         "damage_modifier": 0,
                     }
                     fixture.session.world_state["npcs"] = [npc]
+                    # This defender only dodges: it cannot see who struck it.
+                    fixture.session.world_state["monster_perception"] = {"npc_enemy": {"player": {"visible": False}}}
                     fixture.session.rng.seed(5)
                     game._living_world_prompt_context(session=fixture.session)
                     fixture.session.start_combat(npc)

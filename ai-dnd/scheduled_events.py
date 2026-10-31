@@ -503,12 +503,15 @@ def visible_npcs(world):
         if event["status"] == "OCCURRED" and not event["player_observed"]
         for effect in event["effects"] if effect["kind"] == "npc_location"
     }
-    return [npc for npc in world.get("npcs", []) if npc.get("id") not in hidden or (
-        npc.get("location") == world.get("location")
-        and not any(
-            e["visibility"] == "hidden" and e["status"] == "OCCURRED" and not e["player_observed"]
-            and any(f.get("npc_id") == npc.get("id") for f in e["effects"])
-            for e in world.get("scheduled_events", [])
+    # The dead are no longer people in the scene; they lie where they fell.
+    return [npc for npc in world.get("npcs", []) if npc.get("combat_status") != "dead" and (
+        npc.get("id") not in hidden or (
+            npc.get("location") == world.get("location")
+            and not any(
+                e["visibility"] == "hidden" and e["status"] == "OCCURRED" and not e["player_observed"]
+                and any(f.get("npc_id") == npc.get("id") for f in e["effects"])
+                for e in world.get("scheduled_events", [])
+            )
         )
     )]
 

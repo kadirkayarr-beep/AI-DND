@@ -258,6 +258,8 @@ class DeathSystemTests(unittest.TestCase):
         combat["current_turn_index"] = combat["initiative_order"].index(enemy_id)
         combat["current_actor_id"] = enemy_id
         game.ensure_combat_state(session=session)
+        # A scheduler test: this enemy has nothing to strike with or at.
+        session.world_state["monster_perception"][enemy_id]["player"]["visible"] = False
 
         with patch(
             "game.resolve_enemy_attack",
