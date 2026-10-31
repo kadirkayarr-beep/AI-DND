@@ -76,7 +76,7 @@ _NEGATED_HELPER = re.compile(r"^(?:istemiyor\w*|istemem|calismiyor\w*|kalkmiyor\
 VERBS: tuple[tuple[str, str], ...] = (
     ("approach", r"(?:yaklas|sokul|yanas)"),
     ("enter", r"(?:gir|dal|suzul)"),
-    ("leave", r"(?:cik(?!ar)|ayril|terket|terk)"),
+    ("leave", r"(?:cik(?!ar)|ayril|terket|terk|sivis)"),
     ("search", r"(?:ara(?!b|c|l|s)|ari(?=yor|yac|ya)|bul(?=mak|maya|mayi|urum|ur$|abil|acag|ayim|mam|up|dum)|kolacan|arastir|tara(?=yor|ma|rim))"),
     ("wander", r"(?:dolas|dolan|gez(?!dir))"),
     ("go", r"(?:git|gid|yonel|ugra|ilerl|yuru|var(?=i|a|d|m|ip)|don(?=u|e|d|m)|gec(?=iyor|ip|ecek|eceg)|sap(?=iyor|ip|acag))"),
@@ -329,7 +329,7 @@ def _read_clause(clause: dict[str, Any], cands=()) -> dict[str, Any]:
 # Candidates: everything the player could mean, from the saved world.
 # ---------------------------------------------------------------------------
 _PERSON_NOUNS = ("kisi", "adam", "kadin", "yabanci", "genc", "yasli", "cocuk")
-_OUTSIDE_NOUNS = ("disari", "sokak", "cadde", "meydan")
+_OUTSIDE_NOUNS = ("disari", "sokak", "sokag", "cadde", "meydan")
 
 
 def _soften(token: str) -> str:
@@ -2681,6 +2681,16 @@ def _direct_door_step(step) -> bool:
     )
 
 
+def _climbs_somewhere(step) -> bool:
+    """"Odaya çıkıyorum", "çatıya çıkıyorum": the word before the verb goes up, not out."""
+    if (step.get("target") or {}).get("kind") == "outside":
+        return False
+    tokens, goal = step.get("tokens") or [], step.get("goal_tokens") or []
+    index = next((i for i, token in enumerate(tokens) if token not in goal), 0)
+    before = tokens[index - 1] if index else ""
+    return before.endswith(("a", "e")) and not before.startswith(_OUTSIDE_NOUNS)
+
+
 def _owned_single_step(step, conditional_seen: bool = False) -> bool:
     """Single acts this module owns: the ones the P6 run showed older owners get wrong."""
     kind = (step.get("target") or {}).get("kind")
@@ -2710,8 +2720,11 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # "kilidi açmaya çalışıyorum": tools, a roll, or a concrete obstacle
     if not conditional_seen and _direct_door_step(step):
         return True
-    if verb in {"go", "approach"} and step.get("outside"):
+    if verb in {"go", "approach"} and (step.get("outside") or kind == "outside"):
         return True
+    if (verb == "leave" and not _climbs_somewhere(step)
+            and living_world.classify_scene_action(" ".join(step["tokens"])) != "exit"):
+        return True  # out of here, however it is said; the narrator must not do it alone
     if verb in {"go", "approach"} and kind is None and (step.get("place_noun") or (None, ""))[1] == "generic":
         return True  # "şu eski depoya doğru yürüyorum": a building nobody registered yet
     if verb == "open" and (step.get("part") in {"latch", "handle", "knocker"} or step.get("detail") in _CONTAINERS):
@@ -2822,6 +2835,14 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
         return None
 
 
+_DOOR_HANDS = frozenset({"open", "force", "knock", "close", "touch"})
+
+
+def _lays_hands_on_person(session, step, parsed) -> bool:
+    text = " ".join(step.get("tokens") or [])
+    return any(c["kind"] == "npc" and session.named_by_sight(c["record"], text) for c in parsed["candidates"])
+
+
 def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, phase: str):
     defer = ("defer", None)
     if not isinstance(player_input, str) or not player_input.strip() or player_input.strip().startswith("/"):
@@ -2838,12 +2859,23 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         run = _Run(session, player_input)
         step = {"verb": "read", "target": None, "negated": False, "quoted_note": note}
         return "execute", (run, [step], {"steps": [step]})
+    if re.search(r"\w+(?:yorum|yoruz)\s*:", player_input):
+        return defer  # "barmene bağırıyorum: ...": what follows the colon is said, not done
     p = plan(session, player_input)
     if p["steps"] and p["steps"][0].get("not_now"):
         return defer  # "dün kırmayı denedim", "hedefim araştırmak": told, not done now
+    if any(s["verb"] in _DOOR_HANDS and _lays_hands_on_person(session, s, p) for s in p["steps"]):
+        return defer  # "demirciyi itiyorum": a person, not the door of their shop
     steps = [s for s in p["steps"] if not s["reported"] and not s.get("not_now")]
     run = _Run(session, player_input)
     fallback = phase == "fallback"
+    going_out = next((s for s in steps if s["verb"] == "leave" and "?" not in player_input and not s["negated"]
+                      and not s.get("condition") and not _climbs_somewhere(s)), None)
+    here = world.get("locations", {}).get(world.get("location"))
+    if (going_out is not None and living_world.classify_scene_action(player_input) != "exit"
+            and isinstance(here, dict) and (here.get("exit_location_id") or here.get("parent_location_id"))):
+        # Whatever else the line says, the player walks out; narration must not do that alone.
+        return "execute", (run, [going_out], {**p, "steps": [going_out]})
     # "Marek, ..." - an NPC addressed by name first is speech for the conversation owner.
     head = re.match(r"\s*([^,!?:;]{2,40})[,!:]", player_input)
     if head:

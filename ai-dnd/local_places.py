@@ -159,7 +159,7 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
 
 _MOTION = re.compile(
     r"\b(?:gid|git|yonel|ugra|ugru|varmak|variyor|varacag|varir|ilerl|yuru|don(?:uyor|ecek|ucem|eyim|elim)"
-    r"|doguru|dogru|gec(?:iyor|ecek))\w*\b"
+    r"|doguru|dogru|gec(?:iyor|ecek)|gir(?:iyor|ecek|eyim|elim))\w*\b"
 )
 _NEGATED_MOTION = re.compile(
     r"\b(?:gitm|gitme|yonelm|ugram|donm|yurum)\w*\b|\bgitmiyor\w*|\bistemiyorum\b"
@@ -189,19 +189,44 @@ def _is_going(text: str) -> bool:
     )
 
 
+def _stays_put(word: str, stem: str) -> bool:
+    """"İskelede", "iskeleden": where something happened, not where the player is going."""
+    tail = word[len(stem):]
+    return bool(re.fullmatch(r"(?:\w{0,3}(?:s?in)?n?)?(?:de|da|te|ta|den|dan|ten|tan)(?:ki)?", tail))
+
+
+def destination_kind(text: Any) -> str | None:
+    """The place kind tied to the motion verb: the last one named before it."""
+    words = _fold(text).split()
+    found = None
+    for index, word in enumerate(words):
+        if _MOTION.fullmatch(word) and found is not None:
+            return found
+        for kind, spec in PLACE_KINDS.items():
+            stem = next((stem for stem in spec["stems"] if word.startswith(stem)), None)
+            if stem is not None and not _stays_put(word, stem):
+                found = kind
+    return found
+
+
 def is_local_place_visit(text: Any) -> str | None:
     """'Arşive gidiyorum', 'Marek'in bahsettiği demirciye uğruyorum' -> kind."""
-    if not isinstance(text, str):
+    if not isinstance(text, str) or not _is_going(text):
         return None
-    kind = place_kind_in(text)
-    return kind if kind is not None and _is_going(text) else None
+    return destination_kind(text)
 
 
 def resident_visit(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
     """'Serenna'nın yanına gidiyorum': going to someone is going where they are."""
     if not isinstance(text, str) or not _is_going(text):
         return None
-    words = _fold(text).split()
+    folded = _fold(text)
+    words = folded.split()
+    # "Berrin Hanı'na gidiyorum" names the inn, even if a Berrin works at the harbour.
+    if any(_fold(place.get("name")) and _fold(place.get("name")) in folded
+           for place in world.get("locations", {}).values()
+           if isinstance(place, dict) and place.get("parent_location_id") == settlement_id):
+        return None
     for record in world.get("locations", {}).values():
         if isinstance(record, dict) and record.get("parent_location_id") == settlement_id:
             name = _fold(record.get("resident_name"))
@@ -400,6 +425,8 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
 def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> str:
     spec = PLACE_KINDS[record["place_kind"]]
     parts = []
+    first_visit = first_visit or not record.get("visited")
+    record["visited"] = True
     if first_visit:
         parts.append(f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
         parts.append(str(record.get("description") or ""))

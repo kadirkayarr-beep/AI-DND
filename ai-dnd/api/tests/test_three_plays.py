@@ -8,6 +8,7 @@ import json
 import unittest
 import uuid
 
+import local_places
 import npc_statements
 import weapon_catalog
 from api.tests import test_campaign_api
@@ -135,6 +136,7 @@ class StartingWeaponTests(ThreePlaysTests):
                      "kısa kılıcımı çekip muhafıza saldırıyorum"):
             with self.subTest(line=line):
                 await self.begin(ROGUE)
+                self.session.character.update(current_hp=200, max_hp=200)
                 self.add_person("Dorn", "Muhafız", current_hp=300, max_hp=300)
                 out = await self.say(line, PlayClient(intent="attack"))
                 self.assertTrue(self.world["combat"]["active"], out["narration"])
@@ -217,6 +219,24 @@ class FightBackTests(ThreePlaysTests):
         self.assertGreater(guard["attack_bonus"], worker["attack_bonus"])
 
 
+class SparedTests(ThreePlaysTests):
+    async def test_a_townsman_stops_hitting_you_when_you_are_down(self):
+        await self.begin(ROGUE)
+        self.world["npcs"].clear()
+        with self.app.state.ollama_adapter.engine_binding():
+            person = self.session.create_npc_from_ai(
+                {"name": "Tariq", "role": "Muhafız", "location": self.world["location"]})
+        person.update(current_hp=300, max_hp=300, role_known_to_player=True)
+        self.session.character["current_hp"] = 1
+        out = None
+        for _ in range(5):
+            out = await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))
+            if self.session.character["current_hp"] == 0:
+                break
+        self.assertEqual(self.session.character["current_hp"], 0)
+        self.assertNotIn("kritik", out["narration"])
+
+
 class TheDeadTests(ThreePlaysTests):
     async def scene_with_a_body(self):
         await self.begin(BARBARIAN)
@@ -296,6 +316,90 @@ class WhatWasSaidTests(ThreePlaysTests):
         client.chat = chat
         await self.say("dün bana otuz sekiz bakır dedin, bak deftere", client)
         self.assertTrue(any("otuz sekiz bakır" in prompt and "gerisini sonra" in prompt for prompt in prompts))
+
+
+class GoingPlacesTests(ThreePlaysTests):
+    async def city(self, character=FIGHTER):
+        await self.begin(character)
+        self.settlement = self.world["location"]
+        self.estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Hadrik Konağı")
+        self.harbor = local_places.create_local_place(self.world, self.settlement, "harbor", name="Aelar İskelesi")
+
+    async def test_a_place_named_in_the_past_is_not_the_destination(self):
+        line = ("kâhyanın yanına gidip selam veriyorum. ben carius, eski askerim. "
+                "iskelede duydum burada adam arıyormuşsunuz")
+        self.assertIsNone(local_places.is_local_place_visit(line))
+
+    async def test_the_place_at_the_motion_verb_wins(self):
+        self.assertEqual(local_places.is_local_place_visit("ya iskeleye niye geldim ben, konağa dönüyorum"), "estate")
+        self.assertEqual(local_places.is_local_place_visit("peki sağol, ben o konağa gideyim bakayım"), "estate")
+        self.assertEqual(local_places.is_local_place_visit("ya önündeyim işte, demirhaneye giriyorum"), "smithy")
+
+    async def test_a_resident_shares_a_first_name_with_a_named_inn(self):
+        await self.city()
+        self.harbor["resident_name"] = "Berrin"
+        self.world["locations"]["inn_1"] = {
+            "name": "Berrin Hanı", "parent_location_id": self.settlement, "scene_kind": "tavern",
+        }
+        line = "Marek'in söylediği Berrin Hanı'e gidiyorum."
+        self.assertIsNone(local_places.resident_visit(self.world, self.settlement, line))
+        self.assertEqual(local_places.resident_visit(self.world, self.settlement, "Berrin'in yanına gidiyorum"), self.harbor)
+
+    async def test_the_first_visit_of_a_seeded_place_is_a_first_visit(self):
+        await self.city()
+        out = await self.say("peki sağol, ben o konağa gideyim bakayım")
+        self.assertNotIn("Yeniden", out["narration"])
+        await self.say("dışarı çıkıyorum")
+        out = await self.say("konağa gidiyorum")
+        self.assertIn("Yeniden", out["narration"])
+
+    async def test_every_way_of_leaving_leaves(self):
+        for line in ("sokaga cikiyorum", "tamam burda is kalmadi sokaga cikiyorum, kan icinde sekilde.",
+                     "ikisi de oldu zaten salak misin. handan cikiyorum", "disari cik",
+                     "kapidan cikiyorum", "sokaga gidiyorum", "iskeleden çıkıyorum",
+                     "boşver, siktir et bu konağı. çıkıyorum", "burdan sıvışıyorum, sokağa çıkıyorum",
+                     "pazardan çıkıp soyulacak zengin bir ev bakıyorum"):
+            with self.subTest(line=line):
+                await self.city()
+                await self.say("konağa gidiyorum")
+                self.assertEqual(self.world["location"], self.estate["id"])
+                out = await self.say(line, PlayClient(narration="Kapıdan dışarı adım atıyorsun."))
+                self.assertEqual(self.world["location"], self.settlement, (line, out["narration"], out["turn_outcome"]))
+
+    async def test_going_up_to_a_room_is_not_leaving(self):
+        await self.city()
+        await self.say("konağa gidiyorum")
+        await self.say("odaya çıkıyorum", PlayClient(narration="Merdivenleri çıkıyorsun."))
+        self.assertEqual(self.world["location"], self.estate["id"])
+
+
+class DoorIsNotEverythingTests(ThreePlaysTests):
+    async def test_a_threat_near_a_door_word_is_a_threat(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Kâhya")
+        out = await self.say("elimi kılıcımın kabzasına koyup sakin sakin konuşuyorum: bana bak, ya işimi "
+                             "verirsin ya da hadrik efendiye söylerim adamı kapıda oyalıyorsun",
+                             PlayClient(spoken="Tehdit mi ediyorsun?"))
+        self.assertNotIn("kapı", out["narration"].casefold())
+
+    async def test_shoving_a_person_is_not_opening_a_door(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Demirci")
+        out = await self.say("demirciyi itiyorum, yüzümü korların içine bastırıyorum",
+                             PlayClient(narration="Demirci sendeliyor."))
+        self.assertNotIn("kapı", out["narration"].casefold())
+
+    async def test_shouting_at_a_barman_is_not_a_door(self):
+        await self.begin(BARBARIAN)
+        await self.say("yakınlarda bir han arıyorum")
+        await self.say("hana giriyorum")
+        self.add_person("Dorn", "Barmen")
+        out = await self.say("barmene bagiriyorum: bu adamin parasi nerde, cikar kasayi yoksa senin de kelleni alirim",
+                             PlayClient(spoken="Defol git."))
+        self.assertNotIn("kapı", out["narration"].casefold())
+        self.assertNotIn("Koşulun", out["narration"])
 
 
 class DeathTests(ThreePlaysTests):

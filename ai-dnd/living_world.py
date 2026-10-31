@@ -95,8 +95,8 @@ _WAIT_RE = re.compile(
     re.IGNORECASE,
 )
 _EXIT_RE = re.compile(
-    r"(?:dışarı çık|dışarıya çık|buradan çık|han(?:dan|dan|dan|dan)? çık|"
-    r"tavernadan çık|meyhaneden çık|leave (?:here|the tavern|the inn)|exit)",
+    r"(?:d[ıi][şs]ar[ıi](?:ya)? [çc][ıi]k|bu(?:ra)?dan [çc][ıi]k|han(?:dan)? [çc][ıi]k|"
+    r"tavernadan [çc][ıi]k|meyhaneden [çc][ıi]k|leave (?:here|the tavern|the inn)|exit)",
     re.IGNORECASE,
 )
 _SIT_RE = re.compile(
