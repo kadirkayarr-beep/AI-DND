@@ -16162,7 +16162,10 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "state_changes": [],
                     "direct_response": "Birden fazla kişi bu tarife uyuyor. Hangisini kastettiğini biraz daha tarif eder misin?",
                 }
-        elif ref_resolution["status"] in ("found", "promoted") and referent:
+        elif ref_resolution["status"] in ("found", "promoted") and referent and not any(
+            _words_fit_person(npc, _normalize_turkish_typos(str(action_input))) for npc in active_npcs()
+        ):
+            # "Tezgâhtaki adam" is the barkeep who stands there, not a passer-by of the moment.
             if _is_scene_referent_activity_observation(action_input):
                 description = referent.get("description")
                 direct = {

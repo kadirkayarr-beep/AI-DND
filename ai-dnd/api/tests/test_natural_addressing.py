@@ -286,6 +286,19 @@ class SomeoneWhoIsNotHere(TownCase):
         self.assertEqual(self.flags["active_npc_id"], self.other["id"])
 
 
+class ThePersonStandingThereComesFirst(TownCase):
+    async def test_a_passer_by_of_the_moment_does_not_replace_the_barkeep(self):
+        self.other["role"] = "Barmen"
+        self.other["role_known_to_player"] = True
+        referent = living_world.create_scene_referent(
+            self.world, self.world["location"], self.flags.get("turn_index", 0),
+            description="Bir adam kalabalığın içinden geçiyor.", aliases=["adam"],
+        )
+        referent["aliases"] = ["adam"]
+        await self.say("Tezgâhtaki adama adını soruyorum.")
+        self.assertEqual(self.flags["active_npc_id"], self.other["id"])
+
+
 class AnAttemptIsNeverRefused(TownCase):
     async def test_telling_the_partner_something_reaches_the_partner(self):
         await self.say("Burada ne iş yapıyorsun?")
