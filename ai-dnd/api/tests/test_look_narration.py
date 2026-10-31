@@ -71,7 +71,9 @@ class LookNarrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_a_model_failure_keeps_the_engine_text(self):
         await self.scene()
         # The street draw may add people, and a crowd is named without appearances; this checks one person's line.
-        self.world["npcs"][:] = [npc for npc in self.world["npcs"] if npc["id"] == self.npc["id"]]
+        for npc in self.world["npcs"]:
+            if npc["id"] != self.npc["id"]:
+                npc["hidden"] = True
         client = FailingNarrator()
         shown = await self.look(client)
         self.assertEqual(client.kinds.count("narration"), 1)
