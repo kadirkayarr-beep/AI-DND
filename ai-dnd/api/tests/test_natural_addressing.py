@@ -303,9 +303,10 @@ class AnAttemptIsNeverRefused(TownCase):
     async def test_telling_the_partner_something_reaches_the_partner(self):
         await self.say("Burada ne iş yapıyorsun?")
         self.client.intent = "interact"
+        self.client.SPOKEN = "Bedava içki yok, kusura bakma."  # a person does not repeat the last line word for word
         data = await self.say("Kılıcımı hafifçe gösterip içkinin bedava olması gerektiğini söylüyorum.")
         self.assertNotIn("Tarif ettiğine", data["narration"])
-        self.assertIn(TownClient.SPOKEN, data["narration"])
+        self.assertIn(self.client.SPOKEN, data["narration"])
 
     async def test_an_act_with_no_owner_is_narrated(self):
         self.client.intent = "interact"

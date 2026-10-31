@@ -11,8 +11,10 @@ import unittest
 import uuid
 from unittest.mock import patch
 
+import game
 import grounded_action
 import living_world
+import local_dialogue
 import npc_statements
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
@@ -264,3 +266,67 @@ class NpcLinesDoNotRepeat(NpcSpeechBase):
         text = await self.say("Konuşalım.", "Dinlenmeye uğradım sadece.")
         self.assertNotIn("Dinlenmeye uğradım sadece", text)
         self.assertIn(self.npc["name"], text)
+
+
+class IntroducingYourself(NpcSpeechBase):
+    async def begin(self):
+        await self.start()
+        self.session.character["name"] = "Carius"
+        self.npc["name"] = "Quenna"
+        self.npc["public_name"] = "Quenna"
+
+    def known(self):
+        return game._known_player_name(self.npc)
+
+    async def test_saying_you_introduce_yourself_gives_your_name(self):
+        await self.begin()
+        text = await self.say("bende Baerne kendimi tanıtıyorum", "Bir şey aramıyorum.")
+        self.assertEqual(self.known(), "Carius")
+        self.assertIn("Carius", text)
+
+    async def test_me_too_with_your_name_is_an_introduction(self):
+        await self.begin()
+        text = await self.say("Bende carius quenna", "Ne demek istiyorsun?")
+        self.assertEqual(self.known(), "Carius")
+        self.assertNotIn("Ne demek istiyorsun", text)
+
+    async def test_the_name_is_capitalised_and_the_stock_line_is_gone(self):
+        await self.begin()
+        text = await self.say("ismim carius quenna")
+        self.assertIn("Carius", text)
+        self.assertNotIn("carius", text)
+        self.assertNotIn("hatırlayacağım", text.casefold())
+
+    async def test_a_typo_of_your_own_name_is_still_your_name(self):
+        await self.begin()
+        text = await self.say("ismim carisu")
+        self.assertEqual(self.known(), "Carius")
+        self.assertIn("Carius", text)
+
+    async def test_a_question_asked_with_the_introduction_is_answered(self):
+        await self.begin()
+        text = await self.say("selam rahatsız etmek istemedim ismim carisu. Sizin isminiz nedir?")
+        self.assertEqual(self.known(), "Carius")
+        self.assertIn("Quenna", text)
+
+    async def test_another_name_the_player_gives_is_kept(self):
+        await self.begin()
+        await self.say("Benim adım Rhea.")
+        self.assertEqual(self.known(), "Rhea")
+
+    async def test_ordinary_me_too_sentences_are_not_introductions(self):
+        await self.begin()
+        for line in ("Bende para yok.", "Ben de gidiyorum.", "kendimi iyi hissediyorum"):
+            with self.subTest(line=line):
+                self.assertIsNone(game._explicit_player_name_disclosure(line))
+
+    async def test_npc_is_told_the_name_and_uses_it_only_now_and_then(self):
+        await self.begin()
+        await self.say("ismim carius")
+        notes = [game._experimental_speech_note(self.session.world_state, self.npc, None, "Nasılsın?")]
+        self.assertIn("Carius", notes[0])
+        local_dialogue.remember_speech_exchange(self.session.world_state, self.npc["id"], "a", "b")
+        notes.append(game._experimental_speech_note(self.session.world_state, self.npc, None, "Nasılsın?"))
+        local_dialogue.remember_speech_exchange(self.session.world_state, self.npc["id"], "c", "d")
+        notes.append(game._experimental_speech_note(self.session.world_state, self.npc, None, "Nasılsın?"))
+        self.assertEqual(sum("adıyla hitap et" in note for note in notes), 1, notes)

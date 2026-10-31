@@ -6,6 +6,7 @@ Forgotten Realms canon and must never be added to Lore Authority.
 
 from __future__ import annotations
 
+import difflib
 import hashlib
 import re
 import unicodedata
@@ -435,6 +436,30 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
     return None
 
 
+def _spelled_like(word: str, name: str) -> bool:
+    """A typed word close enough to the character's own name to be a typo of it."""
+    a, b = normalize_text(word), normalize_text(name)
+    return bool(a and b) and difflib.SequenceMatcher(None, a, b).ratio() >= 0.7
+
+
+def implied_self_introduction(value: Any, hero_name: str) -> str | None:
+    """An introduction that states the character's name without "my name is"."""
+    if not isinstance(value, str) or not hero_name:
+        return None
+    normalized = normalize_text(value)
+    if re.search(r"\bkendimi tanit(?:iyorum|ayim|arak|ip|tim|acagim)\b", normalized):
+        return hero_name
+    me_too = re.search(r"\bben ?de ([^\W\d_]+)", normalized)
+    return hero_name if me_too and _spelled_like(me_too.group(1), hero_name) else None
+
+
+def player_name_spelling(name: str, hero_name: str) -> str:
+    """The name as a person would hear it: capitalised, and the hero's own spelling for a typo."""
+    if hero_name and _spelled_like(name, hero_name):
+        return hero_name
+    return living_world.turkish_initial_upper(name)
+
+
 def personal_question_kind(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
@@ -741,6 +766,26 @@ def remember_explicit_player_name(npc: Any, name: str) -> None:
     if not memory or memory[-1] != entry:
         memory.append(entry)
     del memory[:-16]
+
+
+# What someone says on hearing a name, one line per entry of VOICE_TRAITS.
+INTRODUCTION_REPLIES = (
+    "{name}. Tamam.",
+    "Hoş geldin, {name}. Tanıştığımıza sevindim.",
+    "{name}, öyle mi? İyi, duydum.",
+    "{name}... Pekâlâ. Bakalım.",
+    "{name} ha! Hoş geldin, anlat bakalım, ne var ne yok?",
+    "{name}. Bunu da bir yere yazarız artık.",
+    "Peki, {name}.",
+    "{name} demek! Nereden gelip nereye gidiyorsun böyle?",
+    "Memnun oldum, {name}.",
+    "Selam {name}! Yüzün asık olmasın, burası o kadar da kötü değil.",
+)
+
+
+def introduction_reply(world: Any, npc: dict, name: str) -> str:
+    """Hearing a name, in this person's own voice."""
+    return INTRODUCTION_REPLIES[VOICE_TRAITS.index(voice_trait(world, npc))].format(name=name)
 
 
 # How a person talks, public from the first word. Not everyone is helpful.

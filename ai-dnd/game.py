@@ -960,7 +960,7 @@ def is_npc_dialogue_input(player_input):
         return False
     if (
         local_dialogue.is_local_dialogue_input(player_input)
-        or local_dialogue.explicit_player_name_disclosure(player_input)
+        or _explicit_player_name_disclosure(player_input)
         or local_dialogue.is_local_place_recommendation_request(player_input)
         or _is_player_name_inquiry_to_npc(player_input)
     ):
@@ -1339,7 +1339,7 @@ def _detect_query_type(player_input, npc_target=None):
             re.search(r"\bkimler\s+(?:burada|etrafta)\b", text):
         return "presence"
     asks_name = bool(
-        re.search(r"\b(?:ad(?:i|in)|ism(?:i|in))\s+(?:ne|nedir)\b", text)
+        re.search(r"\b(?:ad(?:i|in|iniz)|ism(?:i|in|iniz))\s+(?:ne|nedir)\b", text)
         or re.search(r"\b(?:adini|ismini)\s+sor\w*\b", text)
         or local_dialogue.personal_question_kind(player_input) == "npc_identity"
     )
@@ -8081,6 +8081,14 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
     else:
         lines.append("Adın sorulmadı: kendini tanıtma, kendine ad uydurma.")
+    player_name = _known_player_name(npc)
+    if player_name:
+        said = len((world.get("npc_speech_log") or {}).get(npc.get("id"), []))
+        lines.append(
+            f"Karşındakinin adı {player_name}."
+            + (" Bu cevapta onu adıyla hitap et." if said % 3 == 0
+               else " Bu cevapta adını söylemene gerek yok.")
+        )
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
@@ -13599,8 +13607,27 @@ def _is_historical_player_name_query(player_input):
     )
 
 
+def _hero_first_name():
+    return str((_session().character or {}).get("name") or "").strip().split(" ")[0]
+
+
 def _explicit_player_name_disclosure(text):
-    return local_dialogue.explicit_player_name_disclosure(text)
+    hero = _hero_first_name()
+    name = (
+        local_dialogue.explicit_player_name_disclosure(text)
+        or local_dialogue.implied_self_introduction(text, hero)
+    )
+    return local_dialogue.player_name_spelling(name, hero) if name else None
+
+
+def _known_player_name(npc):
+    """The latest name the player gave this person, if any."""
+    for entry in reversed((npc or {}).get("memory", [])):
+        if isinstance(entry, dict) and entry.get("speaker") == "player":
+            name = _explicit_player_name_disclosure(entry.get("text"))
+            if name:
+                return name
+    return None
 
 
 def _historical_player_name_from_npc_memory(npc, player_input):
@@ -19273,10 +19300,8 @@ def _run_player_turn_internal(
                 _handle_query(player_input, "npc_identity", npc_target)
             if not compound_speech:
                 npc_name = living_world.public_npc_name(npc_target)
-                narration = (
-                    f'{npc_name}, “Memnun oldum, {safe_name}. '
-                    'Adını hatırlayacağım,” diye yanıt verir.'
-                )
+                reply = local_dialogue.introduction_reply(world_state, npc_target, safe_name)
+                narration = f'{npc_name}: “{reply}”'
                 # A single utterance may introduce the player AND ask who the
                 # addressee is. Both answers come from verified Python state.
                 if _detect_query_type(player_input, npc_target) == "npc_identity":
@@ -19293,6 +19318,9 @@ def _run_player_turn_internal(
                 record_npc_interaction(
                     npc_target, narration, player_input, npc_target
                 )
+                if local_dialogue.explicit_player_name_disclosure(player_input) != safe_name:
+                    # The words said were not the name as written; keep it spelled right.
+                    local_dialogue.remember_explicit_player_name(npc_target, safe_name)
                 return finish_turn(
                     action_result,
                     narration,

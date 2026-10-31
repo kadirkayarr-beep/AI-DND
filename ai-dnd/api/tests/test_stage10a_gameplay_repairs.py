@@ -151,7 +151,7 @@ class DisclosurePrecedenceTests(unittest.TestCase):
         with patch("game.ollama.chat", side_effect=AssertionError("model")):
             result = session.run_player_turn(DISCLOSURE, target_id="npc_001")
         self.assertEqual(result["action_result"]["status"], "player_name_disclosed")
-        self.assertIn("hatırlayacağım", result["narration"].casefold())
+        self.assertNotIn("hatırlayacağım", result["narration"].casefold())
         self.assertIn("Arven", result["narration"])
         self.assertEqual(
             result["action_result"].get("safety_reason_code")
