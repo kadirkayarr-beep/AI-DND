@@ -51,6 +51,7 @@ from api.identity_suggestion import (
     IdentitySuggestionJob,
     IdentitySuggestionRequest,
     IdentitySuggestionService,
+    chain_provider,
 )
 from api.lore_authority import (
     BindingStatus,
@@ -529,7 +530,10 @@ def create_app(
         authenticator = select_authenticator(os.environ)
     application.state.authenticator = authenticator
     application.state.ollama_adapter = adapter
-    application.state.identity_suggestions = identity_suggestions or IdentitySuggestionService()
+    cloud_chain = getattr(adapter, "cloud_chain", None)
+    application.state.identity_suggestions = identity_suggestions or IdentitySuggestionService(
+        chain_provider(cloud_chain) if cloud_chain else None
+    )
 
     @application.middleware("http")
     async def require_verified_principal(request: Any, call_next: Any) -> Any:

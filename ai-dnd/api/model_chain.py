@@ -354,12 +354,13 @@ def _shaped(value: Any, schema: Mapping[str, Any], definitions: Mapping[str, Any
     return value
 
 
-def _for_the_game(text: str, call: Mapping[str, Any]) -> str | None:
+def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str | None:
     """The text the game should receive, or None when the next provider should answer."""
+    text = reply.text
     if not text.strip():
         return None
     if not call.get("format"):
-        return text
+        return None if reply.done_reason == "length" else text
     fence = _FENCE.match(text)
     text = fence.group(1) if fence else text
     schema = _schema(call)
@@ -456,7 +457,7 @@ class ModelChain:
         reply = provider.read(json.loads(text))
         if provider.spend is not None:
             provider.spend.add(reply)  # billed whether or not the game can use it
-        text = _for_the_game(reply.text, call)
+        text = _for_the_game(reply, call)
         if text is None:
             raise _Skipped("unusable_reply")
         return replace(reply, text=text)

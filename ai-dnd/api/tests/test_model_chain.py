@@ -14,7 +14,7 @@ import httpx
 
 import game
 import interaction_adventure
-from api import model_chain, ollama_adapter
+from api import identity_suggestion, model_chain, ollama_adapter
 from api.auth import FixedAuthenticator
 from api.local_model_config import SUPPORTED_LOCAL_MODELS
 from api.main import create_app
@@ -730,6 +730,40 @@ class TheSetting(unittest.TestCase):
         self.assertEqual(len(logs.output), 1)
         self.assertIn("gemini,haiku,local", logs.output[0])
         self.assertNotIn("file-key", logs.output[0])
+
+
+class TheCharacterNote(unittest.TestCase):
+    def setUp(self):
+        self.local = EngineStub()
+        self.local.chat = lambda **call: {"message": {"role": "assistant", "content": "Yerel not."}}
+        patcher = patch.object(identity_suggestion, "_local_client", return_value=self.local)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_a_note_comes_from_the_first_cloud_provider(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir arşivci.")))
+        self.assertEqual(identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik."), "Sessiz bir arşivci.")
+        sent = json.loads(cloud.requests[0].content)
+        self.assertEqual(sent["generationConfig"]["maxOutputTokens"], 60)
+        self.assertEqual(sent["contents"][0]["parts"][0]["text"], "Alan: Kişilik.")
+
+    def test_a_note_cut_short_is_not_a_note(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir", finish="MAX_TOKENS")), haiku=ok(haiku_reply("Bütün bir not.")))
+        self.assertEqual(identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik."), "Bütün bir not.")
+
+    def test_the_local_model_writes_the_note_when_the_cloud_fails(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))
+        self.assertEqual(identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik."), "Yerel not.")
+
+    def test_the_app_routes_notes_through_the_chain_only_when_it_is_on(self):
+        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        off = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        self.assertIs(off.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
+        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b", chain=chain_for(FakeCloud()))
+        on = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
+                        authenticator=FixedAuthenticator(TEST_PLAYER))
+        self.assertIsNot(on.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
 
 
 class EngineStub:

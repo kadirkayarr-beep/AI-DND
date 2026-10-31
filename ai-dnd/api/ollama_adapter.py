@@ -131,6 +131,10 @@ class AuthenticatedOllamaAdapter:
         return self._model_name
 
     @property
+    def cloud_chain(self) -> model_chain.ModelChain | None:
+        return self._chain
+
+    @property
     def model_chain(self) -> list[str] | None:
         """Every model that may answer, in order. None means the local model alone."""
         if self._chain is None:

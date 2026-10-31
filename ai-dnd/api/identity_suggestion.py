@@ -29,12 +29,13 @@ import os
 import threading
 import time
 from queue import Empty, Queue
-from typing import Callable
+from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.auth import Principal
 from api.local_model_config import selected_local_model
+from api.model_chain import ModelChain
 from api.ollama_adapter import CONTEXT_WINDOW_TOKENS
 
 
@@ -162,36 +163,56 @@ def _owner_key(owner: Principal) -> OwnerKey:
     return (owner.issuer, owner.subject)
 
 
-def local_ollama_provider(prompt: str) -> str:
-    """One local chat. Credentials stay in the process environment."""
+def _local_client() -> Any:
+    """Credentials stay in the process environment."""
     import ollama
 
-    model = selected_local_model()
     host = os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
     token = os.environ.get("OLLAMA_PROXY_TOKEN")
     client_options: dict[str, object] = {"host": host, "timeout": 45}
     if token:
         client_options["headers"] = {"Authorization": f"Bearer {token}"}
-    client = ollama.Client(**client_options)
-    response = client.chat(
+    return ollama.Client(**client_options)
+
+
+def _suggestion_call(prompt: str) -> dict[str, Any]:
+    return {
         # Same tag and window as the game, so one suggestion does not load a
         # second model or reload this one on a small graphics card.
-        model=model,
-        messages=[
+        "model": selected_local_model(),
+        "messages": [
             {
                 "role": "system",
                 "content": "Tek kısa Türkçe karakter notu yaz. Mekanik ekleme.",
             },
             {"role": "user", "content": prompt},
         ],
-        options={"num_ctx": CONTEXT_WINDOW_TOKENS, "num_predict": 60, "temperature": 0.3},
-        think=False,
-    )
+        "options": {"num_ctx": CONTEXT_WINDOW_TOKENS, "num_predict": 60, "temperature": 0.3},
+        "think": False,
+    }
+
+
+def _note_text(response: Any) -> str:
     message = response.get("message") if isinstance(response, dict) else getattr(response, "message", None)
     content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
     if not isinstance(content, str):
         raise RuntimeError("Empty suggestion.")
     return content
+
+
+def local_ollama_provider(prompt: str) -> str:
+    """One local chat."""
+    return _note_text(_local_client().chat(**_suggestion_call(prompt)))
+
+
+def chain_provider(chain: ModelChain) -> SuggestionProvider:
+    """The note takes the turn's route: cloud first, the local model last."""
+
+    def provider(prompt: str) -> str:
+        call = _suggestion_call(prompt)
+        return _note_text(chain.chat(call, lambda: _local_client().chat(**call))[0])
+
+    return provider
 
 
 class IdentitySuggestionService:
