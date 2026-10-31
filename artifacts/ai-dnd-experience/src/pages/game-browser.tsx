@@ -15,6 +15,7 @@ import { askServer, findUnresolvedOnServer, modelRefusalLine, settlePending, unr
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
+import { DeathEndNotice, DeathRecoveryControls } from '@/components/death-recovery-controls';
 import { mergeCombatHistory } from '@/lib/combat-history';
 import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract';
 import { ExplorationControls } from '@/components/exploration-controls';
@@ -689,7 +690,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
         {activeTab === 'world' && <><WorldPanel state={state} /><ExperimentalWorldControls state={state} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={onDraft} onSetCombatTarget={onSetCombatTarget} /><DetailsPanel state={state} /></>}
         {activeTab === 'npcs' && <PeoplePanel state={state} />}
          {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} campaignId={campaignId} />}
-        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
+        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} campaignId={campaignId} onDeathMove={onExplorationCommand} sending={sending} />}
       </div>
     </aside>
   );
@@ -709,6 +710,10 @@ function StoryColumn({
   conversationTargetId,
   setConversationTargetId,
   onEndConversation,
+  onNewAdventure,
+  onDeathMove,
+  sessionId,
+  campaignId,
   primalKnowledgeOptIn,
   onPrimalKnowledgeChange,
   tacticalMindOptIn,
@@ -748,6 +753,10 @@ function StoryColumn({
   conversationTargetId: string;
   setConversationTargetId: (value: string) => void;
   onEndConversation: () => void;
+  onNewAdventure: () => void;
+  onDeathMove: (message: string) => void;
+  sessionId: string;
+  campaignId: string;
   primalKnowledgeOptIn: boolean;
   onPrimalKnowledgeChange: (checked: boolean) => void;
   tacticalMindOptIn: boolean;
@@ -864,6 +873,8 @@ function StoryColumn({
             <button className="action-suggestion" type="button" disabled={sending} onClick={onEndConversation} data-testid="button-end-conversation">Konuşmayı bitir</button>
           </div>
       )}
+      <DeathEndNotice state={state} onNewAdventure={onNewAdventure} />
+      {state.character.current_hp === 0 && <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} onSend={onDeathMove} sending={sending} />}
       <SceneIdeas state={state} recentText={entries.at(-1)?.text ?? ''} sending={sending} onDraft={(text, mode = 'do', targetId) => {
         setInteractionMode(mode);
         setConversationTargetId(mode === 'say' ? targetId ?? '' : '');
@@ -2303,6 +2314,10 @@ export default function GameBrowser() {
                 conversationTargetId={conversationTargetId}
                 setConversationTargetId={setConversationTargetId}
                 onEndConversation={() => submitTurn('Konuşmayı bitiriyorum.', undefined, 'do')}
+                onNewAdventure={reset}
+                onDeathMove={(text) => submitTurn(text, undefined, 'do')}
+                sessionId={sessionId}
+                campaignId={campaignId}
                 onSubmit={handleSubmit}
                 onKeyboardSubmit={submitCurrentTurn}
                 onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}

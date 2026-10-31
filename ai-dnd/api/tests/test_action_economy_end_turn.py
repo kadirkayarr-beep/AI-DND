@@ -93,9 +93,9 @@ class EndTurnNarrationTests(unittest.TestCase):
 
     def test_final_status_follows_scheduler_death_save_and_damage_results(self):
         for status, hp, maximum, damage, rolls, stable, expected in (
-            ("unconscious", 1, 100, 4, [15, 10, 1, 1, 10, 1, 1, 10], True, "Bilincini kaybedersin."),
+            ("unconscious", 1, 100, 4, [15], False, "Bilincini kaybedersin."),
             ("dead", 1, 4, 8, [15], False, "Ölürsün."),
-            ("active", 1, 100, 4, [15, 20], False, "Bilincin açık; 1/100 canın kaldı."),
+            ("active", 5, 100, 4, [15], False, "Bilincin açık; 1/100 canın kaldı."),
         ):
             with self.subTest(status=status):
                 session, npcs = battle(player={"current_hp": hp, "max_hp": maximum, "armor_class": 12})
@@ -111,13 +111,11 @@ class EndTurnNarrationTests(unittest.TestCase):
                 actions = result["action_result"]["economy_steps"][0]["enemy_actions"]
                 self.assertEqual(actions[0]["outcome"], "hit")
                 self.assertIn(f"{damage} hasar alırsın.", result["narration"])
-                self.assertTrue(result["narration"].endswith(expected), result["narration"])
+                self.assertIn(expected, result["narration"])
                 self.assertEqual(session.world_state["player_combat_status"], status)
                 self.assertEqual(session.world_state["death_state"]["stable"], stable)
                 self.assertEqual(session.character["current_hp"], 1 if status == "active" else 0)
-                if status != "dead":
-                    saves = [a for a in actions if a["action"] == "death_save"]
-                    self.assertEqual(saves[-1]["outcome"], "stable" if stable else "revived")
+                self.assertEqual([a for a in actions if a["action"] == "death_save"], [])
                 self.assertEqual(result["model_calls"], 0)
 
     def test_third_successful_death_save_stops_before_another_enemy_attack(self):
@@ -137,21 +135,26 @@ class EndTurnNarrationTests(unittest.TestCase):
                     combat = session.world_state["combat"]
                     order = copy.deepcopy(combat["initiative_order"])
                     initiative_results = copy.deepcopy(combat["initiative_results"])
-                    # Hit to knock out, then three successful saves with two
-                    # intervening misses (advantage against an unconscious target).
-                    rolls = [15, 10, 1, 1, 10, 1, 1, 10]
-                    with patch("game.roll_d20", side_effect=(
-                        rolls + [next_attack_roll, next_attack_roll]
-                    )) as roller, patch("game.roll_damage", return_value=4):
+                    # The blow that fells him ends the turn: each save is then a turn
+                    # of its own, with a miss (advantage on the unconscious) between.
+                    with patch("game.roll_d20", side_effect=[15]) as roller, \
+                         patch("game.roll_damage", return_value=4):
                         result = session.run_player_turn(message, combat_action=command)
                     actions = result["action_result"]["economy_steps"][0]["enemy_actions"]
-                    self.assertEqual([a["action"] for a in actions], [
-                        "enemy_attack", "death_save", "enemy_attack", "death_save",
-                        "enemy_attack", "death_save",
-                    ])
-                    self.assertEqual([a["outcome"] for a in actions],
-                                     ["hit", "success", "miss", "success", "miss", "stable"])
-                    self.assertEqual(roller.call_count, len(rolls))
+                    self.assertEqual([a["outcome"] for a in actions], ["hit"])
+                    for rolls, outcome, enemy_outcomes in (
+                        ([10, 1, 1], "success", ["miss"]),
+                        ([10, 1, 1], "success", ["miss"]),
+                        ([10, next_attack_roll, next_attack_roll], "stable", []),
+                    ):
+                        with patch("game.roll_d20", side_effect=rolls) as roller, \
+                             patch("game.roll_damage", return_value=4):
+                            result = session.run_player_turn("Hamle.")
+                        saved = result["action_result"]
+                        self.assertEqual(saved["action"], "death_save")
+                        self.assertEqual(saved["outcome"], outcome)
+                        self.assertEqual([a["outcome"] for a in saved["enemy_actions"]], enemy_outcomes)
+                        self.assertEqual(roller.call_count, 3 if enemy_outcomes else 1)
                     self.assertEqual(session.character["current_hp"], 0)
                     self.assertEqual(session.world_state["player_combat_status"], "unconscious")
                     death = session.world_state["death_state"]
@@ -164,7 +167,6 @@ class EndTurnNarrationTests(unittest.TestCase):
                     self.assertEqual(combat["round"], 4)
                     self.assertEqual(combat["initiative_order"], order)
                     self.assertEqual(combat["initiative_results"], initiative_results)
-                    self.assertEqual(result["model_calls"], 0)
 
 
 class EndTurnNarrationApiTests(unittest.IsolatedAsyncioTestCase):

@@ -289,6 +289,7 @@ class DeathStateProjection(BaseModel):
     dead: bool
     terminal: bool
     prone: bool
+    last_call_open: bool
     last_death_save: DeathSaveResult | None = None
     last_resolution: DeathResolutionResult | None = None
 
@@ -1382,7 +1383,7 @@ class CampaignCreateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     character: CharacterCreateInput | None = None
     campaign_start: CampaignStartSelection | None = None
-    death_mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"] = "NORMAL"
+    death_mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"] = "PERMADEATH"
 
     @field_validator("name")
     @classmethod

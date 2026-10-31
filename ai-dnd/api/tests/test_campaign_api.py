@@ -520,7 +520,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.temporary_directory.cleanup()
 
     async def create_campaign(self):
-        response = await self.http.post("/api/game/campaigns", json={})
+        # These tests cover a stored old-mode campaign; the new default has its own test.
+        response = await self.http.post("/api/game/campaigns", json={"death_mode": "NORMAL"})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -2827,9 +2828,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.json(), retry.json())
         self.assertEqual(client.chat_calls, 2)
 
-    async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
-        legacy = await self.create_campaign()
-        self.assertEqual(legacy["state"]["death_state"]["mode"], "NORMAL")
+    async def test_death_mode_selection_persists_and_a_request_without_one_dies_for_real(self):
+        unnamed = await self.http.post("/api/game/campaigns", json={})
+        self.assertEqual(unnamed.json()["state"]["death_state"]["mode"], "PERMADEATH")
 
         for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
             with self.subTest(mode=mode):
@@ -7627,6 +7628,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 session.character.update(current_hp=0, max_hp=10)
                 session.world_state["player_combat_status"] = "dead"
                 session.world_state["death_state"]["dead"] = True
+                # The one last call changes the save; once spent, a line changes nothing.
+                session.world_state["death_state"]["last_call"] = {"roll": 3, "answered": False}
                 self.assertFalse(session.ensure_combat_state()["active"])
                 saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
                 self.assertEqual(saved.status_code, 200, saved.text)

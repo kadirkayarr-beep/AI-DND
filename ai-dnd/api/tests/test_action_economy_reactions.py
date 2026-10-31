@@ -98,8 +98,8 @@ class ReactionNarrationTests(unittest.TestCase):
         for kind in ("react", "decline_reaction"):
             for status, maximum, damage, rolls, expected in (
                 ("dead", 4, 8, [15], "Ölürsün."),
-                ("active", 100, 4, [15, 20], "Bilincin açık; 1/100 canın kaldı."),
-                ("unconscious", 100, 4, [15, 10, 1, 1, 10, 1, 1, 10, 1, 1], "Bilincini kaybedersin."),
+                ("active", 100, 3, [15], "Bilincin açık; 1/100 canın kaldı."),
+                ("unconscious", 100, 4, [15], "Bilincini kaybedersin."),
             ):
                 with self.subTest(kind=kind, status=status):
                     session = scene()
@@ -108,7 +108,7 @@ class ReactionNarrationTests(unittest.TestCase):
                     # simple, explicit schedule; other actors still keep slots.
                     npcs[0]["conditions"] = ["incapacitated"]
                     npcs[2]["conditions"] = ["incapacitated"]
-                    session.character.update(current_hp=1, max_hp=maximum)
+                    session.character.update(current_hp=4 if status == "active" else 1, max_hp=maximum)
                     session.world_state["death_state"]["mode"] = "PERMADEATH"
                     with patch("game.roll_d20", side_effect=rolls), \
                          patch("game.roll_damage", return_value=damage):
@@ -121,13 +121,10 @@ class ReactionNarrationTests(unittest.TestCase):
                     self.assertEqual(actions[0]["actor_id"], npcs[1]["id"])
                     self.assertEqual(actions[0]["damage"], damage)
                     self.assertIn(f"{damage} hasar alırsın.", result["narration"])
-                    self.assertTrue(result["narration"].endswith(expected), result["narration"])
+                    self.assertIn(expected, result["narration"])
                     self.assertEqual(session.world_state["player_combat_status"], status)
                     self.assertEqual(session.character["current_hp"], 1 if status == "active" else 0)
-                    if status != "dead":
-                        saves = [a for a in actions if a["action"] == "death_save"]
-                        self.assertEqual(saves[-1]["outcome"],
-                                         "revived" if status == "active" else "stable")
+                    self.assertEqual([a for a in actions if a["action"] == "death_save"], [])
                     self.assertEqual(result["model_calls"], 0)
 
     def test_reaction_that_ends_combat_has_no_invented_enemy_attack(self):

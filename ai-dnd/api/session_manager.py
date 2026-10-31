@@ -162,7 +162,7 @@ class SessionManager:
         name: str | None = None,
         character: dict[str, Any] | None = None,
         campaign_start: dict[str, str] | None = None,
-        death_mode: str = "NORMAL",
+        death_mode: str = "PERMADEATH",
         principal: Principal | None = None,
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
         if death_mode not in game.DEATH_MODES:

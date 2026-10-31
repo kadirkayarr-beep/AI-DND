@@ -123,7 +123,7 @@ class CheckpointFailureRollbackTests(unittest.IsolatedAsyncioTestCase):
         })
 
     async def assert_checkpoint_failure_rolls_back(self, model_failure):
-        cid, sid, record, _ = self.manager.create_campaign("Checkpoint failure")
+        cid, sid, record, _ = self.manager.create_campaign("Checkpoint failure", death_mode="NORMAL")
         session = record.game_session
         game._capture_combat_death_checkpoint(session=session)
         session.world_state["inventory"].append("Pre-turn item")

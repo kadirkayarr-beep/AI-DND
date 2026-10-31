@@ -13,8 +13,10 @@ import {
   type CancelEvidence,
 } from '@/lib/pending-action';
 
-const WAIT_IN_COMBAT = 'Ölüm kurtarmasını bekliyorum.';
-const WAIT_OUT_OF_COMBAT = '1 saat bekle.';
+const ROLL_THE_SAVE = 'Ölüm kurtarma zarımı atıyorum.';
+const WAIT_AN_HOUR = '1 saat bekle.';
+const PASS_THE_TURN = 'Bekliyorum.';
+const LAST_CALL = 'Karanlığa son bir kez sesleniyorum.';
 const HTTP_UNPROCESSABLE = 422;
 
 type StoredMove = NonNullable<ReturnType<typeof readPending>>;
@@ -33,23 +35,50 @@ function cancelEvidence(error: unknown, stored: StoredMove): CancelEvidence | un
   return undefined;
 }
 
-function buttonLabel(resumable: boolean, running: boolean, inCombat: boolean): string {
-  if (running) return 'Zaman geçiyor…';
-  if (resumable) return 'Bekleyişin durumunu kontrol et';
-  return inCombat ? 'Durumun çözülmesini bekle' : 'Bir saat geçmesini bekle';
+/** The one thing a body on the ground can still ask for, by death state. Null when nothing is left. */
+function nextMove(state: GameState): { message: string; label: string } | null {
+  const death = state.death_state;
+  if (death?.status === 'dead') {
+    return death.last_call_open ? { message: LAST_CALL, label: 'Karanlığa son bir kez seslen' } : null;
+  }
+  if (state.character.current_hp !== 0 || !death) return null;
+  if (death.status !== 'stable') return { message: ROLL_THE_SAVE, label: 'Ölüm kurtarma zarını at' };
+  return state.combat.active
+    ? { message: PASS_THE_TURN, label: 'Turun geçsin' }
+    : { message: WAIT_AN_HOUR, label: 'Bir saat geçmesini bekle' };
 }
 
-/** Requests passive time only. All rolls, recovery and returned state are server-owned. */
-export function DeathRecoveryControls({ state, sessionId, campaignId }: { state: GameState; sessionId: string; campaignId?: string }) {
+function buttonLabel(resumable: boolean, running: boolean, label: string): string {
+  if (running) return 'Zaman geçiyor…';
+  if (resumable) return 'Bekleyişin durumunu kontrol et';
+  return label;
+}
+
+/**
+ * Asks for the next death move only: all rolls, recovery and returned state are server-owned.
+ * With onSend the move goes through the play turn, so its story lands in the transcript.
+ */
+export function DeathRecoveryControls({ state, sessionId, campaignId, onSend, sending }: {
+  state: GameState;
+  sessionId: string;
+  campaignId?: string;
+  onSend?: (message: string) => void;
+  sending?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [blocked, setBlocked] = useState(false);
   const owner = currentAccountOwner() ?? 'local';
   const scope = campaignId || sessionId;
   const turn = usePlayGameTurn();
-  if (state.character.current_hp !== 0 || state.death_state.status === 'dead') return null;
-  const message = state.combat.active ? WAIT_IN_COMBAT : WAIT_OUT_OF_COMBAT;
+  const move = nextMove(state);
+  if (move === null) return null;
+  const { message, label } = move;
   const resumable = isWait(readPending(owner, scope));
   const send = () => {
+    if (onSend) {
+      onSend(message);
+      return;
+    }
     // Owner and scope are read at click time and bound, with the sent id, to this call's callbacks.
     const sendOwner = currentAccountOwner() ?? 'local';
     const sendScope = campaignId || sessionId;
@@ -91,11 +120,31 @@ export function DeathRecoveryControls({ state, sessionId, campaignId }: { state:
     }
   };
   return <div className="mt-3">
-    <button type="button" className="dnd-button secondary" disabled={turn.isPending}
+    <button type="button" className="dnd-button secondary" disabled={turn.isPending || sending}
       data-testid="button-death-wait" onClick={send}>
-      {buttonLabel(resumable, turn.isPending, state.combat.active)}
+      {buttonLabel(resumable, turn.isPending, label)}
     </button>
     {blocked && <p role="alert" data-testid="death-wait-blocked">Önceki hamle henüz doğrulanamadı. Önce onun sonucunu doğrula; bekleyiş bundan sonra gönderilir.</p>}
     {resumable && !turn.isPending && <p role="status">Bekleyişin sonucu henüz doğrulanamadı. Aynı bekleyiş aynı kimlikle yeniden denenir; ikinci kez uygulanmaz.</p>}
+  </div>;
+}
+
+/** The end of a character, said plainly, with what is still possible. */
+export function DeathEndNotice({ state, onNewAdventure }: { state: GameState; onNewAdventure: () => void }) {
+  const death = state.death_state;
+  if (death?.status !== 'dead') return null;
+  return <div className="data-row mt-3" role="status" data-testid="death-end-notice">
+    <strong>{state.character.name} öldü.</strong>
+    <p className="data-row-desc">
+      {death.terminal
+        ? 'Bu kampanya burada kapandı.'
+        : death.last_call_open
+          ? 'Karanlığa son bir kez seslenebilirsin; duyan olur mu, kimse bilemez.'
+          : 'Karanlıktan ses gelmiyor.'}
+      {' '}Yeni bir karakterle yeni bir maceraya başlayabilirsin.
+    </p>
+    <button type="button" className="dnd-button secondary mt-3" data-testid="button-death-new-adventure" onClick={onNewAdventure}>
+      Yeni karakterle başla
+    </button>
   </div>;
 }

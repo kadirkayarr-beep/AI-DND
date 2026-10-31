@@ -1522,6 +1522,7 @@ export const CreateGameSessionResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(createGameSessionResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -2493,6 +2494,7 @@ export const GetGameSessionStateResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(getGameSessionStateResponseDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -3481,6 +3483,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -4476,6 +4479,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -5678,6 +5682,7 @@ export const PlayGameTurnResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(playGameTurnResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -7254,6 +7259,7 @@ export const GetGameActionStatusResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -8817,6 +8823,7 @@ export const AbandonGameActionResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -10231,6 +10238,7 @@ export const UndoGameTurnResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(undoGameTurnResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -11235,6 +11243,7 @@ export const AcceptGameQuestResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(acceptGameQuestResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -12261,6 +12270,7 @@ export const CancelGameQuestResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(cancelGameQuestResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -13276,6 +13286,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -14289,6 +14300,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -15316,6 +15328,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -16332,6 +16345,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -18176,7 +18190,7 @@ export const createCampaignBodyCampaignStartOneRegionIdMax = 128;
 
 export const createCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
 
-export const createCampaignBodyDeathModeDefault = `NORMAL`;
+export const createCampaignBodyDeathModeDefault = `PERMADEATH`;
 
 export const CreateCampaignBody = zod.object({
   "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
@@ -19541,6 +19555,7 @@ export const CreateCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(createCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -20833,6 +20848,7 @@ export const GetCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(getCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -22102,6 +22118,7 @@ export const ResumeCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resumeCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -24466,6 +24483,7 @@ export const CreateLegacySessionResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(createLegacySessionResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -25438,6 +25456,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(getLegacySessionStateResponseDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -26635,6 +26654,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(playLegacyTurnResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -28046,6 +28066,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(undoLegacyTurnResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -29430,7 +29451,7 @@ export const createLegacyCampaignBodyCampaignStartOneRegionIdMax = 128;
 
 export const createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
 
-export const createLegacyCampaignBodyDeathModeDefault = `NORMAL`;
+export const createLegacyCampaignBodyDeathModeDefault = `PERMADEATH`;
 
 export const CreateLegacyCampaignBody = zod.object({
   "name": zod.string().min(1).max(createLegacyCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
@@ -30795,6 +30816,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -32089,6 +32111,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
@@ -33359,6 +33382,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "dead": zod.boolean(),
   "terminal": zod.boolean(),
   "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
   "last_death_save": zod.union([zod.object({
   "roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
   "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),

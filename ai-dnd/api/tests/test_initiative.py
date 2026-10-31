@@ -263,13 +263,15 @@ class InitiativeTests(unittest.TestCase):
             s._resolve_enemy_turns_until_player()
         self.assertEqual(s.world_state["combat"]["current_actor_id"], "player")
 
-    def test_death_save_runs_through_existing_owner(self):
+    def test_death_save_waits_for_the_players_turn_and_runs_through_existing_owner(self):
         s, _ = battle()
         s.character["current_hp"] = 0
         s.world_state["player_combat_status"] = "unconscious"
+        with patch("game.roll_d20", side_effect=AssertionError("the scheduler rolls nothing")):
+            self.assertEqual(s._resolve_enemy_turns_until_player(), [])
         with patch("game.roll_d20", return_value=20):
-            results = s._resolve_enemy_turns_until_player()
-        self.assertEqual(results[0]["action"], "death_save")
+            result = s.run_player_turn("Hamle.")
+        self.assertEqual(result["action_result"]["action"], "death_save")
         self.assertGreater(s.character["current_hp"], 0)
 
     def test_direct_third_death_save_preserves_newly_stable_boundary(self):
@@ -480,8 +482,8 @@ class InitiativeTests(unittest.TestCase):
         self.assertIsNone(combat["target_id"])
         self.assertIsNotNone(s.ensure_death_state()["combat_checkpoint"])
         with patch("game.roll_d20", return_value=20):
-            result = s._resolve_enemy_turns_until_player()
-        self.assertEqual(result[0]["action"], "death_save")
+            result = s.run_player_turn("Hamle.")
+        self.assertEqual(result["action_result"]["action"], "death_save")
         self.assertFalse(s.world_state["combat"]["active"])
 
     def test_last_current_enemy_leaves_and_delegates_round_boundary(self):

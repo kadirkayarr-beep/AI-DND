@@ -738,6 +738,11 @@ def serialize_session_state(
         "dead": raw_death_state.get("dead", False),
         "terminal": raw_death_state.get("terminal", False),
         "prone": raw_death_state.get("prone", False),
+        "last_call_open": (
+            death_status == "dead"
+            and raw_death_state.get("terminal") is not True
+            and raw_death_state.get("last_call") is None
+        ),
         "last_death_save": copy.deepcopy(
             raw_death_state.get("last_death_save_result")
         ),

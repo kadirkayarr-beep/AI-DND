@@ -27,6 +27,7 @@ export interface DeathStateProjection {
   dead: boolean;
   terminal: boolean;
   prone: boolean;
+  last_call_open: boolean;
   last_death_save?: DeathSaveResult | null;
   last_resolution?: DeathResolutionResult | null;
 }

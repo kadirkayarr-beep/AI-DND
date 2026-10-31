@@ -499,7 +499,7 @@ test('the quest commands call the shared gate before mutating', () => {
 });
 
 // ---- death-wait uses the same durable pending slot as every other mutation of the campaign ----
-const WAIT_MESSAGE = '1 saat bekle.';
+const WAIT_MESSAGE = 'Ölüm kurtarma zarımı atıyorum.';
 
 function durableDeathWait({ storage = memoryStorage() } = {}) {
   const mutations = [];

@@ -672,7 +672,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     const created = await creation.page.evaluate("window.__creationFixture.created");
     assert.equal(created?.character?.mode, "random");
     assert.equal(created?.campaignStart?.starting_location_id, "waterdeep");
-    assert.equal(created?.deathMode, "NORMAL");
+    assert.equal(created?.deathMode, "PERMADEATH");
     assert.deepEqual(creation.page.exceptions, []);
     metrics.push({ viewport, characterCreation: "selection, next/back, return and random-create callback verified" });
     creation.page.close();

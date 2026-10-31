@@ -87,7 +87,7 @@ function endReasonLabel(value: string | undefined): string | undefined {
 }
 
 function deathModeLabel(mode: GameState['death_state']['mode']): string {
-  if (mode === 'PERMADEATH') return 'Permadeath';
+  if (mode === 'PERMADEATH') return 'Gerçek ölüm';
   if (mode === 'IRONMAN') return 'Ironman';
   return 'Normal';
 }
@@ -442,11 +442,15 @@ export function CombatPanel({
   entries,
   sessionId,
   campaignId,
+  onDeathMove,
+  sending,
 }: {
   state: GameState;
   entries: CombatLogEntry[];
   sessionId: string;
   campaignId?: string;
+  onDeathMove?: (message: string) => void;
+  sending?: boolean;
 }) {
   const active = Boolean(state.combat.active);
   const latest = entries[entries.length - 1]?.result;
@@ -460,7 +464,7 @@ export function CombatPanel({
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
       <SpeciesTraitControls key={campaignId || sessionId} state={state} sessionId={sessionId} campaignId={campaignId} />
-      <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} />
+      <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} onSend={onDeathMove} sending={sending} />
       <header className="combat-panel-header">
         <div>
           <span className="combat-overline">KARŞILAŞMANIN SEYRİ</span>

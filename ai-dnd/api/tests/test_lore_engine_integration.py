@@ -935,18 +935,16 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                         ),
                     ) as intent_model,
                 ):
-                    with self.assertRaisesRegex(
-                        ValueError,
-                        r"^Bilinçsiz karakter eylem gerçekleştiremez\.$",
-                    ):
-                        session.run_player_turn(
-                            question, target_id=target_id, scene_plan={}
-                        )
+                    # The owner's rule: a dying body's turn is its save, whatever is typed.
+                    result = session.run_player_turn(
+                        question, target_id=target_id, scene_plan={}
+                    )
 
                 intent_model.assert_not_called()
                 narration_model.assert_not_called()
+                self.assertEqual(result["action_result"]["action"], "death_save")
+                self.assertNotIn("Neverember", result["narration"])
                 self.assertEqual(session.character, before_character)
-                self.assertEqual(session.world_state, before_world)
 
     def test_stable_unconscious_current_city_ruler_question_preserves_pending_recovery(self):
         question = "Bu şehrin hükümdarı kim?"

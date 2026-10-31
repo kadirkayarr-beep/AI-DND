@@ -95,7 +95,7 @@ export function SpellSelectionHeading({ characterClass, selectedCount, requiredC
 }
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
-type DeathMode = 'NORMAL' | 'PERMADEATH' | 'IRONMAN';
+type DeathMode = 'PERMADEATH' | 'IRONMAN';
 
 type CharacterCreationScreenProps = {
   options?: CharacterCreationOptions;
@@ -254,7 +254,7 @@ export function CharacterCreationScreen({
   // Wizard state
   const [currentStep, setCurrentStep] = useState<StepId>(initialStep);
   const [mode, setMode] = useState<'custom' | 'random'>('custom');
-  const [deathMode, setDeathMode] = useState<DeathMode>('NORMAL');
+  const [deathMode, setDeathMode] = useState<DeathMode>('PERMADEATH');
 
   // Form selections (no silent preselection: all start unchosen)
   const [characterClass, setCharacterClass] = useState('');
@@ -2211,16 +2211,13 @@ export function CharacterCreationScreen({
                     onChange={(event) => setDeathMode(event.target.value as DeathMode)}
                     data-testid="select-death-mode"
                   >
-                    <option value="NORMAL">Normal — ölümde çatışma başına geri dön</option>
-                    <option value="PERMADEATH">Permadeath — karakter ölümü kalıcı</option>
+                    <option value="PERMADEATH">Gerçek ölüm — ölüm ölümdür</option>
                     <option value="IRONMAN">Ironman — ölüm kampanyayı bitirir</option>
                   </select>
                   <p>
-                    {deathMode === 'NORMAL'
-                      ? 'Karakter ölürse çatışma öncesi oyun durumu geri yüklenir.'
-                      : deathMode === 'PERMADEATH'
-                        ? 'Karakter ölürse geri dönüş olmaz; kampanya kaydı korunur.'
-                        : 'Karakter ölürse geri dönüş olmaz ve kampanya sona erer.'}
+                    {deathMode === 'PERMADEATH'
+                      ? 'Karakter ölürse geri dönüş nadirdir ve garantisi yoktur; kampanya kaydı korunur.'
+                      : 'Karakter ölürse geri dönüş olmaz ve kampanya sona erer.'}
                   </p>
                 </div>
 

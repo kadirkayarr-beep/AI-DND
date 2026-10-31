@@ -3556,6 +3556,8 @@ components:
           type: boolean
         prone:
           type: boolean
+        last_call_open:
+          type: boolean
         last_death_save:
           anyOf:
           - $ref: '#/components/schemas/DeathSaveResult'
@@ -3573,6 +3575,7 @@ components:
       - dead
       - terminal
       - prone
+      - last_call_open
     CombatHistoryEntry:
       type: object
       additionalProperties: false
@@ -5950,7 +5953,7 @@ components:
           - NORMAL
           - PERMADEATH
           - IRONMAN
-          default: NORMAL
+          default: PERMADEATH
       additionalProperties: false
     CampaignStartSelection:
       type: object
