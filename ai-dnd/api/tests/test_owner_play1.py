@@ -357,6 +357,14 @@ class IntroducingYourself(NpcSpeechBase):
             with self.subTest(line=line):
                 self.assertIsNone(game._explicit_player_name_disclosure(line))
 
+    async def test_saying_the_same_name_again_does_not_repeat_the_greeting(self):
+        await self.begin()
+        first = await self.say("Bende carius quenna")
+        self.client.narration = "Duydum, Carius. Başka ne var?"
+        again = await self.say("ismim carius quenna")
+        self.assertNotEqual(first, again)
+        self.assertIn("Başka ne var?", again)
+
     async def test_npc_is_told_the_name_and_uses_it_only_now_and_then(self):
         await self.begin()
         await self.say("ismim carius")
@@ -370,14 +378,6 @@ class IntroducingYourself(NpcSpeechBase):
 
 
 class OpeningText(unittest.TestCase):
-    async def test_saying_the_same_name_again_does_not_repeat_the_greeting(self):
-        await self.begin()
-        first = await self.say("Bende carius quenna")
-        self.client.narration = "Duydum, Carius. Başka ne var?"
-        again = await self.say("ismim carius quenna")
-        self.assertNotEqual(first, again)
-        self.assertIn("Başka ne var?", again)
-
     def opening(self, **character):
         session = foundation.LivingWorldV2FoundationTests().make_session()
         session.character.update(character)
