@@ -86,7 +86,30 @@ class WhoKnowsWhat(unittest.TestCase):
         self.assertEqual(town_knowledge.public_knowledge(world, closed[0]), [])
         note = town_knowledge.speech_note(world, closed[0])
         self.assertIn("istemiyorsun", note)
-        self.assertNotIn(world_threads.active(world)[0]["public_line"], note)
+        self.assertEqual(note, town_knowledge.speech_note(world, closed[0]))
+        for thread in world_threads.active(world):
+            self.assertNotIn(thread["public_line"], note)
+            self.assertNotIn(thread["owner_line"], note)
+
+    def test_someone_who_will_not_talk_still_sends_you_somewhere_real(self):
+        # Real play: a lone closed-mouthed person on a street gave 13 turns of nothing.
+        world = seeded()
+        places = {world["locations"][t["place_id"]]["name"] for t in world_threads.active(world)}
+        people = [person(f"npc_{index}", "Barmen") for index in range(60)]
+        for npc in [npc for npc in people if town_knowledge.is_closed_mouthed(world, npc)]:
+            note = town_knowledge.speech_note(world, npc)
+            self.assertEqual(sum(place in note for place in places), 1, note)
+
+    def test_a_place_a_closed_person_named_can_be_followed(self):
+        world = seeded()
+        npc = next(person(f"npc_{i}", "Barmen") for i in range(60)
+                   if town_knowledge.is_closed_mouthed(world, person(f"npc_{i}", "Barmen")))
+        world["npcs"].append(npc)
+        name = town_knowledge._brush_off_place(world, npc)
+        line = f"{name} tarafına sor, beni uğraştırma."
+        npc_statements.record(world, npc, "İş var mı?", line, turn=None)
+        town_knowledge.note_mention(world, npc, line)
+        self.assertEqual(world["locations"][npc_statements.last_said_place(world)["location_id"]]["name"], name)
 
     def test_someone_in_most_towns_can_point_somewhere(self):
         pointed = 0

@@ -130,14 +130,27 @@ def _name_of(world: dict[str, Any], place_id: Any) -> str:
     return place.get("name", "") if isinstance(place, dict) else ""
 
 
+def _brush_off_place(world: dict[str, Any], npc: dict[str, Any]) -> str:
+    """The one place this person sends people to, always the same; no details come with it."""
+    threads = world_threads.active(world, _settlement(world))
+    if not threads:
+        return ""
+    chosen = min(threads, key=lambda thread: _percent(world, npc.get("id"), "send", thread["thread_id"]))
+    return _name_of(world, chosen["place_id"])
+
+
 def speech_note(world: dict[str, Any], npc: Any) -> str:
     """Plain lines for this person's prompt; empty when the town is not in play here."""
     if not isinstance(npc, dict) or world_threads.view(world) is None or not _settlement(world):
         return ""
     if is_closed_mouthed(world, npc):
+        # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
+        place = _brush_off_place(world, npc)
         return (
-            " Kentte olan biteni yabancılarla konuşmak istemiyorsun: sorulursa kendi tavrınla geçiştir, "
-            "kimseyi ve hiçbir yeri adıyla anma."
+            " Kentte olan biteni yabancılarla konuşmak istemiyorsun: sorulursa kendi tavrınla kısa kes."
+            + (f" En fazla, başından savmak için {place} tarafına sormasını söyleyebilirsin; ne olduğunu anlatma."
+               if place else "")
+            + " Başka kimseyi ve hiçbir başka yeri adıyla anma."
         )
     known = public_knowledge(world, npc)
     lines = []
