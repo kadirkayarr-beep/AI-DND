@@ -10357,11 +10357,12 @@ def _narration_safety_decision(
         "ara", "bul",
         "tercih", "vaat", "soz"
     )
-    # Stems as they read in the present tense too: ilerliyorsun, gidiyorsun, yöneliyorsun.
     travel_prefixes = (
-        "ulas", "var", "gir", "git", "gid", "yuru", "gec", "ilerl", "don", "yaklas",
-        "uzakl", "yonel",
+        "ulas", "var", "gir", "git", "yuru", "gec", "ilerle", "don", "yaklas"
     )
+    if action_result.get("proposal_required"):
+        # This walk is told before it happens, so its present-tense verbs are the walk itself.
+        travel_prefixes += ("gid", "ilerl", "uzakl", "yonel")
     input_verb_suffixes = tuple(sorted((
         "iyorum", "ıyorum", "uyorum", "üyorum",
         "ıyorsun", "iyorsun", "uyorsun", "üyorsun",

@@ -269,7 +269,11 @@ def run_tests():
     assert asked["action_result"]["status"] == "clarification", asked
     assert (session.character, session.rng.getstate(),
             session.messages, session.recent_dm_narrations) == before[1:]
-    assert world_state == before[0] and not world_state["combat"]["active"]
+    # A question answered in the world still records its reply's category, which only varies later replies.
+    variety = "adventure_recent_categories"
+    assert ({k: v for k, v in world_state.items() if k != variety}
+            == {k: v for k, v in before[0].items() if k != variety})
+    assert not world_state["combat"]["active"]
     assert messages == [{"role": "system", "content": "test"}]
     assert model.chat.call_count == calls_before
     print("  Nonlocal target rejected without state, RNG or model work -> PASS")
