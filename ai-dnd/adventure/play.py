@@ -124,7 +124,8 @@ def settle_session(session):
             if isinstance(paid, dict) and paid.get("lore_state") is not None:
                 session.campaign_lore_state = paid["lore_state"]
                 lore = paid["lore_state"]
-        _follow(session, quest, lore)
+        if not str(quest.get("creation_evidence") or "").startswith("thread-job:"):
+            _follow(session, quest, lore)
 
 
 def traverse(session, destination):

@@ -918,13 +918,47 @@ def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
                   key=lambda t: order.get(t["status"], 3))
 
 
+def deliveries_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """Accepted errands that end with this person."""
+    return [t for t in owned(world) if t.get("status") == "accepted" and t.get("type") == "errand"
+            and isinstance(npc, dict) and t.get("recipient_npc_id") == npc.get("id")]
+
+
+def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
+    table = answer_table()
+    if not isinstance(text, str) or any(mark in text for mark in _QUOTES):
+        return False
+    stems = _item_stems(thread)
+    names = _names_of(npc)
+    verbs = table["give"] | table["give_verbs"]
+    for tokens, asked, _ in _clauses(text):
+        body = [word for word in tokens if word not in names and word not in table["fillers"]]
+        if asked or not body:
+            continue
+        if " ".join(body) in table["give"]:
+            return True
+        item = any(word in table["item_words"] or any(word.startswith(s) for s in stems) for word in body)
+        if item and any(word in verbs for word in body):
+            return True
+    return False
+
+
 def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | None:
     """What this line does to this person's work: a decision, talk about it, or nothing."""
+    for thread in deliveries_to(world, npc):
+        if gives_item(text, npc, thread):
+            return {"thread_id": thread["thread_id"], "decision": "give", "npc_id": npc.get("id")}
     mine = jobs_of(world, npc)
     closed = recent_closed(world, npc)
     if not (mine or closed) or answer_table() == {}:
         return None
     for thread in mine:
+        if thread["status"] == "accepted" and thread.get("type") == "errand":
+            reading = read_answer(text, npc, thread)
+            if reading["take"] or reading["move"]:
+                return {"thread_id": thread["thread_id"], "decision": "take", "npc_id": npc.get("id"),
+                        "reading": reading}
         decision = bind_player_decision(world, thread, text, npc)
         if decision:
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
@@ -939,7 +973,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
 
 def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
     """Write what the player said. Money and goods stay with their own owners."""
-    if decision == "accepted":
+    if decision == "accepted" and thread.get("type") == "hiring":
         return accept_hired(world, thread)
     if decision == "declined":
         return decline(world, thread, turn)

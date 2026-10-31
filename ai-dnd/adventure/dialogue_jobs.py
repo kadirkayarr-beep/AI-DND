@@ -12,6 +12,212 @@ from adventure import templates, director
 
 
 
+THREAD_EVIDENCE='thread-job:'
+_KEPT=('quests','scheduled_events','inventory','currency','world_threads_v1','locations','next_location_number',
+       'next_npc_number','relationships','flags','quest_processed_event_ids')
+
+
+def _keep(world):
+    """What a job write may touch. People are kept whole so a held reference stays the real person."""
+    return ({key:copy.deepcopy(world[key]) for key in _KEPT if key in world},copy.deepcopy(world.get('npcs',[])))
+
+
+def _restore(world,kept):
+    saved,people=kept
+    for key in _KEPT:
+        if key in saved: world[key]=saved[key]
+        else: world.pop(key,None)
+    live={n.get('id'):n for n in world.get('npcs',[]) if isinstance(n,dict)}
+    world['npcs'][:]=[]
+    for row in people:
+        npc=live.get(row.get('id'),{})
+        npc.clear();npc.update(row)
+        world['npcs'].append(npc)
+
+
+def thread_job_active_count(world):
+    return sum(isinstance(q,dict) and q.get('status')=='ACTIVE' and str(q.get('creation_evidence') or '').startswith(THREAD_EVIDENCE)
+               for q in world.get('quests',[]))
+
+
+def _quest_of(world,thread):
+    return next((q for q in world.get('quests',[]) if isinstance(q,dict) and q.get('quest_id')==thread.get('quest_id')),None)
+
+
+def holds_parcel(world,thread):
+    return any(isinstance(i,dict) and i.get('item_id')==f"parcel:{thread.get('quest_id')}" for i in world.get('inventory',[]))
+
+
+def _recipient_for(thread,world):
+    """The person it goes to exists from the moment the job does, not from the player's arrival."""
+    import game
+    import world_threads
+    place=world.get('locations',{}).get(thread.get('target_place_id'))
+    if not isinstance(place,dict): return None
+    npc=world_threads.recipient_of(world,thread)
+    if npc is None and place.get('place_kind') in local_places.PLACE_KINDS:
+        npc,_=local_places.furnish(world,place,create_feature=game.create_local_feature,
+            create_npc=lambda fields:game.create_npc_from_ai(fields,allow_other_location=True))
+    return npc
+
+
+def accept_thread_job(session,thread,giver):
+    """The job, its journal row, its deadline and its parcel, all or none. False leaves nothing."""
+    import world_threads
+    from adventure import deadlines, play
+    world=session.world_state
+    if thread_job_active_count(world)>=1 or thread.get('quest_id') or type(thread.get('terms',{}).get('pay')) is not int:
+        return False
+    kept=_keep(world)
+    try:
+        place_id=thread.get('target_place_id')
+        recipient=_recipient_for(thread,world)
+        place=world.get('locations',{}).get(place_id)
+        if not _job_checks(world,giver,recipient,place,place_id):
+            raise ValueError('Job bindings unavailable.')
+        qid='job:'+hashlib.sha256(thread['thread_id'].encode()).hexdigest()[:20]
+        noun=thread.get('item_noun') or 'paket'
+        label=noun[:1].upper()+noun[1:]
+        turn=world.get('flags',{}).get('turn_index',0)
+        q=templates.instantiate('DELIVERY',quest_id=qid,turn=turn,opportunity_key='thread-job:'+qid,
+           creation_evidence=THREAD_EVIDENCE+thread['thread_id'],
+           bindings=templates.prepared_bindings(source_npc_id=giver['id'],target_npc_id=recipient['id'],location_ids=[place_id]),
+           rumor=f"{label}: {place['name']} içinde {living_world.public_npc_name(recipient)} bekliyor.")
+        q['title']+=f": {place['name']}"
+        q['reward_plan']={'success':{'xp':0,'gold':thread['terms']['pay']},'failed':{'xp':0,'gold':0}}
+        world.setdefault('quests',[]).append(q)
+        director.discover(world,qid)
+        if deadlines.arm(world,q,duration_seconds=86400) is None:
+            raise ValueError('The job has no deadline.')
+        play.accept(session,qid)
+        equipment_economy.materialize(world)
+        item_id='parcel:'+qid
+        if not any(isinstance(i,dict) and i.get('item_id')==item_id for _,items in equipment_economy.containers(world) for i in items):
+            giver.setdefault('inventory',[]).append({'item_id':item_id,'name':label,'quantity':1})
+        equipment_economy.validate_world(world)
+        if not world_threads.accept_hired(world,thread):
+            raise ValueError('The thread cannot be accepted.')
+        thread.update(quest_id=qid,recipient_npc_id=recipient['id'],owner_npc_id=giver['id'])
+        thread.pop('work_until',None)
+        world_threads.validate(world[world_threads.KEY])
+        return True
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
+def _lines(kind):
+    import world_threads
+    return world_threads.job_lines('errand','shown',kind) or []
+
+
+def shown_line(world,thread,kind):
+    import world_threads
+    lines=_lines(kind)
+    if not lines: return ''
+    line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],kind)%len(lines)]
+    noun=thread.get('item_noun') or 'paket'
+    return world_threads._fill(line,item=noun[:1].upper()+noun[1:],owner=thread.get('owner_name') or '',
+        recipient=thread.get('recipient_name') or '',pay_text=world_threads.pay_text(thread))
+
+
+def _move_parcel(session,thread,npc,to_player,text=''):
+    """The parcel really changes hands and the journal hears of it from that change alone."""
+    import adventure
+    world=session.world_state
+    q=_quest_of(world,thread)
+    item_id='parcel:'+q['quest_id']
+    equipment_economy.materialize(world)
+    source=npc.get('inventory',[]) if to_player else world.get('inventory',[])
+    destination=world.setdefault('inventory',[]) if to_player else npc.setdefault('inventory',[])
+    item=next((i for i in source if isinstance(i,dict) and i.get('item_id')==item_id),None)
+    if item is None: return False
+    if not to_player:  # someone reached the door without the journal seeing the walk
+        road=next((o for o in q['objectives'] if o['objective_id']=='road'),None)
+        if road is not None and road.get('graph_state')=='ACTIVE':
+            elsewhere=copy.deepcopy(world)
+            elsewhere['location']=None
+            adventure.apply_dynamic_evidence(world,elsewhere,{'action':'travel','status':'resolved'})
+    before=copy.deepcopy(world)
+    equipment_economy.move(world,item,source,destination,npc['id'] if to_player else 'player')
+    equipment_economy.validate_world(world)
+    flags=world.setdefault('flags',{})
+    flags['turn_index']=flags.get('turn_index',0)+1
+    action={'action':'item_transfer','status':'completed','success':True,'npc_id':npc['id'],'action_id':f"turn:{flags['turn_index']}",
+            'state_changes':['inventory','npcs','quests']}
+    action['quest_outcomes']=session.evaluate_quest_events(before,action)
+    return action
+
+
+def hand_over(session,thread,giver):
+    """Owner to player. A word of 'oraya' after this means where it is going."""
+    import grounded_action
+    world=session.world_state
+    kept=_keep(world)
+    try:
+        action=_move_parcel(session,thread,giver,True)
+        if action and thread.get('target_place_id'):
+            grounded_action.note_last(world,thread['target_place_id'])
+        return action
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
+def deliver(session,thread,recipient,text):
+    """Player to recipient. Paid through the wallet by the journal row, in this same reply."""
+    import world_threads
+    world=session.world_state
+    if not holds_parcel(world,thread):
+        shown=shown_line(world,thread,'not_in_hand')
+        session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+        return {'messages':session.messages,'narration':shown,'model_calls':0,
+                'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}
+    kept=_keep(world)
+    try:
+        action=_move_parcel(session,thread,recipient,False)
+        if not action: raise ValueError('The parcel did not move.')
+        world_threads.sync_from_quests(world)
+        closed=world_threads.by_id(world,thread['thread_id'])
+        if closed is None or closed.get('status')!='done':
+            raise ValueError('The delivery did not finish the job.')
+        closed['paid_cp']=closed['terms']['pay']
+        shown=shown_line(world,closed,'delivered')
+        action['direct_response']=shown
+        session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+        return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
+def take_reply(session,thread,text,action):
+    shown=shown_line(session.world_state,thread,'taken')
+    action=dict(action,direct_response=shown)
+    session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+    return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}
+
+
+def abandon_thread_job(session,thread,owner):
+    """Walking away from a job: the journal row closes and a parcel in hand goes back."""
+    import world_threads
+    from adventure import play
+    world=session.world_state
+    kept=_keep(world)
+    try:
+        if holds_parcel(world,thread):
+            item=next(i for i in world.get('inventory',[]) if isinstance(i,dict) and i.get('item_id')==f"parcel:{thread['quest_id']}")
+            equipment_economy.materialize(world)
+            equipment_economy.move(world,item,world['inventory'],owner.setdefault('inventory',[]),'player')
+            equipment_economy.validate_world(world)
+        play.abandon(session,thread['quest_id'])
+        world_threads.sync_from_quests(world)
+        return True
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
 def eligible_targets(world,npc_id):
     """One public target domain shared by prompt and transactional validation."""
     here=world.get('location')
@@ -30,6 +236,18 @@ def eligible_targets(world,npc_id):
         targets.append({'npc_id':npc['id'],'name':living_world.public_npc_name(npc),'location_id':location})
     return targets
 
+def _job_checks(world,giver,recipient,place,place_id):
+    """A job can bind only between two different living people, one reachable place away."""
+    here=world.get('location')
+    settlement=local_places.settlement_of(world,here)
+    return not (giver is None or recipient is None or recipient is giver or not isinstance(place,dict)
+            or recipient.get('location')!=place_id or recipient.get('hidden')
+            or recipient.get('discovered') is False or recipient.get('combat_status') in {'dead','defeated','unconscious'}
+            or recipient.get('current_hp',1)<=0 or place.get('hidden') or place.get('discovered') is False
+            or local_places.settlement_of(world,place_id)!=settlement
+            or world.get('blocked_travel_routes',{}).get(settlement,{}).get(place_id))
+
+
 def prepare(session, proposal, npc_id):
     from dialogue_runtime import DialogueResponseError
     world=session.world_state
@@ -42,15 +260,8 @@ def prepare(session, proposal, npc_id):
     giver=next((n for n in world['npcs'] if n.get('id')==npc_id and n.get('location')==world['location']),None)
     recipient=next((n for n in scheduled_events.visible_npcs(world) if n.get('id')==proposal['target_npc_id']),None)
     place=world.get('locations',{}).get(proposal['location_id'])
-    if (giver is None or recipient is None or recipient is giver or not isinstance(place,dict)
-            or recipient.get('location')!=proposal['location_id'] or recipient.get('hidden')
-            or recipient.get('discovered') is False or recipient.get('combat_status') in {'dead','defeated','unconscious'}
-            or recipient.get('current_hp',1)<=0 or place.get('hidden') or place.get('discovered') is False
-            or local_places.settlement_of(world,proposal['location_id'])!=local_places.settlement_of(world,world['location'])):
+    if not _job_checks(world,giver,recipient,place,proposal['location_id']):
         raise DialogueResponseError('Job bindings unavailable.')
-    settlement=local_places.settlement_of(world,world['location'])
-    if world.get('blocked_travel_routes',{}).get(settlement,{}).get(proposal['location_id']):
-        raise DialogueResponseError('Job route unavailable.')
     if not any(t['npc_id']==recipient['id'] and t['location_id']==proposal['location_id'] for t in eligible_targets(world,npc_id)):
         raise DialogueResponseError('Job needs a reachable different-location recipient.')
     identity='|'.join((npc_id,proposal['template_id'],proposal['target_npc_id'],proposal['location_id']))
@@ -77,7 +288,7 @@ def prepare(session, proposal, npc_id):
 
 def transfer_evidence(quest, before, after):
     """Derive progress from exclusive parcel ownership changes, never prose."""
-    if not quest.get('creation_evidence','').startswith('dialogue-job:') or quest.get('status')!='ACTIVE': return None
+    if not quest.get('creation_evidence','').startswith(('dialogue-job:',THREAD_EVIDENCE)) or quest.get('status')!='ACTIVE': return None
     item_id='parcel:'+quest['quest_id']
     def owners(w):
         return [owner for owner,items in equipment_economy.containers(w)
@@ -123,7 +334,7 @@ def resolve(session,text,mode):
     session.require_player_can_act()
     objective=next((o for o in q['objectives'] if o['objective_id']==('take' if take else 'hand')),None)
     if objective is None or objective.get('graph_state')!='ACTIVE':
-        shown='Bu aktarım aşaması henüz hazır değil; önce görev günlüğündeki sıradaki adımı tamamlamalısın.'
+        shown=f"{living_world.public_npc_name(npc)} şimdilik el uzatmıyor; önce yolun geri kalanı var."
         session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
         return {'messages':session.messages,'narration':shown,'model_calls':0,'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}
     before=copy.deepcopy(w)

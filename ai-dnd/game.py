@@ -3838,9 +3838,9 @@ def validate_npc_proposal(proposal, allow_other_location=False):
     }
 
 
-def create_npc_from_ai(proposal, request_key=None):
+def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False):
     world_state = _session().world_state
-    validated = validate_npc_proposal(proposal)
+    validated = validate_npc_proposal(proposal, allow_other_location=allow_other_location)
     if not validated:
         return None
     if isinstance(request_key, str) and re.fullmatch(r"[0-9a-f]{64}", request_key):
@@ -8201,6 +8201,38 @@ def _physical_line(player_input):
     return bool(acts) or session._has_explicit_attack_verb(player_input)
 
 
+def _carry_out_thread_turn(session, world, gate, person, player_input):
+    """Write what was decided. Each writer leaves nothing behind if it cannot finish."""
+    from adventure import dialogue_jobs
+    import world_threads
+    thread = world_threads.by_id(world, gate["thread_id"])
+    decision = gate["decision"]
+    if decision == "give":
+        gate["reply"] = dialogue_jobs.deliver(session, thread, person, player_input)
+        return gate
+    reading = world_threads.read_answer(player_input, person, thread)
+    errand = thread.get("type") == "errand"
+    if decision == "accepted" and errand:
+        if not dialogue_jobs.accept_thread_job(session, thread, person):
+            gate["decision"] = "busy"
+    elif decision == "abandoned" and errand and thread.get("quest_id"):
+        dialogue_jobs.abandon_thread_job(session, thread, person)
+    elif decision in {"accepted", "declined", "abandoned"}:
+        turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
+        if not world_threads.apply_decision(world, thread, decision, turn):
+            gate["decision"] = None
+    thread = world_threads.by_id(world, gate["thread_id"])
+    in_hand = errand and thread.get("status") == "accepted" and gate["decision"] in {"accepted", "take"}
+    if in_hand and (reading["take"] or reading["move"]) and not dialogue_jobs.holds_parcel(world, thread):
+        action = dialogue_jobs.hand_over(session, thread, person)
+        if action and reading["move"]:
+            gate["moving"] = dialogue_jobs.shown_line(world, thread, "taken")
+        elif action and not reading["question"]:
+            gate["reply"] = dialogue_jobs.take_reply(session, thread, player_input, action)
+    session._thread_turn = gate
+    return gate
+
+
 def _thread_gate(player_input, target_id, interaction_mode):
     """A line about someone's work is decided here, before any phrase owner reads it.
 
@@ -8224,13 +8256,7 @@ def _thread_gate(player_input, target_id, interaction_mode):
         if gate["decision"] is None and interaction_mode != "say" and _physical_line(player_input):
             return None
         session.require_player_can_act()
-        thread = world_threads.by_id(world, gate["thread_id"])
-        if gate["decision"] in {"accepted", "declined", "abandoned"}:
-            turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
-            if not world_threads.apply_decision(world, thread, gate["decision"], turn):
-                gate["decision"] = None
-        session._thread_turn = gate
-        return gate
+        return _carry_out_thread_turn(session, world, gate, person, player_input)
     except PlayerCannotAct:
         raise
     except Exception:
@@ -17622,8 +17648,22 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
-    if combat_action is None:
-        gate = _thread_gate(player_input, target_id, interaction_mode)
+    if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            gate = _thread_gate(player_input, target_id, interaction_mode)
+        if gate is not None and gate.get("reply") is not None:
+            return gate["reply"]
+        if gate is not None and gate.get("moving"):
+            _session()._thread_gate_done = True  # the line goes on as the walk it also was
+            try:
+                walked = _dispatch_player_turn(
+                    player_input, messages, target_id, scene_plan, action_id, session_id, combat_action,
+                    interaction_mode, check_feature, check_evidence,
+                )
+            finally:
+                _session()._thread_gate_done = False
+            walked["narration"] = f"{gate['moving']} {walked.get('narration') or ''}".strip()
+            return walked
         if gate is not None:
             interaction_mode, target_id = "say", gate["npc_id"]
     if combat_action is None:

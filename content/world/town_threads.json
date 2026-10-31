@@ -547,6 +547,8 @@
       "cold": " Bu kişiye karşı soğuksun.",
       "warm": " Bu kişiye ısınmışsın.",
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
+      "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
+      "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
       "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
     },
     "hiring": {
@@ -574,6 +576,11 @@
       ]
     },
     "errand": {
+      "shown": {
+        "taken": ["{item} artık sende; {owner} elini çekip işine dönüyor.", "{owner} bir çırpıda devrediyor: {item} artık senin elinde."],
+        "delivered": ["{item} artık {recipient} elinde. Bedeli anlaşıldığı gibi sayılıp avucuna bırakılıyor: {pay_text}.", "{recipient} teslimatı alıp kontrol ediyor; {pay_text} kesene giriyor."],
+        "not_in_hand": ["{item} elinde değil; hâlâ {owner} yanında."]
+      },
       "accepted": [
         "Anlaştınız: {item} {recipient} eline, {target} içinde. Ücret {pay_text}, ödeme {timing_text}, süre {deadline_text}. Şartları tekrar etme."
       ],

@@ -160,6 +160,8 @@ def _offerable(world, npc):
 def _lines_for(world, thread, npc, decision):
     shared = world_threads.job_lines("shared") or {}
     status = thread["status"]
+    if decision == "busy":
+        return [shared.get("busy", "")]
     if decision == "questioning_terms":
         return [world_threads._fill(shared.get("questioning_terms", ""), pay_text=world_threads.pay_text(thread),
                                     timing_text=world_threads.timing_text(thread))]
@@ -178,17 +180,20 @@ def _lines_for(world, thread, npc, decision):
 
 def _parcel_line(world, thread):
     noun = thread.get("item_noun") or "paket"
-    quest_id = thread.get("quest_id")
-    item_id = f"parcel:{quest_id}"
-    held = any(isinstance(i, dict) and i.get("item_id") == item_id for i in world.get("inventory", []))
+    from adventure import dialogue_jobs
+    held = dialogue_jobs.holds_parcel(world, thread)
     return f"{noun.capitalize()} şu an {'oyuncunun elinde' if held else 'sende, henüz vermedin'}."
 
 
 def _job_note(world, npc, decision):
     """Where this person's work stands, for them to say. Python decided all of it already."""
-    if not isinstance(npc, dict) or not npc.get("place_role_of"):
-        return (world_threads.job_lines("shared") or {}).get("no_job", "")
     shared = world_threads.job_lines("shared") or {}
+    awaited = world_threads.deliveries_to(world, npc)
+    if awaited:
+        noun = awaited[0].get("item_noun") or "paket"
+        return " " + world_threads._fill(shared.get("awaiting", ""), item=noun, owner=awaited[0].get("owner_name") or "")
+    if not isinstance(npc, dict) or not npc.get("place_role_of"):
+        return shared.get("no_job", "")
     decided = world_threads.by_id(world, (decision or {}).get("thread_id"))
     jobs = world_threads.jobs_of(world, npc)
     if decided is not None and decided["status"] in world_threads.PUBLIC:

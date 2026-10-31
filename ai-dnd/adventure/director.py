@@ -214,7 +214,8 @@ def accept_dynamic(world, quest_id):
     quest = _quest(world, quest_id)
     if quest.get("status") == "ACTIVE":
         return quest
-    if active_count(world.get("quests", [])) >= MAX_ACTIVE:
+    town_job = str(quest.get("creation_evidence") or "").startswith("thread-job:")
+    if not town_job and active_count(world.get("quests", [])) >= MAX_ACTIVE:
         raise TransitionError("Zaten süren bir macera var.")
     turn = _turn(world)
     if turn < quest["updated_turn"]:
@@ -226,11 +227,13 @@ def accept_dynamic(world, quest_id):
 
 
 def active_count(quests):
+    """Adventures in play. A town job has its own limit and never blocks one."""
     return sum(
         1 for item in quests
         if isinstance(item, dict)
         and item.get("record_kind") == "dynamic"
         and item.get("status") == "ACTIVE"
+        and not str(item.get("creation_evidence") or "").startswith("thread-job:")
     )
 
 
