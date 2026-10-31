@@ -63,8 +63,17 @@ class NarratorVoiceTests(unittest.IsolatedAsyncioTestCase):
     def test_the_paragraph_stays_short_and_keeps_npc_address_free(self):
         self.assertIn("tekil sen", game.NARRATOR_VOICE)
         self.assertIn("NPC hitabı serbesttir", game.NARRATOR_VOICE)
-        self.assertLess(len(game.NARRATOR_VOICE.split()), 40)
+        self.assertLess(len(game.NARRATOR_VOICE.split()), 50, "measured at 113 Gemma tokens; the limit is 120")
         self.assertNotIn("hissediyorsun", game.NARRATOR_VOICE)
+
+    def test_the_paragraph_names_the_forms_not_the_idea_of_a_tense(self):
+        # Replayed on 8 real prompts: "şimdiki zamanda anlat" gave 31 past to 3 present lines, naming the forms 1 to 39.
+        for form in ("-iyor", "-iyorsun", "-dı", "-mıştı", "-yordu"):
+            self.assertIn(form, game.NARRATOR_VOICE)
+        self.assertNotIn("geçmişi geçmiş zamanda", game.NARRATOR_VOICE)
+
+    def test_the_paragraph_bars_the_third_person_word(self):
+        self.assertIn("oyuncu kelimesini yazma", game.NARRATOR_VOICE)
 
     async def test_the_main_narration_prompt_carries_the_voice(self):
         _, _, self.session, self.turn_url, _ = await self.campaign_with_npc(experimental=False)
