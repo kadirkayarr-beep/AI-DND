@@ -88,6 +88,13 @@ def ollama_response_content(response):
     return str(getattr(message, "content", ""))
 
 
+def ollama_reply_was_cut(response):
+    """True when the model stopped at its token cap instead of finishing."""
+    if isinstance(response, dict):
+        return response.get("done_reason") == "length"
+    return getattr(response, "done_reason", None) == "length"
+
+
 # ---------------------------------------------------------
 # ZAR SİSTEMİ
 # ---------------------------------------------------------
@@ -8487,9 +8494,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                         recent_scene_narration="", strict=False, speech_note=""):
     """Ask Qwen only to label the current input; it cannot read or write state.
 
-    With strict=True a classifier reply that is not usable JSON raises
-    IntentInfrastructureError instead of degrading to an "unknown" intent that
-    reads like a normal turn. Provider outages and timeouts still degrade.
+    A classifier reply that is cut or not usable JSON comes back marked
+    classifier_unusable, so the turn goes on as speech or a free attempt. With
+    strict=True, used for an explicit check that cannot stand in for a story
+    reply, it raises IntentInfrastructureError instead.
     """
     world_state = _session().world_state
     locations = [
@@ -8808,11 +8816,13 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             ),
         )
         data = _extract_json_object(ollama_response_content(response))
-        if isinstance(data, dict):
+        if experimental_npc_dialogue:
+            return data if isinstance(data, dict) else {"intent": "unknown"}
+        if isinstance(data, dict) and not ollama_reply_was_cut(response):
             return data
-        if strict and not experimental_npc_dialogue:
+        if strict:
             raise IntentInfrastructureError("intent_json_invalid")
-        return {"intent": "unknown"}
+        return {"intent": "unknown", "classifier_unusable": True}
     except IntentInfrastructureError:
         raise
     except Exception:
@@ -17738,6 +17748,7 @@ def _run_player_turn_internal(
     narration_source = "deterministic_system"
     """Intent → rules → validated updates → committed state → narration."""
     intent_model_calls = 0
+    classifier_unusable = False
     intent_source = "deterministic"
     # A scene pre-parse is a real intent call: it counts toward the two-call
     # turn budget and is reused instead of asking the same question twice.
@@ -18638,11 +18649,12 @@ def _run_player_turn_internal(
                     player_input, world_state, interaction_mode
                 ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
-                strict=True,
+                strict=check_feature is not None,
             )
             scene_preparse_model_calls = 1
             intent_model_calls = scene_preparse_model_calls
             intent_source = "model"
+            classifier_unusable = bool(preparsed_scene_intent.get("classifier_unusable"))
             selected_npc = _validated_scene_npc_id(
                 preparsed_scene_intent, player_input
             )
@@ -18732,11 +18744,12 @@ def _run_player_turn_internal(
                 player_input, world_state, interaction_mode
             ),
                 allow_local_person_proposal=should_generate_npcs(player_input),
-                strict=True,
+                strict=check_feature is not None,
         )
         scene_preparse_model_calls = 1
         intent_model_calls = scene_preparse_model_calls
         intent_source = "model"
+        classifier_unusable = bool(preparsed_scene_intent.get("classifier_unusable"))
 
     if (
         target_id is None
@@ -18939,7 +18952,8 @@ def _run_player_turn_internal(
         or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
-    if interaction_hint and not combat["active"]:
+    raw = None
+    if interaction_hint and not combat["active"] and not classifier_unusable:
         intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
         raw = parse_player_intent(
@@ -18951,7 +18965,12 @@ def _run_player_turn_internal(
             require_conversation=(
                 interaction_hint == "information" and npc_target is not None
             ),
+            strict=check_feature is not None,
         )
+        if raw.get("classifier_unusable"):
+            classifier_unusable = True
+            raw = None
+    if raw is not None:
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
                 raw,
@@ -19900,7 +19919,9 @@ def _run_player_turn_internal(
             # the lock; a name in passing must not demand a conversation.
             npc_target = None
         intent_source = "model"
-        if npc_target is None and isinstance(preparsed_scene_intent, dict):
+        if classifier_unusable:
+            raw_intent = {"intent": "unknown"}
+        elif npc_target is None and isinstance(preparsed_scene_intent, dict):
             # The scene pre-parse already asked this exact question (no
             # addressee, same context and proposal permissions); asking again
             # would exceed the two-call turn budget without new information.
@@ -19919,8 +19940,18 @@ def _run_player_turn_internal(
                 allow_scene_detail_proposals=_scene_detail_proposals_allowed(
                     player_input, world_state, interaction_mode
                 ),
-                strict=True,
+                strict=check_feature is not None,
             )
+            classifier_unusable = bool(raw_intent.get("classifier_unusable"))
+        if classifier_unusable:
+            # This turn's reading is lost and nobody is being spoken to: the
+            # narrator answers it as a free attempt, with no authority of its own.
+            npc_target = None
+            raw_intent = {
+                "intent": "narrative", "action": "narrative",
+                "target": {"type": "none", "reference": ""},
+                "completion": "unclear", "confidence": 0.0,
+            }
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
                 raw_intent,

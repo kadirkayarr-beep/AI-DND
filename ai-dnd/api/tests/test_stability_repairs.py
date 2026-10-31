@@ -194,19 +194,19 @@ class TurnIntegrityTests(unittest.TestCase):
                     npc.pop("memory", None)
         self.assertEqual(after_world, before_world)
 
-    def test_malformed_intent_json_is_not_an_unknown_success(self):
+    def test_malformed_intent_json_still_answers_in_the_story(self):
+        # This pinned a failed turn; the owner wants a story reply instead of a 503.
         session = game.create_session(seed=5)
-        before = copy.deepcopy(session.world_state)
         with patch(
             "game.ollama.chat",
             return_value={"message": {"content": "this is not json at all"}},
         ):
             result = session.run_player_turn("merhaba")
-        self.assertEqual(
-            result["action_result"]["infrastructure_code"],
-            "intent_json_invalid",
+        self.assertNotEqual(
+            result["action_result"].get("status"), "infrastructure_failure"
         )
-        self.assertEqual(session.world_state, before)
+        self.assertTrue(result["narration"].strip())
+        self.assertNotIn("tamamlanamadı", result["narration"])
 
     def test_explicit_unknown_intent_is_not_infrastructure(self):
         session = game.create_session(seed=6)

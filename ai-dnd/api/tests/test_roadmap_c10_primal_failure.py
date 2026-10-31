@@ -7,22 +7,20 @@ from api.tests.test_roadmap_c10_primal_knowledge import selected, turn
 
 
 class PrimalKnowledgeInfrastructureTests(unittest.TestCase):
-    def test_malformed_classifier_reply_keeps_existing_failure_and_no_evidence(self):
+    def test_malformed_classifier_reply_keeps_the_check_retryable_and_no_evidence(self):
+        # Only the explicit check stays a failure now: an ordinary turn was moved to a
+        # story reply at the owner's request, and a story cannot stand in for this check.
         session, _ = selected(self)
         before = session._capture_runtime_snapshot()
         malformed = {'message': {'content': 'not usable JSON'}}
-        with patch('game.ollama.chat', return_value=malformed):
-            ordinary = turn(session, feature=None, action_id='retry-same-action')
-        self.assertEqual(ordinary['action_result']['status'], 'infrastructure_failure')
-        self.assertEqual(ordinary['action_result']['infrastructure_code'], 'intent_json_invalid')
-        self.assertEqual(session._capture_runtime_snapshot(), before)
         evidence = []
         try:
             with patch('game.ollama.chat', return_value=malformed):
                 opted = turn(session, evidence=evidence, action_id='retry-same-action')
         except ValueError as exc:
             self.fail('Existing transient intent failure was reclassified as unsupported feature: ' + str(exc))
-        self.assertEqual(opted, ordinary)
+        self.assertEqual(opted['action_result']['status'], 'infrastructure_failure')
+        self.assertEqual(opted['action_result']['infrastructure_code'], 'intent_json_invalid')
         self.assertEqual(evidence, [])
         self.assertEqual(session._capture_runtime_snapshot(), before)
         # Same one-shot command can be retried after a usable classifier reply.

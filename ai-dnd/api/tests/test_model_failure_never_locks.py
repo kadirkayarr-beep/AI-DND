@@ -77,6 +77,7 @@ class ScriptedModel:
         self.kinds = []
         self.calls = []
         self.fault = None
+        self.also = None
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
@@ -93,6 +94,8 @@ class ScriptedModel:
             if isinstance(self.fault[1], Exception):
                 raise self.fault[1]
             return {"message": {"content": self.fault[1]}, "done_reason": "length"}
+        if self.also is not None and self.also[0] == kind:
+            raise self.also[1]
         return {"message": {"content": json.dumps(self.good(kind), ensure_ascii=False)}, "done_reason": "stop"}
 
     @staticmethod
@@ -151,13 +154,56 @@ class ClassifierCallIsSmall(PlayFixture):
 
 
 class RunSixReproduction(PlayFixture):
-    async def test_the_looping_classifier_reply_does_not_block_the_next_turn(self):
+    """The owner saw this question answer 503 twice in real play; it must answer in the story."""
+
+    async def test_a_runaway_reply_with_a_person_being_spoken_to_becomes_speech_to_them(self):
         await self.turn(self.body(SPEECH_TURN))
+        self.model.kinds.clear()
         self.model.arm("classifier", LOOPING_CLASSIFIER_REPLY)
-        failed = await self.turn(self.body("Buralarda koruma arayan bir soylu biliyor musun?"))
-        self.assertEqual(failed.status_code, 503, failed.text)
+        answered = await self.turn(self.body("Buralarda koruma arayan bir soylu biliyor musun?"))
+        self.assertEqual(answered.status_code, 200, answered.text)
+        self.assertEqual(self.model.kinds, ["classifier", "speech"])
+        self.assertIn("Selam, yabancı.", answered.json()["narration"])
         following = await self.turn(self.body(FREE_TURN))
         self.assertEqual(following.status_code, 200, following.text)
+
+    async def test_a_runaway_reply_with_nobody_spoken_to_is_a_free_attempt(self):
+        self.model.arm("classifier", LOOPING_CLASSIFIER_REPLY)
+        answered = await self.turn(self.body(CLASSIFIER_TURN))
+        self.assertEqual(answered.status_code, 200, answered.text)
+        self.assertEqual(self.model.kinds, ["classifier", "narration"])
+        self.assertIn("Sokak akmaya devam ediyor.", answered.json()["narration"])
+        self.assertEqual(len(self.saved().history), 1)
+
+    async def test_a_closed_but_cut_reply_grants_nothing(self):
+        # The brace closes, so the text parses, but the model stopped at its cap.
+        cut = json.dumps({"intent": "attack", "action": "attack", "target": {"type": "none", "reference": ""}})
+        self.model.arm("classifier", cut)
+        live = self.manager.get(self.session_id).game_session
+        answered = await self.turn(self.body(CLASSIFIER_TURN))
+        self.assertEqual(answered.status_code, 200, answered.text)
+        self.assertEqual(self.model.kinds, ["classifier", "narration"])
+        self.assertFalse(live.world_state["combat"]["active"])
+
+    async def test_a_dead_narrator_after_a_lost_reading_still_answers_once(self):
+        self.model.arm("classifier", LOOPING_CLASSIFIER_REPLY)
+        self.model.also = ("narration", ConnectionError("gone"))
+        body = self.body(CLASSIFIER_TURN)
+        answered = await self.turn(body)
+        self.assertEqual(answered.status_code, 200, answered.text)
+        self.assertTrue(answered.json()["narration"].strip())
+        self.assertEqual(len(self.saved().history), 1)
+        self.assertEqual((await self.turn(body)).json(), answered.json())
+
+    async def test_a_lost_reading_on_an_outage_still_rolls_back_whole(self):
+        live = self.manager.get(self.session_id).game_session
+        before = (len(self.saved().history), self.saved().payload["engine_save"], live.serialize_game_state())
+        self.model.arm("classifier", ConnectionError("gone"))
+        failed = await self.turn(self.body(CLASSIFIER_TURN))
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(len(self.saved().history), before[0])
+        self.assertEqual(self.saved().payload["engine_save"], before[1])
+        self.assertEqual(live.serialize_game_state(), before[2])
 
 
 class EveryModelCallFailsSoftly(PlayFixture):
@@ -222,8 +268,16 @@ class EveryModelCallFailsSoftly(PlayFixture):
                     if first.status_code == 200:
                         self.assertEqual(retry.json(), first.json())
 
-    async def test_a_model_that_keeps_failing_never_locks_and_play_resumes(self):
+    async def test_a_classifier_that_keeps_failing_never_stops_the_story(self):
+        # This pinned a 503 on every try; the owner asked for a story reply instead of a 503.
         self.model.arm("classifier", LOOPING_CLASSIFIER_REPLY, times=3)
+        for done in range(1, 4):
+            response = await self.turn(self.body(CLASSIFIER_TURN))
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(len(self.saved().history), done)
+
+    async def test_a_provider_that_keeps_failing_never_locks_and_play_resumes(self):
+        self.model.arm("classifier", ConnectionError("gone"), times=3)
         for _ in range(3):
             response = await self.turn(self.body(CLASSIFIER_TURN))
             self.assertEqual(response.status_code, 503, response.text)
