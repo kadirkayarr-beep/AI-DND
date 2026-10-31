@@ -453,6 +453,32 @@ def _add_reference(world, state, *, npc_id, name, noun, kind, claims, quote, tur
     return ref
 
 
+def bind_said_place(world: dict[str, Any], npc: dict[str, Any], location_id: str, name: str) -> dict[str, Any] | None:
+    """The last thing this person said meant this real place, however it was inflected."""
+    state = ensure(world)
+    statements = state["statements"].get(npc.get("id"))
+    if not statements or not name:
+        return None
+    entry = statements[-1]
+    key = fold(name)
+    place = world.get("locations", {}).get(location_id, {})
+    kind = place.get("place_kind") or place.get("scene_kind")
+    refs = state["references"]
+    for ref in refs:  # "Perrin Demirhanesine" parsed as a new name is this same place
+        if ref.get("id") in entry["reference_ids"] and not ref.get("location_id") and (
+                ref.get("place_kind") == kind or fold(ref.get("name") or "").startswith(key)):
+            ref.update(location_id=location_id, status="resolved")
+    ref = next((r for r in refs if r.get("location_id") == location_id), None)
+    if ref is None:
+        ref = _add_reference(world, state, npc_id=npc.get("id"), name=name, noun=kind, kind=kind, claims=[],
+                             quote=entry.get("text", ""), turn=entry.get("turn"), settlement=_settlement(world))
+    if ref is None:
+        return None
+    ref.update(location_id=location_id, status="resolved")
+    entry["reference_ids"] = [ref["id"], *[r for r in entry["reference_ids"] if r != ref["id"]]]
+    return ref
+
+
 def _destination(world, folded_texts, npc_id, turn, settlement):
     """Where a commitment points: a named reference, else a place noun."""
     state = ensure(world)

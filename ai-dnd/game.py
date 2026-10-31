@@ -7870,12 +7870,14 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
         return
     world = _session().world_state
     local_dialogue.remember_speech_exchange(world, npc_id, player_text, npc_text)
+    import town_knowledge
     # LR00 fix: the short log above is conversation context only; the
     # statement ledger keeps places and commitments for the whole campaign.
     import npc_statements
     npc = next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
     if npc is not None:
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
+        town_knowledge.note_mention(world, npc, npc_text)
 
 
 _CLAIM_REJECTION_RE = re.compile(
@@ -8060,6 +8062,52 @@ _SPEECH_ANSWER_RULES = (
 )
 
 
+def _town_note(world, npc):
+    """This person's share of the town; a failure here costs the line, never the turn."""
+    import town_knowledge
+    import world_threads
+    try:
+        world_threads.ensure(world)
+        return town_knowledge.speech_note(world, npc)
+    except Exception:
+        town_knowledge.log_failure()
+        return ""
+
+
+def _overheard_work(world):
+    """Nobody here to ask: what a stranger picks up in the street, tied to a real place."""
+    import grounded_action
+    import local_places
+    import town_knowledge
+    import world_threads
+    try:
+        world_threads.ensure(world)
+        settlement = local_places.settlement_of(world, world.get("location"))
+        threads = world_threads.active(world, settlement) if settlement else []
+        if not threads:
+            return None
+        turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
+        thread = threads[turn % len(threads)]
+        world_threads.mark_heard(thread, turn)
+        grounded_action.note_last(world, thread["place_id"])
+        return f"Sana doğrudan iş öneren yok ama sokakta bir laf dönüyor: {thread['public_line']}"
+    except Exception:
+        town_knowledge.log_failure()
+        return None
+
+
+def _town_fallback(world, npc, player_input):
+    """Only when no model reply could be used and the player asked about the town."""
+    import town_knowledge
+    if local_dialogue.personal_question_kind(player_input) != "local_work" and not _asks_what_is_going_on(player_input):
+        return None
+    try:
+        return town_knowledge.fallback_line(world, npc)
+    except Exception:
+        town_knowledge.log_failure()
+        return None
+
+
 def _experimental_speech_note(world, npc, name_stance, player_input):
     """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
     label = living_world.public_npc_name(npc)
@@ -8101,7 +8149,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
             "varsa onu söyle, yoksa bilmediğini söyle."
         )
-    return _SPEECH_ANSWER_RULES + " ".join(lines) + "\n"
+    return _SPEECH_ANSWER_RULES + " ".join(lines) + _town_note(world, npc) + "\n"
 
 
 def _experimental_npc_dialogue_context(
@@ -15592,6 +15640,14 @@ def resolve_scene_seating(action_input):
     }
 
 
+def _asks_what_is_going_on(player_input):
+    text = living_world.normalize_text(player_input)
+    return bool(
+        re.search(r"\b(?:bugun|burada|buralarda|su an)\b", text)
+        and re.search(r"\b(?:ne oluyor|neler oluyor|ne var|neler var)\b", text)
+    )
+
+
 def _direct_npc_smalltalk_response(player_input, npc_target):
     if (
         not isinstance(player_input, str)
@@ -15658,13 +15714,10 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
             'bulunuyorum,” diye yanıt verir.'
         )
 
-    has_local_context = bool(
-        re.search(r"\b(?:bugun|burada|buralarda|su an)\b", text)
-    )
-    asks_about_activity = bool(
-        re.search(r"\b(?:ne oluyor|neler oluyor|ne var|neler var)\b", text)
-    )
-    if has_local_context and asks_about_activity:
+    if _asks_what_is_going_on(player_input):
+        import world_threads
+        if world_threads.ensure(_session().world_state) is not None:
+            return None  # this person answers from what they know, in their own voice
         return (
             f'{name}, “Şimdilik göze çarpan özel bir şey yok; '
             'ben kendi işimle ilgileniyorum,” diye yanıt verir.'
@@ -19399,7 +19452,7 @@ def _run_player_turn_internal(
     )
     # A person who is here answers for themselves on the speech path.
     if work_answer and not isinstance(npc_target, dict):
-        response = work_answer[0]
+        response = _overheard_work(world_state) or work_answer[0]
         action_result = {
             "action": "local_inquiry",
             "status": "answered_without_offer",
@@ -19900,7 +19953,8 @@ def _run_player_turn_internal(
             if invalid_or_empty:
                 text = (
                     _spoken_name_answer("", npc_target) if name_stance == "reveal"
-                    else interaction_adventure.immersive_unknown(npc_target, player_input)
+                    else _town_fallback(world_state, npc_target, player_input)
+                    or interaction_adventure.immersive_unknown(npc_target, player_input)
                 )
             else:
                 text = raw_narration
