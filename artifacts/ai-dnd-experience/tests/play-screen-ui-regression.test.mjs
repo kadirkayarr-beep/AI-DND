@@ -487,50 +487,26 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await press(play.page, "Escape", "Escape", 27);
     assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "button-open-world");
     const beforeSuggestionRequests = await turnRequestCount();
-    const suggestionSelector = '[data-testid="button-suggestion-observe"]';
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-open-world\"]').scrollIntoView({block:'center'})");
-    await mouseClick(play.page, '[data-testid="button-open-world"]');
-    await waitForSelector(play.page, '[role="dialog"][aria-modal="true"]');
-    await mouseClick(play.page, '[data-testid="tab-world"]');
-    await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
-    if (!await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"]')?.open")) {
-      await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.scrollIntoView({block:'center'})");
-      await mouseClick(play.page, '[data-testid="world-experimental"] > summary');
-    }
-    await waitForValue(play.page, "document.querySelector('[data-testid=\"world-experimental\"]')?.open === true");
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-suggestion-observe\"]')?.scrollIntoView({block:'center'})");
+    const suggestionSelector = '[data-testid="button-suggestion-talk-npc-marek"]';
+    const openSceneIdeas = async () => {
+      await waitForSelector(play.page, '[data-testid="scene-ideas"] > summary');
+      if (!await play.page.evaluate("document.querySelector('[data-testid=\"scene-ideas\"]')?.open")) {
+        await play.page.evaluate("document.querySelector('[data-testid=\"scene-ideas\"] > summary')?.scrollIntoView({block:'center'})");
+        await mouseClick(play.page, '[data-testid="scene-ideas"] > summary');
+      }
+      await waitForValue(play.page, "document.querySelector('[data-testid=\"scene-ideas\"]')?.open === true");
+      await play.page.evaluate("document.querySelector('[data-testid=\"button-suggestion-talk-npc-marek\"]')?.scrollIntoView({block:'center'})");
+    };
+    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"scene-ideas\"]')?.open"), false, "scene ideas stay closed until the player opens them");
+    await openSceneIdeas();
     await mouseClick(play.page, suggestionSelector);
     await waitForSelector(play.page, '[data-testid="input-player-message"]');
-    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "Çevreyi gözlemliyorum.", "a suggestion opens a previously closed composer with the selected draft");
-    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"select-interaction-mode\"]').value"), "do");
+    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "Marek ile konuşmak istiyorum.", "a suggestion opens a previously closed composer with the selected draft");
+    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"select-interaction-mode\"]').value"), "say");
     assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "input-player-message");
     assert.equal(await turnRequestCount(), beforeSuggestionRequests, "choosing a suggestion does not submit");
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-open-world\"]').scrollIntoView({block:'center'})");
-    await mouseClick(play.page, '[data-testid="button-open-world"]');
-    await waitForSelector(play.page, '[role=\"dialog\"][aria-modal=\"true\"]');
-    await mouseClick(play.page, '[data-testid=\"tab-world\"]');
-    await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
-    await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.scrollIntoView({block:'center'})");
-    await mouseClick(play.page, '[data-testid="world-experimental"] > summary');
-    await waitForValue(play.page, "document.querySelector('[data-testid=\"world-experimental\"]')?.open === true");
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-suggestion-observe\"]')?.scrollIntoView({block:'center'})");
+    await openSceneIdeas();
     await mouseClick(play.page, suggestionSelector);
-    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "Çevreyi gözlemliyorum.");
-    assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"select-interaction-mode\"]').value"), "do");
-    assert.equal(await play.page.evaluate("document.activeElement?.getAttribute('data-testid')"), "input-player-message", "selecting the same draft and mode still restores composer focus");
-    assert.equal(await turnRequestCount(), beforeSuggestionRequests, "reselecting a suggestion does not submit");
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-open-world\"]').scrollIntoView({block:'center'})");
-    await mouseClick(play.page, '[data-testid="button-open-world"]');
-    await waitForSelector(play.page, '[role="dialog"][aria-modal="true"]');
-    await mouseClick(play.page, '[data-testid="tab-world"]');
-    await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
-    if (!await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"]')?.open")) {
-      await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.scrollIntoView({block:'center'})");
-      await mouseClick(play.page, '[data-testid="world-experimental"] > summary');
-    }
-    await waitForValue(play.page, "document.querySelector('[data-testid=\"world-experimental\"]')?.open === true");
-    await play.page.evaluate("document.querySelector('[data-testid=\"button-suggestion-talk-npc-marek\"]')?.scrollIntoView({block:'center'})");
-    await mouseClick(play.page, '[data-testid="button-suggestion-talk-npc-marek"]');
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"input-player-message\"]').value"), "Marek ile konuşmak istiyorum.", "a suggestion replaces the draft when the composer was already open");
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"select-interaction-mode\"]').value"), "say");
     assert.equal(await turnRequestCount(), beforeSuggestionRequests, "replacing a draft does not submit");

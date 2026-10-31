@@ -300,6 +300,33 @@ function WorldPanel({ state }: { state: GameState }) {
   return <CampaignContextPanel state={state} />;
 }
 
+function SceneIdeas({ state, recentText, sending, onDraft }: {
+  state: GameState;
+  recentText: string;
+  sending: boolean;
+  onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void;
+}) {
+  const ideas = [
+    ...getContextualActionSuggestions(state, recentText),
+    ...(state.campaign_adventures?.affordances ?? []).map((label: string) => ({
+      id: `adventure-${label}`, label, message: label, mode: 'do' as const, targetId: undefined,
+    })),
+  ].slice(0, 4);
+  if (ideas.length === 0) return null;
+  return <details className="scene-ideas" data-testid="scene-ideas">
+    <summary>Fikir lazım mı?</summary>
+    <div className="action-suggestion-list" role="group" aria-label="Bu sahne için fikirler" data-testid="action-suggestions">
+      {ideas.map((idea) => (
+        <button className="action-suggestion" data-testid={`button-suggestion-${idea.id}`} disabled={sending} key={idea.id} type="button"
+          onClick={(event) => {
+            event.currentTarget.closest('details')?.removeAttribute('open');
+            onDraft(idea.message, idea.mode, idea.targetId);
+          }}>{idea.label}</button>
+      ))}
+    </div>
+  </details>;
+}
+
 function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDraft, onSetCombatTarget }: {
   state: GameState;
   sending: boolean;
@@ -307,12 +334,6 @@ function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDra
   onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void;
   onSetCombatTarget: (targetId: string) => void;
 }) {
-  const actionSuggestions = [
-    ...getContextualActionSuggestions(state),
-    ...(state.campaign_adventures?.affordances ?? []).map((label: string) => ({
-      id: `adventure-${label}`, label, message: label, mode: 'do' as const,
-    })),
-  ];
   return <details className="world-experimental" data-testid="world-experimental">
     <summary><strong>Deneysel</strong><span>Keşif ve yolculuk · isteğe bağlı araçlar</span></summary>
     <div className="world-experimental-content">
@@ -323,22 +344,6 @@ function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDra
           disabled={sending || state.combat.active || state.character.current_hp <= 0 || !!state.pending_event_decisions?.length}
           onCommand={onExplorationCommand} />
       </section>
-      <div className="action-suggestions" role="group" aria-label="Bu sahne için önerilen hamleler" data-testid="action-suggestions">
-        <div className="action-suggestions-heading">
-          <span><Sparkles size={12} aria-hidden="true" /> Bu sahnede deneyebilirsin</span>
-          <small>Seçim metin kutusuna aktarılır; gönderilmez.</small>
-        </div>
-        <div className="action-suggestion-list">
-          {actionSuggestions.map((suggestion) => (
-            <button className="action-suggestion" data-testid={`button-suggestion-${suggestion.id}`} disabled={sending} key={suggestion.id} type="button"
-              onClick={() => {
-                const targetId = "targetId" in suggestion ? suggestion.targetId : undefined;
-                if (state.combat.active && targetId) onSetCombatTarget(targetId);
-                onDraft(suggestion.message, suggestion.mode, targetId);
-              }}>{suggestion.label}</button>
-          ))}
-        </div>
-      </div>
       {state.pending_event_decisions?.map((event, index) => <div className="data-row" data-testid="scheduled-event-decision" key={index}>
         <p>{event.summary}</p>
         <small>{event.in_combat ? 'Çatışma sonrasında sonraki kararını sen vereceksin.' : event.forced ? 'Fiziksel engel: başka bir kayıtlı konum veya rota seçebilirsin.' : 'Kararın bekleniyor; zaman kendiliğinden ilerlemiyor.'}</small>
@@ -850,6 +855,13 @@ function StoryColumn({
             <button className="action-suggestion" type="button" disabled={sending} onClick={onEndConversation} data-testid="button-end-conversation">Konuşmayı bitir</button>
           </div>
       )}
+      <SceneIdeas state={state} recentText={entries.at(-1)?.text ?? ''} sending={sending} onDraft={(text, mode = 'do', targetId) => {
+        setInteractionMode(mode);
+        setConversationTargetId(mode === 'say' ? targetId ?? '' : '');
+        if (state.combat.active && targetId) setCombatTargetId(targetId);
+        setMessage(text);
+        setComposerOpen(true);
+      }} />
       {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
       {composerOpen && <div className="command-box" data-testid="command-box">
         <div className="composer-heading">

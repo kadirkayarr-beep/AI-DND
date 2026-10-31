@@ -45,7 +45,7 @@ function makeState(overrides = {}) {
   };
 }
 
-test('suggestions use the current scene and actual inventory', () => {
+test('suggestions come from the current scene, with no generic filler', () => {
   const suggestions = getContextualActionSuggestions(makeState({
     scene: {
       npcs: [{ id: 'npc_001', name: 'Gromm', role: 'Barmen' }],
@@ -54,18 +54,56 @@ test('suggestions use the current scene and actual inventory', () => {
   }));
   const messages = suggestions.map((suggestion) => suggestion.message);
 
-  assert.ok(messages.includes('Çevreyi gözlemliyorum.'));
   assert.ok(messages.includes('Gromm ile konuşmak istiyorum.'));
-  assert.ok(messages.includes('Envanterimde neler var?'));
+  assert.ok(!messages.includes('Çevreyi gözlemliyorum.'));
+  assert.ok(!messages.includes('Envanterimde neler var?'));
   assert.ok(!messages.some((message) => message.includes('Lyra')));
   assert.ok(!messages.some((message) => message.includes('saldırıyorum')));
-  assert.equal(suggestions.find((item) => item.id === 'observe')?.mode, 'do');
   assert.equal(suggestions.find((item) => item.id === 'talk-npc_001')?.mode, 'say');
   assert.equal(suggestions.find((item) => item.id === 'talk-npc_001')?.targetId, 'npc_001');
-  assert.equal(suggestions.find((item) => item.id === 'inventory')?.mode, 'ask_dm');
 });
 
-test('combat suggestions require the player turn, a live target, and a sword', () => {
+test('the person being spoken to, a place just named and a door in reach lead the list', () => {
+  const state = makeState({
+    location: 'city',
+    conversation: { active: true, interlocutor: { id: 'npc_001', name: 'Gromm' } },
+    scene: { npcs: [{ id: 'npc_001', name: 'Gromm' }, { id: 'npc_002', name: 'Lyra' }] },
+    locations: {
+      city: { id: 'city', name: 'Kent' },
+      inn: { id: 'inn', name: 'Neris Hanı' },
+      far: { id: 'far', name: 'Uzak Liman' },
+    },
+    doors: [
+      { id: 'd1', name: 'Depo Kapısı', location: 'city', open: false, locked: true, broken: false },
+      { id: 'd2', name: 'Başka Kapı', location: 'inn', open: false, locked: false, broken: false },
+    ],
+  });
+  const suggestions = getContextualActionSuggestions(state, 'Gromm: “Yakınlarda Neris Hanı var.”');
+  const ids = suggestions.map((suggestion) => suggestion.id);
+
+  assert.deepEqual(ids, ['ask-npc_001', 'place-inn', 'door-d1', 'talk-npc_002']);
+  assert.equal(suggestions[0].mode, 'say');
+  assert.equal(suggestions[0].targetId, 'npc_001');
+  assert.ok(suggestions[1].message.includes('Neris Hanı'));
+  assert.equal(suggestions[1].mode, 'do');
+  assert.equal(suggestions[2].mode, 'do');
+  assert.ok(suggestions.length <= 4);
+});
+
+test('a suggestion never says what the player has not learned about a door', () => {
+  const closed = { id: 'd1', name: 'Depo Kapısı', location: 'tavern', open: false, broken: false };
+  const text = (door) => JSON.stringify(
+    getContextualActionSuggestions(makeState({ doors: [door] })).filter((item) => item.id === 'door-d1')
+      .map(({ label, message }) => [label, message]),
+  );
+  assert.equal(text({ ...closed, locked: true }), text({ ...closed, locked: false }));
+  assert.ok(!/kilit/i.test(text({ ...closed, locked: true })));
+  assert.ok(!getContextualActionSuggestions(makeState({
+    doors: [{ ...closed, open: true, locked: false }],
+  })).some((item) => item.id === 'door-d1'));
+});
+
+test('combat suggestions require the player turn and a live target', () => {
   const combat = {
     active: true,
     current_actor_id: 'player',
@@ -103,11 +141,12 @@ test('combat suggestions require the player turn, a live target, and a sword', (
   }));
   assert.ok(!enemyTurn.some((suggestion) => suggestion.id.startsWith('attack-')));
 
-  const unarmed = getContextualActionSuggestions(makeState({
-    inventory: [],
+  const axe = getContextualActionSuggestions(makeState({
+    inventory: ['Balta'],
     combat,
   }));
-  assert.ok(!unarmed.some((suggestion) => suggestion.id.startsWith('attack-')));
+  assert.ok(axe.some((suggestion) => suggestion.id === 'attack-npc_001'));
+  assert.ok(!axe.some((suggestion) => suggestion.message.includes('kılıç')));
 });
 
 test('empty scenes offer a grounded presence question rather than an invented target', () => {
@@ -151,4 +190,15 @@ test('active combat and structured actions keep the existing action route', () =
   assert.deepEqual(getTurnInteractionMetadata(makeState(), 'say', 'npc_001', '', true), {
     interaction_mode: 'do', target_id: null,
   });
+});
+
+test('suggestions live beside the composer in a closed control, not in the drawer', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const page = await readFile(path.join(process.cwd(), 'src/pages/game-browser.tsx'), 'utf8');
+  const ideas = page.match(/<details className="scene-ideas"[^>]*>/)?.[0];
+  assert.ok(ideas, 'scene ideas control exists');
+  assert.ok(!/\bopen\b/.test(ideas), 'closed by default');
+  const drawer = page.slice(page.indexOf('function ExperimentalWorldControls'), page.indexOf('function WorldTabs'));
+  assert.ok(!drawer.includes('getContextualActionSuggestions'));
+  assert.ok(page.indexOf('<SceneIdeas') < page.indexOf('data-testid="button-open-composer"'));
 });
