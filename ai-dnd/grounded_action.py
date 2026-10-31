@@ -555,6 +555,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         if score == 0 and cand["kind"] == "door" and part is not None:
             score = 38
         if score == 0:
+    said = npc_statements.last_said_place(world)
+    talked_of = said.get("location_id") if said else None
             continue
         # An explicit registered name outranks conversational focus. Focus is
         # only a fallback for generic references, never a correction to a name.
@@ -577,6 +579,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         scored.append((score, cand))
     # If a strict registered label is present, discard names matched only by
     # typo distance. Otherwise similar neighboring names can beat the label
+        if talked_of and cand["kind"] == "door" and cand.get("place_id") == talked_of:
+            score += 6  # "the door" is the door of the place just talked about
     # the player actually typed, especially after the other one was in focus.
     if strict_name_ids:
         scored = [
@@ -2852,6 +2856,9 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
                and not (s["verb"] in {"knock", "open", "unlock", "force", "close"} and _current_door_target(run, s))]
     if unbound and not fallback:
         return defer  # the older owners get their turn first; the fallback pass may ask the model
+    if first["ambiguous"] and first["verb"] in {"open", "force", "knock", "unlock", "close"} \
+            and all(c["kind"] == "door" for c in first["ambiguous"]):
+        return "clarify", (run, first["ambiguous"])  # two doors and no context: never a guess
     if unbound and allow_model:
         suggested = model_ground(run, player_input, p["candidates"])
         actionable = [m for m in suggested if m["verb"] not in {"talk", "other"}]
