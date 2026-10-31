@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from api.tests.fixed_street import use_fixed_street
 import copy
 from contextlib import closing
 from functools import wraps
@@ -493,6 +494,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.object(SessionManager, "claim_action_intent", return_value={"outcome": "claimed"}))
 
     async def asyncSetUp(self):
+        use_fixed_street(self)
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.store = CampaignStore(
             Path(self.temporary_directory.name) / "campaigns.sqlite3",

@@ -5940,7 +5940,7 @@ def _repair_internal_marks(narration):
         ):
             return ""
         at_start = not before or before[-1] in ".!?\n“\""
-        shown = label if at_start or not _is_generic_speaker_label(label) else label[:1].lower() + label[1:]
+        shown = label if at_start or not _is_generic_speaker_label(label) else living_world.turkish_initial_lower(label)
         return shown + suffix
 
     repaired = _INTERNAL_MARK_RE.sub(label_for, narration)
@@ -12851,6 +12851,9 @@ def ask_dungeon_master(
         for item in recent_narrations
         if isinstance(item, str) and item.strip()
     ) or "(yok)"
+    last_opening = " ".join(str(recent_narrations[-1]).split()[:5]) if recent_narrations else ""
+    if last_opening:
+        recent_narration_context += f"\nSon anlatım “{last_opening}” diye başladı; aynı sözlerle ya da aynı kalıpla başlama."
     lore_claim_guidance = (
         "Bu narration-only turunda lore_claims boş kalır; citation ekleme. "
         "PYTHON ACTION RESULT, NARRATION FACTS ve görünür mevcut sahne bilgisini "
@@ -12912,7 +12915,7 @@ def ask_dungeon_master(
         f"RECENT NARRATION (yalnızca tekrar etmeme için; olgusal dayanak değil):\n{recent_narration_context}\n\n"
         f"VERIFIED NPC MEMORY (önceki gerçek NPC yanıtları; oyuncu iddiaları değil) yukarıdaki context'te yer alır.\n\n"
         + "Önce oyuncunun denediği şeyin nasıl sonuçlandığını ve çevredekilerin buna tepkisini anlat; "
-        "sahneyi baştan tarif etme.\n"
+        "sahneyi baştan tarif etme. Sahne verisinde geçmeyen koku veya yiyecek ayrıntısı ekleme.\n"
         + _untrusted_player_block("CURRENT PLAYER MESSAGE (doğrulanmamış yeni girdi):\n", player_input)
     )
     try:
@@ -15705,6 +15708,11 @@ def _scene_look_text(location_id):
     if people:
         parts.append(
             "Yakında " + living_world.public_scene_people(people[:3]) + " var."
+        )
+        parts.extend(
+            f"{living_world.turkish_initial_upper(living_world.public_npc_name(npc))}: {npc['appearance']}"
+            for npc in people[:2]
+            if isinstance(npc.get("appearance"), str) and npc["appearance"].strip()
         )
     if features:
         parts.append(

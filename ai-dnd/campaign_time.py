@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import re
 import unicodedata
 
@@ -71,6 +72,20 @@ def initialize(world, canonical_start=None):
     world["campaign_time"] = clock
     world.setdefault("scheduled_events", [])
     return clock
+
+
+# Night is left out: a first scene should not start with every door shut.
+_SEEDED_START_HOURS = (6, 10, 14, 17, 18)
+
+
+def seed_start(world, seed):
+    """A new campaign's first hour comes from its seed; a running or anchored clock stays."""
+    clock = world.get("campaign_time")
+    if (not isinstance(clock, dict) or clock.get("elapsed_seconds") != 0
+            or world.get("canonical_start_time") is not None or not seed):
+        return
+    digest = hashlib.sha256(f"{seed}|start-hour".encode("utf-8")).digest()
+    clock["start_second"] = _SEEDED_START_HOURS[digest[0] % len(_SEEDED_START_HOURS)] * 3600
 
 
 def public_time(world):

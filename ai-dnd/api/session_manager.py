@@ -11,6 +11,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+import campaign_time
 import game
 import character_progression
 import incidents.hooks as incident_hooks
@@ -212,12 +213,13 @@ class SessionManager:
                 ) from None
         # Resolve environment and journal only after the selected place is active.
         session.ensure_campaign_clock()
+        campaign_id = str(uuid.uuid4())
+        campaign_time.seed_start(session.world_state, campaign_id)
         set_session_world_metadata(session)
         journal = create_initial_campaign_journal(
             session.world_state,
             getattr(session, "world_metadata", None),
         )
-        campaign_id = str(uuid.uuid4())
         initialize_campaign_opening(session, campaign_id)
         session.ensure_campaign_clock()
         session.world_state["campaign_id"] = campaign_id

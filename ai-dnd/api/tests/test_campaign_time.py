@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from api.tests.fixed_street import use_fixed_street
 import json
 import tempfile
 import unittest
@@ -245,6 +246,7 @@ class NoModel:
 
 class ClockApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        use_fixed_street(self)
         self.folder = tempfile.TemporaryDirectory()
         self.store = CampaignStore(Path(self.folder.name) / "campaign.sqlite3", bound_principal=TEST_PLAYER)
         self.manager = SessionManager(session_factory=scene, campaign_store=self.store)

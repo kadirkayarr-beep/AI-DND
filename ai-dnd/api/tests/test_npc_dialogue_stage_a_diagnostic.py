@@ -9,6 +9,7 @@ set. Not live Qwen, not human acceptance.
 from __future__ import annotations
 
 import copy
+from api.tests.fixed_street import use_fixed_street
 import json
 import re
 import os
@@ -171,6 +172,7 @@ def _guard(npc_id="npc_stage_a_guard"):
 
 class StageADiagnosticTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        use_fixed_street(self)
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
         self.store = CampaignStore(

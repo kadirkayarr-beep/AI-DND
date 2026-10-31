@@ -79,7 +79,7 @@ _LOOK_RE = re.compile(
     r"etraf[ıi]?m?da\s+ne(?:ler)?\s+var|çevre(?:m|de)?(?:de)?\s+ne(?:ler)?\s+var|"
     r"etrafta\s+ne(?:ler)?\s+var|çevrede\s+ne(?:ler)?\s+var|"
     r"etrafa\s+göz\s+at\w*|etrafıma\s+göz\s+at\w*|çevreyi\s+gözle\w*|çevreye\s+göz\s+at\w*|çevreme\s+göz\s+at\w*|"
-    r"etraf[ıi]m.{0,30}gözlemle\w*|çevre(?:yi|m).{0,30}gözlemle\w*|"
+    r"etraf[ıi]m.{0,30}gözleml\w*|çevre(?:yi|m).{0,30}gözleml\w*|"
     r"şehirde\s+dolan\w*.{0,50}(?:bak|gözlemle)\w*|"
     r"look around|look about|take a look|walk around.{0,50}observe)",
     re.IGNORECASE,
@@ -306,6 +306,14 @@ def assign_visible_trait(world_state: dict[str, Any], npc: dict[str, Any]) -> No
         npc["label_shows_trait"] = True
 
 
+def turkish_initial_upper(text: str) -> str:
+    return ("İ" if text[:1] == "i" else text[:1].upper()) + text[1:]
+
+
+def turkish_initial_lower(text: str) -> str:
+    return ("i" if text[:1] == "İ" else "ı" if text[:1] == "I" else text[:1].lower()) + text[1:]
+
+
 def public_npc_descriptor(npc: Any) -> str:
     """Describe an unknown NPC from visible cues without exposing canonical identity."""
     if not isinstance(npc, dict):
@@ -315,9 +323,9 @@ def public_npc_descriptor(npc: Any) -> str:
     if role:
         lowered = role[:1].lower() + role[1:]
         if npc.get("label_shows_trait") is True:
-            return f"{trait[:1].upper()}{trait[1:]} {lowered}"
+            return f"{turkish_initial_upper(trait)} {lowered}"
         return f"Bir {lowered}"
-    return f"{trait[:1].upper()}{trait[1:]} biri"
+    return f"{turkish_initial_upper(trait)} biri"
 
 
 def public_npc_name(npc: Any) -> str:
@@ -345,7 +353,7 @@ def public_scene_people(npcs: list) -> str:
         label = public_npc_name(npc)
         role = public_npc_role(npc)
         if not npc_name_known_to_player(npc):
-            label = label[:1].lower() + label[1:]
+            label = turkish_initial_lower(label)
         elif role and normalize_text(role) != normalize_text(label):
             label = f"{label} ({role})"
         labels.append(label)
@@ -513,8 +521,8 @@ def classify_scene_action(value: Any) -> str | None:
     normalized = normalize_text(text)
     semantic_look = bool(
         re.search(
-            r"\b(?:etrafim|cevreyi|cevrede|sehirde|kentte|sokaklarda)\b"
-            r".{0,90}\b(?:gozlemle\w*|dolan\w*|kesfet\w*|cevreye bak\w*|"
+            r"\b(?:etrafim|etrafimi|cevremi|cevreyi|cevrede|sehirde|kentte|sokaklarda)\b"
+            r".{0,90}\b(?:gozleml\w*|dolan\w*|kesfet\w*|cevreye bak\w*|"
             r"etrafa bak\w*|etrafi kola(can|caan)\w*)\b",
             normalized,
         )
@@ -1407,6 +1415,47 @@ def record_scene_visit(
     return scene
 
 
+# Generic street people for a seeded city scene: who, what they are doing, how
+# they carry themselves. The first two are the old fixed pair.
+_CITY_PEOPLE = (
+    ("Kent sakini", "Yol kenarında duran, sade bir pelerin giymiş.", "Sakin ve dikkatli."),
+    ("Muhafız", "Kapı yakınında nöbet tutan, düzenli giyimli.", "Ölçülü ve nazik."),
+    ("Seyyar satıcı", "Boynuna asılı tepsiyle gelip geçenlere mal gösteriyor.", "Geveze ve fırsatçı."),
+    ("Arabacı", "Yüklü arabasının tekerini söylene söylene yokluyor.", "Sabırsız ve aksi."),
+    ("Hamal", "Sırtındaki çuvalı indirmiş, duvar dibinde soluklanıyor.", "Yorgun ve az konuşan."),
+    ("Kâtip", "Dizinin üstünde tuttuğu deftere hızlı hızlı bir şeyler yazıyor.", "Titiz ve mesafeli."),
+    ("Çırak", "Elinde bir paketle aceleyle bir yere yetişmeye çalışıyor.", "Telaşlı ve meraklı."),
+    ("Gezgin", "Tozlu çizmeleriyle yolun kenarına oturmuş, matarasını açıyor.", "Rahat ve alaycı."),
+    ("Çamaşırcı", "Kucağındaki sepetle yoldan geçene laf yetiştiriyor.", "Dobra ve yüksek sesli."),
+)
+_TAVERN_KEEPERS = (
+    ("Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.", "Sıcakkanlı, konuşmadan önce dinliyor."),
+    ("Tezgâhın arkasında, bardakları kurulayıp rafa diziyor.", "Az konuşur, lafı uzatmaz."),
+    ("Tezgâha yaslanmış, kapıya göz ucuyla bakıyor.", "Şüpheci ve ters."),
+    ("Tezgâhın ardında bir fıçıyı yerine oturtmaya uğraşıyor.", "Şakacı ve geveze."),
+)
+
+
+def _seed_rank(seed: str, *parts: str) -> bytes:
+    return hashlib.sha256("\x00".join((seed, *parts)).encode("utf-8")).digest()
+
+
+def scene_cast(world_state: dict[str, Any], location_id: str) -> list[tuple[str, str, str]]:
+    """Who stands in a city scene. No seed keeps the old pair for old saves."""
+    seed = _campaign_seed(world_state)
+    if not seed:
+        return list(_CITY_PEOPLE[:2])
+    count = 1 + _seed_rank(seed, location_id, "cast-size")[0] % 3
+    return sorted(_CITY_PEOPLE, key=lambda person: _seed_rank(seed, location_id, person[0]))[:count]
+
+
+def tavern_keeper(world_state: dict[str, Any], location_id: str) -> tuple[str, str]:
+    seed = _campaign_seed(world_state)
+    if not seed:
+        return _TAVERN_KEEPERS[0]
+    return _TAVERN_KEEPERS[_seed_rank(seed, location_id, "keeper")[0] % len(_TAVERN_KEEPERS)]
+
+
 def _campaign_seed(world_state: dict[str, Any]) -> str:
     """Read the campaign seed without creating or validating scene state."""
     scene_state = world_state.get("scene_state")
@@ -1500,10 +1549,7 @@ def materialize_scene(
 
     kind = scene.get("kind")
     if kind == "city":
-        for role, appearance, personality in (
-            ("Kent sakini", "Yol kenarında duran, sade bir pelerin giymiş.", "Sakin ve dikkatli."),
-            ("Muhafız", "Kapı yakınında nöbet tutan, düzenli giyimli.", "Ölçülü ve nazik."),
-        ):
+        for role, appearance, personality in scene_cast(world_state, location_id):
             create_npc({
                 "name": _stable_name(world_state, location_id, role),
                 "role": role,
@@ -1513,12 +1559,13 @@ def materialize_scene(
                 "relationship": "neutral",
             })
     elif kind == "tavern":
+        keeper_appearance, keeper_personality = tavern_keeper(world_state, location_id)
         create_npc({
             "name": _stable_name(world_state, location_id, "Barmen"),
             "role": "Barmen",
             "location": location_id,
-            "appearance": "Tezgâhın arkasında, işini sakin bir dikkatle sürdürüyor.",
-            "personality": "Sıcakkanlı, konuşmadan önce dinliyor.",
+            "appearance": keeper_appearance,
+            "personality": keeper_personality,
             "relationship": "neutral",
         })
         create_feature({
