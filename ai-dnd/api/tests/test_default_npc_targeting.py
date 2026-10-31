@@ -312,7 +312,8 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         visible = response.json()["narration"]
-        self.assertIn("söylenti", visible)
+        self.assertIn("Karanlık Han", visible)
+        self.assertNotIn("doğrula", visible)
         self.assertNotIn("yürür", visible)
 
     async def test_hidden_place_is_not_named_or_pointed_to_over_http(self):
@@ -1188,9 +1189,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             locked_world,
             recommendation_phrasings[0],
         )
-        self.assertIn(tavern_name, locked_reply)
-        self.assertIn("kilitli", locked_reply)
-        self.assertNotIn("Karanlık Han", locked_reply)
+        self.assertEqual(locked_reply, recovered_reply)
         self.assertEqual(
             test_campaign_api.game._ground_local_place_recommendation_reply(
                 recovered_reply,
@@ -1243,7 +1242,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             recommendation_phrasings[0],
         )
         self.assertNotIn("Karanlık Han", rumor_reply)
-        self.assertIn("söylenti", rumor_reply)
+        self.assertNotIn("doğrula", rumor_reply)
         context_world = copy.deepcopy(no_visible_place_world)
         context_guard = next(
             item for item in context_world["npcs"]
@@ -1752,6 +1751,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
             return result
 
+        # After closing time the new inn is shut, so the walk stops at its door.
+        clock = session.world_state["campaign_time"]
+        clock["elapsed_seconds"] += (2 * 3600 - clock["start_second"] - clock["elapsed_seconds"]) % 86400
         with patch.object(
             test_campaign_api.game, "_dispatch_player_turn", capture_dispatch
         ):

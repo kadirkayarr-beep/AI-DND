@@ -954,6 +954,7 @@ def is_npc_dialogue_input(player_input):
     if (
         local_dialogue.is_local_dialogue_input(player_input)
         or local_dialogue.explicit_player_name_disclosure(player_input)
+        or local_dialogue.is_local_place_recommendation_request(player_input)
         or _is_player_name_inquiry_to_npc(player_input)
     ):
         return True
@@ -8069,10 +8070,11 @@ def _attributed_place_note(spoken_text, npc_target, world_state, player_input):
 def _ground_local_place_recommendation_reply(
     spoken_text, npc_target, world_state, player_input
 ):
-    """Keep recommendation targets bound to visible canonical places.
+    """A person's word about a place stands, unless a real place fits it better.
 
-    A new attributed place can still be creative speech, but is explicitly
-    framed as an unverified rumor when there is no visible canonical option.
+    What is said is an attributed reference, and it becomes real only if the
+    player follows it. A hidden place stays unsaid; a place that does not exist
+    gives way to an open one the speaker can name.
     """
     if (
         not isinstance(spoken_text, str)
@@ -8080,98 +8082,46 @@ def _ground_local_place_recommendation_reply(
     ):
         return spoken_text
     requested_kind = local_dialogue.local_place_recommendation_kind(player_input)
-    open_discovery = local_dialogue.is_open_local_place_discovery(player_input)
     options = _local_place_recommendation_options(
         npc_target, world_state, place_kind=requested_kind
     )
+    available = [item for item in options if item["access"] == "available"]
     folded_spoken = npc_statements.fold(spoken_text)
-    hidden_canonical_names = [
-        npc_statements.fold(place["name"])
-        for place in world_state.get("locations", {}).values()
-        if (
-            isinstance(place, dict)
-            and place.get("hidden") is True
-            and isinstance(place.get("name"), str)
-            and place["name"].strip()
-        )
-    ]
-    if any(
-        re.search(
-            r"(?<!\w)" + re.escape(name) + r"(?:[a-z0-9]*)?(?!\w)",
-            folded_spoken,
-        )
-        for name in hidden_canonical_names
-    ):
-        available = [item for item in options if item["access"] == "available"]
-        if available:
-            selected = available[0]
-            return (
-                f'Bildiğim ve şu anda gidebileceğin yerlerden '
-                f'{selected["name"]} iyi bir seçenek olabilir.'
-            )
-        if options:
-            selected = options[0]
-            return (
-                f'{selected["name"]} şu anda kilitli; açıldığını '
-                "doğrulamadan oraya gitmeni önermem."
-            )
-        return (
-            "Bunu yalnızca doğrulanmamış söylenti olarak duydum; "
-            "yerini veya gidilebilir olduğunu doğrulayamam."
-        )
+    for place in world_state.get("locations", {}).values():
+        name = place.get("name") if isinstance(place, dict) and place.get("hidden") is True else None
+        if isinstance(name, str) and name.strip() and re.search(
+            r"(?<!\w)" + re.escape(npc_statements.fold(name)) + r"[a-z0-9]*(?!\w)", folded_spoken,
+        ):
+            if available:
+                return (
+                    f'Bildiğim ve şu anda gidebileceğin yerlerden '
+                    f'{available[0]["name"]} iyi bir seçenek olabilir.'
+                )
+            return "Orayı pek bilmem."
     names = npc_statements._named_places(spoken_text)
-    generic_place = npc_statements._unnamed_place(
-        npc_statements.fold(spoken_text)
-    )
-    folded_names = [npc_statements.fold(name) for name, _, _ in names]
+    generic_place = npc_statements._unnamed_place(folded_spoken)
     by_name = {}
     for option in options:
-        for value in (option["name"],):
-            by_name[npc_statements.fold(value)] = option
+        by_name[npc_statements.fold(option["name"])] = option
         place = world_state.get("locations", {}).get(option["location_id"], {})
         for alias in place.get("aliases", []) if isinstance(place, dict) else []:
             if isinstance(alias, str) and alias.strip():
                 by_name[npc_statements.fold(alias)] = option
-    matched = [by_name.get(name) for name in folded_names]
-    all_named_places_match = bool(matched) and all(item is not None for item in matched)
-    if options and all_named_places_match:
-        selected = matched[0]
-        if all(item["location_id"] == selected["location_id"] for item in matched):
-            # W03 (Rev2 5.5): the NPC's own recommendation stays the NPC's; a lock the player already knows is a
-            # separate narrator note (attributed_claims.present_claim), an unknown lock is never revealed here.
-            return spoken_text
-    if open_discovery and options:
+    matched = [by_name.get(npc_statements.fold(name)) for name, _, _ in names]
+    if matched and all(item is not None for item in matched) and len(
+        {item["location_id"] for item in matched}
+    ) == 1:
+        # W03 (Rev2 5.5): the NPC's own recommendation stays the NPC's; a lock the player already knows is a
+        # separate narrator note (attributed_claims.present_claim), an unknown lock is never revealed here.
+        return spoken_text
+    if local_dialogue.is_open_local_place_discovery(player_input) or not (names or generic_place):
         # A general request such as "another place" is not permission to replace
-        # an attributed NPC reference with an unrelated canonical venue.
+        # an attributed NPC reference, and a line naming no venue is left alone.
         return spoken_text
-    if options and not names and generic_place is None:
-        # Preserve an in-character refusal or an opinion that does not name a
-        # venue; grounding must not manufacture a recommendation.
-        return spoken_text
-    if options:
-        available = [item for item in options if item["access"] == "available"]
-        if available:
-            selected = available[0]
-            return (
-                f'Bildiğim ve şu anda gidebileceğin yerlerden '
-                f'{selected["name"]} iyi bir seçenek olabilir.'
-            )
-        selected = options[0]
+    if available:
         return (
-            f'{selected["name"]} şu anda kilitli; açıldığını '
-            "doğrulamadan oraya gitmeni önermem."
-        )
-
-    if names:
-        name = names[0][0]
-        return (
-            f"Yalnızca söylenti olarak {name} adını duydum; "
-            "varlığını ya da gidilebilir olduğunu doğrulayamam."
-        )
-    if generic_place is not None:
-        return (
-            "Bunu yalnızca doğrulanmamış bir söylenti olarak aktarabilirim; "
-            "gidilebilir bir yer olduğunu doğrulayamam."
+            f'Bildiğim ve şu anda gidebileceğin yerlerden '
+            f'{available[0]["name"]} iyi bir seçenek olabilir.'
         )
     return spoken_text
 

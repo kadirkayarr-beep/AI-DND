@@ -1113,10 +1113,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 location["hidden"] = True
         spoken_place = "Mavi Fener Camhanesi"
         model_quote = f"{spoken_place} doğu kapısının yanında, şehirde bilinen bir yerdir."
-        quote = (
-            f"Yalnızca söylenti olarak {spoken_place} adını duydum; "
-            "varlığını ya da gidilebilir olduğunu doğrulayamam."
-        )
+        quote = model_quote
         client = ScriptedNpcSpeechClient(narration=model_quote)
         body = self.request(
             npc,

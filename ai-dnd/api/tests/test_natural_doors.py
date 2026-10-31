@@ -196,5 +196,33 @@ class AWalkDoesNotEndAtAClosedDoor(DoorCase):
         self.assertIsNone(game._venue_entry_door(self.world, self.world["location"], self.inn["id"]))
 
 
+class WhatAPersonSaidAboutAPlaceStands(DoorCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        await self.say("Etrafa bakıyorum.")
+
+    async def test_a_recommendation_is_not_rewritten(self):
+        self.client.SPOKEN = "Kızılhan iyidir, meydanın hemen yanında."
+        data = await self.say("Bana şehirde gidilecek başka bir yer öner.")
+        self.assertIn("Kızılhan iyidir", data["narration"])
+        self.assertNotIn("doğrula", data["narration"])
+        references = self.world["npc_statements"]["references"]
+        self.assertEqual([r["name"] for r in references], ["Kızılhan"])
+
+    async def test_an_unnamed_recommendation_is_not_rewritten(self):
+        self.client.SPOKEN = "Yakında bir han var, ucuzdur."
+        data = await self.say("Bana şehirde gidilecek bir yer öner.")
+        self.assertIn("ucuzdur", data["narration"])
+
+    async def test_a_hidden_place_stays_out_of_the_mouth_without_system_words(self):
+        self.world["locations"]["gizli"] = {
+            "id": "gizli", "name": "Karanlıkhan", "type": "building", "hidden": True,
+        }
+        self.client.SPOKEN = "Karanlıkhan iyidir."
+        data = await self.say("Bana şehirde gidilecek bir yer öner.")
+        self.assertNotIn("Karanlıkhan", data["narration"])
+        self.assertNotIn("doğrula", data["narration"])
+
+
 if __name__ == "__main__":
     unittest.main()
