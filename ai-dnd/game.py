@@ -8104,6 +8104,7 @@ def _overheard_work(world):
         turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
         thread = threads[turn % len(threads)]
         world_threads.mark_heard(thread, turn)
+        world_threads.note_heard_names(world, thread["public_line"])
         grounded_action.note_last(world, thread["place_id"])
         return f"Sana doğrudan iş öneren yok ama sokakta bir laf dönüyor: {thread['public_line']}"
     except Exception:
@@ -19146,6 +19147,11 @@ def _run_player_turn_internal(
         or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
+    if (
+        interaction_hint == "information" and isinstance(npc_target, dict)
+        and local_dialogue.personal_question_kind(player_input) == "local_work"
+    ):
+        interaction_hint = None  # the person answers from what they know, not from a profile field
     raw = None
     if interaction_hint and not combat["active"] and not classifier_unusable:
         intent_model_calls = scene_preparse_model_calls + 1
@@ -19600,6 +19606,7 @@ def _run_player_turn_internal(
         interaction_mode == "say"
         or npc_place_recommendation
         or is_npc_dialogue_input(player_input)
+        or local_dialogue.personal_question_kind(player_input) == "local_work"  # "burada ... var mı" also reads as a look
         or _is_short_conversation_continuation(player_input)
         or _is_spoken_to(player_input, npc_target)
     ))

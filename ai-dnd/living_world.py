@@ -1537,11 +1537,11 @@ def _stable_name(world_state: dict[str, Any], location_id: str, role: str) -> st
         if isinstance(npc, dict)
     }
     locations = world_state.get("locations")
-    used |= {  # a name promised to someone not met yet is taken too
-        str(place["resident_name"]).casefold()
-        for place in (locations.values() if isinstance(locations, dict) else ())
-        if isinstance(place, dict) and place.get("resident_name")
-    }
+    for place in locations.values() if isinstance(locations, dict) else ():
+        if isinstance(place, dict) and place.get("resident_name"):
+            used.add(str(place["resident_name"]).casefold())  # promised to someone not met yet
+        if isinstance(place, dict) and place.get("place_kind") and place.get("name"):
+            used.add(str(place["name"]).split()[0].casefold())  # a shop's name is not its neighbour's
     for offset in range(len(pool)):
         name = pool[(start + offset) % len(pool)]
         if name.casefold() not in used:

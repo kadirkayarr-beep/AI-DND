@@ -146,6 +146,13 @@ class WhatWasSaidIsTiedToTheRecord(unittest.TestCase):
         said = self.say(f"Şu {stem} tarafına bak.")
         self.assertEqual(said["location_id"], self.place["id"])
 
+    def test_a_place_name_is_never_also_a_persons_name(self):
+        for index in range(40):
+            world = seeded(f"names-{index}")
+            first_words = {r["name"].split()[0] for r in world["locations"].values() if r.get("place_kind")}
+            people = {t["owner_name"] for t in world_threads.active(world)}
+            self.assertEqual(first_words & people, set())
+
     def test_a_reply_that_names_nothing_listed_changes_nothing(self):
         self.say("Burada öyle bir şey duymadım.")
         self.assertEqual(self.thread["status"], "open")
@@ -300,6 +307,43 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         self.assertNotIn("adıyla tanıdığın biri görünmüyor", text)
         self.assertIn(self.place["name"], text)
         self.assertEqual(grounded_action.last_target_id(world), self.place["id"])
+
+    async def test_a_place_spoken_outright_beats_the_person_in_the_same_line(self):
+        # Real play: "Osric yükünü Tobin Karakolu tarafına götürecek" then "Oraya gidiyorum" went to Osric's shop.
+        world = await self.heard()
+        other = next(r for r in world["locations"].values()
+                     if r.get("place_kind") and r["id"] != self.place["id"])
+        await self.say("İş bilen var mı?", f"Duydum ki {self.thread['owner_name']}, {other['name']} tarafına gidecek birini arıyor.")
+        text = await self.go("Oraya gidiyorum.")
+        self.assertEqual(world["location"], other["id"], text)
+
+    async def test_a_name_already_heard_is_the_name_shown_on_arrival(self):
+        world = await self.heard()
+        await self.say("İş bilen var mı?", f"{self.thread['owner_name']} ile konuş, {self.place['name']} tarafında.")
+        text = await self.go("Oraya gidiyorum.")
+        self.assertIn(self.thread["owner_name"], text)
+
+    async def test_a_name_not_heard_stays_hidden_until_it_is_given(self):
+        world = await self.heard()
+        for thread in world_threads.active(world):
+            thread["public_line"] = "Bir yerde iş varmış."
+        await self.say("İş bilen var mı?", f"{self.place['name']} tarafına bak.")
+        text = await self.go("Oraya gidiyorum.")
+        self.assertNotIn(self.thread["owner_name"], text)
+
+    async def test_walking_the_city_from_inside_a_building_goes_outside(self):
+        world = await self.heard()
+        await self.go(f"{self.place['name']}ne gidiyorum.")
+        text = await self.go("Şehirde dolanıyorum, etrafı inceliyorum.")
+        self.assertEqual(world["location"], self.place["parent_location_id"], text)
+        self.assertNotIn("Tarif ettiğine uyan", text)
+        self.assertNotIn("Bulunduğun yerde", text)
+
+    async def test_looking_around_a_room_stays_in_the_room(self):
+        world = await self.heard()
+        await self.go(f"{self.place['name']}ne gidiyorum.")
+        await self.go("Burada biraz dolaşıyorum.")
+        self.assertEqual(world["location"], self.place["id"])
 
     async def test_wandering_the_city_turns_up_a_real_lead(self):
         await self.start()

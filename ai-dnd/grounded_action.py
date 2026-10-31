@@ -2298,6 +2298,7 @@ def _search_access(run: _Run, step) -> dict[str, Any]:
     return _receipt("search", "completed", host, found=found, check=_check_public(check), text=text)
 
 
+_TOWN_WORDS = ("sehir", "kent", "sokak", "cadde", "mahalle")
 _DISCOVERY_KINDS = ("tavern", "market", "temple", "smithy", "bakery", "library", "workshop", "barracks", "stable", "graveyard")
 
 
@@ -2305,13 +2306,17 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
     import local_places
 
     settlement = _settlement(run.world)
+    outside = ""
+    if settlement and run.here != settlement and any(t.startswith(_TOWN_WORDS) for t in step.get("tokens", ())):
+        if run.location(run.here).get("parent_location_id") == settlement and run.game.commit_location_change(settlement):
+            outside = "Dışarı çıkıyorsun. "  # "şehirde dolanıyorum" means the streets, wherever it was said
     if not settlement or run.here != settlement:
         return _receipt("wander", "completed", None, text="Bulunduğun yerde biraz dolaşıyorsun; yeni bir şey çıkmıyor.")
     spent = run.spend(1200)
     if spent.get("interrupted"):
         return _receipt("wander", "blocked", None, reason="interrupted", text="Dolaşırken bir şey yolunu kesiyor.")
     signs = any(t.startswith("tabela") for t in step.get("tokens", [])) or how
-    lead = "Tabelalara göz atarak sokak sokak dolaşıyorsun. " if signs else "Sokak sokak dolaşıyorsun. "
+    lead = outside + ("Tabelalara göz atarak sokak sokak dolaşıyorsun. " if signs else "Sokak sokak dolaşıyorsun. ")
     for ref in reversed(npc_statements.place_references(run.world, settlement_id=settlement)):
         if ref.get("location_id"):
             continue
@@ -2335,6 +2340,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
     place = run.location(talk["place_id"]) if talk else None
     if place:  # a walker hears what the town is on about, and the place is real
         world_threads.mark_heard(talk, int(run.world.get("flags", {}).get("turn_index", 0) or 0))
+        world_threads.note_heard_names(run.world, talk["public_line"])
         run.near(None)
         run.memory["last_target_id"] = place["id"]
         return _receipt("wander", "completed", {"id": place["id"], "label": place.get("name")},
@@ -2851,6 +2857,11 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         return defer
     if p["speech"] or any(s["question"] for s in steps):
         return defer
+    # "Şehirde dolanıyorum, etrafı inceliyorum": the looking is the walking, not a second search.
+    steps = [s for i, s in enumerate(steps)
+             if not (i and steps[i - 1]["verb"] == "wander" and s["verb"] == "inspect" and s["target"] is None
+                     and not s["detail"] and not s["part"])]
+    p["steps"] = steps
     first = steps[0]
     for step in steps:
         people = [c for c in step["ambiguous"] if c["kind"] == "npc"]

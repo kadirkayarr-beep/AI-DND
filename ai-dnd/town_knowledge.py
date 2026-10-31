@@ -171,17 +171,27 @@ def fallback_line(world: dict[str, Any], npc: Any) -> str | None:
     return None
 
 
+def _spoken_places(world, settlement_id, words):
+    """Saved places of this town named outright in a reply, first spoken first."""
+    found = []
+    for place_id, record in world.get("locations", {}).items():
+        if isinstance(record, dict) and record.get("parent_location_id") == settlement_id:
+            name = npc_statements.fold(record.get("name", ""))
+            at = words.find(name) if name else -1
+            if at >= 0:
+                found.append((at, place_id))
+    return [place_id for _, place_id in sorted(found)]
+
+
 def _mentioned(world, known, words):
-    """The listed items this reply speaks of: by place name, person, or a noun only one item fits."""
+    """The listed items this reply speaks of: by person, or a noun only one item fits."""
     hits = []
     state = world_threads.view(world) or {"threads": []}
     threads = {t["thread_id"]: t for t in state["threads"]}
     for item in known:
-        place = world.get("locations", {}).get(item["location_id"], {})
-        name = npc_statements.fold(place.get("name", ""))
         thread = threads.get(item["thread_id"])
         person = npc_statements.fold(thread.get("owner_name")) if thread else ""
-        if (name and name in words) or (person and any(word.startswith(person) for word in words.split())):
+        if person and any(word.startswith(person) for word in words.split()):
             hits.append(item)
     if hits:
         return hits
@@ -205,14 +215,18 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any) -> None:
             return
         words = npc_statements.fold(shown_text)
         known = public_knowledge(world, npc)
+        spoken = _spoken_places(world, _settlement(world), words)
         hits = _mentioned(world, known, words)
-        if not hits:
-            return
         turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
-        for item in hits:
-            thread = next((t for t in world_threads.active(world) if t["thread_id"] == item["thread_id"]), None)
-            if thread is not None:
-                world_threads.mark_heard(thread, turn)
-        npc_statements.bind_said_place(world, npc, hits[0]["location_id"], _name_of(world, hits[0]["location_id"]))
+        for item in known:  # only the thread this line is about, never another at the same place
+            if item["thread_id"] and (item in hits or item["location_id"] in spoken):
+                thread = next((t for t in world_threads.active(world) if t["thread_id"] == item["thread_id"]), None)
+                if thread is not None:
+                    world_threads.mark_heard(thread, turn)
+        world_threads.note_heard_names(world, words)
+        # A place said outright is what "oraya" means; a person only stands in for theirs.
+        place_id = spoken[0] if spoken else (hits[0]["location_id"] if hits else None)
+        if place_id:
+            npc_statements.bind_said_place(world, npc, place_id, _name_of(world, place_id))
     except Exception:
         _LOG.exception("A town mention could not be tied to its record.")

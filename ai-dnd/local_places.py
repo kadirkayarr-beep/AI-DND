@@ -376,6 +376,8 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
         if isinstance(npc, dict):
             npc["place_role_of"] = place_id
             npc["role_known_to_player"] = True
+            if record.get("resident_known"):
+                npc["name_known_to_player"] = True
             activity = _pick(world, place_id, spec["activities"], "activity")
             issue = _pick(world, place_id, spec["issues"], "issue")
             profile = npc.get("personal_profile")
