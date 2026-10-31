@@ -1132,13 +1132,13 @@ def create_app(
                     detail = {"code": code, "message": message}
                 return HTTPException(status_code=status_code, detail=detail)
 
-            def refuse_model_failure(code: str) -> HTTPException:
+            def refuse_model_failure(code: str, message: str = MODEL_FAILURE_MESSAGE) -> HTTPException:
                 """Answer a model failure on a turn that applied nothing, and let the campaign go on.
 
                 The failure says nothing about the campaign, so the open intent is released instead of holding every later
                 move: any new id runs, and this same id may run again. The not_applied claim needs a verified rollback.
                 """
-                detail = {"code": code, "message": MODEL_FAILURE_MESSAGE}
+                detail = {"code": code, "message": message}
                 try:
                     if getattr(record, "usable", True) and manager.release_action_intent(record, action_id, request_hash):
                         detail["not_applied"] = True
@@ -1213,7 +1213,10 @@ def create_app(
             except RequiredModelUnavailableError:
                 selected_model = adapter.model_name if adapter is not None else MODEL_NAME
                 _logger.warning("Required model %s is unavailable.", selected_model)
-                raise refuse_model_failure("model_unavailable") from None
+                # Saying it again cannot help a model that is not installed, so this one stays a plain, truthful setup message.
+                raise refuse_model_failure(
+                    "model_unavailable", f"Required model {selected_model} is unavailable.",
+                ) from None
 
             snapshot = _capture_session(session)
             # Runtime capability only; never serialized into campaign state.
