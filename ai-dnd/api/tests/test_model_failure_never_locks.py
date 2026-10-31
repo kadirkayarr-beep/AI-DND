@@ -15,6 +15,8 @@ import uuid
 
 import httpx
 
+import game
+import interaction_adventure
 from api.auth import FixedAuthenticator
 from api.identity_suggestion import IdentitySuggestionService
 from api.main import create_app
@@ -240,6 +242,36 @@ class EveryModelCallFailsSoftly(PlayFixture):
         record = self.manager.get(self.session_id)
         self.assertFalse(self.manager.release_action_intent(record, body["action_id"], "0" * 64))
         self.assertEqual((await self.turn(body)).json(), applied.json())
+
+
+class ClassifierSchemaHasNoRoomToLoop(unittest.TestCase):
+    """The loop in the real run was one id growing inside a string: the list already had maxItems, the string had nothing."""
+
+    def unbounded(self, node, path="$"):
+        found = []
+        if isinstance(node, dict):
+            kinds = node.get("type")
+            if kinds == "string" and "maxLength" not in node and "enum" not in node and "const" not in node:
+                found.append(path)
+            if kinds == "array" and "maxItems" not in node:
+                found.append(path)
+            for key, value in node.items():
+                found += self.unbounded(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                found += self.unbounded(value, f"{path}[{index}]")
+        return found
+
+    def test_every_free_string_and_list_the_classifier_can_fill_has_a_limit(self):
+        for require_conversation in (False, True):
+            schema = interaction_adventure.intent_schema(game.INTENT_SCHEMA, require_conversation=require_conversation)
+            self.assertEqual(self.unbounded(schema), [])
+
+    def test_a_real_evidence_id_still_fits(self):
+        proposal = interaction_adventure.ConversationProposal.model_validate({
+            "candidate_evidence_ids": ["npc-profile:npc_procedural_0123456789:v1:reason_for_being_here"],
+        })
+        self.assertEqual(len(proposal.candidate_evidence_ids), 1)
 
 
 class IdentitySuggestionFailure(unittest.IsolatedAsyncioTestCase):

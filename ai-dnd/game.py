@@ -7544,13 +7544,13 @@ INTENT_SCHEMA = {
     "type": "object",
     "properties": {
         "intent": {"type": "string", "enum": sorted(INTENT_TYPES)},
-        "action": {"type": "string"},
+        "action": {"type": "string", "maxLength": 60},
         "target": {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["location", "npc", "item", "feature", "none"]},
-                "reference": {"type": "string"},
-                "npc_id": {"type": "string"},
+                "reference": {"type": "string", "maxLength": 160},
+                "npc_id": {"type": "string", "maxLength": 128},
                 "evidence_quote": {"type": "string", "maxLength": 100},
             },
             "required": ["type", "reference"],

@@ -8,10 +8,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import re
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
 import living_world
 import equipment_economy
@@ -145,6 +145,11 @@ class State(Contract):
     last_beat_turn: int = Field(default=-100, ge=-100)
 
 
+# A reference the model proposes. The limit reaches the provider's grammar, so a repeating id ends instead of eating the
+# whole token budget and leaving a reply that cannot be parsed; it matches the stored evidence id limit.
+ProposedId = Annotated[str, StringConstraints(max_length=160)]
+
+
 class Candidate(Contract):
     kind: Literal["inquiry", "cooperation", "dispute", "warning", "meeting"]
     impact: Literal["local"]
@@ -152,13 +157,13 @@ class Candidate(Contract):
     location_id: str = Field(min_length=1, max_length=128)
     routes: list[Route] = Field(min_length=1, max_length=4)
     # IDs only. No invented prose, deadlines, reward, lore or mechanics.
-    evidence_id: str | None = None
+    evidence_id: ProposedId | None = None
 
 
 class ConversationProposal(Contract):
     """Untrusted, turn-local interpretation; Python resolves every reference."""
 
-    addressee_id: str | None = None
+    addressee_id: ProposedId | None = None
     subject_phrase: str = Field(default="", max_length=160)
     subject_role: Literal["addressee", "other_actor", "world_entity", "unknown"] = "unknown"
     meaning: Literal[
@@ -166,7 +171,7 @@ class ConversationProposal(Contract):
         "cause", "lore", "identity", "other", "unknown", "unclear",
     ] = "unclear"
     topic_relation: Literal["new", "followup", "topic_change", "unclear"] = "unclear"
-    candidate_evidence_ids: list[str] = Field(default_factory=list, max_length=8)
+    candidate_evidence_ids: list[ProposedId] = Field(default_factory=list, max_length=8)
 
 
 PROFILE_FIELD_BY_MEANING = {
@@ -184,11 +189,11 @@ class Envelope(Contract):
                        "reframe", "switch_side", "betray", "abandon", "plan",
                        "continue_plan", "generate"]
     quote: str = Field(default="", max_length=4000)
-    thread_id: str | None = None
-    evidence_id: str | None = None
+    thread_id: ProposedId | None = None
+    evidence_id: ProposedId | None = None
     requested_item: str | None = Field(default=None, max_length=160)
     rejected_consideration: str | None = Field(default=None, max_length=400)
-    side_id: str | None = None
+    side_id: ProposedId | None = None
     privacy: Literal["private", "public", "addressed"] = "addressed"
     steps: list[PlanStep] = Field(default_factory=list, max_length=6)
     routes: list[Route] = Field(default_factory=list, max_length=4)
