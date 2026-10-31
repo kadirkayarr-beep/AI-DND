@@ -3630,8 +3630,33 @@ def ensure_combat_state():
     return combat
 
 
+_ARMED_ROLE = re.compile(r"\b(?:muhafiz|nobetci|cavus|asker|guard|sergeant|haydut|eskiya)")
+_STRONG_ROLE = re.compile(r"\b(?:demirci|liman iscisi|seyis|arabaci|mezarci|barmen|usta|kahya)")
+# (armor class, hit points, attack bonus, die, damage type) for a person with no stat block.
+_PERSON_FIGHT = {
+    "armed": (15, 16, 3, 6, "slashing"),
+    "strong": (11, 12, 3, 4, "bludgeoning"),
+    "plain": (10, 8, 2, 4, "bludgeoning"),
+}
+
+
+def _person_fight(npc):
+    """A person fights like what they are; only stats nobody set take these values."""
+    role = _normalize_turkish_typos(f"{npc.get('role', '')}")
+    kind = "armed" if _ARMED_ROLE.search(role) else "strong" if _STRONG_ROLE.search(role) else "plain"
+    armor, hit_points, bonus, die, damage_type = _PERSON_FIGHT[kind]
+    npc.setdefault("armor_class", armor)
+    if "max_hp" not in npc:
+        npc["max_hp"] = hit_points
+        npc["current_hp"] = min(npc.get("current_hp", hit_points), hit_points)
+    npc.setdefault("attack_bonus", bonus)
+    npc.setdefault("damage_die", die)
+    npc.setdefault("attack_damage_type", npc.get("damage_type", damage_type))
+
+
 def ensure_npc_enemy_stats(npc):
     """Ensure NPC has enemy combat stats with safe defaults for legacy NPCs."""
+    ensure_npc_combat_stats(npc)
     if "attack_bonus" not in npc:
         npc["attack_bonus"] = 2
     if "damage_die" not in npc:
@@ -4239,6 +4264,7 @@ def create_shop_from_proposal(proposal):
 
 def ensure_npc_combat_stats(npc):
     """Ensure NPC has combat stats with safe defaults for legacy NPCs."""
+    _person_fight(npc)
     if "max_hp" not in npc:
         npc["max_hp"] = 10
     if "current_hp" not in npc:

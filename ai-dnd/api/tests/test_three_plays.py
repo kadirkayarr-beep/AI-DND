@@ -187,6 +187,32 @@ class AttackWordsTests(ThreePlaysTests):
         await self.say("hadi vursana", PlayClient(intent="attack"))
 
 
+class FightBackTests(ThreePlaysTests):
+    async def test_a_person_with_no_stat_block_hits_back(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        with self.app.state.ollama_adapter.engine_binding():
+            person = self.session.create_npc_from_ai(
+                {"name": "Tariq", "role": "Liman işçisi", "location": self.world["location"]})
+        person.update(current_hp=500, max_hp=500)
+        before = self.session.character["current_hp"]
+        for _ in range(12):
+            await self.say("liman işçisine vuruyorum", PlayClient(intent="attack"))
+        self.assertLess(self.session.character["current_hp"], before)
+
+    async def test_an_armed_guard_is_harder_than_a_passer_by(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        guard = {"name": "A", "role": "Muhafız"}
+        worker = {"name": "B", "role": "Kent sakini"}
+        with self.app.state.ollama_adapter.engine_binding():
+            self.session.ensure_npc_enemy_stats(guard)
+            self.session.ensure_npc_enemy_stats(worker)
+        self.assertGreater(guard["armor_class"], worker["armor_class"])
+        self.assertGreater(guard["max_hp"], worker["max_hp"])
+        self.assertGreater(guard["attack_bonus"], worker["attack_bonus"])
+
+
 class DeathTests(ThreePlaysTests):
     async def test_every_line_after_permadeath_gets_a_death_scene(self):
         await self.begin(BARBARIAN, death_mode="PERMADEATH")
