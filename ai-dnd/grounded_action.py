@@ -447,11 +447,12 @@ def candidates(session) -> list[dict[str, Any]]:
         for noun, noun_kind in npc_statements.PLACE_NOUNS:
             if noun_kind == kind and noun not in nouns:
                 nouns.append(noun)
+        door = next((d for d in world.get("doors", [])
+                     if isinstance(d, dict) and d.get("id") == f"venue-door:{location_id}"), None)
         found.append({"id": location_id, "kind": "place", "names": names, "nouns": nouns,
                       "label": location.get("name", location_id), "record": location,
-                      "place_kind": kind, "door_id": f"venue-door:{location_id}"
-                      if any(d.get("id") == f"venue-door:{location_id}" for d in world.get("doors", [])
-                             if isinstance(d, dict)) else None})
+                      "place_kind": kind, "door_id": door["id"] if door else None,
+                      "door_locked": bool(door and door.get("locked"))})
     if isinstance(here, str) and isinstance(locations.get(here), dict) and here != settlement:
         record = locations[here]
         here_nouns = [fold(a) for a in record.get("aliases", []) or [] if fold(a) and " " not in fold(a)]
@@ -1339,7 +1340,7 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
     if door is not None:
         run.near(door["id"])
         text = f"{prefix}{record.get('name')} önüne geliyorsun.{with_text} {_door_state_text(door)}"
-        if verb == "go" and (door.get("open") or door.get("broken")):
+        if verb == "go" and not door.get("locked"):
             return _enter(run, place, prefix=text + " ")
         return _receipt(verb, "completed", place, text=text.strip(), door_state=_door_public(door),
                         position="at_door")
@@ -2635,6 +2636,8 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # a place someone only mentioned, a promised escort, "another X"
     if verb == "approach" and kind in {"place", "door", "feature", "here"}:
         return True  # walking up to a building / door / detail (not a person)
+    if verb == "go" and kind == "place" and step["target"].get("door_id") and not step["target"].get("door_locked"):
+        return True  # a building on these streets: walk there and in, no journey
     if verb == "wander":
         return True  # walking the streets: something real and saved turns up
     if verb == "search":

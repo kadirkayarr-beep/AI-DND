@@ -2857,7 +2857,10 @@ def _venue_door_for(location_id):
 
 
 def _venue_entry_door(world_state, origin, destination):
-    """Return a closed registered venue door for any incoming route."""
+    """Return a locked registered venue door for any incoming route.
+
+    A closed door that is not locked is no obstacle: the visitor opens it.
+    """
     locations = world_state.get("locations", {})
     target = locations.get(destination) if isinstance(locations, dict) else None
     if (
@@ -2872,7 +2875,7 @@ def _venue_entry_door(world_state, origin, destination):
         (item for item in doors if isinstance(item, dict) and item.get("id") == door_id),
         None,
     ) if isinstance(doors, list) else None
-    if isinstance(door, dict) and not door.get("open"):
+    if isinstance(door, dict) and door.get("locked") and not door.get("open"):
         # LR00 fix: being turned back at a closed door leaves the player at it,
         # so "kapısını çalıyorum" next means this door, not the street's first.
         if door.get("location") == world_state.get("location"):
@@ -2882,9 +2885,13 @@ def _venue_entry_door(world_state, origin, destination):
     return None
 
 
+def _locked_door_refusal(door):
+    _mark_lock_seen(_session().world_state, door)
+    return f"{door.get('name', 'Kapı')} kilitli; içeri giremiyorsun."
+
+
 def _mark_lock_seen(world_state, door):
-    """W03: call only where the player is actually shown that the door is LOCKED (the text says "kilitli");
-    the refusal "kapalı. İçeri geçemezsin." says only closed, so it does not teach the lock.
+    """W03: call only where the player is actually shown that the door is LOCKED (the text says "kilitli").
 
     The knowledge lives in flags, not on the door: what the player knows is not the door's mechanical state.
     """
@@ -7343,6 +7350,9 @@ def commit_location_change(location_id, turn_index=None):
     authored_dungeon.require_transition(world_state, location_id)
     if location_id not in world_state.get("locations", {}):
         return False
+    entry = _venue_door_for(location_id)
+    if isinstance(entry, dict) and not entry.get("open") and not entry.get("broken"):
+        entry["open"] = True  # walking in through a door that was only closed
     world_state["location"] = location_id
     ensure_campaign_clock()
     _ensure_location_entities(location_id)
@@ -14000,7 +14010,7 @@ def _commit_travel_action(action_result):
         action_result.update({
             "success": False,
             "status": "blocked",
-            "direct_response": f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
+            "direct_response": _locked_door_refusal(door),
             "state_changes": [],
         })
         return False
@@ -14354,7 +14364,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
                     "success": False,
                     "status": "blocked",
                     "direct_response": (
-                        f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin."
+                        _locked_door_refusal(door)
                     ),
                     "state_changes": [],
                 })
@@ -16450,7 +16460,7 @@ def _adventure_travel_reply(session, destination):
         session.world_state, session.world_state.get("location"), destination
     )
     if venue_door:
-        response = f"{venue_door.get('name', 'Kapı')} kapalı. İçeri geçemezsin."
+        response = _locked_door_refusal(venue_door)
         return {
             "messages": session.messages,
             "narration": response,

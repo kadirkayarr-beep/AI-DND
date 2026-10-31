@@ -81,16 +81,15 @@ class AttributedClaimTests(unittest.TestCase):
         self.assertFalse(w["flags"].get("known_locked_door_ids"), "route planning must not reveal a hidden lock")
         self.assertIsNone(game._attributed_place_note(QUOTE, NPC, w, ASK))
 
-    def test_a_closed_door_refusal_does_not_teach_the_lock(self):
-        # review finding: "kapalı. İçeri geçemezsin." never says locked, so the travel refusals do not mark the lock as seen
-        import inspect
-        for function in (game._adventure_travel_reply,):
-            self.assertNotIn("_mark_lock_seen", inspect.getsource(function))
+    def test_only_a_refusal_that_says_locked_teaches_the_lock(self):
+        # The refusal now says "kilitli", so it teaches the lock; the route check alone does not.
         w = world(lock_known=False)
         game._venue_entry_door(w, CITY, TAVERN)
         self.assertFalse(game._lock_known_to_player(w, f"venue-door:{TAVERN}"))
         w["flags"]["known_locked_door_ids"] = None  # a damaged save must fail closed, not raise
         self.assertFalse(game._lock_known_to_player(w, f"venue-door:{TAVERN}"))
+        import inspect
+        self.assertIn("_mark_lock_seen", inspect.getsource(game._locked_door_refusal))
         game._mark_lock_seen(w, w["doors"][0])
         self.assertTrue(game._lock_known_to_player(w, f"venue-door:{TAVERN}"))
 

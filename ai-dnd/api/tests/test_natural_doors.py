@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from api.tests.test_natural_addressing import TownCase
 import campaign_time
+import game
 import grounded_action
 
 HOUR = 3600
@@ -166,6 +167,33 @@ class TheDoorFromInside(DoorCase):
     async def test_a_remark_about_a_door_is_no_door_operation(self):
         data = await self.say("Kapı kilitliydi.")
         self.assertNotIn("açıp kapatabileceğin", data["narration"])
+
+
+class AWalkDoesNotEndAtAClosedDoor(DoorCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.inn = await self.find_inn()
+        self.door_of(self.inn).update(open=False, locked=False)
+
+    async def test_going_to_the_inn_walks_in(self):
+        data = await self.say("Tamam, hana gidiyorum.")
+        self.assertEqual(self.world["location"], self.inn["id"])
+        self.assertTrue(self.door_of(self.inn)["open"])
+        self.assertNotIn("geçemezsin", data["narration"])
+
+    async def test_going_by_name_walks_in(self):
+        await self.say(f"{self.inn['name']}na gidiyorum.")
+        self.assertEqual(self.world["location"], self.inn["id"])
+
+    async def test_a_locked_door_stops_the_walk_in_plain_words(self):
+        self.door_of(self.inn).update(open=False, locked=True)
+        data = await self.say(f"{self.inn['name']}na gidiyorum.")
+        self.assertNotEqual(self.world["location"], self.inn["id"])
+        self.assertIn("kilitli", data["narration"])
+        self.assertIn(self.door_of(self.inn)["id"], self.flags.get("known_locked_door_ids", []))
+
+    async def test_timed_travel_to_a_closed_door_is_not_refused(self):
+        self.assertIsNone(game._venue_entry_door(self.world, self.world["location"], self.inn["id"]))
 
 
 if __name__ == "__main__":

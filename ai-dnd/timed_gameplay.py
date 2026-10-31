@@ -371,9 +371,13 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
-def _venue_entry_door(world, origin, destination):
+def game_module():
     import game
-    return game._venue_entry_door(world, origin, destination)
+    return game
+
+
+def _venue_entry_door(world, origin, destination):
+    return game_module()._venue_entry_door(world, origin, destination)
 
 
 def _blocked_venue_result(door):
@@ -381,7 +385,7 @@ def _blocked_venue_result(door):
     target_id = door_id.removeprefix("venue-door:") if isinstance(door_id, str) and door_id.startswith("venue-door:") else None
     return _result(
         "travel",
-        f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
+        game_module()._locked_door_refusal(door),
         status="blocked",
         success=False,
         target_id=target_id,

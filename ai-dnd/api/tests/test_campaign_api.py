@@ -6655,6 +6655,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     source_id,
                 )
                 if path == "continuation":
+                    # The refusal says "kilitli", so the player now knows the lock.
+                    continuation_after_world["flags"].pop("known_locked_door_ids")
                     self.assertEqual(
                         continuation_after_world,
                         continuation_before_world,
