@@ -107,6 +107,19 @@ class WanderingTheCity(OwnerPlayBase):
         self.assertEqual(text.count("önüne"), 1, text)
 
 
+class LookingAroundTheCity(OwnerPlayBase):
+    async def test_examining_the_surroundings_describes_them_instead_of_refusing(self):
+        session = self.manager.get(self.session_id).game_session
+        found = session._inspection_findings("şehirde dolanıyorum etrafı inceliyor", "success")
+        self.assertNotIn("adlandırdığın ayrıntı", found["text"])
+        self.assertIn("Neverwinter", found["text"])
+
+    async def test_a_named_detail_that_is_not_here_is_still_a_plain_miss(self):
+        session = self.manager.get(self.session_id).game_session
+        found = session._inspection_findings("heykeli inceliyorum", "success")
+        self.assertFalse(found["found"])
+
+
 class AmbientEventsAreNotPeople(OwnerPlayBase):
     EVENT = "İki esnaf kısa bir tartışmaya tutuşur; biri avucunu tezgâha vurur."
 

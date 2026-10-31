@@ -13319,6 +13319,10 @@ def _inspection_findings(player_input, outcome):
     # Only a successful search for a detail the scene lacks is a Python miss;
     # a failed roll keeps its normal (guarded) failure narration.
     if success and re.search(r"\b(?:incel|arastir)\w*", text):
+        if re.search(r"\b(?:etraf|cevre)\w*", text):
+            # The surroundings are the thing looked at, so the answer is what is there.
+            return {"target_kind": "feature", "target_id": None, "target_name": None, "found": False,
+                    "text": _scene_look_text(world_state.get("location"))}
         return {
             "target_kind": "feature",
             "target_id": None,
