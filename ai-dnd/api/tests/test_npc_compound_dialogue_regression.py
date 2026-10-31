@@ -15,8 +15,8 @@ class CompoundNpcDialogueRegression(unittest.TestCase):
             turn = session.run_player_turn(message, target_id="npc_001", interaction_mode="say")
         self.assertIn("Astrid", turn["narration"])
         self.assertIn("Mira", turn["narration"])
-        # The role is said in Turkish, never the internal English id.
-        self.assertIn("Dükkâncı", turn["narration"])
+        # A name answer gives the name only; the internal English id never shows.
+        self.assertNotIn("Dükkâncı", turn["narration"])
         self.assertNotIn("shopkeeper", turn["narration"])
         self.assertEqual(turn["action_result"]["npc_id"], "npc_001")
         self.assertEqual(turn["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)

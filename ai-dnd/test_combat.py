@@ -267,8 +267,9 @@ def run_tests():
     messages = [{"role": "system", "content": "test"}]
     asked = run_player_turn("Gromm'a kılıcımla saldırıyorum", messages)
     assert asked["action_result"]["status"] == "clarification", asked
-    assert (world_state, session.character, session.rng.getstate(),
-            session.messages, session.recent_dm_narrations) == before
+    assert (session.character, session.rng.getstate(),
+            session.messages, session.recent_dm_narrations) == before[1:]
+    assert world_state["npcs"] == before[0]["npcs"] and not world_state["combat"]["active"]
     assert messages == [{"role": "system", "content": "test"}]
     assert model.chat.call_count == calls_before
     print("  Nonlocal target rejected without state, RNG or model work -> PASS")

@@ -5900,7 +5900,7 @@ _INTERNAL_MARK_RE = re.compile(
 
 
 def _strip_proposal_markers(narration):
-    return _repair_internal_marks(narration)
+    return _PROPOSAL_MARKER_RE.sub("", narration) if isinstance(narration, str) else narration
 
 
 def _repair_internal_marks(narration):
@@ -5923,9 +5923,9 @@ def _repair_internal_marks(narration):
         if label is None and _PROPOSAL_MARKER_RE.fullmatch(match.group(0)):
             # "tezgahın arkasındaki [[n1]] sakinlikle": the mark stood for the person.
             rest = narration[match.end():].lstrip()
-            if len(present) == 1 and rest[:1].islower():
+            if len(present) == 1 and (rest[:1].islower() or rest[:1] in {",", ";"}):
                 label = living_world.public_npc_name(present[0])
-        if label is None:
+        if label is None or narration[match.end():].lstrip().casefold().startswith(label.casefold()):
             return ""
         before = narration[:match.start()].rstrip()
         at_start = not before or before[-1] in ".!?\n“\""
@@ -6149,6 +6149,21 @@ _IN_REACH_WORDS = (
 )
 _COUNTER_WORDS = ("tezgah", "bar", "banko")
 _COUNTER_ROLE = re.compile(r"barmen|bartender|hanci|meyhaneci|tuccar|dukkan|satici|merchant|shopkeeper|garson")
+
+
+def _drop_repeated_sentences(narration, earlier):
+    """A paragraph copied from the last turn is not told twice; new sentences stay."""
+    if not isinstance(narration, str):
+        return narration
+    seen = {
+        sentence.strip().casefold() for text in earlier if isinstance(text, str)
+        for sentence in re.split(r"(?<=[.!?…])\s+", text)
+    }
+    kept = [
+        sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration)
+        if sentence.strip().casefold() not in seen
+    ]
+    return " ".join(kept) if kept else narration
 
 
 def _drop_absent_counter_sentences(narration):
@@ -13245,26 +13260,21 @@ def _trim_dangling_quote(text):
 
 
 def _remove_trigger_sentence(narration, decision):
-    """Remove one complete unsafe sentence only for deterministic agency repairs."""
-    if decision.get("reason_code") not in {
-        "INVENTED_PLAYER_ACTION", "INVENTED_PLAYER_OBJECTIVE",
-        "INVENTED_PLAYER_MENTAL_STATE", "UNREGISTERED_PERSISTENT_OBJECT",
-        "UNREGISTERED_NAMED_ENTITY",
-    }:
-        return None
-    trigger = str(decision.get("trigger_span") or "").casefold()
+    """Remove one complete unsafe sentence: a bad line costs its sentence, not the turn."""
+    # A long span can run over a sentence end, so its start finds the sentence.
+    trigger = str(decision.get("trigger_span") or "").casefold()[:30].strip()
     if not trigger:
         return None
-    # The object check reports folded text.
-    folded = decision.get("reason_code") == "UNREGISTERED_PERSISTENT_OBJECT"
     paragraphs = []
     removed = False
     for paragraph in str(narration).split("\n\n"):
         sentences = re.split(r"(?<=[.!?])\s+", paragraph.strip())
         kept = []
         for sentence in sentences:
-            haystack = _normalize_turkish_typos(sentence) if folded else sentence.casefold()
-            if not removed and trigger in haystack:
+            # Some checks report folded text.
+            if not removed and (
+                trigger in sentence.casefold() or trigger in _normalize_turkish_typos(sentence)
+            ):
                 removed = True
                 continue
             if sentence:
@@ -13525,7 +13535,9 @@ def finalize_narration(
         _repair_internal_marks(narration), spoken=attributed_speech is not None
     )
     if attributed_speech is None:
-        narration = _drop_absent_counter_sentences(narration)
+        narration = _drop_repeated_sentences(
+            _drop_absent_counter_sentences(narration), recent_dm_narrations[-1:]
+        )
     if not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -13553,6 +13565,16 @@ def finalize_narration(
             )
             if repaired else None
         )
+        for _ in range(3):
+            if repaired_payload is not None or not (repaired_safety and repaired_safety["unsafe"]):
+                break
+            shorter = _remove_trigger_sentence(repaired, repaired_safety)
+            if not shorter:
+                break
+            repaired = shorter
+            repaired_safety = _narration_safety_decision(
+                repaired, player_input, npc_target, action_result, attributed_speech=None,
+            )
         if safety.get("reason_code") in (
             "WRONG_NPC_SPEAKER_ATTRIBUTION",
             "NPC_MEMORY_DISCLOSURE_LEAK",
@@ -17244,7 +17266,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
 
     # A narration-only turn cannot propose, so a marker there names nothing new;
     # the sentence stays and only the marker goes.
-    packet["narration"] = _strip_proposal_markers(packet.get("narration"))
+    packet["narration"] = _repair_internal_marks(packet.get("narration"))
     claims = packet.get("lore_claims", [])
     if (narration_only and not claims and resolved_turn.npc_target is None
             and isinstance(packet.get("narration"), str)):

@@ -181,6 +181,35 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("tartıyorsun", prompt)
         self.assertIn("Önce oyuncunun denediği şeyin", prompt)
 
+    async def test_people_setting_down_their_cups_cost_a_sentence_at_most(self):
+        shown = await self.assert_narrated_without_state(
+            "Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.",
+            "Sesin yankılanıyor. Bazıları rahatsız olmuş gibi kadehlerini masalara bıraktılar.",
+        )
+        self.assertIn("Sesin yankılanıyor.", shown)
+
+    async def test_two_bad_sentences_still_leave_the_good_one(self):
+        shown = await self.assert_narrated_without_state(
+            "Masanın üstüne çıkıp yüksek sesle bir şarkı söylüyorum.",
+            "Sesin yankılanıyor. Bazıları kadehlerini masalara bıraktılar. Yerdeki eski sandık açık duruyor.",
+        )
+        self.assertEqual(shown, "Sesin yankılanıyor.")
+
+    async def test_a_sentence_from_the_last_turn_is_not_told_twice(self):
+        await self.asyncSetUpScene()
+        first = NarratingClient(narration="Salon bir an susuyor. Birkaç kişi bakıyor.")
+        await self.play(first, "Yan masadakilere yazı tura oynamayı teklif ediyorum.")
+        second = NarratingClient(narration="Salon bir an susuyor. Teklifin havada kalıyor.")
+        shown = (await self.play(second, "Yan masadakilere yeniden sesleniyorum."))["narration"]
+        self.assertEqual(shown, "Teklifin havada kalıyor.")
+
+    async def test_an_id_before_the_name_does_not_double_the_name(self):
+        shown = await self.assert_narrated_without_state(
+            "Yan masadakilere yazı tura oynamayı teklif ediyorum.",
+            "Köşedeki [[npc_experimental_marek]] Marek başını kaldırıyor.",
+        )
+        self.assertEqual(shown, "Köşedeki Marek başını kaldırıyor.")
+
     async def test_walking_up_to_a_feature_reads_as_turkish(self):
         await self.asyncSetUpScene()
         world = self.session.world_state

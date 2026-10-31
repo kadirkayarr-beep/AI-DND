@@ -8259,7 +8259,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         turn = response.json()
         self.assertIn(npc["name"], turn["narration"])
-        self.assertIn(npc["role"], turn["narration"])
+        self.assertNotIn(npc["role"], turn["narration"])
 
     async def test_create_list_detail_resume_and_safe_metadata(self):
         created = await self.create_campaign()
@@ -14094,7 +14094,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(action["action"], "query")
                             self.assertEqual(action["status"], "answered_from_campaign_state")
                             self.assertEqual(action["query_type"], "npc_identity")
-                            self.assertIn(npc["role"], narration)
+                            self.assertNotIn(npc["role"], narration)
                         elif profile_field == "personal_detail":
                             self.assertEqual(action["action"], "dialogue")
                             self.assertEqual(action["status"], "experimental_attributed_speech")

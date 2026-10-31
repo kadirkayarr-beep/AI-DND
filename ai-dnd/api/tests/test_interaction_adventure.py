@@ -112,7 +112,9 @@ class InteractionContracts(unittest.TestCase):
         text = "Magic Missile büyüsünü kullanayım; kenara çekileyim."
         with patch("spell_scope.natural_command", side_effect=AssertionError("not a cast")), \
              patch("bounded_encounter.resolve_command", side_effect=AssertionError("not an action")), \
-             patch("game.ollama.chat", return_value={"message": {"content": "{}"}}):
+             patch("game.ask_dungeon_master", return_value={
+                 "narration": "Bir an duraksıyorsun.", "world_updates": {}, "lore_claims": [],
+                 "valid_response": True}):
             result = self.s.run_player_turn(text)
         self.assertEqual(result["action_result"]["operation"], "plan")
         self.assertEqual(self.w[adventure.KEY]["plan"]["cursor"], 0)
@@ -442,8 +444,9 @@ class InteractionApiContracts(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(plan["status"], "paused")
         self.assertLessEqual(model.call_count, 1)
         self.assertEqual(s.rng.getstate(), rng)
+        # The narrator's turn may open the scene record of the place the player stands in.
         for key in set(world) | set(s.world_state):
-            if key not in {adventure.KEY, "flags"}:
+            if key not in {adventure.KEY, "flags", "scene_state"}:
                 self.assertEqual(s.world_state.get(key), world.get(key), key)
         committed = copy.deepcopy(s.world_state)
         with patch("game.ollama.chat") as replay_model:
