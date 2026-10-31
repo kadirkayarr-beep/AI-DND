@@ -151,6 +151,7 @@ function friendlyError(error: unknown, fallback: string) {
   if (code === 404) return 'Bu macera bulunamadı.';
   if (code === 422) return 'Bu söz şimdilik yankı bulmadı. 1–4000 karakter arasında yeniden dene.';
   if (code === 503) return 'Dünya şu an sessiz.';
+  if (typeof code === 'number' && code >= 500) return 'Sunucuda bir aksaklık oldu; yeniden dene.';
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'Bağlantı yok. İnternet bağlantını kontrol edip tekrar dene.';
   return fallback;
 }
@@ -2028,7 +2029,7 @@ export default function GameBrowser() {
         const deadlineExpired = error instanceof ActionDeadlineError || operation.deadlineExpired();
         setNotice({
           tone: deadlineExpired ? 'warning' : 'error',
-          title: deadlineExpired ? 'Hamlenin sonucu belirsiz' : statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı',
+          title: deadlineExpired ? 'Hamlenin sonucu belirsiz' : statusCode(error) === 503 ? 'Dünya şu an sessiz' : Number(statusCode(error)) >= 500 ? 'Bir aksaklık oldu' : 'Hamle sonuçlanamadı',
           detail: deadlineExpired
             ? 'Süre doldu ve sunucudan yanıt alınamadı; hamle uygulanmış olabilir. Aynı hamleyi yeniden dene: kayıtlı işlem kimliği korunuyor, yazdığın metin taslakta duruyor.'
             : error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.'),

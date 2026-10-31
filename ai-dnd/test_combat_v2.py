@@ -346,10 +346,9 @@ class CombatV2Turns(unittest.TestCase):
         before = self.session.serialize_game_state()
         rng_before = self.session.rng.getstate()
         with self.rolls():
-            with self.assertRaises(CombatRequestError) as rejected:
-                self.session.run_player_turn("Ona saldırıyorum", [])
-        self.assertEqual(rejected.exception.code, "invalid_combat_target")
-        self.assertEqual(self.session.serialize_game_state(), before)
+            asked = self.session.run_player_turn("Ona saldırıyorum", [])
+        self.assertEqual(asked["action_result"]["status"], "clarification")
+        self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
         game.parse_player_intent.assert_not_called()
 
@@ -358,10 +357,9 @@ class CombatV2Turns(unittest.TestCase):
         before = self.session.serialize_game_state()
         rng_before = self.session.rng.getstate()
         with self.rolls():
-            with self.assertRaises(CombatRequestError) as rejected:
-                self.turn()
-        self.assertEqual(rejected.exception.code, "invalid_combat_target")
-        self.assertEqual(self.session.serialize_game_state(), before)
+            asked = self.turn()
+        self.assertEqual(asked["status"], "clarification")
+        self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
         self.assertEqual(self.npc["current_hp"], 100)
         self.assertEqual(self.session.character["current_hp"], 30)

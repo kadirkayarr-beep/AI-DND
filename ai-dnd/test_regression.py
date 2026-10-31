@@ -643,13 +643,8 @@ def test_unsupported_attack():
         before_narrations = list(game.recent_dm_narrations)
         with patch.object(engine, "parse_player_intent") as parse, \
                 patch.object(ollama_mock, "chat") as chat:
-            try:
-                run_turn("düşmana saldırıyorum")
-            except engine.combat_lifecycle.CombatRequestError as exc:
-                assert exc.code == "invalid_combat_target", exc.code
-                assert exc.status_code == 400, exc.status_code
-            else:
-                raise AssertionError("Invalid local target must raise CombatRequestError")
+            asked = run_turn("düşmana saldırıyorum")
+            assert asked["action_result"]["status"] == "clarification", asked
             parse.assert_not_called()
             chat.assert_not_called()
 

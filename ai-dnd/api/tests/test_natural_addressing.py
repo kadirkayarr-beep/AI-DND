@@ -175,10 +175,12 @@ class AddressGoesToThePlausiblePerson(TownCase):
         self.assertEqual(self.flags["active_npc_id"], self.guard["id"])
 
     async def test_an_attack_with_two_people_is_not_aimed_for_the_player(self):
-        await self.http.post(
+        response = await self.http.post(
             f"/api/game/sessions/{self.session_id}/turn",
             json={"message": "Saldırıyorum.", "action_id": str(uuid.uuid4())},
         )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Kime saldırıyorsun?", response.json()["narration"])
         self.assertFalse(self.world["combat"].get("active"))
 
 

@@ -6139,6 +6139,29 @@ _COUNTER_WORDS = ("tezgah", "bar", "banko")
 _COUNTER_ROLE = re.compile(r"barmen|bartender|hanci|meyhaneci|tuccar|dukkan|satici|merchant|shopkeeper|garson")
 
 
+def _drop_absent_counter_sentences(narration):
+    """A counter the player is not standing at leaves the prose; the rest stays."""
+    world_state = _session().world_state
+    place = world_state.get("locations", {}).get(world_state.get("location"))
+    place = place if isinstance(place, dict) else {}
+    if (
+        not isinstance(narration, str)
+        or (place.get("scene_kind") or place.get("place_kind") or "city") != "city"
+        or any(_serves_at_a_counter(npc) for npc in active_npcs())
+        or any(
+            word in _normalize_turkish_typos(str(feature.get("name", "")))
+            for feature in location_features(world_state.get("location"))
+            if isinstance(feature, dict) for word in _COUNTER_WORDS
+        )
+    ):
+        return narration
+    kept = [
+        sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration)
+        if not re.search(r"\b(?:tezgah|banko)\w*", _normalize_turkish_typos(sentence))
+    ]
+    return " ".join(kept) if kept else narration
+
+
 def _absent_described_person(player_input, people):
     """The word for "the man at the counter", when no such place or person is here."""
     match = _LOCATED_PERSON.search(str(player_input))
@@ -13474,6 +13497,8 @@ def finalize_narration(
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
     narration = clean_dm_response(_repair_internal_marks(narration))
+    if attributed_speech is None:
+        narration = _drop_absent_counter_sentences(narration)
     if not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -16783,6 +16808,19 @@ def _dispatch_player_turn(
                 "state_changes": ["conversation"] if active is not None else [],
             },
         }
+    if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
+        question = combat_lifecycle.unbound_attack_reply(_session(), player_input, target_id)
+        if question:
+            return {
+                "messages": _session().messages,
+                "narration": question,
+                "model_calls": 0,
+                "action_result": {
+                    "action": "attack", "status": "clarification", "success": False,
+                    "outcome": "missing_target", "state_changes": [],
+                    "direct_response": question,
+                },
+            }
     if combat_action is None:
         import dialogue_runtime
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):

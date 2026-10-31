@@ -265,13 +265,8 @@ def run_tests():
     calls_before = model.chat.call_count
     # Request validation now rejects nonlocal targets before intent/model work.
     messages = [{"role": "system", "content": "test"}]
-    try:
-        run_player_turn("Gromm'a kılıcımla saldırıyorum", messages)
-    except CombatRequestError as error:
-        assert error.code == "invalid_combat_target"
-        assert error.status_code == 400
-    else:
-        raise AssertionError("Nonlocal attack must be rejected")
+    asked = run_player_turn("Gromm'a kılıcımla saldırıyorum", messages)
+    assert asked["action_result"]["status"] == "clarification", asked
     assert (world_state, session.character, session.rng.getstate(),
             session.messages, session.recent_dm_narrations) == before
     assert messages == [{"role": "system", "content": "test"}]

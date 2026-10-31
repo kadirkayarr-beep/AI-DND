@@ -98,6 +98,51 @@ def is_attack_decision(session, message):
             and not str(message).rstrip().endswith("?"))
 
 
+def _attack_targets(session, message, target_id):
+    """The people this attack can mean: named, pointed at, or the one being spoken to."""
+    world = session.world_state
+    text = session._normalize_turkish_typos(message)
+    targets = [n for n in world.get("npcs", []) if n.get("location") == world.get("location") and (
+        n.get("id") == target_id if target_id is not None else
+        session._entity_reference_in_text(n.get("name", ""), text)
+        or session._entity_reference_in_text(n.get("role", ""), text)
+    )]
+    if not targets and target_id is None and (
+        re.search(r"\b(?:o adam|o kadin|ona|ondan|onunla|kendisine)\b", text)
+        or re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text)
+    ):
+        available = session.active_npcs()
+        flags = world.get("flags", {})
+        reference = flags.get("active_npc_id") or flags.get("last_npc_id")
+        referenced = [n for n in available if n.get("id") == reference]
+        targets = referenced if referenced else available
+    return targets
+
+
+def _single_valid_target(session, targets):
+    combat = session.world_state.get("combat", {})
+    return (len(targets) == 1
+            and targets[0].get("combat_status", "active") in (
+                {"active", "unconscious"} if combat.get("active") else {"active"})
+            and (combat.get("active") or targets[0].get("current_hp", 1) > 0))
+
+
+def unbound_attack_reply(session, message, target_id=None):
+    """An attack out of combat with no single target is asked about in the world."""
+    world = session.world_state
+    if (
+        world.get("combat", {}).get("active") or target_id is not None
+        or session.character.get("current_hp", 0) <= 0
+        or not is_attack_decision(session, message)
+        or _single_valid_target(session, _attack_targets(session, message, None))
+    ):
+        return None
+    people = session.active_npcs()
+    if not people:
+        return "Kime saldırıyorsun? Şu an yakınında kimse görünmüyor."
+    return f"Kime saldırıyorsun? Yakında {living_world.public_scene_people(people[:4])} var."
+
+
 def validate_request(session, message, target_id=None, *, combat_id=None,
                      combat_round=None, combat_turn_index=None):
     """Client context is an optimistic precondition, never combat authority."""
@@ -115,25 +160,15 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
         weapon, choice = weapon_attack.natural_choice(session, message)
         if weapon != "unarmed" and not session.find_weapon_in_inventory(weapon)[0]:
             raise CombatRequestError("no_weapon", "No valid weapon is available.", 400)
-        text = session._normalize_turkish_typos(message)
-        targets = [n for n in world.get("npcs", []) if n.get("location") == world.get("location") and (
-            n.get("id") == target_id if target_id is not None else
-            session._entity_reference_in_text(n.get("name", ""), text)
-            or session._entity_reference_in_text(n.get("role", ""), text)
-        )]
-        if not targets and target_id is None and re.search(
-            r"\b(?:o adam|o kadin|ona|ondan|onunla|kendisine)\b", text
-        ):
-            available = session.active_npcs()
-            flags = world.get("flags", {})
-            reference = flags.get("active_npc_id") or flags.get("last_npc_id")
-            referenced = [n for n in available if n.get("id") == reference]
-            targets = referenced if referenced else available
-        if (len(targets) != 1
-            or targets[0].get("combat_status", "active") not in (
-                {"active", "unconscious"} if combat.get("active") else {"active"})
-            or (not combat.get("active") and targets[0].get("current_hp", 1) <= 0)):
+        targets = _attack_targets(session, message, target_id)
+        if not _single_valid_target(session, targets):
+            if target_id is None and combat_id is None and not combat.get("active"):
+                return  # asked in the world by unbound_attack_reply, not refused
             raise CombatRequestError("invalid_combat_target", "Select one valid local target.", 400)
+        if not combat.get("active"):
+            # A person in the scene with no recorded distance is within a step:
+            # an opening strike must not end as an HTTP refusal.
+            targets[0].setdefault("distance_ft", 5)
         if combat.get("active") and targets[0]["id"] not in combat["participants"]:
             raise CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
         if combat.get("active") and combat["current_actor_id"] != "player":
