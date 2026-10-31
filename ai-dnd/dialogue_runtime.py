@@ -262,7 +262,7 @@ def resolve_turn(session, player_text: str, *, interaction_mode=None, target_id=
     if target_id is not None and npc is None:
         return None
     if npc is None:
-        resolution=session.resolve_npc_reference(player_text,force_dialogue=True)
+        resolution=session._settle_address(session.resolve_npc_reference(player_text,force_dialogue=True),player_text)
         if resolution.get('status')=='found':
             npc=_visible_npc(world,resolution['npc']['id'])
     if npc is None:

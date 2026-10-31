@@ -25,6 +25,12 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
    return await self.http.post(f'/api/game/sessions/{self.session_id}/turn',json={'message':text,'interaction_mode':mode,'action_id':action_id or str(uuid.uuid4())})
  async def test_free_coordinator_exists(self):
   self.assertIsNotNone(importlib.util.find_spec('dialogue_runtime'))
+ async def test_a_question_with_two_people_present_reaches_the_plausible_one(self):
+  await self.setup_free();self.world['flags'].update(active_npc_id=None,last_npc_id=None,active_npc_until_turn=-1)
+  self.world['npcs'].insert(0,{**copy.deepcopy(self.npc),'id':'npc_free_guard','name':'Sera','role':'guard'})
+  r=await self.send('Burada ne iş yapıyorsun?',mode='do')
+  self.assertEqual(r.status_code,200,r.text);self.assertIn(self.reply.spoken,r.json()['narration'])
+  self.assertEqual(self.world['flags']['active_npc_id'],self.npc['id'])
  async def test_door_cause_question_reaches_npc_without_world_action(self):
   await self.setup_free();before=copy.deepcopy((self.world['location'],self.world['inventory'],self.world['doors']))
   r=await self.send('kapı niye kilitliydi?',mode='do')
