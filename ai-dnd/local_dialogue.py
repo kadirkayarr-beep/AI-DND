@@ -390,6 +390,9 @@ def is_open_local_place_discovery(value: Any) -> bool:
     )
 
 
+_FINITE_VERB = re.compile(r"(?:iyor|uyor|yor|acag|eceg|acak|ecek)\w*$")
+
+
 def explicit_player_name_disclosure(value: Any) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -427,7 +430,7 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
             normalized_name = normalize_text(name)
             if normalized_name in {"ne", "nedir"}:
                 continue
-            if name and normalized_name not in {"adim", "ismim"}:
+            if name and normalized_name not in {"adim", "ismim"} and not _FINITE_VERB.search(normalized_name):
                 return name
     return None
 
