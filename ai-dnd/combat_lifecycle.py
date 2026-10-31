@@ -82,9 +82,29 @@ def quoted_or_conditional_not_attack(session, message):
     """
     spoken = living_world._text_outside_quotes(str(message))
     text = session._normalize_turkish_typos(spoken)
-    if _conditional_self_defense(text):
+    if _conditional_self_defense(text) or told_of_the_past(session, text):
         return True
     return quoted_report(session, message)
+
+
+_PAST_BLOW = re.compile(
+    r"\b(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur)\w*?(?:d[iu]m|d[iu]k|t[iu]m|t[iu]k|mistim|mustum)\b"
+)
+
+
+def told_of_the_past(session, text):
+    """"Kalilayı ben öldürdüm" tells what was done: nobody here is being struck.
+
+    A past verb stays a move in a fight, beside a present verb, or at someone standing here.
+    """
+    if not _PAST_BLOW.search(text) or session.world_state.get("combat", {}).get("active"):
+        return False
+    if session._has_explicit_attack_verb(_PAST_BLOW.sub(" ", text)):
+        return False
+    return not any(
+        session._entity_reference_in_text(npc.get(field, ""), text)
+        for npc in session.active_npcs() for field in ("name", "role")
+    ) and not any(session.named_by_sight(npc, text) for npc in session.active_npcs())
 
 
 def is_attack_decision(session, message):

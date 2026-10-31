@@ -1102,13 +1102,17 @@ def _report_of_someone_else(player_input, npc_target):
     return not named
 
 
+# "Tariq nerde dedim sana": the player repeating their own words, which claims nothing about anyone else's.
+_SAID_IT_AGAIN = re.compile(r"\b(?:dedim|diyorum)\b(?:\s+(?:sana|size|ya|be|yahu))*")
+
+
 def is_npc_historical_claim(player_input):
     """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
     if not isinstance(player_input, str):
         return False
     if _explicit_player_name_disclosure(player_input):
         return False
-    text = player_input.casefold().strip()
+    text = _SAID_IT_AGAIN.sub(" ", player_input.casefold()).strip()
     return bool(re.search(
         r"\b(?:daha önce|az önce|önceden|geçen sefer|geçen gün|vaktiyle|bir keresinde|hatırlarsan)\b.{0,180}"
         r"\b(?:söyle\w*|de\w*|anlat\w*|bahset\w*|konuş\w*|söz\s+ver\w*|vadet\w*)\b|"
@@ -17679,6 +17683,11 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None
+            and _SAID_IT_AGAIN.search(player_input.casefold())):
+        hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
+        if hearer is not None:
+            interaction_mode, target_id = "say", hearer["id"]
     if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = _thread_gate(player_input, target_id, interaction_mode)
