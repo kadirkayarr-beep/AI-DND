@@ -363,11 +363,13 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                 if thread is None:
                     continue
                 if item["kind"] == "news":
-                    if thread.get("outcome_known_turn") is None:
-                        thread["outcome_known_turn"] = turn
+                    world_threads.learn_outcome(world, thread)
                 else:
                     world_threads.mark_heard(thread, turn)
         _open_offer(world, npc, shown_text, turn, job_talk)
+        if job_talk:
+            for thread in world_threads.recent_closed(world, npc):
+                world_threads.learn_outcome(world, thread)
         world_threads.note_heard_names(world, words)
         # A place said outright is what "oraya" means; a person only stands in for theirs.
         place_id = spoken[0] if spoken else (hits[0]["location_id"] if hits else None)

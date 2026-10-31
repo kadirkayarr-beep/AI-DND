@@ -158,6 +158,9 @@ def hand_over(session,thread,giver):
         action=_move_parcel(session,thread,giver,True)
         if action and thread.get('target_place_id'):
             grounded_action.note_last(world,thread['target_place_id'])
+        if action:
+            import world_threads
+            world_threads.note_event(world,thread,'handed',f"{thread.get('item_noun') or 'paket'} oyuncuya geçti",npc=giver)
         return action
     except Exception:
         _restore(world,kept)
@@ -182,6 +185,7 @@ def deliver(session,thread,recipient,text):
         if closed is None or closed.get('status')!='done':
             raise ValueError('The delivery did not finish the job.')
         closed['paid_cp']=closed['terms']['pay']
+        world_threads.note_event(world,closed,'paid',f"{closed['terms']['pay']} bakır ödendi",npc=recipient)
         shown=shown_line(world,closed,'delivered')
         action['direct_response']=shown
         session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])

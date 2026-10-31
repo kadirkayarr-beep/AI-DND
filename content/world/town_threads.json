@@ -578,9 +578,17 @@
     },
     "errand": {
       "shown": {
-        "taken": ["{item} artık sende; {owner} elini çekip işine dönüyor.", "{owner} bir çırpıda devrediyor: {item} artık senin elinde."],
-        "delivered": ["{item} artık {recipient} elinde. Bedeli anlaşıldığı gibi sayılıp avucuna bırakılıyor: {pay_text}.", "{recipient} teslimatı alıp kontrol ediyor; {pay_text} kesene giriyor."],
-        "not_in_hand": ["{item} elinde değil; hâlâ {owner} yanında."]
+        "taken": [
+          "{item} artık sende; {owner} elini çekip işine dönüyor.",
+          "{owner} bir çırpıda devrediyor: {item} artık senin elinde."
+        ],
+        "delivered": [
+          "{item} artık {recipient} elinde. Bedeli anlaşıldığı gibi sayılıp avucuna bırakılıyor: {pay_text}.",
+          "{recipient} teslimatı alıp kontrol ediyor; {pay_text} kesene giriyor."
+        ],
+        "not_in_hand": [
+          "{item} elinde değil; hâlâ {owner} yanında."
+        ]
       },
       "accepted": [
         "Anlaştınız: {item} {recipient} eline, {target} içinde. Ücret {pay_text}, ödeme {timing_text}, süre {deadline_text}. Şartları tekrar etme."
@@ -607,14 +615,12 @@
     },
     "arrival": {
       "filled_by_other": [
-        "{who} burada, {owner} işini artık o görüyor; {place} önünde seni süzüp başını çeviriyor.",
-        "{place} önünde {who} ter döküyor; o işi senden önce kapmış."
-      ],
-      "done": [
-        "{place} önünden geçerken işinin izini görüyorsun; yaptığın iş yerinde duruyor."
+        "{owner} başını kaldırıyor; o iş {who} eline geçmiş.",
+        "{place} önünde laf dönüyor: o işi {who} kapmış, {owner} artık aramıyor."
       ],
       "failed": [
-        "{place} önünde {owner} seni görünce yüzünü çeviriyor; söz verdiğin iş yarım kaldı."
+        "{owner} seni görünce yüzünü çeviriyor; söz verdiğin iş yarım kaldı.",
+        "{place} içinde kimse sana bakmıyor; o iş senin yüzünden yarım."
       ]
     },
     "shift": [

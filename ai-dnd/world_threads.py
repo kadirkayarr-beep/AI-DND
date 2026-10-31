@@ -573,6 +573,21 @@ def sync_from_quests(world: dict[str, Any], state: dict[str, Any] | None = None)
 
 
 _RELATION = {"done": 1, "abandoned": -1, "failed": -1}
+_CLOSE_SUMMARY = {"done": "İş tamamlandı", "failed": "İş yarım kaldı", "abandoned": "İş bırakıldı",
+                  "expired": "Teklif kapandı", "filled_by_other": "İş başkasına geçti"}
+
+
+def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary: str,
+               *, npc: Any = None, player_known: bool = True) -> None:
+    """A job's mark in the shared log. The record is the thread; a lost log line loses nothing."""
+    import interaction_adventure
+    try:
+        interaction_adventure.note_town_event(world, f"thread_{kind}"[:64], f"{thread.get('owner_name') or 'İş'}: {summary}",
+                                              npc=npc if isinstance(npc, dict) else None,
+                                              location_id=thread.get("place_id") if thread.get("place_id") in world.get("locations", {}) else None,
+                                              player_known=player_known)
+    except Exception:
+        _LOG.exception("A job could not be noted.")
 
 
 def _apply_effects(world, effects):
@@ -587,6 +602,11 @@ def _apply_effects(world, effects):
         owner = owner_of(world, thread)
         if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
             relationships.note(world, owner["id"], _RELATION[status], f"thread:{thread_id}:{status}"[:160])
+        if thread.get("offered_at") is not None:
+            note_event(world, thread, status, _CLOSE_SUMMARY.get(status, status), npc=owner,
+                       player_known=status in {"done", "abandoned"})
+            if status in {"done", "abandoned"}:
+                thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
         quest_id = thread.get("quest_id")
         quest = next((q for q in world.get("quests", []) if isinstance(q, dict) and q.get("quest_id") == quest_id), None)
         if status == "expired" and quest is not None and quest.get("status") in {"DISCOVERED", "ACTIVE", "BLOCKED"}:
@@ -867,6 +887,35 @@ def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, A
     return True
 
 
+def learn_outcome(world: dict[str, Any], thread: dict[str, Any]) -> None:
+    """The player has now heard how this ended; only from here does it exist for them."""
+    if thread.get("outcome_known_turn") is None:
+        thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
+        if thread.get("offered_at") is not None:
+            note_event(world, thread, "learned", _CLOSE_SUMMARY.get(thread.get("status"), "İş kapandı"),
+                       npc=owner_of(world, thread))
+
+
+def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
+    """Walking up to a place you had a job at: how it ended, once. Only on arrival."""
+    state = view(world)
+    if state is None:
+        return None
+    seed = living_world._campaign_seed(world)
+    place = world.get("locations", {}).get(place_id) or {}
+    for thread in reversed(state["history"]):
+        status = thread.get("status")
+        lines = job_lines("arrival", status) or []
+        if (thread.get("place_id") != place_id or not lines or thread.get("offered_at") is None
+                or thread.get("outcome_known_turn") is not None):
+            continue
+        learn_outcome(world, thread)
+        line = lines[_rank(seed, thread["thread_id"], "arrival", status) % len(lines)]
+        return _fill(line, who=thread.get("filled_by_name") or "başkası", owner=thread.get("owner_name") or "",
+                     place=place.get("name", ""))
+    return None
+
+
 def accept_hired(world: dict[str, Any], thread: dict[str, Any]) -> bool:
     if not transition(thread, "accepted"):
         return False
@@ -876,6 +925,7 @@ def accept_hired(world: dict[str, Any], thread: dict[str, Any]) -> bool:
                   paid_cp=0)
     thread.pop("declined_turn", None)
     _log(thread, now, "accepted")
+    note_event(world, thread, "accepted", f"Anlaşıldı: {pay_text(thread)}", npc=owner_of(world, thread))
     return True
 
 
@@ -1050,9 +1100,11 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
         wanted = hours * HOUR
     before = copy.deepcopy(world)
     thread["shift_until"] = _now(world) + wanted
-    result = game.advance_campaign_time(wanted, "work_shift")
+    try:
+        result = game.advance_campaign_time(wanted, "work_shift")
+    finally:
+        by_id(world, thread_id).pop("shift_until", None)
     thread = by_id(world, thread_id)
-    thread.pop("shift_until", None)
     passed = result["elapsed_seconds"]
     thread["shift_seconds"] = thread.get("shift_seconds", 0) + passed
     day = campaign_time.public_time(world)["day_index"]
@@ -1070,6 +1122,7 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
         amount = _day_wage(thread)
         _pay_wage(world, thread, amount, day)
         parts.append(_fill(words.get("shift_paid", ""), amount=amount))
+        note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
         if thread["days_worked"] >= (thread["terms"].get("work_days") or 1) and transition(thread, "done"):
             now = _now(world)
             thread["closed_at"] = now

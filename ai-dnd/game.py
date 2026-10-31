@@ -8156,6 +8156,18 @@ def _town_note(world, npc):
         return ""
 
 
+def _with_job_news(world, place_id, narration):
+    """Coming back to a place you had a job at, how it ended is simply there to see."""
+    import town_knowledge
+    import world_threads
+    try:
+        line = world_threads.arrival_line(world, place_id)
+    except Exception:
+        town_knowledge.log_failure()
+        return narration
+    return f"{narration} {line}" if line else narration
+
+
 def _has_session():
     return _ACTIVE_SESSION.get(None) is not None
 
@@ -17205,6 +17217,7 @@ def _local_place_turn(player_input):
         world, record, create_npc=create_npc_from_ai, create_feature=create_local_feature,
     )
     narration = local_places.arrival_text(world, record, npc, feature, first_visit=created)
+    narration = _with_job_news(world, record["id"], narration)
     action_result = {
         "action": "travel",
         "status": "resolved",

@@ -1038,20 +1038,27 @@ def outcome_consistent(result, text):
 
 
 def _event(world, state, kind, summary, npc=None, thread=None, privacy="addressed",
-           player_known=True):
+           player_known=True, location_id=None):
     listeners = ([n["id"] for n in present_npcs(world)] if privacy == "public"
                  else [npc["id"]] if npc else [])
     event = Event(
         event_id=f"interaction:{uuid4().hex}", kind=kind,
         turn=world.get("flags", {}).get("turn_index", 0),
         at=world.get("campaign_time", {}).get("elapsed_seconds", 0),
-        location_id=world["location"], npc_id=npc["id"] if npc else None,
+        location_id=location_id or world["location"], npc_id=npc["id"] if npc else None,
         thread_id=thread["thread_id"] if thread else None,
         listeners=listeners, private=privacy == "private",
         player_known=player_known, summary=summary[:400],
     ).model_dump()
     state["events"] = [*state["events"], event][-MAX_EVENTS:]
     return event
+
+
+def note_town_event(world, kind, summary, *, npc=None, location_id=None, player_known=True):
+    """One line in the shared log for something a town job did; it grants nothing."""
+    state = get(world)
+    _event(world, state, kind, summary, npc=npc, location_id=location_id, player_known=player_known)
+    world[KEY] = state
 
 
 def _result(operation, status, text, **fields):

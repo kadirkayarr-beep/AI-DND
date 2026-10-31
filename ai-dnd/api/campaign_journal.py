@@ -764,13 +764,14 @@ def update_campaign_journal(
     # Copy only accepted structured player-known events, never model prose.
     import interaction_adventure
     previous_ids = {e["event_id"] for e in interaction_adventure.get(before_world)["events"]}
+    met = {npc.get("npc_id") for npc in journal["known_npcs"]}
     for event in interaction_adventure.get(after_world)["events"]:
         if event["event_id"] in previous_ids or not event["player_known"]:
             continue
         _add_event(
             journal, event_type="adventure_event", summary=event["summary"],
             created_at=now, turn_index=event["turn"], location=current_location,
-            related_npc_id=event["npc_id"],
+            related_npc_id=event["npc_id"] if event["npc_id"] in met else None,
         )
 
     validate_campaign_journal(journal)

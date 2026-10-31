@@ -1415,6 +1415,7 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
         run.local_place = {"kind": record["place_kind"], "created": first,
                            "npc_id": npc.get("id") if isinstance(npc, dict) else None}
         arrival = local_places.arrival_text(run.world, record, npc, feature, first_visit=first)
+        arrival = run.game._with_job_news(run.world, record["id"], arrival)
         return _receipt("enter", "completed", place, text=f"{prefix}{opened}{arrival}".strip())
     people = run.game.active_npcs(place["id"])[:3]
     inside = f" İçeride {living_world.public_scene_people(people)} var." if people else " İçerisi sessiz."
