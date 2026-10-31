@@ -1233,6 +1233,47 @@ class CampaignStore:
         finally:
             connection.close()
 
+    def release_action_intent(
+        self,
+        campaign_id: str,
+        action_id: str,
+        request_hash: str,
+        principal: Principal | None = None,
+    ) -> bool:
+        """Forget an open intent whose turn is proven not to have applied; True only if nothing of it remains.
+
+        For a failure that decided nothing about the campaign (a model failed and the turn was rolled back): no terminal
+        record is kept, so any new id may run and this same id may simply run again. A receipt wins and is never released.
+        """
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        connection = self._owned_connection(campaign_id, principal)
+        try:
+            try:
+                if connection.execute(
+                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
+                    "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, action_id, campaign_id, action_id),
+                ).fetchone() is not None:
+                    connection.commit()
+                    return False
+                connection.execute(
+                    "DELETE FROM campaign_action_intents WHERE campaign_id = ? AND action_id = ? AND request_hash = ?",
+                    (campaign_id, action_id, request_hash),
+                )
+                connection.commit()
+                return True
+            except Exception:
+                connection.rollback()
+                raise
+        except CampaignNotFoundError:
+            raise
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign action intent could not be released safely.") from None
+        finally:
+            connection.close()
+
     def abandon_action(
         self,
         campaign_id: str,

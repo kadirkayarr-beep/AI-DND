@@ -15,6 +15,8 @@ Contract under test (single design; there is no second authority next to the rec
   held (identity kept); otherwise a durable refusal is written and the answer is ``not_applied``.  A late
   request with that id can then never apply (the receipt insert checks the refusal in its own transaction).
 * Nothing expires: an open intent is closed only by a receipt or a refusal, never by age.
+* One exception, proven by a rollback: a turn a model failed is not an open question, so its intent is released at once
+  (see test_model_failure_never_locks).
 
 Real FastAPI app, real SessionManager, real SQLite campaign store; only the model boundary is faked.
 """
@@ -34,11 +36,11 @@ import httpx
 from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.persistence.campaign_models import CampaignStorageError
 from api.persistence.campaign_store import CampaignNotFoundError, CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import PLAYER_B, TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
-from dialogue_runtime import DialogueProviderError
 
 OK_TURN = {"narration": "Kapıdan hafif bir ses geliyor.",
            "action_result": {"action": "world_interaction", "status": "resolved", "success": True, "state_changes": []}}
@@ -96,14 +98,9 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
 
     async def leave_open_by_outage(self, body):
         """A pre-effect, retryable failure: the intent was recorded, no terminal result exists."""
-        def outage(_message, **_kwargs):
-            raise DialogueProviderError("provider down")
-
-        session = self.manager.get(self.session_id).game_session
-        good = session.run_player_turn
-        session.run_player_turn = outage
-        failed = await self.turn(body)
-        session.run_player_turn = good
+        # Storage, not the model: a model failure releases its intent because it decided nothing about the campaign.
+        with patch.object(self.manager, "assert_current", side_effect=CampaignStorageError("disk")):
+            failed = await self.turn(body)
         self.assertEqual(failed.status_code, 503, failed.text)
         self.assertNotIn("not_applied", failed.json()["detail"])
 
@@ -448,11 +445,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
         await self.leave_open_by_outage(self.body())
         await self.abandon(str(uuid.uuid4()))
         outage_body = self.body()
-        session = self.manager.get(other_session).game_session
-        good = session.run_player_turn
-        session.run_player_turn = lambda *_a, **_k: (_ for _ in ()).throw(DialogueProviderError("down"))
-        await self.turn(outage_body, session_id=other_session)
-        session.run_player_turn = good
+        with patch.object(self.manager, "assert_current", side_effect=CampaignStorageError("disk")):
+            await self.turn(outage_body, session_id=other_session)
         deleted = await self.http.delete(f"/api/game/campaigns/{self.campaign_id}")
         self.assertEqual(deleted.status_code, 200, deleted.text)
         connection = sqlite3.connect(self.store.path)

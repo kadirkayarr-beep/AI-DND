@@ -275,7 +275,10 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         body = self.fresh_body()
         failed = await self.turn(body)
         self.assertEqual(failed.status_code, 503, failed.text)
-        self.assertNotIn("not_applied", failed.json()["detail"])
+        # The owner rejected a campaign held by one bad model reply: the rollback is proven and the intent released, so the
+        # claim is true and closes the browser's pending record. The same id stays a safe retry.
+        self.assertIs(failed.json()["detail"]["not_applied"], True)
+        self.assertIsNone((await self.http.get(f"/api/game/sessions/{self.created['session_id']}/actions/unresolved")).json()["unresolved"])
         self.session.run_player_turn = good
         retry = await self.turn(body)
         self.assertEqual(retry.status_code, 200, retry.text)

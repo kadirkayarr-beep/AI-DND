@@ -36,7 +36,7 @@ class RecoveryDecision:
     narration_fallback: bool = False
     rerun_mechanics: bool = False
     persist_speech: bool = False
-    not_applied: bool | None = None  # True only when the failure is certain AND recorded as a refusal
+    not_applied: bool | None = None  # True only when the failure is certain AND recorded as a refusal or released
 
     def detail(self, **extra: Any) -> dict[str, Any]:
         detail: dict[str, Any] = {"code": self.code, "message": self.message}

@@ -139,6 +139,8 @@ if not _logger.handlers:
     _logger.addHandler(_handler)
 _logger.propagate = False
 _UNSET = object()
+# What the player reads when a model failed and the turn was rolled back: a lost sentence, not a stuck game.
+MODEL_FAILURE_MESSAGE = "Bunu tam yakalayamadım; bir daha, belki biraz farklı söyler misin?"
 
 
 def _capture_session(session: Any) -> dict[str, Any]:
@@ -1130,6 +1132,20 @@ def create_app(
                     detail = {"code": code, "message": message}
                 return HTTPException(status_code=status_code, detail=detail)
 
+            def refuse_model_failure(code: str) -> HTTPException:
+                """Answer a model failure on a turn that applied nothing, and let the campaign go on.
+
+                The failure says nothing about the campaign, so the open intent is released instead of holding every later
+                move: any new id runs, and this same id may run again. The not_applied claim needs a verified rollback.
+                """
+                detail = {"code": code, "message": MODEL_FAILURE_MESSAGE}
+                try:
+                    if getattr(record, "usable", True) and manager.release_action_intent(record, action_id, request_hash):
+                        detail["not_applied"] = True
+                except Exception:
+                    _logger.error("Action intent could not be released; no never-applied claim is made.", exc_info=True)
+                return HTTPException(status_code=503, detail=detail)
+
             try:
                 manager.assert_current(record)
             except CampaignError as error:
@@ -1185,13 +1201,7 @@ def create_app(
             ):
                 active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
             if active_adapter is None:
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "code": "ollama_unavailable",
-                        "message": "Authenticated Ollama service is not configured.",
-                    },
-                )
+                raise refuse_model_failure("ollama_unavailable")
             try:
                 active_adapter.ensure_required_model()
             except OllamaUnavailableError as error:
@@ -1199,23 +1209,11 @@ def create_app(
                     "Ollama preflight failed (error_type=%s)",
                     error.error_type,
                 )
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "code": "ollama_unavailable",
-                        "message": "Ollama service is unavailable.",
-                    },
-                ) from None
+                raise refuse_model_failure("ollama_unavailable") from None
             except RequiredModelUnavailableError:
                 selected_model = adapter.model_name if adapter is not None else MODEL_NAME
                 _logger.warning("Required model %s is unavailable.", selected_model)
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "code": "model_unavailable",
-                        "message": f"Required model {selected_model} is unavailable.",
-                    },
-                ) from None
+                raise refuse_model_failure("model_unavailable") from None
 
             snapshot = _capture_session(session)
             # Runtime capability only; never serialized into campaign state.
@@ -1401,15 +1399,9 @@ def create_app(
                 )
                 from dialogue_runtime import DialogueResponseError, DialogueProviderError
                 if isinstance(error, DialogueProviderError):
-                    raise HTTPException(status_code=503, detail={
-                        "code": "ollama_unavailable",
-                        "message": "Ollama request failed; the turn was not committed.",
-                    }) from None
+                    raise refuse_model_failure("ollama_unavailable") from None
                 if isinstance(error, DialogueResponseError):
-                    raise HTTPException(status_code=503, detail={
-                        "code": "invalid_dialogue_response",
-                        "message": "NPC yanıtı işlenemedi; hamle kaydedilmedi. Yeniden deneyebilirsin.",
-                    }) from None
+                    raise refuse_model_failure("invalid_dialogue_response") from None
                 # The snapshot was restored above (a failed restore raised session_restore_failed
                 # and never reaches here), so these refusals are "certainly never applied".
                 if isinstance(error, combat_lifecycle.CombatRequestError):
@@ -1450,13 +1442,7 @@ def create_app(
                     "Ollama chat failed (error_type=%s)",
                     model_failures[0],
                 )
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "code": "ollama_unavailable",
-                        "message": "Ollama request failed; the turn was not committed.",
-                    },
-                ) from None
+                raise refuse_model_failure("ollama_unavailable") from None
 
             if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
                 restore_turn_snapshot()
@@ -1490,13 +1476,7 @@ def create_app(
                     "Intent infrastructure failure (code=%s, rolled_back=true)",
                     code,
                 )
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "code": code,
-                        "message": "The turn was not committed because intent parsing failed.",
-                    },
-                )
+                raise refuse_model_failure(code)
             def contains_death_rollback(value: Any) -> bool:
                 if not isinstance(value, dict):
                     return False

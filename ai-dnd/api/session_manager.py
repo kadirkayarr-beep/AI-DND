@@ -783,6 +783,13 @@ class SessionManager:
             session=record.game_session,  # the server-held session, never a client token
         )
 
+    def release_action_intent(self, record: ManagedSession, action_id: str, request_hash: str) -> bool:
+        if record.campaign_id is None:
+            return action_id not in record.turn_action_receipts
+        return self._require_campaign_store().release_action_intent(
+            record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
+        )
+
     def unresolved_action(self, record: ManagedSession) -> dict[str, Any] | None:
         if record.campaign_id is None:
             return None
