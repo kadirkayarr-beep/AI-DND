@@ -51,7 +51,8 @@ PLACE_NOUNS: tuple[tuple[str, str], ...] = (
     ("firin", "bakery"), ("atolye", "workshop"), ("marangoz", "workshop"),
     ("kisla", "barracks"), ("karakol", "barracks"), ("mezarlik", "graveyard"),
     ("ahir", "stable"), ("dukkan", "generic"), ("meydan", "generic"),
-    ("konak", "generic"), ("kule", "generic"), ("depo", "generic"), ("ambar", "generic"),
+    ("konak", "estate"), ("konag", "estate"), ("malikane", "estate"), ("kosk", "estate"),
+    ("kule", "generic"), ("depo", "generic"), ("ambar", "generic"),
 )
 # A bare noun with only case endings after it is not a name ("Hanın yolu").
 _CASE_TAIL = re.compile(

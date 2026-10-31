@@ -133,6 +133,19 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
         "issues": (("Mezarlardan birinin başındaki fener sönük duruyor.",
                     "Bir mezarın başındaki fener her gece kendiliğinden sönüyor; açıklayamıyorum."),),
     },
+    "estate": {
+        "stems": ("konak", "konag", "malikane", "kosk"), "suffix": "Konağı", "noun": "konak", "role": "Kâhya",
+        "descriptions": ("Yüksek avlu duvarlarının ardında, işlemeli kapılı taş bir konak.",
+                         "Bahçesi özenle budanmış, pencereleri kalın perdeli geniş bir konak."),
+        "feature": ("Taş avlu", "Ortasında kurumuş bir havuz olan, süpürülmüş taş bir avlu.",
+                    ["avlu", "havuz"]),
+        "activities": (("Bir deftere gelen gideni işliyor.", "Gelen gideni deftere işliyorum."),
+                       ("Hizmetkârlara kısa buyruklar veriyor.", "Hizmetkârların işini düzene sokuyorum.")),
+        "issues": (("Avlu kapısının menteşesinde taze zorlama izleri var.",
+                    "Avlu kapısını geceleyin biri zorlamış; bir daha olsun istemem."),
+                   ("Duvar dibinde, kimsenin sahiplenmediği bir sandık duruyor.",
+                    "Duvarın dibine bir sandık bırakmışlar; kimin olduğunu öğrenmem gerek.")),
+    },
     "stable": {
         "stems": ("ahir",), "suffix": "Ahırı", "noun": "ahır", "role": "Seyis",
         "descriptions": ("Saman ve at kokusunun yoğun olduğu, loş bir ahır.",),
@@ -326,7 +339,8 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
     assigned = any(isinstance(n,dict) and n.get("place_role_of")==place_id for n in world.get("npcs",[]))
     if npc is None and not assigned:
         npc = create_npc({
-            "name": living_world.stable_local_name(world, place_id, spec["role"]),
+            # A name spoken before the player came stays the name of the person met here.
+            "name": record.get("resident_name") or living_world.stable_local_name(world, place_id, spec["role"]),
             "role": spec["role"],
             "location": place_id,
             "appearance": _pick(world, place_id, _APPEARANCES, "appearance"),
