@@ -198,6 +198,20 @@ class EnteringAnAmbientEvent(OwnerPlayBase):
         self.assertNotIn("konuşabileceğin biri görünmüyor", text)
         self.assertTrue(text.strip())
 
+    async def test_joining_an_event_leaves_a_line_in_the_story_history(self):
+        # Real play: 32 actions but 30 history rows, because a click committed a
+        # receipt with no narration; a reload then lost that the player went over.
+        self.stage_event()
+        before = len(self.manager.get(self.session_id).game_session.messages)
+        result = await self.act("interact")
+        npc = next(n for n in self.world["npcs"] if n["id"] == result["transition_id"])
+        record = self.manager.get(self.session_id)
+        rows = self.store.get_campaign(record.campaign_id).history
+        self.assertTrue(rows[-1]["player_message"].strip(), rows[-1])
+        self.assertIn(self.EVENT, rows[-1]["narration"])
+        self.assertIn(living_world.public_npc_name(npc), rows[-1]["narration"])
+        self.assertEqual(len(record.game_session.messages), before + 2)
+
     async def test_watching_an_event_tells_it_in_the_story(self):
         self.stage_event()
         await self.act("observe")

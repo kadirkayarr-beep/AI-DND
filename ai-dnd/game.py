@@ -20519,6 +20519,16 @@ class GameSession:
             reason_code="referent_promoted",
             transition_id=npc["id"],
         )
+        # The click is a move in the story: it is told and kept like any turn.
+        event_text = str(referent.get("description") or "").strip()
+        result["player_message"] = "Yanlarına gidiyorum."
+        result["narration"] = (
+            f"{event_text} Yanlarına gidiyorsun; karşında {living_world.public_npc_name(npc)} var."
+        ).strip()
+        self.messages.extend([
+            {"role": "user", "content": result["player_message"]},
+            {"role": "assistant", "content": result["narration"]},
+        ])
         return result
 
     def quest_offers(self):

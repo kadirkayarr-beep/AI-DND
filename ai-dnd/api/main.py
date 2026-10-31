@@ -2281,9 +2281,13 @@ def create_app(
                     ),
                 )
                 response_payload = redact_sensitive_values(response.model_dump())
+                # Without a history row a click left a receipt and no line of story.
                 manager.save_campaign_locked(record, turn_action_receipt={
                     "action_id": action_id, "request_hash": request_hash,
                     "response": {"action_id": action_id, "ambient_event_response": response_payload},
+                }, turn_entry={
+                    "player_message": transition["player_message"],
+                    "narration": transition["narration"],
                 })
                 return response_payload
             except Exception as error:

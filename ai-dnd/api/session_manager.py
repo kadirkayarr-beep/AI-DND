@@ -591,7 +591,8 @@ class SessionManager:
             )
 
     def save_campaign_locked(
-        self, record: ManagedSession, turn_action_receipt: dict[str, Any] | None = None
+        self, record: ManagedSession, turn_action_receipt: dict[str, Any] | None = None,
+        turn_entry: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Persist a campaign when the caller already holds its turn lock."""
         if record.campaign_id is None:
@@ -603,6 +604,7 @@ class SessionManager:
         return self._require_campaign_store().save_campaign(
             record.campaign_id,
             record.game_session,
+            turn_entry=turn_entry,
             journal=record.journal,
             narrative_memory=record.narrative_memory,
             lore_authority=record.lore_authority,

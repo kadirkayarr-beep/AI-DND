@@ -1580,7 +1580,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         # autosave once, before it commits (a committed ID cannot be resaved).
         # Only the persistence entry point is adapted; mechanics, serialization,
         # SQL and replay all remain real.
-        def persist_via_autosave(active_record, *, turn_action_receipt):
+        def persist_via_autosave(active_record, *, turn_action_receipt, turn_entry=None):
             return self.manager.autosave_turn(
                 active_record, "Interact with the ambient event.", "The traveler responds.",
                 turn_action_receipt=turn_action_receipt,
@@ -1745,8 +1745,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
         committed = self.snapshot(record)
         self.assertNotEqual(committed[0], before_acceptance[0])
-        # Unlike the adapted autosave test, native event saves add no turn history.
-        self.assertEqual(committed[-1].history, before_acceptance[-1].history)
+        # A click is a move in the story: one line, the same as the adapted autosave test.
+        self.assertEqual(len(committed[-1].history), len(before_acceptance[-1].history) + 1)
 
         def saved_rows(store):
             with closing(store._connect()) as connection:
@@ -3535,8 +3535,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                          accepted.json()["result"]["transition_id"])
         self.assertEqual(len(committed_rows["campaign_turn_actions"]),
                          len(before_rows["campaign_turn_actions"]) + 1)
-        for table in ("campaign_history", "campaign_combat_history"):
-            self.assertEqual(committed_rows[table], before_rows[table])
+        self.assertEqual(len(committed_rows["campaign_history"]), len(before_rows["campaign_history"]) + 1)
+        self.assertEqual(committed_rows["campaign_combat_history"], before_rows["campaign_combat_history"])
 
         fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
@@ -3818,7 +3818,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(result["transition_id"])
                         self.assertTrue(result["canonical_event_id"])
                         self.assertEqual(receipt["response"]["ambient_event_response"], accepted.json())
-                        self.assertEqual(committed[-1].history, before[-1].history)
+                        self.assertEqual(len(committed[-1].history), len(before[-1].history) + 1)
                         self.assertEqual(len(outcomes), 1)
                         self.assertEqual(outcomes[0]["event_id"], result["canonical_event_id"])
                         self.assertEqual(outcomes[0]["event_result"]["action_id"], action_id)
@@ -4177,7 +4177,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(stored.combat_history, saved_before.combat_history)
                         if winner == "ambient":
                             self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
-                            self.assertEqual(stored.history, saved_before.history)
+                            self.assertEqual(len(stored.history), len(saved_before.history) + 1)
                             outcomes = [
                                 entry for entry in records[winner].journal["notable_events"]
                                 if entry.get("event_type") == "ambient_event_outcome"
@@ -4262,11 +4262,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                     else retry_receipt["response"], retried.json(),
                                 )
                                 # Both actions' effects survive the fresh commit.
-                                self.assertEqual(len(after_retry[-1].history), len(saved_before.history) + 1)
+                                self.assertEqual(len(after_retry[-1].history), len(saved_before.history) + 2)
                                 self.assertEqual(
                                     after_retry[-1].history[:len(stored.history)], stored.history,
                                 )
-                                self.assertEqual(after_retry[-1].history[-1]["player_message"], rest_action)
+                                self.assertIn(rest_action, [row["player_message"] for row in after_retry[-1].history])
                                 self.assertEqual(after_retry[-1].combat_history, saved_before.combat_history)
                                 outcomes = [
                                     entry for entry in restored.journal["notable_events"]
@@ -4812,7 +4812,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                  len(saved_before.combat_history) + 1)
             elif operation == "ambient":
                 self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
-                self.assertEqual(stored.history, saved_before.history)
+                self.assertEqual(len(stored.history), len(saved_before.history) + 1)
                 outcomes = [
                     entry for entry in records[winner].journal["notable_events"]
                     if entry.get("event_type") == "ambient_event_outcome"
