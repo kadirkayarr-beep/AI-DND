@@ -15,6 +15,7 @@ import grounded_action
 import living_world
 import npc_statements
 from api.tests import test_campaign_api
+from api.tests import test_experimental_npc_dialogue as speech
 from api.tests import test_lr00_grounded_human as human
 from api.tests.test_lr00_p1_intent import ProbeShapedClient
 from api.tests.test_lr00_grounded_human import CITY, GARRICK, GARRICK_DOOR
@@ -225,3 +226,41 @@ class NewCampaign(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("görünmüyor", text)
         people = [n for n in self.world["npcs"] if n.get("location") == self.world["location"]]
         self.assertTrue(people)
+
+
+class NpcSpeechBase(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
+    asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
+    campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+
+    async def start(self):
+        self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc()
+        self.client = speech.ScriptedNpcSpeechClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.session.world_state["flags"].update(active_npc_id=self.npc["id"], last_npc_id=self.npc["id"], active_npc_until_turn=99)
+
+    async def say(self, message, line=None):
+        if line is not None:
+            self.client.narration = line
+        response = await self.http.post(self.turn_url, json={
+            "message": message, "action_id": str(uuid.uuid4()),
+            "interaction_mode": "say", "target_id": self.npc["id"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["narration"]
+
+
+class NpcLinesDoNotRepeat(NpcSpeechBase):
+    async def test_a_sentence_already_said_is_not_said_again_word_for_word(self):
+        await self.start()
+        await self.say("Burada neler oluyor?", "Bir şey yok, sadece yolculuk.")
+        text = await self.say("Burada neler oluyor? buralarna han varmı?", "Bir şey yok, sadece yolculuk. Evet, yakında bir han var.")
+        self.assertNotIn("Bir şey yok, sadece yolculuk", text)
+        self.assertIn("Evet, yakında bir han var.", text)
+
+    async def test_a_whole_reply_already_said_becomes_a_human_line(self):
+        await self.start()
+        await self.say("Selam.", "Dinlenmeye uğradım sadece.")
+        text = await self.say("Konuşalım.", "Dinlenmeye uğradım sadece.")
+        self.assertNotIn("Dinlenmeye uğradım sadece", text)
+        self.assertIn(self.npc["name"], text)
