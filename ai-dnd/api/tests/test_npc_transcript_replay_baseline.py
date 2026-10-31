@@ -31,6 +31,16 @@ from api.tests.test_npc_dialogue_stage_a_diagnostic import (
     StageADiagnosticTests,
 )
 
+def stranger_in(session):
+    """The unknown person of the opening, with a fixed look so the replay lines stay literal."""
+    person = next((npc for npc in session.world_state["npcs"]
+                   if isinstance(npc, dict) and not living_world.npc_name_known_to_player(npc)
+                   and not living_world.npc_role_known_to_player(npc)), None)
+    if person is not None:
+        person["visible_trait"] = "kır saçlı"
+    return person
+
+
 LORE_REFUSAL_MARKER = "hiçbir söz sağlam görünmüyor"
 CLARIFICATION_MARKER = "seçemedim"
 NO_CHANGE_MARKER = "çevrede şimdilik belirgin bir değişiklik olmuyor"
@@ -43,7 +53,7 @@ QUENNA_REPLIES = [
     ("han varmı", "Quenna: “Han mı arıyorsun? Evet, şehir merkezinde birkaç tane var. Bazen oraları doldurup boşaltırım ama ben fırın işlerimi bitirince eve dönerim.”"),
     ("en yakın han", "Quenna: “Şehrin girişine doğru, büyük taş kapının hemen yanındaki sokakta. Ama dikkat et; orası kalabalık olur, özellikle öğlen yemeğinde.”"),
 ]
-QUENNA_OPENING = "Yakındaki kişi: “Hadi bakalım, sana ne işin var? İşlerimi bitirip biraz dinleniyordum.”"
+QUENNA_OPENING = "Kır saçlı biri: “Hadi bakalım, sana ne işin var? İşlerimi bitirip biraz dinleniyordum.”"
 DEFAULT_NARRATION = "Sahne sakin; kimse sana aldırmıyor."
 
 
@@ -193,11 +203,7 @@ class TranscriptReplayBaseline(ReplayHarness):
         await self._turn(
             "Q1 look around", session, turn_url, model, "Çevreyi gözlemliyorum."
         )
-        person = next(
-            (npc for npc in session.world_state["npcs"]
-             if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"),
-            None,
-        )
+        person = stranger_in(session)
         self.assertIsNotNone(person, [
             {k: npc.get(k) for k in ("id", "name", "role", "name_known_to_player",
                                      "role_known_to_player", "hidden", "location")}
@@ -207,8 +213,8 @@ class TranscriptReplayBaseline(ReplayHarness):
         person["name_known_to_player"] = False
         person["role_known_to_player"] = False
         steps = [
-            ("Q2 talk to the nearby person", "Yakındaki kişi ile konuşmak istiyorum.", "do", True),
-            ("Q2b same, say mode", "Yakındaki kişi ile konuşmak istiyorum.", "say", True),
+            ("Q2 talk to the nearby person", "Kır saçlı biri ile konuşmak istiyorum.", "do", True),
+            ("Q2b same, say mode", "Kır saçlı biri ile konuşmak istiyorum.", "say", True),
             ("Q3 ask the name", "Selamlar, ismin nedir?", "say", True),
             ("Q4 end conversation", "Konuşmayı bitiriyorum.", "do", False),
             ("Q5 reopen by name", "Quenna ile konuşmak istiyorum.", "do", True),
@@ -301,7 +307,7 @@ def sweep_reply(index):
     """A different harmless in-character line per turn, so repetition never trips."""
     opener = SWEEP_OPENERS[index % len(SWEEP_OPENERS)]
     closer = SWEEP_CLOSERS[index % len(SWEEP_CLOSERS)]
-    return f"Yakındaki kişi: “{opener}; {closer}.”"
+    return f"Kır saçlı biri: “{opener}; {closer}.”"
 
 
 class SweepModel(TranscriptModel):
@@ -333,10 +339,7 @@ class BenignReplySweep(ReplayHarness):
         model = SweepModel()
         self.addCleanup(self._write_summary)
         await self._turn("S00 look", session, turn_url, model, "Çevreyi gözlemliyorum.")
-        person = next(
-            npc for npc in session.world_state["npcs"]
-            if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"
-        )
+        person = stranger_in(session)
         for index, message in enumerate(SWEEP_INPUTS, start=1):
             # Re-establish the addressee each time so every input is judged alone.
             session.world_state["flags"]["active_npc_id"] = person["id"]
@@ -422,10 +425,7 @@ class ProposalSalvage(ReplayHarness):
         _city, _sid, session, turn_url, _tavern, _door = \
             await create_city_with_locked_tavern(self)
         await self._turn("P0 look", session, turn_url, model, "Çevreyi gözlemliyorum.")
-        person = next(
-            npc for npc in session.world_state["npcs"]
-            if isinstance(npc, dict) and living_world.public_npc_name(npc) == "Yakındaki kişi"
-        )
+        person = stranger_in(session)
         flags = session.world_state["flags"]
         flags["active_npc_id"] = flags["last_npc_id"] = person["id"]
         flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 8
@@ -435,7 +435,7 @@ class ProposalSalvage(ReplayHarness):
         for fault in ("reply_as_quote", "bad_evidence"):
             with self.subTest(fault=fault):
                 self.records.clear()
-                reply = "Yakındaki kişi: “Günaydın, hava gerçekten güzel. Ne yapmayı düşünüyorsun?”"
+                reply = "Kır saçlı biri: “Günaydın, hava gerçekten güzel. Ne yapmayı düşünüyorsun?”"
                 record = await self._say_to_hidden_person(
                     QwenShapedModel(reply, fault=fault), "Günaydın, bugün hava güzel."
                 )
@@ -448,7 +448,7 @@ class ProposalSalvage(ReplayHarness):
     async def test_a_model_query_type_on_a_non_question_is_ignored(self):
         # Live qwen answered "Tamam, o zaman gideyim." with query_type=location and
         # the engine replied "Bulunduğun yer: Neverwinter." to a statement.
-        reply = "Yakındaki kişi: “İyi yolculuklar, yolun açık olsun.”"
+        reply = "Kır saçlı biri: “İyi yolculuklar, yolun açık olsun.”"
         for message in ("Tamam, o zaman gideyim.", "Bir şey satın almak istiyorum."):
             with self.subTest(message=message):
                 self.records.clear()
@@ -459,7 +459,7 @@ class ProposalSalvage(ReplayHarness):
                 self.assertNotIn("Bulunduğun yer", record["narration"], record)
 
     async def test_a_real_location_question_is_still_answered(self):
-        reply = "Yakındaki kişi: “Neverwinter’dasın.”"
+        reply = "Kır saçlı biri: “Neverwinter’dasın.”"
         for message in ("Neredeyim?", "Şu an nerede bulunuyorum"):
             with self.subTest(message=message):
                 self.records.clear()
@@ -471,7 +471,7 @@ class ProposalSalvage(ReplayHarness):
 
     async def test_a_factual_reading_without_evidence_is_still_vetoed(self):
         # personal_purpose needs profile evidence; an invented answer must not stand.
-        reply = "Yakındaki kişi: “Buraya gizli bir hazineyi aramak için geldim.”"
+        reply = "Kır saçlı biri: “Buraya gizli bir hazineyi aramak için geldim.”"
         record = await self._say_to_hidden_person(
             QwenShapedModel(reply, meaning="personal_purpose"), "Buraya neden geldin?"
         )
@@ -479,7 +479,7 @@ class ProposalSalvage(ReplayHarness):
 
     async def test_a_real_operation_is_still_vetoed(self):
         # A promise/trade packet with an unusable conversation must not be kept.
-        reply = "Yakındaki kişi: “Tamam, sana yüz altın veririm.”"
+        reply = "Kır saçlı biri: “Tamam, sana yüz altın veririm.”"
         record = await self._say_to_hidden_person(
             QwenShapedModel(reply, operation="promise"), "Bana yüz altın vereceğine söz ver."
         )
@@ -551,7 +551,7 @@ class NarrationGuardUnitTests(unittest.TestCase):
         for opener in ("'", "“"):
             with self.subTest(opener=opener):
                 closer = "'" if opener == "'" else "”"
-                text = ("Yakındaki kişi başını eğerek karşılık verir: "
+                text = ("Kır saçlı biri başını eğerek karşılık verir: "
                         f"{opener}Amin olsun! Güneşli günlerde her şey kolaylaşır.{closer} der.")
                 self.assertFalse(self.decide(text, "Kolay gelsin.")["unsafe"])
 
@@ -589,7 +589,7 @@ class LoreGuardRepairUnitTests(unittest.TestCase):
     def test_generic_npc_label_is_not_a_new_entity(self):
         import game
 
-        for label in ("Yakındaki kişi", "Bir muhafız", "Bir yaşlı kadın"):
+        for label in ("Kır saçlı biri", "Bir muhafız", "Bir yaşlı kadın"):
             sentence = f"{label}: “Hadi bakalım, sana ne işin var?”"
             self.assertFalse(
                 game._has_unregistered_narrative_entity(sentence, {"marek"}, {"marek"}),
@@ -600,7 +600,7 @@ class LoreGuardRepairUnitTests(unittest.TestCase):
         import game
 
         self.assertTrue(game._has_unregistered_narrative_entity(
-            "Yakındaki kişi: “Brom adlı kişi burada.”", {"marek"}, {"marek"}
+            "Kır saçlı biri: “Brom adlı kişi burada.”", {"marek"}, {"marek"}
         ))
 
     def test_repair_keeps_supported_sentences_and_drops_only_the_bad_one(self):

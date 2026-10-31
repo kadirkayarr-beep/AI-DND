@@ -417,7 +417,8 @@ def candidates(session) -> list[dict[str, Any]]:
         nouns = list(_PERSON_NOUNS)
         if living_world.npc_role_known_to_player(npc) and npc.get("role"):
             nouns.extend(fold(npc["role"]).split()[:2])
-        nouns.extend(w for w in fold(living_world.public_npc_descriptor(npc)).split() if len(w) > 3)
+        nouns.extend(w for w in fold(living_world.public_npc_descriptor(npc)).split()
+                     if len(w) > 3 and w != "biri")
         found.append({"id": npc["id"], "kind": "npc", "names": names, "nouns": nouns,
                       "label": living_world.public_npc_name(npc), "record": npc})
     for door in exploration.visible_doors(world):

@@ -84,7 +84,7 @@ class NarrationIntentTests(unittest.TestCase):
         self.assertEqual(living_world.public_npc_name(npc), "Bir dükkâncı")
         self.assertEqual(npc["role"], "Shopkeeper")
         npc.update(role_known_to_player=False, appearance="Sade giysili biri. Uzun açıklama.")
-        self.assertEqual(living_world.public_npc_name(npc), "Yakındaki kişi")
+        self.assertTrue(living_world.public_npc_name(npc).endswith(" biri"))
 
     def test_shop_refusal_and_economy_are_player_facing_and_non_mutating(self):
         session = city_session()
@@ -134,7 +134,7 @@ class NarrationIntentTests(unittest.TestCase):
                    "appearance": "Very long scene description, not a name"},
                   {"name": "Dorn", "role": "Guard", "name_known_to_player": False}]
         before = copy.deepcopy(people)
-        self.assertEqual(living_world.public_scene_people(people), "bir dükkâncı, bir kişi ve bir muhafız")
+        self.assertRegex(living_world.public_scene_people(people), r"^bir dükkâncı, [^,]+ biri ve bir muhafız$")
         self.assertEqual(people, before)
 
     def test_rebuilding_investigation_rejects_accepted_but_ungrounded_model_prose(self):

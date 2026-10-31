@@ -760,7 +760,8 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('oturuyorsun', result['narration'])
         self.assertNotIn('“”', result['narration'])
         self.assertNotEqual(result['narration'], 'Lysa gülümsüyor.')
-        self.assertEqual(self.session.last_narration_safety['handling'], 'python_fallback')
+        self.assertIn('Adım Lysa.', result['narration'])
+        self.assertEqual(self.session.last_narration_safety['handling'], 'repaired')
         self.assertEqual(client.chat_calls, 1)
 
     async def test_compound_query_keeps_valid_speech_when_only_stage_is_repaired(self):
@@ -819,7 +820,9 @@ class IntentLanguageBoundaryTests(unittest.TestCase):
         facts = living_world.visible_scene_facts(world)
         self.assertEqual(world, before)
         self.assertEqual(facts["location"]["id"], "room")
-        self.assertEqual(facts["people"], [{"name": "Yakındaki kişi", "role": ""}])
+        self.assertEqual(len(facts["people"]), 1)
+        self.assertEqual(facts["people"][0]["role"], "")
+        self.assertTrue(facts["people"][0]["name"].endswith(" biri"), facts["people"])
         self.assertEqual(facts["features"], [{"name": "Raf", "description": "Boş raf."}])
         serialized = json.dumps(facts, ensure_ascii=False)
         for private in ("Zelra", "Veyra", "Brom", "GIZLI_PROFIL", "Gizli kasa", "Keşfedilmemiş iz", "GizliGeliş"):

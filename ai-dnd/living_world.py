@@ -263,15 +263,61 @@ def public_npc_role(npc: Any) -> str | None:
     return _PUBLIC_ROLE_TR.get(role.casefold(), role)
 
 
+# Things anyone can see at a glance. No job, class or kin hides in them.
+_VISIBLE_TRAITS = (
+    "kır saçlı", "kızıl saçlı", "kısa saçlı", "örgülü saçlı", "kapüşonlu", "şapkalı",
+    "uzun boylu", "ufak tefek", "iri yarı", "çelimsiz", "yaşlıca", "gençten",
+    "yamalı giysili", "yeşil şallı", "mavi kuşaklı", "gri pelerinli", "kahverengi cüppeli",
+    "kırmızı atkılı", "bakır tokalı", "yara izli", "çilli", "topallayan", "dalgın bakışlı",
+    "gülümseyen", "suratsız", "hafif kambur",
+)
+
+
+def _trait_order(seed: str) -> list[str]:
+    return sorted(
+        _VISIBLE_TRAITS,
+        key=lambda trait: hashlib.sha256(f"{seed}|{trait}".encode("utf-8")).digest(),
+    )
+
+
+def npc_visible_trait(npc: Any) -> str:
+    """The stored trait; a save older than the field derives the same one each time."""
+    if not isinstance(npc, dict):
+        return _VISIBLE_TRAITS[0]
+    trait = npc.get("visible_trait")
+    if isinstance(trait, str) and trait.strip():
+        return trait.strip()
+    return _trait_order(str(npc.get("id") or npc.get("name") or ""))[0]
+
+
+def assign_visible_trait(world_state: dict[str, Any], npc: dict[str, Any]) -> None:
+    """Store one trait per NPC, unused here, so people in a scene read differently."""
+    here = [
+        other for other in world_state.get("npcs", [])
+        if isinstance(other, dict) and other is not npc
+        and other.get("location") == npc.get("location")
+    ]
+    used = {npc_visible_trait(other) for other in here}
+    seed = f"{_campaign_seed(world_state)}|{npc.get('id')}"
+    order = _trait_order(seed)
+    npc["visible_trait"] = next((trait for trait in order if trait not in used), order[0])
+    role = public_npc_role(npc)
+    if role and any(public_npc_role(other) == role for other in here):
+        npc["label_shows_trait"] = True
+
+
 def public_npc_descriptor(npc: Any) -> str:
     """Describe an unknown NPC from visible cues without exposing canonical identity."""
     if not isinstance(npc, dict):
         return "Yakındaki kişi"
     role = public_npc_role(npc)
+    trait = npc_visible_trait(npc)
     if role:
-        lowered = role[:1].lower() + role[1:] if role else "kişi"
+        lowered = role[:1].lower() + role[1:]
+        if npc.get("label_shows_trait") is True:
+            return f"{trait[:1].upper()}{trait[1:]} {lowered}"
         return f"Bir {lowered}"
-    return "Yakındaki kişi"
+    return f"{trait[:1].upper()}{trait[1:]} biri"
 
 
 def public_npc_name(npc: Any) -> str:
@@ -292,7 +338,7 @@ def public_scene_people(npcs: list) -> str:
         label = public_npc_name(npc)
         role = public_npc_role(npc)
         if not npc_name_known_to_player(npc):
-            label = f"bir {role[:1].lower() + role[1:]}" if role else "bir kişi"
+            label = label[:1].lower() + label[1:]
         elif role and normalize_text(role) != normalize_text(label):
             label = f"{label} ({role})"
         labels.append(label)

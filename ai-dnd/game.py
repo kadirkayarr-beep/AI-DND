@@ -3817,6 +3817,7 @@ def create_npc_from_ai(proposal, request_key=None):
         "name_known_to_player": False,
         "role_known_to_player": living_world.role_is_visibly_obvious(validated.get("role")),
     }
+    living_world.assign_visible_trait(world_state, npc)
     local_dialogue.ensure_personal_profile(npc)
     ensure_npc_combat_stats(npc)
     world_state["npcs"].append(npc)
@@ -6196,8 +6197,9 @@ def resolve_npc_reference(
         # by construction, so typing it back must address that person.
         descriptor_match = (
             not living_world.npc_name_known_to_player(npc)
-            and _entity_reference_in_text(
-                living_world.public_npc_descriptor(npc), text
+            and (
+                _entity_reference_in_text(living_world.public_npc_descriptor(npc), text)
+                or _entity_reference_in_text(living_world.npc_visible_trait(npc), text)
             )
         )
         if name_match or role_match or descriptor_match:
@@ -11068,7 +11070,7 @@ def _is_registered_lore_name(candidate, known_phrases, known_tokens):
 
 
 _GENERIC_SPEAKER_LABEL_RE = re.compile(
-    r"(?:yakındaki kişi|bir [a-zçğıöşü]+(?: [a-zçğıöşü]+)?)",
+    r"(?:yakındaki kişi|bir [a-zçğıöşü]+(?: [a-zçğıöşü]+)?|(?:[a-zçğıöşü]+ ){1,3}biri)",
     re.IGNORECASE,
 )
 

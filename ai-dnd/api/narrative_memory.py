@@ -14,6 +14,8 @@ import os
 import re
 from typing import Any
 
+import living_world
+
 
 NARRATIVE_MEMORY_SCHEMA_VERSION = 1
 MAX_RECENT_TURNS = 6
@@ -276,7 +278,7 @@ def _player_visible_npc_name(npc: dict[str, Any]) -> str:
         value = str(npc.get("name", "")).strip()
         if value:
             return value[:MAX_TOPIC]
-    return "Yakındaki kişi"
+    return living_world.public_npc_descriptor(npc)[:MAX_TOPIC]
 
 
 def _player_visible_npc_role(npc: dict[str, Any]) -> str:

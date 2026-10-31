@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import living_world
 from pathlib import Path
 import sys
 import unittest
@@ -109,7 +110,7 @@ class NarrativeMemoryTests(unittest.TestCase):
         self.assertNotIn("Traveler", encoded_memory)
         self.assertEqual(
             memory["entity_memory"]["npcs"]["npc_hidden"]["name"],
-            "Yakındaki kişi",
+            living_world.public_npc_descriptor(hidden),
         )
         packet, _ = build_narrative_context(
             memory,
