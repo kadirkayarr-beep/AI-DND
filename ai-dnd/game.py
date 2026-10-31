@@ -12704,7 +12704,7 @@ def ask_dungeon_master(
         try:
             response = ollama.chat(
                 model="qwen3:8b",
-                messages=[{"role": "system", "content": "Narrate only the supplied resolved outcome."},
+                messages=[{"role": "system", "content": "Narrate only the supplied resolved outcome.\n" + NARRATOR_VOICE},
                           {"role": "user", "content": prompt}],
                 format=_dm_response_schema_for_turn(narration_only=True),
                 think=False, options={"temperature": 0.3, "num_predict": 400},
@@ -14062,6 +14062,12 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
 # AI DUNGEON MASTER
 # ---------------------------------------------------------
 
+NARRATOR_VOICE = (
+    "Oyuncuya tekil sen diye seslen; sahneyi şimdiki, geçmişi geçmiş zamanda anlat. "
+    "Oyuncunun ağzından anlatma. Oyuncu adına söz, his, karar, eylem uydurma. "
+    "Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. Motor gerçeğini koru."
+)
+
 system_prompt = """
 Sen Dungeons & Dragons oyununda yaratıcı Dungeon Master ve anlatıcısısın.
 Python gerçek oyun motorudur; world state içindeki kayıtlar kalıcı olgulardır.
@@ -14118,7 +14124,7 @@ girişlerini, jestleri, metaforları, paragraf açılışlarını, savaş ifadel
 Mekanik sonucu açıkça başarılı/başarısız anlat. Soru, seçenek listesi veya yeni
 oyuncu eylemi üretme. Yanıtı tam olarak istenen JSON şemasında döndür; başka
 anahtar, Markdown veya metin ekleme.
-"""
+""" + NARRATOR_VOICE + "\n"
 
 
 messages = [
