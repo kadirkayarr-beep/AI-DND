@@ -11,7 +11,7 @@ from typing import Any, Iterator
 
 import game
 from api import model_chain
-from api.model_phase import ModelFailure
+from api.model_phase import ModelFailure, in_classifier_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
     LocalModelName,
@@ -239,7 +239,10 @@ class AuthenticatedOllamaAdapter:
             return response
         except Exception as error:
             failures = _MODEL_FAILURES.get()
-            if failures is not None:
+            if self._chain is not None and in_classifier_call():
+                # The owner's rule: the chain never fails a turn. The engine carries on with unknown intent.
+                _logger.warning("Classifier unavailable; turn goes on (error_type=%s)", type(error).__name__)
+            elif failures is not None:
                 failures.append(ModelFailure(type(error).__name__))
             # game.py safely catches model errors; keep its server log sanitized.
             raise RuntimeError("Ollama request failed.") from None

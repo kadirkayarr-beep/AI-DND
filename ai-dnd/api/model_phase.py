@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 _PHASE = ContextVar("resolved_model_phase", default="unresolved")
+_CLASSIFIER = ContextVar("classifier_model_call", default=False)
 
 
 class ModelFailure(str):
@@ -19,6 +20,20 @@ def resolved_narration_scope(enabled):
         yield
     finally:
         _PHASE.reset(token)
+
+
+@contextmanager
+def classifier_call():
+    """The engine answers a failed intent classifier with its own unknown intent."""
+    token = _CLASSIFIER.set(True)
+    try:
+        yield
+    finally:
+        _CLASSIFIER.reset(token)
+
+
+def in_classifier_call():
+    return _CLASSIFIER.get()
 
 
 def only_resolved_narration_failures(failures):

@@ -18,6 +18,7 @@ from api import model_chain, ollama_adapter
 from api.auth import FixedAuthenticator
 from api.local_model_config import SUPPORTED_LOCAL_MODELS
 from api.main import create_app
+from api.model_phase import classifier_call
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 
@@ -827,6 +828,21 @@ class TheAdapter(unittest.TestCase):
             self.engine_call(adapter)
         self.assertEqual(failures, ["ConnectionError"])
 
+    def test_a_classifier_that_reaches_a_failed_local_model_leaves_the_turn_alive(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        stub.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
+        with adapter.capture_model_failures() as failures, self.assertRaises(RuntimeError), classifier_call():
+            self.engine_call(adapter)
+        self.assertEqual(failures, [])
+
+    def test_with_no_chain_a_classifier_failure_stays_as_it_was(self):
+        stub = EngineStub()
+        stub.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b")
+        with adapter.capture_model_failures() as failures, self.assertRaises(RuntimeError), classifier_call():
+            self.engine_call(adapter)
+        self.assertEqual(failures, ["ReadTimeout"])
+
     def test_the_model_chain_lists_cloud_names_then_the_local_model(self):
         adapter, _ = self.adapter(FakeCloud())
         self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
@@ -875,6 +891,17 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
             response = await self.turn(narrate)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertIn("Turn providers (answered=gemini)", "\n".join(logs.output))
+
+    async def test_a_failed_classifier_on_the_chain_path_still_gives_the_player_a_turn(self):
+        self.adapter._chain = chain_for(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        self.adapter._client.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
+
+        def narrate(message):
+            self.assertEqual(game.parse_player_intent(message), {"intent": "unknown"})
+            return {"action_result": {"action": "wait", "status": "resolved"}, "narration": "Bekliyorsun."}
+
+        response = await self.turn(narrate)
+        self.assertEqual(response.status_code, 200, response.text)
 
     async def test_no_provider_line_with_no_chain(self):
         narrate = lambda message: {"action_result": {"action": "wait", "status": "resolved"}, "narration": "Bekliyorsun."}
