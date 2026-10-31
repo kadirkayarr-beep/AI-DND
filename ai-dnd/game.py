@@ -15314,7 +15314,9 @@ def _resolve_explicit_local_scene_parent(
         target_text,
     ):
         return None
-    return candidates[0] if fallback_single and len(candidates) == 1 else None
+    # "The building" means the one in view; a place the town only talks about is not it.
+    in_view = [item for item in candidates if (item.get("provenance") or {}).get("source") != "world_thread"]
+    return in_view[0] if fallback_single and len(in_view) == 1 else None
 
 
 def _scene_detail_parent(scene_id, player_input):

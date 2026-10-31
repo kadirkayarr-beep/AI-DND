@@ -2,6 +2,7 @@
 import copy,json,unittest
 from unittest.mock import patch
 import living_world
+import world_threads
 class Projection(unittest.TestCase):
  def world(self):return {'location':'city','locations':{'city':{'name':'Şehir','type':'city'},'inn':{'name':'Alaca Hanı','parent_location_id':'city','scene_kind':'tavern','secret':'PRIVATE_SENTINEL'}},'npcs':[],'features':[],'doors':[]}
  def test_read_only_public_projection(self):
@@ -34,6 +35,7 @@ class NpcScenePlaceHttpTests(unittest.IsolatedAsyncioTestCase):
   npc=self.world['npcs'][0];npc.update(name='Quenna',name_known_to_player=True)
   self.world['locations']['public_inn']={'id':'public_inn','name':'Alaca Hanı','type':'building','scene_kind':'tavern','parent_location_id':self.world['location'],'hidden':False}
   self.world['locations']['secret_inn']={'id':'secret_inn','name':'GizliMenekşe','type':'building','scene_kind':'tavern','parent_location_id':self.world['location'],'hidden':True}
+  world_threads.ensure(self.world)  # the town's lazy seed is not what is under test
   for message in ['Buralarda han varmı?','En yakın han nerede?','Gece nerede kalabilirim?','Bir han önerir misin?']:
    with self.subTest(message=message):
     client=ScriptedNpcSpeechClient('Bir hana bakabiliriz.')

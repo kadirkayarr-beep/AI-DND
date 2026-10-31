@@ -31,6 +31,7 @@ import grounded_action
 import campaign_time
 import living_world
 import timed_gameplay
+import world_threads
 import local_dialogue
 import quest_catalog
 import api.main as main_module
@@ -1431,6 +1432,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             dict,
         )
         batches_before_lore_question = len(client.message_batches)
+        world_threads.ensure(session.world_state)  # the town's lazy seed is not what is under test
         world_before_lore_question = {
             "locations": copy.deepcopy(session.world_state["locations"]),
             "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
@@ -1569,6 +1571,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "target_id": marek["id"],
         })
         self.assertEqual(greeting.status_code, 200, greeting.text)
+        world_threads.ensure(session.world_state)  # the town's lazy seed is not what is under test
         world_before = {
             "locations": copy.deepcopy(session.world_state["locations"]),
             "npc_ids": [npc.get("id") for npc in session.world_state["npcs"]],
