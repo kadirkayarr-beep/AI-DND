@@ -6958,19 +6958,17 @@ def _lines_already_said(npc, world_state):
     return [entry["npc"] for entry in log if isinstance(entry, dict) and isinstance(entry.get("npc"), str)]
 
 
-def _without_lines_already_said(spoken, npc, world_state):
-    """A sentence this person already said is not said again; what is new stays."""
+def _without_lines_already_said(spoken, npc, world_state, player_input):
+    """A sentence already said goes when the reply has something new to say instead.
+
+    The same question may get the same answer, and a reply that is only a
+    repeat stays: a repeated real answer beats any substitute (c48df86).
+    """
+    log = (world_state.get("npc_speech_log") or {}).get(npc.get("id"), [])
+    asked = str(player_input).strip().casefold()
+    if any(isinstance(entry, dict) and str(entry.get("player", "")).strip().casefold() == asked for entry in log):
+        return spoken
     return _drop_repeated_sentences(spoken, _lines_already_said(npc, world_state))
-
-
-def _repeats_earlier_line(spoken, npc, world_state):
-    """True when every sentence of the reply was already said by this person."""
-    said = {
-        sentence.strip().casefold() for line in _lines_already_said(npc, world_state)
-        for sentence in re.split(r"(?<=[.!?…])\s+", line)
-    }
-    sentences = [s.strip().casefold() for s in re.split(r"(?<=[.!?…])\s+", str(spoken)) if s.strip()]
-    return bool(sentences) and all(sentence in said for sentence in sentences)
 
 
 def speech_repeat_line(npc, player_input="", salt=0):
@@ -8088,6 +8086,12 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             f"Karşındakinin adı {player_name}."
             + (" Bu cevapta onu adıyla hitap et." if said % 3 == 0
                else " Bu cevapta adını söylemene gerek yok.")
+        )
+    said_before = _lines_already_said(npc, world)[-3:]
+    if said_before:
+        lines.append(
+            "Az önce şunları söyledin: " + " / ".join(line[:120] for line in said_before)
+            + " Bunları aynen tekrar etme, yeni bir şey söyle."
         )
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
@@ -19849,8 +19853,9 @@ def _run_player_turn_internal(
                     if _is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):
                         cleaned_spoken = ""
                         invalid_spoken_stage_direction = True
-                    repeated_whole_reply = _repeats_earlier_line(cleaned_spoken, npc_target, world_state)
-                    cleaned_spoken = _without_lines_already_said(cleaned_spoken, npc_target, world_state)
+                    cleaned_spoken = _without_lines_already_said(
+                        cleaned_spoken, npc_target, world_state, player_input
+                    )
                     if name_stance == "reveal" and cleaned_spoken.strip():
                         cleaned_spoken = _spoken_name_answer(cleaned_spoken, npc_target)
                     attributed_speech = {
@@ -19981,8 +19986,6 @@ def _run_player_turn_internal(
                     text = _render_experimental_npc_speech(
                         attributed_speech, npc_target
                     )
-                    if repeated_whole_reply and name_stance != "reveal":
-                        text = speech_repeat_line(npc_target, player_input, salt=turn_index)
                 else:
                     name = living_world.public_npc_name(npc_target)
                     if not text.casefold().startswith(name.casefold()):

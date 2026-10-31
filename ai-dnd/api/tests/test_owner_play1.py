@@ -278,12 +278,18 @@ class NpcLinesDoNotRepeat(NpcSpeechBase):
         self.assertNotIn("Bir şey yok, sadece yolculuk", text)
         self.assertIn("Evet, yakında bir han var.", text)
 
-    async def test_a_whole_reply_already_said_becomes_a_human_line(self):
+    async def test_the_same_question_may_get_the_same_answer(self):
+        await self.start()
+        await self.say("Burada neler oluyor?", "Bir şey yok, sadece yolculuk.")
+        text = await self.say("Burada neler oluyor?", "Bir şey yok, sadece yolculuk. Sen neden sordun?")
+        self.assertIn("Bir şey yok, sadece yolculuk.", text)
+
+    async def test_the_model_is_told_what_this_person_already_said(self):
         await self.start()
         await self.say("Selam.", "Dinlenmeye uğradım sadece.")
-        text = await self.say("Konuşalım.", "Dinlenmeye uğradım sadece.")
-        self.assertNotIn("Dinlenmeye uğradım sadece", text)
-        self.assertIn(self.npc["name"], text)
+        note = game._experimental_speech_note(self.session.world_state, self.npc, None, "Konuşalım.")
+        self.assertIn("Dinlenmeye uğradım sadece.", note)
+        self.assertIn("aynen tekrar etme", note)
 
 
 class IntroducingYourself(NpcSpeechBase):
