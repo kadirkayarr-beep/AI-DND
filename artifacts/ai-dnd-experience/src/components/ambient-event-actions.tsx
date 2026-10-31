@@ -70,10 +70,20 @@ export function findPersistedAmbientEventResult(
   };
 }
 
+/** What the player does next in the story once the server has taken the click. */
+export function ambientFollowUpMove(
+  action: AmbientEventActionInputAction,
+  status: AmbientEventResult['status'],
+): string | null {
+  if (action === 'interact' && status === 'APPLIED') return 'Yanlarına gidip ne olduğunu soruyorum.';
+  if (action === 'observe' && status === 'NO_EFFECT') return 'Bir süre durup çevremi gözlemliyorum.';
+  return null;
+}
+
 const statusLabels: Record<AmbientEventResult['status'], string> = {
-  APPLIED: 'Karşılaşma ilerledi.',
+  APPLIED: 'Yanlarına gidiyorsun.',
   REJECTED: 'Şu anda buna müdahale edemiyorsun.',
-  NO_EFFECT: 'Bir süre gözlemliyorsun; belirgin bir değişiklik olmuyor.',
+  NO_EFFECT: 'Bir süre duruyorsun.',
   ALREADY_APPLIED: 'Bu karşılaşma zaten gelişti.',
 };
 

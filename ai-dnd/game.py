@@ -15919,6 +15919,10 @@ def _promote_scene_referent(referent, location_id):
     if not npc:
         return None
     living_world.promote_referent(world_state, referent, npc["id"])
+    profile = local_dialogue.ensure_personal_profile(npc)
+    if profile and isinstance(referent.get("description"), str):
+        # This person was in the event; it is what they can talk about.
+        profile["current_activity"] = referent["description"]
     return npc
 
 
@@ -20432,6 +20436,7 @@ class GameSession:
         if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
             result.update(status="NO_EFFECT", reason_code="promotion_unavailable")
             return result
+        self._set_scene_active_npc(npc, turn_index)
         if (
             referent.get("lifecycle") != "promoted"
             or referent.get("promoted_npc_id") != npc["id"]

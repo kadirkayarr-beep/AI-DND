@@ -11,6 +11,7 @@ let renderPanel;
 let isActiveBlueAmbientEvent;
 let createAmbientEventActionRequest;
 let findPersistedAmbientEventResult;
+let ambientFollowUpMove;
 
 const blueEvent = {
   event_id: 'city_test_traveler',
@@ -49,6 +50,7 @@ before(async () => {
   isActiveBlueAmbientEvent = component.isActiveBlueAmbientEvent;
   createAmbientEventActionRequest = component.createAmbientEventActionRequest;
   findPersistedAmbientEventResult = component.findPersistedAmbientEventResult;
+  ambientFollowUpMove = component.ambientFollowUpMove;
 });
 
 after(async () => {
@@ -127,11 +129,19 @@ test('action requests use a single generated UUIDv4 and preserve the selected ac
   );
 });
 
+test('a click on an event continues as a real move in the story, never as a bare status line', () => {
+  const move = (action, status) => ambientFollowUpMove(action, status);
+  assert.equal(move('interact', 'APPLIED'), 'Yanlarına gidip ne olduğunu soruyorum.');
+  assert.equal(move('observe', 'NO_EFFECT'), 'Bir süre durup çevremi gözlemliyorum.');
+  assert.equal(move('interact', 'REJECTED'), null);
+  assert.equal(move('interact', 'ALREADY_APPLIED'), null);
+});
+
 test('all four server statuses render as player-facing outcomes without raw internal codes', () => {
   const labels = {
-    APPLIED: 'Karşılaşma ilerledi.',
+    APPLIED: 'Yanlarına gidiyorsun.',
     REJECTED: 'Şu anda buna müdahale edemiyorsun.',
-    NO_EFFECT: 'Bir süre gözlemliyorsun; belirgin bir değişiklik olmuyor.',
+    NO_EFFECT: 'Bir süre duruyorsun.',
     ALREADY_APPLIED: 'Bu karşılaşma zaten gelişti.',
   };
 

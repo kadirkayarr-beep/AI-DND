@@ -7,6 +7,7 @@ The model is mocked, so these prove the deterministic path alone.
 from __future__ import annotations
 
 import unittest
+import uuid
 
 import grounded_action
 import living_world
@@ -105,3 +106,45 @@ class AmbientEventsAreNotPeople(OwnerPlayBase):
         text, _ = await self.turn("etrafımı dikkatlice gözlemliyorum")
         self.assertNotIn(scene_look, text)
         self.assertIn("Ahşap masa gözüne çarpıyor.", text)
+
+
+class EnteringAnAmbientEvent(OwnerPlayBase):
+    EVENT = "İki esnaf kısa bir tartışmaya tutuşur; biri avucunu tezgâha vurur."
+
+    def stage_event(self):
+        turn = self.world["flags"].setdefault("turn_index", 0)
+        self.instance = str(uuid.uuid4())
+        scene = living_world.ensure_scene_record(self.world, CITY, turn)
+        scene["materialized"] = True
+        scene["referents"].clear()
+        scene["last_beat"] = self.EVENT
+        referent = living_world.create_scene_referent(
+            self.world, CITY, turn, description=self.EVENT, aliases=["esnaf"], event_instance_id=self.instance,
+        )
+        scene["ambient_event"] = {
+            "event_id": "city_small_argument", "instance_id": self.instance, "variation_id": "v1",
+            "event_type": "BLUE", "repeat_group": "conversation", "count": 1, "referent_id": referent["id"],
+        }
+
+    async def act(self, action):
+        url = self.turn_url.rsplit("/", 1)[0] + f"/ambient-events/{self.instance}/actions"
+        response = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "action": action})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["result"]
+
+    async def test_joining_an_event_puts_the_player_in_front_of_someone_who_was_in_it(self):
+        self.stage_event()
+        result = await self.act("interact")
+        self.assertEqual(result["status"], "APPLIED", result)
+        npc = next(n for n in self.world["npcs"] if n["id"] == result["transition_id"])
+        self.assertEqual(self.world["flags"].get("active_npc_id"), npc["id"])
+        self.assertIn(self.EVENT, npc["personal_profile"]["current_activity"])
+        text, _ = await self.turn("Yanlarına gidip ne olduğunu soruyorum.")
+        self.assertNotIn("konuşabileceğin biri görünmüyor", text)
+        self.assertTrue(text.strip())
+
+    async def test_watching_an_event_tells_it_in_the_story(self):
+        self.stage_event()
+        await self.act("observe")
+        text, _ = await self.turn("Bir süre durup çevremi gözlemliyorum.")
+        self.assertIn("İki esnaf", text)

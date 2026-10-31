@@ -23,6 +23,7 @@ import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFol
 import { removeAdvisoryCache, writeAdvisoryCache } from '@/lib/advisory-cache';
 import {
   AmbientEventActionPanel,
+  ambientFollowUpMove,
   createAmbientEventActionRequest,
   findPersistedAmbientEventResult,
   isActiveBlueAmbientEvent,
@@ -1794,6 +1795,8 @@ export default function GameBrowser() {
             setAmbientActionResult(response.result);
             setAmbientActionRequest(null);
             setAmbientActionError(false);
+            const move = ambientFollowUpMove(request.data.action, response.result.status);
+            if (move) submitTurnRef.current(move, undefined, 'do');
           }
         },
         onError: () => {
