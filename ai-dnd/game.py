@@ -3667,6 +3667,8 @@ def _person_fight(npc):
     role = _normalize_turkish_typos(f"{npc.get('role', '')}")
     kind = "armed" if _ARMED_ROLE.search(role) else "strong" if _STRONG_ROLE.search(role) else "plain"
     armor, hit_points, bonus, die, damage_type = _PERSON_FIGHT[kind]
+    if "attack_bonus" not in npc and npc.get("hostile") is not True:
+        npc["spares_the_fallen"] = True
     npc.setdefault("armor_class", armor)
     if "max_hp" not in npc:
         npc["max_hp"] = hit_points
