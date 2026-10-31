@@ -291,16 +291,26 @@ def npc_visible_trait(npc: Any) -> str:
 
 
 def assign_visible_trait(world_state: dict[str, Any], npc: dict[str, Any]) -> None:
-    """Store one trait per NPC, unused here, so people in a scene read differently."""
+    """Store one trait per NPC so people read differently, in a scene and from one place to the next.
+
+    A trait repeated in the next street reads as the same person having followed the player.
+    """
     here = [
         other for other in world_state.get("npcs", [])
         if isinstance(other, dict) and other is not npc
         and other.get("location") == npc.get("location")
     ]
     used = {npc_visible_trait(other) for other in here}
+    taken = used | {
+        other["visible_trait"] for other in world_state.get("npcs", [])
+        if isinstance(other, dict) and isinstance(other.get("visible_trait"), str)
+    }
     seed = f"{_campaign_seed(world_state)}|{npc.get('id')}"
     order = _trait_order(seed)
-    npc["visible_trait"] = next((trait for trait in order if trait not in used), order[0])
+    npc["visible_trait"] = next(
+        (trait for trait in order if trait not in taken),
+        next((trait for trait in order if trait not in used), order[0]),
+    )
     role = public_npc_role(npc)
     if role and any(public_npc_role(other) == role for other in here):
         npc["label_shows_trait"] = True

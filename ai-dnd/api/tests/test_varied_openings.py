@@ -217,6 +217,29 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(world["location"], inn["id"], shown)
 
 
+class TraitAcrossPlacesTests(unittest.TestCase):
+    def test_a_person_in_a_new_place_does_not_read_like_someone_left_behind(self):
+        # Real play: "kırmızı atkılı biri" on the street and again in the new district, as if they had followed.
+        traits = living_world._VISIBLE_TRAITS
+        for index in range(20):
+            world = {"npcs": [
+                {"id": f"street_{number}", "location": "street", "visible_trait": trait}
+                for number, trait in enumerate(traits[:6])
+            ]}
+            npc = {"id": f"district_{index}", "location": "district"}
+            living_world.assign_visible_trait(world, npc)
+            self.assertNotIn(npc["visible_trait"], traits[:6])
+
+    def test_with_every_trait_taken_the_scene_still_reads_apart(self):
+        traits = living_world._VISIBLE_TRAITS
+        world = {"npcs": [
+            {"id": f"far_{number}", "location": "far", "visible_trait": trait} for number, trait in enumerate(traits)
+        ] + [{"id": "near", "location": "here", "visible_trait": traits[0]}]}
+        npc = {"id": "new", "location": "here"}
+        living_world.assign_visible_trait(world, npc)
+        self.assertNotEqual(npc["visible_trait"], traits[0])
+
+
 class TurkishInitialTests(unittest.TestCase):
     def test_a_dotted_i_survives_in_a_label_and_in_prose(self):
         npc = {"id": "n", "role": "Kent sakini", "role_known_to_player": False,
