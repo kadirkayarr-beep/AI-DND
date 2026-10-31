@@ -167,14 +167,19 @@ def _lines_for(world, thread, npc, decision):
     if decision == "questioning_terms":
         return [world_threads._fill(shared.get("questioning_terms", ""), pay_text=world_threads.pay_text(thread),
                                     timing_text=world_threads.timing_text(thread))]
-    if status in {"accepted", "declined", "done", "failed", "abandoned", "expired"}:
+    if status in {"accepted", "declined", "done", "failed", "abandoned"} or (
+            status == "expired" and thread.get("declined_turn") is None):
         line = world_threads.status_line(world, thread, status)
         extra = []
         if status == "accepted" and thread.get("type") == "errand":
             extra.append(_parcel_line(world, thread))
+        if status == "declined" and shared.get("repeat_decline") != line:
+            extra.append(shared.get("repeat_decline", ""))
         return [line, *extra]
     if status == "filled_by_other":
         return [world_threads.status_line(world, thread, "filled")]
+    if status == "expired" and thread.get("declined_turn") is not None:
+        return [world_threads.status_line(world, thread, "declined_unfilled")]
     if status == "offered":
         return [shared.get("unclear", "")]
     return []

@@ -8156,6 +8156,13 @@ def _town_note(world, npc):
         return ""
 
 
+def _has_spoken_to_player(npc):
+    """Words of this person are on the record."""
+    if not isinstance(npc, dict):
+        return False
+    return bool(npc_statements.view(_session().world_state)["statements"].get(npc.get("id")))
+
+
 def _with_job_news(world, place_id, narration):
     """Coming back to a place you had a job at, how it ended is simply there to see."""
     import town_knowledge
@@ -8210,7 +8217,10 @@ def _physical_line(player_input):
     plan = grounded_action.plan(session, player_input)
     acts = [step for step in plan["steps"] if not any(step.get(k) for k in ("question", "reported", "not_now", "negated"))
             and step["verb"] not in {"talk", "other"}]
-    return bool(acts) or session._has_explicit_attack_verb(player_input)
+    import timed_gameplay
+    return (bool(acts) or session._has_explicit_attack_verb(player_input)
+            or timed_gameplay.explicit_wait_request(player_input)
+            or bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))))
 
 
 def _carry_out_thread_turn(session, world, gate, person, player_input):
@@ -19594,6 +19604,7 @@ def _run_player_turn_internal(
         if npc_target is None:
             npc_target = most_plausible_addressee(_conversation_npcs(), player_input)
     raw = None
+    answer_in_person = False
     if interaction_hint and not combat["active"] and not classifier_unusable:
         intent_model_calls = scene_preparse_model_calls + 1
         intent_source = "interaction_proposal"
@@ -19627,17 +19638,21 @@ def _run_player_turn_internal(
             _session(), player_input, raw.get("interaction"), npc_target,
             fallback_operation=interaction_hint,
         )
+        if action_result.get("status") == "proposal_rejected" and _has_spoken_to_player(npc_target):
+            # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
+            answer_in_person = True
         narrated_without_model = (
             scene_preparse_model_calls > 0
             and interaction_hint in {"promise", "goal"}
             and action_result.get("status") == "recorded"
         )
-        return finish_turn(
-            action_result, action_result["direct_response"],
-            is_final=narrated_without_model or action_result["status"] in {
-                "proposal_rejected", "no_effect", "answered", "blocked",
-            },
-        )
+        if not answer_in_person:
+            return finish_turn(
+                action_result, action_result["direct_response"],
+                is_final=narrated_without_model or action_result["status"] in {
+                    "proposal_rejected", "no_effect", "answered", "blocked",
+                },
+            )
 
     shop_request = (interaction_mode not in {"say", "ask_dm"}
                     and target_id is None and _explicit_campaign_shop_request(player_input))
@@ -19945,6 +19960,9 @@ def _run_player_turn_internal(
         and not _report_of_someone_else(player_input, npc_target)
     ):
         claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
+        if npc_target is None and _has_spoken_to_player(claimed_npc) and (
+                claimed_npc.get("location") == world_state.get("location")):
+            npc_target = claimed_npc  # the claim is about what this person said, and they are standing here
         supported_entry = (
             npc_memory_supporting_entry(claimed_npc, player_input)
             if claimed_npc else None
@@ -20061,6 +20079,7 @@ def _run_player_turn_internal(
     npc_dialogue_route = bool(npc_target and (
         interaction_mode == "say"
         or spoken_reference
+        or answer_in_person
         or _report_of_someone_else(player_input, npc_target)
         or npc_place_recommendation
         or is_npc_dialogue_input(player_input)

@@ -1017,7 +1017,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in (*mine, *closed):
         reading = read_answer(text, npc, thread)
         about = _speaks_of_work(text, reading, thread, answer_table())
-        current = thread.get("status") == "offered" and answers_the_offer(world, thread, npc)
+        short = len(_folded(text).split()) <= 4  # a word or two back at the owner, not a new subject
+        current = thread.get("status") == "offered" and short and answers_the_offer(world, thread, npc)
         if about or current:
             return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id")}
     return None

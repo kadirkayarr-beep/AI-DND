@@ -574,6 +574,9 @@
       ],
       "expired": [
         "Beklediğin kişi gelmedi, teklifini geri çektin."
+      ],
+      "declined_unfilled": [
+        "Reddettiği işi sonunda kendin halletmek zorunda kaldın; o iş artık boşta değil."
       ]
     },
     "errand": {
@@ -611,6 +614,9 @@
       ],
       "expired": [
         "Beklediğin kişi gelmedi, teklifini geri çektin."
+      ],
+      "declined_unfilled": [
+        "Reddettiği teslimatı sonunda kendin yolladın; o iş artık boşta değil."
       ]
     },
     "arrival": {
