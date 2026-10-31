@@ -696,11 +696,14 @@ def create_app(
         except CampaignError as error:
             raise campaign_http_exception(error) from None
 
-    @application.get("/api/game/health", response_model=HealthResponse)
-    @application.get("/api/health", response_model=HealthResponse)
+    @application.get("/api/game/health", response_model=HealthResponse, response_model_exclude_none=True)
+    @application.get("/api/health", response_model=HealthResponse, response_model_exclude_none=True)
     def health(response: Response) -> HealthResponse:
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
-        return HealthResponse(model=adapter.model_name if adapter is not None else MODEL_NAME)
+        return HealthResponse(
+            model=adapter.model_name if adapter is not None else MODEL_NAME,
+            model_chain=getattr(adapter, "model_chain", None),
+        )
 
     @application.post("/api/logout", status_code=204)
     @application.post("/api/game/logout", status_code=204)

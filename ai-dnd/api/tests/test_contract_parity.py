@@ -995,8 +995,8 @@ class ContractParityTests(unittest.TestCase):
         self.assertEqual(
             set(_schema("HealthResponse").get("required", [])),
             # Defaults make construction optional, not the fields emitted by
-            # this response model (the health route does not exclude defaults).
-            set(HealthResponse().model_dump(mode="json")),
+            # this response model. The route leaves out only an unset model_chain.
+            set(HealthResponse().model_dump(mode="json", exclude_none=True)),
             "HealthResponse.required",
         )
         for field_name, runtime_property in runtime_health["properties"].items():
@@ -4554,10 +4554,12 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertEqual(
                             _property_names(schema_name), set(original["properties"]),
                         )
-                        for field_name in original["properties"]:
+                        for field_name, field_schema in original["properties"].items():
+                            if "enum" not in field_schema:
+                                continue
                             self.assertEqual(
                                 _enum_values(schema_name, field_name),
-                                set(original["properties"][field_name]["enum"]),
+                                set(field_schema["enum"]),
                             )
                         unchanged = unittest.TestResult()
                         ContractParityTests(

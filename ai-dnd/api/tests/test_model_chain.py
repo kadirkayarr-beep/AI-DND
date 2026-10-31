@@ -592,6 +592,14 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         health = await self.http.get("/api/game/health")
         self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4:e4b"})
 
+    async def test_health_shows_the_chain_without_calling_the_cloud_local(self):
+        self.adapter._chain = chain_for(FakeCloud())
+        for path in ("/api/game/health", "/api/health"):
+            health = (await self.http.get(path)).json()
+            self.assertEqual(health["model"], "gemma4:e4b")
+            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+            self.assertNotIn(KEY, json.dumps(health))
+
     async def test_no_cloud_model_joins_the_local_allow_list(self):
         self.assertFalse({"gemini-3.5-flash-lite", "claude-haiku-5-5"} & set(SUPPORTED_LOCAL_MODELS))
 

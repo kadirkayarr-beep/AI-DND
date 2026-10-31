@@ -13,4 +13,9 @@ export interface HealthResponse {
   status: HealthResponseStatus;
   engine: HealthResponseEngine;
   model: HealthResponseModel;
+  /**
+     * Present only while the cloud chain is on. Every model that may answer, in order.
+     * @nullable
+     */
+  model_chain?: string[] | null;
 }

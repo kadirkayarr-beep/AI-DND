@@ -14,6 +14,8 @@ class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     engine: Literal["AI-DND"] = "AI-DND"
     model: LocalModelName = DEFAULT_LOCAL_MODEL
+    # Present only while the cloud chain is on: every model that may answer, in order.
+    model_chain: list[str] | None = None
 
 
 class SessionResponse(BaseModel):

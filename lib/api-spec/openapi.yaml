@@ -2049,6 +2049,13 @@ components:
           - qwen3.5:9b-q4_K_M
           - gemma4:e4b
           default: qwen3:8b
+        model_chain:
+          type:
+          - array
+          - 'null'
+          description: Present only while the cloud chain is on. Every model that may answer, in order.
+          items:
+            type: string
       required:
       - status
       - engine
