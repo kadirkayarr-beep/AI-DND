@@ -143,6 +143,23 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         await self.go(TravellingClient({"create_locations": [PLACE]}))
         self.assertFalse(any("Kapüşonlu" in line for line in self.session.recent_dm_narrations))
 
+    async def walk_with_narration(self, text):
+        await self.scene()
+        client = TravellingClient({"create_locations": [PLACE]})
+        client.narration = text
+        return (await self.go(client))["narration"], self.session.last_narration_safety
+
+    async def test_the_place_may_be_called_by_its_own_word(self):
+        # A filter for invented damage to districts dropped every sentence with "mahalle" or "semt" in it.
+        shown, _ = await self.walk_with_narration("Geniş sokaklarda yürüyorsun; bu mahallenin taşları parlıyor.")
+        self.assertIn("mahallenin taşları", shown)
+
+    async def test_the_walk_the_player_asked_for_is_not_an_invented_action(self):
+        # Real line: 60 of 68 words lost to INVENTED_PLAYER_ACTION "ilerliyorsun" on a walk the player typed.
+        text = "Geniş caddelere doğru ilerliyorsun, sokaklardan uzaklaşıyorsun, sola yöneliyorsun ve gidiyorsun."
+        shown, safety = await self.walk_with_narration(text)
+        self.assertIn(text, shown, safety)
+
     async def test_a_short_walk_inside_the_city_meets_no_road_encounter(self):
         await self.scene()
         client = TravellingClient({"create_locations": [PLACE]})

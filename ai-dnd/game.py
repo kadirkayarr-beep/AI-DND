@@ -10357,8 +10357,10 @@ def _narration_safety_decision(
         "ara", "bul",
         "tercih", "vaat", "soz"
     )
+    # Stems as they read in the present tense too: ilerliyorsun, gidiyorsun, yöneliyorsun.
     travel_prefixes = (
-        "ulas", "var", "gir", "git", "yuru", "gec", "ilerle", "don", "yaklas"
+        "ulas", "var", "gir", "git", "gid", "yuru", "gec", "ilerl", "don", "yaklas",
+        "uzakl", "yonel",
     )
     input_verb_suffixes = tuple(sorted((
         "iyorum", "ıyorum", "uyorum", "üyorum",
@@ -11573,6 +11575,15 @@ def _unverified_lore_response(player_input, npc_target=None):
     return _UNVERIFIED_LORE_RESPONSE
 
 
+def _names_the_district_here(word, world_state):
+    """"Bu mahalle" in a district the campaign accepted is the place, not invented damage to one."""
+    place = world_state.get("locations", {}).get(world_state.get("location"), {})
+    return (
+        isinstance(place, dict) and place.get("type") == "district"
+        and bool(re.match(r"(?:mahalle|semt)", _lore_guard_text(word)))
+    )
+
+
 def _narration_has_unsupported_lore_claim(
     narration, lore_claims, lore_context, world_state
 ):
@@ -11624,6 +11635,11 @@ def _narration_has_unsupported_lore_claim(
                     and _scene_has_registered_craft_role(
                         match.group(0), world_state
                     )
+                ):
+                    continue
+                if (
+                    _reason == "unsupported_urban_damage_detail"
+                    and _names_the_district_here(match.group(0), world_state)
                 ):
                     continue
                 if _lore_guard_text(match.group(0)) not in evidence:
@@ -13433,8 +13449,8 @@ def _remove_trigger_sentence(narration, decision, action_result=None):
         or (isinstance(action_result, dict) and action_result.get("action") in {"attack", "death_save"})
     ):
         return None
-    # A long span can run over a sentence end, so its start finds the sentence.
-    trigger = str(decision.get("trigger_span") or "").casefold()[:30].strip()
+    # A long span can run over a sentence end, so only its first words find the sentence.
+    trigger = " ".join(str(decision.get("trigger_span") or "").casefold().split()[:3])[:30].strip()
     if not trigger:
         return None
     paragraphs = []

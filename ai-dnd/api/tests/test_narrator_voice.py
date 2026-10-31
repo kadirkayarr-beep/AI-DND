@@ -41,6 +41,24 @@ class SingularRepairTests(unittest.TestCase):
                 self.assertEqual(game._singular_narrator(text), text)
 
 
+class TriggerSentenceRepairTests(unittest.TestCase):
+    def test_a_span_running_over_a_sentence_end_costs_one_sentence_not_the_turn(self):
+        # Real turn: the whole song fell to "sahne bir sonraki hamleni bekliyor" over one word, "bez".
+        text = "Masaya tırmanıyorsun. Liora'nın elindeki bez yavaşça duruyor. Omuzları hafifçe gerginleşiyor."
+        decision = {
+            "reason_code": "UNREGISTERED_PERSISTENT_OBJECT",
+            "trigger_span": "bez yavasca duruyor omuzlari hafifce gerginlesi",
+        }
+        self.assertEqual(
+            game._remove_trigger_sentence(text, decision),
+            "Masaya tırmanıyorsun. Omuzları hafifçe gerginleşiyor.",
+        )
+
+    def test_a_span_that_is_nowhere_still_finds_nothing(self):
+        decision = {"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": "hic gecmeyen bir ifade burada"}
+        self.assertIsNone(game._remove_trigger_sentence("Sokak sakin.", decision))
+
+
 class NarratorVoiceTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
     asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
