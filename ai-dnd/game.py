@@ -17314,6 +17314,8 @@ def _accepted_local_place(packet, action_result):
     })
     if not validated or validated["type"].casefold() in _NOT_A_LOCAL_PLACE:
         return []
+    if living_world.reads_as_street(validated["name"], proposal.get("type")):
+        validated["type"] = "district"
     return [validated]
 
 
@@ -17322,9 +17324,15 @@ def _settle_local_place(action_result):
     import local_places
     world_state = _session().world_state
     settlement = local_places.settlement_of(world_state, world_state.get("location"))
-    place = world_state["locations"].get(resolve_location_reference(action_result.get("target_reference", "")))
+    place_id = resolve_location_reference(action_result.get("target_reference", ""))
+    place = world_state["locations"].get(place_id)
     if settlement and isinstance(place, dict):
         place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
+        # The kind decides what the scene may hold and which people and street life it gets.
+        if place.get("type") == "district":
+            place.update(scene_kind="city", environment="city")
+        elif living_world.scene_kind(world_state, place_id) == "quiet":
+            place["scene_kind"] = "building"
 
 
 _NARRATOR_PRONOUNS = {

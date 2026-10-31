@@ -9,7 +9,9 @@ import uuid
 from unittest.mock import patch
 
 import game
+import local_places
 import timed_gameplay
+from api import world_metadata
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_free_attempts import NarratingClient
@@ -87,6 +89,33 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([place["name"] for place in places], [REFERENCE])
         self.assertIn("Zengin Mahalle", places[0]["aliases"])
         self.assertTrue(game.living_world.on_open_street(self.world))
+
+    async def test_a_district_the_model_gave_an_odd_type_is_still_a_street(self):
+        # The real model wrote "Lüks Konut Bölgesi", which fell to "other": no street wording, environment=unknown.
+        await self.scene()
+        await self.go(TravellingClient({"create_locations": [{**PLACE, "type": "Lüks Konut Bölgesi"}]}))
+        place = self.new_places()[0]
+        self.assertEqual(place["scene_kind"], "city")
+        self.assertTrue(game.living_world.on_open_street(self.world))
+        self.assertEqual(local_places.settlement_of(self.world, place["id"]), self.city)
+        self.assertIn("sokaklarında", game.living_world.place_in_plain_words(self.world))
+
+    async def test_a_district_answers_for_the_city_environment(self):
+        await self.scene()
+        await self.go(TravellingClient({"create_locations": [PLACE]}))
+        self.assertEqual(world_metadata.infer_environment(self.world), "city")
+
+    async def test_a_named_building_is_a_building_not_a_street(self):
+        await self.scene()
+        reference = "Kuzey Kemeri"
+        await self.go(
+            TravellingClient({"create_locations": [{**PLACE, "name": reference, "type": "Taş Kemer"}]}, reference=reference),
+            "Kuzey Kemeri'ne gidiyorum.",
+        )
+        place = self.new_places()[0]
+        self.assertEqual(place["scene_kind"], "building")
+        self.assertEqual(self.world["location"], place["id"])
+        self.assertFalse(game.living_world.on_open_street(self.world))
 
     async def test_a_new_district_reads_as_street_for_later_turns(self):
         await self.scene()

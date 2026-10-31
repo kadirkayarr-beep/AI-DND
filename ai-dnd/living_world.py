@@ -422,6 +422,17 @@ _STREET_TYPES = {
 }
 
 
+# Stems, because the model writes "Lüks Konut Bölgesi" and the player "mahallesine".
+_STREET_WORDS = re.compile(
+    r"mahalle|semt|sokak|sokağ|cadde|meydan|pazar|bölge|çarşı|district|neighbo|quarter|street|square|market"
+)
+
+
+def reads_as_street(*texts: Any) -> bool:
+    """True when a name or type describes open streets rather than a building."""
+    return any(_STREET_WORDS.search(str(text or "").replace("I", "ı").casefold()) for text in texts)
+
+
 def on_open_street(world_state: Any) -> bool:
     """True when the player stands in the open streets of a settlement."""
     place = world_state.get("locations", {}).get(world_state.get("location"))

@@ -194,11 +194,11 @@ def settlement_of(world: dict[str, Any], location_id: Any) -> str | None:
     record = locations.get(location_id)
     if not isinstance(record, dict):
         return None
-    if living_world.scene_kind(world, location_id) == "city":
-        return location_id
     parent = record.get("parent_location_id")
     if isinstance(parent, str) and living_world.scene_kind(world, parent) == "city":
         return parent
+    if living_world.scene_kind(world, location_id) == "city":
+        return location_id
     return None
 
 
