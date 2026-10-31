@@ -251,6 +251,18 @@ class StartLocalModelTests(unittest.TestCase):
         for private in ('Get-Content', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY'):
             self.assertNotIn(private, text)
 
+    def test_a_plain_start_does_not_reuse_an_api_that_still_has_the_chain_on(self):
+        text = START_LOCAL.read_text(encoding='utf-8').replace('\r\n', '\n')
+        reuse = re.search(r'^\$existingApi = .*?^if \(-not \$existingApi\) \{', text, re.M | re.S)
+        self.assertIsNotNone(reuse)
+        guard = re.search(r'^if \(\$existingApi -and -not \$LocalPlay -and \(Test-ChainOn \$health\)\) \{\n(.*?)^\}\n', reuse.group(), re.M | re.S)
+        self.assertIsNotNone(guard)
+        self.assertIn('NOT READY', guard.group(1))
+        self.assertIn('exit 1', guard.group(1))
+        helper = re.search(r'^function Test-ChainOn.*?^\}\n', text, re.M | re.S)
+        self.assertIsNotNone(helper)
+        self.assertIn('.model_chain', helper.group())
+
 
 class LocalModelHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_selected_model_response_is_truthful_and_preserves_state(self):

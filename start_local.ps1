@@ -35,6 +35,14 @@ function Test-SelectedGameApi([string]$Url) {
     }
 }
 
+function Test-ChainOn([string]$Url) {
+    try {
+        return [bool](Invoke-RestMethod -Uri $Url -TimeoutSec 5).model_chain
+    } catch {
+        return $false
+    }
+}
+
 Write-Host "Checking Ollama http://127.0.0.1:11434/api/tags (do not use 'ollama run')"
 if (-not (Test-HttpOk "http://127.0.0.1:11434/api/tags")) {
     Write-Host "NOT READY: Ollama is not answering /api/tags. Start the Ollama service, then retry."
@@ -84,6 +92,10 @@ $health = "http://127.0.0.1:$ApiPort/api/game/health"
 $existingApi = Test-HttpOk $health
 if ($existingApi -and -not (Test-SelectedGameApi $health)) {
     Write-Host "NOT READY: the existing API does not report AI-DND with selected model $requiredModel. It was not restarted. Check the running instance before continuing."
+    exit 1
+}
+if ($existingApi -and -not $LocalPlay -and (Test-ChainOn $health)) {
+    Write-Host "NOT READY: the existing API still has cloud models on. Close it, or run with -LocalPlay. It was not restarted."
     exit 1
 }
 if (-not $existingApi) {
