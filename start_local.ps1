@@ -71,6 +71,13 @@ if ($LocalPlay) {
         New-Item -ItemType Directory -Force -Path $saveDir | Out-Null
         $env:AI_DND_CAMPAIGN_DB = Join-Path $saveDir "local-play.sqlite3"
     }
+    # Cloud models answer first for the owner's own play. The API reads the keys; this only looks for the files.
+    $keyFiles = @(".aidnd-gemini-key", ".aidnd-anthropic-key") | ForEach-Object { Join-Path $env:USERPROFILE $_ }
+    if (-not $env:AI_DND_MODEL_CHAIN -and @($keyFiles | Where-Object { Test-Path -LiteralPath $_ }).Count -gt 0) {
+        $env:AI_DND_MODEL_CHAIN = "gemini,haiku,gemma"
+    }
+} else {
+    Remove-Item Env:AI_DND_MODEL_CHAIN -ErrorAction SilentlyContinue
 }
 
 $health = "http://127.0.0.1:$ApiPort/api/game/health"

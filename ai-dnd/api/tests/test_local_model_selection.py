@@ -237,6 +237,20 @@ class StartLocalModelTests(unittest.TestCase):
         self.assertEqual(default.group(1), PRODUCTION_LOCAL_MODEL)
         self.assertEqual(tuple(re.findall(r'"([^"]+)"', allowed.group(1))), SUPPORTED_LOCAL_MODELS)
 
+    def test_only_local_play_with_a_key_file_turns_the_model_chain_on(self):
+        text = START_LOCAL.read_text(encoding='utf-8').replace('\r\n', '\n')
+        local_play = re.search(r'^if \(\$LocalPlay\) \{\n(.*?)^\} else \{\n(.*?)^\}\n', text, re.M | re.S)
+        self.assertIsNotNone(local_play)
+        turned_on, otherwise = local_play.groups()
+        self.assertIn('$env:AI_DND_MODEL_CHAIN = "gemini,haiku,gemma"', turned_on)
+        self.assertIn('Test-Path', turned_on)
+        self.assertIn('.aidnd-gemini-key', turned_on)
+        self.assertIn('.aidnd-anthropic-key', turned_on)
+        self.assertIn('Env:AI_DND_MODEL_CHAIN', otherwise)
+        self.assertEqual(text.count('$env:AI_DND_MODEL_CHAIN ='), 1)
+        for private in ('Get-Content', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY'):
+            self.assertNotIn(private, text)
+
 
 class LocalModelHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_selected_model_response_is_truthful_and_preserves_state(self):
