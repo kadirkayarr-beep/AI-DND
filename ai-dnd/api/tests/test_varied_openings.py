@@ -147,7 +147,7 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(people)
         roles = {person[0] for person in living_world.scene_cast(session.world_state, CITY)}
         self.assertEqual({npc["role"] for npc in people}, roles)
-        self.assertIn(people[0]["appearance"], turn.json()["narration"])
+        self.assertTrue(any(people[0]["appearance"] in json.dumps(batch, ensure_ascii=False) for batch in client.message_batches))
 
 
 class TurkishInitialTests(unittest.TestCase):

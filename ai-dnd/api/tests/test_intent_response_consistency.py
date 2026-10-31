@@ -51,6 +51,11 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await test_campaign_api.CampaignApiTests.asyncTearDown(self)
 
+    async def first_look(self):
+        """The opening look may be told by the narrator; the zero-call checks are about the next move."""
+        await self.turn("Çevreme bakıyorum.")
+        self.client.calls = 0
+
     async def turn(self, message, **fields):
         response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn",
                                        json={"message": message, "action_id": str(uuid.uuid4()), **fields})
@@ -58,7 +63,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         return response.json()
 
     async def arrive(self):
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         await self.turn("dükkana yaklaşıyorum")
         door = self.world["doors"][0]
         door["open"], door["locked"] = False, False
@@ -102,7 +107,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_known_named_shop_arrival_then_implicit_entry_uses_local_owner(self):
         city, place, door = self.known_shop()
-        await self.turn('Çevreme bakıyorum.', interaction_mode='do')
+        await self.first_look()
         await self.turn('Adını öğrenebilir miyim?', target_id=self.world['npcs'][0]['id'])
         entered = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
         self.assertEqual(self.world['location'], place['id'])
@@ -332,6 +337,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
     async def assert_focused_speech_without_target(self, question, reply):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
         await self.turn("Çevreme bakıyorum.")
+        self.client.calls = 0
         npc = self.world["npcs"][0]
         npc.update(name="Lysa", name_known_to_player=False)
         await self.turn("İsmin nedir?", target_id=npc["id"])
@@ -349,7 +355,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(before, (self.session.character, self.world["inventory"], self.world["location"]))
 
     async def test_unknown_explicit_address_does_not_reuse_active_interlocutor(self):
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         npc.update(name="Lysa", name_known_to_player=False)
         await self.turn("İsmin nedir?", target_id=npc["id"])
@@ -362,7 +368,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_explicit_selected_npc_owns_unnamed_city_question(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         npc.update(name="Lysa", name_known_to_player=True)
         client = ScriptedNpcSpeechClient("Burada yaşamaktan memnunum.")
@@ -397,7 +403,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_compound_identity_and_day_keeps_both_answers(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
         client = ScriptedNpcSpeechClient(
@@ -414,7 +420,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_focused_city_opinion_uses_same_dialogue_route_in_do_and_say(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
         location = self.world["location"]
@@ -441,7 +447,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_explicit_city_question_selects_named_npc_not_previous_focus(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         first, second = self.world["npcs"][:2]
         await self.turn("İsmin nedir?", target_id=first["id"])
         await self.turn("İsmin nedir?", target_id=second["id"])
@@ -462,7 +468,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(client.chat_calls, 0)
 
     async def test_unaddressed_world_question_does_not_become_npc_identity(self):
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
         result = await self.turn("Şehrin yöneticisi kim?", interaction_mode="do")
@@ -472,7 +478,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_attributed_questions_are_not_blocked_by_topic_words(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
         before = (self.world["location"], sorted(self.world["locations"]),
@@ -499,7 +505,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_attributed_topic_route_keeps_output_and_narrator_guards(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
         before = json.dumps(self.world["inventory"], sort_keys=True)
@@ -522,7 +528,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_negated_identity_request_does_not_disclose_name(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         npc["name_known_to_player"] = False
         npc["role_known_to_player"] = True
@@ -538,7 +544,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Peki, söylemeyeceğim", result["narration"])
 
     async def test_polite_identity_has_same_state_and_visible_answer(self):
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         for mode in ("do", "say"):
             for message in ("Adını öğrenebilir miyim?", "Lütfen, adınızı söyler misiniz?"):
@@ -550,7 +556,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(self.client.calls, 0)
 
     async def test_identity_is_consistent_in_do_and_say(self):
-        await self.turn("Çevreme bakıyorum.")
+        await self.first_look()
         npc = self.world["npcs"][0]
         for mode in ("do", "say"):
             for speech in ("0", "1"):
@@ -566,7 +572,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_attributed_words_do_not_create_narrated_people(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc.update(name='Lysa', name_known_to_player=True)
         identities = [(n['id'], n['name'], n.get('location')) for n in self.world['npcs']]
@@ -586,7 +592,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_attributed_stage_still_cannot_introduce_a_person(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         self.assertFalse(any(n['name'] == 'Zorveth' for n in self.world['npcs']))
@@ -600,7 +606,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_attributed_speech_keeps_identity_and_mechanical_guards(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc.update(name='Lysa', name_known_to_player=True)
         inventory = copy.deepcopy(self.world['inventory'])
@@ -615,7 +621,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_first_identity_and_day_question_answers_both_parts(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc.update(name='Lysa', name_known_to_player=False)
         client = ScriptedNpcSpeechClient('Adım Lysa. Günüm iyi geçiyor.')
@@ -628,7 +634,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_npc_invitation_is_not_a_completed_player_action(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         location = self.world['location']
@@ -644,7 +650,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_npc_history_denial_is_not_a_past_event_assertion(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         for spoken in ('Seninle daha önce karşılaştığımızı hatırlamıyorum.', 'Dün karşılaşmadık.'):
@@ -656,7 +662,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_collective_possibility_condition_and_denial_do_not_move_player(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         location = self.world['location']
@@ -676,7 +682,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_collective_event_or_reversed_denial_remains_rejected(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         location = self.world['location']
@@ -693,7 +699,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_collective_mood_exception_does_not_apply_to_stage_directions(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         client = ScriptedNpcSpeechClient('Elbette, seni dinliyorum.', stage_direction='Birlikte oturabiliriz.')
@@ -705,7 +711,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_sitting_word_in_a_refusal_does_not_authorize_player_motion(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         client = ScriptedNpcSpeechClient('Birlikte oturduk.')
@@ -717,7 +723,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_history_denial_does_not_mask_affirmation_or_double_negative(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         for spoken in (
@@ -738,7 +744,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_invitation_does_not_mask_a_later_completed_sitting_claim(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc['name_known_to_player'] = True
         client = ScriptedNpcSpeechClient('İstersen birlikte oturalım. Birlikte oturuyoruz.')
@@ -751,7 +757,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_compound_query_repair_cannot_turn_a_gesture_into_an_answer(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc.update(name='Lysa', name_known_to_player=False)
         client = ScriptedNpcSpeechClient('Masaya oturuyorsun.', stage_direction='Lysa gülümsüyor.')
@@ -766,10 +772,10 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_compound_query_keeps_valid_speech_when_only_stage_is_repaired(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
-        await self.turn('Çevreme bakıyorum.')
+        await self.first_look()
         npc = self.world['npcs'][0]
         npc.update(name='Lysa', name_known_to_player=False)
-        client = ScriptedNpcSpeechClient('Adım Lysa. Günüm iyi geçiyor.', stage_direction='Masaya oturuyorsun.')
+        client = ScriptedNpcSpeechClient('Adım Lysa. Günüm iyi geçiyor.', stage_direction='Yere oturuyorsun.')
         with patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
             result = await self.turn('İsmin nedir? Günün nasıl geçiyor?', interaction_mode='say', target_id=npc['id'])
         self.assertIn('Adım Lysa.', result['narration'])

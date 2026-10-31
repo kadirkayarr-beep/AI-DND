@@ -771,8 +771,10 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertNotIn("çınlıyor", output)
         self.assertTrue(denies_claim(output), f"Expected fallback denial, got: {output}")
 
-    # 32. canonical city ID resolves deterministically with 0 model calls
-    def test_32_canonical_city_id_look_is_deterministic_zero_model_calls(self):
+    # 32. canonical city ID resolves deterministically, told by one narration call
+    @patch("game.ollama.chat", side_effect=RuntimeError("model down"))
+    def test_32_canonical_city_id_look_is_resolved_by_python_and_told_once(self, mock_chat):
+        # The engine text stands when the one narration call fails.
         self.session.world_state["location"] = "fr:city:waterdeep"
         self.session.world_state["locations"] = {
             "fr:city:waterdeep": {"id": "fr:city:waterdeep", "name": "Waterdeep"}
@@ -780,13 +782,15 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
-        self.assertEqual(telemetry["narration_source"], "deterministic_system")
         self.assertIn("Waterdeep", result["narration"])
 
-    # 33. city display-name/alias resolves deterministically with 0 model calls
-    def test_33_city_display_alias_look_is_deterministic_zero_model_calls(self):
+    # 33. city display-name/alias resolves deterministically, told by one narration call
+    @patch("game.ollama.chat", side_effect=RuntimeError("model down"))
+    def test_33_city_display_alias_look_is_resolved_by_python_and_told_once(self, mock_chat):
+        # The engine text stands when the one narration call fails.
         self.session.world_state["location"] = "Waterdeep"
         self.session.world_state["locations"] = {
             "fr:city:waterdeep": {
@@ -798,13 +802,15 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafıma bakıyorum.")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
-        self.assertEqual(telemetry["narration_source"], "deterministic_system")
         self.assertIn("Waterdeep", result["narration"])
 
-    # 34. sub-location with city parent resolves deterministically with 0 model calls
-    def test_34_sublocation_with_city_parent_look_is_deterministic_zero_model_calls(self):
+    # 34. sub-location with city parent resolves deterministically, told by one narration call
+    @patch("game.ollama.chat", side_effect=RuntimeError("model down"))
+    def test_34_sublocation_with_city_parent_look_is_resolved_by_python_and_told_once(self, mock_chat):
+        # The engine text stands when the one narration call fails.
         self.session.world_state["location"] = "loc_market_square"
         self.session.world_state["locations"] = {
             "fr:city:neverwinter": {"id": "fr:city:neverwinter", "name": "Neverwinter"},
@@ -817,12 +823,14 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
-        self.assertEqual(telemetry["narration_source"], "deterministic_system")
 
-    # 35. district location resolves deterministically with 0 model calls
-    def test_35_district_look_is_deterministic_zero_model_calls(self):
+    # 35. district location resolves deterministically, told by one narration call
+    @patch("game.ollama.chat", side_effect=RuntimeError("model down"))
+    def test_35_district_look_is_resolved_by_python_and_told_once(self, mock_chat):
+        # The engine text stands when the one narration call fails.
         self.session.world_state["location"] = "loc_sea_ward"
         self.session.world_state["locations"] = {
             "fr:city:waterdeep": {"id": "fr:city:waterdeep", "name": "Waterdeep"},
@@ -836,12 +844,14 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafıma bakıyorum.")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
-        self.assertEqual(telemetry["narration_source"], "deterministic_system")
 
-    # 36. street location resolves deterministically with 0 model calls
-    def test_36_street_look_is_deterministic_zero_model_calls(self):
+    # 36. street location resolves deterministically, told by one narration call
+    @patch("game.ollama.chat", side_effect=RuntimeError("model down"))
+    def test_36_street_look_is_resolved_by_python_and_told_once(self, mock_chat):
+        # The engine text stands when the one narration call fails.
         self.session.world_state["location"] = "loc_high_road"
         self.session.world_state["locations"] = {
             "fr:city:neverwinter": {"id": "fr:city:neverwinter", "name": "Neverwinter"},
@@ -855,9 +865,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
-        self.assertEqual(telemetry["narration_source"], "deterministic_system")
 
     # 37. tavern exploration preserves 1 Qwen model call
     @patch("game.ollama.chat")

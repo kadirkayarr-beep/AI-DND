@@ -12806,6 +12806,11 @@ def ask_dungeon_master(
             " Gözlem sahnesinde geçici ışık, koku, ses, hava, isimsiz kalabalık ve beden dili "
             "anlatılabilir; bunları kalıcı dünya olgusu veya oyuncu eylemi gibi sunma."
         )
+        if (action_result or {}).get("scene_look"):
+            scene_guidance += (
+                " Oyuncu çevresine bakıyor: direct_response içindeki kişileri ve ayrıntıları "
+                "koruyarak doğal cümlelerle anlat; yeni kişi, yer veya olay ekleme."
+            )
     elif scene_type == "travel":
         scene_guidance = (
             " Tamamlanan varışı ve duyusal çevreyi anlat; oyuncuya seçmediği hedef, arama "
@@ -13284,6 +13289,8 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
         return "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin."
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
+    if result.get("scene_look") and result.get("direct_response"):
+        return str(result["direct_response"])
     if action == "explore":
         location_id = world_state.get("location")
         if location_id in world_state.get("locations", {}):
@@ -15783,6 +15790,39 @@ def _scene_look_text(location_id):
     return " ".join(parts)
 
 
+def _look_scene_changed():
+    """True on a first look and whenever people, details or the moment here have changed."""
+    world_state = _session().world_state
+    here = world_state.get("location")
+    scene = world_state.get("scene_state", {}).get("scenes", {}).get(here)
+    seen = [
+        here,
+        sorted(str(npc.get("id")) for npc in _scene_names(here) if not npc.get("hidden")),
+        sorted(str(item.get("name")) for item in living_world.visible_scene_facts(world_state).get("features", [])),
+        scene.get("last_beat") if isinstance(scene, dict) else None,
+    ]
+    flags = world_state.setdefault("flags", {})
+    changed = flags.get("last_look_scene") != seen
+    flags["last_look_scene"] = seen
+    return changed
+
+
+def _keep_people_in_look(narration, action_result):
+    """A narrated look may reword the scene but nobody standing here disappears from it."""
+    if not isinstance(narration, str) or not (action_result or {}).get("scene_look"):
+        return narration
+    told = _normalize_turkish_typos(narration)
+    here = _session().world_state.get("location")
+    missing = [
+        npc for npc in _scene_names(here)[:3]
+        if not npc.get("hidden")
+        and _normalize_turkish_typos(living_world.public_npc_name(npc)) not in told
+    ]
+    if not missing:
+        return narration
+    return f"{narration} Yakında {living_world.public_scene_people(missing)} var."
+
+
 def _set_scene_active_npc(npc, turn_index):
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return
@@ -17459,6 +17499,12 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     )
     if rejected_scene_detail_proposal:
         finalized_narration = resolved_turn.fallback_response
+    if (
+        resolved_turn.action_result.get("scene_look")
+        and getattr(_session(), "last_narration_safety", {}).get("handling") not in ("accepted", "repaired")
+    ):
+        finalized_narration = resolved_turn.fallback_response
+    finalized_narration = _keep_people_in_look(finalized_narration, resolved_turn.action_result)
 
     final_dict = resolved_turn.raw_result
     final_dict["narration"] = finalized_narration
@@ -18316,6 +18362,9 @@ def _run_player_turn_internal(
                 safety_handling="python_scene_response",
             )
         if action_result.get("action") == "explore" and not (scene_plan.get("action") == "look" and is_city_scene):
+            return finish_turn(action_result, fallback_text, quest_transitions)
+        if scene_plan.get("action") == "look" and _look_scene_changed():
+            action_result["scene_look"] = True
             return finish_turn(action_result, fallback_text, quest_transitions)
         return finish_turn(
             action_result,
