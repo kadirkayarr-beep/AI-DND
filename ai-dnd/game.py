@@ -19292,7 +19292,8 @@ def _run_player_turn_internal(
             r"[^A-Za-zÇĞİÖŞÜçğıöşü'’-]", "", disclosed_name
         ).strip("'’-")
         if safe_name:
-            compound_speech = (
+            # Hearing the same name again is no moment for the greeting a second time.
+            compound_speech = _known_player_name(npc_target) == safe_name or (
                 _npc_speech_enabled()
                 and local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
             )
