@@ -11,6 +11,36 @@ from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_free_attempts import NarratingClient
 
 
+class SingularRepairTests(unittest.TestCase):
+    def test_plural_address_turns_singular_in_narrator_text(self):
+        for plural, singular in (
+            ("Başlar size doğru dönüyor.", "Başlar sana doğru dönüyor."),
+            ("Bakışlar sizi izliyor.", "Bakışlar seni izliyor."),
+            ("Bakışlar üzerinizde kalıyor.", "Bakışlar üzerinde kalıyor."),
+            ("Ayaklarınızın sesi yankılanıyor.", "Ayaklarının sesi yankılanıyor."),
+            ("Şarkınız bitiyor.", "Şarkın bitiyor."),
+            ("Çevrenizdeki sokak susuyor.", "Çevrendeki sokak susuyor."),
+            ("Yakınınızda biri duruyor.", "Yakınında biri duruyor."),
+            ("Hava üzerinize çöküyor.", "Hava üzerine çöküyor."),
+            ("Kapıyı itiyorsunuz.", "Kapıyı itiyorsun."),
+            ("Masaya tırmandınız.", "Masaya tırmandın."),
+        ):
+            with self.subTest(plural):
+                self.assertEqual(game._singular_narrator(plural), singular)
+
+    def test_an_npc_quote_keeps_its_own_address(self):
+        text = "Görevli sana bakıyor: “Size yardım edebilirim, belgenizi görebilir miyim?” Üzerinizde durmuyor."
+        self.assertEqual(
+            game._singular_narrator(text),
+            "Görevli sana bakıyor: “Size yardım edebilirim, belgenizi görebilir miyim?” Üzerinde durmuyor.",
+        )
+
+    def test_ordinary_words_stay(self):
+        for text in ("Deniz sakin, yıldızlar parlıyor.", "Bir domuz sokaktan geçiyor.", "Kılavuz bekliyor.", "Yanıt yok."):
+            with self.subTest(text):
+                self.assertEqual(game._singular_narrator(text), text)
+
+
 class NarratorVoiceTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
     asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
@@ -43,6 +73,13 @@ class NarratorVoiceTests(unittest.IsolatedAsyncioTestCase):
         systems = self.narrator_systems(client)
         self.assertTrue(systems)
         self.assertTrue(all(game.NARRATOR_VOICE in text for text in systems))
+
+    async def test_a_narrated_turn_is_repaired(self):
+        _, _, self.session, self.turn_url, self.npc = await self.campaign_with_npc(experimental=False)
+        client = NarratingClient(narration="Şarkınız sokakta yankılanıyor.")
+        shown = (await self.play(client, "Yüksek sesle bir şarkı söylüyorum."))["narration"]
+        self.assertIn("Şarkın sokakta", shown)
+        self.assertNotIn("Şarkınız", shown)
 
     async def test_the_recorded_interaction_prompt_carries_the_voice(self):
         _, _, self.session, self.turn_url, _ = await self.campaign_with_npc(experimental=False)

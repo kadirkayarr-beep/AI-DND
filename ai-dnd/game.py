@@ -17313,6 +17313,38 @@ def _settle_local_place(action_result):
         place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
 
 
+_NARRATOR_PRONOUNS = {
+    "siz": "sen", "size": "sana", "sizi": "seni", "sizin": "senin",
+    "sizden": "senden", "sizinle": "seninle", "sizde": "sende",
+}
+_NARRATOR_PLURAL = (
+    (re.compile(r"\b(?:siz|size|sizi|sizin|sizden|sizinle|sizde)\b", re.IGNORECASE),
+     lambda match: (
+         _NARRATOR_PRONOUNS[match.group(0).lower()].capitalize()
+         if match.group(0)[0].isupper()
+         else _NARRATOR_PRONOUNS[match.group(0).lower()]
+     )),
+    (re.compile(
+        r"\b(etraf|çevre|üzer|yakın|ön|arka|yan|karşı|iç|ayak|ayaklar|el|eller|göz|gözler|omuz|"
+        r"omuzlar|sırt|baş|yüz|ses|bakış|bakışlar|şarkı|teklif|söz|hareket|gösteri|adım|adımlar)"
+        r"([ıiuü]?n)[ıiuü]z(\w*)", re.IGNORECASE),
+     r"\1\2\3"),
+    (re.compile(r"\b(\w+[ıiuü]yor)sunuz\b"), r"\1sun"),
+    (re.compile(r"\b(\w{2,}[dt][ıiuü]n)[ıiuü]z\b"), r"\1"),
+)
+
+
+def _singular_narrator(text):
+    """The narrator's own words say sen; anything inside a quote belongs to the speaker."""
+    if not isinstance(text, str):
+        return text
+    parts = re.split(r"(“[^”]*”|«[^»]*»|\"[^\"]*\")", text)
+    for index in range(0, len(parts), 2):
+        for pattern, replacement in _NARRATOR_PLURAL:
+            parts[index] = pattern.sub(replacement, parts[index])
+    return "".join(parts)
+
+
 def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
     if messages is None:
         messages = resolved_turn.messages or _session().messages
@@ -17569,6 +17601,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     ):
         finalized_narration = resolved_turn.fallback_response
     finalized_narration = _keep_people_in_look(finalized_narration, resolved_turn.action_result)
+    if _narration_scene_type(resolved_turn.action_result) != "conversation":
+        finalized_narration = _singular_narrator(finalized_narration)
 
     final_dict = resolved_turn.raw_result
     final_dict["narration"] = finalized_narration
