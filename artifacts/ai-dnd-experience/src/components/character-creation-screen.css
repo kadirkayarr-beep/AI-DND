@@ -555,6 +555,33 @@
 .cc-sub-section {
   margin-bottom: 26px;
 }
+.cc-starting-level {
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border: 1px solid rgba(199, 170, 105, .6);
+  border-radius: 6px;
+}
+.cc-starting-level p {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+.cc-starting-level .cc-sub-section {
+  margin-bottom: 0;
+}
+.cc-starting-level label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.cc-starting-level select {
+  min-height: 44px;
+  min-width: 88px;
+  padding: 0 10px;
+  font-size: 16px;
+}
 .cc-sub-header {
   margin-bottom: 14px;
 }

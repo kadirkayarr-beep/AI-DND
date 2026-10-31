@@ -1140,6 +1140,24 @@ export function CharacterCreationScreen({
                   <p className="cc-literary">Sınıfın, karakterinin dövüş tarzını, can zarını ve temel yeteneklerini belirler.</p>
                 </div>
 
+                {characterClass && (
+                  <div className="cc-starting-level" data-testid="starting-level-block">
+                    <p>Yeni bir maceracı 1. seviyede başlar; deneyimli başlamak istersen seviyeni buradan seç.</p>
+                    {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                    {characterClass === 'Paladin' && <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                    {characterClass === 'Rogue' && <RogueStartingLevelControl draft={startingDraft} metadata={rogueStartingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                    {characterClass === 'Fighter' && <FighterStartingLevelControl draft={startingDraft} metadata={fighterStartingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                    {characterClass === 'Monk' && <MonkStartingLevelControl draft={startingDraft} metadata={monkStartingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                    {characterClass === 'Barbarian' && <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata}
+                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+                  </div>
+                )}
+
                 <div className="cc-cards-grid cc-portrait-grid">
                   {catalog?.classes && Object.entries(catalog.classes as Record<string, any>).map(([clsKey, cls]) => {
                     const isSelected = characterClass === clsKey;
@@ -1172,18 +1190,6 @@ export function CharacterCreationScreen({
                     );
                   })}
                 </div>
-                {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                {characterClass === 'Paladin' && <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                {characterClass === 'Rogue' && <RogueStartingLevelControl draft={startingDraft} metadata={rogueStartingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                {characterClass === 'Fighter' && <FighterStartingLevelControl draft={startingDraft} metadata={fighterStartingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                {characterClass === 'Monk' && <MonkStartingLevelControl draft={startingDraft} metadata={monkStartingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                {characterClass === 'Barbarian' && <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata}
-                  disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
               </section>
             )}
 

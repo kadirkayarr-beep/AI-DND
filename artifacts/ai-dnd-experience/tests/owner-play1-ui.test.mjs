@@ -1,5 +1,6 @@
 // The owner's first browser play (31 Oct 2026): the UI items, rendered from the real components.
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
 
@@ -47,4 +48,19 @@ test('a blocked level check speaks Turkish, never a raw code, and Kapat is its o
   assert.doesNotMatch(html, /level_not_earned/);
   assert.match(html, /Henüz yeni bir seviye kazanmadın\./);
   assert.match(html, /<button[^>]*class="dnd-button secondary"[^>]*>Kapat<\/button>/);
+});
+
+test('the starting level sits above the class cards in its own marked block, not under the feature list', async () => {
+  const source = await readFile('src/components/character-creation-screen.tsx', 'utf8');
+  const block = source.indexOf('data-testid="starting-level-block"');
+  const control = source.indexOf('<FighterStartingLevelControl', block);
+  const cards = source.indexOf('cc-cards-grid cc-portrait-grid');
+  assert.ok(block > 0 && block < control && control < cards, 'level block, then the control, then the class cards');
+  const css = await readFile('src/components/character-creation-screen.css', 'utf8');
+  assert.match(css, /\.cc-starting-level select[^}]*min-height:\s*44px/);
+});
+
+test('the wizard heading follows the chosen level', async () => {
+  const source = await readFile('src/components/character-creation-screen.tsx', 'utf8');
+  assert.match(source, /Karakter Defteri · Seviye \{startingDraft\.startingLevel\}/);
 });
