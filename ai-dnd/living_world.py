@@ -416,8 +416,9 @@ def visible_features(world_state: Any, location_id: str | None = None) -> list[d
     ]
 
 _STREET_TYPES = {
-    "city", "town", "village", "district", "neighborhood", "neighbourhood",
-    "quarter", "settlement", "street", "mahalle",
+    "city", "town", "village", "district", "neighborhood", "neighbourhood", "quarter",
+    "settlement", "street", "square", "market", "mahalle", "semt", "sokak", "cadde",
+    "meydan", "pazar", "bölge", "şehir", "kasaba", "köy",
 }
 
 

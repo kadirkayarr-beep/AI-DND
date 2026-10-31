@@ -7336,6 +7336,8 @@ def validate_location_proposal(proposal):
         "city", "town", "village", "building", "settlement", "wilderness",
         "region", "landmark", "dungeon", "other", "şehir", "kasaba",
         "köy", "bina", "bölge", "orman", "mekân", "city_gate", "city gate",
+        "district", "neighborhood", "neighbourhood", "quarter", "street", "square", "market",
+        "mahalle", "semt", "sokak", "cadde", "meydan", "pazar",
     }:
         location_type = "other"
     elif location_type.casefold() in ("city_gate", "city gate"):
@@ -12786,6 +12788,12 @@ def ask_dungeon_master(
                 travel_guidance = "Oyuncu hedefe girdiğini belirtti. Hedef kayıtlı değilse yalnızca hedef adıyla eşleşen create_locations öner; Python doğrularsa bu tur varış tamamlanır."
             else:
                 travel_guidance = "Oyuncu hedefe gitmek istediğini belirtti; yalnızca hedef adıyla eşleşen create_locations öner, varış olduğunu anlatma."
+            if not narration_only:
+                travel_guidance += (
+                    " Hedef bu şehirde makul bir yerel yerse create_locations içinde tek öneri ver: "
+                    "name hedefin adı, type uygun yerel tür, description kısa. Şehir dışı veya "
+                    "makul olmayan hedefte create_locations boş kalsın ve varış anlatma."
+                )
         elif action_result.get("status") == "failed":
             travel_guidance = "Seyahat hedefi doğrulanmadı; varış veya konum değişikliği anlatma."
         elif action_result.get("status") == "completed":
@@ -17257,6 +17265,54 @@ def _current_procedural_entity_ids():
     return ids
 
 
+_NOT_A_LOCAL_PLACE = {
+    "city", "town", "village", "settlement", "region", "wilderness", "dungeon",
+    "şehir", "kasaba", "köy", "orman",
+}
+
+
+def _may_propose_local_place(resolved_turn, player_input):
+    """Only an unknown destination, asked for from the open streets of a settlement."""
+    import local_places
+    result = resolved_turn.action_result
+    world_state = _session().world_state
+    return bool(
+        resolved_turn.allow_new_locations
+        and isinstance(result, dict)
+        and result.get("action") == "travel"
+        and result.get("status") == "awaiting_proposal"
+        and living_world.on_open_street(world_state)
+        and local_places.settlement_of(world_state, world_state.get("location"))
+        and not is_player_world_assertion(player_input)
+    )
+
+
+def _accepted_local_place(packet, action_result):
+    """Take one place from the packet, named in the player's words; the rest of it is dropped."""
+    updates = packet.get("world_updates")
+    proposals = updates.get("create_locations") if isinstance(updates, dict) else None
+    proposal = proposals[0] if isinstance(proposals, list) and proposals else None
+    if not isinstance(proposal, dict):
+        return []
+    validated = validate_location_proposal({
+        "type": proposal.get("type"), "description": proposal.get("description"),
+        "name": action_result.get("target_reference"), "aliases": [proposal.get("name")],
+    })
+    if not validated or validated["type"].casefold() in _NOT_A_LOCAL_PLACE:
+        return []
+    return [validated]
+
+
+def _settle_local_place(action_result):
+    """A new local place hangs under its settlement, which also gives it the walking route."""
+    import local_places
+    world_state = _session().world_state
+    settlement = local_places.settlement_of(world_state, world_state.get("location"))
+    place = world_state["locations"].get(resolve_location_reference(action_result.get("target_reference", "")))
+    if settlement and isinstance(place, dict):
+        place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
+
+
 def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
     if messages is None:
         messages = resolved_turn.messages or _session().messages
@@ -17287,23 +17343,29 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     )
     narration_model_calls = 1
     from api.model_phase import resolved_narration_scope
+    proposes_place = _may_propose_local_place(resolved_turn, player_input)
     with resolved_narration_scope(narration_only):
         packet = ask_dungeon_master(
             messages,
             player_input,
-            allow_new_npcs=resolved_turn.allow_new_npcs,
-            allow_new_features=resolved_turn.allow_new_features,
+            allow_new_npcs=resolved_turn.allow_new_npcs and not proposes_place,
+            allow_new_features=resolved_turn.allow_new_features and not proposes_place,
             npc_target=npc_target,
             world_entry=resolved_turn.expected_location_change,
             action_result=resolved_turn.action_result,
             allow_new_locations=resolved_turn.allow_new_locations,
             return_details=True,
             allow_new_shops=resolved_turn.allow_new_shops,
-            narration_only=True,
+            narration_only=not proposes_place,
             lore_context=lore_context,
             scene_plan=resolved_turn.scene_plan,
         )
     packet = packet if isinstance(packet, dict) else {}
+    if proposes_place:
+        resolved_turn.action_result["verified_world_updates"] = {
+            "create_locations": _accepted_local_place(packet, resolved_turn.action_result),
+        }
+        packet["world_updates"] = {}
 
     rejected_scene_detail_proposal = False
     if isinstance(resolved_turn.action_result, dict):
@@ -17373,6 +17435,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             location_updates["create_locations"] = matching[:1]
         if location_updates.get("create_locations"):
             merge_world_updates({"create_locations": location_updates["create_locations"]})
+            if proposes_place:
+                _settle_local_place(resolved_turn.action_result)
         if resolved_turn.action_result.get("action") == "travel" and resolved_turn.action_result.get("status") == "awaiting_proposal":
             _commit_travel_action(resolved_turn.action_result)
 
