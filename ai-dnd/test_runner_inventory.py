@@ -94,7 +94,7 @@ class RunnerInventoryTests(unittest.TestCase):
                                     for call in execute.call_args_list))
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
                             if len(call.args[0]) == 5]
-                self.assertEqual(len(receipts), 10)
+                self.assertEqual(len(receipts), 17)
                 self.assertEqual(len(set(receipts)), 10)
                 self.assertTrue(all(not path.parent.exists() for path in receipts))
 
