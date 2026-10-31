@@ -203,6 +203,32 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
         shown = (await self.play(second, "Yan masadakilere yeniden sesleniyorum."))["narration"]
         self.assertEqual(shown, "Teklifin havada kalıyor.")
 
+    async def test_an_npc_may_say_what_the_player_will_get(self):
+        await self.asyncSetUpScene()
+        client = NarratingClient(spoken="Bir tane alırsın.")
+        shown = (await self.play(client, "Marek, bir bira alabilir miyim?"))["narration"]
+        self.assertIn("Bir tane alırsın.", shown)
+
+    async def test_marks_next_to_the_same_word_read_as_one_mention(self):
+        await self.asyncSetUpScene()
+        self.npc.update(name_known_to_player=False, role="Barmen", role_known_to_player=True)
+        mark = f"[[{self.npc['id']}]]"
+        shown = (await self.play(
+            NarratingClient(narration=f"Tezgâh yok ama köşedeki {mark} barmen bakıyor. Oradaki barmen {mark}’ün eli duruyor."),
+            "Yan masadakilere yazı tura oynamayı teklif ediyorum.",
+        ))["narration"]
+        self.assertNotIn("bir barmen barmen", shown)
+        self.assertNotIn("[[", shown)
+        self.assertNotIn("’ün", shown)
+
+    async def test_an_orphan_mark_with_a_suffix_reads_as_someone(self):
+        await self.asyncSetUpScene()
+        shown = (await self.play(
+            NarratingClient(narration="Yol kenarında duran [[n1]]'in yanından geçiyorsun."),
+            "Yan masadakilere yazı tura oynamayı teklif ediyorum.",
+        ))["narration"]
+        self.assertNotIn("'in", shown)
+
     async def test_an_id_before_the_name_does_not_double_the_name(self):
         shown = await self.assert_narrated_without_state(
             "Yan masadakilere yazı tura oynamayı teklif ediyorum.",

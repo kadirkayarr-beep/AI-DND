@@ -5895,7 +5895,7 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
 
 _PROPOSAL_MARKER_RE = re.compile(r"\[\[([nlfs][1-9]\d?)\]\] ?")
 _INTERNAL_MARK_RE = re.compile(
-    r"\[\[\s*([^\[\]]{0,60}?)\s*\]\]|\b(npc_[a-z0-9_]+)\b|\[([^\[\]]{1,40})\]"
+    r"\[\[\s*([^\[\]]{0,60}?)\s*\]\](['’]\w+)?|\b(npc_[a-z0-9_]+)\b|\[([^\[\]]{1,40})\]"
 )
 
 
@@ -5916,20 +5916,32 @@ def _repair_internal_marks(narration):
     present = active_npcs()
 
     def label_for(match):
-        if match.group(3) is not None:
-            return match.group(3)
-        key = match.group(1) or match.group(2)
+        if match.group(4) is not None:
+            return match.group(4)
+        key = match.group(1) or match.group(3)
+        suffix = match.group(2) or ""
+        rest = narration[match.end():].lstrip()
         label = labels.get(key)
-        if label is None and _PROPOSAL_MARKER_RE.fullmatch(match.group(0)):
+        if label is None and key and _PROPOSAL_MARKER_RE.fullmatch(f"[[{key}]]"):
             # "tezgahın arkasındaki [[n1]] sakinlikle": the mark stood for the person.
-            rest = narration[match.end():].lstrip()
-            if len(present) == 1 and (rest[:1].islower() or rest[:1] in {",", ";"}):
+            if len(present) == 1 and (suffix or rest[:1].islower() or rest[:1] in {",", ";"}):
                 label = living_world.public_npc_name(present[0])
-        if label is None or narration[match.end():].lstrip().casefold().startswith(label.casefold()):
+            elif suffix:
+                return "birinin"
+        if label is None:
             return ""
+        # "barmen [[npc_003]]" and "[[npc_003]] Hadrik" already say who it is.
+        head = _normalize_turkish_typos(label).split()[-1]
         before = narration[:match.start()].rstrip()
+        words_before = _normalize_turkish_typos(before).split()
+        words_after = _normalize_turkish_typos(rest).split()
+        if (words_before and words_before[-1] == head) or (
+            words_after and words_after[0].startswith(head)
+        ):
+            return ""
         at_start = not before or before[-1] in ".!?\n“\""
-        return label if at_start or not _is_generic_speaker_label(label) else label[:1].lower() + label[1:]
+        shown = label if at_start or not _is_generic_speaker_label(label) else label[:1].lower() + label[1:]
+        return shown + suffix
 
     repaired = _INTERNAL_MARK_RE.sub(label_for, narration)
     return re.sub(r"[ \t]{2,}", " ", re.sub(r"[ \t]+([,.;:!?])", r"\1", repaired)).strip()
@@ -6163,7 +6175,9 @@ def _drop_repeated_sentences(narration, earlier):
         sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration)
         if sentence.strip().casefold() not in seen
     ]
-    return " ".join(kept) if kept else narration
+    if not kept or len(kept) == len(re.split(r"(?<=[.!?…])\s+", narration)):
+        return narration
+    return " ".join(kept)
 
 
 def _drop_absent_counter_sentences(narration):
@@ -6186,7 +6200,9 @@ def _drop_absent_counter_sentences(narration):
         sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration)
         if not re.search(r"\b(?:tezgah|banko)\w*", _normalize_turkish_typos(sentence))
     ]
-    return " ".join(kept) if kept else narration
+    if not kept or len(kept) == len(re.split(r"(?<=[.!?…])\s+", narration)):
+        return narration
+    return " ".join(kept)
 
 
 def _absent_described_person(player_input, people):
@@ -10347,6 +10363,12 @@ def _narration_safety_decision(
             continue
         if not is_clear_agency:
             continue
+        # "Bir tane alırsın": what an NPC says the player may do, not what the player did.
+        if (
+            spoken_start is not None and match.start() >= spoken_start
+            and normalized_verb in {"alirsin", "odersin", "verirsin", "icersin"}
+        ):
+            continue
         committed_step = normalized_verb.startswith("at") and re.search(
             r"\badım\s*$", text[:match.start()]
         )
@@ -13259,8 +13281,18 @@ def _trim_dangling_quote(text):
     return rest if rest else text
 
 
-def _remove_trigger_sentence(narration, decision):
-    """Remove one complete unsafe sentence: a bad line costs its sentence, not the turn."""
+def _remove_trigger_sentence(narration, decision, action_result=None):
+    """Remove one complete unsafe sentence: a bad line costs its sentence, not the turn.
+
+    A combat report and an off-topic greeting have no safe remainder to keep.
+    """
+    if decision.get("reason_code") not in {
+        "INVENTED_PLAYER_ACTION", "INVENTED_PLAYER_OBJECTIVE", "INVENTED_PLAYER_MENTAL_STATE",
+    } and (
+        decision.get("reason_code") == "UNRELATED_GREETING_REPLY"
+        or (isinstance(action_result, dict) and action_result.get("action") in {"attack", "death_save"})
+    ):
+        return None
     # A long span can run over a sentence end, so its start finds the sentence.
     trigger = str(decision.get("trigger_span") or "").casefold()[:30].strip()
     if not trigger:
@@ -13534,7 +13566,7 @@ def finalize_narration(
     narration = clean_dm_response(
         _repair_internal_marks(narration), spoken=attributed_speech is not None
     )
-    if attributed_speech is None:
+    if attributed_speech is None and (action_result or {}).get("action") not in {"attack", "death_save"}:
         narration = _drop_repeated_sentences(
             _drop_absent_counter_sentences(narration), recent_dm_narrations[-1:]
         )
@@ -13556,7 +13588,7 @@ def finalize_narration(
         repaired = (
             _compose_experimental_npc_speech(repaired_payload)
             if repaired_payload is not None
-            else _remove_trigger_sentence(narration, safety)
+            else _remove_trigger_sentence(narration, safety, action_result)
         )
         repaired_safety = (
             _narration_safety_decision(
@@ -13568,7 +13600,7 @@ def finalize_narration(
         for _ in range(3):
             if repaired_payload is not None or not (repaired_safety and repaired_safety["unsafe"]):
                 break
-            shorter = _remove_trigger_sentence(repaired, repaired_safety)
+            shorter = _remove_trigger_sentence(repaired, repaired_safety, action_result)
             if not shorter:
                 break
             repaired = shorter
