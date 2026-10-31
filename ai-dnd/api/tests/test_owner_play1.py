@@ -38,6 +38,22 @@ class SpokenPlaceNames(unittest.TestCase):
     def test_two_places_in_a_list_stay_two_places(self):
         self.assertEqual(self.names("Kızıl Kule, Veyra Hanı ikisi de yakın."), ["Kızıl Kule", "Veyra Hanı"])
 
+    def test_a_maybe_before_the_name_is_not_part_of_the_name(self):
+        self.assertEqual(
+            self.names("Ben pek bir şey bilmiyorum. Belki Edric Hanı'na uğrarsın, orası biraz hareketlidir."),
+            ["Edric Hanı"],
+        )
+
+    def test_a_word_stuck_to_a_known_place_is_still_that_place(self):
+        world = {"locations": {"inn": {"name": "Edric Hanı"}}}
+        state = {"references": [], "next_reference": 1}
+        ref = npc_statements._add_reference(
+            world, state, npc_id="npc", name="Gidersen Edric Hanı", noun="han", kind="tavern",
+            claims=[], quote="", turn=1, settlement="city",
+        )
+        self.assertEqual(ref["name"], "Edric Hanı")
+        self.assertEqual(ref["location_id"], "inn")
+
     def test_a_real_two_word_name_keeps_both_words(self):
         self.assertEqual(self.names("Tamam, Gümüş Kılıç Hanı burada."), ["Gümüş Kılıç Hanı"])
 

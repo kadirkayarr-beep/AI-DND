@@ -33,7 +33,10 @@ COMMITMENT_STATUSES = frozenset({"open", "fulfilled", "broken", "cancelled", "cl
 _RECIPIENT = "player"  # one player per session; the recipient is part of a promise's identity
 _FILLER = frozenset({"evet", "hayir", "tamam", "dedim", "dedi", "dediydim", "demistim", "soyledim", "ya", "yani", "iste"})
 # Words a speaker opens a clause with; capitalised, but never the start of a name.
-_NAME_OPENERS = _FILLER | {"peki", "tabii", "tabi", "elbette", "hmm", "bak", "aslinda"}
+_NAME_OPENERS = _FILLER | {
+    "peki", "tabii", "tabi", "elbette", "hmm", "bak", "aslinda", "belki", "galiba", "sanirim", "bence",
+    "ama", "fakat", "ancak", "gerci", "oysa", "simdi", "sadece", "ayrica", "mesela", "hani", "orasi", "burasi",
+}
 
 # folded noun stem -> place kind (tavern is the existing venue kind; others are
 # local_places kinds; "generic" places have no catalogue content).
@@ -384,9 +387,20 @@ def _existing_location_named(world: dict[str, Any], name: str) -> str | None:
     return None
 
 
+def _known_name_within(world, refs, name):
+    """A word stuck to the front of a place already known is still that place."""
+    key = fold(name)
+    known = [r["name"] for r in refs if r.get("name")] + [
+        location["name"] for location in world.get("locations", {}).values()
+        if isinstance(location, dict) and isinstance(location.get("name"), str)
+    ]
+    return next((other for other in known if key.endswith(" " + fold(other))), name)
+
+
 def _add_reference(world, state, *, npc_id, name, noun, kind, claims, quote, turn, settlement):
     refs = state["references"]
     if name:
+        name = _known_name_within(world, refs, name)
         key = fold(name)
         same = next((r for r in refs if r.get("name") and fold(r["name"]) == key), None)
         if same is not None:
