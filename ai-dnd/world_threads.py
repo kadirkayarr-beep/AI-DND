@@ -954,6 +954,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     if not (mine or closed) or answer_table() == {}:
         return None
     for thread in mine:
+        if thread["status"] == "accepted" and thread.get("type") == "hiring" and read_answer(text, npc, thread)["start"]:
+            return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and thread.get("type") == "errand":
             reading = read_answer(text, npc, thread)
             if reading["take"] or reading["move"]:
@@ -992,6 +994,103 @@ def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str,
     return False
 
 
+def _in_the_night(world) -> bool:
+    import campaign_time
+    hour = (campaign_time.public_time(world) or {}).get("hour", 12)
+    return hour >= 20 or hour < 6
+
+
+def _day_wage(thread: dict[str, Any]) -> int:
+    """This day's share. A total splits evenly; the last day takes what is left."""
+    terms = thread["terms"]
+    pay, days = terms.get("pay") or 0, terms.get("work_days") or 1
+    if pay_basis(thread) == "daily":
+        return pay
+    worked = thread.get("days_worked", 0)  # already includes today
+    return pay - (pay // days) * (days - 1) if worked >= days else pay // days
+
+
+def _pay_wage(world, thread, amount, day):
+    """Paid through the wallet; the owner's own purse is never assumed to hold it."""
+    import equipment_economy
+    pool = f"thread-pool:{thread['thread_id']}:{day}"
+    wallets = world.setdefault("currency", {})
+    wallets[pool] = wallets.get(pool, 0) + amount
+    try:
+        equipment_economy.pay(world, pool, "player", amount)
+    finally:
+        wallets.pop(pool, None)
+    thread["paid_cp"] = thread.get("paid_cp", 0) + amount
+
+
+def _shift_text(world, thread, *parts):
+    lines = job_lines("shift") or []
+    day = thread.get("days_worked", 0)
+    seed = living_world._campaign_seed(world)
+    place = world.get("locations", {}).get(thread.get("place_id")) or {}
+    first = lines[_rank(seed, thread["thread_id"], "shift", day) % len(lines)] if lines else ""
+    return " ".join(p for p in (_fill(first, owner=thread.get("owner_name") or "", place=place.get("name", "")), *parts) if p)
+
+
+def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
+    """One shift: the clock really moves, then the record is read again by id.
+
+    The clock step can replace the whole thread state, cut the shift short or kill the
+    player, so what is credited is only what actually passed.
+    """
+    import campaign_time
+    import game
+    world = session.world_state
+    thread = by_id(world, thread_id)
+    words = job_lines("text") or {}
+    hours = job_lines("shift_hours") or 8
+    try:
+        wanted = campaign_time.requested_duration(text) or hours * HOUR
+    except ValueError:
+        wanted = hours * HOUR
+    before = copy.deepcopy(world)
+    thread["shift_until"] = _now(world) + wanted
+    result = game.advance_campaign_time(wanted, "work_shift")
+    thread = by_id(world, thread_id)
+    thread.pop("shift_until", None)
+    passed = result["elapsed_seconds"]
+    thread["shift_seconds"] = thread.get("shift_seconds", 0) + passed
+    day = campaign_time.public_time(world)["day_index"]
+    parts = []
+    if thread["status"] != "accepted":
+        parts.append(words.get("shift_short", ""))
+    elif thread["shift_seconds"] < hours * HOUR:
+        parts.append(words.get("shift_short", ""))
+    elif thread.get("last_paid_day_index") == day:
+        parts.append(words.get("shift_no_pay", ""))
+    else:
+        thread["days_worked"] = thread.get("days_worked", 0) + 1
+        thread["last_paid_day_index"] = day
+        thread["shift_seconds"] = 0
+        amount = _day_wage(thread)
+        _pay_wage(world, thread, amount, day)
+        parts.append(_fill(words.get("shift_paid", ""), amount=amount))
+        if thread["days_worked"] >= (thread["terms"].get("work_days") or 1) and transition(thread, "done"):
+            now = _now(world)
+            thread["closed_at"] = now
+            _log(thread, now, "done")
+            state = view(world)
+            state["threads"], closed = _split_closed(state["threads"])
+            state["history"].extend(closed)
+            _trim_history(state)
+            _apply_effects(world, [(thread_id, "done")])
+            parts.append(_fill(words.get("shift_done", ""), owner=thread.get("owner_name") or ""))
+    validate(world[KEY])
+    shown = _shift_text(world, thread, *parts)
+    flags = world.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    action = {"action": "work", "status": "resolved", "success": True, "state_changes": ["campaign_time", "currency"],
+              "elapsed_seconds": passed, "direct_response": shown}
+    session.evaluate_quest_events(before, action)
+    session.messages.extend([{"role": "user", "content": str(text)}, {"role": "assistant", "content": shown}])
+    return {"messages": session.messages, "narration": shown, "model_calls": 0, "action_result": action}
+
+
 def pay_text(thread: dict[str, Any]) -> str:
     words = job_lines("text") or {}
     pay = (thread.get("terms") or {}).get("pay")
@@ -1012,6 +1111,10 @@ def start_text(world: dict[str, Any], thread: dict[str, Any]) -> str:
     if thread.get("night_only"):
         return words.get("start_tonight", "")
     return words.get("start_today", "") if hour < 16 else words.get("start_tomorrow", "")
+
+
+def can_start_now(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+    return not thread.get("night_only") or _in_the_night(world)
 
 
 def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str:

@@ -547,6 +547,7 @@
       "cold": " Bu kişiye karşı soğuksun.",
       "warm": " Bu kişiye ısınmışsın.",
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
+      "come_at_night": "İş gece; şimdi başlatamazsın. Akşam olunca gelmesini kendi ağzınla söyle.",
       "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
       "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
       "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
@@ -630,6 +631,10 @@
       "timing_on_delivery": "teslimde",
       "deadline_errand": "bir gün içinde",
       "deadline_hiring": "{days} gün içinde",
+      "shift_paid": "Günün sonunda {amount} bakır eline sayılıyor.",
+      "shift_done": "İş bitti; hesap kapandı.",
+      "shift_short": "Vardiya yarıda kaldı, bu saatler henüz bir güne denk gelmedi.",
+      "shift_no_pay": "Bugünkü ücretini almıştın; bu saatler hesaba yazılmıyor.",
       "start_today": "bugün",
       "start_tomorrow": "yarın sabah",
       "start_tonight": "bu akşam"

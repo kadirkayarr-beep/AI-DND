@@ -8222,6 +8222,12 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
         if not world_threads.apply_decision(world, thread, decision, turn):
             gate["decision"] = None
     thread = world_threads.by_id(world, gate["thread_id"])
+    if thread.get("type") == "hiring" and thread.get("status") == "accepted" and (
+            gate["decision"] == "work" or (gate["decision"] == "accepted" and reading["start"])):
+        if world_threads.can_start_now(world, thread):
+            gate["reply"] = world_threads.work_turn(session, thread["thread_id"], player_input)
+            return gate
+        gate["decision"] = "come_at_night"
     in_hand = errand and thread.get("status") == "accepted" and gate["decision"] in {"accepted", "take"}
     if in_hand and (reading["take"] or reading["move"]) and not dialogue_jobs.holds_parcel(world, thread):
         action = dialogue_jobs.hand_over(session, thread, person)

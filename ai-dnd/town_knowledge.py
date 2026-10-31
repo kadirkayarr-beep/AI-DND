@@ -162,6 +162,8 @@ def _lines_for(world, thread, npc, decision):
     status = thread["status"]
     if decision == "busy":
         return [shared.get("busy", "")]
+    if decision == "come_at_night":
+        return [shared.get("come_at_night", "")]
     if decision == "questioning_terms":
         return [world_threads._fill(shared.get("questioning_terms", ""), pay_text=world_threads.pay_text(thread),
                                     timing_text=world_threads.timing_text(thread))]
