@@ -8074,6 +8074,13 @@ def _town_note(world, npc):
         return ""
 
 
+def _turns_to_someone_else(player_input):
+    """'Yandaki kişiye dönüyorum', 'başka birine soruyorum': not whoever was being talked to."""
+    words = living_world.normalize_text(player_input).split()
+    return any(word in {"baska", "diger", "yandaki", "obur", "oteki"} for word in words) and any(
+        word.startswith(("kisi", "biri", "adam", "kadin")) for word in words)
+
+
 def _town_in_play(world):
     import world_threads
     return world_threads.ensure(world) is not None
@@ -19160,6 +19167,12 @@ def _run_player_turn_internal(
         or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
+    if target_id is None and not combat["active"] and _turns_to_someone_else(player_input):
+        others = [npc for npc in _conversation_npcs()
+                  if not isinstance(npc_target, dict) or npc.get("id") != npc_target.get("id")]
+        if others:
+            npc_target = most_plausible_addressee(others, player_input)
+            _session()._set_scene_active_npc(npc_target, world_state.get("flags", {}).get("turn_index", 0))
     if (
         interaction_hint in {"information", "generate"} and target_id is None
         and local_dialogue.personal_question_kind(player_input) == "local_work"

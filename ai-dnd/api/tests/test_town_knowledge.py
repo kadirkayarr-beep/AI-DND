@@ -396,6 +396,22 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         await self.go("Burada biraz dolaşıyorum.")
         self.assertEqual(world["location"], self.place["id"])
 
+    async def test_turning_to_someone_else_changes_who_answers(self):
+        # Real play: "Yandaki kişiye dönüyorum" got the same closed-mouthed person again.
+        world = await self.heard()
+        other = dict(self.npc, id="npc_other", name="Oren", public_name="Oren", place_role_of=None)
+        world["npcs"].append(other)
+        self.client.narration = "Bir bakayım."
+        response = await self.http.post(self.turn_url, json={
+            "message": "Yandaki kişiye dönüyorum. Buralarda iş bilen var mı?", "action_id": str(uuid.uuid4())})
+        self.assertEqual(world["flags"].get("active_npc_id"), "npc_other", response.text[:300])
+
+    def test_only_words_about_a_person_turn_away(self):
+        self.assertTrue(game._turns_to_someone_else("Yandaki kişiye dönüyorum."))
+        self.assertTrue(game._turns_to_someone_else("Başka birine soruyorum."))
+        self.assertFalse(game._turns_to_someone_else("Başka iş var mı?"))
+        self.assertFalse(game._turns_to_someone_else("Bu kişi kim?"))
+
     async def test_street_talk_is_newer_than_what_someone_said_earlier(self):
         # Real play: "Selwyn Karakolu ..." overheard, then "Oraya gidiyorum" went back to the temple named before.
         world = await self.heard()

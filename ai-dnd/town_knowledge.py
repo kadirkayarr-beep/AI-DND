@@ -26,7 +26,7 @@ import world_threads
 MAX_ITEMS = 5
 MAX_BYTES = 600
 GONE_WINDOW = 86400
-CLOSED_PERCENT = 25  # people who will not discuss the town with a stranger
+CLOSED_PERCENT = 15  # people who will not discuss the town with a stranger
 _LOG = logging.getLogger(__name__)
 
 
