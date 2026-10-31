@@ -444,10 +444,15 @@ class InteractionApiContracts(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(plan["status"], "paused")
         self.assertLessEqual(model.call_count, 1)
         self.assertEqual(s.rng.getstate(), rng)
-        # The narrator's turn may open the scene record of the place the player stands in.
         for key in set(world) | set(s.world_state):
             if key not in {adventure.KEY, "flags", "scene_state"}:
                 self.assertEqual(s.world_state.get(key), world.get(key), key)
+        # The narrator's turn may open the scene record of the place the player stands in, and nothing else in scene_state.
+        def rest_of_scene_state(state):
+            rest = copy.deepcopy(state.get("scene_state", {}))
+            rest.get("scenes", {}).pop(state["location"], None)
+            return rest
+        self.assertEqual(rest_of_scene_state(s.world_state), rest_of_scene_state(world))
         committed = copy.deepcopy(s.world_state)
         with patch("game.ollama.chat") as replay_model:
             replay = await self.http.post(f"/api/game/sessions/{a['session_id']}/turn",

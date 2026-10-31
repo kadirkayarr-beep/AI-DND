@@ -283,6 +283,43 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         retry = await self.turn(body)
         self.assertEqual(retry.status_code, 200, retry.text)
 
+    async def test_a_failed_release_makes_no_never_applied_claim_and_keeps_the_intent_open(self):
+        def outage(_message, **_kwargs):
+            raise DialogueProviderError("provider down")
+
+        good = self.session.run_player_turn
+        body = self.fresh_body()
+        for failure in ({"side_effect": RuntimeError("store down")}, {"return_value": False}):
+            with self.subTest(failure=failure):
+                self.session.run_player_turn = outage
+                with patch.object(self.manager, "release_action_intent", **failure) as release:
+                    failed = await self.turn(body)
+                release.assert_called_once()
+                self.assertEqual(failed.status_code, 503, failed.text)
+                self.assertNotIn("not_applied", failed.json()["detail"], "the browser must not close its record")
+                unresolved = await self.http.get(f"/api/game/sessions/{self.created['session_id']}/actions/unresolved")
+                self.assertEqual(unresolved.json()["unresolved"]["action_id"], body["action_id"])
+                blocked = await self.turn(self.fresh_body())
+                self.assertEqual(blocked.status_code, 409, blocked.text)
+        self.session.run_player_turn = good
+        retry = await self.turn(body)
+        self.assertEqual(retry.status_code, 200, retry.text)
+
+    async def test_an_old_released_id_arriving_after_another_move_runs_once_as_a_new_move(self):
+        def outage(_message, **_kwargs):
+            raise DialogueProviderError("provider down")
+
+        good = self.session.run_player_turn
+        old = self.fresh_body()
+        self.session.run_player_turn = outage
+        self.assertIs((await self.turn(old)).json()["detail"]["not_applied"], True)
+        self.session.run_player_turn = good
+        between = await self.turn(self.fresh_body())
+        self.assertEqual(between.status_code, 200, between.text)
+        late = await self.turn(old)
+        self.assertEqual(late.status_code, 200, late.text)
+        self.assertEqual((await self.turn(old)).json(), late.json(), "its receipt answers from now on")
+
     async def test_rolled_back_failures_really_restore_what_the_engine_changed(self):
         before_flags = dict(self.session.world_state.get("flags", {}))
         before_turn = getattr(self.session, "turn_index", None)

@@ -99,8 +99,21 @@ class Wave3ConversationUxTests(unittest.TestCase):
         session.world_state["flags"]["turn_index"] = 10
         with patch("game.ollama.chat", side_effect=AssertionError("model used")):
             result = session.run_player_turn("Merhaba.", interaction_mode="say")
-        self.assertNotEqual(result["action_result"]["status"], "clarification")
+        self.assertEqual(result["action_result"]["action"], "dialogue")
+        self.assertEqual(result["action_result"]["status"], "experimental_attributed_speech")
+        self.assertIs(result["action_result"]["success"], True)
+        self.assertEqual(result["action_result"]["npc_id"], "npc_aylin")
+        self.assertTrue(result["narration"].strip())
         self.assertEqual(session.world_state["flags"]["active_npc_id"], "npc_aylin")
+
+    def test_the_last_person_addressed_wins_even_when_second_in_the_list(self):
+        # Aylin is first in the list too, so the test above cannot tell "last addressed" from "first person".
+        session = self.fresh()
+        session.world_state["flags"].update(turn_index=10, last_npc_id="npc_tuna", active_npc_id="npc_tuna")
+        with patch("game.ollama.chat", side_effect=AssertionError("model used")):
+            result = session.run_player_turn("Merhaba.", interaction_mode="say")
+        self.assertEqual(result["action_result"]["npc_id"], "npc_tuna")
+        self.assertEqual(session.world_state["flags"]["active_npc_id"], "npc_tuna")
 
     def test_end_conversation_is_deterministic_and_clears_active_target(self):
         session = self.fresh()

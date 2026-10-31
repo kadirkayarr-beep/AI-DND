@@ -9,6 +9,7 @@ import game
 import living_world
 from api.tests import test_campaign_api as api
 from api.tests.test_narration_evidence_acceptance import ask
+from api.tests.test_natural_addressing import TownClient
 from api.tests.test_stage10a_gameplay_repairs import city_session
 
 CITY = "fr:city:neverwinter"
@@ -153,6 +154,67 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
         roles = {person[0] for person in living_world.scene_cast(session.world_state, CITY)}
         self.assertEqual({npc["role"] for npc in people}, roles)
         self.assertTrue(any(people[0]["appearance"] in json.dumps(batch, ensure_ascii=False) for batch in client.message_batches))
+
+
+    async def start(self):
+        created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+            "setting_id": "forgotten_realms",
+            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+            "region_id": "fr:region:the_north",
+            "starting_location_id": CITY,
+        }})
+        self.assertEqual(created.status_code, 200, created.text)
+        return created.json()["session_id"], self.manager.get(created.json()["session_id"]).game_session
+
+    async def post(self, sid, message):
+        with patch.object(self.app.state.ollama_adapter, "_client", TownClient()):
+            turn = await self.http.post(f"/api/game/sessions/{sid}/turn", json={
+                "message": message, "action_id": str(uuid.uuid4()),
+            })
+        self.assertEqual(turn.status_code, 200, turn.text)
+        return turn.json()["narration"]
+
+    async def test_a_new_campaign_stores_a_seed_and_campaigns_differ_in_people_and_innkeeper(self):
+        # The owner's first complaint: every game opening with the same two people. Compared across campaigns, not with the draw.
+        casts, keepers = set(), set()
+        for _ in range(12):
+            sid, session = await self.start()
+            await self.post(sid, "Çevremi gözlemliyorum.")
+            world = session.world_state
+            self.assertTrue(living_world.ensure_scene_state(world)["campaign_seed"])
+            people = [npc for npc in world["npcs"] if npc.get("location") == CITY]
+            self.assertTrue(1 <= len(people) <= 3, people)
+            casts.add(frozenset(npc["role"] for npc in people))
+            keepers.add(str(living_world.tavern_keeper(world, CITY)))
+        self.assertGreaterEqual(len(casts), 2, casts)
+        self.assertGreaterEqual(len(keepers), 2, keepers)
+
+    async def lone_person(self):
+        for _ in range(40):
+            sid, session = await self.start()
+            if len(living_world.scene_cast(session.world_state, CITY)) == 1:
+                await self.post(sid, "Çevremi gözlemliyorum.")
+                people = [npc for npc in session.world_state["npcs"] if npc.get("location") == CITY]
+                self.assertEqual(len(people), 1)
+                return sid, session, people[0]
+        self.fail("no lone-person street in 40 draws")
+
+    async def test_on_a_lone_person_street_a_typed_line_reaches_that_person(self):
+        sid, session, person = await self.lone_person()
+        shown = await self.post(sid, "Selam, buralarda yeni misin?")
+        self.assertIn(TownClient.SPOKEN, shown)
+        self.assertEqual(session.world_state["flags"]["active_npc_id"], person["id"])
+
+    async def test_on_a_lone_person_street_the_inn_is_found_and_entered_through_its_door(self):
+        sid, session, _ = await self.lone_person()
+        shown = [
+            await self.post(sid, message)
+            for message in ("Bu çevrede bir han var mı?", "Tamam, oraya gidiyorum.", "Kapıyı açmaya çalışıyorum.")
+        ]
+        world = session.world_state
+        inn = next(place for place in world["locations"].values() if place.get("scene_kind") == "tavern")
+        self.assertIn(inn["name"], shown[0])
+        self.assertEqual(world["location"], inn["id"], shown)
 
 
 class TurkishInitialTests(unittest.TestCase):

@@ -314,6 +314,17 @@ class AnAttemptIsNeverRefused(TownCase):
         self.assertIn("narration", self.client.kinds)
 
 
+class WordlessInnQuestion(TownCase):
+    """The sentence the older tests changed: no word for an inn, a person standing by."""
+
+    async def test_a_drink_question_finds_one_inn_and_names_it(self):
+        before = set(self.world["locations"])
+        shown = (await self.say("Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?"))["narration"]
+        new = [place for key, place in self.world["locations"].items() if key not in before]
+        self.assertEqual([place.get("scene_kind") for place in new], ["tavern"], shown)
+        self.assertIn(new[0]["name"], shown)
+
+
 class ExistingAddressesStayPut(TownCase):
     async def test_the_guard_at_the_door_is_not_an_absent_person(self):
         data = await self.say("Kapıdaki adama selam veriyorum.")

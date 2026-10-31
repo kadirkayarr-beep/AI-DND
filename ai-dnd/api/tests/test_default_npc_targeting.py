@@ -1243,6 +1243,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("Karanlık Han", rumor_reply)
         self.assertNotIn("doğrula", rumor_reply)
+        self.assertEqual(rumor_reply, "Orayı pek bilmem.")
         context_world = copy.deepcopy(no_visible_place_world)
         context_guard = next(
             item for item in context_world["npcs"]

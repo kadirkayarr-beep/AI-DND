@@ -13,6 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import combat_lifecycle
 import game
 import monster_combat
 from combat_lifecycle import CombatRequestError
@@ -75,6 +76,14 @@ class CombatV2Turns(unittest.TestCase):
         return self.session.run_player_turn(
             "Gromm'a kılıcımla saldırıyorum", []
         )["action_result"]
+
+    def assert_only_variety_memory_changed(self, before):
+        # A question answered in the world still records its reply's category, which only varies later replies.
+        after = self.session.serialize_game_state()
+        after["world_state"].pop("adventure_recent_categories", None)
+        before = copy.deepcopy(before)
+        before["world_state"].pop("adventure_recent_categories", None)
+        self.assertEqual(after, before)
 
     def assert_snapshot(self, result):
         expected = copy.deepcopy(self.world["combat"])
@@ -348,9 +357,33 @@ class CombatV2Turns(unittest.TestCase):
         with self.rolls():
             asked = self.session.run_player_turn("Ona saldırıyorum", [])
         self.assertEqual(asked["action_result"]["status"], "clarification")
+        self.assertEqual(asked["action_result"]["state_changes"], [])
+        self.assertTrue(asked["narration"].strip())
         self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
+        self.assert_only_variety_memory_changed(before)
         game.parse_player_intent.assert_not_called()
+
+    def test_an_opening_strike_on_a_person_with_no_recorded_distance_lands_within_a_step(self):
+        # The owner approved this rule: a person in the scene is within 5 ft, and the strike is real, not a 400.
+        del self.npc["distance_ft"]
+        combat_lifecycle.validate_request(self.session, "Gromm'a kılıcımla saldırıyorum")
+        self.assertEqual(self.npc["distance_ft"], 5)
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
+            result = self.turn()
+        self.assertEqual(result["action"], "attack")
+        self.assertTrue(result["combat_started"])
+
+    def test_inside_a_fight_an_unknown_distance_is_still_refused(self):
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
+            self.turn()
+        self.assertTrue(self.world["combat"]["active"])
+        del self.npc["distance_ft"]
+        before = self.session.serialize_game_state()
+        with self.assertRaises(CombatRequestError) as refused:
+            combat_lifecycle.validate_request(self.session, "Gromm'a kılıcımla saldırıyorum")
+        self.assertEqual(refused.exception.code, "distance_unknown")
+        self.assertEqual(self.session.serialize_game_state(), before)
 
     def test_wrong_location_blocked(self):
         self.npc["location"] = "forest"
@@ -359,8 +392,10 @@ class CombatV2Turns(unittest.TestCase):
         with self.rolls():
             asked = self.turn()
         self.assertEqual(asked["status"], "clarification")
+        self.assertEqual(asked["state_changes"], [])
         self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
+        self.assert_only_variety_memory_changed(before)
         self.assertEqual(self.npc["current_hp"], 100)
         self.assertEqual(self.session.character["current_hp"], 30)
         self.assertFalse(self.world["combat"]["active"])
