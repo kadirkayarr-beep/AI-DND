@@ -286,6 +286,11 @@ class TheAuthoredAmbientEvents(unittest.TestCase):
 
 
 class TheAuthoredCatalog(unittest.TestCase):
+    def test_a_package_name_starts_with_a_turkish_capital(self):
+        package = thread_catalog._package("{place_name} üzerinden iade eşyası gönderilecek.")
+        self.assertEqual(package, "İade eşyası")
+        self.assertEqual(thread_catalog._package("{place_name} üzerinden ılık su gönderilecek."), "Ilık su")
+
     def setUp(self):
         self.raw = json.loads((thread_catalog.CATALOG_DIR / "thread_templates.json").read_text(encoding="utf-8"))["items"]
         self.mapping = json.loads((thread_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))

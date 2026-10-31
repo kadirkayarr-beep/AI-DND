@@ -47,7 +47,7 @@ def _package(public: str) -> str | None:
     if not found:
         return None
     text = found.group(1)
-    return text[:1].upper() + text[1:]
+    return {"i": "İ", "ı": "I"}.get(text[:1], text[:1].upper()) + text[1:]
 
 
 def _owner_line(item: dict[str, Any]) -> str | None:
