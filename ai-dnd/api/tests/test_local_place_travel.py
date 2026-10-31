@@ -93,6 +93,24 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         await self.go(TravellingClient({"create_locations": [PLACE]}))
         self.assertTrue(game.living_world.on_open_street(self.world))
 
+    async def test_a_road_encounter_keeps_the_player_and_drops_the_arrival_text(self):
+        await self.scene()
+        class LowDice:
+            def randint(self, low, high):
+                return low
+
+        real_dice = timed_gameplay.travel_dice
+        client = TravellingClient({"create_locations": [PLACE]})
+        with patch.object(timed_gameplay, "travel_dice", side_effect=lambda rng, recent: real_dice(LowDice(), recent)):
+            response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+                self, self.turn_url, client, {"message": GO, "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        shown = response.json()["narration"]
+        self.assertEqual(self.world["location"], self.city)
+        self.assertIn(timed_gameplay.TRAVEL_CATALOG[0]["text"], shown)
+        self.assertNotIn("taş konaklar", shown)
+
     async def test_a_far_place_is_a_plausible_failure_not_a_new_city(self):
         await self.scene()
         client = TravellingClient({"create_locations": [{**PLACE, "name": "Uzak Çöl", "type": "wilderness"}]}, reference="Uzak Çöl")

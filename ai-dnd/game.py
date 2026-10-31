@@ -17471,6 +17471,14 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 _settle_local_place(resolved_turn.action_result)
         if resolved_turn.action_result.get("action") == "travel" and resolved_turn.action_result.get("status") == "awaiting_proposal":
             _commit_travel_action(resolved_turn.action_result)
+            if (
+                proposes_place
+                and resolved_turn.action_result.get("status") not in ("failed", "intended")
+                and _session().world_state.get("location") != resolved_turn.action_result.get("target")
+                and resolved_turn.action_result.get("direct_response")
+            ):
+                # Stopped on the way: the narrator wrote before the walk, so its arrival is untrue.
+                packet["narration"] = resolved_turn.action_result["direct_response"]
 
         # Validate NPC/feature/shop proposals only after any accepted location exists.
         validated_updates = validate_world_updates(
