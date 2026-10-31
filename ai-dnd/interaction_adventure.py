@@ -999,8 +999,7 @@ def immersive_unknown(npc=None, seed=""):
     # Narrator voice: the world simply gives no sign yet; the player is not told
     # that anything was checked or refused.
     return (
-        "Çevrende bu düşünceyi destekleyen bir iz göremiyorsun; biraz daha "
-        "bakınmak ya da birine sormak yeni bir kapı açabilir."
+        "Şimdilik buna dair bir iz göremiyorsun; sokak kendi telaşında akıyor."
     )
 
 

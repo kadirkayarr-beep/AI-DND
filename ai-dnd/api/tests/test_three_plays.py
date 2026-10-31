@@ -291,9 +291,51 @@ class WorldAnswersTests(ThreePlaysTests):
         await self.begin(BARBARIAN)
         self.world["npcs"].clear()
         self.add_person("Dorn", "Barmen")
-        client = PlayClient(spoken="Al bakalım, paranı masaya bırak.")
-        out = await self.say("bira ver bana barmen, en sertinden olsun", client)
-        self.assertIn("paranı masaya", out["narration"])
+        before = self.world.get("currency", {}).get("player", 0)
+        out = await self.say("bira ver bana barmen, en sertinden olsun", PlayClient())
+        self.assertIn("bira", out["narration"])
+        self.assertEqual(self.world["currency"]["player"], before + 1600 - 4)  # the pack's 16 gold is counted in
+
+    async def test_paying_from_a_pack_full_of_coin_labels(self):
+        await self.begin(ROGUE)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Barmen")
+        await self.say("bir bira alayım", PlayClient())
+        self.assertEqual(self.world["currency"]["player"], 2396)
+        self.assertFalse([item for item in self.world["inventory"] if "Altın" in str(item)])
+
+    async def test_a_body_can_be_searched_once(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Tariq", "Kent sakini", current_hp=0, combat_status="dead")
+        out = await self.say("adamın üstünü arıyorum, kesesi varsa alırım", PlayClient())
+        self.assertEqual(out["turn_outcome"]["action"], "loot")
+
+    async def test_an_answer_to_kime_finishes_the_attack(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Tariq", "Kent sakini", visible_trait="çelimsiz", current_hp=300, max_hp=300)
+        self.add_person("Ilyra", "Barmen", visible_trait="gençten")
+        await self.say("saldırıyorum", PlayClient(intent="attack"))
+        await self.say("çelimsiz biri", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+
+    async def test_going_inside_after_walking_up(self):
+        await self.begin(FIGHTER)
+        city = self.world["location"]
+        forge = local_places.create_local_place(self.world, city, "smithy", name="Isolde Demirhanesi")
+        await self.say("Isolde Demirhanesine yaklaşıyorum")
+        await self.say("içeri giriyorum")
+        self.assertEqual(self.world["location"], forge["id"])
+
+    async def test_up_onto_an_altar_is_still_in_the_temple(self):
+        await self.begin(ROGUE)
+        city = self.world["location"]
+        temple = local_places.create_local_place(self.world, city, "temple", name="Lidda Tapınağı")
+        await self.say("tapınağa gidiyorum")
+        self.assertEqual(self.world["location"], temple["id"])
+        await self.say("sunağın üstüne çıkıp oturuyorum, ayaklarımı sallıyorum")
+        self.assertEqual(self.world["location"], temple["id"])
 
 
 class InAFightTests(ThreePlaysTests):
@@ -328,6 +370,69 @@ class InAFightTests(ThreePlaysTests):
         out = await self.say("bekliyorum", PlayClient())
         self.assertNotIn("sürümünde", out["narration"])
         self.assertGreater(self.world["combat"]["round"], round_before)
+
+
+class RestingTests(ThreePlaysTests):
+    async def test_lying_down_anywhere_is_sleep(self):
+        for line in ("tezgahın altına girip kıvrılıyorum, burda uyuycam biraz",
+                     "karakolun köşesine uzanıp çavuşun gözü önünde uyuyorum", "burada uyuyorum",
+                     "odaya çıkıyorum yatıp uyuyorum",
+                     "tamam parasını veriyorum, odaya çıkıp yarın sabaha kadar uyuyorum"):
+            with self.subTest(line=line):
+                await self.begin(ROGUE)
+                self.session.character["current_hp"] = 1
+                out = await self.say(line, PlayClient())
+                self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])
+
+    async def test_a_drink_is_told_not_asked_about(self):
+        await self.begin(BARBARIAN)
+        out = await self.say("birayi kafaya dikiyorum", PlayClient(intent="use_item", narration="Sokakta hayat akıyor."))
+        self.assertNotIn("belirtir misin", out["narration"])
+
+
+class NoMechanicalAdviceTests(ThreePlaysTests):
+    async def test_no_keep_looking_advice_on_a_stroll(self):
+        await self.begin(ROGUE)
+        client = PlayClient(intent="unknown", narration="Sokakta hayat akıyor.")
+        out = await self.say("of bıktım buradan. uzaklaşıp en pis meyhaneyi arıyorum", client)
+        self.assertNotIn("biraz daha", out["narration"])
+
+
+class SmallThingsTests(ThreePlaysTests):
+    async def test_the_words_after_a_walk_reach_the_person(self):
+        for line in ("defter yazan muhafıza yaklaşıyorum. selam, ne yazıyorsun öyle?",
+                     "muhafıza yaklaşıp hey teneke kafa, annen o miğferi sana niye taktı"):
+            with self.subTest(line=line):
+                await self.begin(ROGUE)
+                self.world["npcs"].clear()
+                self.add_person("Dorn", "Muhafız")
+                out = await self.say(line, PlayClient(spoken="Yürü git işine."))
+                self.assertIn("Yürü git", out["narration"])
+
+    async def test_a_bag_question_is_answered(self):
+        for line in ("çantamda ne var", "elmayı aldım mı, üstümde ne var bakıyım"):
+            with self.subTest(line=line):
+                await self.begin(ROGUE)
+                out = await self.say(line, PlayClient())
+                self.assertIn("Hançer", out["narration"])
+
+    async def test_a_name_said_in_passing_counts(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        steward = self.add_person("Dorn", "Kâhya")
+        await self.say("selam, ben carius. burada iş var mı", PlayClient(spoken="Olabilir."), mode="say")
+        out = await self.say("kâhyaya dönüyorum. muhafız sana adımı yazdırmamı söyledi. yaz bakalım, carius",
+                             PlayClient(spoken="Yazdım, Carius."))
+        self.assertNotIn("henüz adını söylemedin", out["narration"])
+        self.assertTrue(steward["memory"])
+
+    async def test_following_someone_by_what_shows(self):
+        await self.begin(ROGUE)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Kent sakini", visible_trait="gri pelerinli")
+        out = await self.say("gri pelerinliyi gizlice takip ediyorum, nereye gidiyor bakalım", PlayClient())
+        self.assertNotIn("izini kaybediyorsun", out["narration"])
+        self.assertNotIn("Sıradaki adımın", out["narration"])
 
 
 class FireTests(ThreePlaysTests):

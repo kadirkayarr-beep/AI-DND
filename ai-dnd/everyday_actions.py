@@ -40,6 +40,13 @@ def _fold(value: Any) -> str:
     return living_world.normalize_text(value)
 
 
+def _person_by_sight(people, text):
+    """"Gri pelerinliyi takip ediyorum": the trait that shows is enough to follow."""
+    folded = living_world.normalize_text(text)
+    return next((npc for npc in people
+                 if living_world.normalize_text(living_world.npc_visible_trait(npc)).split()[-1] in folded), None)
+
+
 def _pick(seed: str, options: tuple[str, ...]) -> str:
     digest = hashlib.sha256(seed.encode("utf-8")).digest()
     return options[int.from_bytes(digest[:4], "big") % len(options)]
@@ -125,7 +132,7 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
             "Bir süre çevrendeki sesler uzaklaşıyor; yeni bir şey öğrenmiş sayılmazsın ama zihnin biraz duruluyor."
         )}
     if kind == "follow":
-        person = _named_person(world, text, reference)
+        person = _named_person(world, text, reference) or _person_by_sight(people, text)
         if person is not None:
             who = living_world.public_npc_name(person)
             return {"kind": kind, "npc_id": person.get("id"), "text": _pick(seed, (

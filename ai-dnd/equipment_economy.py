@@ -806,6 +806,8 @@ def _natural_inventory_query(text):
     if not isinstance(text, str):
         return False
     lowered = text.casefold().strip()
+    if re.search(r"\b(?:çantam|üstüm|üzerim|yanım|cebim|kesem)(?:da|de)\b.{0,12}\bne(?:ler)?\s+var\b", lowered):
+        return True  # "çantamda ne var", "üstümde ne var bakayım"
     if not re.search(r"\benvanter(?:im|imde|imi|ime|imin)\b", lowered):
         return False
     return bool(re.search(
@@ -843,6 +845,9 @@ def execute(session, text, *, advance_turn=True):
                 f"Envanterinde: {', '.join(item_names)}."
                 if item_names else "Envanterin boş."
             )
+            wallet = candidate.get("currency", {}).get("player")
+            if wallet:
+                narration += f" Kesende {wallet // 100} altın {wallet % 100} bakır var."
         world.clear()
         world.update(candidate)
         if advance_turn and tokens[1] != "list":

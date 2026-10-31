@@ -3654,13 +3654,13 @@ def ensure_combat_state():
     return combat
 
 
-_ARMED_ROLE = re.compile(r"\b(?:muhafiz|nobetci|cavus|asker|guard|sergeant|haydut|eskiya)")
+_ARMED_ROLE = re.compile(r"\b(?:muhafiz|nobetci|cavus|asker|haydut|eskiya)")
 _STRONG_ROLE = re.compile(r"\b(?:demirci|liman iscisi|seyis|arabaci|mezarci|barmen|usta|kahya)")
 # (armor class, hit points, attack bonus, die, damage type) for a person with no stat block.
 _PERSON_FIGHT = {
     "armed": (15, 16, 3, 6, "slashing"),
-    "strong": (11, 12, 3, 4, "bludgeoning"),
-    "plain": (10, 8, 2, 4, "bludgeoning"),
+    "strong": (11, 12, 3, 6, "bludgeoning"),
+    "plain": (10, 8, 2, 6, "bludgeoning"),
 }
 
 
@@ -4917,7 +4917,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         barbarian_rage.restore(_session(), "long_rest")
         character_progression.rest_recovery(_session(), "long_rest")
         _session().world_state["last_long_rest_completed_at"] = _session().world_state["campaign_time"]["elapsed_seconds"]
-        message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
+        message = "Gözlerini kapatıyorsun; uyandığında yorgunluğun gitmiş, gücün yerine gelmiş."
 
     elif action == "spend_hit_die":
         import hit_dice
@@ -6634,7 +6634,7 @@ _SPEAKING_VERB = re.compile(
 def _is_spoken_to(player_input, npc):
     """A sentence said to this person (vocative, dative + speech, or a speech
     verb) is conversation even without a question mark."""
-    if not isinstance(npc, dict):
+    if not isinstance(npc, dict) or not _npc_speech_enabled():
         return False
     if _has_explicit_attack_verb(player_input) or _is_object_inspection(player_input):
         return False
@@ -9488,7 +9488,7 @@ def _fallback_narration(player_input, npc_target=None):
             return f'{living_world.public_npc_name(target_npc)}, "Evet, bunu söylemiştim: {quote.group(1)}" diye yanıt verir.'
         return f'{living_world.public_npc_name(target_npc)}, "Evet, bunu daha önce konuştuğumuzu hatırlıyorum," diye yanıt verir.'
     if target_npc and re.search(r"(isim|adı|adın|ismin|kimsin|kim\?)", text):
-        return f'{living_world.public_npc_name(target_npc)}, "Ben {living_world.public_npc_name(target_npc)}; rolüm {living_world.public_npc_role(target_npc) or "kişi"}," diye yanıt verir.'
+        return f'{living_world.public_npc_name(target_npc)} sana şöyle bir bakıyor. “Bunun beni ilgilendirdiğini sanmıyorum.”'
     if target_npc and re.search(r"\b(selam|merhaba|iyi günler)\b", text):
         return f'{living_world.public_npc_name(target_npc)} selamını alır ve "Merhaba," diye karşılık verir.'
     if target_npc and re.search(r"\b(?:burada ne zamandır|kaç yıldır|ne kadar süredir)\b.{0,50}\b(?:çalış|burada|taverna)", text):
@@ -11690,8 +11690,7 @@ _LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
 # describes how unsettled the talk around the player is. Nothing here names
 # records, data, memory or verification, and nothing here asserts a fact.
 _UNVERIFIED_LORE_RESPONSE = (
-    "Bu konuda duyduğun hiçbir söz sağlam görünmüyor; doğrusunu öğrenmek için "
-    "biraz daha dinlemen gerekecek."
+    "Bu konudaki söylentiler belirsiz; kulağına çalınan her ağız başka konuşuyor."
 )
 _UNVERIFIED_DISTANCE_RESPONSE = (
     "Yolun uzunluğu hakkında duyduklarının hiçbiri birbirini tutmuyor; kimi bir "
@@ -13801,6 +13800,10 @@ def _hero_first_name():
 
 def _explicit_player_name_disclosure(text):
     hero = _hero_first_name()
+    folded = _normalize_turkish_typos(text) if isinstance(text, str) else ""
+    own = _normalize_turkish_typos(hero)
+    if own and re.search(rf"\bben\s+{re.escape(own)}\b|\badimi\b.*\b{re.escape(own)}\b", folded):
+        return hero  # "selam, ben carius. iş var mı": said in passing is still said
     name = (
         local_dialogue.explicit_player_name_disclosure(text)
         or local_dialogue.implied_self_introduction(text, hero)
@@ -15269,14 +15272,9 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         return _finish_combat_result(result, before)
 
     elif intent_type in {"rest", "use_item"}:
-        result.update({
-            "success": False,
-            "status": "unsupported",
-            "direct_response": _natural_unresolved_action_response(
-                player_input, {"action": intent_type}
-            ),
-            "state_changes": [],
-        })
+        # Drinking, sitting down, catching a breath: the narrator tells the
+        # attempt, Python changes nothing. Nobody fills in a form to lie down.
+        result.update({"action": "narrative", "success": False, "status": "attempted", "state_changes": []})
     elif intent_type in {"interact", "door"}:
         # LR00 fix: no owner acted on this. Saying "resolved" here produced
         # "Çevrede şimdilik belirgin bir değişiklik olmuyor" for a lockpicking
@@ -15777,7 +15775,7 @@ def resolve_scene_seating(action_input):
         "status": "unresolved",
         "success": False,
         "state_changes": [],
-        "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
+        "direct_response": "Sırtını en yakın yere verip olduğun yere çöküyorsun.",
     }
 
 
@@ -17015,7 +17013,7 @@ def _everyday_action_turn(player_input):
         if len(plan.get("steps", [])) > 1:
             plan["cursor"] = 1
             interaction_adventure.validate(state, world)
-            narration += f" Sıradaki adımın: {plan['steps'][1]['quote']}. Hazır olduğunda söyle."
+            pass  # The player remembers their own plan; the game does not read it back.
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     action_result = {
         "action": "everyday_action",
@@ -17357,6 +17355,16 @@ def player_cannot_act_turn():
     }
 
 
+_WALKED_UP = re.compile(r"(?i)\b(?:yaklaş\w*|yanaş\w*|yanına\s+gid\w*|yanına\s+git\w*|sokul\w*)[.,;:!]?\s+")
+
+
+def _said_after_approach(player_input):
+    """"...adama yaklaşıyorum. selam, ne yazıyorsun?": what comes after the walk is said to them."""
+    match = _WALKED_UP.search(player_input) if isinstance(player_input, str) else None
+    rest = player_input[match.end():].strip() if match else ""
+    return rest if len(rest.split()) >= 2 else None
+
+
 def _reads_as_address(player_input):
     """Spoken at someone: a question, a greeting or a name at the head of the line."""
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
@@ -17369,6 +17377,7 @@ def _dispatch_player_turn(
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     _reopen_public_doors()
+    player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
     if owner_reply is not None:
         return {
@@ -17435,6 +17444,7 @@ def _dispatch_player_turn(
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         question = combat_lifecycle.unbound_attack_reply(_session(), player_input, target_id)
         if question:
+            _session()._attack_asked = True  # for this sitting only; never saved
             return {
                 "messages": _session().messages,
                 "narration": question,
@@ -18580,7 +18590,18 @@ def _run_player_turn_internal(
             return None, False
         return resolution, resolution is None
 
-    compound = interaction_adventure.compound_plan(player_input)
+    walked_up = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
+    said_after = _said_after_approach(player_input)
+    if (isinstance(walked_up, dict) and walked_up.get("action") == "approach"
+            and walked_up.get("status") == "completed" and said_after
+            and interaction_mode not in {"say", "ask_dm"}):
+        spoken = _run_player_turn_internal(
+            said_after, messages, walked_up.get("target_id"), None, "say", action_id
+        )
+        spoken["narration"] = f"{walked_up['direct_response']} {spoken['narration']}"
+        return spoken
+    sleeping = bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input)))
+    compound = None if sleeping else interaction_adventure.compound_plan(player_input)
     # "Marek'in yanına gidiyorum, bir bira istiyorum": the second clause is said to him.
     import grounded_action
     request = grounded_action.spoken_request(player_input) if compound is not None else None
@@ -18646,7 +18667,7 @@ def _run_player_turn_internal(
         )
         timed_result = (
             None
-            if interaction_adventure.hint(player_input) == "plan" or local_scene_move
+            if (interaction_adventure.hint(player_input) == "plan" and not sleeping) or local_scene_move
             else timed_gameplay.resolve_input(_session(), player_input)
         )
         if timed_result is not None:
@@ -20016,27 +20037,19 @@ def _run_player_turn_internal(
                 return finish_conversation_rejection(npc_target)
         if _interaction_proposal_applies(raw_intent, npc_target, player_input):
             if experimental_npc_dialogue:
-                action_result = {
-                    "action": "dialogue",
-                    "status": "unaccepted_experimental_action",
-                    "success": False,
-                    "npc_id": npc_target["id"],
-                    "state_changes": [],
-                }
-                return finish_turn(
-                    action_result,
-                    interaction_adventure.immersive_unknown(npc_target),
-                    safety_reason_code="EXPERIMENTAL_DIALOGUE_ACTION_NOT_ACCEPTED",
-                    safety_handling="python_fallback",
-                    is_final=True,
+                # The packet's speech stands; a proposal in it simply grants nothing.
+                raw_intent = {**raw_intent, "interaction": None}
+            else:
+                action_result = interaction_adventure.resolve(
+                    _session(), player_input, raw_intent["interaction"], npc_target,
                 )
-            action_result = interaction_adventure.resolve(
-                _session(), player_input, raw_intent["interaction"], npc_target,
-            )
-            return finish_turn(
-                action_result, action_result["direct_response"],
-                is_final=action_result["status"] in {"proposal_rejected", "no_effect", "answered", "blocked"},
-            )
+                if action_result["status"] != "proposal_rejected":
+                    return finish_turn(
+                        action_result, action_result["direct_response"],
+                        is_final=action_result["status"] in {"no_effect", "answered", "blocked"},
+                    )
+                # A proposal Python cannot use is dropped; the line itself still gets a person's answer.
+                raw_intent = {**raw_intent, "interaction": None}
         if experimental_npc_dialogue:
             if conversation_resolution and conversation_resolution.get("answer_field"):
                 value = conversation_resolution["answer_value"]
@@ -20404,10 +20417,13 @@ def _run_player_turn_internal(
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
             )
-            return finish_turn(
-                action_result, action_result["direct_response"],
-                is_final=action_result["status"] in {"proposal_rejected", "no_effect", "answered", "blocked"},
-            )
+            if action_result["status"] != "proposal_rejected":
+                return finish_turn(
+                    action_result, action_result["direct_response"],
+                    is_final=action_result["status"] in {"no_effect", "answered", "blocked"},
+                )
+            # A proposal Python cannot use is dropped; the line itself still gets a person's answer.
+            raw_intent = {**raw_intent, "interaction": None}
         if npc_target is not None:
             conversation_outcome = finish_conversation_resolution(
                 conversation_resolution, npc_target

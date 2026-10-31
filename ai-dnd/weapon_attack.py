@@ -1164,8 +1164,9 @@ def natural_choice(session, text):
     unarmed = bool(re.search(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
     # Only what the player owns can strike. A weapon they do not have, or no
     # word for one, is the weapon in hand, then one drawn, then bare hands.
+    monk = monk_features.monk_level(getattr(session, "character", {})) is not None
     identity = ("unarmed" if unarmed else selected[0] if selected
-                else held[0] if held else owned[0] if owned else "unarmed")
+                else held[0] if held else owned[0] if owned and not monk else "unarmed")
     choice = {}
     if identity not in ("unarmed", *held):
         choice["draw"] = True

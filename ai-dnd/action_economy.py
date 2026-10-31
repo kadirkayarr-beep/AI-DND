@@ -781,7 +781,9 @@ def natural_command(session, message, selected_target=None):
     text = session._normalize_turkish_typos(message)
     if wants_rage(session, text):
         return {"steps": [{"kind": "activate_rage", "resource": "bonus"}]}
-    if _WAITING.search(text) and "?" not in message:
+    combat = session.world_state["combat"]
+    if (_WAITING.search(text) and "?" not in message and session.character.get("current_hp", 0) > 0
+            and combat.get("current_actor_id") == "player"):
         return {"steps": [{"kind": "end_turn"}]}
     opportunity = ensure(session)["player"]["opportunity"]
     if opportunity and re.search(r"reaksiyon.*(?:kullan|ver)|use.*reaction", text):

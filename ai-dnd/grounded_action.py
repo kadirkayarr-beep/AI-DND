@@ -1372,6 +1372,7 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
         return _enter(run, place, prefix=prefix + with_text.strip() + (" " if with_text else ""))
     run.near(place["id"])
     description = record.get("description") or ""
+    run.near(place["id"])  # "içeri giriyorum" now means this place
     return _receipt(verb, "completed", place, text=f"{prefix}{record.get('name')} önüne geliyorsun.{with_text} {description}".strip(),
                     position="outside")
 
@@ -2720,8 +2721,11 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # "kilidi açmaya çalışıyorum": tools, a roll, or a concrete obstacle
     if not conditional_seen and _direct_door_step(step):
         return True
-    if verb in {"go", "approach"} and (step.get("outside") or kind == "outside"):
+    if verb in {"go", "approach"} and (step.get("outside") or (
+            kind == "outside" and any(token.startswith(_OUTSIDE_NOUNS) for token in step["tokens"]))):
         return True
+    if verb == "enter" and step.get("via_near"):
+        return True  # "içeri giriyorum" at the front of the place just reached
     if (verb == "leave" and not _climbs_somewhere(step)
             and living_world.classify_scene_action(" ".join(step["tokens"])) != "exit"):
         return True  # out of here, however it is said; the narrator must not do it alone
@@ -2862,6 +2866,8 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
     if re.search(r"\w+(?:yorum|yoruz)\s*:", player_input):
         return defer  # "barmene bağırıyorum: ...": what follows the colon is said, not done
     p = plan(session, player_input)
+    # "Sunağın üstüne çıkıp oturuyorum": up onto something, not out of the building.
+    p["steps"] = [s for s in p["steps"] if not (s["verb"] == "leave" and _climbs_somewhere(s))]
     if p["steps"] and p["steps"][0].get("not_now"):
         return defer  # "dün kırmayı denedim", "hedefim araştırmak": told, not done now
     if any(s["verb"] in _DOOR_HANDS and _lays_hands_on_person(session, s, p) for s in p["steps"]):
@@ -2898,6 +2904,11 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
                      and not s["detail"] and not s["part"])]
     p["steps"] = steps
     first = steps[0]
+    if first["verb"] == "enter" and first["target"] is None and not first["place_noun"]:
+        near = (world.get(KEY) or {}).get("near_target_id")
+        place = next((c for c in p["candidates"] if c["kind"] == "place" and c["id"] == near), None)
+        if place is not None:
+            first.update(target=place, via_near=True)
     for step in steps:
         people = [c for c in step["ambiguous"] if c["kind"] == "npc"]
         if people and len(people) == len(step["ambiguous"]):

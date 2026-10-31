@@ -15,7 +15,7 @@ import relationships
 
 MAX_DEEDS = 12
 _STEAL = re.compile(
-    r"\b(?:asir\w*|yurut\w*|calacag\w*|kapip\b|kistir\w*|el at\w*|arakl\w*|"
+    r"\b(?:asir\w*|yurut\w*|yagmal\w*|calacag\w*|kapip\b|kistir\w*|el at\w*|arakl\w*|"
     r"keserek al\w*|kesip al\w*|cekip al\w*|sessizce cek\w*|indirip\b.*\bsakl\w*|cal(?:iyorum|ip|ayim|dim))"
 )
 # "Zili çalıyorum", "kapıyı çalıyorum", "flüt çalıyorum" are not theft.
@@ -210,7 +210,67 @@ def _burn(session) -> dict[str, Any]:
     return _reply(session, narration, "arson", "lit", check, ["features"])
 
 
+_SEARCH_BODY = re.compile(r"\b(?:ustunu|cebini|ceplerini|cesedi|kesesini)\b.*\b(?:ar\w*|al\w*|bak\w*|yokl\w*)|\bsoyuyorum\b")
+_PRICES = (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30))
+_BUY = re.compile(r"\b(?:alayim|alirim|aliyorum|ver|versene|getir|getirsene|istiyorum|isterim)\b")
+_SERVER = re.compile(r"\b(?:barmen|hanci|meyhaneci|garson|satici|asci)")
+
+
+def _search_body(session, text: str) -> dict[str, Any] | None:
+    import fallen
+    bodies = [npc for npc in fallen.here(session.world_state) if not npc.get("searched")]
+    if not bodies or not _SEARCH_BODY.search(fold(session, text)):
+        return None
+    body = bodies[0]
+    body["searched"] = True
+    coins = session.rng.randint(0, 30)
+    wallets = session.world_state.setdefault("currency", {})
+    wallets["player"] = wallets.get("player", 0) + coins
+    who = living_world.public_npc_name(body)
+    narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
+                 else f"{who} üzerinde işe yarar bir şey çıkmıyor.")
+    return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
+
+
+def settle_coin_labels(world: dict[str, Any]) -> None:
+    """"8 Altın" written in the pack becomes real money the first time money is spent."""
+    kept = []
+    wallets = world.setdefault("currency", {})
+    for item in world.get("inventory", []):
+        name = item.get("name") if isinstance(item, dict) else item
+        match = re.fullmatch(r"(\d+) (?:Altın|GP)", str(name))
+        if match:
+            wallets["player"] = wallets.get("player", 0) + int(match.group(1)) * 100
+        else:
+            kept.append(item)
+    world["inventory"] = kept
+
+
+def _buy(session, text: str) -> dict[str, Any] | None:
+    folded = fold(session, text)
+    wanted = next((item for item in _PRICES if item[0] in folded), None)
+    server = next((npc for npc in session.active_npcs()
+                   if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
+    if wanted is None or server is None or not _BUY.search(folded):
+        return None
+    world = session.world_state
+    settle_coin_labels(world)
+    wallets = world.setdefault("currency", {})
+    _, label, price = wanted
+    who = living_world.public_npc_name(server)
+    if wallets.get("player", 0) < price:
+        return _reply(session, f"{who} kesene bakıp başını sallıyor. “Parası yoksa {label} da yok.”",
+                      "purchase", "no_money", None, [])
+    wallets["player"] -= price
+    return _reply(session, f"{who} önüne bir {label} bırakıyor; {price} bakır kesenden tezgâha geçiyor.",
+                  "purchase", "bought", None, ["currency"], price_cp=price)
+
+
 def resolve(session, text: Any) -> dict[str, Any] | None:
+    if isinstance(text, str) and "?" not in text:
+        settled = _search_body(session, text) or _buy(session, text)
+        if settled is not None:
+            return settled
     if is_theft(session, text):
         return _steal(session, text)
     if is_arson(session, text):

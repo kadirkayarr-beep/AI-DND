@@ -93,9 +93,10 @@ def fold(text):
 
 def _label_core(text):
     """"2 Hançer" -> hançer, "Kısa Yay & 20 Ok" -> kısa yay, "Pala (Scimitar)" -> scimitar."""
-    inner = re.search(r"\(([^)]+)\)", text)
-    core = inner.group(1) if inner else text.split("&")[0]
-    return re.sub(r"^\s*\d+\s+", "", core).strip()
+    bare = re.sub(r"^\s*\d+\s+", "", text.split("&")[0]).strip()
+    inner = re.fullmatch(r"(.+?)\s*\(([^)]+)\)", bare)
+    # Only a weapon's own Turkish name vouches for the English one in brackets.
+    return inner.group(2) if inner and fold(inner.group(1)) in TURKISH_NAMES else bare
 
 
 def lookup(identity):

@@ -556,8 +556,8 @@ class NarrationAndCoreTests(unittest.TestCase):
         for _ in range(50):
             rest = session.execute_intent({"intent": "rest"}, "dinleniyorum")
             item = session.execute_intent({"intent": "use_item"}, "iksir içiyorum")
-            self.assertEqual(rest["status"], "unsupported")
-            self.assertEqual(item["status"], "unsupported")
+            self.assertEqual(rest["status"], "attempted")
+            self.assertEqual(item["status"], "attempted")
         self.assertEqual(session.character["current_hp"], hp)
         self.assertEqual(session.world_state["inventory"], before["inventory"])
         self.assertEqual(session.world_state["quests"], [])

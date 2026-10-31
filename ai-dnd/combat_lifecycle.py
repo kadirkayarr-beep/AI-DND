@@ -141,7 +141,10 @@ def _attack_targets(session, message, target_id):
                or session._entity_reference_in_text(n.get("role", ""), text)]
     if guessed or not re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text):
         return guessed
-    return session.active_npcs()
+    flags = world.get("flags", {})
+    reference = flags.get("active_npc_id") or flags.get("last_npc_id")
+    people = session.active_npcs()
+    return [n for n in people if n.get("id") == reference] or people
 
 
 def _single_valid_target(session, targets):
@@ -190,6 +193,15 @@ def flee(session, action_id=None, session_id=None):
     result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
     result["narration"] = f"Kaçacak bir açık bulamıyorsun; yolun kesiliyor. {result.get('narration', '')}".strip()
     return result
+
+
+def answered_attack_question(session, message):
+    """"Kime saldırıyorsun?" - "çelimsiz biri": the answer finishes the sentence."""
+    asked = getattr(session, "_attack_asked", False)
+    session._attack_asked = False
+    if not asked or len(str(message).split()) > 4:
+        return message
+    return f"{message} saldırıyorum" if pointed_targets(session, message) else message
 
 
 def unbound_attack_reply(session, message, target_id=None):

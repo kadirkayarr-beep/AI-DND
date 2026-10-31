@@ -459,7 +459,7 @@ def start_travel(session, destination):
     if stages is None:
         if world.get("blocked_travel_routes", {}).get(world.get("location"), {}).get(destination, False):
             return _result("travel", "Bu yol fiziksel olarak kapalı; başka bir kayıtlı rota seçebilirsin.", status="blocked", success=False)
-        return _result("travel", "Bu yolun süresi henüz belirlenmiş değil; yolculuk başlamadı.", status="unverified", success=False)
+        return _result("travel", "Oraya giden yolu bilmiyorsun; kapıdaki kimseye de sormadan yola düşülmez.", status="unverified", success=False)
     if not stages:
         journey = world.get("journey")
         if journey and journey["status"] != "ARRIVED":
@@ -784,6 +784,9 @@ def explicit_wait_request(text):
                    ("question", "reported", "conditional", "negated", "not_now"))
 
 
+_SLEEPING = re.compile(r"\buyu(?:yorum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu")
+
+
 def input_route_markers(world, normalized):
     """Pure recognition shared by the timed owner and immediate-check admission."""
     journey = world.get("journey")
@@ -843,6 +846,8 @@ def resolve_input(session, text):
     if wait or passive_observation:
         if "sabaha kadar" in normalized:
             duration = clock.until_morning(world)
+        if duration is None and _SLEEPING.search(normalized):
+            duration = 8 * 3600  # Lying down anywhere is sleeping; where is the player's business.
         if duration is None:
             if (wait and not any(mark in text for mark in ('?', '"', '“', '”', '«', '»'))
                     and re.search(r"\b(?:han\w*|dukkan\w*|magaza\w*|kapi\w*)\b.{0,80}\bacilana kadar\b", normalized)):
