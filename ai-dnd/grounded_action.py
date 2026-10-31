@@ -114,6 +114,9 @@ _LOCK_PARTS = {"kilit": "lock", "kilid": "lock", "mandal": "latch", "tokmak": "k
                "kol": "handle", "kulp": "handle", "sap": "handle", "mentese": "hinge",
                "anahtar delig": "lock", "surgu": "bolt"}
 _PRONOUNS = ("onu", "ona", "orada", "oraya", "orayi", "suna", "sunu", "buna", "bunu", "oradaki", "icine")
+_THERE = frozenset({"oraya", "orayi", "orada", "oradaki", "suraya"})
+_BARE_GO_WORDS = frozenset({"tamam", "peki", "olur", "o", "zaman", "oyleyse", "hadi", "haydi", "simdi",
+                            "hemen", "iyi", "evet", "ben", "ee", "e", "ozaman"})
 _RELATIONAL = {"altina", "altinda", "onune", "onunde", "yanina", "yaninda", "arkasina", "arkasinda",
                "ustune", "ustunde", "dibine", "dibinde", "basina", "basinda"}
 _SAID_BY = re.compile(r"\b(?:soyledig|bahsettig|dedig|onerdig|anlattig|gosterdig|tarif ettig)\w*")
@@ -515,6 +518,18 @@ def _noun_hit(noun: str, tokens: list[str]) -> bool:
     return False
 
 
+def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The place the talk was just about, else the place last in play."""
+    said = npc_statements.last_said_place(world)
+    wanted = (said.get("location_id") or said.get("id")) if said else last_target_id(world)
+    return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference"}), None)
+
+
+def _is_bare_go(step: dict[str, Any]) -> bool:
+    """"Tamam, gidiyorum", "O zaman gideyim": going, with no word for where."""
+    return step["verb"] == "go" and all(t in _BARE_GO_WORDS for t in step["goal_tokens"])
+
+
 def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[str, Any],
          verb: str | None) -> dict[str, Any]:
     """Pick the entity a clause is about. Returns {'target', 'part', 'score', 'ambiguous'}."""
@@ -540,6 +555,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
                 part = name
     explicit_name_ids: set[str] = set()
     strict_name_ids: set[str] = set()
+    said = npc_statements.last_said_place(world)
+    talked_of = said.get("location_id") if said else None
     for cand in cands:
         score = 0
         for name in cand["names"]:
@@ -555,8 +572,6 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         if score == 0 and cand["kind"] == "door" and part is not None:
             score = 38
         if score == 0:
-    said = npc_statements.last_said_place(world)
-    talked_of = said.get("location_id") if said else None
             continue
         # An explicit registered name outranks conversational focus. Focus is
         # only a fallback for generic references, never a correction to a name.
@@ -564,6 +579,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
             score += 12
         if cand["id"] == last and cand["id"] not in explicit_name_ids:
             score += 6
+        if talked_of and cand["kind"] == "door" and cand.get("place_id") == talked_of:
+            score += 6  # "the door" is the door of the place just talked about
         if said_by_npc and cand["kind"] == "reference" and cand["record"].get("said_by") == said_by_npc:
             score += 80
         if said_by_npc and cand["kind"] == "npc" and cand["id"] == said_by_npc:
@@ -579,14 +596,16 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         scored.append((score, cand))
     # If a strict registered label is present, discard names matched only by
     # typo distance. Otherwise similar neighboring names can beat the label
-        if talked_of and cand["kind"] == "door" and cand.get("place_id") == talked_of:
-            score += 6  # "the door" is the door of the place just talked about
     # the player actually typed, especially after the other one was in focus.
     if strict_name_ids:
         scored = [
             (score, cand) for score, cand in scored
             if cand["id"] not in explicit_name_ids or cand["id"] in strict_name_ids
         ]
+    if not scored and verb in {"go", "approach", "enter"} and any(t in _THERE for t in clause_tokens):
+        topic = _topic_place(world, cands)
+        if topic is not None:
+            scored.append((30, topic))
     if not scored and any(t in _PRONOUNS for t in clause_tokens):
         for cand in cands:
             if cand["id"] in (last, near):
@@ -2805,6 +2824,9 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         if step["verb"] in {"go", "approach"} and step["target"] is None and not step["place_noun"] \
                 and not step["detail"] and not step.get("outside"):
             step["commitment"] = _implicit_escort_target(session, step)
+            if step["commitment"] is None and _is_bare_go(step):
+                step["target"] = _topic_place(world, p["candidates"])
+                step["via_pronoun"] = step["target"] is not None
     if first["verb"] in DEFER_VERBS:
         return defer
     if all(s["negated"] for s in steps):
@@ -2830,9 +2852,13 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
     if first["verb"] in {"go", "approach"} and first["target"] is None and not first.get("commitment") \
             and not first["place_noun"] and not first["detail"] and not first.get("outside") \
             and any(t in _PRONOUNS for t in first["tokens"]):
-        # "oraya gidiyorum" with nothing said or seen before: ask, naming what is here.
-        options = [c for c in p["candidates"] if c["kind"] in {"place", "door", "feature", "reference", "npc"}]
+        # "oraya gidiyorum" with nothing said or seen before: ask, naming the places here.
+        order = {"reference": 0, "place": 1, "door": 2, "feature": 3}
+        options = sorted((c for c in p["candidates"] if c["kind"] in order), key=lambda c: order[c["kind"]])
         return "clarify", (run, options[:4])
+    if first["ambiguous"] and first["verb"] in {"open", "force", "knock", "unlock", "close"} \
+            and all(c["kind"] == "door" for c in first["ambiguous"]):
+        return "clarify", (run, first["ambiguous"])  # two doors and no context: never a guess
     if len(steps) == 1 and not _owned_single_step(first, p.get("conditional_seen", False)):
         # One plain act that an existing owner already resolves with its own
         # contract (enter/exit with door checks, knocking, forcing, building
@@ -2856,9 +2882,6 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
                and not (s["verb"] in {"knock", "open", "unlock", "force", "close"} and _current_door_target(run, s))]
     if unbound and not fallback:
         return defer  # the older owners get their turn first; the fallback pass may ask the model
-    if first["ambiguous"] and first["verb"] in {"open", "force", "knock", "unlock", "close"} \
-            and all(c["kind"] == "door" for c in first["ambiguous"]):
-        return "clarify", (run, first["ambiguous"])  # two doors and no context: never a guess
     if unbound and allow_model:
         suggested = model_ground(run, player_input, p["candidates"])
         actionable = [m for m in suggested if m["verb"] not in {"talk", "other"}]

@@ -224,5 +224,92 @@ class WhatAPersonSaidAboutAPlaceStands(DoorCase):
         self.assertNotIn("doğrula", data["narration"])
 
 
+class GoingWhereTheTalkWas(DoorCase):
+    def inn(self):
+        return next(r for r in self.world["locations"].values() if r.get("scene_kind") == "tavern")
+
+    async def test_there_goes_to_the_inn_just_named(self):
+        await self.say("Bu çevrede bir han var mı?")
+        data = await self.say("Tamam, oraya gidiyorum.")
+        self.assert_no_wall(data)
+        self.assertEqual(self.world["location"], self.inn()["id"])
+
+    async def test_bare_forms_go_to_the_inn_just_named(self):
+        for line in ("Tamam, gidiyorum.", "O zaman gideyim.", "Peki, gidiyorum", "Gidiyorum."):
+            with self.subTest(line=line):
+                self.world["location"] = "fr:city:neverwinter"
+                await self.say("Bu çevrede bir han var mı?")
+                data = await self.say(line)
+                self.assert_no_wall(data)
+                self.assertEqual(self.world["location"], self.inn()["id"])
+
+    async def test_there_follows_a_place_a_person_only_mentioned(self):
+        self.client.SPOKEN = "Kızılhan var, doğu kapısının yanında."
+        await self.say("Bana şehirde gidilecek bir yer öner.")
+        await self.say("Tamam, oraya gidiyorum.")
+        self.assertEqual(self.world["locations"][self.world["location"]]["name"], "Kızılhan")
+
+    async def test_what_was_just_said_beats_an_older_target(self):
+        self.client.SPOKEN = "Kızılhan var, doğu kapısının yanında."
+        old = await self.find_inn()
+        for npc in self.world["npcs"]:
+            npc["location"] = self.world["location"]
+        grounded_action.note_last(self.world, old["id"])
+        await self.say("Bana şehirde gidilecek başka bir yer öner.")
+        await self.say("Oraya gidiyorum.")
+        self.assertEqual(self.world["locations"][self.world["location"]]["name"], "Kızılhan")
+
+    async def test_there_goes_to_an_inn_found_alone(self):
+        inn = await self.find_inn()
+        await self.say("Tamam, oraya gidiyorum.")
+        self.assertEqual(self.world["location"], inn["id"])
+
+    async def test_a_faded_topic_does_not_move_the_player(self):
+        await self.say("Bu çevrede bir han var mı?")
+        self.flags["turn_index"] += 12
+        grounded_action.note_last(self.world, "nowhere")
+        here = self.world["location"]
+        data = await self.say("Tamam, gidiyorum.")
+        self.assertEqual(self.world["location"], here)
+        self.assertNotIn("Memnun oldum", data["narration"])
+
+    async def test_there_with_nothing_in_play_asks_in_plain_words(self):
+        data = await self.say("Oraya gidiyorum.")
+        self.assert_no_wall(data)
+        self.assertNotIn("Yakındaki kişi", data["narration"])
+
+    async def test_a_walk_is_not_read_as_a_name(self):
+        here = self.world["location"]
+        data = await self.say("Ben gidiyorum.")
+        self.assertNotIn("Memnun oldum", data["narration"])
+        self.assertEqual(self.world["location"], here)
+
+
+class TwoDoorsOnOneStreet(DoorCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        run = grounded_action._Run(self.session, "")
+        city = self.world["location"]
+        self.first = grounded_action._create_venue(run, city, name="Kızılhan", kind="tavern", provenance={})
+        self.second = grounded_action._create_venue(run, city, name="Mavihan", kind="tavern", provenance={})
+        for place in (self.first, self.second):
+            self.door_of(place).update(open=False, locked=False)
+
+    async def test_the_door_of_the_place_just_talked_about_is_the_door(self):
+        self.client.SPOKEN = "Mavihan iyidir, buradan uzak değil."
+        await self.say("Bana şehirde gidilecek bir yer öner.")
+        await self.say("Kapıyı açmaya çalışıyorum.")
+        self.assertTrue(self.door_of(self.second)["open"])
+        self.assertFalse(self.door_of(self.first)["open"])
+
+    async def test_with_no_context_nothing_is_guessed(self):
+        data = await self.say("Kapıyı açmaya çalışıyorum.")
+        self.assertFalse(self.door_of(self.first)["open"])
+        self.assertFalse(self.door_of(self.second)["open"])
+        self.assertIn("Kızılhan", data["narration"])
+        self.assertIn("Mavihan", data["narration"])
+        self.assert_no_wall(data)
+
+
 if __name__ == "__main__":
     unittest.main()
