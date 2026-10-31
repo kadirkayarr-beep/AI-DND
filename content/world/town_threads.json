@@ -310,7 +310,10 @@
       "alıyorum işi",
       "iş benim",
       "o işi yaparım",
-      "bu işi yaparım"
+      "bu işi yaparım",
+      "tabii",
+      "elbette",
+      "tabii ki"
     ],
     "decline": [
       "yok",
@@ -494,7 +497,8 @@
       "sana",
       "ben",
       "bir",
-      "şey"
+      "şey",
+      "uzatmayalım"
     ],
     "discourse": [
       "iyi",

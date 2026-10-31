@@ -20,6 +20,7 @@ import copy
 import hashlib
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,8 @@ DATA_PATH = Path(__file__).resolve().parents[1] / "content" / "world" / "town_th
 ANSWERS_PATH = DATA_PATH.with_name("offer_answers.json")
 MAX_ACTIVE = 8
 MAX_HISTORY = 8
+MAX_LOG = 6
+WARY_PERCENT = 20
 MAX_SETTLEMENTS = 4
 MAX_SEEDED_PLACES = 5  # the rest of the settlement's places stay for the player to find
 MIN_OPEN = 2
@@ -591,6 +594,298 @@ def _apply_effects(world, effects):
                 director.abandon_dynamic(world, quest_id)
             except (TransitionError, ValueError):
                 _LOG.warning("A job's journal row could not be closed.")
+
+
+# Answering an offer. Word lists only, read clause by clause: a word counts when the
+# clause is that word, never because it sits inside something longer.
+_QUOTES = ('"', "“", "”", "«", "»", "‘", "’")
+_SPLIT = re.compile(r"(\.\.\.|…|[.,;:!?]+)|\b(ama|fakat|ancak|lakin)\b", re.IGNORECASE)
+_CONDITIONAL_ENDS = ("rsa", "rse", "rsam", "rsem", "rsan", "rsen", "ysa", "yse", "etsem", "olsa", "olsam",
+                     "yapsam", "alsam", "versen", "verseydin")
+_REPORTED = frozenset({"dedi", "demis", "dedim", "demistim", "dedin", "demedim", "yazmis", "soyledi", "soylemis"})
+_DECISIONS = {"accept", "decline", "withdraw"}
+_NUMBER_ONES = ("", "bir", "iki", "uc", "dort", "bes", "alti", "yedi", "sekiz", "dokuz")
+_NUMBER_TENS = ("", "on", "yirmi", "otuz", "kirk", "elli", "altmis", "yetmis", "seksen", "doksan")
+
+
+def _spoken_number(number: int) -> str:
+    return " ".join(p for p in (_NUMBER_TENS[number // 10 % 10], _NUMBER_ONES[number % 10]) if p)
+
+
+def names_number(text: Any, number: Any) -> bool:
+    """The figure as said aloud: '38', 'otuz sekiz', 'otuz sekize'. No digit inside another number."""
+    if type(number) is not int:
+        return False
+    words = _folded(text).split()
+    if str(number) in words:
+        return True
+    wanted = _spoken_number(number).split()
+    if not wanted:
+        return False
+    for start in range(len(words) - len(wanted) + 1):
+        window = words[start:start + len(wanted)]
+        short = len(wanted[-1]) < 4  # 'on' is not 'onu'
+        ending = window[-1] == wanted[-1] or (not short and window[-1].startswith(wanted[-1])
+                                              and len(window[-1]) <= len(wanted[-1]) + 2)
+        if window[:-1] == wanted[:-1] and ending and (
+                len(wanted) > 1 or start == 0 or words[start - 1] not in _NUMBER_TENS):
+            return True
+    return False
+
+
+def _stem(word: str) -> str:
+    """'mektup' also has to find 'mektubu', 'paket' 'paketi'."""
+    return word[:-1] if word[-1:] in {"p", "c", "t", "k", "g"} and len(word) > 3 else word
+
+
+def _item_stems(thread: dict[str, Any]) -> tuple[str, ...]:
+    words = _folded(thread.get("item_noun")).split()
+    return tuple(_stem(word) for word in words if len(word) > 2)
+
+
+def _clauses(text: str) -> list[tuple[list[str], bool, bool]]:
+    """(words, ends with a question mark, follows 'ama'), in order."""
+    found, words, after_but = [], "", False
+    position = 0
+
+    def close(asked: bool) -> None:
+        nonlocal words, after_but
+        tokens = _folded(words).split()
+        if tokens:
+            found.append((tokens, asked, after_but))
+            after_but = False
+        words = ""
+
+    for match in _SPLIT.finditer(text):
+        words += text[position:match.start()]
+        position = match.end()
+        if match.group(2):
+            close(False)
+            after_but = True
+        else:
+            close("?" in match.group(1))
+    words += text[position:]
+    close(False)
+    return found
+
+
+def _names_of(npc: Any) -> frozenset[str]:
+    if not isinstance(npc, dict):
+        return frozenset()
+    return frozenset(word for key in ("name", "public_name", "role") for word in _folded(npc.get(key)).split())
+
+
+def _has_phrase(tokens: list[str], phrases: frozenset[str]) -> bool:
+    return any(" ".join(tokens[start:end]) in phrases
+               for start in range(len(tokens)) for end in range(start + 1, min(start + 4, len(tokens)) + 1))
+
+
+def _read_clause(tokens, asked, table, names, item_stems):
+    """One clause's meaning, or 'other' when it is something else entirely."""
+    is_item = lambda word: word in table["item_words"] or any(word.startswith(stem) for stem in item_stems)
+    fillers = table["fillers"] | names
+    body = list(tokens)
+    while body and (body[0] in table["discourse"] or body[0] in names):
+        body.pop(0)
+    while body and body[-1] in fillers:
+        body.pop()
+    if not body:
+        return "neutral"
+    body = [word for index, word in enumerate(body) if index == 0 or word != body[index - 1]]
+    phrase = " ".join(body)
+    if phrase in table["unclear"] and _has_phrase(body, table["question_terms"]):
+        return "terms"
+    if phrase in table["unclear"] or (set(body) & _REPORTED):
+        return "unclear"
+    if any(word.endswith(_CONDITIONAL_ENDS) for word in body):
+        return "unclear"
+    for meaning in ("decline", "withdraw", "accept"):
+        if phrase in table[meaning]:
+            return "question" if asked else meaning
+    if _has_phrase(body, table["question_terms"]):
+        return "terms"
+    if any(word in table["hedges"] for word in body):
+        return "unclear"
+    if asked or any(word in table["question_words"] for word in body) or _has_phrase(body, table["question_words"]):
+        return "question"
+    harmless = fillers | table["reference"] | table["item_words"]
+    for size in range(len(body) - 1, 0, -1):
+        head, rest = " ".join(body[:size]), body[size:]
+        if all(word in harmless or is_item(word) for word in rest):
+            for meaning in ("decline", "withdraw", "accept"):
+                if head in table[meaning]:
+                    return meaning
+    bare_yes = {word for word in body[:2] if word in table["accept"]}
+    plain = [word for word in body if word not in bare_yes and word not in fillers]
+    if plain and all(word in table["take"] or is_item(word) for word in plain) and any(word in table["take"] for word in plain):
+        return "take"
+    if " ".join(plain) in table["start"] and plain:
+        return "start"
+    numbers = {*_NUMBER_ONES, *_NUMBER_TENS, "saat", "saatlik", "gun", "gunluk"}
+    timed = [word for word in plain if word not in numbers and not word.isdigit()]
+    if timed and len(timed) < len(plain) and " ".join(timed) in table["start"]:
+        return "start"
+    if plain and any(word in table["give_verbs"] for word in plain[-1:]) and any(is_item(word) for word in plain):
+        return "give"
+    if plain and plain[-1] in table["move"]:
+        return "move"
+    if " ".join(plain) in table["move"] and plain:
+        return "move"
+    return "other"
+
+
+def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None) -> dict[str, Any]:
+    """What this line says about an offer, by the lists alone. Knows nothing of any offer."""
+    reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
+               "start": False, "move": False, "reference": False}
+    table = answer_table()
+    if not isinstance(text, str) or not text.strip() or not table or any(mark in text for mark in _QUOTES):
+        return reading
+    whole = _folded(text)
+    names = _names_of(npc)
+    stems = _item_stems(thread or {})
+    words = whole.split()
+    reading["reference"] = any(word in table["reference"] or any(word.startswith(s) for s in stems) for word in words) or (
+        _has_phrase(words, table["reference"]))
+    reading["terms"] = False
+    if whole in table["unclear"]:
+        reading["terms"] = _has_phrase(words, table["question_terms"])
+        return reading
+    if "?" not in text:
+        for meaning in ("decline", "withdraw", "accept"):
+            if whole in table[meaning]:
+                return {**reading, "meaning": meaning}
+    clauses = _clauses(text)
+    kinds = []
+    for tokens, asked, after_but in clauses:
+        kind = _read_clause(tokens, asked, table, names, stems)
+        repaired = tokens[0] in table["repair"] or " ".join(tokens[:2]) in table["repair"]
+        if repaired and kinds:
+            kinds = []  # 'yok ya... neyse olur': the later word is the answer
+        if after_but and kind not in {"question", "terms"}:
+            kind = "unclear"  # 'olur ama...' with a condition is not yet a yes
+        kinds.append(kind)
+    decided = _DECISIONS & set(kinds)
+    reading["question"] = "question" in kinds
+    reading["take"], reading["give"] = "take" in kinds, "give" in kinds
+    reading["start"], reading["move"] = "start" in kinds, "move" in kinds
+    if "terms" in kinds:
+        return {**reading, "terms": True}
+    if "unclear" in kinds or "other" in kinds or len(decided) > 1:
+        return {**reading, "take": False, "give": False, "start": False, "move": False}
+    if decided:
+        return {**reading, "meaning": decided.pop()}
+    return reading
+
+
+def _last_exchange(world, npc):
+    log = (world.get("npc_speech_log") or {}).get(npc.get("id")) if isinstance(npc, dict) else None
+    return log[-1] if isinstance(log, list) and log and isinstance(log[-1], dict) else None
+
+
+def _asks_something_else(line: str, thread: dict[str, Any], table) -> bool:
+    """The line ended on another question: 'olur' answers that one, not the job."""
+    if not line.rstrip().endswith("?"):
+        return False
+    last = re.split(r"[.!…]+", line.rstrip())[-1]
+    words = _folded(last).split()
+    stems = _item_stems(thread)
+    return not (
+        _has_phrase(words, table["close_words"]) or any(word.startswith(s) for s in stems for word in words)
+        or any(word.startswith(close) for close in table["close_words"] if " " not in close for word in words)
+        or names_number(last, (thread.get("terms") or {}).get("pay"))
+    )
+
+
+def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+    """This person's last line to the player was this very offer, and asked nothing else."""
+    last = _last_exchange(world, npc)
+    line = thread.get("offer_line")
+    return bool(last and line and last.get("npc") == line) and not _asks_something_else(line, thread, answer_table())
+
+
+def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> str | None:
+    """Python's reading of the player's own words on this thread. Writes nothing."""
+    status = thread.get("status")
+    if status not in {"offered", "declined", "accepted"}:
+        return None
+    reading = read_answer(text, npc, thread)
+    if status == "accepted":
+        return "abandoned" if reading["meaning"] == "withdraw" else None
+    if reading["terms"]:
+        return "questioning_terms" if status == "offered" else None
+    current = reading["reference"] or answers_the_offer(world, thread, npc)
+    yes = reading["meaning"] == "accept" or (reading["meaning"] is None and (reading["take"] or reading["start"]))
+    if not current:
+        return None
+    if status == "declined":
+        return "accepted" if yes else None
+    if yes:
+        return "accepted"
+    if reading["meaning"] in {"decline", "withdraw"}:
+        return "declined"
+    return None
+
+
+def _log(thread: dict[str, Any], at: int, kind: str) -> None:
+    thread["log"] = [*thread.get("log", []), {"at": at, "kind": kind}][-MAX_LOG:]
+
+
+def owner_mood(world: dict[str, Any], thread: dict[str, Any], npc: Any, *, this_exchange: int = 0) -> str:
+    """Will this person offer the work to this stranger: 'yes', 'wary' or 'no'. Python's call.
+
+    this_exchange: statements already recorded for the reply being judged, which are not
+    an earlier conversation.
+    """
+    import npc_statements
+    import relationships
+    if not isinstance(npc, dict):
+        return "no"
+    state = view(world) or {"history": []}
+    place_id = npc.get("place_role_of")
+    past = [t for t in state["history"] if t.get("place_id") == place_id and t.get("offered_at") is not None]
+    if relationships.score(world, npc.get("id")) <= -1 and past and past[-1]["status"] in {"failed", "abandoned"}:
+        return "no"
+    seed = living_world._campaign_seed(world)
+    said = npc_statements.view(world)["statements"].get(npc.get("id")) or []
+    if _rank(seed, thread["thread_id"], "wary") % 100 < WARY_PERCENT and len(said) <= this_exchange:
+        return "wary"
+    return "yes"
+
+
+def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any], shown: str, turn: int) -> bool:
+    """The terms were really spoken: only now is there an offer to answer."""
+    if not transition(thread, "offered"):
+        return False
+    terms = thread["terms"]
+    now = _now(world)
+    thread.update(owner_npc_id=npc.get("id"), offered_turn=turn, offered_at=now, offer_line=shown.strip()[:400],
+                  offered_terms_shown={"pay": terms.get("pay"), "days": terms.get("work_days"),
+                                       "pay_basis": pay_basis(thread), "pay_timing": terms.get("pay_timing"),
+                                       "deadline_text": terms.get("deadline_text")})
+    _log(thread, now, "offered")
+    return True
+
+
+def accept_hired(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+    if not transition(thread, "accepted"):
+        return False
+    now = _now(world)
+    days = thread["terms"].get("work_days") or 1
+    thread.update(accepted_at=now, starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0,
+                  paid_cp=0)
+    thread.pop("declined_turn", None)
+    _log(thread, now, "accepted")
+    return True
+
+
+def decline(world: dict[str, Any], thread: dict[str, Any], turn: int) -> bool:
+    if not transition(thread, "declined"):
+        return False
+    now = _now(world)
+    thread.update(declined_turn=turn, expires_at=min(thread["expires_at"], now + DECLINE_HOURS * HOUR))
+    _log(thread, now, "declined")
+    return True
 
 
 def _replenish(world, state, now):
