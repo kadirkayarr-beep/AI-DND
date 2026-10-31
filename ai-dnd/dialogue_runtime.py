@@ -206,7 +206,8 @@ def prepare_turn(session, npc_id: str, player_text: str, raw_reply: dict, action
     flags.update(active_npc_id=npc_id,last_npc_id=npc_id,active_npc_until_turn=flags['turn_index']+6)
     if not local_dialogue.name_withheld_reason(world,npc) and npc_speech_boundary.claims_own_name(reply['spoken_text'],npc.get('name')):
         npc['name_known_to_player']=True
-    reply['stage_direction']=npc_speech_boundary.hide_unknown_name(reply['stage_direction'],npc)
+    import game
+    reply['stage_direction']=game._shown_stage_direction(npc_speech_boundary.hide_unknown_name(reply['stage_direction'],npc),world)
     if eligible: npc['dialogue_initiative_handled']=eligible['event_id']
     if motive: npc['dialogue_deception']['remaining_uses']=0
     label=living_world.public_npc_name(npc)
@@ -302,7 +303,7 @@ def _generate_reply(session,npc,player_text,*,optional_initiative=False,action_i
         "Oyuncu konu değiştirdiyse eski han teklifini sürdürme. Eksik bilgin varsa dar kapsamda bilmediğini söyle; "
         "bütün şehrin kapalı/uykuda olduğunu veya nöbetin bittiğini kendiliğinden çıkarma. "
         "Görev hedefi yoksa şu an verebileceğin uygun bir iş olmadığını söyle; bunun için uydurma kapanış saati veya talep geçmişi üretme. "
-        "stage_direction kısa üçüncü şahıs görünür jesttir; boş kalabilir. Jest için elde bulunmayan bardak, hamur, silah, "
+        "scene.where_now senin ve oyuncunun gerçek yeridir. stage_direction kısa üçüncü şahıs görünür jesttir; boş kalabilir. Jest için elde bulunmayan bardak, hamur, silah, "
         "içinde bulunulmayan oda veya gerçekleşmemiş yolculuk icat etme. Konuşma doğal oyun içi Türkçe olsun; "
         "emoji, sohbet asistanı selamlaması veya teknik süreç açıklaması ekleme. "
         "Samimiyet veya romantik isteğe yanıt kişiliğe ve yaşanmış ilişkiye bağlıdır; her isteğe otomatik onay verme."

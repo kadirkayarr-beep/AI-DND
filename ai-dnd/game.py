@@ -6184,11 +6184,9 @@ def _drop_repeated_sentences(narration, earlier):
 def _drop_absent_counter_sentences(narration):
     """A counter the player is not standing at leaves the prose; the rest stays."""
     world_state = _session().world_state
-    place = world_state.get("locations", {}).get(world_state.get("location"))
-    place = place if isinstance(place, dict) else {}
     if (
         not isinstance(narration, str)
-        or (place.get("scene_kind") or place.get("place_kind") or "city") != "city"
+        or not living_world.on_open_street(world_state)
         or any(_serves_at_a_counter(npc) for npc in active_npcs())
         or any(
             word in _normalize_turkish_typos(str(feature.get("name", "")))
@@ -8577,7 +8575,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "nominal answer; do not force a particular verb form. stage_direction contains "
             "only optional visible scene description, or an empty string; it is not "
             "speech and cannot answer the player. The server, not these fields, binds "
-            "the source and speaker. Answer the player's current message in character, "
+            "the source and speaker. scene.where_now says where you and the player really "
+            "are; stay there and add no counter, room, table or walk the scene does not list. "
+            "Answer the player's current message in character, "
             "with a voice and attitude that fit the NPC. Never begin either field with "
             "a speaker label. Never say you are an AI, a model, a "
             "system or that you lack records or data; stay inside the fiction. "
@@ -11485,13 +11485,47 @@ def _rejected_lore_narration(player_input, npc_target=None):
     return _generic_no_change_response()
 
 
+_INDOOR_DETAIL = re.compile(
+    r"\b(?:(tezgah|banko|salon|mutfak|somine)\w*|(masa|oda|raf)(?:n?in|ya|da|dan|si\w*|lar\w*|a|ta|tan)?)\b"
+)
+
+
+def _stage_within_the_street(stage, world_state):
+    """On the street a counter, room or table nobody recorded leaves the stage direction."""
+    if not living_world.on_open_street(world_state):
+        return stage
+    here = world_state.get("location")
+    people = [npc for npc in scheduled_events.visible_npcs(world_state) if npc.get("location") == here]
+    place = world_state.get("locations", {}).get(here)
+    recorded = [str(place.get("description") or "")] if isinstance(place, dict) else []
+    for feature in world_state.get("features", []):
+        if isinstance(feature, dict) and feature.get("location") == here:
+            recorded.extend(str(feature.get(key) or "") for key in ("name", "description"))
+            recorded.extend(str(alias) for alias in feature.get("aliases", []) or [])
+    for npc in people:
+        recorded.extend(str(npc.get(key) or "") for key in ("role", "appearance"))
+    recorded = _normalize_turkish_typos(" ".join(recorded))
+    stall_here = any(_serves_at_a_counter(npc) for npc in people)
+
+    def fits(sentence):
+        for match in _INDOOR_DETAIL.finditer(_normalize_turkish_typos(sentence)):
+            word = match.group(1) or match.group(2)
+            if not re.search(rf"\b{word}", recorded) and not (stall_here and word in ("tezgah", "banko")):
+                return False
+        return True
+
+    return " ".join(
+        sentence for sentence in re.split(r"(?<=[.!?…])\s+", stage) if fits(sentence)
+    )
+
+
 def _shown_stage_direction(stage, world_state):
-    """Drop a stage direction that puts an unrecorded object in someone's hand."""
+    """Drop a stage direction that puts an unrecorded object in someone's hand or leaves the place."""
     if not isinstance(stage, str) or not stage.strip():
         return ""
     if _unregistered_held_object(world_state, stage):
         return ""
-    return stage.strip()
+    return _stage_within_the_street(stage.strip(), world_state)
 
 
 def _unverified_lore_response(player_input, npc_target=None):
@@ -12568,6 +12602,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
     )
     accepted_profile = None
     content = {
+        "where_now": living_world.place_in_plain_words(world_state),
         "location_id": location_id,
         "location_name": location_display_name(location_id),
         "lore_anchor_id": (
@@ -12697,7 +12732,8 @@ def ask_dungeon_master(
             "Bilmeyen NPC doğal biçimde bilmediğini söyler; AI, veri, model, kayıt, "
             "Python veya sunucudan söz etme. Başka NPC adına konuşma. "
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
-            + json.dumps({"perspective": scoped,
+            + json.dumps({"where_now": living_world.place_in_plain_words(world_state),
+                          "perspective": scoped,
                           "resolved": {k: v for k, v in action_result.items() if k != "direct_response"},
                           "player_intent": player_input}, ensure_ascii=False)
         )

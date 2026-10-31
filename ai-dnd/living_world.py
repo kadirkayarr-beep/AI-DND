@@ -415,6 +415,35 @@ def visible_features(world_state: Any, location_id: str | None = None) -> list[d
         and isinstance(feature.get("name"), str) and feature["name"].strip()
     ]
 
+_STREET_TYPES = {
+    "city", "town", "village", "district", "neighborhood", "neighbourhood",
+    "quarter", "settlement", "street", "mahalle",
+}
+
+
+def on_open_street(world_state: Any) -> bool:
+    """True when the player stands in the open streets of a settlement."""
+    place = world_state.get("locations", {}).get(world_state.get("location"))
+    place = place if isinstance(place, dict) else {}
+    if (place.get("scene_kind") or place.get("place_kind") or "city") != "city":
+        return False
+    return str(place.get("type") or "city").casefold() in _STREET_TYPES
+
+
+def place_in_plain_words(world_state: Any) -> str:
+    """Where the player and the people here really are, as one plain sentence."""
+    place = world_state.get("locations", {}).get(world_state.get("location"))
+    name = str(place.get("name") or "").strip() if isinstance(place, dict) else ""
+    if not name:
+        return ""
+    if on_open_street(world_state):
+        return (
+            f"Oyuncu ve buradaki kişiler {name} sokaklarında, açık havada. "
+            "Sahnede yazmayan tezgâh, oda veya masa burada yok."
+        )
+    return f"Oyuncu ve buradaki kişiler {name} içinde."
+
+
 def visible_scene_facts(world_state: Any) -> dict[str, Any]:
     """A bounded, read-only projection of the player's current visible scene.
 
@@ -472,6 +501,7 @@ def visible_scene_facts(world_state: Any) -> dict[str, Any]:
     return {
         "location": {"id": here, "name": text(place.get("name"), 80) or here,
                      "kind": scene_kind(world_state, here), "description": text(place.get("description"), 400)},
+        "where_now": place_in_plain_words(world_state),
         "people": people, "features": features, "nearby_places": nearby_places,
     }
 
