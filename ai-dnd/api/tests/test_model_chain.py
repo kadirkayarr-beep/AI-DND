@@ -503,7 +503,9 @@ class TheSetting(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp(dir=_TEMP.name))
         self.database = self.home / "play" / "game.sqlite3"
-        self.saved = patch.dict(os.environ, {"USERPROFILE": str(self.home), "AI_DND_CAMPAIGN_DB": str(self.database)})
+        self.saved = patch.dict(os.environ, {
+            "USERPROFILE": str(self.home), "LOCALAPPDATA": str(self.home / "appdata"), "AI_DND_CAMPAIGN_DB": str(self.database),
+        })
         self.saved.start()
         self.addCleanup(self.saved.stop)
         for name in ("AI_DND_MODEL_CHAIN", "GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
@@ -548,16 +550,19 @@ class TheSetting(unittest.TestCase):
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,gpt"
         self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
 
-    def test_the_spend_file_sits_next_to_the_saves(self):
+    def test_every_save_folder_shares_one_spend_file_because_the_cap_is_per_key(self):
         self.keys()
         os.environ["AI_DND_MODEL_CHAIN"] = "haiku,gemma"
-        chain = model_chain.from_environment()
-        self.assertEqual(chain._providers[0].spend._path, self.database.parent / "model-chain-spend.json")
+        paths = []
+        for folder in ("one", "two"):
+            os.environ["AI_DND_CAMPAIGN_DB"] = str(self.home / folder / "game.sqlite3")
+            paths.append(model_chain.from_environment()._providers[0].spend._path)
+        self.assertEqual(paths, [self.home / "appdata" / "AI-DND" / "model-chain-spend.json"] * 2)
 
     def test_a_haiku_over_its_cap_is_not_listed_as_on(self):
         self.keys()
-        self.database.parent.mkdir(parents=True)
-        spend = self.database.parent / "model-chain-spend.json"
+        spend = self.home / "appdata" / "AI-DND" / "model-chain-spend.json"
+        spend.parent.mkdir(parents=True)
         month = datetime.now().astimezone().strftime("%Y-%m")
         spend.write_text(json.dumps({"month": month, "input_tokens": 50_000_000, "output_tokens": 0}))
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"

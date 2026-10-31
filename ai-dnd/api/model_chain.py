@@ -405,9 +405,8 @@ def _read_key(file_name: str, environment_name: str) -> str:
 
 
 def _spend_path() -> Path:
-    from api.persistence.campaign_store import default_campaign_db_path
-
-    return default_campaign_db_path().parent / SPEND_FILE_NAME
+    """One file per user: the cap belongs to the key, not to a save folder."""
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "AI-DND" / SPEND_FILE_NAME
 
 
 def from_environment() -> ModelChain | None:
