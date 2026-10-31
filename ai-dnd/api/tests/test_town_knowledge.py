@@ -412,6 +412,16 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         self.assertFalse(game._turns_to_someone_else("Başka iş var mı?"))
         self.assertFalse(game._turns_to_someone_else("Bu kişi kim?"))
 
+    async def test_street_talk_never_brings_back_a_place_already_visited(self):
+        world = await self.heard()
+        await self.go(f"{self.place['name']}ne gidiyorum.")
+        settlement = self.place["parent_location_id"]
+        for _ in range(6):
+            thread = world_threads.street_talk(world, settlement)
+            if thread is None:
+                break
+            self.assertNotEqual(thread["place_id"], self.place["id"])
+
     async def test_street_talk_is_newer_than_what_someone_said_earlier(self):
         # Real play: "Selwyn Karakolu ..." overheard, then "Oraya gidiyorum" went back to the temple named before.
         world = await self.heard()

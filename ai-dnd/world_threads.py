@@ -268,7 +268,8 @@ def street_talk(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | N
         return None
     seen = state.setdefault("overheard", [])
     thread = next((t for t in active(world, settlement_id)
-                   if t["status"] == "open" and t["thread_id"] not in seen), None)
+                   if t["status"] == "open" and t["thread_id"] not in seen
+                   and local_places.resident_of(world, t["place_id"]) is None), None)
     if thread is not None:
         seen.append(thread["thread_id"])
         del seen[:-MAX_ACTIVE * 2]
