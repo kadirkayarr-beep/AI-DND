@@ -200,6 +200,8 @@ class AuthenticatedOllamaAdapter:
         return names
 
     def ensure_required_model(self) -> None:
+        if self._chain is not None and self._chain.can_answer():
+            return  # the local model is last in line now; its failure counts only if a call reaches it
         try:
             response = self._client.list()
         except Exception as error:

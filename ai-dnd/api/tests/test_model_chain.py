@@ -843,6 +843,27 @@ class TheAdapter(unittest.TestCase):
             self.engine_call(adapter)
         self.assertEqual(failures, ["ReadTimeout"])
 
+    def test_a_stopped_ollama_blocks_nothing_while_a_cloud_provider_can_answer(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
+        stub.list = lambda: (_ for _ in ()).throw(ConnectionError("ollama down"))
+        adapter.ensure_required_model()
+        self.assertEqual(game.ollama_response_content(self.engine_call(adapter)), '{"narration": "Sokak sessiz."}')
+
+    def test_a_missing_local_model_blocks_nothing_while_a_cloud_provider_can_answer(self):
+        adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
+        stub.list = lambda: {"models": []}
+        adapter.ensure_required_model()
+
+    def test_the_preflight_still_refuses_when_no_cloud_provider_can_answer(self):
+        clock = Clock()
+        cloud = FakeCloud(gemini=httpx.Response(429), haiku=httpx.Response(429))
+        stub = EngineStub()
+        stub.list = lambda: (_ for _ in ()).throw(ConnectionError("ollama down"))
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b", chain=chain_for(cloud, clock))
+        adapter._chain.chat(CALL, LocalModel())
+        with self.assertRaises(ollama_adapter.OllamaUnavailableError):
+            adapter.ensure_required_model()
+
     def test_the_model_chain_lists_cloud_names_then_the_local_model(self):
         adapter, _ = self.adapter(FakeCloud())
         self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])

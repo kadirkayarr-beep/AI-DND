@@ -411,6 +411,9 @@ class ModelChain:
     def model_names(self) -> list[str]:
         return [provider.model for provider in self._providers if self._may_spend(provider)]
 
+    def can_answer(self) -> bool:
+        return any(self._ready(provider) for provider in self._providers)
+
     @staticmethod
     def _may_spend(provider: Provider) -> bool:
         return provider.spend is None or provider.spend.allows_a_call()
