@@ -1,6 +1,7 @@
 """Cloud models in front of the local one, for the owner's local play only.
 
-Off unless AI_DND_MODEL_CHAIN names providers. The adapter hands every engine
+Off unless api.local_play starts it and AI_DND_MODEL_CHAIN names providers, so a
+setting left in a window never reaches another process. The adapter hands every engine
 call here; a provider that fails is skipped inside that same call and the local
 model answers last with its own options. Only the existing prompt leaves this
 machine. Keys stay in this process: never logged, returned, saved or put in an

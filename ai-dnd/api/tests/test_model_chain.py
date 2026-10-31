@@ -616,6 +616,18 @@ class TheAdapter(unittest.TestCase):
         os.environ.pop("AI_DND_MODEL_CHAIN", None)
         self.assertIsNone(AuthenticatedOllamaAdapter(EngineStub())._chain)
 
+    def test_a_setting_left_in_a_window_turns_on_nothing_outside_local_play(self):
+        home = Path(tempfile.mkdtemp(dir=_TEMP.name))
+        (home / ".aidnd-gemini-key").write_text("gemini-file-key", encoding="utf-8")
+        with patch.dict(os.environ, {
+            "USERPROFILE": str(home), "AI_DND_MODEL_CHAIN": "gemini,gemma", "AI_DND_AUTH_MODE": "local",
+            "OLLAMA_HOST": "http://127.0.0.1:11434", "OLLAMA_PROXY_TOKEN": "loopback",
+        }):
+            self.assertIsNone(AuthenticatedOllamaAdapter(EngineStub())._chain)
+            self.assertIsNone(AuthenticatedOllamaAdapter.from_environment()._chain)
+            self.assertEqual(AuthenticatedOllamaAdapter.from_environment(use_cloud=True).model_chain,
+                             ["gemini-3.5-flash-lite", "gemma4:e4b"])
+
     def test_the_cloud_reply_reaches_the_engine_through_the_old_contract(self):
         adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
         response = self.engine_call(adapter)

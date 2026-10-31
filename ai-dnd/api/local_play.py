@@ -216,8 +216,13 @@ def main(argv: list[str] | None = None) -> int:
     import uvicorn
 
     from api.main import create_app
+    from api.ollama_adapter import AuthenticatedOllamaAdapter
 
-    application = create_app(authenticator=authenticator)
+    # The loopback bind is proven above, so only here may a prompt go to a cloud model.
+    application = create_app(
+        authenticator=authenticator,
+        ollama_adapter=AuthenticatedOllamaAdapter.from_environment(use_cloud=True),
+    )
     config = uvicorn.Config(application, **uvicorn_settings())
     uvicorn.Server(config).run(sockets=[listener])
     return 0

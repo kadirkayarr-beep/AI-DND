@@ -115,10 +115,16 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
 class AuthenticatedOllamaAdapter:
     """Binds one authenticated Ollama client without changing game.py."""
 
-    def __init__(self, client: Any, *, model_name: str = DEFAULT_LOCAL_MODEL):
+    def __init__(
+        self,
+        client: Any,
+        *,
+        model_name: str = DEFAULT_LOCAL_MODEL,
+        chain: model_chain.ModelChain | None = None,
+    ):
         self._model_name = validate_local_model(model_name)
         self._client = client
-        self._chain = model_chain.from_environment()
+        self._chain = chain
 
     @property
     def model_name(self) -> LocalModelName:
@@ -132,7 +138,8 @@ class AuthenticatedOllamaAdapter:
         return [*self._chain.model_names(), self.model_name]
 
     @classmethod
-    def from_environment(cls) -> AuthenticatedOllamaAdapter | None:
+    def from_environment(cls, *, use_cloud: bool = False) -> AuthenticatedOllamaAdapter | None:
+        """use_cloud is for api.local_play alone, after it has proven a loopback bind."""
         host = os.environ.get("OLLAMA_HOST")
         token = os.environ.get("OLLAMA_PROXY_TOKEN")
         if not host or not token:
@@ -152,7 +159,7 @@ class AuthenticatedOllamaAdapter:
                 type(error).__name__,
             )
             return None
-        return cls(client, model_name=model_name)
+        return cls(client, model_name=model_name, chain=model_chain.from_environment() if use_cloud else None)
 
     def install_for_engine(self) -> None:
         # The engine calls the ollama module directly. Bind its calls once at API

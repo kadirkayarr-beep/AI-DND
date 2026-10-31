@@ -240,9 +240,12 @@ class Launcher(unittest.TestCase):
             patch("uvicorn.Server") as server,
             patch("uvicorn.Config") as config,
             patch("api.main.create_app") as create,
+            patch("api.ollama_adapter.AuthenticatedOllamaAdapter.from_environment") as adapter,
         ):
             self.assertEqual(local_play.main(["--port", "8008"]), 0)
-        create.assert_called_once_with(authenticator=authenticator)
+        # This is the only place cloud models turn on: the loopback bind is proven here.
+        adapter.assert_called_once_with(use_cloud=True)
+        create.assert_called_once_with(authenticator=authenticator, ollama_adapter=adapter.return_value)
         self.assertIs(type(create.call_args.kwargs["authenticator"]), main_module.LocalPlayAuthenticator)
         config.assert_called_once_with(create.return_value, **uvicorn_settings())
         server.return_value.run.assert_called_once_with(sockets=[listener])
