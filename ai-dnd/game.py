@@ -12666,6 +12666,10 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None, player_input=
         "background_referents": references[:4],
         "recent_beat": scene.get("last_beat"),
     }
+    if scene.get("last_beat"):
+        content["recent_beat_actors"] = (
+            "recent_beat içindekiler adsız yabancılar; bu olayı visible_npcs listesindeki kimseye yükleme."
+        )
     return json.dumps(content, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -12801,7 +12805,7 @@ def ask_dungeon_master(
     if walking_away:
         world_context.update(npcs=[], features=[])
         leaving = json.loads(living_scene_context) if living_scene_context else {}
-        leaving.update(visible_npcs=[], features=[], background_referents=[], recent_beat=None)
+        leaving.update(visible_npcs=[], features=[], background_referents=[], recent_beat=None, recent_beat_actors=None)
         living_scene_context = json.dumps(leaving, ensure_ascii=False, separators=(",", ":"))
     context = json.dumps(world_context, ensure_ascii=False, separators=(",", ":"))
     lore_context_json = json.dumps(

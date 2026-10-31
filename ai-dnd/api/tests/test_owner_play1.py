@@ -6,6 +6,7 @@ The model is mocked, so these prove the deterministic path alone.
 
 from __future__ import annotations
 
+import json
 import unittest
 import uuid
 from unittest.mock import patch
@@ -109,6 +110,23 @@ class AmbientEventsAreNotPeople(OwnerPlayBase):
         text, _ = await self.turn("etrafımı dikkatlice gözlemliyorum")
         self.assertNotIn(scene_look, text)
         self.assertIn("Ahşap masa gözüne çarpıyor.", text)
+
+
+class StrangersInTheBackground(OwnerPlayBase):
+    async def test_the_narrator_is_told_a_background_event_belongs_to_strangers(self):
+        scene = living_world.ensure_scene_record(self.world, CITY, 0)
+        scene["materialized"] = True
+        scene["last_beat"] = "Bir tüccar, müşterisiyle fiyat konusunda anlaşamıyor."
+        context = json.loads(self.manager.get(self.session_id).game_session._living_world_prompt_context())
+        self.assertEqual(context["recent_beat"], scene["last_beat"])
+        self.assertIn("visible_npcs", context["recent_beat_actors"])
+
+    async def test_a_quiet_scene_carries_no_such_note(self):
+        scene = living_world.ensure_scene_record(self.world, CITY, 0)
+        scene["materialized"] = True
+        scene["last_beat"] = None
+        context = json.loads(self.manager.get(self.session_id).game_session._living_world_prompt_context())
+        self.assertNotIn("recent_beat_actors", context)
 
 
 class EnteringAnAmbientEvent(OwnerPlayBase):
