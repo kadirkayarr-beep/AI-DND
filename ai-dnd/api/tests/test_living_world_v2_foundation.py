@@ -78,9 +78,9 @@ class LivingWorldV2FoundationTests(unittest.TestCase):
         original_location = session.world_state["location"]
         opening = initialize_campaign_opening(session, "campaign-opening-test")
         self.assertIn("Neverwinter", opening["text"])
-        self.assertIn("Kökenin Neverwinter", opening["text"])
+        self.assertNotIn("Kökenin", opening["text"])
         self.assertIn("Fırtına rüzgârı", opening["text"])
-        self.assertIn("Nöbet görevini bırakıp yeni bir yol seçti.", opening["text"])
+        self.assertNotIn("Nöbet görevini bırakıp yeni bir yol seçti.", opening["text"])
         self.assertEqual(opening["tone"], "gergin")
         self.assertEqual(session.world_state["location"], original_location)
         self.assertEqual(

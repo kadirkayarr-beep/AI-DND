@@ -100,7 +100,7 @@ class ResolvedNarrationTests(unittest.TestCase):
         session.world_metadata['weather']='unknown'
         before=copy.deepcopy(session.character)
         text=initialize_campaign_opening(session, 'synthetic-immersion')['text']
-        self.assertIn('Kökenin Neverwinter.', text)
+        self.assertNotIn('Kökenin', text)
         self.assertNotIn('doğrulanmış', text)
         self.assertNotIn('kimin bildiği', text)
         self.assertNotIn('Havanın', text)

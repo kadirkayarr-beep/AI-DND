@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import living_world
@@ -9,7 +10,7 @@ from api.world_metadata import world_metadata_for_state
 
 
 _TIME_OPENERS = {
-    "dawn": "Şafak söküp",
+    "dawn": "Şafak sökerken",
     "day": "Gün ışığı altında",
     "evening": "Akşam yaklaşırken",
     "night": "Gece çökmüşken",
@@ -22,22 +23,10 @@ _WEATHER_LINES = {
     "storm": "Fırtına rüzgârı sokakların ve yapıların arasından geçiyor.",
     "unknown": "",
 }
-_BACKGROUND_NOTES = {
-    "Acolyte": "İnanç ve hizmet, geçmişinin bir parçası.",
-    "Artisan": "Bir zanaatın emeğini ve düzenini tanıyorsun.",
-    "Criminal": "Geçmişin, kuralların dışında kalan hayatı da tanıyor.",
-    "Entertainer": "Sahne ve seyirci, geçmişinde yer tutuyor.",
-    "Farmer": "Toprağa ve günlük emeğe dayanan bir geçmişin var.",
-    "Guard": "Nöbet ve düzen, geçmişinin parçası.",
-    "Guide": "Yol bulmak ve çevreyi okumak sana yabancı değil.",
-    "Hermit": "Uzun süre kendi başına yaşamak geçmişinde yer alıyor.",
-    "Merchant": "Alışveriş ve pazarlık, geçmişinin bir parçası.",
-    "Noble": "Soy ve toplumsal beklentiler geçmişinde yer tutuyor.",
-    "Sage": "Bilgi arayışı, geçmişinin merkezinde.",
-    "Sailor": "Deniz ve gemi yaşamı geçmişinde yer alıyor.",
-    "Scribe": "Yazı ve kayıt tutmak geçmişinin parçası.",
-    "Soldier": "Askerlik ve disiplin, geçmişinin bir parçası.",
-    "Wayfarer": "Yolculuk, geçmişinde önemli bir yer tutuyor.",
+# Cities a player may type without their apostrophe or capitals.
+_CITY_SPELLINGS = {
+    "baldursgate": "Baldur's Gate", "neverwinter": "Neverwinter", "waterdeep": "Waterdeep",
+    "luskan": "Luskan", "silverymoon": "Silverymoon", "phandalin": "Phandalin",
 }
 
 
@@ -57,6 +46,15 @@ def _tone(character: dict[str, Any], metadata: dict[str, str]) -> str:
     if time_of_day == "day":
         return "canlı"
     return "sakin"
+
+
+def _home_elsewhere(origin: Any, location_name: str) -> str | None:
+    """The character's home as a person would write it, when it is not this place."""
+    if not isinstance(origin, str) or not origin.strip():
+        return None
+    key = re.sub(r"[^a-z]", "", origin.casefold())
+    home = _CITY_SPELLINGS.get(key) or " ".join(word[:1].upper() + word[1:] for word in origin.split())
+    return None if key == re.sub(r"[^a-z]", "", location_name.casefold()) else home
 
 
 def initialize_campaign_opening(
@@ -101,26 +99,10 @@ def initialize_campaign_opening(
     tone = _tone(character, metadata)
     time_opener = _TIME_OPENERS[metadata["time_of_day"]]
     weather_line = _WEATHER_LINES[metadata["weather"]]
-    parts = [
-        f"{time_opener} {location['name']} içindeki yolculuğun açılıyor.",
-        weather_line,
-        event["text"],
-    ]
-    background_note = _BACKGROUND_NOTES.get(character.get("background"))
-    if background_note:
-        parts.append(background_note)
-    origin = character.get("origin")
-    if isinstance(origin, str) and origin.strip():
-        parts.append(f"Kökenin {origin.strip()}.")
-    backstory = character.get("backstory")
-    if isinstance(backstory, str) and backstory.strip():
-        parts.append(
-            f"Geçmişinden aklında kalan kayıt: “{backstory.strip()[:360]}”"
-        )
-        parts.append("Geçmişinin bugünkü yolculukta ne anlama geldiğini sen belirlersin.")
-    parts.append(
-        "Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait."
-    )
+    parts = [f"{time_opener} {location['name']}.", weather_line, event["text"]]
+    home = _home_elsewhere(character.get("origin"), location["name"])
+    if home:
+        parts.append(f"{home} uzakta kaldı.")
     text = " ".join(part for part in parts if part)
     return living_world.set_scene_opening(
         world_state,

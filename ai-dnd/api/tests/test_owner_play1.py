@@ -18,6 +18,8 @@ import local_dialogue
 import npc_statements
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
+from api.opening_narrative import initialize_campaign_opening
+from api.tests import test_living_world_v2_foundation as foundation
 from api.tests import test_lr00_grounded_human as human
 from api.tests.test_lr00_p1_intent import ProbeShapedClient
 from api.tests.test_lr00_grounded_human import CITY, GARRICK, GARRICK_DOOR
@@ -330,3 +332,24 @@ class IntroducingYourself(NpcSpeechBase):
         local_dialogue.remember_speech_exchange(self.session.world_state, self.npc["id"], "c", "d")
         notes.append(game._experimental_speech_note(self.session.world_state, self.npc, None, "Nasılsın?"))
         self.assertEqual(sum("adıyla hitap et" in note for note in notes), 1, notes)
+
+
+class OpeningText(unittest.TestCase):
+    def opening(self, **character):
+        session = foundation.LivingWorldV2FoundationTests().make_session()
+        session.character.update(character)
+        return initialize_campaign_opening(session, "owner-play-opening")["text"]
+
+    def test_the_character_sheet_is_not_read_out(self):
+        text = self.opening(background="Soldier", origin="Baldurs gate", backstory="Çok arkadaşını kaybetti.")
+        for stilted in (
+            "geçmişinin bir parçası", "Kökenin", "dayatılmış", "sana ait", "aklında kalan kayıt",
+            "belirlersin", "yolculuğun açılıyor", "Baldurs gate",
+        ):
+            self.assertNotIn(stilted, text)
+
+    def test_a_far_home_is_spelled_right_and_mentioned_like_a_person_would(self):
+        self.assertIn("Baldur's Gate uzakta kaldı.", self.opening(origin="Baldurs gate"))
+
+    def test_a_home_that_is_this_city_is_not_announced(self):
+        self.assertNotIn("uzakta kaldı", self.opening(origin="neverwinter"))
