@@ -98,24 +98,39 @@ def is_attack_decision(session, message):
             and not str(message).rstrip().endswith("?"))
 
 
+def pointed_targets(session, message):
+    """Who the words point at: a name, a role, what shows, or a word for the one at hand."""
+    world = session.world_state
+    text = session._normalize_turkish_typos(message)
+    available = session.active_npcs()
+    named = [n for n in available if
+             session._entity_reference_in_text(n.get("name", ""), text)
+             or session._entity_reference_in_text(n.get("role", ""), text)
+             or session.named_by_sight(n, text)]
+    if named:
+        return named
+    combat = world.get("combat", {})
+    if combat.get("active"):
+        # In a fight "vursana" means the one you are fighting.
+        opponents = [n for n in available if n.get("id") in combat.get("participants", [])]
+        fought = [n for n in opponents if n.get("id") == combat.get("target_id")]
+        return fought or opponents
+    if re.search(r"\b(?:o adam|o kadin|ona|ondan|onunla|kendisine|onu|herif\w*|adam\w*)\b", text):
+        flags = world.get("flags", {})
+        reference = flags.get("active_npc_id") or flags.get("last_npc_id")
+        return [n for n in available if n.get("id") == reference] or available
+    return []
+
+
 def _attack_targets(session, message, target_id):
     """The people this attack can mean: named, pointed at, or the one being spoken to."""
     world = session.world_state
-    text = session._normalize_turkish_typos(message)
-    targets = [n for n in world.get("npcs", []) if n.get("location") == world.get("location") and (
-        n.get("id") == target_id if target_id is not None else
-        session._entity_reference_in_text(n.get("name", ""), text)
-        or session._entity_reference_in_text(n.get("role", ""), text)
-    )]
-    if not targets and target_id is None and (
-        re.search(r"\b(?:o adam|o kadin|ona|ondan|onunla|kendisine)\b", text)
-        or re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text)
-    ):
-        available = session.active_npcs()
-        flags = world.get("flags", {})
-        reference = flags.get("active_npc_id") or flags.get("last_npc_id")
-        referenced = [n for n in available if n.get("id") == reference]
-        targets = referenced if referenced else available
+    if target_id is not None:
+        return [n for n in world.get("npcs", [])
+                if n.get("location") == world.get("location") and n.get("id") == target_id]
+    targets = pointed_targets(session, message)
+    if not targets and re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", session._normalize_turkish_typos(message)):
+        return session.active_npcs()
     return targets
 
 
@@ -128,10 +143,9 @@ def _single_valid_target(session, targets):
 
 
 def unbound_attack_reply(session, message, target_id=None):
-    """An attack out of combat with no single target is asked about in the world."""
-    world = session.world_state
+    """An attack with no single target is asked about in the world."""
     if (
-        world.get("combat", {}).get("active") or target_id is not None
+        target_id is not None
         or session.character.get("current_hp", 0) <= 0
         or not is_attack_decision(session, message)
         or _single_valid_target(session, _attack_targets(session, message, None))
@@ -162,7 +176,7 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
             raise CombatRequestError("no_weapon", "No valid weapon is available.", 400)
         targets = _attack_targets(session, message, target_id)
         if not _single_valid_target(session, targets):
-            if target_id is None and combat_id is None and not combat.get("active"):
+            if target_id is None and combat_id is None:
                 return  # asked in the world by unbound_attack_reply, not refused
             raise CombatRequestError("invalid_combat_target", "Select one valid local target.", 400)
         if not combat.get("active"):

@@ -358,9 +358,10 @@ class CombatResolutionBoundaryApiTests(unittest.IsolatedAsyncioTestCase):
                                 record.journal, record.combat_history))
         response = await self.http.post(
             f"/api/game/sessions/{self.sid}/turn", json=data)
-        self.assertEqual(response.status_code, 400, response.text[:300])
-        self.assertEqual((session.world_state, session.messages,
-                          record.journal, record.combat_history), before)
+        # A breath in a fight loses no turn to an error, and asks about no one.
+        self.assertEqual(response.status_code, 200, response.text[:300])
+        self.assertNotEqual(response.json()["turn_outcome"]["status"], "clarification")
+        self.assertEqual(session.world_state["combat"]["round"], before[0]["combat"]["round"])
 
 
 if __name__ == "__main__":

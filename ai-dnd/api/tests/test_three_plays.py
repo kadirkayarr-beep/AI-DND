@@ -134,10 +134,57 @@ class StartingWeaponTests(ThreePlaysTests):
                      "kısa kılıcımı çekip muhafıza saldırıyorum"):
             with self.subTest(line=line):
                 await self.begin(ROGUE)
-                self.add_person("Dorn", "Muhafız")
+                self.add_person("Dorn", "Muhafız", current_hp=300, max_hp=300)
                 out = await self.say(line, PlayClient(intent="attack"))
                 self.assertTrue(self.world["combat"]["active"], out["narration"])
 
+
+
+class AttackWordsTests(ThreePlaysTests):
+    async def test_natural_blows_start_the_fight(self):
+        for line in ("çelimsize yumruk atıyorum", "yumruklıyorum herifi, suratına",
+                     "çavuşun suratına yumruk atıyorum", "çavuşa saplıyorum hançeri"):
+            with self.subTest(line=line):
+                await self.begin(BARBARIAN)
+                self.world["npcs"].clear()
+                self.add_person("Dorn", "Nöbetçi çavuş", visible_trait="çelimsiz",
+                                current_hp=300, max_hp=300)
+                await self.say(line, PlayClient(intent="attack"))
+                self.assertTrue(self.world["combat"]["active"], line)
+
+    async def test_a_stranger_is_struck_by_what_shows_with_any_case_ending(self):
+        for line, trait, role in (
+            ("celimsize vuruyorum", "çelimsiz", None),
+            ("çelimsiz olana saldırıyorum işte", "çelimsiz", None),
+            ("çelimsiz biriye saldırıyorum", "çelimsiz", None),
+            ("işçiye çıplak elle vuruyorum", "suratsız", "Liman işçisi"),
+            ("kahverengi cüppeli birine baltayla saldırıyorum", "kahverengi cüppeli", None),
+        ):
+            with self.subTest(line=line):
+                await self.begin(BARBARIAN)
+                self.world["npcs"].clear()
+                target = self.add_person("Tariq", role or "Kent sakini", visible_trait=trait,
+                                         current_hp=300, max_hp=300)
+                self.add_person("Ilyra", "Muhafız", visible_trait="gençten")
+                out = await self.say(line, PlayClient(intent="attack"))
+                self.assertTrue(self.world["combat"]["active"], out["narration"])
+                self.assertIn(target["id"], self.world["combat"]["participants"])
+
+    async def test_a_boast_is_not_a_fight_and_loses_no_turn(self):
+        await self.begin(FIGHTER)
+        self.add_person("Dorn", "Kâhya")
+        line = ("kılıç sallarım, kaldırırım taşırım, gerekirse birinin kafasını kırarım. "
+                "ağır iş varsa yaparım, altın verirsen")
+        await self.say(line, PlayClient(intent="attack"))
+        self.assertFalse(self.world["combat"]["active"])
+
+    async def test_vursana_in_a_fight_means_the_one_you_are_fighting(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Muhafız", current_hp=300, max_hp=300)
+        await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+        await self.say("hadi vursana", PlayClient(intent="attack"))
 
 
 class DeathTests(ThreePlaysTests):

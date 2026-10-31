@@ -4297,6 +4297,10 @@ def resolve_combat_target(player_input, npc_target=None, target_id=None):
         ensure_npc_combat_stats(canonical_npc)
         return canonical_npc
 
+    named = combat_lifecycle.pointed_targets(_session(), player_input) if player_input else []
+    if len(named) == 1:
+        ensure_npc_combat_stats(named[0])
+        return named[0]
     resolution = resolve_npc_reference(player_input)
     if resolution["status"] == "found":
         ensure_npc_combat_stats(resolution["npc"])
@@ -6301,7 +6305,7 @@ def resolve_npc_reference(
             not living_world.npc_name_known_to_player(npc)
             and (
                 _entity_reference_in_text(living_world.public_npc_descriptor(npc), text)
-                or _entity_reference_in_text(living_world.npc_visible_trait(npc), text)
+                or named_by_sight(npc, text)
             )
         )
         if name_match or role_match or descriptor_match:
@@ -7210,6 +7214,24 @@ def _reference_token_matches(reference_token, input_token):
     )
     return any(input_token.endswith(suffix) and input_token[:-len(suffix)] == reference_token
                for suffix in case_endings)
+
+
+def named_by_sight(npc, text):
+    """"Çelimsize", "işçiye", "cüppeli birine": what a stranger is called by what shows.
+
+    The trait as a whole or its last word, and the shown role's head word with a
+    compound's -si dropped ("Liman işçisi" is "işçi"). A hidden role never counts.
+    """
+    words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(text))
+    trait = _normalize_turkish_typos(living_world.npc_visible_trait(npc))
+    role = _normalize_turkish_typos(living_world.public_npc_role(npc) or "")
+    heads = [trait.split()[-1]] if trait else []
+    if role:
+        head = role.split()[-1]
+        heads.append(head[:-2] if len(head) > 5 and head.endswith(("si", "su")) else head)
+    return _entity_reference_in_text(trait, text) or any(
+        _reference_token_matches(head, word) for head in heads for word in words
+    )
 
 
 def _entity_reference_in_text(reference, text):
@@ -14515,7 +14537,12 @@ def _commit_travel_action(action_result):
     return True
 
 
-_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapla|bicakl|yumrukla)"
+_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur)"
+# A blow said as noun + verb, the usual Turkish way: "yumruk atıyorum", "tekme savuruyorum".
+_ATTACK_BLOW_PHRASE = re.compile(
+    r"\b(?:yumruk|tekme|tokat|kafa|dirsek)\w*\s+(?:\w+\s+)?(?:at|savur|indir|gecir|patlat)"
+    r"(?:iyorum|ip|tim|acagim|ar|iyoruz|tik)\b"
+)
 # Folded words that share an attack stem but are not attacks: kesinlikle,
 # keşif/keşfetmek, kestirme (shortcut), vurgulamak, and the instrumental nouns
 # "bıçakla"/"yumrukla" ("with a knife/fist") that only name the means.
@@ -14572,6 +14599,8 @@ def _names_present_creature(text):
 def _has_explicit_attack_verb(player_input):
     text = _normalize_turkish_typos(player_input)
     tokens = text.split()
+    if _ATTACK_BLOW_PHRASE.search(text):
+        return True
     attack_positions = [
         index for index, token in enumerate(tokens)
         if token in _attack_verb_tokens(token)
@@ -14713,8 +14742,13 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
         raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
-    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input) and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input):
-        raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
+    if (intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input)
+            and not combat_lifecycle.is_attack_decision(_session(), player_input)
+            and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input)):
+        # The model heard a fight the player's words do not start ("gerekirse kafa
+        # kırarım"). Python owns combat, so the line stays what it is: words.
+        intent_type = "narrative"
+        intent = {**intent, "intent": "narrative"}
     before = _world_snapshot()
     result = {
         "action": intent_type,
@@ -14997,8 +15031,6 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         return result
 
     if intent_type in {"attack", "combat"}:
-        if not combat_lifecycle.is_attack_decision(_session(), player_input):
-            raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
         combat = ensure_combat_state()
         result["action"] = "attack"
         if combat["active"] and combat["current_actor_id"] != "player":

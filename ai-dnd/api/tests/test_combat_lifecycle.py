@@ -102,8 +102,8 @@ class CombatLifecycleTests(unittest.TestCase):
         self.assertTrue(combat_lifecycle.is_attack_decision(session, "Sinirlenip ona saldırıyorum."))
         self.assertTrue(combat_lifecycle.is_attack_decision(
             session, "Ona saldırıyorum; o bana saldırırsa kendimi savunacağım."))
-        with self.assertRaises(combat_lifecycle.CombatRequestError):
-            session.execute_intent({"intent": "attack"}, "Merhaba.", npc)
+        session.execute_intent({"intent": "attack"}, "Merhaba.", npc)
+        self.assertFalse(session.world_state["combat"]["active"])
 
     def test_hostility_threat_and_model_proposal_are_not_combat_triggers(self):
         session = v1.scene()
@@ -111,11 +111,7 @@ class CombatLifecycleTests(unittest.TestCase):
         npc["hostile"] = True
         for text in ("Merhaba.", "Rakip'e saldırmakla tehdit ediyorum.", "Rakip'e saldırmıyorum.", "Rakip'e saldırsam?"):
             self.assertFalse(combat_lifecycle.is_attack_decision(session, text))
-            if session._is_explicitly_negated_attack(text):
-                session.execute_intent({"intent": "attack"}, text, npc)
-            else:
-                with self.assertRaises(combat_lifecycle.CombatRequestError):
-                    session.execute_intent({"intent": "attack"}, text, npc)
+            session.execute_intent({"intent": "attack"}, text, npc)
             self.assertFalse(session.world_state["combat"]["active"])
 
     def test_closed_identity_is_retained_and_close_is_idempotent(self):
@@ -291,7 +287,12 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_model_combat_proposal_cannot_create_a_result_or_advance_combat(self):
         session, npc = self.setup_combat()
         command = self.request(session, npc, message="Düşüncelerimi toparlıyorum.", target_id=None)
-        await self.assert_rejected_unchanged(session, command, 400)
+        combat_before = copy.deepcopy(session.world_state["combat"])
+        response = await self.post(command)
+        # A model's fight is not the player's: the line loses nothing and resolves nothing.
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIsNone(response.json().get("combat_result"))
+        self.assertEqual(session.world_state["combat"]["round"], combat_before["round"])
 
     async def test_player_attack_starts_authoritative_combat_with_npc_first(self):
         session = self.manager.get(self.sid).game_session
