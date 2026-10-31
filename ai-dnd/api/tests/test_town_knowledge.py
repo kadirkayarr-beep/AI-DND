@@ -8,6 +8,8 @@ import unittest
 import uuid
 from unittest.mock import patch
 
+import httpx
+
 import game
 import grounded_action
 import local_dialogue
@@ -15,8 +17,18 @@ import local_places
 import npc_statements
 import town_knowledge
 import world_threads
+from api.main import create_app
+from api.persistence.campaign_store import CampaignStore
+from api.session_manager import SessionManager
+from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_world_threads import city
+
+
+AuthenticatedOllamaAdapter = test_campaign_api.AuthenticatedOllamaAdapter
+FakeOllamaClient = test_campaign_api.FakeOllamaClient
+FixedAuthenticator = test_campaign_api.FixedAuthenticator
+TEST_PLAYER = test_campaign_api.TEST_PLAYER
 
 
 def person(npc_id, role="Kent sakini", **extra):
@@ -231,6 +243,45 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Duyduğuma göre", text)
         self.assertTrue(npc_statements.last_said_place(world)["location_id"])
 
+    async def resume_in_a_new_process(self):
+        campaign_id = self.manager.get(self.session_id).campaign_id
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        manager = SessionManager(campaign_store=store)
+        app = create_app(session_manager=manager,
+                         ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        return manager.get(resumed.json()["session_id"]).game_session.world_state
+
+    async def test_threads_survive_save_and_resume(self):
+        await self.start()
+        await self.say("Burada nerede iş bulabilirim?", "Bir bakayım.")
+        kept = copy.deepcopy(self.session.world_state[world_threads.KEY])
+        world = await self.resume_in_a_new_process()
+        self.assertEqual(world[world_threads.KEY], kept)
+
+    async def test_a_save_from_before_threads_resumes_and_gains_them_on_its_first_talk(self):
+        await self.start()
+        self.assertNotIn(world_threads.KEY, self.session.world_state)
+        world = await self.resume_in_a_new_process()
+        self.assertNotIn(world_threads.KEY, world)
+        world_threads.ensure(world)
+        self.assertTrue(world_threads.active(world))
+
+    async def test_nothing_of_a_thread_reaches_the_client(self):
+        await self.start()
+        self.npc["place_role_of"] = None
+        response = await self.http.post(self.turn_url, json={
+            "message": "Burada nerede iş bulabilirim?", "action_id": str(uuid.uuid4()),
+            "interaction_mode": "say", "target_id": self.npc["id"]})
+        text = response.text
+        self.assertNotIn(world_threads.KEY, text)
+        for thread in world_threads.active(self.session.world_state):
+            self.assertNotIn(thread["owner_line"], text)
+            self.assertNotIn(thread["thread_id"], text)
+
     async def test_a_failed_model_never_blocks_the_turn_when_the_town_breaks(self):
         await self.start()
         with patch.object(town_knowledge, "speech_note", side_effect=RuntimeError("boom")):
@@ -344,6 +395,34 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         await self.go(f"{self.place['name']}ne gidiyorum.")
         await self.go("Burada biraz dolaşıyorum.")
         self.assertEqual(world["location"], self.place["id"])
+
+    async def test_street_talk_is_newer_than_what_someone_said_earlier(self):
+        # Real play: "Selwyn Karakolu ..." overheard, then "Oraya gidiyorum" went back to the temple named before.
+        world = await self.heard()
+        await self.say("İş bilen var mı?", f"{self.place['name']} tarafına bak.")
+        for npc in world["npcs"]:
+            npc["location"] = "elsewhere"
+        world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=0)
+        await self.go("Şehirde geziyorum.")
+        talk = world_threads.view(world)["overheard"][-1]
+        thread = next(t for t in world_threads.active(world) if t["thread_id"] == talk)
+        await self.go("Şehirde geziyorum.")
+        talk = world_threads.view(world)["overheard"][-1]
+        thread = next(t for t in world_threads.active(world) if t["thread_id"] == talk)
+        text = await self.go("Oraya gidiyorum.")
+        self.assertEqual(world["location"], thread["place_id"], text)
+
+    async def test_going_where_you_already_are_says_so(self):
+        world = await self.heard()
+        await self.go(f"{self.place['name']}ne gidiyorum.")
+        resident = local_places.resident_of(world, self.place["id"])
+        line = f"{self.place['name']} el arıyor."
+        npc_statements.record(world, resident, "İş var mı?", line, turn=None)
+        town_knowledge.note_mention(world, resident, line)
+        text = await self.go("Oraya gidiyorum.")
+        self.assertEqual(world["location"], self.place["id"], text)
+        self.assertNotIn("yolu bulamıyorsun", text)
+        self.assertIn(self.place["name"], text)
 
     async def test_wandering_the_city_turns_up_a_real_lead(self):
         await self.start()

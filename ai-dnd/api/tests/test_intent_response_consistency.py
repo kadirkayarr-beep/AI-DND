@@ -13,6 +13,7 @@ import game
 import local_dialogue
 import living_world
 import resolved_presentation
+import world_threads
 from api.tests import test_campaign_api
 
 
@@ -481,6 +482,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
+        world_threads.ensure(self.world)  # the town's lazy seed is not one of the turns under test
         before = (self.world["location"], sorted(self.world["locations"]),
                   json.dumps(self.world["inventory"], sort_keys=True), self.session.character["current_hp"])
         cases = (

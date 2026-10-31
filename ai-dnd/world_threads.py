@@ -262,12 +262,13 @@ def ensure(world: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def street_talk(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | None:
-    """The next thread a walker could catch wind of; each only once, the first never revisited."""
+    """The next thing a walker could catch wind of: something the player has not heard yet."""
     state = view(world)
     if state is None:
         return None
     seen = state.setdefault("overheard", [])
-    thread = next((t for t in active(world, settlement_id) if t["thread_id"] not in seen), None)
+    thread = next((t for t in active(world, settlement_id)
+                   if t["status"] == "open" and t["thread_id"] not in seen), None)
     if thread is not None:
         seen.append(thread["thread_id"])
         del seen[:-MAX_ACTIVE * 2]

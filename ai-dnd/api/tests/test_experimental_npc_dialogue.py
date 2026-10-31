@@ -18,6 +18,16 @@ from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import create_city_with_locked_tavern
 
 
+def without_seeded_town(session, physical_before):
+    """The world as the turn left it, minus the places the lazy town seed itself added: Python's, not the reply's."""
+    now = {key: copy.deepcopy(session.world_state.get(key)) for key in physical_before}
+    now["locations"] = {
+        key: value for key, value in now["locations"].items()
+        if (value.get("provenance") or {}).get("source") != "world_thread"
+    }
+    return now
+
+
 class ScriptedNpcSpeechClient:
     """Schema-compliant positive NPC speech client for the opt-in experiment."""
 
@@ -646,15 +656,6 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(self.sensitive_state(session), before)
 
-    def without_seeded_town(self, session, physical_before):
-        """The world as the turn left it, minus the places the lazy town seed itself added: Python's, not the reply's."""
-        now = {key: copy.deepcopy(session.world_state.get(key)) for key in physical_before}
-        now["locations"] = {
-            key: value for key, value in now["locations"].items()
-            if (value.get("provenance") or {}).get("source") != "world_thread"
-        }
-        return now
-
     async def test_opt_in_speech_rejects_physical_action_assigned_to_player(self):
         _, _, session, turn_url, npc = await self.campaign_with_npc()
         before = self.sensitive_state(session)
@@ -685,7 +686,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             session.last_narration_safety,
         )
         self.assertEqual(self.sensitive_state(session), before)
-        self.assertEqual(self.without_seeded_town(session, physical_before), physical_before)
+        self.assertEqual(without_seeded_town(session, physical_before), physical_before)
 
     async def test_opt_in_mixed_speech_keeps_only_revalidated_answering_remainder(self):
         _, _, session, turn_url, npc = await self.campaign_with_npc()
@@ -712,7 +713,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(client.chat_calls, 1)
         self.assertEqual(self.sensitive_state(session), before)
-        self.assertEqual(self.without_seeded_town(session, physical_before), physical_before)
+        self.assertEqual(without_seeded_town(session, physical_before), physical_before)
         self.assertIn(
             meaningful_answer,
             response.json()["narration"],

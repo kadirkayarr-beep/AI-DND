@@ -31,6 +31,7 @@ MAX_REFERENCES = 60
 MAX_RESTATED_TURNS = 5
 COMMITMENT_STATUSES = frozenset({"open", "fulfilled", "broken", "cancelled", "closed"})
 _RECIPIENT = "player"  # one player per session; the recipient is part of a promise's identity
+STREET = "street_talk"  # not a person: what the town itself was heard saying
 _FILLER = frozenset({"evet", "hayir", "tamam", "dedim", "dedi", "dediydim", "demistim", "soyledim", "ya", "yani", "iste"})
 # Words a speaker opens a clause with; capitalised, but never the start of a name.
 _NAME_OPENERS = _FILLER | {
@@ -477,6 +478,16 @@ def bind_said_place(world: dict[str, Any], npc: dict[str, Any], location_id: str
     ref.update(location_id=location_id, status="resolved")
     entry["reference_ids"] = [ref["id"], *[r for r in entry["reference_ids"] if r != ref["id"]]]
     return ref
+
+
+def overheard_place(world: dict[str, Any], location_id: str, name: str) -> None:
+    """Talk caught in the street: the newest thing said, by no one the player can name."""
+    state = ensure(world)
+    turn = int(world.get("flags", {}).get("turn_index", 0) or 0) + 1
+    state["statements"].setdefault(STREET, []).append(
+        {"turn": turn, "player": "", "text": name[:400], "reference_ids": [], "commitment_ids": []})
+    del state["statements"][STREET][:-KEEP_PER_NPC]
+    bind_said_place(world, {"id": STREET}, location_id, name)
 
 
 def _destination(world, folded_texts, npc_id, turn, settlement):

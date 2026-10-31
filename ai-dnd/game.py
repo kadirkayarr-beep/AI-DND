@@ -8074,6 +8074,11 @@ def _town_note(world, npc):
         return ""
 
 
+def _town_in_play(world):
+    import world_threads
+    return world_threads.ensure(world) is not None
+
+
 def _elsewhere_line(world, name):
     """Someone the town talks about is real, just not here."""
     import grounded_action
@@ -8106,6 +8111,7 @@ def _overheard_work(world):
         world_threads.mark_heard(thread, turn)
         world_threads.note_heard_names(world, thread["public_line"])
         grounded_action.note_last(world, thread["place_id"])
+        npc_statements.overheard_place(world, thread["place_id"], world["locations"][thread["place_id"]].get("name", ""))
         return f"Sana doğrudan iş öneren yok ama sokakta bir laf dönüyor: {thread['public_line']}"
     except Exception:
         town_knowledge.log_failure()
@@ -8343,6 +8349,7 @@ def _local_place_recommendation_options(npc_target, world_state, place_kind=None
         and place.get("hidden") is not True
         and isinstance(place.get("name"), str)
         and place.get("name", "").strip()
+        and (place.get("provenance") or {}).get("source") != "world_thread"
         and (
             place_kind is None
             or (place.get("place_kind") or place.get("scene_kind")) == place_kind
@@ -8397,6 +8404,13 @@ def _ground_local_place_recommendation_reply(
         or not local_dialogue.is_local_place_recommendation_request(player_input)
     ):
         return spoken_text
+    folded_reply = npc_statements.fold(spoken_text)
+    if any(
+        (place.get("provenance") or {}).get("source") == "world_thread"
+        and npc_statements.fold(place.get("name", "")) in folded_reply
+        for place in world_state.get("locations", {}).values() if isinstance(place, dict)
+    ):
+        return spoken_text  # a real place of this town, handed to this person to name
     requested_kind = local_dialogue.local_place_recommendation_kind(player_input)
     options = _local_place_recommendation_options(
         npc_target, world_state, place_kind=requested_kind
@@ -15731,8 +15745,7 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
         )
 
     if _asks_what_is_going_on(player_input):
-        import world_threads
-        if world_threads.ensure(_session().world_state) is not None:
+        if _town_in_play(_session().world_state):
             return None  # this person answers from what they know, in their own voice
         return (
             f'{name}, “Şimdilik göze çarpan özel bir şey yok; '
@@ -19148,10 +19161,14 @@ def _run_player_turn_internal(
         else interaction_adventure.hint(player_input, npc_target)
     )
     if (
-        interaction_hint == "information" and isinstance(npc_target, dict)
+        interaction_hint in {"information", "generate"} and target_id is None
         and local_dialogue.personal_question_kind(player_input) == "local_work"
+        and _town_in_play(world_state)
     ):
-        interaction_hint = None  # the person answers from what they know, not from a profile field
+        # Whoever is here answers from what they know; no proposal is needed to find a town's work.
+        interaction_hint = None
+        if npc_target is None:
+            npc_target = most_plausible_addressee(_conversation_npcs(), player_input)
     raw = None
     if interaction_hint and not combat["active"] and not classifier_unusable:
         intent_model_calls = scene_preparse_model_calls + 1

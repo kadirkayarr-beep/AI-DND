@@ -52,8 +52,11 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
 
     def door(self): return next(d for d in self.world['doors'] if d['id']==self.door_id)
     def protected(self):
+        # The town's lazy seed adds its own places on a first talk; that is Python's, not the turn's doing.
+        places={key:value for key,value in self.world['locations'].items()
+                if (value.get('provenance') or {}).get('source')!='world_thread'}
         return copy.deepcopy((self.session.character,self.world['inventory'],self.world['doors'],
-            self.world['location'],self.world['locations'],self.world.get('campaign_time'),self.session.rng.getstate()))
+            self.world['location'],places,self.world.get('campaign_time'),self.session.rng.getstate()))
 
     async def missing_tools(self, active):
         await self.scene(active=active)

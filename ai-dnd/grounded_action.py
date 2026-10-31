@@ -523,7 +523,7 @@ def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_onl
     """The place the talk was just about, else (for a pointing word) the place last in play."""
     said = npc_statements.last_said_place(world)
     wanted = (said.get("location_id") or said.get("id")) if said else (None if said_only else last_target_id(world))
-    return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference"}), None)
+    return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference", "here"}), None)
 
 
 def _is_bare_go(step: dict[str, Any]) -> bool:
@@ -2014,6 +2014,8 @@ def _commitment_place(run: _Run, commitment) -> dict[str, Any] | None:
 def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
     target = step.get("target")
     commitment = step.get("commitment")
+    if target is not None and target["kind"] == "here":
+        return _receipt(verb, "completed", target, text=f"Zaten {target['label']} içindesin.")
     if target is None and commitment is not None:
         place = _commitment_place(run, commitment)
         if place:
@@ -2341,6 +2343,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
     if place:  # a walker hears what the town is on about, and the place is real
         world_threads.mark_heard(talk, int(run.world.get("flags", {}).get("turn_index", 0) or 0))
         world_threads.note_heard_names(run.world, talk["public_line"])
+        npc_statements.overheard_place(run.world, place["id"], place.get("name", ""))
         run.near(None)
         run.memory["last_target_id"] = place["id"]
         return _receipt("wander", "completed", {"id": place["id"], "label": place.get("name")},
@@ -2715,7 +2718,7 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
         return True  # the latch, the handle, a crate's lid
     if verb == "climb":
         return True
-    if step.get("via_pronoun") and kind in {"place", "door", "feature"}:
+    if step.get("via_pronoun") and kind in {"place", "door", "feature", "here"}:
         return True  # "oraya gidiyorum": the place in play, not a fresh search
     if (
         verb == "read"
