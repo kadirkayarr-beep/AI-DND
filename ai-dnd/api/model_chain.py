@@ -50,6 +50,8 @@ _DEFAULT_MAX_TOKENS = 1000
 _HAIKU_UNSUPPORTED = frozenset({
     "minLength", "maxLength", "minimum", "maximum", "minItems", "maxItems", "pattern", "default", "title",
 })
+# Only the compiler above refuses limits. A schema in the prompt keeps them, because nothing else tells Haiku.
+_PROMPT_SCHEMA_NOISE = frozenset({"default", "title"})
 _HAIKU_JSON_REQUIREMENT = "Return one JSON object only, with no code fence, matching this JSON schema: "
 _GEMINI_UNSUPPORTED = frozenset({"$defs", "additionalProperties", "const", "default", "title"})
 _logger = logging.getLogger("ai_dnd.api.ollama")
@@ -118,15 +120,15 @@ def _gemini_schema(schema: dict[str, Any], definitions: Mapping[str, Any] | None
     return result
 
 
-def _haiku_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    result = {key: value for key, value in schema.items() if key not in _HAIKU_UNSUPPORTED}
+def _haiku_schema(schema: dict[str, Any], dropped: frozenset[str] = _HAIKU_UNSUPPORTED) -> dict[str, Any]:
+    result = {key: value for key, value in schema.items() if key not in dropped}
     for key in ("properties", "$defs"):
         if key in result:
-            result[key] = {name: _haiku_schema(child) for name, child in result[key].items()}
+            result[key] = {name: _haiku_schema(child, dropped) for name, child in result[key].items()}
     if "items" in result:
-        result["items"] = _haiku_schema(result["items"])
+        result["items"] = _haiku_schema(result["items"], dropped)
     if "anyOf" in result:
-        result["anyOf"] = [_haiku_schema(branch) for branch in result["anyOf"]]
+        result["anyOf"] = [_haiku_schema(branch, dropped) for branch in result["anyOf"]]
     kinds = result.get("type")
     if kinds == "object" or (isinstance(kinds, list) and "object" in kinds):
         result["additionalProperties"] = False
@@ -164,7 +166,8 @@ def haiku_body(call: Mapping[str, Any]) -> dict[str, Any]:
     schema = _schema(call)
     if schema is not None and "$defs" in schema:
         # The classifier's envelope never compiled: 60 s without an answer, or "Schema is too complex".
-        system = f"{system}\n\n{_HAIKU_JSON_REQUIREMENT}{json.dumps(_haiku_schema(schema), ensure_ascii=False)}".strip()
+        prompt_schema = json.dumps(_haiku_schema(schema, _PROMPT_SCHEMA_NOISE), ensure_ascii=False)
+        system = f"{system}\n\n{_HAIKU_JSON_REQUIREMENT}{prompt_schema}".strip()
     elif schema is not None:
         output["format"] = {"type": "json_schema", "schema": _haiku_schema(schema)}
     body: dict[str, Any] = {

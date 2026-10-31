@@ -162,8 +162,13 @@ class TheTranslation(unittest.TestCase):
         self.assertTrue(body["system"].startswith("Kurallar."))
         self.assertIn("JSON", body["system"].removeprefix("Kurallar."))
         self.assertIn('"$ref": "#/$defs/Step"', body["system"])
-        for word in ("maxItems", "minItems", "maxLength", "minimum", '"default"', '"title"'):
+        for word in ('"default"', '"title"'):
             self.assertNotIn(word, body["system"])
+
+    def test_the_limits_reach_haiku_when_no_compiler_reads_the_schema(self):
+        system = model_chain.haiku_body(dict(CALL, format=PYDANTIC_SCHEMA))["system"]
+        self.assertIn('"maxItems": 3', system)
+        self.assertIn('"maxLength": 40', system)
 
     def test_a_simple_schema_stays_a_compiled_format_for_haiku(self):
         body = model_chain.haiku_body(CALL)
@@ -185,8 +190,9 @@ class TheTranslation(unittest.TestCase):
         self.assertNotIn('""', gemini)
         haiku = model_chain.haiku_body(dict(CALL, format=schema))
         self.assertEqual(haiku["output_config"], {"effort": "low"})
-        for word in ("maxItems", "minItems", "maxLength", "minLength", "minimum", '"default"', '"title"'):
+        for word in ('"default"', '"title"'):
             self.assertNotIn(word, haiku["system"])
+        self.assertIn('"maxItems": 0', haiku["system"])
 
     def test_nothing_but_the_prompt_leaves_for_a_provider(self):
         call = dict(CALL, keep_alive="5m", session_id="private", options={"num_predict": 10, "gm_only": "secret"})
