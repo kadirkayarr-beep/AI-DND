@@ -251,7 +251,8 @@ def _buy(session, text: str) -> dict[str, Any] | None:
     wanted = next((item for item in _PRICES if item[0] in folded), None)
     server = next((npc for npc in session.active_npcs()
                    if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
-    if wanted is None or server is None or not _BUY.search(folded):
+    walking = re.search(r"\b(?:gid|git|gir|gec|yuru|yaklas)\w*", folded)  # the order follows the walk
+    if wanted is None or server is None or walking or not _BUY.search(folded):
         return None
     world = session.world_state
     settle_coin_labels(world)

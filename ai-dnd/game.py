@@ -15775,7 +15775,7 @@ def resolve_scene_seating(action_input):
         "status": "unresolved",
         "success": False,
         "state_changes": [],
-        "direct_response": "Sırtını en yakın yere verip olduğun yere çöküyorsun.",
+        "direct_response": "Oturabileceğin uygun bir yer göremiyorsun.",
     }
 
 
@@ -16589,7 +16589,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "status": "unresolved",
                 "success": False,
                 "state_changes": [],
-                "direct_response": "Buradan çıkış veren belirgin bir geçit yok.",
+                "direct_response": "Zaten dışarıdasın; sokak önünde uzanıyor.",
             }
 
     if not combat.get("active") and not direct:
