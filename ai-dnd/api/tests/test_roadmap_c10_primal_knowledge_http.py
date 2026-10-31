@@ -108,7 +108,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(r),before)
         self.assertIsNone(self.manager.get_refused_action(r,command['action_id']))
         self.assertIsNone(self.manager.get_turn_action(r,command['action_id']))
-        self.assertEqual(self.manager.unresolved_action(r)['action_id'],command['action_id'])
+        self.assertIsNone(self.manager.unresolved_action(r))
         response=await self.post(a,command)
         self.assertEqual(response.status_code,200,response.text)
         self.assertEqual(response.json()['skill_check_result']['check_feature'],'primal_knowledge')
