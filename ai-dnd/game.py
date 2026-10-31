@@ -965,7 +965,9 @@ def is_npc_dialogue_input(player_input):
         text,
     ):
         return True
-    if re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*|sor\w*|söylüyorum|söylerim)\b", text):
+    # A song is sung to the room, not said to the last person spoken to.
+    sung = re.search(r"\b(?:sarki|turku|mars|ninni|ilahi)\w*\b", normalized)
+    if not sung and re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*|sor\w*|söylüyorum|söylerim)\b", text):
         return True
     return bool(re.match(
         r"^(selam|merhaba|iyi günler|teşekkür|sağ ol|korkuyorum|"
@@ -5891,10 +5893,34 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
 
 
 _PROPOSAL_MARKER_RE = re.compile(r"\[\[([nlfs][1-9]\d?)\]\] ?")
+_INTERNAL_MARK_RE = re.compile(r"\[\[\s*([^\[\]]{0,60}?)\s*\]\]|\b(npc_[a-z0-9_]+)\b")
 
 
 def _strip_proposal_markers(narration):
     return _PROPOSAL_MARKER_RE.sub("", narration) if isinstance(narration, str) else narration
+
+
+def _repair_internal_marks(narration):
+    """An id copied from the context reads as the public label; any other mark goes."""
+    if not isinstance(narration, str) or not _INTERNAL_MARK_RE.search(narration):
+        return narration
+    narration = _PROPOSAL_MARKER_RE.sub("", narration)
+    labels = {
+        npc["id"]: living_world.public_npc_name(npc)
+        for npc in _session().world_state.get("npcs", [])
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str)
+    }
+
+    def label_for(match):
+        label = labels.get(match.group(1) or match.group(2))
+        if label is None:
+            return ""
+        before = narration[:match.start()].rstrip()
+        at_start = not before or before[-1] in ".!?\n“\""
+        return label if at_start else label[:1].lower() + label[1:]
+
+    repaired = _INTERNAL_MARK_RE.sub(label_for, narration)
+    return re.sub(r"[ \t]{2,}", " ", re.sub(r"[ \t]+([,.;:!?])", r"\1", repaired)).strip()
 
 
 def _filter_unaccepted_proposal_mentions(narration, accepted_keys, rejected_names):
@@ -5911,7 +5937,8 @@ def _filter_unaccepted_proposal_mentions(narration, accepted_keys, rejected_name
             filtered_paragraphs.append(paragraph)
             continue
         markers = _PROPOSAL_MARKER_RE.findall(paragraph)
-        if any(marker not in accepted for marker in markers):
+        # With nothing rejected a marker names no proposal at all: the sentence stays.
+        if rejected and any(marker not in accepted for marker in markers):
             continue
         if any(
             re.search(
@@ -9501,6 +9528,15 @@ _PLAYER_MENTAL_STATE_AFFECT_RE = re.compile(
 )
 
 
+_PLAYER_FEELING_RE = re.compile(
+    r"\b(?:(?:gerginlik|tedirginlik|huzursuzluk|korku|endişe|kaygı|heyecan|rahatsızlık|öfke|"
+    r"utanç|sevinç|merak|şüphe|gurur|rahatlama|ürperti|pişmanlık)\w*(?:\s+\w+){0,2}|"
+    r"(?:gergin|tedirgin|huzursuz|rahatsız|endişeli|güvende|rahat))\s+"
+    r"(?:hissed\w*|hisset\w*|duyuyorsun|duydun)\b",
+    re.IGNORECASE,
+)
+
+
 def _unverified_player_mental_state_trigger(player_action_text, second_person_verb):
     for match in second_person_verb.finditer(player_action_text):
         normalized_verb = _normalize_turkish_typos(match.group(0))
@@ -10269,6 +10305,9 @@ def _narration_safety_decision(
     mental_state_trigger = _unverified_player_mental_state_trigger(
         player_action_text, second_person_verb
     )
+    feeling = _PLAYER_FEELING_RE.search(player_action_text)
+    if feeling and not mental_state_trigger:
+        mental_state_trigger = feeling.group(0)
     if mental_state_trigger:
         return reject("INVENTED_PLAYER_MENTAL_STATE", mental_state_trigger)
 
@@ -12710,7 +12749,7 @@ def ask_dungeon_master(
         "dükkânı narration ile tek başına var etme. "
         "onaylanmadan narration içinde kullanma. Her yeni öneriye category key ver: l1/l2 konum, "
         "n1/n2 NPC, f1/f2 çevre özelliği, s1/s2 dükkân. Yeni önerinin anlatımda adı geçecekse "
-        "adının hemen önüne aynı key'i [[n1]] biçiminde koy; Python bu işaretleri kaldırır ve "
+        "adının hemen önüne aynı key'i [[n1]] biçiminde koy (yeni öneri yoksa hiç işaret koyma, ID yazma); Python bu işaretleri kaldırır ve "
         "reddedilen önerinin geçtiği cümleyi atar. Onaysız yeni kişi veya nesneyi gerçekmiş gibi anlatma. "
         "Yeni NPC'ler için her gerekli alanı doldur, mevcut NPC'nin ID'sini koru. "
         "NPC kişiliğini, görünüşünü, rolünü, bilgisini ve sınırlı belleğini tutarlı kullan. "
@@ -13434,7 +13473,7 @@ def finalize_narration(
         if not decision["reason_code"]:
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
-    narration = clean_dm_response(narration)
+    narration = clean_dm_response(_repair_internal_marks(narration))
     if not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -13905,6 +13944,14 @@ Geçici duyusal/atmosferik ayrıntı ve isimsiz arka plan etkinliği anlatılabi
 gerçeği değildir ve önemli NPC, görev, eşya veya mekanik sonuç yaratmaz.
 Sıradan sahne eşyaları, NPC jestleri ve ifadeleri de geçici doku olabilir; yalnızca önemli veya kalıcıysa world_updates öner.
 Oyuncunun duyduğu, gördüğü veya kokladığı şeyleri anlatabilirsin; onun adına karar, inanç, söz, hareket, saldırı ya da eşya transferi uydurma.
+Oyuncuyu yönetmeden dünyayı karşılık verir halde tut. Oyuncuya yeni karar, rıza, söz, duygu, tepki veya ek hareket yazma;
+iç durum yerine görünen, duyulan, koklanan şeyi anlat. Oyuncunun denediği şeyi anlat, denemeyi yok sayma ve "bir şey olmuyor" deme:
+motorun bir kuralı olmasa bile makul bir sonuç ya da doğal bir başarısızlıkla sürdür, başarıyı garanti etme. Bu anlatım para, eşya,
+konum, kilit veya kalıcı kişi değiştirmez; bekletmek için yeni kilit, şart, ücret veya zar üretme. Yalnız oyuncunun şu an bulunduğu
+yeri anlat; CURRENT LOCAL SCENE STATE içinde olmayan tezgâh, oda veya mekânı sahneye koyma. Yalnız açığa çıkarılmış bilgiyi kullan.
+Doğal bir macera anlatımı kullan: önemli anlarda destansı, uygun yerde hafif ve duruma özgü esprili. Her cümleyi şakaya, her küçük
+işi destana çevirme. NPC'lerin farklı seslerini koru. Mizah bedeli, tehlikeyi veya ölümü önemsizleştirmesin; kuralları, bilgiyi ve
+oyuncunun iradesini değiştirmesin. Şimdi değişene odaklan; aynı özetleri, kalıpları ve tur sonu sorusunu alışkanlık haline getirme.
 Narrative Director bağlamını doğal kullan, anıları döküm halinde sıralama. Tekrarlanan NPC/lokasyon
 girişlerini, jestleri, metaforları, paragraf açılışlarını, savaş ifadelerini ve hava açılışlarını
 çeşitlendir; geçici betimlemeleri kalıcı kanon gibi sunma.
@@ -16136,7 +16183,10 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                        if living_world.is_visible_contents_query(player_input) else {}),
                 }
         elif action == "approach":
-            speech_part = "?" in str(action_input) or re.search(
+            import grounded_action
+            speech_part = "?" in str(action_input) or grounded_action.spoken_request(
+                action_input
+            ) or re.search(
                 r"\b(?:sor\w*|selam\w*|anlat\w*|soyle\w*|danis\w*)\b",
                 _normalize_turkish_typos(str(action_input)),
             ) or re.search(
@@ -16798,7 +16848,7 @@ def _dispatch_player_turn(
                     _session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
                 )
             if grounded is not None:
-                return grounded
+                return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
         local_place = _local_place_turn(player_input)
         if local_place is not None:
             return local_place
@@ -16870,7 +16920,7 @@ def _dispatch_player_turn(
                     target_id=target_id, phase="fallback",
                 )
             if grounded is not None:
-                return grounded
+                return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
     combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
         try:
@@ -16892,6 +16942,31 @@ def _dispatch_player_turn(
             return _narrate_resolved_turn(
                 e.resolved_turn, player_input, messages, target_id
             )
+
+
+def _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id):
+    """"...tezgâha geçiyorum, bir bira istiyorum": after the walk the words reach the person."""
+    import grounded_action
+    request = grounded_action.spoken_request(player_input)
+    result = grounded.get("action_result") or {}
+    if not request or result.get("status") not in {"completed", "partial"}:
+        return grounded
+    flags = _session().world_state.get("flags", {})
+    present = active_npcs()
+    npc = next(
+        (candidate for candidate in present if candidate.get("id") == flags.get("active_npc_id")),
+        None,
+    ) or (most_plausible_addressee(present, request) if present else None)
+    if not isinstance(npc, dict):
+        return grounded
+    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+        try:
+            spoken = _run_player_turn_internal(request, messages, npc["id"], None, "say", action_id)
+        except TurnResolved as resolved:
+            spoken = _narrate_resolved_turn(resolved.resolved_turn, request, messages, npc["id"])
+    spoken["narration"] = f"{grounded['narration']} {spoken['narration']}"
+    spoken["model_calls"] = spoken.get("model_calls", 0) + grounded.get("model_calls", 0)
+    return spoken
 
 
 def _current_procedural_entity_ids():
@@ -17726,18 +17801,32 @@ def _run_player_turn_internal(
         return resolution, resolution is None
 
     compound = interaction_adventure.compound_plan(player_input)
+    # "Marek'in yanına gidiyorum, bir bira istiyorum": the second clause is said to him.
+    import grounded_action
+    request = grounded_action.spoken_request(player_input) if compound is not None else None
+    if request and not entry_combat["active"] and interaction_mode not in {"say", "ask_dm"}:
+        named = resolve_npc_reference(player_input)
+        if named.get("status") == "found":
+            _set_scene_active_npc(named["npc"], flags.get("turn_index", 0) + 1)
+        person = next(
+            (npc for npc in active_npcs() if npc.get("id") == flags.get("active_npc_id")), None
+        )
+        if person is not None:
+            living_world.set_player_position(
+                world_state, world_state.get("location"), "standing", person["id"]
+            )
+            return _run_player_turn_internal(
+                request, messages, person["id"], None, "say", action_id
+            )
     if (compound is not None and not entry_combat["active"]
             and interaction_mode not in {"say", "ask_dm"}):
         # These steps are exact player spans, not model paraphrases. Recording
         # them does not require an addressee or permission to execute any step.
         intent_source = "python_compound_plan"
         action_result = interaction_adventure.resolve(_session(), player_input, compound)
-        return finish_turn(
-            action_result, action_result["direct_response"],
-            # Recording intentions is not executing them. Keep the exact
-            # receipt rather than inviting prose to turn a plan into movement.
-            is_final=True,
-        )
+        # Recording intentions is not executing them, but the player still gets
+        # the attempt narrated; the prose cannot move anyone or change anything.
+        return finish_turn(action_result, action_result["direct_response"])
 
     ensure_campaign_clock()
     if scene_plan is None and interaction_mode not in {"say", "ask_dm"}:

@@ -57,19 +57,20 @@ class CompanionWaitTests(unittest.TestCase):
         self.assertEqual(p['steps'][0]['target']['id'], 'damaia')
         self.assertIsNone(grounded.resolve_turn(self.session, "Damaia'ya doğru gidiyorum", allow_model=False))
 
-    def test_recorded_only_plan_is_final_without_model_narration(self):
+    def test_recorded_only_plan_is_narrated_and_moves_nobody(self):
         self.inn_scene()
         text = 'Damaia ile konuşuyorum ve sonra şarkı söylüyorum'
         self.assertIsNotNone(interaction_adventure.compound_plan(text))
-        result = self.session.run_player_turn(text)
+        narrated = {'narration': 'Bir an durup sahneyi tartıyorsun.', 'world_updates': {}, 'lore_claims': [], 'valid_response': True}
+        with patch.object(game, 'ask_dungeon_master', return_value=narrated):
+            result = self.session.run_player_turn(text)
         self.assertEqual(result['action_result']['operation'], 'plan')
         self.assertEqual(result['action_result']['status'], 'recorded')
         self.assertEqual(self.world[interaction_adventure.KEY]['plan']['cursor'], 0)
         self.assertEqual(self.world[interaction_adventure.KEY]['plan']['status'], 'awaiting_confirmation')
-        self.assertEqual(result['narration'], result['action_result']['direct_response'])
-        self.assertIn('Bunu denemek için', result['narration'])
+        self.assertTrue(result['narration'].strip())
+        self.assertNotIn('Bunu denemek için', result['narration'])
         self.assertEqual(self.world['location'], 'city')
-        self.assertEqual(result.get('model_calls', result.get('_engine_event_evidence', {}).get('telemetry', {}).get('total_model_calls')), 0)
 
     def test_unknown_opening_wait_asks_duration_without_advancing(self):
         self.inn_scene(); campaign_time.initialize(self.world)

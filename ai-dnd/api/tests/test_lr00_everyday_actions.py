@@ -82,9 +82,8 @@ class EverydayActionTests(unittest.IsolatedAsyncioTestCase):
         text = await self.turn("Az önce gördüğüm adamın peşine takılıyorum.")
         self.assertIn("izini kaybediyorsun", text)
 
-    async def test_whistling_and_dancing_get_a_small_reaction(self):
-        text = await self.turn("sıkıldım, ıslık çala çala sokakta biraz dans ediyorum")
-        self.assertIn("ıslık", text)
+    def test_whistling_and_dancing_are_not_a_stock_line(self):
+        self.assertIsNone(everyday_actions.classify("sıkıldım, ıslık çala çala sokakta biraz dans ediyorum"))
 
     def test_negated_conditional_question_and_trying_forms_are_not_claimed(self):
         for message in (

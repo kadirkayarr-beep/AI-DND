@@ -2710,6 +2710,23 @@ def _owned_single_step(step, conditional_seen: bool = False) -> bool:
     return False
 
 
+_REQUEST_CLAUSE = re.compile(
+    r"\b(?:istiyorum|isterim|alayim|alabilir miyim|ver(?:ir|ebilir)\s+mi(?:sin|siniz)|"
+    r"getir(?:ir|ebilir)?\s+mi(?:sin|siniz))\b"
+)
+
+
+def spoken_request(text: Any) -> str | None:
+    """The request said next to a physical act: "..., bir bira istiyorum"."""
+    if not isinstance(text, str):
+        return None
+    for clause in reversed(re.split(r"[,.;!?]|\bve\b", text)):
+        folded = fold(clause)
+        if _REQUEST_CLAUSE.search(folded) and not re.search(r"\w+(?:mak|mek) isti", folded):
+            return clause.strip()
+    return None
+
+
 def _looks_like_speech(session, player_input: str) -> bool:
     try:
         return bool(session.is_npc_dialogue_input(player_input))

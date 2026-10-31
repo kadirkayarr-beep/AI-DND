@@ -1,8 +1,9 @@
 """Ordinary harmless actions get a concrete, in-character result (LR00 step 7).
 
-Knocking, ringing a bell, reading your own book, whistling or dancing,
-following someone you can see: none of these needs a new mechanic, and none
-should hit a "you can't do that" wall. Python decides the small, truthful
+Knocking, ringing a bell, reading your own book, following someone you can
+see: none of these needs a new mechanic, and none should hit a "you can't do
+that" wall. Singing, dancing and the like are left to the model, which narrates
+what the player actually tried. Python decides the small, truthful
 outcome from saved state (is there a door, is it locked, do you carry a book,
 is that person here); nothing is invented that would change the world.
 Negated, conditional and question forms are left to the normal pipeline.
@@ -52,7 +53,7 @@ def classify(text: Any) -> str | None:
         return None
     # A bell over a door is rung, not knocked: check the bell first.
     for kind, pattern in (("bell", _BELL), ("knock", _KNOCK), ("read", _READ),
-                          ("follow", _FOLLOW), ("perform", _PERFORM)):
+                          ("follow", _FOLLOW)):
         if pattern.search(folded):
             return kind
     return None
@@ -109,7 +110,7 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
         return {"kind": kind, "text": line, "door_id": door.get("id")}
     if kind == "bell":
         listener = living_world.public_npc_name(people[0]) if people else None
-        line = "Çanı çalıyorsun; tiz sesi sokak boyunca yankılanıp yavaşça sönüyor."
+        line = "Çanı çalıyorsun; tiz sesi çevrede yankılanıp yavaşça sönüyor."
         if listener:
             line += f" {listener} başını çevirip sesin nereden geldiğine bakıyor."
         return {"kind": kind, "text": line}
@@ -129,7 +130,7 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
             who = living_world.public_npc_name(person)
             return {"kind": kind, "npc_id": person.get("id"), "text": _pick(seed, (
                 f"{who} birkaç adım ötede işine devam ediyor; arkasından yürüyorsun. Uzağa gitmiyor, çevrede dolaşıp yine aynı yere dönüyor. Seni fark edip etmediği belli değil.",
-                f"Mesafeni koruyarak {who} arkasından yürüyorsun. Yalnızca birkaç sokak köşesi dolaşıp tanıdık yüzlerle selamlaşıyor, sonra olduğu yere dönüyor.",
+                f"Mesafeni koruyarak {who} arkasından yürüyorsun. Biraz dolaşıp tanıdık yüzlerle selamlaşıyor, sonra olduğu yere dönüyor.",
             ))}
         return {"kind": kind, "npc_id": None, "text": (
             "Kalabalığın içinde gözünü bir an ayırınca izini kaybediyorsun; kimin peşinde olduğunu artık seçemiyorsun."
