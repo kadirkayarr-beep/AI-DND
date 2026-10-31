@@ -50,7 +50,8 @@ class CreationAuthorityTests(unittest.TestCase):
         for message in (quoted_report, denied_report):
             with self.subTest(message=message):
                 self.assertIsNone(living_world.affirmative_scene_intent(message))
-        cases=[('Burada kim var?',None),('Etrafımda neler var?',None),('Tüccar var mı?',None),
+        # "Burada kim var?" left this list: on a first turn it told the owner nobody was around.
+        cases=[('Etrafımda neler var?',None),('Tüccar var mı?',None),
             (adversarial,None),
             (quoted_report,None),(denied_report,None),
             ('Daha önce etrafımda neler olduğunu gözlemlemiştim.',None),
