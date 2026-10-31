@@ -1459,7 +1459,17 @@ def _handle_query(player_input, query_type, npc_target=None):
         if npcs:
             names = [_public_scene_person_text(npc) for npc in npcs]
             return f"Burada şunlar var: {', '.join(names)}."
-        return _scene_presence_text(world_state.get("location"))
+        location_id = world_state.get("location")
+        if location_id in world_state.get("locations", {}):
+            # "Who is here?" can be the first thing asked in a scene nobody has looked at yet.
+            living_world.materialize_scene(
+                world_state,
+                location_id,
+                world_state.get("flags", {}).get("turn_index", 0),
+                create_npc=create_npc_from_ai,
+                create_feature=create_local_feature,
+            )
+        return _scene_presence_text(location_id)
 
     if query_type == "npc_identity" and npc_target:
         if local_dialogue.identity_disclosure_is_negated(player_input):
@@ -15713,15 +15723,6 @@ def _public_scene_person_text(npc):
 
 def _scene_presence_text(location_id):
     world_state = _session().world_state
-    if location_id in world_state.get("locations", {}):
-        # "Who is here?" can be the first thing asked in a scene nobody has looked at yet.
-        living_world.materialize_scene(
-            world_state,
-            location_id,
-            world_state.get("flags", {}).get("turn_index", 0),
-            create_npc=create_npc_from_ai,
-            create_feature=create_local_feature,
-        )
     people = _scene_names(location_id)
     shops = [
         shop for shop in world_state.get("shops", [])
@@ -16470,6 +16471,14 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
 
     if not combat.get("active") and not direct:
         if action == "presence" and current in world_state.get("locations", {}):
+            # "Who is here?" can be the first thing asked in a scene nobody has looked at yet.
+            living_world.materialize_scene(
+                world_state,
+                current,
+                turn_index,
+                create_npc=create_npc_from_ai,
+                create_feature=create_local_feature,
+            )
             direct = {
                 "action": "query",
                 "query_type": "presence",
