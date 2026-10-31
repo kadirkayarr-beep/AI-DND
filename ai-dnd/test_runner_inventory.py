@@ -95,7 +95,7 @@ class RunnerInventoryTests(unittest.TestCase):
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
                             if len(call.args[0]) == 5]
                 self.assertEqual(len(receipts), 17)
-                self.assertEqual(len(set(receipts)), 10)
+                self.assertEqual(len(set(receipts)), 17)
                 self.assertTrue(all(not path.parent.exists() for path in receipts))
 
     def test_api_completion_evidence_must_be_valid_and_cannot_override_failure(self):
