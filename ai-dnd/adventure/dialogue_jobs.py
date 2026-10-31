@@ -117,8 +117,8 @@ def shown_line(world,thread,kind):
     if not lines: return ''
     line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],kind)%len(lines)]
     noun=thread.get('item_noun') or 'paket'
-    return world_threads._fill(line,item=noun[:1].upper()+noun[1:],owner=thread.get('owner_name') or '',
-        recipient=thread.get('recipient_name') or '',pay_text=world_threads.pay_text(thread))
+    return world_threads.sentence(world_threads._fill(line,item=noun[:1].upper()+noun[1:],owner=world_threads.spoken_owner(world,thread),
+        recipient=world_threads.spoken_recipient(world,thread),pay_text=world_threads.pay_text(thread)))
 
 
 def _move_parcel(session,thread,npc,to_player,text=''):

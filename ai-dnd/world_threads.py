@@ -582,7 +582,7 @@ def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary
     """A job's mark in the shared log. The record is the thread; a lost log line loses nothing."""
     import interaction_adventure
     try:
-        interaction_adventure.note_town_event(world, f"thread_{kind}"[:64], f"{thread.get('owner_name') or 'İş'}: {summary}",
+        interaction_adventure.note_town_event(world, f"thread_{kind}"[:64], f"{spoken_owner(world, thread) or 'İş'}: {summary}",
                                               npc=npc if isinstance(npc, dict) else None,
                                               location_id=thread.get("place_id") if thread.get("place_id") in world.get("locations", {}) else None,
                                               player_known=player_known)
@@ -911,8 +911,8 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
             continue
         learn_outcome(world, thread)
         line = lines[_rank(seed, thread["thread_id"], "arrival", status) % len(lines)]
-        return _fill(line, who=thread.get("filled_by_name") or "başkası", owner=thread.get("owner_name") or "",
-                     place=place.get("name", ""))
+        return sentence(_fill(line, who=_mid_sentence(thread.get("filled_by_name") or "başkası"),
+                              owner=spoken_owner(world, thread), place=place.get("name", "")))
     return None
 
 
@@ -986,7 +986,7 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
         body = [word for word in tokens if word not in names and word not in table["fillers"]]
         if asked or not body:
             continue
-        if " ".join(body) in table["give"]:
+        if " ".join(body) in table["give"] or all(word in table["give"] for word in body):
             return True
         item = any(word in table["item_words"] or any(word.startswith(s) for s in stems) for word in body)
         if item and any(word in verbs for word in body):
@@ -1074,13 +1074,32 @@ def _pay_wage(world, thread, amount, day):
     thread["paid_cp"] = thread.get("paid_cp", 0) + amount
 
 
+def _mid_sentence(label: str) -> str:
+    return "bir " + label[4:] if label.startswith("Bir ") else label
+
+
+def sentence(text: str) -> str:
+    return text[:1].upper() + text[1:]
+
+
+def spoken_owner(world: dict[str, Any], thread: dict[str, Any]) -> str:
+    """The owner as the player knows them; a name not yet learned stays off the screen."""
+    npc = owner_of(world, thread)
+    return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("owner_name") or ""))
+
+
+def spoken_recipient(world: dict[str, Any], thread: dict[str, Any]) -> str:
+    npc = recipient_of(world, thread)
+    return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("recipient_name") or ""))
+
+
 def _shift_text(world, thread, *parts):
     lines = job_lines("shift") or []
     day = thread.get("days_worked", 0)
     seed = living_world._campaign_seed(world)
     place = world.get("locations", {}).get(thread.get("place_id")) or {}
     first = lines[_rank(seed, thread["thread_id"], "shift", day) % len(lines)] if lines else ""
-    return " ".join(p for p in (_fill(first, owner=thread.get("owner_name") or "", place=place.get("name", "")), *parts) if p)
+    return " ".join(p for p in (sentence(_fill(first, owner=spoken_owner(world, thread), place=place.get("name", ""))), *parts) if p)
 
 
 def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
@@ -1133,7 +1152,7 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
             state["history"].extend(closed)
             _trim_history(state)
             _apply_effects(world, [(thread_id, "done")])
-            parts.append(_fill(words.get("shift_done", ""), owner=thread.get("owner_name") or ""))
+            parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
     validate(world[KEY])
     shown = _shift_text(world, thread, *parts)
     flags = world.setdefault("flags", {})

@@ -131,6 +131,14 @@ class ThreadTable(unittest.IsolatedAsyncioTestCase):
         await self.line("iyi tamam", "Güzel.")
         self.assertEqual(self.status(), "accepted")
 
+    async def test_a_no_followed_by_a_changed_mind_takes_the_job(self):
+        await self.open_job()
+        self.offer()
+        await self.line("yok ya", "Nasıl istersen.")
+        self.assertEqual(self.status(), "declined")
+        await self.line("yok ya... neyse olur, ne zaman başlıyorum?", "Yarın.")
+        self.assertEqual(self.status(), "accepted")
+
     async def test_a_question_the_owner_asked_takes_the_bare_yes(self):
         await self.open_job()
         self.offer()

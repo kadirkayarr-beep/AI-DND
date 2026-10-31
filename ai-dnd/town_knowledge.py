@@ -294,7 +294,7 @@ def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) 
 def _open_offer(world, npc, shown_text, turn, job_talk):
     """An offer exists once its terms were on screen. Nothing else opens one."""
     for thread in world_threads.jobs_of(world, npc):
-        if thread["status"] == "offered" and job_talk:
+        if thread["status"] in {"offered", "declined"} and job_talk:
             thread["offer_line"] = shown_text.strip()[:400]
     thread = _offerable(world, npc)
     if thread is None or not _shows_terms(thread, shown_text):

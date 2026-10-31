@@ -8251,6 +8251,8 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
             return gate
         gate["decision"] = "come_at_night"
     in_hand = errand and thread.get("status") == "accepted" and gate["decision"] in {"accepted", "take"}
+    if in_hand and reading["move"] and dialogue_jobs.holds_parcel(world, thread):
+        return None  # parcel in hand and walking off: that is simply the walk
     if in_hand and (reading["take"] or reading["move"]) and not dialogue_jobs.holds_parcel(world, thread):
         action = dialogue_jobs.hand_over(session, thread, person)
         if action and reading["move"]:

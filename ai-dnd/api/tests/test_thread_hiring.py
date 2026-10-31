@@ -80,6 +80,17 @@ class HiringTable(unittest.IsolatedAsyncioTestCase):
         self.assertIn("20 bakır", reply["narration"])
         self.assertNotIn("shift_until", self.t())
 
+    async def test_a_name_not_yet_learned_stays_off_the_screen(self):
+        await self.job()
+        self.owner["name_known_to_player"] = False
+        self.owner["name"] = "Eldon"
+        self.owner["role"] = "Kâhya"
+        for line in world_threads.job_lines("shift"):
+            self.assertIn("{owner}", line)
+        reply = await self.line("başlayalım")
+        self.assertNotIn("Eldon", reply["narration"])
+        self.assertNotIn("Kalila", reply["narration"])
+
     async def test_say_mode_works_the_same(self):
         await self.job()
         money = self.wallet()

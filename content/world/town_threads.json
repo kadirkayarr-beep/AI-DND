@@ -554,7 +554,7 @@
     },
     "hiring": {
       "accepted": [
-        "Anlaştınız: {days} gün, ücret {pay_text}, ödeme {timing_text}. Başlangıç: {start}. Şartları tekrar etme."
+        "Bu senin kendi işin, sen verdin; inkâr etme. {days} gün, ücret {pay_text}, ödeme {timing_text}. Başlangıç: {start}. Şartları tekrar etme."
       ],
       "done": [
         "Anlaştığınız iş bitti, ücreti eksiksiz aldı. Teşekkür edebilirsin; borcun yok.",
@@ -594,7 +594,7 @@
         ]
       },
       "accepted": [
-        "Anlaştınız: {item} {recipient} eline, {target} içinde. Ücret {pay_text}, ödeme {timing_text}, süre {deadline_text}. Şartları tekrar etme."
+        "Bu senin kendi işin, sen verdin; inkâr etme. {item} {recipient} eline, {target} içinde gidecek. Ücret {pay_text}, ödeme {timing_text}, alıcı sayar; süre {deadline_text}. Şartları tekrar etme."
       ],
       "done": [
         "{item} yerine ulaştı, ücretini teslimde aldı. Hesap kapandı, ona borcun yok; parayı tekrar verme.",

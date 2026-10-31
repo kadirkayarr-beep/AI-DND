@@ -138,6 +138,12 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.world["location"], self.target["id"])
         self.assertIn("Mektup artık", text.replace("mektup", "Mektup"))
 
+    async def test_with_the_parcel_in_hand_a_walk_is_just_a_walk(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        await self.line("tapınak nerede, oraya gidiyorum")
+        self.assertEqual(self.world["location"], self.target["id"])
+
     async def test_asking_where_while_taking_it_gets_an_answer_and_the_parcel(self):
         await self.job()
         await self.line("iyi tamam ver mektubu götürürüm, ama Tariq kim nerde bulucam onu", "Tapınakta bulursun.")
@@ -157,7 +163,8 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         return self.go_to_recipient()
 
     async def test_handing_it_over_pays_once_in_the_same_reply(self):
-        for line in ("mektubu getirdim", "işte", "teslim", "tariq sen misin? kalila usta mektup gönderdi, buyur mektubunu ver paramı",
+        for line in ("mektubu getirdim", "işte", "teslim", "tariq sen misin? kalila usta mektubu gönderdi, buyur al, paramı ver",
+                     "tariq sen misin? kalila usta mektup gönderdi, buyur mektubunu ver paramı",
                      "mektubu sunağın üstüne bırakıyorum. dokuz bakırımı kim verecek, sabah falan da değil akşam oluyor"):
             await self.play_to_the_door()
             start = self.wallet()
