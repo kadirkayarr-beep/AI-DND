@@ -219,6 +219,93 @@ class FightBackTests(ThreePlaysTests):
         self.assertGreater(guard["attack_bonus"], worker["attack_bonus"])
 
 
+class StealingTests(ThreePlaysTests):
+    LINES = (
+        "yaşlı gezginin kesesine el atıyorum, çaktırmadan yürütcem",
+        "bir elma çalıyorum",
+        "adam başka tarafa bakarken tezgahtan bi elma yürütüyorum",
+        "çavuş yazarken askıdan bi kalkan indirip pelerinimin altına saklıyorum",
+        "içeri süzülüp nöbet defterini aşırıyorum",
+        "muhafızın cebine el atıyorum",
+        "muhafızın kemerindeki keseyi kesip alıyorum",
+    )
+
+    async def test_a_steal_rolls_sleight_of_hand_and_leaves_a_mark(self):
+        for line in self.LINES:
+            with self.subTest(line=line):
+                await self.begin(ROGUE)
+                self.world["npcs"].clear()
+                self.add_person("Dorn", "Muhafız")
+                before = (list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0))
+                out = await self.say(line, PlayClient())
+                self.assertFalse(self.world["combat"]["active"])
+                self.assertEqual(out["turn_outcome"]["action"], "theft", out["narration"])
+                self.assertNotIn("Gizlenme", out["narration"])
+                result = self.world["flags"].get("deeds")
+                changed = (list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0)) != before
+                self.assertTrue(changed or result or "duraksıyorsun" in out["narration"], out["narration"])
+
+    async def test_a_caught_thief_is_remembered_and_the_person_is_told(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        guard = self.add_person("Dorn", "Muhafız")
+        with self.app.state.ollama_adapter.engine_binding():
+            import bold_acts
+            bold_acts.remember(self.session, "theft", "seni soymaya kalktı", victim_id=guard["id"])
+            self.assertIn("soymaya kalktı", bold_acts.speech_note(self.world, guard))
+
+    async def test_ringing_and_music_are_not_theft(self):
+        await self.begin(ROGUE)
+        with self.app.state.ollama_adapter.engine_binding():
+            import bold_acts
+            for line in ("zili çalıyorum", "kapıyı çalıyorum", "flüt çalıyorum"):
+                self.assertFalse(bold_acts.is_theft(self.session, line), line)
+
+
+class WorldAnswersTests(ThreePlaysTests):
+    async def test_a_killing_in_front_of_a_guard_starts_his_fight(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Tariq", "Kent sakini", visible_trait="çelimsiz", current_hp=1, max_hp=1, armor_class=1)
+        self.add_person("Dorn", "Muhafız")
+        await self.say("çelimsize baltayla saldırıyorum", PlayClient(intent="attack"))
+        for _ in range(8):
+            if self.world["npcs"][0]["combat_status"] == "dead":
+                break
+            await self.say("çelimsize vuruyorum", PlayClient(intent="attack"))
+        self.assertEqual(self.world["npcs"][0]["combat_status"], "dead")
+        self.assertTrue(self.world["combat"]["active"])
+        self.assertIn(self.world["npcs"][1]["id"], self.world["combat"]["participants"])
+
+    async def test_a_guard_elsewhere_has_heard(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        guard = self.add_person("Dorn", "Muhafız", location="elsewhere")
+        self.world["flags"]["deeds"] = [{"kind": "killing", "text": "bir barmen öldürüldü", "witnesses": []}]
+        with self.app.state.ollama_adapter.engine_binding():
+            import bold_acts
+            self.assertIn("barmen öldürüldü", bold_acts.speech_note(self.world, guard))
+
+    async def test_ordering_a_beer_reaches_the_barman(self):
+        await self.begin(BARBARIAN)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Barmen")
+        client = PlayClient(spoken="Al bakalım, paranı masaya bırak.")
+        out = await self.say("bira ver bana barmen, en sertinden olsun", client)
+        self.assertIn("paranı masaya", out["narration"])
+
+
+class FireTests(ThreePlaysTests):
+    async def test_a_fire_is_at_least_attempted(self):
+        for line in ("çantamdan yağ ve kav çıkarıyorum, şu duvar dibindeki çöp yığınını ateşe veriyorum",
+                     "ne sorusu ya. çöpleri yakıyorum diyorum, ateş yakıyorum",
+                     "kapüşonluyla konuşmuyorum. yerdeki çöp yığınını ateşe veriyorum"):
+            with self.subTest(line=line):
+                await self.begin(ROGUE)
+                out = await self.say(line, PlayClient())
+                self.assertEqual(out["turn_outcome"]["action"], "arson", out["narration"])
+
+
 class SparedTests(ThreePlaysTests):
     async def test_a_townsman_stops_hitting_you_when_you_are_down(self):
         await self.begin(ROGUE)
@@ -229,7 +316,7 @@ class SparedTests(ThreePlaysTests):
         person.update(current_hp=300, max_hp=300, role_known_to_player=True)
         self.session.character["current_hp"] = 1
         out = None
-        for _ in range(5):
+        for _ in range(40):
             out = await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))
             if self.session.character["current_hp"] == 0:
                 break

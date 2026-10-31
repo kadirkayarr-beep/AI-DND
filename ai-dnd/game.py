@@ -3198,6 +3198,8 @@ def apply_npc_damage(npc, damage):
     npc["current_hp"] = max(0, before - damage)
     if damage > 0 and npc["current_hp"] == 0:
         npc["combat_status"] = "dead"
+        import bold_acts
+        bold_acts.killed(_session(), npc)
     return npc["current_hp"]
 
 
@@ -6634,7 +6636,7 @@ _SPEAKING_VERB = re.compile(
 def _is_spoken_to(player_input, npc):
     """A sentence said to this person (vocative, dative + speech, or a speech
     verb) is conversation even without a question mark."""
-    if not isinstance(npc, dict) or not _npc_speech_enabled():
+    if not isinstance(npc, dict):
         return False
     if _has_explicit_attack_verb(player_input) or _is_object_inspection(player_input):
         return False
@@ -8267,7 +8269,8 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
             "varsa onu söyle, yoksa bilmediğini söyle."
         )
-    return _SPEECH_ANSWER_RULES + " ".join(lines) + _town_note(world, npc) + "\n"
+    import bold_acts
+    return _SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc) + "\n"
 
 
 def _experimental_npc_dialogue_context(
@@ -17247,6 +17250,9 @@ def _run_player_turn(
             interaction_mode,
             **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {}),
         )
+        import bold_acts
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            bold_acts.answer_to_killing(_session(), result)
     except IntentInfrastructureError as error:
         if check_feature is not None:
             # The outer opt-in owner restores its earlier snapshot and formats
@@ -17422,6 +17428,13 @@ def _dispatch_player_turn(
                 "action_result": {"action": "narrative", "status": "body_silent", "success": True,
                                   "state_changes": [], "direct_response": line},
             }
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
+            and not _session().world_state.get("combat", {}).get("active")):
+        import bold_acts
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            bold = bold_acts.resolve(_session(), player_input)
+        if bold is not None:
+            return bold
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         question = combat_lifecycle.unbound_attack_reply(_session(), player_input, target_id)
         if question:

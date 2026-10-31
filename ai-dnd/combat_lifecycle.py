@@ -88,7 +88,8 @@ def quoted_or_conditional_not_attack(session, message):
 
 
 def is_attack_decision(session, message):
-    if quoted_or_conditional_not_attack(session, message):
+    import bold_acts
+    if quoted_or_conditional_not_attack(session, message) or bold_acts.is_theft(session, message):
         return False
     spoken = living_world._text_outside_quotes(str(message))
     text = session._normalize_turkish_typos(spoken)
