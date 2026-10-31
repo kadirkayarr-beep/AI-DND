@@ -8,6 +8,7 @@ import json
 import unittest
 import uuid
 
+import npc_statements
 import weapon_catalog
 from api.tests import test_campaign_api
 
@@ -245,6 +246,56 @@ class TheDeadTests(ThreePlaysTests):
         await self.scene_with_a_body()
         out = await self.say("saldırıyorum", PlayClient(intent="attack"))
         self.assertNotIn("muhafız", out["narration"].casefold())
+
+
+class WhatWasSaidTests(ThreePlaysTests):
+    """A reference to what was said goes to the person, who says it was theirs."""
+
+    async def talked_to_steward(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.steward = self.add_person("Dorn", "Kâhya", name_known_to_player=True)
+        flags = self.world.setdefault("flags", {})
+        flags.update(active_npc_id=self.steward["id"], last_npc_id=self.steward["id"],
+                     active_npc_until_turn=flags.get("turn_index", 0) + 6)
+        npc_statements.record(self.world, self.steward, "iş var mı",
+                              "Dorn, “Ücret otuz sekiz bakır, süre bir gün, gerisini sonra konuşuruz.”",
+                              turn=1)
+
+    async def test_bargaining_over_a_price_reaches_the_person(self):
+        for line in (
+            "38 bakır mı? şaka gibi. en az bir altın ederim ben, çok savaş gördüm. hem detay dedin ne detayı, anlat",
+            "nasıl yanılıyorum daha demin sen söyledin otuz sekiz bakır diye, dalga mı geçiyorsun",
+            "usta sen birkaç sokak ötede demiştin, yolu tarif et de bulayım",
+        ):
+            with self.subTest(line=line):
+                await self.talked_to_steward()
+                client = PlayClient(spoken="Otuz sekiz dedim, bir altın değil. Pazarlık etme.")
+                out = await self.say(line, client)
+                self.assertIn("Pazarlık etme", out["narration"])
+
+    async def test_someone_else_said_it_is_no_claim_about_this_person(self):
+        for line in (
+            "selam usta, isolde sen misin? iskeledeki adam seni tavsiye etti, iş var mı dedi",
+            "sokakta bir adam dedi senin burada bir derdin varmış",
+        ):
+            with self.subTest(line=line):
+                await self.talked_to_steward()
+                client = PlayClient(spoken="Kim dedi onu sana? Derdim bana kalsın.")
+                out = await self.say(line, client)
+                self.assertIn("Derdim bana kalsın", out["narration"])
+
+    async def test_their_real_words_are_in_front_of_the_model(self):
+        await self.talked_to_steward()
+        client = PlayClient(spoken="Doğru, öyle demiştim.")
+        prompts = []
+        real_chat = client.chat
+        def chat(*args, **kwargs):
+            prompts.extend(str(item.get("content")) for item in kwargs.get("messages", []))
+            return real_chat(*args, **kwargs)
+        client.chat = chat
+        await self.say("dün bana otuz sekiz bakır dedin, bak deftere", client)
+        self.assertTrue(any("otuz sekiz bakır" in prompt and "gerisini sonra" in prompt for prompt in prompts))
 
 
 class DeathTests(ThreePlaysTests):

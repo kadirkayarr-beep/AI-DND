@@ -1080,6 +1080,28 @@ def _claimed_completed_outcome(player_input):
     return bool(re.search(r"\b(?:oldum|aldim|kazandim|kabul ettim|tamamladim)\b", text))
 
 
+_THIRD_PERSON_REPORT = re.compile(
+    r"\b(?:dedi|soyledi|anlatti|bahsetti|konustu|tavsiye etti|onerdi|demis|soylemis|anlatmis|bahsetmis)\b"
+)
+_SECOND_PERSON_SAID = re.compile(
+    r"\b(?:dedin|soyledin|anlattin|bahsettin|konustun|demistin|soylemistin|anlatmistin"
+    r"|bahsetmistin|hatirl\w*)\b"
+)
+
+
+def _report_of_someone_else(player_input, npc_target):
+    """"İskeledeki adam seni tavsiye etti": a third person spoke, not the one addressed."""
+    text = _normalize_turkish_typos(player_input)
+    if not isinstance(npc_target, dict) or not _THIRD_PERSON_REPORT.search(text) or _SECOND_PERSON_SAID.search(text):
+        return False
+    named = any(
+        _entity_reference_in_text(label, text)
+        for label in (npc_target.get("name"), npc_target.get("role"), living_world.public_npc_role(npc_target))
+        if isinstance(label, str) and label.strip()
+    )
+    return not named
+
+
 def is_npc_historical_claim(player_input):
     """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
     if not isinstance(player_input, str):
@@ -8224,6 +8246,14 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             + (" Bu cevapta onu adıyla hitap et." if said % 3 == 0
                else " Bu cevapta adını söylemene gerek yok.")
         )
+    import npc_statements
+    earlier = npc_statements.view(world)["statements"].get(npc.get("id"), [])[-6:]
+    if earlier and is_npc_historical_claim(player_input):
+        lines.append(
+            "Daha önce sen gerçekten şunları söyledin: "
+            + " / ".join(str(entry.get("text", ""))[:160] for entry in earlier)
+            + " Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
+        )
     said_before = _lines_already_said(npc, world)[-3:]
     if said_before:
         lines.append(
@@ -9738,7 +9768,7 @@ def _resolve_campaign_npc_reference(player_input, world_state=None):
 
 
 def _unsupported_npc_history_or_relationship_claim(
-    narration, npc_target=None, player_input="", *, spoken_start=None
+    narration, npc_target=None, player_input="", *, spoken_start=None, own_words=False
 ):
     """Detect invented relationship mutations or campaign-history claims not grounded in Python state."""
     text = str(narration).casefold()
@@ -9785,7 +9815,7 @@ def _unsupported_npc_history_or_relationship_claim(
             if not supported:
                 return ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", match.group(0))
 
-    if player_input and is_npc_historical_claim(player_input):
+    if player_input and not own_words and is_npc_historical_claim(player_input):
         target = npc_target or _resolve_campaign_npc_reference(player_input)
         supported = False
         if isinstance(target, dict):
@@ -10294,7 +10324,7 @@ def _narration_safety_decision(
 
     unsupported_npc_claim = _unsupported_npc_history_or_relationship_claim(
         narration, npc_target=npc_target, player_input=player_input,
-        spoken_start=spoken_start,
+        spoken_start=spoken_start, own_words=action_result.get("own_words") is True,
     )
     if unsupported_npc_claim:
         return reject(unsupported_npc_claim[0], unsupported_npc_claim[1])
@@ -14055,6 +14085,7 @@ def finalize_narration(
     historical_claim = (
         (action_result or {}).get("action") != "attack"
         and is_npc_historical_claim(player_input)
+        and not (action_result or {}).get("own_words")
     )
     if historical_claim and not history_target and target_id is None:
         resolution = resolve_npc_reference(player_input)
@@ -19652,10 +19683,12 @@ def _run_player_turn_internal(
         )
 
     experimental_unverified_claim = False
+    spoken_reference = False
     if (
         interaction_mode != "ask_dm"
         and is_npc_historical_claim(player_input)
         and not _reported_npc_claim_followed_by_player_inspection(player_input)
+        and not _report_of_someone_else(player_input, npc_target)
     ):
         claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
         supported_entry = (
@@ -19673,9 +19706,21 @@ def _run_player_turn_internal(
             supported_entry and not npc_statements.legacy_entry_supports(supported_entry, player_input)
         ):
             supported_entry = None
+        # Someone the player has talked to answers for their own words in their
+        # own voice: "38 bakır dedin" is haggling, not a forged promise. Only a
+        # claimed promise still has to be turned down.
+        spoken_reference = bool(
+            ledger["status"] != "absent"
+            and ledger.get("claim_kind") in (None, "said")
+            and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
+            and isinstance(npc_target, dict) and claimed_npc is npc_target
+            and npc_target.get("location") == world_state.get("location")
+        )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
-        if (
+        if spoken_reference:
+            pass
+        elif (
             not supported_entry
             and claimed_npc
             and interaction_mode != "ask_dm"
@@ -19761,6 +19806,8 @@ def _run_player_turn_internal(
     # default do mode must not block a turn the speech owner would handle.
     npc_dialogue_route = bool(npc_target and (
         interaction_mode == "say"
+        or spoken_reference
+        or _report_of_someone_else(player_input, npc_target)
         or npc_place_recommendation
         or is_npc_dialogue_input(player_input)
         or local_dialogue.personal_question_kind(player_input) == "local_work"  # "burada ... var mı" also reads as a look
@@ -20016,6 +20063,8 @@ def _run_player_turn_internal(
             if experimental_npc_dialogue:
                 action_result["npc_id"] = npc_target["id"]
                 action_result["status"] = "experimental_attributed_speech"
+                if spoken_reference or _report_of_someone_else(player_input, npc_target):
+                    action_result["own_words"] = True
 
             raw_narration = raw_intent.get("narration") if isinstance(raw_intent, dict) else None
             model_raw_narration = raw_narration
