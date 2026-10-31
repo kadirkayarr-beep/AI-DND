@@ -8630,9 +8630,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "interaction türlerinde standart interaction kontratını kullan. Geçmiş vaat, "
             "ödül, mekanik sonuç, oyuncu eylemi veya gizli bilgi uydurma."
         )
-    schema = (interaction_adventure.intent_schema(
-                  INTENT_SCHEMA,
-                  require_conversation=dialogue_narration or require_conversation,
+    schema = (interaction_adventure.close_proposal_schema(
+                  interaction_adventure.intent_schema(
+                      INTENT_SCHEMA,
+                      require_conversation=dialogue_narration or require_conversation,
+                  ),
+                  interaction_context,
               )
               if interaction_context is not None else INTENT_SCHEMA)
     candidate_ids = [item["id"] for item in nearby_npcs]
@@ -8800,7 +8803,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             think=False,
             options=(
                 _EXPERIMENTAL_NPC_SPEECH_OPTIONS if experimental_npc_dialogue
-                else {"temperature": 0.0, "num_predict": 900 if interaction_context is not None else 120}
+                # A normal proposal is under 150 tokens; anything far beyond it is a loop.
+                else {"temperature": 0.0, "num_predict": 400 if interaction_context is not None else 120}
             ),
         )
         data = _extract_json_object(ollama_response_content(response))

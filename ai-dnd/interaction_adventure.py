@@ -229,6 +229,30 @@ def intent_schema(base, require_conversation=False):
     return schema
 
 
+def close_proposal_schema(schema, interaction_context):
+    """Offer the ids this turn really has, so a reference cannot grow into a loop.
+
+    The provider grammar honoured the old limits; eight strings of 160 characters
+    were simply room for a 900-token runaway on an ordinary question.
+    """
+    context_data = interaction_context if isinstance(interaction_context, dict) else {}
+    properties = schema["$defs"]["ConversationProposal"]["properties"]
+    evidence_ids = [
+        item["evidence_id"] for item in context_data.get("conversation_candidates") or []
+    ]
+    properties["candidate_evidence_ids"] = {
+        "type": "array", "maxItems": len(evidence_ids),
+        "items": {"type": "string", "enum": evidence_ids or [""]},
+    }
+    addressee = context_data.get("addressee")
+    addressee_id = addressee.get("npc_id") if isinstance(addressee, dict) else None
+    properties["addressee_id"] = (
+        {"anyOf": [{"type": "string", "enum": [addressee_id]}, {"type": "null"}]}
+        if addressee_id else {"type": "null"}
+    )
+    return schema
+
+
 def proposal_guidance():
     return (
         "Bu tur serbest interaction niyeti de yorumla. interaction.operation mevcut oyuncu "

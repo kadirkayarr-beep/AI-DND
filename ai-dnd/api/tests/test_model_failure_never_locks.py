@@ -75,6 +75,7 @@ class ScriptedModel:
 
     def __init__(self):
         self.kinds = []
+        self.calls = []
         self.fault = None
 
     def list(self):
@@ -86,6 +87,7 @@ class ScriptedModel:
     def chat(self, *_args, **kwargs):
         kind = kind_of(kwargs.get("format"))
         self.kinds.append(kind)
+        self.calls.append(kwargs)
         if self.fault is not None and self.fault[0] == kind and self.fault[2] > 0:
             self.fault[2] -= 1
             if isinstance(self.fault[1], Exception):
@@ -137,6 +139,15 @@ class PlayFixture(unittest.IsolatedAsyncioTestCase):
 
     def saved(self):
         return self.store.get_campaign(self.campaign_id)
+
+
+class ClassifierCallIsSmall(PlayFixture):
+    async def test_a_real_turn_sends_a_closed_list_and_a_low_token_cap(self):
+        await self.turn(self.body(CLASSIFIER_TURN))
+        call = next(entry for entry in self.model.calls if kind_of(entry.get("format")) == "classifier")
+        field = call["format"]["$defs"]["ConversationProposal"]["properties"]["candidate_evidence_ids"]
+        self.assertEqual(field["maxItems"], 0)
+        self.assertLessEqual(call["options"]["num_predict"], 400, "a normal reply is under 150 tokens")
 
 
 class RunSixReproduction(PlayFixture):
@@ -266,6 +277,29 @@ class ClassifierSchemaHasNoRoomToLoop(unittest.TestCase):
         for require_conversation in (False, True):
             schema = interaction_adventure.intent_schema(game.INTENT_SCHEMA, require_conversation=require_conversation)
             self.assertEqual(self.unbounded(schema), [])
+
+    def closed(self, candidates, addressee=None):
+        schema = interaction_adventure.intent_schema(game.INTENT_SCHEMA, require_conversation=True)
+        context = {"conversation_candidates": [{"evidence_id": key} for key in candidates], "addressee": addressee}
+        return interaction_adventure.close_proposal_schema(schema, context)["$defs"]["ConversationProposal"]["properties"]
+
+    def test_with_nothing_to_cite_the_model_can_only_write_an_empty_list(self):
+        # Replayed live: 3 of 10 runaways with free strings, 0 of 16 with this list. maxLength worked; 8 x 160 was the loop.
+        field = self.closed([])["candidate_evidence_ids"]
+        self.assertEqual(field["maxItems"], 0)
+        self.assertEqual(field["items"]["enum"], [""])
+
+    def test_the_list_holds_only_the_ids_the_turn_offered(self):
+        keys = ["npc-profile:npc_001:v1:occupation", "npc-profile:npc_001:v1:origin"]
+        field = self.closed(keys)["candidate_evidence_ids"]
+        self.assertEqual(field["maxItems"], 2)
+        self.assertEqual(field["items"]["enum"], keys)
+
+    def test_the_addressee_is_the_one_person_or_null(self):
+        options = self.closed([], {"npc_id": "npc_004"})["addressee_id"]["anyOf"]
+        self.assertIn({"type": "string", "enum": ["npc_004"]}, options)
+        self.assertIn({"type": "null"}, options)
+        self.assertEqual(self.closed([])["addressee_id"], {"type": "null"})
 
     def test_a_real_evidence_id_still_fits(self):
         proposal = interaction_adventure.ConversationProposal.model_validate({
