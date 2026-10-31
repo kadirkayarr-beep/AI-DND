@@ -223,6 +223,16 @@ def place_kind_of(word: str) -> tuple[str, str] | None:
 
 def _named_places(text: str) -> list[tuple[str, str, str]]:
     """Proper place names in an NPC line -> [(display name, noun, kind)]."""
+    unique: list[tuple[str, str, str]] = []
+    # A name never runs across a sentence end ("Ben Marek. Buralıyım. Arşivde ...").
+    for sentence in re.split(r"[.!?;:…]+", text):
+        for item in _named_places_in_sentence(sentence):
+            if fold(item[0]) not in {fold(x[0]) for x in unique}:
+                unique.append(item)
+    return unique
+
+
+def _named_places_in_sentence(text: str) -> list[tuple[str, str, str]]:
     found = []
     tokens = re.findall(r"[A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+(?:['’][A-Za-zÇĞİÖŞÜçğıöşüÂÎÛâîû]+)?", text)
 
