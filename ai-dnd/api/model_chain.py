@@ -42,7 +42,11 @@ _QUOTA_RESET_HOUR_UTC = 8
 _DAILY_QUOTA = re.compile(r"per.?day|daily", re.IGNORECASE)
 _DEFAULT_MAX_TOKENS = 1000
 # Haiku's structured output rejects these keywords; Python still checks the reply.
-_HAIKU_UNSUPPORTED = frozenset({"minLength", "maxLength", "minimum", "maximum", "minItems", "maxItems", "pattern"})
+_HAIKU_UNSUPPORTED = frozenset({
+    "minLength", "maxLength", "minimum", "maximum", "minItems", "maxItems", "pattern", "default", "title",
+})
+_HAIKU_JSON_REQUIREMENT = "Return one JSON object only, with no code fence, matching this JSON schema: "
+_GEMINI_UNSUPPORTED = frozenset({"$defs", "additionalProperties", "const", "default", "title"})
 _logger = logging.getLogger("ai_dnd.api.ollama")
 
 
@@ -76,30 +80,48 @@ def _schema(call: Mapping[str, Any]) -> dict[str, Any] | None:
     return schema if isinstance(schema, dict) else None
 
 
-def _map_children(schema: dict[str, Any], convert: Any) -> dict[str, Any]:
-    result = dict(schema)
+def _gemini_schema(schema: dict[str, Any], definitions: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Gemini's schema has no references, constants or null type, so those become plain fields."""
+    definitions = schema.get("$defs", {}) if definitions is None else definitions
+    if "$ref" in schema:
+        return _gemini_schema(definitions[schema["$ref"].rsplit("/", 1)[-1]], definitions)
+    result = {key: value for key, value in schema.items() if key not in _GEMINI_UNSUPPORTED}
+    if "const" in schema:
+        result["enum"] = [schema["const"]]
+    if "enum" in result:  # the game offers [""] when it has no ids; Gemini refuses an empty value
+        result["enum"] = [value for value in result["enum"] if value != ""]
+        if not result["enum"]:
+            del result["enum"]
     if "properties" in result:
-        result["properties"] = {name: convert(child) for name, child in result["properties"].items()}
+        result["properties"] = {name: _gemini_schema(child, definitions) for name, child in result["properties"].items()}
     if "items" in result:
-        result["items"] = convert(result["items"])
-    return result
-
-
-def _gemini_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    result = _map_children(schema, _gemini_schema)
-    result.pop("additionalProperties", None)
+        result["items"] = _gemini_schema(result["items"], definitions)
+    branches = result.pop("anyOf", [])
+    real = [_gemini_schema(branch, definitions) for branch in branches if branch.get("type") != "null"]
+    if len(real) == 1:
+        result.update(real[0])
+    elif real:
+        result["anyOf"] = real
     kinds = result.get("type")
+    nullable = len(real) < len(branches) or kinds == "null" or (isinstance(kinds, list) and "null" in kinds)
     if isinstance(kinds, list):
         result["type"] = next(kind for kind in kinds if kind != "null")
-        if "null" in kinds:
-            result["nullable"] = True
+    elif kinds == "null":
+        result["type"] = "string"
+    if nullable:
+        result["nullable"] = True
     return result
 
 
 def _haiku_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    result = _map_children(schema, _haiku_schema)
-    for keyword in _HAIKU_UNSUPPORTED:
-        result.pop(keyword, None)
+    result = {key: value for key, value in schema.items() if key not in _HAIKU_UNSUPPORTED}
+    for key in ("properties", "$defs"):
+        if key in result:
+            result[key] = {name: _haiku_schema(child) for name, child in result[key].items()}
+    if "items" in result:
+        result["items"] = _haiku_schema(result["items"])
+    if "anyOf" in result:
+        result["anyOf"] = [_haiku_schema(branch) for branch in result["anyOf"]]
     kinds = result.get("type")
     if kinds == "object" or (isinstance(kinds, list) and "object" in kinds):
         result["additionalProperties"] = False
@@ -135,7 +157,10 @@ def haiku_body(call: Mapping[str, Any]) -> dict[str, Any]:
     # No temperature: Haiku 5.5 answers a non-default value with a 400.
     output: dict[str, Any] = {"effort": "low"}
     schema = _schema(call)
-    if schema is not None:
+    if schema is not None and "$defs" in schema:
+        # The classifier's envelope never compiled: 60 s without an answer, or "Schema is too complex".
+        system = f"{system}\n\n{_HAIKU_JSON_REQUIREMENT}{json.dumps(_haiku_schema(schema), ensure_ascii=False)}".strip()
+    elif schema is not None:
         output["format"] = {"type": "json_schema", "schema": _haiku_schema(schema)}
     body: dict[str, Any] = {
         "model": HAIKU_MODEL,

@@ -13,6 +13,7 @@ from unittest.mock import patch
 import httpx
 
 import game
+import interaction_adventure
 from api import model_chain, ollama_adapter
 from api.auth import FixedAuthenticator
 from api.local_model_config import SUPPORTED_LOCAL_MODELS
@@ -43,6 +44,31 @@ CALL = {
     "format": SCHEMA,
     "think": False,
     "options": {"num_ctx": 8192, "temperature": 0.35, "num_predict": 700, "repeat_penalty": 1.15},
+}
+
+
+PYDANTIC_SCHEMA = {
+    "$defs": {
+        "Step": {
+            "title": "Step",
+            "type": "object",
+            "properties": {
+                "kind": {"const": "move", "type": "string", "title": "Kind"},
+                "note": {"anyOf": [{"type": "string", "maxLength": 40}, {"type": "null"}], "default": None, "title": "Note"},
+            },
+            "required": ["kind"],
+            "additionalProperties": False,
+        },
+    },
+    "title": "Envelope",
+    "type": "object",
+    "properties": {
+        "steps": {"type": "array", "maxItems": 3, "minItems": 0, "items": {"$ref": "#/$defs/Step"}, "default": []},
+        "first": {"anyOf": [{"$ref": "#/$defs/Step"}, {"type": "null"}], "default": None},
+        "nobody": {"type": "null"},
+    },
+    "required": ["steps"],
+    "additionalProperties": False,
 }
 
 
@@ -101,6 +127,66 @@ class TheTranslation(unittest.TestCase):
         text = json.dumps(schema)
         for word in ("maxLength", "minLength", "minimum", "maximum", "maxItems"):
             self.assertNotIn(word, text)
+
+    def test_a_gemini_schema_inlines_what_a_pydantic_schema_refers_to(self):
+        schema = model_chain.gemini_body(dict(CALL, format=PYDANTIC_SCHEMA))["generationConfig"]["responseSchema"]
+        text = json.dumps(schema)
+        for word in ("$defs", "$ref", "anyOf", "const", "default", "title", "additionalProperties", '"null"'):
+            self.assertNotIn(word, text)
+        step = schema["properties"]["steps"]["items"]
+        self.assertEqual(step["properties"]["kind"], {"type": "string", "enum": ["move"]})
+        self.assertEqual(step["properties"]["note"], {"type": "string", "nullable": True, "maxLength": 40})
+        self.assertEqual(schema["properties"]["first"]["type"], "object")
+        self.assertTrue(schema["properties"]["first"]["nullable"])
+        self.assertEqual(schema["properties"]["nobody"], {"type": "string", "nullable": True})
+
+    def test_a_field_named_like_a_keyword_stays_a_field(self):
+        schema = {"type": "object", "properties": {"title": {"type": "string", "title": "Title", "maxLength": 9}}}
+        gemini = model_chain.gemini_body(dict(CALL, format=schema))["generationConfig"]["responseSchema"]
+        self.assertEqual(gemini["properties"], {"title": {"type": "string", "maxLength": 9}})
+        haiku = model_chain.haiku_body(dict(CALL, format=schema))["output_config"]["format"]["schema"]
+        self.assertEqual(haiku["properties"], {"title": {"type": "string"}})
+
+    def test_gemini_gets_no_empty_enum_value(self):
+        call = dict(CALL, format={"type": "object", "properties": {
+            "npc_id": {"type": "string", "enum": [""]},
+            "kind": {"type": "string", "enum": ["", "move"]},
+        }})
+        properties = model_chain.gemini_body(call)["generationConfig"]["responseSchema"]["properties"]
+        self.assertEqual(properties["npc_id"], {"type": "string"})
+        self.assertEqual(properties["kind"], {"type": "string", "enum": ["move"]})
+
+    def test_a_schema_too_complex_for_haiku_travels_in_the_prompt(self):
+        body = model_chain.haiku_body(dict(CALL, format=PYDANTIC_SCHEMA))
+        self.assertEqual(body["output_config"], {"effort": "low"})
+        self.assertTrue(body["system"].startswith("Kurallar."))
+        self.assertIn("JSON", body["system"].removeprefix("Kurallar."))
+        self.assertIn('"$ref": "#/$defs/Step"', body["system"])
+        for word in ("maxItems", "minItems", "maxLength", "minimum", '"default"', '"title"'):
+            self.assertNotIn(word, body["system"])
+
+    def test_a_simple_schema_stays_a_compiled_format_for_haiku(self):
+        body = model_chain.haiku_body(CALL)
+        self.assertEqual(body["system"], "Kurallar.")
+        self.assertIn("format", body["output_config"])
+
+    def test_translating_leaves_the_engine_schema_alone(self):
+        before = json.dumps(PYDANTIC_SCHEMA, sort_keys=True)
+        model_chain.gemini_body(dict(CALL, format=PYDANTIC_SCHEMA))
+        model_chain.haiku_body(dict(CALL, format=PYDANTIC_SCHEMA))
+        self.assertEqual(json.dumps(PYDANTIC_SCHEMA, sort_keys=True), before)
+
+    def test_the_real_classifier_schema_keeps_no_keyword_a_provider_refuses(self):
+        schema = interaction_adventure.close_proposal_schema(
+            interaction_adventure.intent_schema(game.INTENT_SCHEMA, require_conversation=True), {"addressee": None})
+        gemini = json.dumps(model_chain.gemini_body(dict(CALL, format=schema))["generationConfig"]["responseSchema"])
+        for word in ("$ref", "$defs", "anyOf", "const", '"default"', '"title"'):
+            self.assertNotIn(word, gemini)
+        self.assertNotIn('""', gemini)
+        haiku = model_chain.haiku_body(dict(CALL, format=schema))
+        self.assertEqual(haiku["output_config"], {"effort": "low"})
+        for word in ("maxItems", "minItems", "maxLength", "minLength", "minimum", '"default"', '"title"'):
+            self.assertNotIn(word, haiku["system"])
 
     def test_nothing_but_the_prompt_leaves_for_a_provider(self):
         call = dict(CALL, keep_alive="5m", session_id="private", options={"num_predict": 10, "gm_only": "secret"})
