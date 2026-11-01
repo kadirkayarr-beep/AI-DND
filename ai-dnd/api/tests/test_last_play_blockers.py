@@ -5,6 +5,7 @@ Python does on its own: no raw error, no second reading of the player's words.
 """
 
 import bold_acts
+import game
 import local_places
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
@@ -256,3 +257,26 @@ class NoRawVoiceTests(ThreePlaysTests):
         self.assertIn("Neverwinter", out["narration"])
         out = await self.say("burada kim var?", PlayClient())
         self.assertNotIn("şunlar var", out["narration"])
+
+
+class PeopleAnswerTests(ThreePlaysTests):
+    async def barman(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.person = self.add_person("Dorn", "Barmen")
+        self.world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=0)
+
+    async def test_asking_for_work_gets_the_man_not_a_scowl(self):
+        await self.barman()
+        client = PlayClient(spoken="Kervanlar pazar günü kalkar, bir sor bakalım.", narration="Barmen kaşlarını çatıyor.")
+        await self.say("selam usta", client)
+        out = await self.say("ne sözü be adam, ben iş arıyorum. kervan koruma, fedailik, ne olursa", client)
+        self.assertIn("Kervanlar pazar", out["narration"], out["turn_outcome"])
+        self.assertEqual(self.world["adventure"]["threads"] if "adventure" in self.world else [], [])
+
+    async def test_the_one_who_served_you_is_who_you_are_talking_to(self):
+        await self.barman()
+        client = PlayClient(spoken="Duymadım bir şey, bira iç.", narration="Barmen yüzünü buruşturuyor.")
+        await self.say("selam usta, bi bira ver", client)
+        out = await self.say("sağol. ee iş diyodum, duydun mu birşey", client)
+        self.assertIn("Duymadım", out["narration"], out["turn_outcome"])

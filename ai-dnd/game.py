@@ -955,13 +955,20 @@ _ASKS_SOMETHING = re.compile(
 )
 
 
+def _just_served(world):
+    """"Duydun mu birşey", right after the beer: nobody needs a name for the one who poured it."""
+    flags = world.get("flags", {})
+    return type(flags.get("served_turn")) is int and 0 <= flags.get("turn_index", 0) - flags["served_turn"] <= 2
+
+
 def _asked_of_the_one_at_hand(player_input, npc):
     """A question that calls someone by name goes to them, with or without a question mark."""
     if (not isinstance(npc, dict) or _has_explicit_attack_verb(player_input)
             or not _people_speak_for_themselves(_session().world_state)):
         return False
     text = _normalize_turkish_typos(str(player_input))
-    return bool(_entity_reference_in_text(npc.get("name", ""), text)
+    served = _just_served(_session().world_state) and _session().world_state["flags"].get("active_npc_id") == npc.get("id")
+    return bool((_entity_reference_in_text(npc.get("name", ""), text) or served)
                 and ("?" in str(player_input) or _ASKS_SOMETHING.search(text)))
 
 
@@ -6451,6 +6458,7 @@ def resolve_npc_reference(
         or re.search(r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text)
         or interaction_adventure.is_focus_followup(world_state, player_input)
         or short_followup
+        or (_ASKS_SOMETHING.search(text) and _just_served(world_state))
     ):
         flags = world_state.setdefault("flags", {})
         active_id = flags.get("active_npc_id") or flags.get("last_npc_id")
@@ -19732,7 +19740,7 @@ def _run_player_turn_internal(
             _session()._set_scene_active_npc(npc_target, world_state.get("flags", {}).get("turn_index", 0))
     if (
         interaction_hint in {"information", "generate"} and target_id is None
-        and local_dialogue.personal_question_kind(player_input) == "local_work"
+        and (interaction_hint == "generate" or local_dialogue.personal_question_kind(player_input) == "local_work")
         and _town_in_play(world_state)
     ):
         # Whoever is here answers from what they know; no proposal is needed to find a town's work.

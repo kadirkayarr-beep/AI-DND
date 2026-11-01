@@ -552,6 +552,7 @@ def take_room(session, text: str) -> dict[str, Any] | None:
     if wallets.get("player", 0) < _ROOM_PRICE:
         return {"line": f"{who} kesene bakıp başını sallıyor. “Parası yoksa oda da yok.”", "paid": 0, "room": False}
     wallets["player"] -= _ROOM_PRICE
+    session._set_scene_active_npc(server, world["flags"].get("turn_index", 0))
     world["flags"]["inn_room"] = {"place": world.get("location"), "until": now + _ROOM_DAY}
     return {"line": f"{who} başıyla merdivenleri gösteriyor; {_ROOM_PRICE} bakır kesenden tezgâha geçiyor.",
             "paid": _ROOM_PRICE, "room": True}
@@ -579,6 +580,8 @@ def _buy(session, text: str) -> dict[str, Any] | None:
         return _reply(session, f"{who} kesene bakıp başını sallıyor. “Parası yoksa {label} da yok.”",
                       "purchase", "no_money", None, [])
     wallets["player"] -= price
+    session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
+    world["flags"]["served_turn"] = world["flags"].get("turn_index", 0)
     return _reply(session, f"{who} önüne bir {label} bırakıyor; {price} bakır kesenden tezgâha geçiyor.",
                   "purchase", "bought", None, ["currency"], price_cp=price)
 
