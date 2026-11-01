@@ -879,6 +879,14 @@ def execute(session, text, *, advance_turn=True):
     }
 
 
+def grant_plain(world, name):
+    """A thing with a name and no worth, for a player who picked it up where the screen showed it."""
+    materialize(world)
+    world["inventory"].append(name)
+    materialize(world)
+    validate_world(world)
+
+
 def public_inventory(world):
     """Preserve the API string-list contract; labels expose IDs and hand state."""
     hands = world.get("equipment", {})

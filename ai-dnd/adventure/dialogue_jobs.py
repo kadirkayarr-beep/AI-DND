@@ -227,7 +227,7 @@ def deliver(session,thread,recipient,text):
     import world_threads
     world=session.world_state
     if not holds_parcel(world,thread):
-        shown=shown_line(world,thread,'not_in_hand')
+        shown=shown_line(world,thread,'thrown' if thread.get('parcel_gone') else 'not_in_hand')
         session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
         return {'messages':session.messages,'narration':shown,'model_calls':0,
                 'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}

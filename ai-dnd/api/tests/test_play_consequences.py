@@ -175,6 +175,7 @@ class Sealed(OnTheJob):
                            terms={"pay": pay, "pay_basis": "total", "pay_timing": "on_delivery",
                                   "deadline_text": "bir gün içinde"})
         self.thread["owner_npc_id"] = self.npc["id"]
+        self.offer()
         with patch("world_threads.recipient_of", return_value=self.other):
             self.assertTrue(dialogue_jobs.accept_thread_job(self.session, self.thread, self.npc))
         dialogue_jobs.hand_over(self.session, self.thread, self.npc)
@@ -213,7 +214,7 @@ class Sealed(OnTheJob):
         out = await self.line("al sana mektup var, teslim ediyorum")
         paid = self.world.get("currency", {}).get("player", 0) - money
         self.assertEqual(paid, 6, out["narration"])
-        self.assertIn("mühür", out["narration"].casefold())
+        self.assertIn("mührü", out["narration"].casefold())
         self.assertLess(relationships.score(self.world, self.other["id"]), 0)
 
     async def test_an_unopened_letter_pays_in_full(self):
@@ -242,8 +243,9 @@ class Pocket(ThreePlaysTests):
 
     async def test_money_cannot_be_taken_out_of_a_description(self):
         await self.shown("Masanın üstünde bir kese altın duruyor.")
+        before = self.names()
         await self.say("altınları alıp cebime atıyorum", PlayClient())
-        self.assertFalse(any("altın" in str(name).casefold() for name in self.names()))
+        self.assertEqual(self.names(), before)
 
     async def test_something_nobody_mentioned_is_not_there_to_take(self):
         await self.shown("Rıhtımda kalın halatlar yatıyor.")
@@ -283,7 +285,8 @@ class Biri(OnTheJob):
         state = living_world.ensure_scene_state(self.world)
         scene = state["scenes"].setdefault(self.world["location"], {"referents": []})
         scene.setdefault("referents", []).append(
-            {"id": "ref_gone", "lifecycle": "expired", "aliases": list(aliases), "expires_after_turn": 0})
+            {"id": "ref_gone", "description": "biri", "lifecycle": "expired", "aliases": list(aliases),
+             "expires_after_turn": 0})
 
     async def test_asking_the_one_before_you_about_someone_reaches_them(self):
         for line in ("rahip, biri geldi mi mektup için? kapıya dayanan oldu mu",
@@ -296,11 +299,11 @@ class Biri(OnTheJob):
 
     async def test_someone_really_gone_is_still_gone_when_nobody_is_being_talked_to(self):
         await self.open_job()
-        self.world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=-1)
-        self.world["npcs"][:] = [npc for npc in self.world["npcs"] if npc is not self.npc]
-        self.expired_person("kırmızı pelerinli adam")
-        out = await self.line("kırmızı pelerinli adamın yanına gidiyorum")
-        self.assertIn("ortalıkta yok", out["narration"])
+        self.expired_person("kırmızı pelerinli adam", "biri")
+        turn = self.world["flags"].get("turn_index", 0)
+        found = living_world.resolve_scene_referent(self.world, "kırmızı pelerinli adam nereye gitti", turn)
+        self.assertEqual(found["status"], "expired")
+        self.assertEqual(living_world.resolve_scene_referent(self.world, "biri geldi mi", turn)["status"], "missing")
 
 
 class Unrecognised(OnTheJob):

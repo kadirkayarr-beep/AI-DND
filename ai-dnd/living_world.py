@@ -1717,6 +1717,10 @@ def _alias_in_text(alias: Any, text: Any) -> bool:
     return False
 
 
+# "Biri geldi mi?", "kim gelecek?": asking after somebody is pointing at nobody yet.
+_NOBODY_IN_PARTICULAR = frozenset({"biri", "birisi", "bir", "kim", "kimse", "kimi", "birkac", "herkes", "adam", "kisi"})
+
+
 def resolve_scene_referent(
     world_state: dict[str, Any],
     player_input: str,
@@ -1732,7 +1736,8 @@ def resolve_scene_referent(
         ref
         for ref in scene.get("referents", [])
         if ref.get("lifecycle") in ("presented", "promoted", "expired")
-        and any(_alias_in_text(alias, player_input) for alias in ref.get("aliases", []))
+        and any(_alias_in_text(alias, player_input) for alias in ref.get("aliases", [])
+                if normalize_text(alias) not in _NOBODY_IN_PARTICULAR)
     ]
     if not candidates and re.search(
         r"\b(?:ona|onu|onunla|aynı kişi|that person|them|him|her)\b",
