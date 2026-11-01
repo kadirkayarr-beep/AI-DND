@@ -183,6 +183,7 @@ def split_clauses(text: str) -> tuple[list[dict[str, Any]], list[str]]:
     merged: list[dict[str, Any]] = []
     carry: list[str] = []
     for clause in clauses:
+        lead = len(carry)
         tokens = carry + clause["tokens"]
         if not any(_verb_of(t, tokens[i + 1] if i + 1 < len(tokens) else "") for i, t in enumerate(tokens)):
             if merged and any(_CONDITION_WORD.match(t) for t in tokens):
@@ -195,7 +196,7 @@ def split_clauses(text: str) -> tuple[list[dict[str, Any]], list[str]]:
             carry = tokens
             continue
         carry = []
-        merged.append({"tokens": tokens, "asked": clause["asked"]})
+        merged.append({"tokens": tokens, "asked": clause["asked"], "lead": lead})
     if carry:
         if merged:
             merged[-1]["tokens"].extend(carry)
@@ -794,6 +795,11 @@ def _memory(world: dict[str, Any]) -> dict[str, Any]:
 _FIRST_PERSON_ACT = re.compile(r"\b\w+(?:iyorum|uyorum|yorum|acagim|ecegim|irim|urum|arim|erim)\b")
 
 
+def _says_no_place(tokens: list[str], cands: list[dict[str, Any]], world: dict[str, Any]) -> bool:
+    places = [c for c in cands if c["kind"] != "npc"]
+    return not (_place_noun_in(tokens) or _detail_in(tokens) or bind(tokens, places, world=world, verb="go")["target"])
+
+
 def plan(session, player_input: str) -> dict[str, Any]:
     world = session.world_state
     clauses, speech = split_clauses(player_input)
@@ -825,6 +831,10 @@ def plan(session, player_input: str) -> dict[str, Any]:
             verb = "leave"
         purpose = info["purpose"]
         goal_tokens = purpose["tokens"] if purpose else object_tokens
+        lead = clause.get("lead", 0)
+        if lead and not purpose and verb in {"go", "approach", "enter"} and _says_no_place(tokens[:lead], cands, world):
+            # "Sağol usta. Oraya gidiyorum": the words before the verb were for the person, not the way.
+            goal_tokens = [t for i, t in enumerate(tokens) if i >= lead and i != info["verb_index"]]
         if purpose and purpose["verb"] in {"search", "go", "approach"}:
             verb_for_bind = "search"
         else:

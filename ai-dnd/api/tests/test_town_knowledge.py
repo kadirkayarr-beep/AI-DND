@@ -352,6 +352,17 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         resident = local_places.resident_of(world, self.place["id"])
         self.assertEqual(resident["name"], self.thread["owner_name"])
 
+    async def test_thanks_before_going_there_still_goes(self):
+        for line in ("sağol usta. tamam oraya gidiyorum o zaman",
+                     "eyvallah abi, oraya gidiyorum",
+                     "teşekkürler usta. tamam gidiyorum"):
+            with self.subTest(line=line):
+                world = await self.heard()
+                self.npc["role"] = "Çizmeci ustası"  # "usta" is this person, and still not where the player goes
+                await self.say("Burada nerede iş bulabilirim?", f"{self.place['name']} tarafına bir uğra.")
+                text = await self.go(line)
+                self.assertEqual(world["location"], self.place["id"], text)
+
     async def test_going_there_after_only_the_person_was_named_arrives_too(self):
         world = await self.heard()
         await self.say("Burada nerede iş bulabilirim?", f"{self.thread['owner_name']} ile konuş.")
