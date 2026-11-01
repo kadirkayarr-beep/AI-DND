@@ -362,10 +362,10 @@ def person(world, npc_id, place_id, **fields):
 class TheJobMachine(unittest.TestCase):
     def test_the_edges_are_the_only_paths(self):
         expected = {
-            "open": {"heard", "offered", "filled_by_other", "expired"},
-            "heard": {"offered", "filled_by_other", "expired"},
-            "offered": {"accepted", "declined", "expired"},
-            "declined": {"accepted", "filled_by_other", "expired"},
+            "open": {"heard", "offered", "filled_by_other", "expired", "fired"},
+            "heard": {"offered", "filled_by_other", "expired", "fired"},
+            "offered": {"accepted", "declined", "expired", "fired"},
+            "declined": {"accepted", "filled_by_other", "expired", "fired"},
             "accepted": {"done", "failed", "expired", "abandoned"},
         }
         self.assertEqual(world_threads.TRANSITIONS, expected)

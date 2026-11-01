@@ -697,6 +697,29 @@
         "Reddettiği işi sonunda kendin halletmek zorunda kaldın; o iş artık boşta değil."
       ]
     },
+    "trouble": {
+      "fired": [
+        "Bu dert sonunda başına geldi; geç kalındı. Kendi tavrınla söyle, kimseyi suçlamak zorunda değilsin."
+      ],
+      "fired_short": "Kentte bir dert sonunda patlak vermiş.",
+      "fired_lines": {
+        "visit": [
+          "{place} önüne gece birileri gelmiş, uzun uzun konuşulmuş.",
+          "{place} tarafına beklenmedik biri uğramış, iş büyümüş.",
+          "{place} kapısında yabancılar görülmüş, kimse açık konuşmuyor."
+        ],
+        "closed": [
+          "{place} kapanmış; kapıda kilit asılı.",
+          "{place} bir süre iş görmeyecek, içeriden ses gelmiyor.",
+          "{place} kapısını kapatmış, soran geri dönüyor."
+        ],
+        "lost": [
+          "{place} tarafında bir şey kaybolmuş, nereye gittiğini bilen yok.",
+          "{place} ağır bir kayıp vermiş, yüzler asık.",
+          "{place} tarafından bir şey çalınmış ya da yitmiş, herkes susuyor."
+        ]
+      }
+    },
     "errand": {
       "shown": {
         "taken": [
@@ -796,6 +819,7 @@
     }
   },
   "gone_words": {
+    "fired": ["derdi", "dert", "başına", "kapanmış", "kapalı", "kapatmış", "kaybolmuş", "kayıp", "gelmiş", "uğramış"],
     "filled_by_other": [
       "kapmış",
       "kaptı",
@@ -820,6 +844,7 @@
     ]
   },
   "gone_lines": {
+    "fired": "{place} derdi sonunda başına gelmiş.",
     "filled_by_other": "{place} işini {who} kapmış.",
     "done": "{place} işi bitmiş, teslim edilmiş.",
     "failed": "{place} işi yarım kalmış, söz veren gelmemiş."

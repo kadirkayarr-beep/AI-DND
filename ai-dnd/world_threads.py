@@ -47,19 +47,19 @@ DECLINE_HOURS = 6  # a turned-down job stays takeable this long
 PUBLIC = ("open", "heard")  # what the street talks about
 OWNED = (*PUBLIC, "offered", "accepted", "declined")  # what its owner still holds
 CLOSABLE_BY_TIME = (*PUBLIC, "offered", "declined")
-TERMINAL = ("filled_by_other", "expired", "done", "failed", "abandoned")
+TERMINAL = ("filled_by_other", "expired", "done", "failed", "abandoned", "fired")
 STATUSES = (*OWNED, *TERMINAL)
 # The only moves a thread may make. A mention never reopens anything.
 TRANSITIONS = {
-    "open": {"heard", "offered", "filled_by_other", "expired"},
-    "heard": {"offered", "filled_by_other", "expired"},
-    "offered": {"accepted", "declined", "expired"},
-    "declined": {"accepted", "filled_by_other", "expired"},
+    "open": {"heard", "offered", "filled_by_other", "expired", "fired"},
+    "heard": {"offered", "filled_by_other", "expired", "fired"},
+    "offered": {"accepted", "declined", "expired", "fired"},
+    "declined": {"accepted", "filled_by_other", "expired", "fired"},
     "accepted": {"done", "failed", "expired", "abandoned"},
 }
 _OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", "accepted_turn", "starts_at", "work_until",
                   "days_worked", "shift_seconds", "shift_until", "last_paid_day_index", "paid_cp",
-                  "outcome_known_turn", "offer_line_turn")
+                  "outcome_known_turn", "offer_line_turn", "fires_at")
 _OPTIONAL_TEXTS = ("owner_npc_id", "recipient_npc_id", "quest_id", "item_noun", "filled_by_npc_id", "filled_by_name",
                    "offer_line", "job_line")
 _LOG = logging.getLogger(__name__)
@@ -301,6 +301,8 @@ def _open_thread(world, state, template, settlement_id, *, create, now):
         "public_line": public, "owner_line": private,
         "opened_at": now, "expires_at": now + hours * HOUR, "heard_turn": None, "closed_at": None,
     }
+    if template["type"] == "trouble":
+        thread["fires_at"] = thread["expires_at"]  # a trouble comes to something; it does not lapse first
     if template.get("night_only"):
         thread["night_only"] = True
     if template.get("item_noun"):
@@ -477,9 +479,17 @@ def _taker(world, thread, seed):
     return None, living_world.stable_local_name(world, f"{thread['thread_id']}:taker", "işçi")
 
 
+def fires_at(thread):
+    """The moment this trouble comes to something; None for anything else, and once it has."""
+    moment = thread.get("fires_at")
+    return moment if thread.get("type") == "trouble" and type(moment) is int else None
+
+
 def _due(thread):
     """When time alone closes this thread; None while nothing is waiting on the clock."""
     status = thread.get("status")
+    if status in CLOSABLE_BY_TIME and fires_at(thread) is not None:
+        return fires_at(thread)
     if status == "offered":
         made = thread.get("offered_at")
         limit = made + OFFER_HOURS * HOUR if type(made) is int else thread["expires_at"]
@@ -495,6 +505,8 @@ def _time_outcome(world, thread, now, seed):
     if due is not None:
         if now < due:
             return None
+        if fires_at(thread) is not None:
+            return "fired", due
         if thread["status"] == "offered":
             return "expired", due
         if thread["status"] == "declined":
@@ -517,6 +529,7 @@ def _time_outcome(world, thread, now, seed):
 
 
 def _close_due(world, state, now):
+    import world_happenings
     seed = living_world._campaign_seed(world)
     closing = sorted(
         ((found, thread) for thread in state["threads"]
@@ -534,6 +547,7 @@ def _close_due(world, state, now):
         effects.append((thread["thread_id"], status))
     state["threads"], closed = _split_closed(state["threads"])
     state["history"].extend(closed)
+    effects += world_happenings.fire_due(world, state, now)
     _trim_history(state)
     return effects
 
@@ -544,7 +558,8 @@ def _split_closed(threads):
 
 def _trim_history(state):
     """Old closings go; one the player had a hand in stays until they have learned how it ended."""
-    waiting = [t for t in state["history"] if t.get("offered_at") is not None and t.get("outcome_known_turn") is None]
+    waiting = [t for t in state["history"] if fires_at(t) is not None
+               or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None)]
     known = [t for t in state["history"] if not any(t is w for w in waiting)]
     keep = {id(t) for t in (*known[-MAX_HISTORY:], *waiting[-MAX_HISTORY:])}
     state["history"] = [t for t in state["history"] if id(t) in keep]
@@ -575,7 +590,7 @@ def sync_from_quests(world: dict[str, Any], state: dict[str, Any] | None = None)
 
 _RELATION = {"done": 1, "abandoned": -1, "failed": -1}
 _CLOSE_SUMMARY = {"done": "İş tamamlandı", "failed": "İş yarım kaldı", "abandoned": "İş bırakıldı",
-                  "expired": "Teklif kapandı", "filled_by_other": "İş başkasına geçti"}
+                  "expired": "Teklif kapandı", "filled_by_other": "İş başkasına geçti", "fired": "Dert başa geldi"}
 
 
 def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary: str,
@@ -597,9 +612,13 @@ def _apply_effects(world, effects):
     import world_reactions
     from adventure import director
     from adventure.transitions import TransitionError
+    import world_happenings
     for thread_id, status in effects:
         thread = by_id(world, thread_id)
         if thread is None:
+            continue
+        if status == world_happenings.HAPPENED:
+            world_happenings.show(world, thread)
             continue
         owner = owner_of(world, thread)
         if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
@@ -1049,6 +1068,8 @@ def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, A
 
 def learn_outcome(world: dict[str, Any], thread: dict[str, Any]) -> None:
     """The player has now heard how this ended; only from here does it exist for them."""
+    import world_happenings
+    world_happenings.learned(world, thread)
     if thread.get("outcome_known_turn") is None:
         thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
         if thread.get("offered_at") is not None:
@@ -1058,6 +1079,7 @@ def learn_outcome(world: dict[str, Any], thread: dict[str, Any]) -> None:
 
 def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
     """Walking up to a place you had a job at: how it ended, once. Only on arrival."""
+    import world_happenings
     state = view(world)
     if state is None:
         return None
@@ -1073,7 +1095,7 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
         line = lines[_rank(seed, thread["thread_id"], "arrival", status) % len(lines)]
         return sentence(_fill(line, who=_mid_sentence(thread.get("filled_by_name") or "başkası"),
                               owner=spoken_owner(world, thread), place=place.get("name", "")))
-    return None
+    return world_happenings.arrival_line(world, place_id)
 
 
 def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None = None) -> bool:

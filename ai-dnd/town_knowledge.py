@@ -109,10 +109,10 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
         if (
             line and isinstance(place, dict)
             and thread["settlement_id"] == settlement_id and now - (thread.get("closed_at") or 0) < GONE_WINDOW
-            and _percent(world, npc.get("id"), thread["thread_id"]) < share
+            and (_percent(world, npc.get("id"), thread["thread_id"]) < share or thread["place_id"] == npc.get("location"))
         ):
-            gone.append({"kind": "news", "text": line.replace("{place}", place["name"]).replace(
-                "{who}", thread.get("filled_by_name") or "başkası"),
+            gone.append({"kind": "news", "text": world_happenings.line_of(state, thread) or line.replace(
+                "{place}", place["name"]).replace("{who}", thread.get("filled_by_name") or "başkası"),
                          "location_id": thread["place_id"], "thread_id": thread["thread_id"]})
     known, size = [], 0
     for item in (*threads, *gone, *_places(world, settlement_id, npc)):
@@ -190,6 +190,8 @@ def _lines_for(world, thread, npc, decision):
         return [line, *extra]
     if status == "filled_by_other":
         return [world_threads.status_line(world, thread, "filled")]
+    if status == "fired":
+        return [world_threads.status_line(world, thread, "fired")]
     if status == "expired" and thread.get("declined_turn") is not None:
         return [world_threads.status_line(world, thread, "declined_unfilled")]
     if status == "offered":

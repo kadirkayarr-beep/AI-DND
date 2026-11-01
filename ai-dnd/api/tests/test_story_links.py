@@ -51,6 +51,21 @@ def resident(world, place_id, npc_id="sakin"):
     return npc
 
 
+def town_with_trouble(start=0):
+    """The first seed from here whose town opened with a trouble."""
+    for number in range(start, start + 200):
+        world, state = town(f"seed-trouble-{number}")
+        if any(t["type"] == "trouble" for t in state["threads"]):
+            return world, state
+    raise AssertionError("no seed opened a trouble")
+
+
+def fire(world, thread):
+    """The clock reaches the moment. The record is read again by id: a step replaces the state."""
+    world_threads.tick(world, thread["fires_at"])
+    return world[world_threads.KEY], world_threads.by_id(world, thread["thread_id"])
+
+
 class TheLedger(unittest.TestCase):
     def test_a_new_town_has_an_empty_ledger_and_an_old_save_gains_one(self):
         world, state = town()
@@ -89,6 +104,99 @@ class TheLedger(unittest.TestCase):
         far = resident(world, other["place_id"])
         world_happenings.write(state, thread, "closed", 0, "Dükkân kapanmış.")
         self.assertNotIn("Duyduğun:", town_knowledge.speech_note(world, far))
+
+
+class ATroubleComesToSomething(unittest.TestCase):
+    def test_it_has_a_moment_and_cannot_quietly_run_out_before_it(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        self.assertGreater(thread["fires_at"], thread["opened_at"])
+        self.assertEqual(thread["expires_at"], thread["fires_at"])
+
+    def test_no_other_kind_of_thread_has_one(self):
+        for number in range(12):
+            _, state = town(f"seed-other-{number}")
+            for thread in state["threads"]:
+                self.assertEqual("fires_at" in thread, thread["type"] == "trouble")
+
+    def test_it_stays_quiet_until_its_moment(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        world_threads.tick(world, thread["fires_at"] - 1)
+        self.assertNotIn(thread["thread_id"], [r["thread_id"] for r in world[world_threads.KEY]["happenings"]])
+        self.assertIn(world_threads.by_id(world, thread["thread_id"])["status"], world_threads.PUBLIC)
+
+    def test_at_its_moment_it_happens_and_no_deed_is_written(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        state, closed = fire(world, thread)
+        self.assertEqual(closed["status"], "fired")
+        self.assertEqual(closed["closed_at"], thread["fires_at"])
+        row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
+        self.assertIn(row["kind"], {"visit", "closed", "lost"})
+        self.assertEqual(row["at"], thread["fires_at"])
+        self.assertEqual(row["place_id"], thread["place_id"])
+        self.assertNotIn("deeds", world["flags"])
+        world_threads.validate(state)
+
+    def test_nobody_is_named_and_every_line_fits_and_all_three_endings_turn_up(self):
+        kinds = set()
+        for number in range(40):
+            world, state = town(f"seed-end-{number}")
+            for thread in [t for t in state["threads"] if t["type"] == "trouble"]:
+                state, _ = fire(world, thread)
+                row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
+                kinds.add(row["kind"])
+                self.assertLessEqual(len(row["line"].encode("utf-8")), 90)
+                self.assertNotIn("{", row["line"])
+                self.assertNotIn(thread["owner_name"], row["line"])
+        self.assertEqual(kinds, {"visit", "closed", "lost"})
+
+    def test_one_that_was_turned_down_still_happens(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        thread.update(status="declined", declined_turn=1)
+        state, closed = fire(world, thread)
+        self.assertEqual(closed["status"], "fired")
+
+    def test_a_save_from_before_keeps_the_old_way_of_closing(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        del thread["fires_at"]
+        world_threads.tick(world, thread["expires_at"])
+        self.assertIn(world_threads.by_id(world, thread["thread_id"])["status"], {"filled_by_other", "expired"})
+        self.assertNotIn(thread["thread_id"], [r["thread_id"] for r in world[world_threads.KEY]["happenings"]])
+
+    def test_a_person_in_town_can_tell_it_as_news_and_the_telling_counts(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        here = resident(world, thread["place_id"])
+        state, _ = fire(world, thread)
+        row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
+        news = [item for item in town_knowledge.public_knowledge(world, here) if item["kind"] == "news"]
+        self.assertEqual([item["text"] for item in news if item["thread_id"] == thread["thread_id"]], [row["line"]])
+        self.assertEqual(town_knowledge.speech_note(world, here).count(row["line"]), 1)
+        town_knowledge.note_mention(world, here, row["line"])
+        self.assertTrue(row["known_to_player"])
+
+    def test_walking_up_to_the_place_afterwards_shows_it_once(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        state, _ = fire(world, thread)
+        row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
+        self.assertFalse(row["known_to_player"])
+        self.assertEqual(world_threads.arrival_line(world, thread["place_id"]), row["line"])
+        self.assertTrue(row["known_to_player"])
+        self.assertIsNone(world_threads.arrival_line(world, thread["place_id"]))
+
+    def test_standing_there_when_it_happens_you_see_it(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        world["location"] = thread["place_id"]
+        state, _ = fire(world, thread)
+        row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
+        self.assertTrue(row["known_to_player"])
+        self.assertIn({"place": thread["place_id"], "line": row["line"]}, world["flags"]["reaction_lines"])
 
 
 if __name__ == "__main__":
