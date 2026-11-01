@@ -816,7 +816,7 @@ def _bare_answer(tokens, table, names):
 def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None) -> dict[str, Any]:
     """What this line says about an offer, by the lists alone. Knows nothing of any offer."""
     reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
-               "start": False, "move": False, "reference": False}
+               "start": False, "move": False, "reference": False, "pointing": False}
     table = answer_table()
     text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
     if text is None:
@@ -827,6 +827,7 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     words = whole.split()
     reading["reference"] = any(word in table["reference"] or any(word.startswith(s) for s in stems) for word in words) or (
         _has_phrase(words, table["reference"]))
+    reading["pointing"] = bool(set(words) & table["pointing"])
     reading["terms"] = False
     if whole in table["unclear"]:
         reading["terms"] = _has_phrase(words, table["question_terms"])
@@ -907,7 +908,9 @@ def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: An
     if reading["terms"]:
         return "questioning_terms" if status == "offered" else None
     current = reading["reference"] or answers_the_offer(world, thread, npc)
-    yes = reading["meaning"] == "accept" or (reading["meaning"] is None and (reading["take"] or reading["start"]))
+    # 'bunu alayım' points at goods; only a line that names the job's item takes the job.
+    takes = reading["take"] and (reading["reference"] or not reading["pointing"])
+    yes = reading["meaning"] == "accept" or (reading["meaning"] is None and (takes or reading["start"]))
     if not current:
         return None
     if status == "declined":

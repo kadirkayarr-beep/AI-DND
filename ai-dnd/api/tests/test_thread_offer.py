@@ -98,6 +98,15 @@ class ClearAnswers(unittest.TestCase):
             self.assertEqual(self.decide(line), "accepted", line)
         self.assertEqual(self.decide("yok sağ ol, sen kimsin?"), "declined")
 
+    def test_pointing_at_goods_is_shopping_not_a_yes(self):
+        for line in ("bunu alayım", "şunu alıyorum", "bunu ver", "al bunu"):
+            self.assertIsNone(self.decide(line), line)
+            self.assertIsNone(self.decide(line, kind="errand"), line)
+
+    def test_taking_the_job_s_own_item_is_still_a_yes(self):
+        for line in ("mektubu alıyorum", "ver mektubu götüreyim"):
+            self.assertEqual(self.decide(line, kind="errand"), "accepted", line)
+
     def test_a_hanging_but_is_not_yet_a_yes(self):
         for line in ("olur ama", "olur ama...", "tamam ama...", "yaparım ama", "olur fakat"):
             self.assertIsNone(self.decide(line), line)
