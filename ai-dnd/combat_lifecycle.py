@@ -108,6 +108,8 @@ def told_of_the_past(session, text):
 
 
 def is_attack_decision(session, message):
+    if getattr(session, "_front_strike", None):
+        return True  # the turn's reading found a blow on a listed person and Python stood behind it
     import bold_acts
     if quoted_or_conditional_not_attack(session, message) or bold_acts.is_theft(session, message):
         return False

@@ -1178,6 +1178,9 @@ def natural_choice(session, text):
             if weapon["weapon_id"] in owned]
     selected = [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
     unarmed = bool(re.search(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
+    # A mug, a bottle, a stool: the reading named a thing that is no weapon of theirs, so the sword stays out of it.
+    strike = getattr(session, "_front_strike", None)
+    unarmed = unarmed or bool(isinstance(strike, dict) and strike.get("with") and not selected)
     # Only what the player owns can strike. A weapon they do not have, or no
     # word for one, is the weapon in hand, then one drawn, then bare hands.
     monk = monk_features.monk_level(getattr(session, "character", {})) is not None
@@ -1188,7 +1191,7 @@ def natural_choice(session, text):
         choice["draw"] = True
     if re.search(r"iki elim|two.hand", normalized):
         choice["grip"] = 2
-    if re.search(r"firlat|throw", normalized):
+    if identity != "unarmed" and re.search(r"firlat|throw", normalized):
         choice["mode"] = "thrown"
     if re.search(r"dexterity|cevikli|dex\b", normalized):
         choice["ability"] = "dexterity"

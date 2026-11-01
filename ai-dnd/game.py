@@ -18014,6 +18014,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         return None
+    if route["kind"] == "strike":
+        if _blow_stands(player_input):
+            session._front_strike = route
+        else:  # a threat or a question about a blow: words, and they are for that person
+            route = {"kind": "speak_to", "id": route["id"]}
     if route["kind"] == "talk_around":
         # the same reply's other half may not walk it after all
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
@@ -18028,7 +18033,18 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag"}
+_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike"}
+_NO_BLOW_NOW = re.compile(r"\b\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
+
+
+def _blow_stands(player_input):
+    """The reading may name a blow; the words still decide that one is landing now, outside any quote."""
+    import bold_acts
+    import grounded_action
+    spoken = living_world._text_outside_quotes(str(player_input))
+    text = _normalize_turkish_typos(spoken)
+    return not ("?" in spoken or bold_acts._ASKS.search(text) or _ENDS_IN_SPEECH.search(text)
+                or _NO_BLOW_NOW.search(text) or any(grounded_action._CONDITION_WORD.match(t) for t in text.split()))
 
 
 def _narrated_person(word, player_input, listed):
@@ -18261,6 +18277,8 @@ def _dispatch_player_turn(
             },
         }
     read = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
+    if getattr(_session(), "_front_strike", None):
+        target_id = _session()._front_strike["id"]
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None

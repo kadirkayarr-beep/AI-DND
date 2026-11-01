@@ -17,7 +17,8 @@ from typing import Any, Mapping, MutableMapping
 
 FLAG = "AI_DND_FRONT_PROPOSAL"
 ROUTE_LOG = "AI_DND_ROUTE_LOG"
-KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit", "unclear")
+KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit", "strike",
+         "unclear")
 DEEDS = ("steal", "burn")
 NONE = "none"
 MAX_PEOPLE = 12
@@ -146,7 +147,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         "inside=true); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
         "bakıyor, ne olup bittiğini görmek istiyor; bag = cümlede kendi çantası, kesesi, cebi ya da parası geçiyor ve orada ne olduğunu "
-        "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
+        "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; strike = şu anda listedeki birine vuruyor: yumruk, tekme, tokat, fırlattığı ya da geçirdiği bir şey, savurduğu silah, hangi kelimeyle söylerse söylesin (person_id kime; eliyle değil de bir eşyayla vuruyorsa thing_word o eşyanın adı; soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümle strike değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "
         f"Teklif hakkında soru sormak offer_answer değil speak_to olur. {_at_hand(listed)} "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "
@@ -226,6 +227,14 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
         if item in (None, NONE):
             return {"kind": kind, "person_id": person, "item": None}
         return {"kind": kind, "person_id": person, "item": item} if item in [row["id"] for row in listed["bag"]] else None
+    if kind == "strike":
+        people = [row["id"] for row in listed["people"]]
+        person = front.get("person_id")
+        if person in (None, NONE):  # a blow with no name in it lands on the one at hand
+            person = listed["speaking_with"] if listed["speaking_with"] in people else (
+                people[0] if len(people) == 1 else None)
+        word = front.get("thing_word")
+        return {"kind": kind, "id": person, "with": word.strip() if isinstance(word, str) else ""} if person in people else None
     if kind == "go_to":
         place = front.get("place_id")
         if place not in [row["id"] for row in listed["places"]]:
@@ -267,6 +276,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_deed = None
     session._front_found = None
     session._front_thing = None
+    session._front_strike = None
     session._nothing_taken = None
     session._empty_handed = False
     combat = (getattr(session, "world_state", None) or {}).get("combat") or {}
@@ -278,6 +288,7 @@ def begin(session, *, typed: bool = False) -> None:
 def end(session) -> None:
     session._front_reply = None
     session._front_read = None
+    session._front_strike = None
     session._front_ahead = False
 
 
