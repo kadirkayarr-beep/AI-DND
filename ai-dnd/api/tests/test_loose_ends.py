@@ -10,6 +10,7 @@ import living_world
 import local_dialogue
 import pocket
 import town_knowledge
+import world_happenings
 import world_reactions
 import world_threads
 from adventure import dialogue_jobs
@@ -307,6 +308,21 @@ class WhatHappenedIsSeenBeforeItIsKnown(unittest.TestCase):
         self.assertEqual(world_reactions._due_lines(world), [row["line"]])
         self.assertTrue(row["known_to_player"])
         self.assertIsNone(world_threads.arrival_line(world, thread["place_id"]))
+
+
+class AClosedPlaceStaysTrue(unittest.TestCase):
+    def test_no_line_claims_a_door_the_world_keeps_open(self):
+        for line in world_threads.job_lines("trouble", "fired_lines", "closed"):
+            folded = living_world.normalize_text(line)
+            for word in ("kapi", "kilit", "kapan", "kapat"):
+                self.assertNotIn(word, folded, line)
+            self.assertTrue(world_happenings.fits(line.replace("{place}", "Kuzey Eski Liman Karakolu")), line)
+
+    def test_what_it_says_is_what_it_does_nobody_new_is_taken_on(self):
+        world, state = links.town()
+        thread = state["threads"][0]
+        world_happenings.write(state, thread, "closed", 0, "İşler durmuş.")
+        self.assertTrue(world_happenings.barred(state, thread["place_id"], "hiring", 0))
 
 
 if __name__ == "__main__":

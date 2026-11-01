@@ -755,9 +755,9 @@
           "{place} kapısında yabancılar görülmüş, kimse açık konuşmuyor."
         ],
         "closed": [
-          "{place} kapanmış; kapıda kilit asılı.",
-          "{place} bir süre iş görmeyecek, içeriden ses gelmiyor.",
-          "{place} kapısını kapatmış, soran geri dönüyor."
+          "{place} zor günler geçiriyor; bir süre yeni adam alınmayacakmış.",
+          "{place} tarafında işler kötüye gitmiş, herkes kemer sıkıyor.",
+          "{place} darbe yemiş; bir süre yeni iş açılmıyor."
         ],
         "lost": [
           "{place} tarafında bir şey kaybolmuş, nereye gittiğini bilen yok.",
@@ -885,7 +885,7 @@
     "{place} tarafında işler karışıkmış, duyduğum bu kadar."
   ],
   "gone_words": {
-    "fired": ["derdi", "dert", "başına", "kapanmış", "kapalı", "kapatmış", "kaybolmuş", "kayıp", "gelmiş", "uğramış"],
+    "fired": ["derdi", "dert", "başına", "kötüye", "darbe", "alınmayacak", "kaybolmuş", "kayıp", "gelmiş", "uğramış"],
     "filled_by_other": [
       "kapmış",
       "kaptı",
