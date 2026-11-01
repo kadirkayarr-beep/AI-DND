@@ -5,7 +5,11 @@ Real app, real adapter, real engine; only the Ollama client is scripted. The lin
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import fallen
+import front_proposal
+import grounded_action
 from api.tests.test_front_proposal import FrontTable
 
 
@@ -128,3 +132,27 @@ class SomeoneLiesOutCold(FrontTable):
         self.client.front = {"kind": "speak_to"}
         reply = await self.line("hey, uyan lan, duyuyor musun")
         self.assertIn("sesini duyacak durumda", reply["narration"])
+class WhatAClarificationNames(FrontTable):
+    def place(self, label, known=False):
+        record = {"id": f"place_{label}", "name": label, "visited": known}
+        self.world["locations"][record["id"]] = record
+        return {"kind": "place", "id": record["id"], "label": label, "record": record}
+
+    async def test_a_place_the_player_never_saw_or_heard_is_not_named(self):
+        await self.begin()
+        known, unknown = self.place("Tuz Kapısı", True), self.place("Gizli Mezarlık")
+        self.assertEqual(grounded_action.worth_naming(self.session, "donuyorum", [unknown, known]), [known])
+
+    async def test_a_place_the_narration_named_is_known(self):
+        await self.begin()
+        heard = self.place("Tuz Kapısı")
+        self.session.messages.append({"role": "assistant", "content": "Tuz Kapısı tarafından bir araba geçiyor."})
+        self.assertEqual(grounded_action.worth_naming(self.session, "donuyorum", [heard]), [heard])
+
+    async def test_the_place_the_line_names_comes_first_even_unseen(self):
+        await self.begin()
+        known, inn = self.place("Tuz Kapısı", True), self.place("Ay Sofrası Hanı")
+        options = grounded_action.worth_naming(self.session, "ay sofrasi hanina donuyorum", [known, inn])
+        self.assertEqual(options, [inn, known])
+
+

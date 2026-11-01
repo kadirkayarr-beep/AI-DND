@@ -3044,7 +3044,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         # "oraya gidiyorum" with nothing said or seen before: ask, naming the places here.
         order = {"reference": 0, "place": 1, "door": 2, "feature": 3}
         options = sorted((c for c in p["candidates"] if c["kind"] in order), key=lambda c: order[c["kind"]])
-        return "clarify", (run, options[:4])
+        return "clarify", (run, worth_naming(session, player_input, options)[:4])
     if first["ambiguous"] and first["verb"] in {"open", "force", "knock", "unlock", "close"} \
             and all(c["kind"] == "door" for c in first["ambiguous"]):
         return "clarify", (run, first["ambiguous"])  # two doors and no context: never a guess
@@ -3090,12 +3090,15 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
             steps[0].update(target=hint["target"], detail=hint["detail"], place_noun=hint["place_noun"])
     still = [s for s in steps if s["target"] is None and s["verb"] in {"approach", "go", "enter"}
              and not (s["place_noun"] or s["detail"] or s.get("commitment") or s.get("outside"))]
+    if still and any(s["place_noun"] for s in steps):  # a bare "gidiyorum" before "hana dönüyorum" is the same walk
+        steps = [s for s in steps if s not in still]
+        still = []
     if still and not steps[0]["ambiguous"]:
         if run.model_calls:
             # The model was asked and could not bind it either: ask the player,
             # naming what is really here, instead of a second pipeline run.
             options = [c for c in p["candidates"] if c["kind"] in {"npc", "place", "door", "feature", "reference"}]
-            return "clarify", (run, options[:4])
+            return "clarify", (run, worth_naming(session, player_input, options)[:4])
         return defer  # nothing to bind: older owners (people, travel) keep it
     if steps[0]["ambiguous"] and not (steps[0].get("requires_open_place") and not steps[0].get("named")):
         return "clarify", (run, steps[0]["ambiguous"])
@@ -3267,6 +3270,25 @@ def _spoken_label(option: dict[str, Any]) -> str:
     if living_world.npc_name_known_to_player(record):
         return option["label"]
     return "yakındaki " + (living_world.public_npc_role(record) or "biri").casefold()
+
+
+def worth_naming(session, line: str, options: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """What a question back may name: what the player saw or heard of, and first of all the place the line itself names."""
+    folded = living_world.normalize_text(line)
+    heard = living_world.normalize_text(" ".join(str(row.get("content")) for row in session.messages
+                                                 if isinstance(row, dict) and row.get("role") == "assistant"))
+    places = session.world_state.get("locations", {})
+
+    def named(option):
+        words = living_world.normalize_text(option["label"]).split()
+        return option["kind"] == "place" and len(words) > 1 and all(word[:4] in folded for word in words)
+
+    def known(option):
+        return (option["kind"] != "place" or (places.get(option["id"]) or {}).get("visited")
+                or living_world.normalize_text(option["label"]) in heard)
+
+    first = [option for option in options if named(option)]
+    return [*first, *(option for option in options if option not in first and known(option))]
 
 
 def _finish_clarification(run: _Run, options) -> dict[str, Any]:
