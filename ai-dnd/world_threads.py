@@ -890,9 +890,12 @@ def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
     """'Dediğin işi yapıyorum': the speaker names the work and is doing it, which is a yes in deed."""
     table = answer_table()
     ends = tuple(table["first_person_ends"])
-    words = _folded(text).split()
-    refused = any(_REFUSED_DOING.search(word) for word in words)
-    return _names_the_work(text, thread, table) and not refused and any(word.endswith(ends) for word in words)
+    for piece in re.split(r"[,.;!]", str(text or "")):  # a 'not' elsewhere in the line says nothing about the work
+        words = _folded(piece).split()
+        if (_names_the_work(piece, thread, table) and any(word.endswith(ends) for word in words)
+                and not any(_REFUSED_DOING.search(word) for word in words)):
+            return True
+    return False
 
 
 def speaks_of_pay(text: Any) -> bool:

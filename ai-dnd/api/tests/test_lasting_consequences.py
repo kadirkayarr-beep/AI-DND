@@ -167,7 +167,7 @@ class ConfessionsAndGuards(OneTownScene):
         await self.town()
         guard = self.add_person("Isolde", "Nöbetçi Çavuş")
         await self.say("kılıcımı çekip çavuşa saldırıyorum", PlayClient(intent="attack"))
-        self.assertIn("üzerine yürüdü", self.note(guard))
+        self.assertIn("sana saldırdı", self.note(guard))
         self.assertEqual(self.world["flags"]["deeds"][0]["kind"], "assault")
 
 

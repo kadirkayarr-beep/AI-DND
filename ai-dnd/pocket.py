@@ -45,22 +45,21 @@ def _thing_in(words: list[str], shown: list[str]) -> str | None:
     return next((word for word in shown if said(word)), None)
 
 
-def _take(session, text: str, words: list[str]) -> dict[str, Any]:
+def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     world = session.world_state
     shown = _shown(session)
     thing = None if any(word.startswith(_WORTH) for word in words) else _thing_in(words, shown)
     if thing is None:
-        line = "Burada çantana atabileceğin öyle bir şey görmüyorsun."
-    else:
-        name = thing[:1].upper() + thing[1:].casefold()
-        equipment_economy.grant_plain(world, name)
-        line = f"{name} çantana giriyor."
+        return None  # nothing here to put away: whoever else this line is for still reads it
+    name = thing[:1].upper() + thing[1:].casefold()
+    equipment_economy.grant_plain(world, name)
+    line = f"{name} çantana giriyor."
     flags = world.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": line}])
     return {"messages": session.messages, "narration": line, "model_calls": 0,
-            "action_result": {"action": "pocket", "status": "resolved", "success": thing is not None,
-                              "state_changes": ["inventory"] if thing else [], "direct_response": line}}
+            "action_result": {"action": "pocket", "status": "resolved", "success": True,
+                              "state_changes": ["inventory"], "direct_response": line}}
 
 
 def _toss(session, words: list[str]) -> None:
