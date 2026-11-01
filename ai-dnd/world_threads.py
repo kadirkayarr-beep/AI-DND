@@ -935,6 +935,10 @@ def _says_later(text: Any, table: dict[str, Any]) -> bool:
     return bool(set(_folded(text).split()) & table["later_words"])
 
 
+def says_later(text: Any) -> bool:
+    return _says_later(text, answer_table())
+
+
 def does_the_work_now(text: Any, thread: dict[str, Any]) -> bool:
     """Going to the work and at it this moment: 'yapıyorum', 'yapayım'. 'Yarın yaparım' is a promise, and so is 'hallederim'."""
     table = answer_table()
@@ -1537,8 +1541,8 @@ def spoken_recipient(world: dict[str, Any], thread: dict[str, Any]) -> str:
     return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("recipient_name") or ""))
 
 
-def _shift_text(world, thread, *parts):
-    lines = job_lines("shift") or []
+def _shift_text(world, thread, *parts, short=False):
+    lines = ([job_lines("text", "shift_some")] if short else job_lines("shift")) or []
     day = thread.get("days_worked", 0)
     seed = living_world._campaign_seed(world)
     place = world.get("locations", {}).get(thread.get("place_id")) or {}
@@ -1546,47 +1550,80 @@ def _shift_text(world, thread, *parts):
     return " ".join(p for p in (sentence(_fill(first, owner=spoken_owner(world, thread), place=place.get("name", ""))), *parts) if p)
 
 
+def _shift_plan(world: dict[str, Any], thread: dict[str, Any], text: Any, hours: int) -> tuple[list[int], bool]:
+    """The hours the line asks for, one span a day: never more days than the job has left, never a clock it did not say."""
+    import campaign_time
+    try:
+        wanted = campaign_time.requested_duration(text) or 0
+    except ValueError:
+        wanted = 0
+    if wanted >= DAY:
+        left = (thread["terms"].get("work_days") or 1) - thread.get("days_worked", 0)
+        return [hours * HOUR] * max(1, min(wanted // DAY, left)), False
+    until = campaign_time.until_named_hour(world, _folded(text))
+    if until is not None and until < DAY / 2:
+        return [until], until < hours * HOUR
+    return [wanted or hours * HOUR], bool(wanted) and wanted < hours * HOUR
+
+
+def _one_shift(world, thread_id, seconds, hours, words):
+    """One span of work: the clock really moves, then the record is read again by id. (copper, closed, why it paid nothing)"""
+    import game
+    thread = by_id(world, thread_id)
+    day = _today(world)  # a shift belongs to the day it began
+    thread["shift_until"] = _now(world) + seconds
+    try:
+        result = game.advance_campaign_time(seconds, "work_shift")
+    finally:
+        by_id(world, thread_id).pop("shift_until", None)
+    thread = by_id(world, thread_id)
+    thread["shift_seconds"] = thread.get("shift_seconds", 0) + result["elapsed_seconds"]
+    if thread["status"] != "accepted":
+        return result["elapsed_seconds"], 0, False, words.get("shift_short", "")
+    if thread.get("last_paid_day_index") == day:
+        thread["shift_seconds"] = 0  # a day already paid for: these hours count toward nothing
+        return result["elapsed_seconds"], 0, False, words.get("shift_no_pay", "")
+    if thread["shift_seconds"] < hours * HOUR:
+        return result["elapsed_seconds"], 0, False, words.get("shift_short", "")
+    amount, finished = _credit_day(world, thread, day)
+    return result["elapsed_seconds"], amount, finished, ""
+
+
 def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
-    """One shift: the clock really moves, then the record is read again by id.
+    """The work the line asks for, a day at a time, with one day's pay for each day really worked.
 
     The clock step can replace the whole thread state, cut the shift short or kill the
     player, so what is credited is only what actually passed.
     """
-    import campaign_time
     import game
     world = session.world_state
     thread = by_id(world, thread_id)
     words = job_lines("text") or {}
     hours = job_lines("shift_hours") or 8
-    try:
-        wanted = campaign_time.requested_duration(text) or hours * HOUR
-    except ValueError:
-        wanted = hours * HOUR
+    spans, short = _shift_plan(world, thread, text, hours)
     before = copy.deepcopy(world)
-    day = campaign_time.public_time(world)["day_index"]  # a shift belongs to the day it began
-    thread["shift_until"] = _now(world) + wanted
-    try:
-        result = game.advance_campaign_time(wanted, "work_shift")
-    finally:
-        by_id(world, thread_id).pop("shift_until", None)
-    thread = by_id(world, thread_id)
-    passed = result["elapsed_seconds"]
-    thread["shift_seconds"] = thread.get("shift_seconds", 0) + passed
-    parts = []
-    if thread["status"] != "accepted":
-        parts.append(words.get("shift_short", ""))
-    elif thread.get("last_paid_day_index") == day:
-        thread["shift_seconds"] = 0  # a day already paid for: these hours count toward nothing
-        parts.append(words.get("shift_no_pay", ""))
-    elif thread["shift_seconds"] < hours * HOUR:
-        parts.append(words.get("shift_short", ""))
-    else:
-        amount, finished = _credit_day(world, thread, day)
-        parts.append(_fill(words.get("shift_paid", ""), amount=amount) if amount else words.get("trouble_done", ""))
-        if finished and amount:
-            parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
+    passed, paid, days_paid, finished, unpaid = 0, 0, 0, False, ""
+    for index, span in enumerate(spans):
+        if index:  # the rest of the night between two days of it
+            passed += game.advance_campaign_time(DAY - spans[index - 1], "work_shift")["elapsed_seconds"]
+        worked, amount, finished, why = _one_shift(world, thread_id, span, hours, words)
+        passed += worked
+        paid += amount
+        days_paid += bool(amount)
+        unpaid = why
+        thread = by_id(world, thread_id)
+        if why or finished or thread["status"] != "accepted":
+            break
+    parts = [unpaid] if unpaid else []
+    if paid:
+        line = "shift_paid_days" if days_paid > 1 else "shift_paid"
+        parts.append(_fill(words.get(line, ""), amount=paid, days=_spoken_number(days_paid)))
+    elif not unpaid:
+        parts.append(words.get("trouble_done", ""))
+    if finished and paid:
+        parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
     validate(world[KEY])
-    shown = _shift_text(world, thread, *parts)
+    shown = _shift_text(world, thread, *parts, short=short)
     flags = world.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     action = {"action": "work", "status": "resolved", "success": True, "state_changes": ["campaign_time", "currency"],

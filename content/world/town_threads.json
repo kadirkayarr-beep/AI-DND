@@ -872,6 +872,8 @@
       "deadline_errand": "bir gün içinde",
       "deadline_hiring": "{days} gün içinde",
       "shift_paid": "Günün sonunda {amount} bakır eline sayılıyor.",
+      "shift_paid_days": "{days} günün sonunda toplam {amount} bakır eline sayılmış oluyor.",
+      "shift_some": "{place} içinde birkaç saat iş başında kaldın.",
       "pay_counted": "{amount} bakır avucuna sayılıyor; kesende artık.",
       "shift_done": "İş bitti; hesap kapandı.",
       "shift_short": "Vardiya yarıda kaldı, bu saatler henüz bir güne denk gelmedi.",

@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import campaign_time
 import equipment_economy
 import front_proposal
 import world_threads
@@ -368,3 +369,80 @@ class TheChannel(ErrandBase):
         self.client.stage_direction = "Kâğıdı alıp defterinin yanına çeker."
         reply = await self.line("duyuruyu eline veriyorum", "Bakalım.")
         self.assertNotIn("Kâğıdı", reply["narration"])
+
+
+class Working(Table):
+    async def hired(self):
+        await self.begin()
+        self.client = ClassifiedClient("Şimdilik sessiz bir gün.")
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.offer()
+        await self.line("olur", "Güzel.")
+        self.assertEqual(self.status(), "accepted")
+        self.worked = {"kind": "work", "job_id": self.thread["thread_id"]}
+
+    def clock(self):
+        return campaign_time.public_time(self.world)
+
+    def wallet(self):
+        return self.world.get("currency", {}).get("player", 0)
+
+    def job(self):
+        return world_threads.by_id(self.world, self.thread["thread_id"])
+
+    async def set_hour(self, hour):
+        now = self.clock()
+        self.session.advance_campaign_time(((hour - now["hour"]) % 24) * 3600 - now["minute"] * 60, "wait")
+
+    async def test_natural_lines_start_the_work(self):
+        await self.hired()
+        self.client.front = self.worked
+        start = self.world["campaign_time"]["elapsed_seconds"]
+        reply = await self.line("raflara giriyorum, kayitlari ayiklamaya basliyorum, bir yandan da gravusa geceni okuyorum")
+        self.assertEqual(reply["turn_outcome"]["action"], "work")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"] - start, 8 * 3600)
+        self.assertEqual(self.wallet(), 10)
+
+    async def test_until_the_evening_is_until_the_evening(self):
+        await self.hired()
+        await self.set_hour(15)
+        self.client.front = self.worked
+        reply = await self.line("aksama kadar calisiyorum")
+        self.assertEqual(reply["turn_outcome"]["action"], "work")
+        self.assertEqual(self.clock()["hour"], 18)
+        self.assertEqual(self.wallet(), 0)
+        self.assertNotIn("gün boyu", reply["narration"])
+        self.assertEqual(self.job()["shift_seconds"], 3 * 3600)
+
+    async def test_two_days_of_work_are_two_days_of_pay(self):
+        await self.hired()
+        await self.set_hour(9)
+        day = self.clock()["day_index"]
+        self.client.front = self.worked
+        reply = await self.line("isi yapiyorum iki gun boyunca burda")
+        self.assertEqual(self.wallet(), 20)
+        self.assertEqual(self.clock()["day_index"], day + 1)  # the evening of the second day
+        self.assertEqual(self.clock()["hour"], 17)
+        self.assertIn("20 bakır", reply["narration"])
+
+    async def test_no_more_days_are_worked_than_the_job_has(self):
+        await self.hired()
+        await self.set_hour(9)
+        day = self.clock()["day_index"]
+        self.client.front = self.worked
+        await self.line("bes gun boyunca calisiyorum burda")
+        self.assertEqual(self.wallet(), 20)
+        self.assertEqual(self.clock()["day_index"], day + 1)
+
+    async def test_a_promise_of_work_is_no_shift(self):
+        await self.hired()
+        self.client.front = self.worked
+        start = self.world["campaign_time"]["elapsed_seconds"]
+        await self.line("yarin calisirim tamam mi", "Olur.")
+        self.assertLess(self.world["campaign_time"]["elapsed_seconds"] - start, 3600)
+        self.assertEqual(self.wallet(), 0)
+
+    async def test_the_list_holds_only_work_really_in_hand(self):
+        await self.begin()
+        listed = front_proposal.listing(self.session)
+        self.assertEqual(listed["jobs"], [])

@@ -9006,7 +9006,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
     reply, it raises IntentInfrastructureError instead.
     """
     held = getattr(_session(), "_front_reply", None)
-    if held is not None and not dialogue_narration and not experimental_npc_dialogue and operation_hint is None:
+    if held is not None and not dialogue_narration and not experimental_npc_dialogue and (
+            operation_hint is None or getattr(_session(), "_front_answers_all", False)):
         return copy.deepcopy(held)  # the front step already asked this turn's classifier call
     world_state = _session().world_state
     locations = [
@@ -17894,16 +17895,18 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if adventure_play.inside_hideout(world):
         front_proposal.note(session, "skipped:hideout")  # the town's lists are not what is around the player here
         return None
-    if (interaction_adventure.hint(player_input, True) is not None or should_generate_npcs(player_input)
-            or _scene_detail_proposals_allowed(player_input, world, interaction_mode)):
-        front_proposal.note(session, "skipped:proposal")  # only the old chain's own call can carry that proposal
-        return None
+    wants_proposal = (interaction_adventure.hint(player_input, True) is not None or should_generate_npcs(player_input)
+                      or _scene_detail_proposals_allowed(player_input, world, interaction_mode))
     from api.model_phase import front_call
     try:
         listed = front_proposal.listing(session)
     except Exception:
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         return None
+    if wants_proposal and not front_proposal.at_work(listed):
+        front_proposal.note(session, "skipped:proposal")  # only the old chain's own call can carry that proposal
+        return None
+    session._front_answers_all = wants_proposal  # with work at hand the cap has no room for a second reading
     with front_call():
         reply = parse_player_intent(player_input, front_list=listed,
                                     recent_scene_narration=_recent_player_visible_narration())
@@ -17988,6 +17991,30 @@ def _front_hand_over(route, player_input):
         town_knowledge.log_failure()
         session._thread_turn = None
         return heard
+
+
+def _front_work(route, player_input):
+    """The model read work being done now. A promise or a question is still only words."""
+    import town_knowledge
+    import world_threads
+    session = _session()
+    world = session.world_state
+    person = next((npc for npc in active_npcs() if npc.get("id") == route["person_id"]), None)
+    thread = world_threads.by_id(world, route["id"])
+    if person is None or thread is None or thread.get("status") != "accepted":
+        return None
+    if "?" in player_input or world_threads.says_later(player_input):
+        return _thread_gate(player_input, person["id"], "say") or {"decision": None, "npc_id": person["id"]}
+    try:
+        session.require_player_can_act()
+        return _carry_out_thread_turn(session, world, {"thread_id": route["id"], "decision": "work",
+                                                       "npc_id": person["id"]}, person, player_input)
+    except PlayerCannotAct:
+        raise
+    except Exception:
+        town_knowledge.log_failure()
+        session._thread_turn = None
+        return None
 
 
 def _front_take(route, player_input):
@@ -18138,6 +18165,7 @@ def _dispatch_player_turn(
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
+                    else _front_work(front, player_input) if front is not None and front["kind"] == "work"
                     else _thread_gate(player_input, target_id, interaction_mode))
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
