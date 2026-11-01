@@ -280,3 +280,25 @@ class PeopleAnswerTests(ThreePlaysTests):
         await self.say("selam usta, bi bira ver", client)
         out = await self.say("sağol. ee iş diyodum, duydun mu birşey", client)
         self.assertIn("Duymadım", out["narration"], out["turn_outcome"])
+
+
+class FailedCheckTests(ThreePlaysTests):
+    FAILED = {"action": "skill_check", "status": "resolved", "outcome": "failure", "skill": "Investigation"}
+
+    async def told(self, narration, result):
+        await self.begin(FIGHTER)
+        with self.app.state.ollama_adapter.engine_binding():
+            return game._states_the_failed_check(narration, result, "çizelgeyi okumaya çalışıyorum")
+
+    async def test_a_failed_look_says_so_before_the_room_goes_on(self):
+        text = await self.told("bu sırada arkada bir kâtip satırı yeniden okuyor.", self.FAILED)
+        self.assertTrue(text.startswith("İncelemen"), text)
+        self.assertIn("Bu sırada arkada", text)
+
+    async def test_a_narration_that_told_it_stays_as_it_is(self):
+        line = "Mürekkep yayılmış; ismi okuyamıyorsun."
+        self.assertEqual(await self.told(line, self.FAILED), line)
+
+    async def test_a_success_is_left_alone(self):
+        line = "Satırın altından bir isim seçiliyor."
+        self.assertEqual(await self.told(line, {**self.FAILED, "outcome": "success"}), line)

@@ -13748,6 +13748,20 @@ def _resolved_skill_result_narration(result):
     return f"{prefix} {'başarılı' if outcome == 'success' else 'başarısız'} olur."
 
 
+_TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
+
+
+def _states_the_failed_check(narration, result, player_input):
+    """A failed roll is told before anything else in the room goes on; prose alone must not skip it."""
+    if (not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved"
+            or result.get("outcome") not in ("failure", "critical_failure") or not isinstance(narration, str)
+            or _TELLS_FAILURE.search(_normalize_turkish_typos(narration))):
+        return narration
+    told = _fallback_for_action_result(player_input, result)
+    room = narration.strip()
+    return f"{told} {room[:1].upper()}{room[1:]}".strip()
+
+
 def _fallback_for_action_result(player_input, action_result=None, npc_target=None):
     world_state = _session().world_state
     result = action_result if isinstance(action_result, dict) else {}
@@ -18406,6 +18420,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     ):
         finalized_narration = resolved_turn.fallback_response
     finalized_narration = _keep_people_in_look(finalized_narration, resolved_turn.action_result)
+    finalized_narration = _states_the_failed_check(finalized_narration, resolved_turn.action_result, player_input)
     if _narration_scene_type(resolved_turn.action_result) != "conversation":
         finalized_narration = _singular_narrator(finalized_narration)
 
