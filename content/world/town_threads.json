@@ -623,7 +623,7 @@
     "promises": [
       "veririm", "veririz", "vereceğim", "vereceğiz", "veriyorum", "veriyoruz", "öderim", "öderiz", "ödeyeceğim",
       "ödeyeceğiz", "ödüyorum", "ödüyoruz", "ücret", "ücreti", "ücretin", "kazanırsın", "kazanacaksın", "alırsın", "alacaksın",
-      "yevmiye", "yevmiyen", "günlüğü", "gecesi"
+      "yevmiye", "yevmiyen", "günlüğü", "gecesi", "vadettim", "vadetmiştim", "vermiştim", "verecektim"
     ],
     "hands_first": ["al", "alın", "buyur", "tut", "işte"],
     "hands_any": [
