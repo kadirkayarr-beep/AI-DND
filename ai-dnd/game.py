@@ -13853,9 +13853,11 @@ def _inspection_findings(player_input, outcome):
                 if stem in recorded or word in recorded:
                     continue
                 named_absence.append(word)
-            if success and named_absence:
-                return _found_on_a_pass()
-            found = success
+            found_now = _found_on_a_pass() if success and named_absence else None
+            if found_now is not None or (success and named_absence
+                                         and getattr(_session(), "_front_found", None) is not None):
+                return found_now  # with a reading and no proposal the narrator tells it, inside the turn's cap
+            found = success and not named_absence
             line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
                     else f"{feature['name']} üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.")
             return {"target_kind": "feature", "target_id": feature.get("id"),
