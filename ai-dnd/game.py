@@ -18930,7 +18930,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         import town_knowledge
         try:
             for claim in packet["item_claims"][:2]:
-                finalized_narration = pocket.settle_claim(_session(), claim, finalized_narration, npc_target)[0]
+                finalized_narration = pocket.settle_claim(_session(), claim, finalized_narration, npc_target,
+                                                          line=player_input)[0]
         except Exception:
             town_knowledge.log_failure()
         finalized_narration = finalized_narration or pocket.EMPTY_HANDED

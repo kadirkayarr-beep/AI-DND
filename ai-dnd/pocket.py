@@ -18,7 +18,7 @@ _TOSSES = re.compile(r"(?:firlat|yirt|yak|at)(?:iyorum|ip|tim|ayim)")
 _PHRASE_NOUNS = frozenset({"goz", "adim", "imza", "tur", "bakis", "kahkaha", "laf", "nara", "tekme"})  # 'göz atmak' throws nothing
 _LIT_NOT_BURNT = ("mesale", "fener", "mum", "lamba", "kandil")
 _ON_THE_WAY_TO_THE_VERB = ("a", "e", "ip", "up")  # 'denize', 'buruşturup'
-_WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese")
+_WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese", "anahtar")  # a key opens what only Python opens
 _NOT_THINGS = frozenset({
     "alip", "aliyorum", "atiyorum", "koyuyorum", "sokuyorum", "topluyorum", "toplayip", "iyilerini", "icinde", "icine",
     "birkac", "biraz", "tane", "hepsini", "ondan", "bunlari", "sunlari", "onlari", "yarar", "neyse", "varsa",
@@ -66,7 +66,8 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     if thing is None:
         return None  # nothing here to put away: whoever else this line is for still reads it
     name = thing[:1].upper() + thing[1:].casefold()
-    equipment_economy.grant_plain(world, name)
+    if not equipment_economy.grant_plain(world, name):
+        return None
     return _receipt(session, text, f"{name} çantana giriyor.")
 
 
@@ -96,9 +97,8 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
     name = word[:1].upper() + word[1:].casefold()
-    if _named_in_bag(world, stem):
+    if _named_in_bag(world, stem) or not equipment_economy.grant_plain(world, name):
         return None
-    equipment_economy.grant_plain(world, name)
     return _receipt(session, text, f"{name} çantana giriyor.")
 
 
@@ -137,8 +137,11 @@ def _named_in_bag(world: dict[str, Any], stem: str) -> bool:
     return any(_stem(item.get("name") if isinstance(item, dict) else item) == stem for item in world.get("inventory", []))
 
 
-def _committed(session, item: str, stem: str, text: str, person: Any) -> bool:
-    """The claim comes true or stays false: the job's parcel from its owner, or a plain thing with no worth."""
+def _committed(session, item: str, stem: str, text: str, person: Any, line: Any) -> bool:
+    """The claim comes true or stays false: the job's parcel from its owner, or a plain thing with no worth.
+
+    Someone's own hand may give a plain thing unasked; the narrator has no hand, so it only tells what the line did.
+    """
     from adventure import dialogue_jobs
     world = session.world_state
     if item.startswith("parcel:"):
@@ -148,14 +151,17 @@ def _committed(session, item: str, stem: str, text: str, person: Any) -> bool:
                     and dialogue_jobs.hand_over(session, thread, person, own_turn=False))
     if _named_in_bag(world, stem):
         return True
-    if len(stem) < 2 or stem.startswith(_WORTH) or not _says_it(text, stem):
+    if (len(stem) < 2 or stem.startswith(_WORTH) or not _says_it(text, stem)
+            or (line is not None and not _says_it(line, stem))):
         return False
-    equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())
-    return True
+    return equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())
 
 
-def settle_claim(session, claim: Any, text: Any, person: Any = None) -> tuple[Any, str]:
-    """What a reply says changed hands: (the line, what was taken off it). Python commits it or it goes."""
+def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: Any = None) -> tuple[Any, str]:
+    """What a reply says changed hands: (the line, what was taken off it). Python commits it or it goes.
+
+    line is the player's own words, given for the narrator's claims: see _committed.
+    """
     item = claim.get("item") if isinstance(claim, dict) else None
     if not isinstance(item, str) or not item.strip():
         return text, ""
@@ -165,7 +171,7 @@ def settle_claim(session, claim: Any, text: Any, person: Any = None) -> tuple[An
     named = next((entry.get("name") for entry in world.get("inventory", [])
                   if isinstance(entry, dict) and entry.get("item_id") == item), None)
     stem = _stem(thread.get("item_noun") if thread else named or item)
-    if claim.get("to") != "person" and _committed(session, item, stem, text, person):
+    if claim.get("to") != "person" and _committed(session, item, stem, text, person, line):
         return text, ""
     return without_said(text, stem), stem
 

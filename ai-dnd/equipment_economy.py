@@ -882,11 +882,17 @@ def execute(session, text, *, advance_turn=True):
 
 
 def grant_plain(world, name):
-    """A thing with a name and no worth, for a player who picked it up where the screen showed it."""
+    """A thing with a name and no worth, for a player who picked it up where the screen showed it.
+
+    A name the catalog knows is gear, which only Python hands out: it stays out and the caller says False.
+    """
+    if any(lookup(word) for word in (name, *name.split())):
+        return False
     materialize(world)
     world["inventory"].append(name)
     materialize(world)
     validate_world(world)
+    return True
 
 
 def public_inventory(world):

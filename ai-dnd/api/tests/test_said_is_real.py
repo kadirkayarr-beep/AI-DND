@@ -329,6 +329,28 @@ class TheChannel(ErrandBase):
         self.assertIn("Hayırlı işler", reply["narration"])
         self.assertNotIn("Kese", self.bag())
 
+    async def test_a_blade_nobody_asked_for_is_no_plain_thing(self):
+        await self.errand()
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "hançer"}}
+        before = list(self.world["inventory"])
+        reply = await self.line("selam usta", "Al şu hançeri, sana hediyem. Hayırlı işler.")
+        self.assertEqual(self.world["inventory"], before)
+        self.assertNotIn("hançeri", reply["narration"])
+        self.assertIn("Hayırlı işler", reply["narration"])
+
+    async def test_a_blade_with_a_word_beside_it_is_no_plain_thing_either(self):
+        await self.errand()
+        self.assertFalse(equipment_economy.grant_plain(self.world, "Paslı hançer"))
+        self.assertNotIn("Paslı hançer", self.bag())
+
+    async def test_a_key_never_comes_from_the_model(self):
+        await self.errand()
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "anahtar"}}
+        await self.line("selam usta", "Al şu anahtarı. Hayırlı işler.")
+        self.assertNotIn("Anahtar", self.bag())
+
     def alone(self):
         for npc in self.world["npcs"]:
             npc["location"] = "elsewhere"
@@ -344,6 +366,16 @@ class TheChannel(ErrandBase):
         reply = await self.line("tezgahin altindaki ipi aliyorum")
         self.assertIn("Ip", self.bag())
         self.assertIn("ipi", reply["narration"])
+
+    async def test_the_narrator_cannot_hand_the_player_what_the_line_never_named(self):
+        await self.errand()
+        self.alone()
+        self.client.front = {"kind": "attempt"}
+        self.client.narration = "Tezgâhın altında sarılı bir ip duruyor; şimdi o ip senin."
+        self.client.narrator_extra = {"item_claims": [{"item": "ip", "to": "player"}]}
+        reply = await self.line("tezgahin altina uzaniyorum")
+        self.assertNotIn("Ip", self.bag())
+        self.assertNotIn("ipi", reply["narration"])
 
     async def test_a_thing_told_as_given_away_that_never_moved_leaves_the_line(self):
         await self.errand()
