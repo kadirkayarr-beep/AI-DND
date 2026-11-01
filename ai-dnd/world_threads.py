@@ -1205,12 +1205,14 @@ def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
 def late_parcels(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     """Errands that closed with the parcel still in the player's hand, where this person is who it belongs with."""
     from adventure import dialogue_jobs
+    import world_happenings
     state = view(world)
     if state is None or not isinstance(npc, dict):
         return []
+    came_for = world_happenings.about_of(world, npc)
     return [t for t in reversed(state["history"]) if t.get("type") == "errand"
             and t.get("status") in {"failed", "expired", "abandoned"}
-            and npc.get("id") in {t.get("recipient_npc_id"), t.get("owner_npc_id")}
+            and (npc.get("id") in {t.get("recipient_npc_id"), t.get("owner_npc_id")} or t["thread_id"] == came_for)
             and dialogue_jobs.holds_parcel(world, t)]
 
 

@@ -12,7 +12,8 @@ import town_knowledge
 import world_happenings
 import world_threads
 
-from api.tests.test_story_links import resident, town
+from adventure import dialogue_jobs
+from api.tests.test_story_links import Pocket, resident, town
 from api.tests.test_said_is_real import ClassifiedClient, Table
 from api.tests.test_world_threads import DAY, HOUR
 
@@ -174,6 +175,100 @@ class ThePlayerSaysIt(unittest.TestCase):
         world["location"] = npc["location"]
         world_threads.tick(world, link["fires_at"])
         self.assertTrue(world["flags"].get("reaction_lines"))
+
+
+def a_letter(seed="seed-seal"):
+    world, state = town(seed)
+    letter = state["threads"][0]
+    other = next(t for t in state["threads"] if t is not letter)
+    owner = resident(world, letter["place_id"], "kahya")
+    letter.update(type="errand", status="accepted", item_noun="mektup", quest_id="q1", target_place_id=other["place_id"],
+                  owner_line="Mühürlü mektup var, mührü bozulmasın.", owner_npc_id=owner["id"], offered_at=0,
+                  terms={**letter["terms"], "pay": 6})
+    world["inventory"] = [{"item_id": "parcel:q1", "name": "Mektup", "quantity": 1}]
+    world["location"] = letter["place_id"]
+    return world, state, letter, owner
+
+
+def closed(world, thread, status):
+    world_threads.transition(thread, status)
+    thread["closed_at"] = world_threads._now(world)
+    state = world_threads.view(world)
+    state["threads"], gone = world_threads._split_closed(state["threads"])
+    state["history"].extend(gone)
+    world_threads._apply_effects(world, [(thread["thread_id"], status)])
+
+
+class TheSealsOwner(unittest.TestCase):
+    def test_breaking_the_seal_starts_a_clock_with_no_threat_said_by_anyone(self):
+        world, _, letter, owner = a_letter()
+        dialogue_jobs.read_parcel(Pocket(world), "kose basinda muhru kiriyorum ne yaziyor okuyorum")
+        link = links(world)[0]
+        self.assertEqual((link["tone"], link["about_thread_id"], link["owner_npc_id"]),
+                         ("opened", letter["thread_id"], owner["id"]))
+        self.assertGreater(link["fires_at"], world_threads._now(world))
+
+    def test_a_reading_of_an_open_letter_ties_nothing_twice(self):
+        world, _, letter, _ = a_letter()
+        session = Pocket(world)
+        dialogue_jobs.read_parcel(session, "mektubu okuyorum")
+        dialogue_jobs.read_parcel(session, "mektubu bir daha okuyorum")
+        self.assertEqual(len(links(world)), 1)
+
+    def test_a_note_with_no_seal_starts_nothing(self):
+        world, _, letter, _ = a_letter()
+        letter["owner_line"] = "Bu mektubu götür."
+        dialogue_jobs.read_parcel(Pocket(world), "mektubu okuyorum")
+        self.assertEqual(links(world), [])
+
+    def test_keeping_it_past_its_time_sends_someone_for_it(self):
+        world, _, letter, owner = a_letter()
+        closed(world, letter, "failed")
+        self.assertEqual(links(world)[0]["tone"], "kept")
+
+    def test_delivered_whole_the_owner_still_sends_word(self):
+        world, _, letter, owner = a_letter()
+        world["inventory"] = []
+        closed(world, letter, "done")
+        self.assertEqual(links(world)[0]["tone"], "delivered")
+
+    def test_broken_and_delivered_is_one_visit_about_the_seal(self):
+        world, _, letter, owner = a_letter()
+        dialogue_jobs.read_parcel(Pocket(world), "mektubu okuyorum")
+        world["inventory"] = []
+        closed(world, letter, "done")
+        self.assertEqual([link["tone"] for link in links(world)], ["opened"])
+
+    def test_a_plain_errand_sends_nobody(self):
+        world, _, letter, owner = a_letter()
+        letter.update(item_noun="paket", owner_line="Şu paketi götür.")
+        world["inventory"] = []
+        closed(world, letter, "done")
+        self.assertEqual(links(world), [])
+
+    def test_the_owner_knows_it_is_coming_and_the_street_can_hear_of_it_after(self):
+        world, _, letter, owner = a_letter()
+        dialogue_jobs.read_parcel(Pocket(world), "mektubu okuyorum")
+        self.assertIn("Mühür kırılmış", town_knowledge.speech_note(world, owner))
+        moment = links(world)[0]["fires_at"]
+        world_threads.tick(world, moment)
+        self.assertRegex(world_threads.view(world)["happenings"][-1]["line"], "mühür|mührün")
+
+    def test_the_one_sent_for_a_kept_letter_can_take_it_back(self):
+        world, _, letter, owner = a_letter()
+        closed(world, letter, "failed")
+        link = links(world)[0]
+        visitor = {"id": "ulak", "caller_of": link["thread_id"], "location": world["location"]}
+        link["caller_id"] = "ulak"
+        self.assertIn(letter, world_threads.late_parcels(world, visitor))
+
+    def test_two_campaigns_differ_in_when(self):
+        moments = set()
+        for number in range(12):
+            world, _, _, _ = a_letter(f"seed-seal-{number}")
+            dialogue_jobs.read_parcel(Pocket(world), "mektubu okuyorum")
+            moments.add(links(world)[0]["fires_at"] - links(world)[0]["opened_at"])
+        self.assertGreater(len(moments), 1)
 
 
 class AtTheTable(Table):

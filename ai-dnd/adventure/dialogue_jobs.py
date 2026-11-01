@@ -128,7 +128,7 @@ _READING=re.compile(r'\boku(?:yorum|yom|yoruz|yayim|yalim|yacagim|yacam|dum|yup)
 _ASKS_WHAT_IT_SAYS=re.compile(r'\bne\s+yazi(?:yor\w*|yo|li)\b')
 
 
-def _sealed(thread):
+def sealed(thread):
     return 'muhr' in living_world.normalize_text(thread.get('owner_line'))
 
 
@@ -194,7 +194,7 @@ def read_parcel(session,text):
     words=letter_text(world,thread) if thread is not None else ''
     if not words:
         return None
-    breaks=_sealed(thread) and not thread.get('seal_broken')
+    breaks=sealed(thread) and not thread.get('seal_broken')
     if not reads and (breaks or _in_conversation(world)):
         return None  # a question opens no seal, and with someone there it is theirs to answer
     thread['seal_broken']=True
@@ -202,6 +202,7 @@ def read_parcel(session,text):
     flags['turn_index']=flags.get('turn_index',0)+1
     import world_happenings
     world_happenings.letter_read(world,thread,words,flags['turn_index'])
+    if breaks: world_happenings.seal_broken(world,thread)
     shown=('Mührü kırıyorsun. ' if breaks else '')+f'Kâğıtta şunlar yazıyor: “{words}”'
     session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
     return {'messages':session.messages,'narration':shown,'model_calls':0,
@@ -267,7 +268,7 @@ def deliver(session,thread,recipient,text):
                 'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}
     kept=_keep(world)
     try:
-        opened=_sealed(thread) and thread.get('seal_broken') is True
+        opened=sealed(thread) and thread.get('seal_broken') is True
         pay=max(1,thread['terms']['pay']//2) if opened else thread['terms']['pay']
         _quest_of(world,thread)['reward_plan']['success']['gold']=pay
         action=_move_parcel(session,thread,recipient,False)

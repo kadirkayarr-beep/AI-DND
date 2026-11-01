@@ -353,9 +353,26 @@ def _follow_on(world: dict[str, Any], state: dict[str, Any], seed: str, thread: 
     return None
 
 
+def seal_broken(world: dict[str, Any], thread: dict[str, Any]) -> None:
+    """Whoever sealed it hears of it, and sends someone: the clock starts with the seal, no threat needed."""
+    tie(world, CALLER, "opened", world_threads.owner_of(world, thread), thread["place_id"], about=thread["thread_id"])
+
+
+def _letter_closed(world: dict[str, Any], thread: dict[str, Any], status: str) -> None:
+    """A sealed letter does not end at the door: its owner sends word, or sends for it."""
+    from adventure import dialogue_jobs
+    if not dialogue_jobs.sealed(thread) or thread.get("seal_broken"):
+        return
+    tone = "delivered" if status == "done" else "kept" if status in LET_GO and dialogue_jobs.holds_parcel(world, thread) else None
+    if tone:
+        tie(world, CALLER, tone, world_threads.owner_of(world, thread), thread["place_id"], about=thread["thread_id"])
+
+
 def on_close(world: dict[str, Any], thread: dict[str, Any], status: str) -> None:
     """A trouble someone took on: seen through it is over; dropped, it comes back in a few hours."""
     state = world_threads.view(world)
+    if state is not None and thread.get("type") == "errand":
+        _letter_closed(world, thread, status)
     if state is None or thread.get("type") != "trouble":
         return
     closed = thread.get("closed_at") or world_threads._now(world)
@@ -490,7 +507,7 @@ def link_note(world: dict[str, Any], npc: Any) -> str:
             notes.append(world_threads._fill(lines.get(f"caller_{link['tone']}", ""), owner=_link_owner(world, link),
                                              what=_link_matter(world, link)))
         elif link.get("owner_npc_id") == npc.get("id") and link.get("fires_at") is not None:
-            notes.append(world_threads._fill(lines.get(link["kind"], ""), when=_spoken_time(world, link["fires_at"]),
+            notes.append(world_threads._fill(lines.get(f"coming_{link['tone']}", ""), when=_spoken_time(world, link["fires_at"]),
                                              what=_link_matter(world, link)))
         elif link.get("owner_npc_id") == npc.get("id") and link["kind"] == CALLER:
             notes.append(lines.get("sent", ""))
@@ -506,6 +523,12 @@ def _link_owner(world: dict[str, Any], link: dict[str, Any]) -> str:
 def _link_matter(world: dict[str, Any], link: dict[str, Any]) -> str:
     about = world_threads.by_id(world, link.get("about_thread_id")) or {}
     return (about.get("item_noun") or about.get("public_line") or world_threads.job_lines("link", "no_matter") or "").rstrip(" .")
+
+
+def about_of(world: dict[str, Any], npc: Any) -> Any:
+    """The thread this visitor came about, if they came about one."""
+    link = world_threads.by_id(world, npc.get("caller_of")) if isinstance(npc, dict) and npc.get("caller_of") else None
+    return (link or {}).get("about_thread_id")
 
 
 def caller_comes(session: Any, now: int) -> list[str]:
@@ -552,7 +575,7 @@ def link_note(world: dict[str, Any], npc: Any) -> str:
             notes.append(world_threads._fill(lines.get(f"caller_{link['tone']}", ""), owner=_link_owner(world, link),
                                              what=_link_matter(world, link)))
         elif link.get("owner_npc_id") == npc.get("id") and link.get("fires_at") is not None:
-            notes.append(world_threads._fill(lines.get(link["kind"], ""), when=_spoken_time(world, link["fires_at"]),
+            notes.append(world_threads._fill(lines.get(f"coming_{link['tone']}", ""), when=_spoken_time(world, link["fires_at"]),
                                              what=_link_matter(world, link)))
         elif link.get("owner_npc_id") == npc.get("id") and link["kind"] == CALLER:
             notes.append(lines.get("sent", ""))
@@ -568,6 +591,12 @@ def _link_owner(world: dict[str, Any], link: dict[str, Any]) -> str:
 def _link_matter(world: dict[str, Any], link: dict[str, Any]) -> str:
     about = world_threads.by_id(world, link.get("about_thread_id")) or {}
     return (about.get("item_noun") or about.get("public_line") or world_threads.job_lines("link", "no_matter") or "").rstrip(" .")
+
+
+def about_of(world: dict[str, Any], npc: Any) -> Any:
+    """The thread this visitor came about, if they came about one."""
+    link = world_threads.by_id(world, npc.get("caller_of")) if isinstance(npc, dict) and npc.get("caller_of") else None
+    return (link or {}).get("about_thread_id")
 
 
 def caller_comes(session: Any, now: int) -> list[str]:
