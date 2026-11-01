@@ -18152,6 +18152,10 @@ def _dispatch_player_turn(
         pocketed = pocket.resolve(_session(), player_input)
         if pocketed is not None:
             return pocketed
+        if equipment_economy._natural_inventory_query(player_input) and not _has_explicit_attack_verb(player_input):
+            listed = equipment_economy.execute(_session(), player_input)  # the bag answers for itself, whoever stands near
+            if listed is not None:
+                return listed
     front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
