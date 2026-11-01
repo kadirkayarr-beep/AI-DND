@@ -145,12 +145,15 @@ def _paper_in_hand(world,text):
 
 def letter_text(world,thread):
     """What it says. Picked once by the campaign's seed, so a second reading finds the same words."""
+    import world_happenings
     import world_threads
-    lines=world_threads.job_lines('errand','letters') or []
+    if thread.get('letter_line'): return thread['letter_line']
+    matter=world_happenings.letter_matter(world,thread)
+    lines=[line for line in world_threads.job_lines('errand','letters') or () if ('{matter}' in line)==bool(matter)]
     if not lines: return ''
     line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],'letter')%len(lines)]
     place=world.get('locations',{}).get(thread.get('target_place_id')) or {}
-    return world_threads._fill(line,target=place.get('name') or 'orası')
+    return world_threads._fill(line,target=place.get('name') or 'orası',matter=matter or '')
 
 
 def read_parcel(session,text):
@@ -169,6 +172,8 @@ def read_parcel(session,text):
     thread['seal_broken']=True
     flags=world.setdefault('flags',{})
     flags['turn_index']=flags.get('turn_index',0)+1
+    import world_happenings
+    world_happenings.letter_read(world,thread,words,flags['turn_index'])
     shown=('Mührü kırıyorsun. ' if breaks else '')+f'Kâğıtta şunlar yazıyor: “{words}”'
     session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
     return {'messages':session.messages,'narration':shown,'model_calls':0,

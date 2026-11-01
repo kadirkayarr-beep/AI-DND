@@ -10,6 +10,7 @@ import relationships
 import town_knowledge
 import world_happenings
 import world_threads
+from adventure import dialogue_jobs
 
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests import test_thread_gate as gate_tests
@@ -409,6 +410,67 @@ class OneThingLeadsToAnother(unittest.TestCase):
             world_threads.tick(world, thread_at(state)["fires_at"])
             return world[world_threads.KEY]
         self.assertEqual(run(), run())
+
+
+class Pocket:
+    """All a reading needs from a session."""
+
+    def __init__(self, world):
+        self.world_state = world
+        self.messages = []
+
+
+def letter_for(world, state, trouble, line="Hesap tutmuyor, bakan biri lazım."):
+    """A letter in the player's bag, going to where this trouble is."""
+    letter = next(t for t in state["threads"] if t is not trouble)
+    letter.update(type="errand", status="accepted", item_noun="mektup", quest_id="q1", target_place_id=trouble["place_id"],
+                  owner_line="Mühürlü mektup var.")
+    trouble["owner_line"] = line
+    world["inventory"] = [{"item_id": "parcel:q1", "name": "Mektup", "quantity": 1}]
+    return letter
+
+
+class ALetterSaysSomething(unittest.TestCase):
+    def test_there_are_twice_as_many_and_half_can_carry_a_real_matter(self):
+        letters = world_threads.job_lines("errand", "letters")
+        self.assertEqual(len(letters), 12)
+        self.assertEqual(sum("{matter}" in line for line in letters), 6)
+
+    def test_opened_it_tells_the_trouble_where_it_goes_and_the_player_now_knows_of_it(self):
+        world, state = town_with_trouble()
+        trouble = thread_at(state)
+        letter_for(world, state, trouble)
+        shown = dialogue_jobs.read_parcel(Pocket(world), "mektubu açıp okuyorum")["narration"]
+        self.assertIn(trouble["owner_line"], shown)
+        self.assertEqual(trouble["status"], "heard")
+        self.assertEqual(trouble["heard_turn"], world["flags"]["turn_index"])
+
+    def test_read_again_after_the_trouble_is_over_it_still_says_the_same_words(self):
+        world, state = town_with_trouble()
+        trouble = thread_at(state)
+        letter_for(world, state, trouble)
+        session = Pocket(world)
+        first = dialogue_jobs.read_parcel(session, "mektubu okuyorum")["narration"]
+        trouble["status"] = "expired"
+        again = dialogue_jobs.read_parcel(session, "mektubu bir daha okuyorum")["narration"]
+        self.assertIn(first.split("“")[1], again)
+
+    def test_a_matter_too_long_to_quote_leaves_the_old_kind_of_letter(self):
+        world, state = town_with_trouble()
+        trouble = thread_at(state)
+        letter = letter_for(world, state, trouble, line="ç" * 50)
+        trouble["public_line"] = "ş" * 50
+        self.assertNotIn("ç", dialogue_jobs.letter_text(world, letter))
+        self.assertNotIn("{", dialogue_jobs.letter_text(world, letter))
+
+    def test_a_letter_to_a_quiet_place_is_the_old_kind_too(self):
+        world, state = town_with_trouble()
+        trouble = thread_at(state)
+        letter = letter_for(world, state, trouble)
+        trouble["status"] = "accepted"
+        words = dialogue_jobs.letter_text(world, letter)
+        self.assertNotIn("{", words)
+        self.assertNotIn(trouble["owner_line"], words)
 
 
 class InPlay(unittest.IsolatedAsyncioTestCase):

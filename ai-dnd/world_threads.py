@@ -61,7 +61,7 @@ _OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", 
                   "days_worked", "shift_seconds", "shift_until", "last_paid_day_index", "paid_cp",
                   "outcome_known_turn", "offer_line_turn", "fires_at")
 _OPTIONAL_TEXTS = ("owner_npc_id", "recipient_npc_id", "quest_id", "item_noun", "filled_by_npc_id", "filled_by_name",
-                   "offer_line", "job_line")
+                   "offer_line", "job_line", "letter_line")
 _LOG = logging.getLogger(__name__)
 _catalog_cache: dict[str, Any] | None = None
 _answers_cache: dict[str, Any] | None = None

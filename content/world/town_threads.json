@@ -792,7 +792,13 @@
         "Dediğin adam yine soru soruyor. {target} çevresinde görülmüş. Kimseye güvenme, ben haber verene kadar ortalıkta durma.",
         "Borcun vadesi geçti. Üç gün içinde {target} tarafına getirmezsen işi başkalarına bırakırım, bunu ikimiz de istemeyiz.",
         "Anlaştığımız gibi: gece yarısından sonra {target} arkasında, ışık yakmadan. Yanında kimse olmasın.",
-        "Aradığın kayıt bende değil. Son gören {target} içindeydi. Mühür kırılmışsa bunu ben yazmadım, sen de okumadın."
+        "Aradığın kayıt bende değil. Son gören {target} içindeydi. Mühür kırılmışsa bunu ben yazmadım, sen de okumadın.",
+        "Yazdığını aldım: {matter} Elimden geleni yapacağım, sen ağzını sıkı tut.",
+        "Bana dediğin şu: {matter} Bunu başka kimseye anlatma, kulak çok.",
+        "Haberin bana da ulaştı: {matter} Telaş etme, ben haber verene kadar bekle.",
+        "{matter} Bunu senden duymak istemezdim. Bu kâğıdı okuyunca yak.",
+        "Demek iş buraya geldi: {matter} Yalnız gelme, yanında güvendiğin biri olsun.",
+        "Söylediklerini unutmadım: {matter} Vakit daralıyor, bir an önce karar ver."
       ],
       "accepted": [
         "Bu senin kendi işin, sen verdin; inkâr etme. {item} {recipient} eline, {target} içinde gidecek. Ücret {pay_text}, ödeme {timing_text}, alıcı sayar; süre {deadline_text}. Şartları tekrar etme."

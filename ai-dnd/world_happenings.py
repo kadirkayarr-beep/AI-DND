@@ -146,6 +146,27 @@ def put_forward(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, An
         world_threads.mark_offered(world, thread, npc, shown, turn)
 
 
+def _trouble_at_end_of(world: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
+    return next((t for t in world_threads.active(world) if t["type"] == "trouble"
+                 and t["place_id"] == thread.get("target_place_id")), None)
+
+
+def letter_matter(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
+    """What is really going on where this letter is bound: the words of the trouble there, if they fit a line."""
+    trouble = _trouble_at_end_of(world, thread)
+    if trouble is None:
+        return None
+    return next((line for line in (trouble["owner_line"], trouble["public_line"]) if fits(line)), None)
+
+
+def letter_read(world: dict[str, Any], thread: dict[str, Any], words: str, turn: int) -> None:
+    """The words stay what they were, and whoever read them now knows of the trouble they tell."""
+    trouble = _trouble_at_end_of(world, thread)
+    if trouble is not None and any(line in words for line in (trouble["owner_line"], trouble["public_line"])):
+        world_threads.mark_heard(trouble, turn)
+    thread["letter_line"] = words
+
+
 def _row_of(state: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
     return next((row for row in reversed(state.get(KEY) or []) if row["thread_id"] == thread.get("thread_id")), None)
 
