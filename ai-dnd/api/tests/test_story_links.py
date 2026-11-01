@@ -796,6 +796,7 @@ class InPlay(unittest.IsolatedAsyncioTestCase):
         self.thread.update(owner_line="Hesap tutmuyor, bakan biri lazım.", fires_at=2 * DAY, expires_at=2 * DAY,
                            public_line="Burada hesap tutmuyormuş.",
                            terms={"pay": None, "work_days": None, "pay_basis": None, "pay_timing": None, "deadline_text": None})
+        self.thread.pop("night_only", None)  # the seed must not decide the hour this work can start
         world_threads.mark_heard(self.thread, 0)  # help is offered for something the player has heard of
 
     async def test_saying_you_will_help_takes_it_on(self):

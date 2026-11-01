@@ -395,8 +395,18 @@ _FINITE_VERB = re.compile(r"(?:iyor|uyor|yor|acag|eceg|acak|ecek)\w*$")
 _FIRST_PERSON = re.compile(r"(?:[aeiou]rim|[ae]yim)$")  # 'hallederim', 'karışmayım'; short ones are names like Kerim
 
 
+_SAYS_WHERE_OR_WHAT_I_AM = re.compile(r"(?:m|[dt][ae])$")  # 'alırım', 'yaptım', 'yorgunum', 'burda'
+_BEFORE_A_NAME = frozenset({"selam", "selamlar", "merhaba", "slm", "sa"})
+
+
 def _reads_as_verb(folded: str) -> bool:
     return bool(_FINITE_VERB.search(folded)) or (len(folded) >= 7 and bool(_FIRST_PERSON.search(folded)))
+
+
+def _lowercase_after_ben_is_a_name(value: str, match: re.Match[str]) -> bool:
+    """'Ben ahmet' alone is someone's name. Inside a longer line, or ending like 'alırım', it is what they are saying."""
+    folded = normalize_text(match.group(1))
+    return set(normalize_text(value[:match.start()]).split()) <= _BEFORE_A_NAME and not _SAYS_WHERE_OR_WHAT_I_AM.search(folded)
 
 
 def explicit_player_name_disclosure(value: Any) -> str | None:
@@ -435,6 +445,8 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
             name = match.group(1).strip("'’-")
             normalized_name = normalize_text(name)
             if normalized_name in {"ne", "nedir"}:
+                continue
+            if pattern is patterns[2] and name[0].islower() and not _lowercase_after_ben_is_a_name(value, match):
                 continue
             if name and normalized_name not in {"adim", "ismim"} and not _reads_as_verb(normalized_name):
                 return name

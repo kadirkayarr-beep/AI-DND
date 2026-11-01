@@ -297,7 +297,7 @@
     "matter_nouns": ["dert", "derd", "mesele", "sorun"],
     "matter_common": ["istersen", "konuş", "tarafında", "tarafına", "tarafından", "içinde", "bulursun", "yakınında", "konusunda", "gitmeye", "vaktim"],
     "help": ["yardım ederim", "yardım edeyim", "yardım edebilirim", "yardımcı olurum", "yardımcı olayım", "yardımcı olabilirim",
-             "hallederim", "halledicem", "halledeyim", "halledebilirim", "ben bakarım", "ben bakayım", "ben ilgilenirim", "ben ilgileneyim",
+             "hallederim", "halledicem", "halledecem", "halledeyim", "halledebilirim", "ben bakarım", "ben bakayım", "ben ilgilenirim", "ben ilgileneyim",
              "üstlenirim", "üstleneyim", "çözerim", "çözeyim", "çözebilirim"],
     "accept": [
       "evet",

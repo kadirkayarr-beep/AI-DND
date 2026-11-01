@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import campaign_time
 import living_world
+import local_dialogue
 import pocket
 import town_knowledge
 import world_threads
@@ -210,6 +211,18 @@ class ALaterPromiseIsNotAShift(OnATrouble):
             await self.taken_on()
             out = await self.line(line, "Hmm.")
             self.assertEqual(out["turn_outcome"]["action"], "work", line)
+
+
+class WhatFollowsBenIsNotAlwaysAName(unittest.TestCase):
+    def test_a_lowercase_word_after_ben_that_says_something_is_no_name(self):
+        for line in ("ben bulurum", "ben görürüm", "ben yürürüm", "ben alırım", "ben varım", "ben yaptım", "ben geldim",
+                     "ben olurum", "ben götürürüm", "ben korurum", "ben halledicem", "ben karışmam", "ben yorgunum",
+                     "ben hazırım", "ben burdayım", "ben burda", "tamam ben kadir", "peki ben gelirim"):
+            self.assertIsNone(local_dialogue.explicit_player_name_disclosure(line), line)
+
+    def test_a_name_on_its_own_still_is_one(self):
+        for line, name in (("ben ahmet", "ahmet"), ("selam ben ahmet", "ahmet"), ("ben Kerim", "Kerim"), ("Ben Alırım", "Alırım")):
+            self.assertEqual(local_dialogue.explicit_player_name_disclosure(line), name)
 
 
 if __name__ == "__main__":
