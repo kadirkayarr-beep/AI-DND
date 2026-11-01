@@ -18153,7 +18153,8 @@ def _dispatch_player_turn(
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
-        if body is not None and _reads_as_address(player_input):
+        if (body is not None and _reads_as_address(player_input)
+                and (read is None or read["kind"] == "speak_to")):  # a line read as an act is no word to them
             line = fallen.silence(body)
             return {
                 "messages": _session().messages, "narration": line, "model_calls": 0,

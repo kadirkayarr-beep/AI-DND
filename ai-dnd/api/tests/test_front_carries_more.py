@@ -5,6 +5,7 @@ Real app, real adapter, real engine; only the Ollama client is scripted. The lin
 
 from __future__ import annotations
 
+import fallen
 from api.tests.test_front_proposal import FrontTable
 
 
@@ -91,3 +92,39 @@ class ReadsBeforeTheOldOwners(FrontTable):
         self.world.setdefault("currency", {})["player"] = 2412
         reply = await self.line("kese ne alemde, kac bakirim var")
         self.assertIn("24 altın 12 bakır", reply["narration"])
+
+
+class SomeoneLiesOutCold(FrontTable):
+    async def lay_out(self):
+        await self.begin()
+        for npc in self.world["npcs"]:
+            if npc["id"] != self.npc["id"]:
+                npc["location"] = "elsewhere"
+            else:
+                fallen.knock_out(self.session, npc)
+
+    async def test_a_look_around_runs(self):
+        await self.lay_out()
+        self.client.front = {"kind": "look"}
+        reply = await self.line("etrafa bakiyorum, gelen var mi, hizmetkarlar nobetciler ne yapiyor")
+        self.assertNotIn("sesini duyacak durumda", reply["narration"])
+
+    async def test_reading_what_was_taken_runs(self):
+        await self.lay_out()
+        self.client.front = {"kind": "attempt"}
+        reply = await self.line("defterin son sayfalarinda ne yaziyor, kayit, muhur, okuyorum")
+        self.assertNotIn("sesini duyacak durumda", reply["narration"])
+
+    async def test_a_walk_runs(self):
+        await self.lay_out()
+        place = self.a_place()
+        self.client.front = {"kind": "go_to", "place_id": place}
+        name = self.world["locations"][place]["name"]
+        reply = await self.line("su tarafa dogru yuruyorum, buradan cikalim")
+        self.assertIn(name, reply["narration"], self.routes()[-1])
+
+    async def test_only_words_said_to_them_meet_the_silence(self):
+        await self.lay_out()
+        self.client.front = {"kind": "speak_to"}
+        reply = await self.line("hey, uyan lan, duyuyor musun")
+        self.assertIn("sesini duyacak durumda", reply["narration"])
