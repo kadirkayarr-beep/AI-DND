@@ -43,6 +43,7 @@ class Rope(ThreePlaysTests):
 
     async def test_cutting_the_man_is_still_a_blow(self):
         npc = await self.worker()
+        npc.update(current_hp=500, max_hp=500)  # one blow must not end the fight it starts
         await self.say("işçiyi kılıçla kesiyorum", PlayClient(intent="attack"))
         self.assertTrue(self.world["combat"]["active"])
         self.assertTrue(npc["id"] in self.world["combat"]["participants"])
