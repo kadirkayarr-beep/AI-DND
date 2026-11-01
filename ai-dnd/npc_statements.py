@@ -126,7 +126,7 @@ _STOP = frozenset({
     "bir", "ve", "ile", "da", "de", "mi", "mu", "ki", "icin", "gibi", "cok", "en",
     "yakindaki", "yakin", "tamam", "hadi", "haydi", "lutfen", "sozun", "soz",
     "soylemistin", "demistin", "dedin", "bahsetmistin", "anlatmistin", "unuttun",
-    "hatirliyor", "musun", "misin", "hatirla", "sadece", "simdi", "hemen",
+    "hatirliyor", "musun", "misin", "hatirla", "sadece", "simdi", "hemen", "diye",
 })
 
 
@@ -571,6 +571,11 @@ def record(world: dict[str, Any], npc: dict[str, Any], player_text: str, shown_t
             # W07: while the same promise is still open, a restatement belongs to it; it is not a new debt.
             # no scope content at all (no objects, no place): nothing identifies the promise, so never merge it
             has_scope = bool(scope_key and (objects or destination))
+            named = next((c for c in state["commitments"] if c.get("status") == "open" and c.get("terms") is not None
+                          and c.get("npc_id") == npc_id and c.get("kind") == kind and c.get("quote") == words[:240]), None)
+            if named is not None:  # the speaker already named this very promise in the reply's own field
+                entry["commitment_ids"].append(named["id"])
+                continue
             existing = next((c for c in state["commitments"]
                              if c.get("status") == "open" and _commitment_scope_key(c) == scope_key), None) if has_scope else None
             if existing is not None:
@@ -579,31 +584,54 @@ def record(world: dict[str, Any], npc: dict[str, Any], player_text: str, shown_t
                 existing["last_restated_quote"] = words[:240]
                 entry["commitment_ids"].append(existing["id"])
                 continue
-            number = state["next_commitment"]
-            state["next_commitment"] = number + 1
-            origin_event_id = f"statement:{npc_id}:{turn}:{number:04d}"
-            commitment = {
-                "id": f"commit_{number:04d}",
-                "npc_id": npc_id,
-                "kind": kind,
-                "objects": objects,
-                "destination": destination,
-                "quote": words[:240],
-                "player": str(player_text or "")[:240],
-                "turn": turn,
-                "status": "open",
-                "identity": commitment_identity(npc_id, _RECIPIENT, scope, origin_event_id),
-                "scope_key": scope_key,
-                "origin_event_id": origin_event_id,
-                "restatements": 0,
-                "restated_turns": [],
-                "history": [{"status": "open", "event_id": origin_event_id, "turn": turn}],
-            }
-            state["commitments"].append(commitment)
-            entry["commitment_ids"].append(commitment["id"])
+            entry["commitment_ids"].append(_open_commitment(state, npc_id, kind, objects, destination, words, player_text,
+                                                            turn, scope, scope_key)["id"])
     statements.append(entry)
     del statements[:-KEEP_PER_NPC]
     return entry
+
+
+def _open_commitment(state, npc_id, kind, objects, destination, words, player_text, turn, scope, scope_key):
+    number = state["next_commitment"]
+    state["next_commitment"] = number + 1
+    origin_event_id = f"statement:{npc_id}:{turn}:{number:04d}"
+    commitment = {
+        "id": f"commit_{number:04d}",
+        "npc_id": npc_id,
+        "kind": kind,
+        "objects": objects,
+        "destination": destination,
+        "quote": words[:240],
+        "player": str(player_text or "")[:240],
+        "turn": turn,
+        "status": "open",
+        "identity": commitment_identity(npc_id, _RECIPIENT, scope, origin_event_id),
+        "scope_key": scope_key,
+        "origin_event_id": origin_event_id,
+        "restatements": 0,
+        "restated_turns": [],
+        "history": [{"status": "open", "event_id": origin_event_id, "turn": turn}],
+    }
+    state["commitments"].append(commitment)
+    return commitment
+
+
+def commit(world: dict[str, Any], npc: dict[str, Any], kind: str, terms: str, spoken: str, player_text: str) -> dict[str, Any] | None:
+    """A promise the speaker named outright: the same record a recognised line opens, with its terms."""
+    words = str(spoken or "").strip()
+    if kind not in {name for name, _ in _COMMIT_PATTERNS} or not words or not isinstance(npc.get("id"), str):
+        return None
+    state = ensure(world)
+    turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
+    objects = _objects(fold(terms or words))
+    scope = {"kind": kind, "objects": objects, "destination": None}
+    scope_key = _scope_key(npc["id"], _RECIPIENT, scope)
+    same = next((c for c in state["commitments"] if c.get("status") == "open" and _commitment_scope_key(c) == scope_key), None)
+    if same is not None:
+        return same
+    commitment = _open_commitment(state, npc["id"], kind, objects, None, words, player_text, turn, scope, scope_key)
+    commitment["terms"] = str(terms or "")[:160]
+    return commitment
 
 
 def _commitments(folded: str, folded_player: str) -> list[tuple[str, str]]:
@@ -687,12 +715,24 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
                 return {"status": "supported", "quote": commitment["quote"], "commitment": commitment}
         return {"status": "unsupported", "claim_kind": claim_kind, "objects": objects}
     if _SAID_CLAIM.search(folded) and objects:
+        quoted = _said_clause(claim, drop, names)
         for statement in reversed(statements):
             text_words = fold(statement.get("text", "")).split()
-            if all(any(_stem_match(w, t) for t in text_words) for w in objects):
+            if all(any(_stem_match(w, t) for t in text_words) for w in quoted or objects):
                 return {"status": "supported", "quote": statement["text"], "statement": statement}
         return {"status": "unsupported", "claim_kind": "said", "objects": objects}
     return {"status": "unsupported", "claim_kind": None, "objects": objects}
+
+
+def _said_clause(claim: str, drop: tuple[re.Pattern[str], ...], names: set[str]) -> list[str]:
+    """The words of the one clause that says what was said; the rest of the breath is the player's own."""
+    for clause in re.split(r"[.,;!?…]+", str(claim)):
+        folded = fold(clause)
+        if _SAID_CLAIM.search(folded):
+            return [word for word in _objects(folded, drop=drop)
+                    if not re.search(r"(?:ecegini|acagini|ecektin|acaktin|mistin|din)$", word)
+                    and not any(word.startswith(name) for name in names if name)]
+    return []
 
 
 def resolve_reference(world: dict[str, Any], ref_id: str, location_id: str) -> None:

@@ -1252,10 +1252,10 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), retry.json())
         self.assertEqual(client.chat_calls, first_call_count * 2)
-        # The isolated schema contains separate speech and direction fields only.
+        # Separate speech and direction fields, and one proposal Python alone acts on.
         self.assertEqual(
             set(client.schemas[0]["properties"]),
-            {"spoken_text", "stage_direction"},
+            {"spoken_text", "stage_direction", "commitment"},
         )
 
     async def test_experimental_answer_field_success_path_isolates_objective_and_commitment(self):

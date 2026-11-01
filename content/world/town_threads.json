@@ -594,6 +594,27 @@
       "götürür müsün",
       "bakar mısın",
       "çalışır mısın"
+    ],
+    "pay_money": ["para", "param", "bakır", "gümüş", "altın", "ücret", "yevmiye", "borc", "borç", "alacağ", "hakkım"],
+    "pay_verbs": [
+      "ver", "verin", "versene", "verecek", "verecen", "vereceksin", "verir", "alayım", "alıyorum", "alırım",
+      "alacağım", "alcam", "say", "sayıyorum", "sayıp", "atıyorum", "istiyorum", "isterim", "uzat", "nerede", "nerde"
+    ],
+    "pay_alone": ["öde", "ödesene", "ödeyecek", "ödeyeceksin", "ödeyecen", "ödeyin", "öder"],
+    "pay_not_asking": ["ne kadar", "ne zaman", "kaç", "nasıl", "kazanmak", "kazanayım", "kazanırım", "kazanacak"]
+  },
+  "money_speech": {
+    "units": ["bakır", "gümüş", "altın", "sikke"],
+    "coin": ["para", "bakır", "gümüş", "altın", "sikke", "ücret"],
+    "promises": [
+      "veririm", "veririz", "vereceğim", "vereceğiz", "veriyorum", "veriyoruz", "öderim", "öderiz", "ödeyeceğim",
+      "ödeyeceğiz", "ödüyorum", "ücret", "ücreti", "ücretin", "kazanırsın", "kazanacaksın", "alırsın", "alacaksın",
+      "yevmiye", "yevmiyen", "günlüğü", "gecesi"
+    ],
+    "hands_first": ["al", "alın", "buyur", "tut", "işte"],
+    "hands_any": [
+      "sayıyorum", "sayıp", "uzatıyorum", "veriyorum", "bırakıyorum", "sayıyor", "uzatıyor", "veriyor", "bırakıyor",
+      "sayarak", "uzatarak", "dolduruyor", "koyuyor", "sayılıyor"
     ]
   },
   "job_lines": {
@@ -613,7 +634,21 @@
       "parcel_out": "{item} hâlâ onun elinde; getirirse geri alırsın, ücret yok.",
       "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
       "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
-      "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
+      "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al.",
+      "paid": "Ücretini istedi, sen de bugünkü payı olan {amount} bakırı saydın; para eline geçti. Bunu kendi ağzınla kısa söyle, başka para verme, rakam söyleme.",
+      "pay_paid_today": "Ücretini istiyor ama bugünkü payını aldı; yarına kadar para çıkmaz. Kendi tavrınla söyle, inkâr etme; iş ve sözün duruyor.",
+      "pay_not_yet": "Ücretini istiyor ama daha iş görmedi; ücret çalışılan günün sonunda. Kendi ağzınla söyle, inkâr etme; iş ve sözün duruyor.",
+      "pay_on_delivery": "Ücretini istiyor; ücret teslimde, alıcıdan çıkar. Kendi ağzınla söyle, inkâr etme.",
+      "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
+      "listed_jobs": "İşlerin: {jobs}.",
+      "own_promises": "Verdiğin sözler: {promises}. Bunları inkâr etme.",
+      "said_before": "Daha önce sen gerçekten şunları söyledin: {lines} Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
+    },
+    "fallback": {
+      "paid": ["Al bakalım, bugünkü hakkın.", "Hakkını yemem, al.", "Sayılı para, tamam."],
+      "pay_paid_today": ["Bugünkünü aldın, yarın gel.", "Bugünlük hesabımız kapalı."],
+      "pay_not_yet": ["Önce işi gör, sonra konuşuruz.", "Daha bir şey yapmadın ki, gün bitsin."],
+      "pay_on_delivery": ["Ücret teslimde, alıcıdan alırsın.", "Götür, parası orada çıkar."]
     },
     "hiring": {
       "accepted": [
@@ -719,6 +754,7 @@
       "deadline_errand": "bir gün içinde",
       "deadline_hiring": "{days} gün içinde",
       "shift_paid": "Günün sonunda {amount} bakır eline sayılıyor.",
+      "pay_counted": "{amount} bakır avucuna sayılıyor; kesende artık.",
       "shift_done": "İş bitti; hesap kapandı.",
       "shift_short": "Vardiya yarıda kaldı, bu saatler henüz bir güne denk gelmedi.",
       "shift_no_pay": "Bugünkü ücretini almıştın; bu saatler hesaba yazılmıyor.",

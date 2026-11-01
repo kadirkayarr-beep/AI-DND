@@ -1270,7 +1270,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(
                 set(schema.get("properties", {}))
-                == {"spoken_text", "stage_direction"}
+                == {"spoken_text", "stage_direction", "commitment"}
                 and schema.get("required") == ["spoken_text", "stage_direction"]
                 for schema in recommendation_client.schemas
             ),
@@ -1423,16 +1423,14 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                     },
                 )
                 self.assertEqual(response.status_code, 200, response.text)
-                # The owner rejected a stock reply: the person answers a plain question and a denial of their own
-                # words, once each. A claimed promise stays vetoed with no call, and none of them makes a place.
+                # The owner rejected a stock reply: the person answers each of these once. A claimed
+                # promise stays unverified and grants nothing, and none of them makes a place.
                 asked = message != history_claims[0]
                 self.assertEqual(
                     response.json()["turn_outcome"]["status"],
                     "experimental_attributed_speech" if asked else "unverified",
                 )
-                self.assertEqual(
-                    recommendation_client.chat_calls, before_veto_calls + (1 if asked else 0)
-                )
+                self.assertEqual(recommendation_client.chat_calls, before_veto_calls + 1)
                 self.assertEqual(set(session.world_state["locations"]), places_before)
                 self.assertNotIn("Mavi Fener", response.json()["narration"])
 

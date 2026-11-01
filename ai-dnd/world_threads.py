@@ -57,7 +57,7 @@ TRANSITIONS = {
     "declined": {"accepted", "filled_by_other", "expired"},
     "accepted": {"done", "failed", "expired", "abandoned"},
 }
-_OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", "starts_at", "work_until",
+_OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", "accepted_turn", "starts_at", "work_until",
                   "days_worked", "shift_seconds", "shift_until", "last_paid_day_index", "paid_cp",
                   "outcome_known_turn", "offer_line_turn")
 _OPTIONAL_TEXTS = ("owner_npc_id", "recipient_npc_id", "quest_id", "item_noun", "filled_by_npc_id", "filled_by_name",
@@ -854,6 +854,43 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     return reading
 
 
+def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = False) -> bool:
+    """The player's own words carry a plain yes, with no no or condition beside it.
+
+    For a line the lists cannot read whole: the model can point at the agreement, but
+    only the player's words make it. firm asks for more than 'tamam' or 'peki', which
+    can as well open something else, so the words stand with no model behind them.
+    """
+    table = answer_table()
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None:
+        return False
+    names = _names_of(npc)
+    clauses = _clauses(text)
+    read = [_read_clause(tokens, asked, table, names, _item_stems(thread)) for tokens, asked, _ in clauses]
+    if "accept" not in read or {"decline", "withdraw", "unclear"} & set(read) or any(after for _, _, after in clauses):
+        return False
+    return not firm or any(kind == "accept" and not _bare_answer(tokens, table, names)
+                           for kind, (tokens, _, _) in zip(read, clauses))
+
+
+def asks_for_pay(text: Any) -> bool:
+    """'Paramı ver', '25 bakırı alayım', 'ödeyecek misin': one clause holds the money and the asking."""
+    table = answer_table()
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None:
+        return False
+    money = tuple(table["pay_money"])
+    for tokens, _, _ in _clauses(text):
+        if _has_phrase(tokens, table["pay_not_asking"]):
+            continue
+        if set(tokens) & table["pay_alone"]:
+            return True
+        if set(tokens) & table["pay_verbs"] and any(word.startswith(money) for word in tokens):
+            return True
+    return False
+
+
 def _last_exchange(world, npc):
     log = (world.get("npc_speech_log") or {}).get(npc.get("id")) if isinstance(npc, dict) else None
     return log[-1] if isinstance(log, list) and log and isinstance(log[-1], dict) else None
@@ -926,6 +963,7 @@ def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: An
     yes = reading["meaning"] == "accept" or (reading["meaning"] is None and (takes or reading["start"]))
     if not current:
         return None
+    yes = yes or (reading["meaning"] is None and holds_a_yes(text, npc, thread, firm=True))
     if status == "declined":
         return "accepted" if yes else None
     if yes:
@@ -1010,8 +1048,8 @@ def accept_hired(world: dict[str, Any], thread: dict[str, Any]) -> bool:
         return False
     now = _now(world)
     days = thread["terms"].get("work_days") or 1
-    thread.update(accepted_at=now, starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0,
-                  paid_cp=0)
+    thread.update(accepted_at=now, accepted_turn=int((world.get("flags") or {}).get("turn_index", 0) or 0),
+                  starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0, paid_cp=0)
     thread.pop("declined_turn", None)
     _log(thread, now, "accepted")
     note_event(world, thread, "accepted", f"Anlaşıldı: {pay_text(thread)}", npc=owner_of(world, thread))
@@ -1117,6 +1155,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in mine:
         if thread["status"] == "accepted" and thread.get("type") == "hiring" and read_answer(text, npc, thread)["start"]:
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
+        if thread["status"] == "accepted" and asks_for_pay(text):
+            return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and thread.get("type") == "errand":
             reading = read_answer(text, npc, thread)
             if (reading["take"] or reading["move"]) and reading["meaning"] in {None, "accept"}:
@@ -1129,9 +1169,10 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         reading = read_answer(text, npc, thread)
         about = _speaks_of_work(text, reading, thread, answer_table())
         short = len(_folded(text).split()) <= 4  # a word or two back at the owner, not a new subject
-        current = thread.get("status") == "offered" and short and answers_the_offer(world, thread, npc)
-        if about or current:
-            return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id"),
+        offered = thread.get("status") == "offered" and answers_the_offer(world, thread, npc)
+        heard_a_yes = offered and holds_a_yes(text, npc, thread)  # the person hears it, and says what came of it
+        if about or (offered and short) or heard_a_yes:
+            return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id"), "yes_heard": heard_a_yes,
                     "offer_talk": _names_the_work(text, thread, answer_table())}
     return None
 
@@ -1184,6 +1225,66 @@ def _pay_wage(world, thread, amount, day):
     finally:
         wallets.pop(pool, None)
     thread["paid_cp"] = thread.get("paid_cp", 0) + amount
+
+
+def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tuple[int, bool]:
+    """One day of the work counted and paid, and the job closed if that was the last of it."""
+    thread["days_worked"] = thread.get("days_worked", 0) + 1
+    thread["last_paid_day_index"] = day
+    thread["shift_seconds"] = 0
+    amount = _day_wage(thread)
+    _pay_wage(world, thread, amount, day)
+    note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
+    if thread["days_worked"] < (thread["terms"].get("work_days") or 1) or not transition(thread, "done"):
+        return amount, False
+    now = _now(world)
+    thread["closed_at"] = now
+    _log(thread, now, "done")
+    state = view(world)
+    state["threads"], closed = _split_closed(state["threads"])
+    state["history"].extend(closed)
+    _trim_history(state)
+    _apply_effects(world, [(thread["thread_id"], "done")])
+    return amount, True
+
+
+def _today(world: dict[str, Any]) -> int:
+    import campaign_time
+    return campaign_time.public_time(world)["day_index"]
+
+
+def wage_due(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, str | None]:
+    """What asking for the money pays right now, or why it pays nothing.
+
+    The hired hand's word is taken for one day at a time: the wage only moves once a day,
+    never past the agreed total, and not to someone who shook on it a moment ago.
+    """
+    if thread.get("status") != "accepted":
+        return 0, None
+    if thread.get("type") != "hiring":
+        return 0, "on_delivery"
+    if thread.get("last_paid_day_index") == _today(world):
+        return 0, "paid_today"
+    turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
+    if turn - thread.get("accepted_turn", turn) < 2 and _now(world) - (thread.get("accepted_at") or 0) < HOUR:
+        return 0, "not_yet"
+    return _day_wage({**thread, "days_worked": thread.get("days_worked", 0) + 1}), None
+
+
+def pay_day(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, bool]:
+    """Pay what is due through the wallet: the amount, and whether that finished the job."""
+    amount, _ = wage_due(world, thread)
+    if not amount:
+        return 0, False
+    paid = _credit_day(world, thread, _today(world))
+    validate(world[KEY])
+    return paid
+
+
+def paid_line(amount: int, finished: bool) -> str:
+    words = job_lines("text") or {}
+    return " ".join(line for line in (_fill(words.get("pay_counted", ""), amount=amount),
+                                      words.get("shift_done", "") if finished else "") if line)
 
 
 def _mid_sentence(label: str) -> str:
@@ -1249,22 +1350,9 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     elif thread["shift_seconds"] < hours * HOUR:
         parts.append(words.get("shift_short", ""))
     else:
-        thread["days_worked"] = thread.get("days_worked", 0) + 1
-        thread["last_paid_day_index"] = day
-        thread["shift_seconds"] = 0
-        amount = _day_wage(thread)
-        _pay_wage(world, thread, amount, day)
+        amount, finished = _credit_day(world, thread, day)
         parts.append(_fill(words.get("shift_paid", ""), amount=amount))
-        note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
-        if thread["days_worked"] >= (thread["terms"].get("work_days") or 1) and transition(thread, "done"):
-            now = _now(world)
-            thread["closed_at"] = now
-            _log(thread, now, "done")
-            state = view(world)
-            state["threads"], closed = _split_closed(state["threads"])
-            state["history"].extend(closed)
-            _trim_history(state)
-            _apply_effects(world, [(thread_id, "done")])
+        if finished:
             parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
     validate(world[KEY])
     shown = _shift_text(world, thread, *parts)

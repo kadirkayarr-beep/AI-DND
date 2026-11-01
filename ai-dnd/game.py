@@ -7093,12 +7093,18 @@ def speech_repeat_line(npc, player_input="", salt=0):
 
 
 def historical_claim_denial(npc, player_input=""):
+    """The last resort for a claim with nothing behind it. Never the same words twice to one player."""
     name = living_world.public_npc_name(npc) if npc else "Bu kişi"
     seed = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{player_input}"
     index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(
         _CLAIM_DENIAL_LINES
     )
-    return _CLAIM_DENIAL_LINES[index].format(n=name)
+    said = _lines_already_said(npc, _session().world_state) if _has_session() and isinstance(npc, dict) else []
+    for step in range(len(_CLAIM_DENIAL_LINES)):
+        line = _CLAIM_DENIAL_LINES[(index + step) % len(_CLAIM_DENIAL_LINES)].format(n=name)
+        if not any(line.split("“", 1)[-1].rstrip("”") in earlier for earlier in said):
+            return line
+    return speech_clarification_line(npc, player_input)
 
 
 # What anyone can see of a person right now. Goals, past and details stay out
@@ -7908,9 +7914,9 @@ def _extract_json_object(raw):
     return None
 
 
-# Lean schema for the opt-in speech trial: separate speech and stage direction
-# fields, no operation
-# envelope, so the model cannot propose mechanical operations at all. Sampling
+# Lean schema for NPC speech: separate speech and stage direction fields, and one
+# optional proposal of what was promised. No operation envelope: the proposal names
+# a listed job or a kind of promise, and Python alone decides what comes of it. Sampling
 # follows the Qwen3 non-thinking guidance with a repetition penalty; the
 # classifier's temperature 0.0 repeated itself in the 18 Oct live sample.
 _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
@@ -7918,6 +7924,19 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
     "properties": {
         "spoken_text": {"type": "string", "maxLength": 600},
         "stage_direction": {"type": "string", "maxLength": 600},
+        "commitment": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": [
+                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help",
+                ]},
+                "thread_id": {"type": "string", "maxLength": 24},
+                "amount_cp": {"type": "integer"},
+                "terms": {"type": "string", "maxLength": 160},
+            },
+            "required": ["kind"],
+            "additionalProperties": False,
+        },
     },
     "required": ["spoken_text", "stage_direction"],
     "additionalProperties": False,
@@ -7930,10 +7949,10 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     # already seen in the prompt, so it wrote past the end of the JSON string
     # (emoji, "</think>", prompt sentences) until the token budget ran out. A mild
     # penalty over a short window still discourages echoing the last reply, and
-    # a speech of one to three sentences never needs more than ~220 tokens.
+    # a speech of one to three sentences never needs more than ~220 tokens, plus the optional proposal.
     "repeat_penalty": 1.05,
     "repeat_last_n": 64,
-    "num_predict": 220,
+    "num_predict": 240,
 }
 _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
@@ -8131,19 +8150,21 @@ def _npc_speech_rejects_claim(text):
     return bool(_CLAIM_REJECTION_RE.search(folded))
 
 
-def _npc_speech_is_claim_refusal(text, npc=None):
-    """True for an NPC line that refuses an unrecorded claim in character.
+def _npc_speech_grants_claim(text):
+    """True when the line goes along with an unrecorded claim; asking back is a person's own answer."""
+    return bool(_CLAIM_ACCEPTANCE_RE.search(local_dialogue.normalize_text(text)))
 
-    Either the model's own refusal (checked by _npc_speech_rejects_claim, which
-    already turns down any accepting line) or one of the in-character stock
-    denial lines used when the model's reply had to be replaced.
+
+def _npc_speech_is_claim_refusal(text, npc=None):
+    """True for an NPC line that does not grant an unrecorded claim.
+
+    The model's own answer stands as long as it does not go along with the claim; the
+    in-character stock lines used when a reply had to be replaced are refusals too.
     """
     if not isinstance(text, str) or not text.strip():
         return False
-    if _npc_speech_rejects_claim(text):
-        return True
     name = living_world.public_npc_name(npc) if isinstance(npc, dict) else ""
-    return any(
+    return not _npc_speech_grants_claim(text) or any(
         text.strip() == line.format(n=name)
         for line in _CLAIM_DENIAL_LINES
     )
@@ -8283,6 +8304,13 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     import world_threads
     thread = world_threads.by_id(world, gate["thread_id"])
     decision = gate["decision"]
+    if decision == "pay":
+        due, why = world_threads.wage_due(world, thread)
+        amount, finished = world_threads.pay_day(world, thread) if due else (0, False)
+        gate.update(decision="paid" if amount else f"pay_{why}", paid_cp=amount,
+                    paid_line=world_threads.paid_line(amount, finished) if amount else None)
+        session._thread_turn = gate
+        return gate
     if decision == "give":
         gate["reply"] = dialogue_jobs.deliver(session, thread, person, player_input)
         return gate
@@ -8342,7 +8370,8 @@ def _thread_gate(player_input, target_id, interaction_mode):
         gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
         if gate is None:
             return None
-        if gate["decision"] is None and interaction_mode != "say" and _physical_line(player_input):
+        if (gate["decision"] is None and not gate.get("yes_heard") and interaction_mode != "say"
+                and _physical_line(player_input)):
             return None
         session.require_player_can_act()
         return _carry_out_thread_turn(session, world, gate, person, player_input)
@@ -8417,6 +8446,55 @@ def _town_fallback(world, npc, player_input):
         return None
 
 
+def _job_fallback(world):
+    """A person's own short word on the money when the reply could not be used."""
+    import town_knowledge
+    try:
+        return town_knowledge.job_reply(world, getattr(_session(), "_thread_turn", None))
+    except Exception:
+        town_knowledge.log_failure()
+        return None
+
+
+def _accept_named_job(session, world, npc, thread):
+    """The same writers a yes read from the lists goes through."""
+    from adventure import dialogue_jobs
+    import world_threads
+    if thread.get("type") == "errand":
+        dialogue_jobs.accept_thread_job(session, thread, npc)
+    else:
+        world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0))
+
+
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken):
+    """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
+    import town_knowledge
+    session = _session()
+    gate = getattr(session, "_thread_turn", None)
+    try:
+        return town_knowledge.settle_reply(
+            world, npc, player_input, raw, spoken,
+            accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
+            moved=(gate or {}).get("paid_cp") or 0,
+        )
+    except Exception:
+        town_knowledge.log_failure()
+        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0}
+
+
+def _with_only_backed_money(speech, settled):
+    """The sentences that claim money Python did not move leave the line. False when nothing is left to say."""
+    import town_knowledge
+    for field in ("spoken_text", "stage_direction"):
+        speech[field] = town_knowledge.without_unbacked_money(
+            speech[field], allowed=settled.get("allowed"), moved=bool(settled.get("moved")))
+    return bool(speech["spoken_text"].strip())
+
+
+def _claim_denial_quotes():
+    return tuple(line.split("“", 1)[-1].rstrip("”") for line in _CLAIM_DENIAL_LINES)
+
+
 def _experimental_speech_note(world, npc, name_stance, player_input):
     """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
     label = living_world.public_npc_name(npc)
@@ -8447,14 +8525,10 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             + (" Bu cevapta onu adıyla hitap et." if said % 3 == 0
                else " Bu cevapta adını söylemene gerek yok.")
         )
-    import npc_statements
-    earlier = npc_statements.view(world)["statements"].get(npc.get("id"), [])[-6:]
-    if earlier and is_npc_historical_claim(player_input):
-        lines.append(
-            "Daha önce sen gerçekten şunları söyledin: "
-            + " / ".join(str(entry.get("text", ""))[:160] for entry in earlier)
-            + " Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
-        )
+    import town_knowledge
+    earlier = town_knowledge.said_before_note(world, npc, _claim_denial_quotes()).strip()
+    if earlier:
+        lines.append(earlier)
     said_before = _lines_already_said(npc, world)[-3:]
     if said_before:
         lines.append(
@@ -8467,7 +8541,8 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "varsa onu söyle, yoksa bilmediğini söyle."
         )
     import bold_acts
-    return _SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc) + "\n"
+    return (_SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc)
+            + town_knowledge.promise_note(world, npc) + "\n")
 
 
 def _experimental_npc_dialogue_context(
@@ -14103,6 +14178,14 @@ def _narration_contradicts_supported_name_memory(npc, player_input, narration):
     return contradiction.group(0) if contradiction else None
 
 
+def _narrated_money_can_lie(action_result):
+    """Free prose over a turn in which Python moved no coin and wrote no line of its own."""
+    result = action_result if isinstance(action_result, dict) else {}
+    return (result.get("action") in {"interaction", "world_interaction", "narrative"}
+            and "currency" not in (result.get("state_changes") or ())
+            and not result.get("direct_response"))
+
+
 def finalize_narration(
     narration,
     player_input,
@@ -14175,6 +14258,9 @@ def finalize_narration(
         handling = "python_fallback"
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
+    if not attributed_speech and _narrated_money_can_lie(action_result):
+        import town_knowledge
+        narration = town_knowledge.without_unbacked_money(narration)
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -17719,7 +17805,8 @@ def _dispatch_player_turn(
     check_feature=None, check_evidence=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
-    _session()._thread_turn = None
+    if not getattr(_session(), "_thread_gate_done", False):
+        _session()._thread_turn = None
     if ensure_death_state()["dead"]:
         raise PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
     if _session().character.get("current_hp", 0) <= 0:
@@ -17829,7 +17916,19 @@ def _dispatch_player_turn(
             gate = _thread_gate(player_input, target_id, interaction_mode)
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
+        if gate is not None and gate.get("paid_line"):
+            _session()._thread_gate_done = True  # the coin moved; the person still says their word, by any route
+            try:
+                said = _dispatch_player_turn(
+                    player_input, messages, gate["npc_id"], scene_plan, action_id, session_id, combat_action,
+                    "say", check_feature, check_evidence,
+                )
+            finally:
+                _session()._thread_gate_done = False
+            said["narration"] = f"{said.get('narration') or ''} {gate['paid_line']}".strip()
+            return said
         if gate is not None and gate.get("moving"):
+            _session()._thread_turn = None
             _session()._thread_gate_done = True  # the line goes on as the walk it also was
             try:
                 walked = _dispatch_player_turn(
@@ -20140,7 +20239,9 @@ def _run_player_turn_internal(
         and not _reported_npc_claim_followed_by_player_inspection(player_input)
         and not _report_of_someone_else(player_input, npc_target)
     ):
-        claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
+        named_npc = _resolve_campaign_npc_reference(player_input, world_state)
+        claimed_npc = (named_npc if isinstance(named_npc, dict) and named_npc.get("location") != world_state.get("location")
+                       else None) or npc_target or named_npc
         if npc_target is None and _has_spoken_to_player(claimed_npc) and (
                 claimed_npc.get("location") == world_state.get("location")):
             npc_target = claimed_npc  # the claim is about what this person said, and they are standing here
@@ -20182,9 +20283,8 @@ def _run_player_turn_internal(
             and isinstance(npc_target, dict)
             and claimed_npc.get("id") == npc_target.get("id")
             and claimed_npc.get("location") == world_state.get("location")
-            and _npc_speech_enabled()
         ):
-            # In first-person speech sessions the NPC answers in character. The
+            # A person answers in character, in their own words. The
             # claim still cannot become a promise, payment or memory: the speech
             # schema carries no operation and the reply is checked below.
             experimental_unverified_claim = True
@@ -20262,6 +20362,7 @@ def _run_player_turn_internal(
     npc_dialogue_route = bool(npc_target and (
         interaction_mode == "say"
         or spoken_reference
+        or experimental_unverified_claim
         or answer_in_person
         or _report_of_someone_else(player_input, npc_target)
         or npc_place_recommendation
@@ -20280,7 +20381,7 @@ def _run_player_turn_internal(
     ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
     experimental_dialogue_session = (
         npc_dialogue_route and interaction_mode != "ask_dm"
-        and (_npc_speech_enabled() or not canonical_profile_question)
+        and (_npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question)
     )
     lore_safety_input = player_input
     if npc_place_recommendation:
@@ -20522,13 +20623,14 @@ def _run_player_turn_internal(
             if experimental_npc_dialogue:
                 action_result["npc_id"] = npc_target["id"]
                 action_result["status"] = "experimental_attributed_speech"
-                if spoken_reference or _report_of_someone_else(player_input, npc_target):
+                if spoken_reference or thread_talk or _report_of_someone_else(player_input, npc_target):
                     action_result["own_words"] = True
 
             raw_narration = raw_intent.get("narration") if isinstance(raw_intent, dict) else None
             model_raw_narration = raw_narration
             attributed_speech = None
             invalid_spoken_stage_direction = False
+            settled_money = {}
             if experimental_npc_dialogue:
                 raw_spoken = raw_intent.get("spoken_text") if isinstance(raw_intent, dict) else None
                 raw_stage = raw_intent.get("stage_direction") if isinstance(raw_intent, dict) else None
@@ -20539,6 +20641,7 @@ def _run_player_turn_internal(
                     and set(raw_intent).issubset({
                         "spoken_text",
                         "stage_direction",
+                        "commitment",
                         # The intent pre-parser can merge its recognized,
                         # untrusted envelope into the narration packet.
                         "intent",
@@ -20611,6 +20714,10 @@ def _run_player_turn_internal(
                     cleaned_spoken = _without_lines_already_said(
                         cleaned_spoken, npc_target, world_state, player_input
                     )
+                    settled_money = _settle_spoken_commitment(
+                        world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
+                    )
+                    cleaned_spoken = settled_money["spoken"]
                     if name_stance == "reveal" and cleaned_spoken.strip():
                         cleaned_spoken = _spoken_name_answer(cleaned_spoken, npc_target)
                     attributed_speech = {
@@ -20647,17 +20754,19 @@ def _run_player_turn_internal(
             if invalid_or_empty:
                 text = (
                     _spoken_name_answer("", npc_target) if name_stance == "reveal"
-                    else _town_fallback(world_state, npc_target, player_input)
+                    else _job_fallback(world_state)
+                    or (experimental_unverified_claim and historical_claim_denial(npc_target, player_input))
+                    or _town_fallback(world_state, npc_target, player_input)
                     or interaction_adventure.immersive_unknown(npc_target, player_input)
                 )
             else:
                 text = raw_narration
 
             if experimental_unverified_claim:
-                # The reply must refuse the unrecorded claim; agreeing to it, or
-                # a reply that neither refuses nor questions it, is replaced.
+                # A reply may refuse the unrecorded claim or ask back in its own
+                # words; only one that goes along with it is replaced.
                 unverified_history_echo = (
-                    not invalid_or_empty and not _npc_speech_rejects_claim(text)
+                    not invalid_or_empty and not _npc_speech_is_claim_refusal(text)
                 )
             else:
                 unverified_history_echo = (
@@ -20735,6 +20844,12 @@ def _run_player_turn_internal(
                 and attributed_speech is not None
                 and text == _compose_experimental_npc_speech(attributed_speech)
             )
+            if accepted_model_speech and not _with_only_backed_money(attributed_speech, settled_money):
+                accepted_model_speech = False
+                text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
+                        or interaction_adventure.immersive_unknown(npc_target, player_input))
+            if experimental_unverified_claim:
+                action_result.update(status="unverified", success=False)
             if experimental_npc_dialogue:
                 if accepted_model_speech:
                     if not (_is_short_followup(player_input) and profile_focus):
@@ -20763,6 +20878,8 @@ def _run_player_turn_internal(
                     _remember_experimental_npc_speech(
                         npc_target["id"], player_input, text
                     )
+                    if settled_money.get("note"):
+                        text = f"{text} {settled_money['note']}"
                 return finish_turn(
                     action_result, text, is_final=True,
                     safety_reason_code=(
@@ -20779,6 +20896,8 @@ def _run_player_turn_internal(
                 if terms:
                     text, spoken = f"{text} “{terms}”", f"{spoken} {terms}"
                 _remember_experimental_npc_speech(npc_target["id"], player_input, spoken)
+                if settled_money.get("note"):
+                    text = f"{text} {settled_money['note']}"
             return finish_turn(
                 action_result,
                 text,

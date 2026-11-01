@@ -119,7 +119,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
             await self.say(turn_url, client, npc, "Kendini tanıtır mısın?")
         self.assertEqual(
             set(client.schemas[0]["properties"]),
-            {"spoken_text", "stage_direction"},
+            {"spoken_text", "stage_direction", "commitment"},
         )
         self.assertEqual(
             set(client.schemas[0]["required"]),
@@ -756,7 +756,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         await self.say(turn_url, client, npc, "Merhaba!")
         schema = client.schemas[0]
         self.assertEqual(
-            set(schema["properties"]), {"spoken_text", "stage_direction"}
+            set(schema["properties"]), {"spoken_text", "stage_direction", "commitment"}
         )
         self.assertEqual(
             set(schema["required"]), {"spoken_text", "stage_direction"}
@@ -786,7 +786,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         schema = client.schemas[0]
         self.assertEqual(
             set(schema.get("properties", {})),
-            {"spoken_text", "stage_direction"},
+            {"spoken_text", "stage_direction", "commitment"},
         )
         self.assertEqual(
             set(schema.get("required", [])),

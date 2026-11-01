@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from functools import lru_cache
 from typing import Any
 
@@ -164,6 +165,8 @@ def _offerable(world, npc):
 def _lines_for(world, thread, npc, decision):
     shared = world_threads.job_lines("shared") or {}
     status = thread["status"]
+    if isinstance(decision, str) and decision.startswith("pay_"):
+        return [shared.get(decision, "")]
     if decision == "busy":
         return [shared.get("busy", "")]
     if decision == "withdraw_unclear":
@@ -226,7 +229,9 @@ def _job_note(world, npc, decision):
     chosen = decided or next((t for t in jobs if t["status"] in {"accepted", "offered", "declined"}), None)
     tone = _tone(world, npc)
     lines = []
-    if chosen is not None:
+    if (decision or {}).get("decision") == "paid":
+        lines = [world_threads._fill(shared.get("paid", ""), amount=decision.get("paid_cp"))]
+    elif chosen is not None:
         lines = _lines_for(world, chosen, npc, (decision or {}).get("decision"))
     elif (past := world_threads.recent_closed(world, npc)):
         lines = _lines_for(world, past[0], npc, None)
@@ -309,6 +314,171 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     lines.append(job)
     lines.append(role_note(world, npc))
     return "".join(lines)
+
+
+def promise_note(world: dict[str, Any], npc: Any) -> str:
+    """The ids this person may name in a reply's commitment field, and what they already gave their word on."""
+    if not isinstance(npc, dict):
+        return ""
+    shared = world_threads.job_lines("shared") or {}
+    jobs = [f"{t['thread_id']} ({t['status']}, {world_threads.pay_text(t)})"
+            for t in world_threads.jobs_of(world, npc) if t["status"] in {*world_threads.PUBLIC, "offered", "accepted"}]
+    promises = [str(c.get("terms") or c.get("quote") or "")[:120]
+                for c in npc_statements.open_commitments(world, npc_id=npc.get("id"))][-3:]
+    lines = [shared.get("commitment_rule", "")]
+    if jobs:
+        lines.append(world_threads._fill(shared.get("listed_jobs", ""), jobs="; ".join(jobs)))
+    if promises:
+        lines.append(world_threads._fill(shared.get("own_promises", ""), promises=" / ".join(promises)))
+    return " " + " ".join(line for line in lines if line)
+
+
+def said_before_note(world: dict[str, Any], npc: Any, stock: tuple[str, ...]) -> str:
+    """This person's own recorded words, so they answer for them. A canned refusal is not something they said."""
+    if not isinstance(npc, dict):
+        return ""
+    said = [str(entry.get("text", ""))[:160] for entry in npc_statements.view(world)["statements"].get(npc.get("id"), [])]
+    said = list(dict.fromkeys(line for line in said if line and not any(line in canned for canned in stock)))[-6:]
+    if not said:
+        return ""
+    line = (world_threads.job_lines("shared") or {}).get("said_before", "")
+    return " " + world_threads._fill(line, lines=" / ".join(said))
+
+
+def job_reply(world: dict[str, Any], decision: Any) -> str | None:
+    """A person's own short word on the money when no model reply could be used."""
+    kind = (decision or {}).get("decision") if isinstance(decision, dict) else None
+    lines = world_threads.job_lines("fallback", kind) if isinstance(kind, str) else None
+    if not lines:
+        return None
+    return lines[_percent(world, decision.get("thread_id"), kind, world_threads._now(world)) % len(lines)]
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+_DIGITS = re.compile(r"\d+$")
+
+
+def _money_words() -> dict[str, frozenset[str]]:
+    data = world_threads.catalog().get("money_speech") or {}
+    return {name: frozenset(world_threads._folded(item) for item in items) for name, items in data.items()}
+
+
+def _figure_before(words: list[str], at: int) -> int | None:
+    """The amount spoken right before the unit at this position; None when there is none."""
+    ones, tens = world_threads._NUMBER_ONES, world_threads._NUMBER_TENS
+    if at and _DIGITS.match(words[at - 1]):
+        return int(words[at - 1])
+    total, back = 0, at - 1
+    if back >= 0 and words[back] in ones and words[back]:
+        total += ones.index(words[back])
+        back -= 1
+    if back >= 0 and words[back] in tens and words[back]:
+        total += tens.index(words[back]) * 10
+    return total or None
+
+
+def _unbacked(sentence: str, table: dict[str, frozenset[str]], allowed: set[int], moved: bool) -> bool:
+    """The sentence promises money nothing stands behind, or hands over coin that did not move."""
+    words = world_threads._folded(sentence).split()
+    has_coin = any(word.startswith(tuple(table["coin"])) for word in words)
+    if has_coin and not moved and words and (words[0] in table["hands_first"] or set(words) & table["hands_any"]):
+        return True
+    if not set(words) & table["promises"]:
+        return False
+    figures = [_figure_before(words, at) for at, word in enumerate(words) if word.startswith(tuple(table["units"]))]
+    return any(figure is not None and figure not in allowed for figure in figures)
+
+
+def without_unbacked_money(text: Any, *, allowed: set[int] | None = None, moved: bool = False) -> str:
+    """Repair, never refusal: only the sentences that claim money Python did not move go."""
+    if not isinstance(text, str) or not text.strip():
+        return text
+    table = _money_words()
+    if not table:
+        return text
+    kept = [part for part in _SENTENCE_END.split(text.strip()) if not _unbacked(part, table, allowed or set(), moved)]
+    return " ".join(kept)
+
+
+def money_backed_by(world: dict[str, Any], npc: Any) -> set[int]:
+    """The figures this person really has behind them: the terms of their own jobs."""
+    backed: set[int] = set()
+    for thread in (*world_threads.jobs_of(world, npc), *world_threads.recent_closed(world, npc)):
+        terms = thread.get("terms") or {}
+        for figure in (terms.get("pay"), world_threads._day_wage(thread) if thread.get("type") == "hiring" else None):
+            if type(figure) is int:
+                backed.add(figure)
+    return backed
+
+
+_PROPOSAL_KINDS = frozenset({"job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help"})
+
+
+def read_proposal(raw: Any) -> dict[str, Any] | None:
+    """The reply's optional field, kept only as far as it says something Python can check."""
+    if not isinstance(raw, dict) or raw.get("kind") not in _PROPOSAL_KINDS:
+        return None
+    amount = raw.get("amount_cp")
+    return {"kind": raw["kind"], "thread_id": raw.get("thread_id") if isinstance(raw.get("thread_id"), str) else "",
+            "amount_cp": amount if type(amount) is int and amount > 0 else 0,
+            "terms": raw["terms"][:160] if isinstance(raw.get("terms"), str) else ""}
+
+
+def _named_job(world, npc, thread_id, statuses):
+    """The listed job the reply means; with no usable id, the one job it can only mean."""
+    jobs = [t for t in world_threads.jobs_of(world, npc) if t["status"] in statuses]
+    named = next((t for t in jobs if t["thread_id"] == thread_id), None)
+    return named or (jobs[0] if not thread_id and len(jobs) == 1 else None)
+
+
+def _settle_offer(world, npc, proposal, spoken, *, allowed):
+    """A real job put to the player: its real terms stand on the line, and the record follows from them."""
+    thread = _offerable(world, npc)
+    if thread is None or proposal["thread_id"] not in {"", thread["thread_id"]} or (
+            world_threads.owner_mood(world, thread, npc) != "yes"):
+        return spoken
+    allowed.clear()
+    allowed.update(money_backed_by(world, npc))
+    spoken = without_unbacked_money(spoken, allowed=allowed)
+    return spoken if _shows_terms(thread, spoken) else f"{spoken} {thread['owner_line']}".strip()
+
+
+def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
+                 *, accept_job: Any, moved: int = 0) -> dict[str, Any]:
+    """Python's half of 'the model proposes': commit what checks out.
+
+    moved: copper a gate already paid this turn. The result says what money stands behind
+    the line, so whatever else it claims can be taken off it. Nothing here can stop the reply.
+    """
+    proposal = read_proposal(raw)
+    kind = proposal["kind"] if proposal else None
+    allowed = money_backed_by(world, npc)
+    note = None
+    if moved:
+        allowed.add(moved)
+    if kind == "job_offer":
+        spoken = _settle_offer(world, npc, proposal, spoken, allowed=allowed)
+    elif kind == "job_accepted":
+        thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"})
+        if thread is not None and world_threads.holds_a_yes(player_text, npc, thread):
+            accept_job(thread)
+    elif kind == "pay" and not moved:
+        thread = _named_job(world, npc, proposal["thread_id"], {"accepted"})
+        moved, finished = world_threads.pay_day(world, thread) if thread is not None else (0, False)
+        if moved:
+            allowed.add(moved)
+            note = world_threads.paid_line(moved, finished)
+    elif kind == "give" and proposal["amount_cp"]:
+        wallets = world.get("currency") or {}
+        if wallets.get(npc.get("id"), 0) >= proposal["amount_cp"]:
+            import equipment_economy
+            equipment_economy.pay(world, npc["id"], "player", proposal["amount_cp"])
+            moved = proposal["amount_cp"]
+            allowed.add(moved)
+            note = world_threads.paid_line(moved, False)
+    elif kind in {"give", "escort", "show", "meet", "help"}:
+        npc_statements.commit(world, npc, kind, proposal["terms"], spoken, str(player_text or ""))
+    return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved}
 
 
 def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:
