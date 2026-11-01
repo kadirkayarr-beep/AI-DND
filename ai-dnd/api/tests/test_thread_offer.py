@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import campaign_time
 import relationships
+import town_knowledge
 import world_threads
 
 HOUR = 3600
@@ -259,6 +261,40 @@ class WhoWillOffer(unittest.TestCase):
         for number in range(60):
             world, thread, npc = offered(f"mood-{number}")
             self.assertNotEqual(world_threads.owner_mood(world, thread, npc), "wary", number)
+
+
+class SpeechOpensNoOffer(unittest.TestCase):
+    """Only the real figures on screen open an offer, never a word that sounds like one."""
+
+    def owner_says(self, reply, *, pay=10, days=None, job_talk=False, line="On bakır, teslimde."):
+        world, thread, npc = offered(status="open", kind="errand")
+        thread["terms"].update(pay=pay, work_days=days)
+        thread["owner_line"] = line
+        with patch.object(world_threads, "owner_mood", return_value="yes"):
+            town_knowledge.note_mention(world, npc, reply, job_talk=job_talk)
+        return thread["status"]
+
+    def test_a_word_that_sounds_like_the_figure_opens_nothing(self):
+        for pay, reply in ((10, "Ön kapıdan gir, arka taraf kapalı."), (6, "Tezgâhın altına bak."),
+                           (7, "Bugün ekmek yedi herkes."), (5, "Beş yıldır buradayım."), (1, "Bir bak bakalım.")):
+            for job_talk in (False, True):
+                self.assertNotEqual(self.owner_says(reply, pay=pay, job_talk=job_talk), "offered", reply)
+
+    def test_the_model_saying_a_figure_off_the_subject_opens_nothing(self):
+        self.assertNotEqual(self.owner_says("Geçen gün on bakır kaybettim."), "offered")
+
+    def test_a_figure_with_its_unit_on_a_turn_about_work_opens_the_offer(self):
+        for reply in ("On bakır veririm.", "10 bakır.", "Teslim edene on bakıra anlaşırız."):
+            self.assertEqual(self.owner_says(reply, job_talk=True), "offered", reply)
+
+    def test_python_s_own_line_on_screen_opens_it_whatever_the_turn_was(self):
+        self.assertEqual(self.owner_says("Hmm. On bakır, teslimde."), "offered")
+
+    def test_every_figure_has_to_be_there(self):
+        self.assertNotEqual(self.owner_says("Yirmi bakır.", pay=20, days=2, job_talk=True), "offered")
+        self.assertNotEqual(self.owner_says("Yirmi bakır, iki kişi lazım.", pay=20, days=2, job_talk=True), "offered")
+        self.assertEqual(self.owner_says("Yirmi bakır, iki gün.", pay=20, days=2, job_talk=True), "offered")
+        self.assertNotEqual(self.owner_says("Yirmi bakır, on iki gün.", pay=20, days=2, job_talk=True), "offered")
 
 
 class OfferOpening(unittest.TestCase):

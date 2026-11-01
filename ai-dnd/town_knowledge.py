@@ -311,8 +311,8 @@ def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:
 
 def _shows_terms(thread, text):
     terms = thread.get("terms") or {}
-    return world_threads.names_number(text, terms.get("pay")) and (
-        not terms.get("work_days") or world_threads.names_number(text, terms.get("work_days")))
+    return world_threads.figure_before(text, terms.get("pay"), "bakir") and (
+        not terms.get("work_days") or world_threads.figure_before(text, terms.get("work_days"), ("gun", "gece")))
 
 
 def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) -> str | None:
@@ -325,12 +325,12 @@ def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) 
 
 
 def _open_offer(world, npc, shown_text, turn, job_talk):
-    """An offer exists once its terms were on screen. Nothing else opens one."""
+    """An offer exists once its real terms were on screen: Python's own line, or the figures on a turn about work."""
     for thread in world_threads.jobs_of(world, npc):
         if thread["status"] in {"offered", "declined"} and job_talk:
             thread["offer_line"] = shown_text.strip()[:400]
     thread = _offerable(world, npc)
-    if thread is None or not _shows_terms(thread, shown_text):
+    if thread is None or not (thread["owner_line"] in shown_text or (job_talk and _shows_terms(thread, shown_text))):
         return
     if world_threads.owner_mood(world, thread, npc, this_exchange=1) == "yes":
         world_threads.mark_offered(world, thread, npc, shown_text, turn)

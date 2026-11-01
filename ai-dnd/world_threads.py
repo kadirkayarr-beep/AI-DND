@@ -653,14 +653,20 @@ def names_number(text: Any, number: Any) -> bool:
     return False
 
 
-def figure_before(text: Any, number: Any, unit: str) -> bool:
+def figure_before(text: Any, number: Any, unit: str | tuple[str, ...]) -> bool:
     """The figure right before its unit: 'yirmi bakır', 'otuz sekiz bakıra', '20 bakır'. A lone 'on' is no figure."""
     if type(number) is not int:
         return False
     words = _folded(text).split()
     spoken = _spoken_number(number).split()
-    return any(word.startswith(unit) and spoken and (words[max(at - len(spoken), 0):at] == spoken or words[at - 1:at] == [str(number)])
-               for at, word in enumerate(words))
+
+    def stands_alone(start):  # 'on iki gün' is not 'iki gün'
+        return len(spoken) > 1 or start == 0 or words[start - 1] not in _NUMBER_TENS
+
+    return any(word.startswith(unit) and spoken and (
+        words[at - 1:at] == [str(number)]
+        or (words[max(at - len(spoken), 0):at] == spoken and stands_alone(at - len(spoken))))
+        for at, word in enumerate(words))
 
 
 def _stem(word: str) -> str:
