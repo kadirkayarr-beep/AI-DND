@@ -865,6 +865,14 @@
       "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil."
     }
   },
+  "rumour_lines": [
+    "{place} tarafında bir şey dönüyormuş.",
+    "{place} çevresinde son günlerde bir tuhaflık varmış.",
+    "{place} civarında huzursuzluk var diyorlar.",
+    "{place} yolunda geceleri ses geliyormuş, öyle diyorlar.",
+    "{place} için bir şeyler fısıldanıyor, aslını bilen yok.",
+    "{place} tarafında işler karışıkmış, duyduğum bu kadar."
+  ],
   "gone_words": {
     "fired": ["derdi", "dert", "başına", "kapanmış", "kapalı", "kapatmış", "kaybolmuş", "kayıp", "gelmiş", "uğramış"],
     "filled_by_other": [

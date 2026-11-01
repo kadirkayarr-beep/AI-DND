@@ -8,6 +8,7 @@ from unittest.mock import patch
 import campaign_time
 import relationships
 import town_knowledge
+import town_rumours
 import world_happenings
 import world_threads
 from adventure import dialogue_jobs
@@ -471,6 +472,84 @@ class ALetterSaysSomething(unittest.TestCase):
         words = dialogue_jobs.letter_text(world, letter)
         self.assertNotIn("{", words)
         self.assertNotIn(trouble["owner_line"], words)
+
+
+def passer_by(world, thread, *, false_one):
+    """Someone elsewhere in town who has the rumour of this trouble, and not the trouble itself."""
+    other = next(t["place_id"] for t in world[world_threads.KEY]["threads"] if t["place_id"] != thread["place_id"])
+    for number in range(400):
+        npc = {"id": f"npc_{number}", "name": "Biri", "role": "gezgin", "location": other}
+        rumours = [item for item in town_knowledge.public_knowledge(world, npc)
+                   if item["kind"] == "rumour" and item["thread_id"] == thread["thread_id"]]
+        if rumours:
+            return npc, rumours[0]
+    return None, None
+
+
+def town_with_rumour(*, false_one):
+    for number in range(60):
+        world, state = town_with_trouble(number * 7)
+        thread = thread_at(state)
+        if town_rumours.is_true(world, thread) is (not false_one):
+            npc, item = passer_by(world, thread, false_one=false_one)
+            if npc:
+                return world, thread, npc, item
+    raise AssertionError("no campaign had that rumour")
+
+
+class HalfTruths(unittest.TestCase):
+    def test_a_true_one_says_what_the_street_says(self):
+        world, thread, npc, item = town_with_rumour(false_one=False)
+        self.assertEqual(item["text"], thread["public_line"])
+
+    def test_a_false_one_has_the_right_place_and_nobody_in_it(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        place = world["locations"][thread["place_id"]]["name"]
+        self.assertIn(place, item["text"])
+        self.assertNotIn(thread["owner_name"], item["text"])
+        self.assertEqual(item["location_id"], thread["place_id"])
+
+    def test_no_word_of_true_or_false_reaches_the_prompt(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        self.assertEqual(set(item), {"kind", "text", "location_id", "thread_id"})
+        note = town_knowledge.speech_note(world, npc)
+        self.assertIn(item["text"], note)
+        for word in ("yanlis", "dogru", "yanlış", "doğru"):
+            self.assertNotIn(word, item["text"])
+
+    def test_the_owner_never_hears_a_false_one_of_their_own(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        owner = resident(world, thread["place_id"])
+        self.assertNotIn(item["text"], [i["text"] for i in town_knowledge.public_knowledge(world, owner)])
+
+    def test_a_person_carries_one_at_most(self):
+        for number in range(30):
+            world, state = town(f"seed-rumours-{number}")
+            for index in range(20):
+                npc = {"id": f"npc_{index}", "name": "Biri", "role": "gezgin", "location": "city"}
+                known = town_knowledge.public_knowledge(world, npc)
+                self.assertLessEqual(sum(item["kind"] == "rumour" for item in known), 1)
+                self.assertLessEqual(len(known), 5)
+
+    def test_it_comes_after_news_and_before_places(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        kinds = [i["kind"] for i in town_knowledge.public_knowledge(world, npc)]
+        self.assertEqual(kinds, sorted(kinds, key=["thread", "news", "rumour", "place"].index))
+
+    def test_a_place_named_alone_is_not_hearing_it(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        place = world["locations"][thread["place_id"]]["name"]
+        town_knowledge.note_mention(world, npc, f"{place} uzaktır, oraya kim gider.")
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "open")
+
+    def test_saying_it_in_your_own_way_is(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        town_knowledge.note_mention(world, npc, f"Ne bileyim, derler ki {item['text']}")
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "heard")
+
+    def test_when_no_reply_can_be_used_a_rumour_is_not_handed_out_as_fact(self):
+        world, thread, npc, item = town_with_rumour(false_one=True)
+        self.assertNotIn(item["text"], town_knowledge.fallback_line(world, npc) or "")
 
 
 class InPlay(unittest.IsolatedAsyncioTestCase):

@@ -27,6 +27,7 @@ import local_places
 import name_catalog
 import npc_statements
 import relationships
+import town_rumours
 import world_happenings
 import world_threads
 
@@ -114,8 +115,10 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             gone.append({"kind": "news", "text": world_happenings.line_of(state, thread) or line.replace(
                 "{place}", place["name"]).replace("{who}", thread.get("filled_by_name") or "başkası"),
                          "location_id": thread["place_id"], "thread_id": thread["thread_id"]})
+    rumours = town_rumours.rumour_for(world, npc, settlement_id, lambda *parts: _percent(world, *parts),
+                                      {item["thread_id"] for item in threads})
     known, size = [], 0
-    for item in (*threads, *gone, *_places(world, settlement_id, npc)):
+    for item in (*threads, *gone, *rumours, *_places(world, settlement_id, npc)):
         cost = len(item["text"].encode("utf-8"))
         if len(known) < MAX_ITEMS and size + cost <= MAX_BYTES:
             known.append(item)
@@ -621,7 +624,11 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
         hits = _mentioned(world, known, words)
         turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
         for item in known:  # only the thread this line is about, never another at the same place
-            if item["thread_id"] and (item in hits or item["location_id"] in spoken):
+            if item["kind"] == "rumour":
+                reached = town_rumours.was_voiced(world, item, words)
+            else:
+                reached = item in hits or item["location_id"] in spoken
+            if item["thread_id"] and reached:
                 thread = world_threads.by_id(world, item["thread_id"])
                 if thread is None:
                     continue
