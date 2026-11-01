@@ -419,7 +419,7 @@ class StockLinesDoNotRepeat(OneTownScene):
         npc = {"id": "npc_a", "name": "Veyra", "name_known_to_player": True, "memory": []}
         said = []
         for turn in range(5):
-            line = interaction_adventure.immersive_unknown(npc, "soru")
+            line = interaction_adventure.immersive_unknown(npc, "soru?")
             self.assertNotIn(line, said)
             said.append(line)
             npc["memory"].append({"type": "dialogue", "response": line})
@@ -427,7 +427,7 @@ class StockLinesDoNotRepeat(OneTownScene):
     def test_there_are_enough_of_them_to_tell_people_apart(self):
         import interaction_adventure
         self.assertGreaterEqual(len(interaction_adventure._UNKNOWN_LINES), 10)
-        lines = {interaction_adventure.immersive_unknown({"id": f"npc_{i}", "name": "Veyra"}, "soru") for i in range(40)}
+        lines = {interaction_adventure.immersive_unknown({"id": f"npc_{i}", "name": "Veyra"}, "soru?") for i in range(40)}
         self.assertGreaterEqual(len(lines), 6)
 
     def test_nothing_in_them_sounds_like_a_machine(self):

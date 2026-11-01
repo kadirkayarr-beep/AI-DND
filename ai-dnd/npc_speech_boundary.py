@@ -387,14 +387,16 @@ def strip_player_echo(text, player_input):
             if stem.startswith("gulumse"):
                 stems.append("gulus")
     quote = player_supplied_quote(player_input)
-    if quote:
-        stems.extend(fold(word) for word in re.findall(r"\w{5,}", quote))
-    if not stems:
+    words = [fold(word) for word in re.findall(r"\w{5,}", quote)] if quote else []
+    if not stems and not words:
         return text
     kept = []
     for sentence in re.split(r"(?<=[.!?])\s+", text):
         folded = fold(sentence)
         if any(stem and _stem_starts_word(stem, folded) for stem in stems):
+            continue
+        # One word of the quote is an answer to it; saying it back takes more than one.
+        if sum(1 for word in words if word and _stem_starts_word(word, folded)) >= 2:
             continue
         kept.append(sentence)
     return " ".join(kept).strip()

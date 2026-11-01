@@ -992,14 +992,38 @@ _UNKNOWN_LINES = (
 )
 
 
+# A person's short answer to a line that asked nothing: "I do not know" would answer a question no one put.
+_HEARD_LINES = (
+    "{n} sana şöyle bir bakıyor. “Hı. Duydum.”",
+    "{n} kaşını kaldırıyor. “Öyle olsun bakalım.”",
+    "{n} bir an duraksıyor. “Bak sen.”",
+    "{n} dudak büküyor. “Sen bilirsin.”",
+    "{n} gözlerini sana dikiyor. “Devam et, dinliyorum.”",
+    "{n} omuz silkiyor. “Peki.”",
+    "{n} başını hafifçe sallıyor. “Anladım.”",
+    "{n} bir adım geri çekiliyor. “Yavaş ol.”",
+)
+
+
+def _asks(text):
+    """A question, with or without its mark: the owner often leaves it out."""
+    import grounded_action
+    tokens = normalize(text).split()
+    return ("?" in str(text) or not tokens or any(t in grounded_action._QUESTION_WORDS for t in tokens)
+            or any(grounded_action._QUESTION_PARTICLE.match(t) for t in tokens))
+
+
 def immersive_unknown(npc=None, seed=""):
-    """In-character 'I do not know'. The same person does not say the same line twice while they have another."""
+    """In-character 'I do not know', for a line that asked something; a line that did not gets a person hearing it.
+
+    The same person does not say the same line twice while they have another.
+    """
     if npc:
         key = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{seed}"
-        start = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % len(_UNKNOWN_LINES)
+        table = _UNKNOWN_LINES if _asks(seed) else _HEARD_LINES
+        start = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % len(table)
         name = living_world.public_npc_name(npc)
-        lines = [_UNKNOWN_LINES[(start + step) % len(_UNKNOWN_LINES)].format(n=name)
-                 for step in range(len(_UNKNOWN_LINES))]
+        lines = [table[(start + step) % len(table)].format(n=name) for step in range(len(table))]
         said = str(npc.get("memory") or "") if isinstance(npc, dict) else ""
         return next((line for line in lines if line not in said), lines[0])
     # Narrator voice: the world simply gives no sign yet; the player is not told

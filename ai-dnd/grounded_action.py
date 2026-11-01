@@ -122,8 +122,8 @@ _BARE_GO_WORDS = frozenset({"tamam", "peki", "olur", "o", "zaman", "oyleyse", "h
 _RELATIONAL = {"altina", "altinda", "onune", "onunde", "yanina", "yaninda", "arkasina", "arkasinda",
                "ustune", "ustunde", "dibine", "dibinde", "basina", "basinda"}
 _SAID_BY = re.compile(r"\b(?:soyledig|bahsettig|dedig|onerdig|anlattig|gosterdig|tarif ettig)\w*")
-_QUESTION_WORDS = frozenset({"ne", "neler", "nerede", "nereye", "nereden", "nasil", "neden", "niye", "nicin",
-                             "kim", "kimi", "kime", "hangi", "hangisi", "kac"})
+_QUESTION_WORDS = frozenset({"ne", "neler", "nerede", "nerde", "nereye", "nereden", "nasil", "neden", "niye", "nicin",
+                             "kim", "kimi", "kime", "kimin", "hangi", "hangisi", "kac"})
 _QUESTION_PARTICLE = re.compile(r"^(?:mi|mu|misin|musun|miyim|muyum|miyiz|muyuz|midir|mudur|mi\w{0,3})$")
 _REPORTED = re.compile(r"\b(?:dedi|soyledi|istedi|onerdi|emretti|diyor|soyluyor|istiyor\s+benden)\b")
 _CONDITION_WORD = re.compile(

@@ -112,6 +112,12 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def model_calls_left() -> int | None:
+    """Calls this turn may still make, or None outside a counted turn."""
+    calls = _MODEL_CALLS.get()
+    return None if calls is None else max(0, MAX_MODEL_CALLS_PER_TURN - len(calls))
+
+
 class AuthenticatedOllamaAdapter:
     """Binds one authenticated Ollama client without changing game.py."""
 

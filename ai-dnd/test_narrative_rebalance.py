@@ -33,9 +33,9 @@ def denies_claim(text):
 
 
 def stock_unknown_lines(npc):
-    """Any of them: the one chosen depends on what this person already said."""
+    """Any of them: the one chosen depends on what this person already said and whether the line asked anything."""
     name = living_world.public_npc_name(npc)
-    return [line.format(n=name) for line in interaction_adventure._UNKNOWN_LINES]
+    return [line.format(n=name) for line in (*interaction_adventure._UNKNOWN_LINES, *interaction_adventure._HEARD_LINES)]
 
 
 class TestNarrativeRebalance(unittest.TestCase):

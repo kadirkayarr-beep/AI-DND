@@ -7030,6 +7030,7 @@ _SPEECH_REPEAT_LINES = (
 _SCENE_LEVEL_FALLBACK_RE = re.compile(
     r"sahnedeki hareketlilik|çevrende bu düşünceyi destekleyen|"
     r"çevrede şimdilik belirgin bir değişiklik olmuyor|"
+    r"etrafına bakıyorsun: hâlâ aynı yerdesin|çevrede [^.,;:]{1,40} diye bir şey göremiyorsun|"
     r"belirttiğin eylem dışında|girişimin (?:başarıya ulaşır|ters gider)|"
     r"karşındaki kişi sözünü dinliyor, ancak",
     re.IGNORECASE,
@@ -8452,6 +8453,12 @@ def _town_fallback(world, npc, player_input):
     except Exception:
         town_knowledge.log_failure()
         return None
+
+
+def _person_fallback(world, npc, player_input):
+    """What a person says from Python alone when no model reply can be used."""
+    return (_job_fallback(world) or _town_fallback(world, npc, player_input)
+            or interaction_adventure.immersive_unknown(npc, player_input))
 
 
 def _job_fallback(world):
@@ -15483,7 +15490,8 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             result["inspection"] = findings
         return result
 
-    python_reply = resolve_python_world_action(player_input)
+    # Words said to a person claim nothing about the world: "ben buradayım" is no statement to correct.
+    python_reply = None if intent_type == "dialogue" else resolve_python_world_action(player_input)
     if isinstance(python_reply, dict):
         result.update(python_reply)
         return result
@@ -17711,6 +17719,8 @@ def _run_player_turn(
         import bold_acts
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             _sleep_after_walk(result, player_input, place_before, scene_plan)
+            result = _person_answers_stock(result, player_input, messages, target_id, interaction_mode,
+                                           action_id, session_id, runtime_snapshot)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
             import world_reactions
@@ -17783,6 +17793,71 @@ def _run_player_turn(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
+    return result
+
+
+def _stock_hearer(result, player_input, target_id):
+    """Whoever a scene or system line would be answering, or None when the line was said to nobody here."""
+    import npc_speech_boundary
+    session = _session()
+    text = result.get("narration")
+    action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    read = getattr(session, "_front_read", None) or {}
+    here = {npc.get("id"): npc for npc in _conversation_npcs()}
+    if action_result.get("npc_id") in here and ("“" in text or '"' in text):
+        return here[action_result["npc_id"]]  # it already came out of a mouth
+    if target_id in here:
+        return here[target_id]
+    if read.get("kind") == "speak_to":
+        return here.get(read["id"])
+    if not (read.get("kind") == "talk_around" or npc_speech_boundary.player_supplied_quote(player_input)
+            or (not read and _reads_as_address(player_input))):
+        return None
+    active = _active_interlocutor()
+    if isinstance(active, dict) and active.get("id") in here:
+        return here[active["id"]]
+    return next(iter(here.values())) if len(here) == 1 else None
+
+
+def _person_answers_stock(result, player_input, messages, target_id, interaction_mode, action_id, session_id, snapshot):
+    """The one door every owner's text leaves by: a stock line never answers a person, and no person says one.
+
+    A stock line changed nothing, so the line can simply go to the person if the turn still has a model call.
+    With none left the person answers from what Python has for them.
+    """
+    session = _session()
+    text = result.get("narration") if isinstance(result, dict) else None
+    if (not isinstance(text, str) or not _SCENE_LEVEL_FALLBACK_RE.search(text)
+            or session.world_state.get("combat", {}).get("active")):
+        return result
+    hearer = _stock_hearer(result, player_input, target_id)
+    if hearer is None:
+        return result
+    action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    from api import ollama_adapter
+    if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left()
+            and not action_result.get("state_changes")):
+        person = hearer["id"]
+        session._restore_runtime_snapshot(snapshot)
+        session._thread_gate_done = True
+        try:
+            result = _dispatch_player_turn(player_input, messages, person, None, action_id, session_id, None, "say")
+        finally:
+            session._thread_gate_done = False
+        text = result.get("narration")
+        if not _SCENE_LEVEL_FALLBACK_RE.search(text):
+            return result
+        hearer = next((npc for npc in _conversation_npcs() if npc.get("id") == person), hearer)
+    line = _person_fallback(session.world_state, hearer, player_input)
+    result["narration"] = line
+    action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    if action_result.get("direct_response"):
+        action_result["direct_response"] = line
+    for row in reversed(session.messages):
+        if row.get("role") == "assistant":
+            if row.get("content") == text:
+                row["content"] = line
+            break
     return result
 
 
@@ -18019,6 +18094,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             session._front_strike = route
         else:  # a threat or a question about a blow: words, and they are for that person
             route = {"kind": "speak_to", "id": route["id"]}
+    import npc_speech_boundary
+    hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
+    if (route["kind"] in {"attempt", "unclear"} and not route.get("thing") and hearer
+            and npc_speech_boundary.player_supplied_quote(player_input)):
+        route = {"kind": "speak_to", "id": hearer}  # words in quotes with someone here are for them, whatever else is done
     if route["kind"] == "talk_around":
         # the same reply's other half may not walk it after all
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
@@ -21186,11 +21266,6 @@ def _run_player_turn_internal(
                         cleaned_stage, player_input
                     )
                     cleaned_stage = _shown_stage_direction(cleaned_stage, world_state)
-                    if (
-                        not cleaned_spoken.strip()
-                        and npc_speech_boundary.player_supplied_quote(player_input)
-                    ):
-                        cleaned_spoken = "Bunu senden duyuyorum."
                     if _is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):
                         cleaned_spoken = ""
                         invalid_spoken_stage_direction = True
@@ -21303,8 +21378,7 @@ def _run_player_turn_internal(
                 narration_source = "deterministic_fallback"
             if experimental_npc_dialogue and _SCENE_LEVEL_FALLBACK_RE.search(text):
                 # A clear line never earns "say it again": the person answers from what Python has for them.
-                text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
-                        or interaction_adventure.immersive_unknown(npc_target, player_input))
+                text = _person_fallback(world_state, npc_target, player_input)
             if experimental_npc_dialogue:
                 _speech_debug_trail({
                     "player": player_input,
