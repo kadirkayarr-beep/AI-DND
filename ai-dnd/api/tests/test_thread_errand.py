@@ -85,12 +85,21 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.world["flags"].update(active_npc_id=npc["id"], last_npc_id=npc["id"], active_npc_until_turn=99)
         return npc
 
-    async def test_a_yes_makes_a_journal_row_and_a_parcel_in_the_owner_hands(self):
+    def owner_still_holds_it(self):
+        """An older save, or a hand-over that failed: the job is taken and the parcel has not moved."""
+        item_id = f"parcel:{world_threads.by_id(self.world, self.tid)['quest_id']}"
+        item = next(i for i in self.world["inventory"] if isinstance(i, dict) and i.get("item_id") == item_id)
+        self.world["inventory"].remove(item)
+        self.owner.setdefault("inventory", []).append(item)
+
+    async def test_a_yes_makes_a_journal_row_and_puts_the_parcel_in_hand(self):
         await self.job()
-        await self.line("olur", "Tamam, al bakalım.")
+        text = (await self.line("olur", "Tamam, al bakalım."))["narration"]
         self.assertEqual(self.status(), "accepted")
         self.assertEqual(self.row()["status"], "ACTIVE")
-        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+        self.assertEqual(self.parcel_owner(), ["player"])
+        self.assertIn("Tamam, al bakalım.", text)
+        self.assertIn("sende", text.replace("senin elinde", "sende"))
         self.assertEqual(self.recipient()["name"], "Tariq")
         self.assertEqual(director.active_count(self.world["quests"]), 0)
         event = next(e for e in self.world["scheduled_events"] if e["event_id"] == self.row()["deadline"])
@@ -214,6 +223,7 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
     async def test_a_recipient_with_no_parcel_in_hand_gets_a_plain_line(self):
         await self.job()
         await self.line("olur", "Tamam.")
+        self.owner_still_holds_it()
         self.go_to_recipient()
         text = (await self.line("mektubu getirdim"))["narration"]
         self.assertIn("elinde değil", text)
@@ -307,7 +317,7 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
             await self.line("olur", "Tamam.")
             await self.line(line, "Peki.")
             self.assertEqual(self.status(), "accepted", line)
-            self.assertEqual(self.parcel_owner(), [self.owner["id"]], line)
+            self.assertEqual(self.parcel_owner(), ["player"], line)
 
     async def test_quitting_with_the_parcel_in_hand_gives_it_back_on_the_way_out(self):
         await self.job()
@@ -365,6 +375,7 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
     async def test_a_failure_at_handing_over_leaves_nothing(self):
         await self.job()
         await self.line("olur", "Tamam.")
+        self.owner_still_holds_it()
         await self.assert_untouched_after((equipment_economy, "move"), "mektubu alıyorum")
 
     async def test_a_failure_at_delivery_leaves_nothing(self):

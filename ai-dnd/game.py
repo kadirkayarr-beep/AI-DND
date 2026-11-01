@@ -8345,6 +8345,10 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
             gate["moving"] = dialogue_jobs.shown_line(world, thread, "taken")
         elif action and not reading["question"]:
             gate["reply"] = dialogue_jobs.take_reply(session, thread, player_input, action)
+    elif in_hand and gate["decision"] == "accepted" and not dialogue_jobs.holds_parcel(world, thread):
+        # The word and the thing go together: whoever said yes is holding it, and the person still says their word.
+        if dialogue_jobs.hand_over(session, thread, person):
+            gate["paid_line"] = dialogue_jobs.shown_line(world, thread, "taken")
     session._thread_turn = gate
     return gate
 

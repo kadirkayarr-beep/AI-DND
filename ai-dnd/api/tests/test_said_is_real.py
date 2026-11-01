@@ -15,6 +15,7 @@ from unittest.mock import patch
 import campaign_time
 import equipment_economy
 import front_proposal
+import living_world
 import world_threads
 from api.tests import test_front_proposal as front_tests
 from api.tests import test_experimental_npc_dialogue as speech
@@ -263,7 +264,7 @@ class TakingThings(ErrandBase):
     async def test_the_job_parcel_in_the_owner_hands_is_listed_and_taken(self):
         await self.errand()
         await self.line("olur", "Tamam.")
-        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+        errand_tests.ErrandTable.owner_still_holds_it(self)
         self.client.front = {"kind": "take", "item_id": self.parcel()}
         await self.line("hadi uzat bakalim su seyi")
         self.assertEqual(self.parcel_owner(), ["player"])
@@ -304,6 +305,7 @@ class TheChannel(ErrandBase):
     async def test_a_person_handing_over_the_job_parcel_really_hands_it(self):
         await self.errand()
         await self.line("olur", "Tamam.")
+        errand_tests.ErrandTable.owner_still_holds_it(self)
         self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
         self.client.speech_extra = {"commitment": {"kind": "give", "item": self.parcel()}}
         await self.line("e nerde bu kagit simdi", "Al işte, burada.")
@@ -446,3 +448,119 @@ class Working(Table):
         await self.begin()
         listed = front_proposal.listing(self.session)
         self.assertEqual(listed["jobs"], [])
+
+    async def test_until_the_evening_needs_no_front_reading(self):
+        await self.hired()
+        await self.set_hour(15)
+        self.client.front = {"kind": "unclear"}
+        reply = await self.line("aksama kadar calisiyorum")
+        self.assertEqual(reply["turn_outcome"]["action"], "work")
+        self.assertEqual(self.clock()["hour"], 18)
+
+    async def test_days_of_work_said_after_a_paid_day_start_tomorrow(self):
+        await self.hired()
+        await self.set_hour(9)
+        self.client.front = self.worked
+        await self.line("calisiyorum")
+        self.assertEqual(self.wallet(), 10)
+        day = self.clock()["day_index"]
+        await self.line("isi yapiyorum iki gun boyunca burda")
+        self.assertEqual(self.wallet(), 20)
+        self.assertEqual(self.clock()["day_index"], day + 1)
+
+    async def test_the_last_day_said_as_days_after_a_paid_day_is_paid_tomorrow(self):
+        await self.hired()
+        await self.set_hour(9)
+        self.client.front = self.worked
+        await self.line("calisiyorum")
+        await self.line("isi yapiyorum bes gun boyunca burda")
+        self.assertEqual(self.wallet(), 20)
+
+    async def test_the_prompt_says_work_is_at_hand_only_when_it_is(self):
+        await self.begin()
+        await self.line("etrafa sakin sakin bakiniyorum")
+        self.assertNotIn("jobs listesi dolu", str(self.client.message_batches))
+        self.offer()
+        await self.line("olur", "Güzel.")
+        await self.line("etrafa sakin sakin bakiniyorum")
+        self.assertIn("jobs listesi dolu", str(self.client.message_batches))
+
+
+class SmallModelSlips(ErrandBase):
+    async def test_a_word_copied_with_its_ending_is_still_the_thing(self):
+        await self.errand()
+        self.session.messages.append({"role": "assistant", "content": "Marek bakır defterine yazıyor."})
+        self.client.front = {"kind": "take", "thing_word": "defteri"}
+        await self.line("defteri aliyorum elinden")
+        self.assertIn("Defter", self.bag())
+
+    async def test_a_purse_copied_with_its_ending_is_still_a_purse(self):
+        await self.errand()
+        self.session.messages.append({"role": "assistant", "content": "Marek keseyi masaya koyuyor."})
+        self.client.front = {"kind": "take", "thing_word": "keseyi"}
+        self.client.narration = "Keseyi kavrıyorsun. Odada kısa bir sessizlik oluyor."
+        reply = await self.line("keseyi aliyorum")
+        self.assertNotIn("Kese", self.bag())
+        self.assertNotIn("Keseyi", " ".join(self.bag()))
+        self.assertNotIn("kavrıyorsun", reply["narration"])
+
+    async def test_a_taking_that_failed_is_told_to_the_narrator(self):
+        await self.errand()
+        self.client.front = {"kind": "take", "thing_word": "yumurta"}
+        await self.line("ejderha yumurtasini aliyorum")
+        self.assertIn("eline hiçbir şey geçmedi", str(self.client.message_batches[-1]))
+
+    async def test_what_is_in_the_bag_is_answered_even_when_the_model_hears_a_look(self):
+        await self.errand()
+        self.client.front = {"kind": "look"}
+        reply = await self.line("cantamda ne var")
+        self.assertIn("Macera çantası", reply["narration"])
+        self.assertEqual(self.client.chat_calls, 0)
+
+    async def test_the_answer_wins_when_the_model_also_named_the_person(self):
+        await self.errand()
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"], "offer_id": self.tid, "answer": "accept"}
+        await self.line("eh iyi madem, hallederiz biz bu seyi", "Peki.")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_setting_to_the_offered_work_takes_it_and_works(self):
+        await self.errand()
+        thread = world_threads.by_id(self.world, self.tid)
+        thread.update(type="hiring", terms={"pay": 20, "work_days": 2, "pay_basis": "total", "pay_timing": "end_of_day",
+                                            "deadline_text": "iki gün içinde"})
+        for key in ("target_place_id", "item_noun", "recipient_name"):
+            thread.pop(key, None)
+        self.client.front = {"kind": "work", "offer_id": self.tid}
+        reply = await self.line("raflara giriyorum, isi yapmaya basliyorum, bir yandan da etrafa bakiyorum")
+        self.assertEqual(reply["turn_outcome"]["action"], "work")
+        self.assertEqual(self.wallet(), 10)
+
+    async def test_reading_the_note_still_in_the_owners_hand_brings_it_over(self):
+        await self.errand()
+        await self.line("olur", "Tamam.")
+        errand_tests.ErrandTable.owner_still_holds_it(self)
+        self.client.front = {"kind": "look"}
+        reply = await self.line("notu acip okuyorum gizlice")
+        self.assertEqual(self.parcel_owner(), ["player"])
+        self.assertIn("Kâğıtta şunlar yazıyor", reply["narration"])
+
+
+    async def test_a_counter_never_goes_in_the_bag(self):
+        await self.errand()
+        feature = {"id": "feature_x", "name": "Çalışma tezgâhı"}
+        self.session.messages.append({"role": "assistant", "content": "Burada çalışma tezgâhı var."})
+        before = list(self.bag())
+        self.client.front = {"kind": "unclear"}
+        with patch.object(living_world, "visible_features", return_value=[feature]):
+            await self.line("tezgahtaki seyi elime alip cebime atiyorum")
+        self.assertEqual(self.bag(), before)
+
+    async def test_a_condition_about_something_useful_is_no_shift(self):
+        await self.errand()
+        thread = world_threads.by_id(self.world, self.tid)
+        thread.update(type="hiring", status="accepted", accepted_turn=0, terms={
+            "pay": 20, "work_days": 2, "pay_basis": "total", "pay_timing": "end_of_day", "deadline_text": "iki gün içinde"})
+        self.client.front = {"kind": "look"}
+        start = self.world["campaign_time"]["elapsed_seconds"]
+        await self.line("yerde bi sey var mi diye bakiniyorum, ise yarar bi sey bulursam aliyorum")
+        self.assertLess(self.world["campaign_time"]["elapsed_seconds"] - start, 3600)
