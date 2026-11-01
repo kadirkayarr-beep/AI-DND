@@ -16679,6 +16679,8 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     # or declined verb elsewhere in the turn cannot authorize another actor.
     action_input = scene_intent[1] if scene_intent else player_input
     action = scene_intent[0] if scene_intent else living_world.classify_scene_action(player_input)
+    if action == "sit" and (getattr(_session(), "_front_read", None) or {"kind": "sit"})["kind"] != "sit":
+        action = None  # a line read as something else only has the word otur in it
     if scene_intent is None and action == "enter":
         action = None
     if interaction_mode == "say":
