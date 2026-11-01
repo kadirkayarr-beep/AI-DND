@@ -13773,6 +13773,21 @@ def _ensure_venue_window(door):
     })
 
 
+def _found_on_a_pass():
+    """A pass with no saved fact to show: the reading proposed what is there, and Python keeps it as a real detail."""
+    text, word = getattr(_session(), "_front_found", None) or ("", "")
+    text = _clean_world_text(text, 120)
+    if not text:
+        return None
+    name = _clean_world_text(word, 60) or "Gözüne çarpan ayrıntı"
+    feature = create_local_feature({"location": _session().world_state.get("location"), "description": text,
+                                    "name": f"{name[:1].upper()}{name[1:]}", "aliases": [name], "kind": "detail"})
+    if not isinstance(feature, dict):
+        return None
+    return {"target_kind": "feature", "target_id": feature.get("id"), "target_name": feature.get("name"),
+            "found": True, "text": text}
+
+
 def _inspection_findings(player_input, outcome):
     """Concrete, target-bound result of a look or search (LR00-P2).
 
@@ -13833,17 +13848,21 @@ def _inspection_findings(player_input, outcome):
                 if stem in recorded or word in recorded:
                     continue
                 named_absence.append(word)
-            found = success and not named_absence
+            if success and named_absence:
+                return _found_on_a_pass()
+            found = success
             line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
                     else f"{feature['name']} üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.")
             return {"target_kind": "feature", "target_id": feature.get("id"),
                     "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
+        found = _found_on_a_pass() if success else None
+        if found is not None or (success and getattr(_session(), "_front_found", None) is not None):
+            return found  # with a reading and no proposal the narrator tells it, inside the turn's cap
         line = ("İzleri dikkatle inceliyorsun: kalabalık bir zeminde beklendiği gibi birbirine "
                 "karışmışlar; belirli birinin izini ayırmak bu haliyle mümkün değil." if success
                 else "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.")
-        return {"target_kind": "tracks", "target_id": None, "target_name": "izler",
-                "found": False, "text": line}
+        return {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False, "text": line}
     # Only a successful search for a detail the scene lacks is a Python miss;
     # a failed roll keeps its normal (guarded) failure narration.
     if success and re.search(r"\b(?:incel|arastir)\w*", text):
@@ -13851,14 +13870,14 @@ def _inspection_findings(player_input, outcome):
             # The surroundings are the thing looked at, so the answer is what is there.
             return {"target_kind": "feature", "target_id": None, "target_name": None, "found": False,
                     "text": _scene_look_text(world_state.get("location"))}
-        return {
+        return _found_on_a_pass() or {
             "target_kind": "feature",
             "target_id": None,
             "target_name": None,
             "found": False,
             "text": "Bu bakışla adlandırdığın ayrıntı seçilmiyor.",
         }
-    return None
+    return _found_on_a_pass() if success else None
 
 
 def _resolved_skill_result_narration(result):
@@ -15432,6 +15451,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     if intent_type == "explore":
         # Looking at a named door, window or detail reveals what is plainly
         # visible without a roll (LR00-P2: no needless check for open facts).
+        _session()._front_found = ("", "")  # no roll, no pass: only what is saved shows
         findings = _inspection_findings(player_input, "success")
         if findings:
             findings["auto_visible"] = True
@@ -17939,6 +17959,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     session._front_deed = front_proposal.deed_in(reply)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
+    session._front_found = front_proposal.found_in(reply, player_input)
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     route = front_proposal.validate(reply, listed)

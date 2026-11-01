@@ -190,3 +190,61 @@ class WhatAClarificationNames(FrontTable):
         self.assertEqual(options, [inn, known])
 
 
+class APassedCheckFindsSomething(FrontTable):
+    FOUND = "Çamurda sağ ayağını sürüyen birinin izi var."
+
+    def roll(self, line, outcome="success", word="izler"):
+        self.session._front_found = (self.FOUND, word)
+        return self.session._inspection_findings(line, outcome)
+
+    def saved(self):
+        return [row for row in self.world["features"] if row.get("description") == self.FOUND]
+
+    async def test_a_pass_on_tracks_says_what_the_reading_proposed_and_keeps_it(self):
+        await self.begin()
+        found = self.roll("yerdeki izleri yakindan inceliyorum, ayak izi var mi")
+        self.assertEqual(found["text"], self.FOUND)
+        self.assertIs(found["found"], True)
+        self.assertEqual(len(self.saved()), 1)
+
+    async def test_a_pass_on_a_named_thing_says_it_too(self):
+        await self.begin()
+        self.session.create_local_feature({"location": self.world["location"], "name": "Eğri mezar taşı",
+                                           "description": "Yana yatmış eski bir taş.", "aliases": ["mezar taşı"]})
+        found = self.roll("egri mezar tasinin yazisini okumaya calisiyorum", word="yazı")
+        self.assertEqual(found["text"], self.FOUND)
+
+    async def test_a_pass_on_a_thing_no_list_held_says_it_too(self):
+        await self.begin()
+        found = self.roll("kirik muhurlu kutuyu acip icine bakiyorum", word="kutu")
+        self.assertEqual(found["text"], self.FOUND)
+
+    async def test_a_failed_roll_finds_nothing_and_saves_nothing(self):
+        await self.begin()
+        found = self.roll("yerdeki izleri yakindan inceliyorum, ayak izi var mi", "failure")
+        self.assertNotIn(self.FOUND, found["text"])
+        self.assertEqual(self.saved(), [])
+
+    async def test_a_pass_with_nothing_proposed_stays_as_it_was(self):
+        await self.begin()
+        self.session._front_found = ("", "")
+        self.assertIsNone(self.session._inspection_findings("kirik muhurlu kutuyu acip icine bakiyorum", "success"))
+
+    async def test_a_proposal_that_only_says_the_line_back_is_no_finding(self):
+        await self.begin()
+        reply = {"front": {"found": "son sayfalarda ne yaziyor", "thing_word": "kagitlar"}}
+        self.assertEqual(front_proposal.found_in(reply, "cebindeki kagitlari okuyorum, son sayfalarda ne yaziyor")[0], "")
+        reply = {"front": {"found": "yerdeki izler", "thing_word": "izler"}}
+        self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], "")
+
+    async def test_a_real_sentence_is_a_finding(self):
+        await self.begin()
+        reply = {"front": {"found": self.FOUND, "thing_word": "izler"}}
+        self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], self.FOUND)
+
+    async def test_a_second_look_finds_the_same_thing(self):
+        await self.begin()
+        self.roll("yerdeki izleri yakindan inceliyorum", word="ayak izi")
+        self.session._front_found = ("", "")
+        found = self.session._inspection_findings("ayak izi yine bakiyorum", "success")
+        self.assertIn(self.FOUND, found["text"])
