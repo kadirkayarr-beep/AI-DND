@@ -82,6 +82,22 @@ class ClearAnswers(unittest.TestCase):
             self.assertEqual(self.decide(line, kind="errand"), "accepted", line)
             self.assertTrue(world_threads.read_answer(line)["move"], line)
 
+    def test_a_bare_word_before_a_question_on_something_else_decides_nothing(self):
+        for line in ("peki, sen kimsin?", "peki, adın ne?", "tamam, kardeşin nasıl?", "evet, sen kimsin?",
+                     "tamam, neden ben?", "hayır, sen kimsin?", "yok, sen kimsin?", "tamam, ailen nerede?"):
+            self.assertIsNone(self.decide(line), line)
+
+    def test_a_yes_with_a_question_about_the_work_is_a_yes(self):
+        for line in ("olur, ne zaman başlıyorum?", "tamam, ne zaman?", "peki, nereden başlayayım?",
+                     "tamam, nereye gideceğim?", "evet, bu iş kaç gün?", "olur, kime?"):
+            self.assertEqual(self.decide(line), "accepted", line)
+        self.assertEqual(self.decide("tamam, mektubu kime vereceğim?", kind="errand"), "accepted")
+
+    def test_a_full_answer_stands_even_if_the_subject_changes(self):
+        for line in ("tamam yaparım, adın ne senin?", "işi alıyorum, adın ne?"):
+            self.assertEqual(self.decide(line), "accepted", line)
+        self.assertEqual(self.decide("yok sağ ol, sen kimsin?"), "declined")
+
     def test_a_hanging_but_is_not_yet_a_yes(self):
         for line in ("olur ama", "olur ama...", "tamam ama...", "yaparım ama", "olur fakat"):
             self.assertIsNone(self.decide(line), line)

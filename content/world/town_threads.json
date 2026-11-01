@@ -525,6 +525,26 @@
       "şey",
       "neyse"
     ],
+    "bare_answers": [
+      "evet",
+      "tamam",
+      "peki",
+      "olur",
+      "hayır",
+      "yok",
+      "olmaz"
+    ],
+    "first_person_ends": [
+      "yorum",
+      "yom",
+      "yim",
+      "cegim",
+      "cagim",
+      "cam",
+      "cem",
+      "rim",
+      "lim"
+    ],
     "own_say": [
       "dedim",
       "diyorum"

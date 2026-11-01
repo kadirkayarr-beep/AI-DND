@@ -783,6 +783,26 @@ def _with_the_comma_put_back(tokens, asked, after_but, table):
     return [(tokens, asked, after_but)]
 
 
+def _asks_about_the_job(tokens, table, names, thread):
+    """A question tied to this work: it names the work, or asks what the speaker is to do."""
+    words = [word for word in tokens if word not in table["fillers"] and word not in names]
+    if not words or " ".join(tokens) in table["question_words"]:
+        return True
+    stems = _item_stems(thread or {})
+    people = _folded((thread or {}).get("recipient_name")).split()
+    if any(word in table["work_terms"] or word in table["reference"] or word in people
+           or any(word.startswith(stem) for stem in stems) for word in words):
+        return True
+    last = words[-1]
+    return last.endswith(tuple(table["first_person_ends"])) and not last.startswith(("mi", "mu"))
+
+
+def _bare_answer(tokens, table, names):
+    """Nothing but a word like 'peki' or 'yok', which can as well be the start of something else."""
+    return all(word in table["bare_answers"] or word in names or word in table["discourse"]
+               or (word in table["fillers"] and word not in table["accept"]) for word in tokens)
+
+
 def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None) -> dict[str, Any]:
     """What this line says about an offer, by the lists alone. Knows nothing of any offer."""
     reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
@@ -806,22 +826,25 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
             if whole in table[meaning]:
                 return {**reading, "meaning": meaning}
     clauses = [piece for clause in _clauses(text) for piece in _with_the_comma_put_back(*clause, table)]
-    kinds = []
+    said = []
     for tokens, asked, after_but in clauses:
         kind = _read_clause(tokens, asked, table, names, stems)
         repaired = tokens[0] in table["repair"] or " ".join(tokens[:2]) in table["repair"]
-        if repaired and kinds:
-            kinds = []  # 'yok ya... neyse olur': the later word is the answer
+        if repaired and said:
+            said = []  # 'yok ya... neyse olur': the later word is the answer
         if after_but and kind not in {"question", "terms"}:
             kind = "unclear"  # 'olur ama...' with a condition is not yet a yes
-        kinds.append(kind)
+        said.append((kind, tokens))
+    kinds = [kind for kind, _ in said]
     decided = _DECISIONS & set(kinds)
     reading["question"] = "question" in kinds
     reading["take"], reading["give"] = "take" in kinds, "give" in kinds
     reading["start"], reading["move"] = "start" in kinds, "move" in kinds
     if "terms" in kinds:
         return {**reading, "terms": True}
-    if "unclear" in kinds or "other" in kinds or len(decided) > 1:
+    elsewhere = any(kind == "question" and not _asks_about_the_job(tokens, table, names, thread) for kind, tokens in said)
+    bare = all(_bare_answer(tokens, table, names) for kind, tokens in said if kind in _DECISIONS)
+    if "unclear" in kinds or "other" in kinds or len(decided) > 1 or (elsewhere and bare):
         return {**reading, "take": False, "give": False, "start": False, "move": False}
     if decided:
         return {**reading, "meaning": decided.pop()}
