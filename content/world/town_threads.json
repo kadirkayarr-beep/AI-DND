@@ -556,18 +556,27 @@
       "dur"
     ],
     "close_words": [
-      "iş",
-      "teklif",
-      "yapar",
-      "alır",
-      "var",
-      "gelir",
-      "razı",
-      "anlaştık",
-      "uyar",
+      "ister misin",
+      "yapar mısın",
+      "yaparmısın",
+      "yapacak mısın",
+      "alır mısın",
+      "alacak mısın",
+      "var mısın",
+      "olur mu",
+      "tamam mı",
+      "uygun mu",
+      "uyar mı",
+      "hazır mısın",
+      "razı mısın",
+      "kabul mü",
+      "anlaştık mı",
       "ne dersin",
-      "kabul",
-      "ister"
+      "ne diyorsun",
+      "gelir misin",
+      "götürür müsün",
+      "bakar mısın",
+      "çalışır mısın"
     ]
   },
   "job_lines": {

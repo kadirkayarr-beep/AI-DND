@@ -142,6 +142,29 @@ class OnlyAfterACurrentOffer(unittest.TestCase):
             self.assertEqual(world_threads.bind_player_decision(world, thread, "olur", npc), "accepted", last)
 
 
+class TheOwnersLastWords(unittest.TestCase):
+    def answer(self, last, line):
+        world, thread, npc = offered(last=last)
+        return world_threads.bind_player_decision(world, thread, line, npc)
+
+    def test_a_yes_to_a_drink_is_not_a_yes_to_the_job(self):
+        for last in ("Teslimat var, 20 bakır. Bir kadeh ister misin?", "Yirmi bakır, iki gün. Çay alır mısın?",
+                     "Yirmi bakır, iki gün. Yanında bir arkadaşın var mı?"):
+            self.assertIsNone(self.answer(last, "tamam"), last)
+
+    def test_the_common_closers_take_a_bare_yes(self):
+        for closer in ("Olur mu?", "Tamam mı?", "Yapacak mısın?", "Alacak mısın?", "Ne diyorsun?", "Hazır mısın?",
+                       "Uygun mu?", "Ne dersin usta?"):
+            self.assertEqual(self.answer(f"Teslimat var, 20 bakır. {closer}", "olur"), "accepted", closer)
+
+    def test_a_closer_after_a_comma_counts_too(self):
+        self.assertEqual(self.answer("Teslimat var, 20 bakır, olur mu?", "tamam"), "accepted")
+
+    def test_a_question_with_the_job_s_own_words_counts(self):
+        for last in ("Yirmi bakır, iki gün. Bu işi ister misin?", "Yirmi bakır. Yirmi bakıra razı mısın?"):
+            self.assertEqual(self.answer(last, "olur"), "accepted", last)
+
+
 class AfterAYes(unittest.TestCase):
     def test_only_the_withdraw_list_ends_an_accepted_job(self):
         for line in ("vazgeçtim", "vazgeçiyorum", "bırakıyorum", "iptal", "bu işi yapamam", "bu anlaşmadan çekiliyorum",

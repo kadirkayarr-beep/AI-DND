@@ -653,6 +653,16 @@ def names_number(text: Any, number: Any) -> bool:
     return False
 
 
+def figure_before(text: Any, number: Any, unit: str) -> bool:
+    """The figure right before its unit: 'yirmi bakır', 'otuz sekiz bakıra', '20 bakır'. A lone 'on' is no figure."""
+    if type(number) is not int:
+        return False
+    words = _folded(text).split()
+    spoken = _spoken_number(number).split()
+    return any(word.startswith(unit) and spoken and (words[max(at - len(spoken), 0):at] == spoken or words[at - 1:at] == [str(number)])
+               for at, word in enumerate(words))
+
+
 def _stem(word: str) -> str:
     """'mektup' also has to find 'mektubu', 'paket' 'paketi'."""
     return word[:-1] if word[-1:] in {"p", "c", "t", "k", "g"} and len(word) > 3 else word
@@ -856,18 +866,27 @@ def _last_exchange(world, npc):
     return log[-1] if isinstance(log, list) and log and isinstance(log[-1], dict) else None
 
 
+def _names_the_work(text: Any, thread: dict[str, Any], table) -> bool:
+    """The line's own words are about this job, with no reading of what it decides."""
+    words = _folded(text).split()
+    stems = _item_stems(thread)
+    return bool(set(words) & (table["work_terms"] | table["reference"])) or _has_phrase(words, table["question_terms"]) or any(
+        word.startswith(stem) for stem in stems for word in words)
+
+
+def _closes_on_the_job(line: str, thread: dict[str, Any], table) -> bool:
+    """The last words put the job to the player: a closer on its own, or a question naming the work."""
+    sentence = re.split(r"[.!…?]+", line.rstrip(" .!…?"))[-1]
+    words = _folded(re.split(r"[,;:]", sentence)[-1]).split()
+    while words and words[-1] in table["fillers"]:
+        words.pop()
+    return (" ".join(words) in table["close_words"] or _names_the_work(sentence, thread, table)
+            or figure_before(sentence, (thread.get("terms") or {}).get("pay"), "bakir"))
+
+
 def _asks_something_else(line: str, thread: dict[str, Any], table) -> bool:
     """The line ended on another question: 'olur' answers that one, not the job."""
-    if not line.rstrip().endswith("?"):
-        return False
-    last = re.split(r"[.!…]+", line.rstrip())[-1]
-    words = _folded(last).split()
-    stems = _item_stems(thread)
-    return not (
-        _has_phrase(words, table["close_words"]) or any(word.startswith(s) for s in stems for word in words)
-        or any(word.startswith(close) for close in table["close_words"] if " " not in close for word in words)
-        or names_number(last, (thread.get("terms") or {}).get("pay"))
-    )
+    return line.rstrip().endswith("?") and not _closes_on_the_job(line, thread, table)
 
 
 def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
@@ -996,10 +1015,7 @@ RECENT_CLOSE = 48 * HOUR
 
 
 def _speaks_of_work(text, reading, thread, table):
-    words = _folded(text).split()
-    stems = _item_stems(thread)
-    return bool(set(words) & table["work_terms"]) or _has_phrase(words, table["question_terms"]) or any(
-        word.startswith(stem) for stem in stems for word in words) or reading["meaning"] is not None
+    return _names_the_work(text, thread, table) or reading["meaning"] is not None
 
 
 def recent_closed(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
