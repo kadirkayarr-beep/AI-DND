@@ -577,3 +577,6 @@ class TheWorkOnOffer(unittest.TestCase):
                 self.assertNotIn("{", line)
                 self.assertNotIn("önerisi", line)
                 self.assertNotIn("oyuncu", line.casefold())
+                for word in ("otomatik", "varsay", "sayılmaz", "oluşmaz", "kendiliğinden"):
+                    self.assertNotIn(word, line.casefold(), template["id"])
+                self.assertTrue(line.endswith("."), line)

@@ -1311,8 +1311,10 @@ def can_start_now(world: dict[str, Any], thread: dict[str, Any]) -> bool:
 def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str:
     """The plain fact of where this job stands, for this person to say in their own words."""
     own = thread.get("status_lines") if isinstance(thread.get("status_lines"), dict) else {}
-    line = own.get(kind)
-    if not line:
+    line = None if thread.get("accepted_at") is not None else own.get(kind)  # written for an offer nobody took
+    if line:
+        line = _fill(job_lines("shared", "own_plan") or "{plan}", plan=line)
+    else:
         lines = job_lines(thread.get("type"), kind) or []
         if not lines:
             return ""

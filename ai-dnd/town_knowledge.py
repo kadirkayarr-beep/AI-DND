@@ -7,7 +7,8 @@ seed, the person and the item, so people differ and nobody changes their story.
 Some people know little, some will not talk to a stranger at all.
 
 The result goes into the speech prompt as plain lines the model voices; it decides
-nothing. A truth label, a future outcome or another person's terms never enter it.
+nothing. A truth label or another person's terms never enter it, and a future outcome
+enters only as this owner's own plan, never as something that has happened.
 What the model then named is matched back to these listed items by id, so "oraya"
 reaches a real place without any new phrase pattern.
 """
@@ -172,6 +173,8 @@ def _lines_for(world, thread, npc, decision):
     if decision == "questioning_terms":
         return [world_threads._fill(shared.get("questioning_terms", ""), pay_text=world_threads.pay_text(thread),
                                     timing_text=world_threads.timing_text(thread))]
+    if status == "expired" and thread.get("accepted_at") is not None:
+        return [world_threads.status_line(world, thread, "called_off")]
     if status in {"accepted", "declined", "done", "failed", "abandoned"} or (
             status == "expired" and thread.get("declined_turn") is None):
         line = world_threads.status_line(world, thread, status)

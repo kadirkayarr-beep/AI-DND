@@ -608,6 +608,7 @@
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
       "come_at_night": "İş gece; şimdi başlatamazsın. Akşam olunca gelmesini kendi ağzınla söyle.",
       "withdraw_unclear": "Bir şeyden vazgeçtiğini söylüyor ama anlaştığınız işi mi kastediyor belli değil; iş olduğu gibi duruyor. Neyi kastettiğini kendi ağzınla sor.",
+      "own_plan": "Aklındaki plan bu, henüz olmuş bir şey değil; böyle sunma: {plan}",
       "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
       "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
       "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
@@ -619,6 +620,9 @@
       "done": [
         "Anlaştığınız iş bitti, ücreti eksiksiz aldı. Teşekkür edebilirsin; borcun yok.",
         "İş tamamlandı, hesap kapandı: ona borcun kalmadı."
+      ],
+      "called_off": [
+        "Anlaştığınız iş artık yürümüyor, yapılacak yer ya da kişi kalmadı; bu kimsenin suçu değil, ücret de çıkmıyor."
       ],
       "failed": [
         "Söz verdiği işi bitirmedi; ücret ödenmedi. Hayal kırıklığını kendi tavrınla söylersin."
@@ -659,6 +663,9 @@
       "done": [
         "{item} yerine ulaştı, ücretini teslimde aldı. Hesap kapandı, ona borcun yok; parayı tekrar verme.",
         "Teslimat tamam: ücreti teslim yerinde ödendi, ona borcun kalmadı."
+      ],
+      "called_off": [
+        "Anlaştığınız teslimat artık yürümüyor, gidecek yer ya da kişi kalmadı; bu kimsenin suçu değil, ücret de çıkmıyor."
       ],
       "failed": [
         "{item} zamanında ulaşmadı; ücret yok. Kızgınlığını kendi tavrınla söylersin."

@@ -75,15 +75,17 @@ def _owner_line(item: dict[str, Any]) -> str | None:
 
 _EXPIRY_PREFIX = re.compile(r"^Yalnız kabul edilmemiş ipin teklif vadesi dolduğunda, motorun doğruladığı yerel gelişme önerisi:\s*")
 _REFUSAL_TAIL = re.compile(r"[;,]\s*(?:notun ulaştırılmaması )?oyuncu\w*\b.*$")
+_RULE_WORDS = ("oyuncu", "motor", "otomatik", "varsay", "sayılmaz", "oluşmaz", "kendiliğinden")  # the engine's bookkeeping, not speech
 
 
 def _outcome_line(text: Any, *, expiry: bool = False) -> str | None:
     """A consequence as the owner could say it, or None when it only speaks to the engine."""
     line = str(text or "").strip()
     line = _EXPIRY_PREFIX.sub("", line) if expiry else _REFUSAL_TAIL.sub(".", line)
-    if not line or "{" in line or "oyuncu" in line.casefold() or "motor" in line.casefold():
-        return None
-    return line
+    kept = [part.strip() for part in line.rstrip(" .").split(";")
+            if not any(word in part.casefold() for word in _RULE_WORDS)]
+    line = "; ".join(kept)
+    return f"{line}." if line and "{" not in line else None
 
 
 def _item_noun(owner: str, public: str) -> str | None:

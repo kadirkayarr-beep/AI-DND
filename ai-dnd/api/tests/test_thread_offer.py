@@ -315,6 +315,32 @@ class SpeechOpensNoOffer(unittest.TestCase):
         self.assertNotEqual(self.owner_says("Yirmi bakır, on iki gün.", pay=20, days=2, job_talk=True), "offered")
 
 
+class WhereTheJobStands(unittest.TestCase):
+    """The catalog's outcome lines are only proposals for an offer nobody took."""
+
+    def closed(self, status, **fields):
+        world, thread, npc = offered(status=status, kind="errand")
+        thread.update(status_lines={"expired": "Kumaş örnekleri kaynak kişide bekler.", "declined": "Satıcı başkasını arar."},
+                      **fields)
+        return " ".join(town_knowledge._lines_for(world, thread, npc, None))
+
+    def test_a_job_that_was_taken_does_not_get_the_offer_s_ending(self):
+        note = self.closed("expired", accepted_at=0)
+        self.assertNotIn("Kumaş", note)
+        self.assertNotIn("geri çektin", note)
+        self.assertIn("kimsenin suçu değil", note)
+
+    def test_an_offer_nobody_took_gets_it_as_a_plan_not_as_a_fact(self):
+        note = self.closed("expired")
+        self.assertIn("Kumaş örnekleri kaynak kişide bekler.", note)
+        self.assertIn("henüz olmuş bir şey değil", note)
+
+    def test_a_refusal_s_consequence_is_a_plan_too(self):
+        note = self.closed("declined")
+        self.assertIn("Satıcı başkasını arar.", note)
+        self.assertIn("henüz olmuş bir şey değil", note)
+
+
 class OfferOpening(unittest.TestCase):
     def test_the_figure_counts_in_digits_and_in_words(self):
         for text, number in (("Teslim edene dokuz bakır var.", 9), ("Otuz sekiz bakır veririm.", 38), ("38 bakır", 38),
