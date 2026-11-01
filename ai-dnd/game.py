@@ -17489,6 +17489,8 @@ def _run_player_turn(
             _sleep_after_walk(result, player_input, place_before, scene_plan)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
+            import fallen
+            fallen.wake(_session())  # the next look sees who got up while this turn's time passed
     except IntentInfrastructureError as error:
         if check_feature is not None:
             # The outer opt-in owner restores its earlier snapshot and formats
@@ -17795,6 +17797,15 @@ def _dispatch_player_turn(
         if bold is not None:
             return bold
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
+        struck = combat_lifecycle.strike_the_fallen(_session(), player_input, target_id)
+        if struck:
+            return {
+                "messages": _session().messages,
+                "narration": struck,
+                "model_calls": 0,
+                "action_result": {"action": "narrative", "status": "resolved", "success": True,
+                                  "state_changes": ["npcs"], "direct_response": struck},
+            }
         question = combat_lifecycle.unbound_attack_reply(_session(), player_input, target_id)
         if question:
             _session()._attack_asked = True  # for this sitting only; never saved

@@ -226,6 +226,23 @@ def answered_attack_question(session, message):
     return f"{message} saldırıyorum" if pointed_targets(session, message) else message
 
 
+def strike_the_fallen(session, message, target_id=None):
+    """Someone already out cold: no roll to hit them, and no second knock-out to give."""
+    world = session.world_state
+    if (world.get("combat", {}).get("active") or session.character.get("current_hp", 0) <= 0
+            or not is_attack_decision(session, message)):
+        return None
+    targets = _attack_targets(session, message, target_id)
+    if len(targets) != 1 or targets[0].get("combat_status") != "unconscious":
+        return None
+    import weapon_attack
+    who = living_world.public_npc_name(targets[0])
+    if weapon_attack.natural_choice(session, message)[1].get("knock_out") is True:
+        return f"{who} zaten baygın; bir daha vurmana gerek yok."
+    session.apply_npc_damage(targets[0], targets[0]["current_hp"])
+    return f"{who} yerde savunmasız yatıyor; darben son nefesini alıyor."
+
+
 def unbound_attack_reply(session, message, target_id=None):
     """An attack with no single target is asked about in the world."""
     if (

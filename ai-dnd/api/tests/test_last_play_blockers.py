@@ -326,3 +326,27 @@ class OnlyOnePersonHereTests(ThreePlaysTests):
         out = await self.say("Gromm'a kılıcımla saldırıyorum", PlayClient(intent="attack"))
         self.assertIn("Kime", out["narration"])
         self.assertFalse(self.world["combat"].get("active"))
+
+
+class AfterTheKnockOutTests(KnockOutTests):
+    async def down(self):
+        await self.nearly_down()
+        await self.strike_until_down("yumrukla bayıltıyorum")
+        self.assertEqual(self.foe["combat_status"], "unconscious")
+
+    async def test_striking_him_out_again_is_told_not_asked(self):
+        await self.down()
+        out = await self.say("öldürmicem. kılıcın kabzasıyla şakağına vurup bayıltıyorum", PlayClient(intent="attack"))
+        self.assertIn("baygın", out["narration"])
+        self.assertNotIn("Kime", out["narration"])
+
+    async def test_killing_him_where_he_lies_is_the_players_call(self):
+        await self.down()
+        out = await self.say("çavuşu öldürüyorum", PlayClient(intent="attack"))
+        self.assertNotIn("Kime", out["narration"])
+        self.assertEqual(self.foe["combat_status"], "dead", out["narration"])
+
+    async def test_the_look_after_the_wait_sees_him_up(self):
+        await self.down()
+        await self.say("iki saat bekliyorum", PlayClient())
+        self.assertEqual(self.foe["combat_status"], "active")
