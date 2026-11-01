@@ -219,10 +219,49 @@ class HandingOver(ErrandBase):
         equipment_economy.grant_plain(self.world, "Kırık halka")
         item = next(i for i in self.world["inventory"] if isinstance(i, dict) and i.get("name") == "Kırık halka")
         self.client.front = {"kind": "hand_over", "person_id": self.owner["id"], "item_id": item["item_id"]}
-        reply = await self.line("sunu sana uzatiyorum usta, sakla", "Sağ ol, dursun bende.")
+        reply = await self.line("su halkayi sana uzatiyorum usta, sakla", "Sağ ol, dursun bende.")
         self.assertNotIn("Kırık halka", self.bag())
         self.assertIn(item, self.owner["inventory"])
         self.assertIn("Sağ ol", reply["narration"])
+
+    def plain(self, name):
+        equipment_economy.grant_plain(self.world, name)
+        return next(i for i in self.world["inventory"] if isinstance(i, dict) and i.get("name") == name)
+
+    async def test_the_first_row_of_the_bag_is_not_what_a_vague_line_gives(self):
+        await self.errand()
+        rope = self.plain("İp")
+        self.client.front = {"kind": "hand_over", "person_id": self.owner["id"], "item_id": rope["item_id"]}
+        reply = await self.line("al bunu sana veriyorum", "Neymiş o?")
+        self.assertIn(rope, self.world["inventory"])
+        self.assertIn("Neymiş", reply["narration"])
+
+    async def test_a_vague_line_at_the_recipient_gives_the_parcel_not_the_rope(self):
+        await self.carried()
+        person = self.recipient()
+        rope = self.plain("İp")
+        self.client.front = {"kind": "hand_over", "person_id": person["id"], "item_id": rope["item_id"]}
+        await self.line("al, bunu sana veriyorum")
+        self.assertIn(rope, self.world["inventory"])
+        self.assertEqual(self.parcel_owner(), [person["id"]])
+        self.assertEqual(self.wallet(), 25)
+
+    async def test_a_promise_to_give_something_moves_nothing(self):
+        await self.carried()
+        person = self.recipient()
+        for line in ("sana bir sey verecegim", "yarin getiririm bunu sana"):
+            self.client.front = {"kind": "hand_over", "person_id": person["id"], "item_id": self.parcel()}
+            await self.line(line, "Bakalım.")
+            self.assertEqual(self.parcel_owner(), ["player"], line)
+
+    async def test_the_only_thing_in_the_bag_needs_no_name(self):
+        await self.errand()
+        ring = self.plain("Kırık halka")
+        held = set((self.world.get("equipment") or {}).values())
+        self.world["inventory"] = [i for i in self.world["inventory"] if i is ring or i.get("item_id") in held]
+        self.client.front = {"kind": "hand_over", "person_id": self.owner["id"], "item_id": ring["item_id"]}
+        await self.line("al bunu usta", "Sağ ol.")
+        self.assertIn(ring, self.owner["inventory"])
 
     async def test_a_worn_blade_stays_off_the_list(self):
         await self.errand()

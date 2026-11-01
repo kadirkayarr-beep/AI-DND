@@ -18083,6 +18083,16 @@ def _front_offer_gate(route, player_input):
         return None
 
 
+def _line_gives(item_id, player_input):
+    """The line names this thing, or it is the one thing there is to give."""
+    import front_proposal
+    import pocket
+    world = _session().world_state
+    bag = front_proposal._bag(world)
+    stem = pocket._stem(next((row["name"] for row in bag if row["id"] == item_id), ""))
+    return len(bag) == 1 or bool(stem and pocket._says_it(player_input, stem))
+
+
 def _front_hand_over(route, player_input):
     """The model read a hand-over and named a listed thing. Python moves it; failing that the person hears the line."""
     import town_knowledge
@@ -18095,16 +18105,22 @@ def _front_hand_over(route, player_input):
         return None
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
-    if item_id is None or "?" in player_input:
+    if item_id is None or "?" in player_input or world_threads.says_later(player_input):
         session._empty_handed = item_id is None
         return _thread_gate(player_input, person["id"], "say") or heard  # nothing named: the old reader, then their answer
     try:
         session.require_player_can_act()
         thread = world_threads.parcel_thread(world, item_id)
+        if thread is None and not item_id.startswith("parcel:"):
+            if _line_gives(item_id, player_input):  # a plain thing never comes back: it goes only if the line means it
+                given = dialogue_jobs.give_plain(world, item_id, person)
+                if given is not None:
+                    session._handed_note = given.get("name")
+                return heard
+            due = [job for job in [*world_threads.deliveries_to(world, person), *world_threads.late_parcels(world, person)]
+                   if dialogue_jobs.holds_parcel(world, job)]
+            thread = due[0] if len(due) == 1 else None  # 'al, bunu sana veriyorum' at the door it was sent to
         if thread is None:
-            given = None if item_id.startswith("parcel:") else dialogue_jobs.give_plain(world, item_id, person)
-            if given is not None:
-                session._handed_note = given.get("name")
             return heard
         decision = ("give" if thread in world_threads.deliveries_to(world, person)
                     else "give_late" if thread in world_threads.late_parcels(world, person) else None)

@@ -986,8 +986,11 @@ def _says_later(text: Any, table: dict[str, Any]) -> bool:
     return bool(set(_folded(text).split()) & table["later_words"])
 
 
+_I_WILL = re.compile(r"(?:ece[gk]|aca[gk])(?:im|iz)\b|\w[ri]cem\b|[ae]c[ae]m\b")  # 'vereceğim', 'vericem', 'alacam'
+
+
 def says_later(text: Any) -> bool:
-    return _says_later(text, answer_table())
+    return _says_later(text, answer_table()) or bool(_I_WILL.search(_folded(text)))
 
 
 def does_the_work_now(text: Any, thread: dict[str, Any]) -> bool:
