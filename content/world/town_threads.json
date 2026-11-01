@@ -294,6 +294,9 @@
   "offer_answers": {
     "accept": [
       "evet",
+      "kabul ettim",
+      "kabul ederim",
+      "o zaman tamam",
       "olur",
       "tamam",
       "peki",
@@ -508,6 +511,12 @@
     ],
     "discourse": [
       "iyi",
+      "abi",
+      "usta",
+      "kanka",
+      "dostum",
+      "kardeş",
+      "hadi",
       "pekala",
       "e",
       "ee",
@@ -515,6 +524,10 @@
       "yani",
       "şey",
       "neyse"
+    ],
+    "own_say": [
+      "dedim",
+      "diyorum"
     ],
     "repair": [
       "neyse",

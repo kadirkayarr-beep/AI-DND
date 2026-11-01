@@ -62,6 +62,26 @@ class ClearAnswers(unittest.TestCase):
                      "evet, hayır", "tamam, kalsın", "tamam, gitmem lazım", "peki ama nasıl"):
             self.assertIsNone(self.decide(line), line)
 
+    def test_a_plain_yes_said_any_way_is_a_yes(self):
+        for line in ("tamam dedim", "olur dedim", "tamam dedim sana", "tamam diyorum", "evet diyorum",
+                     "\"tamam\" diyorum", "“tamam”", "peki tamam", "evet tamam", "abi tamam", "hadi tamam",
+                     "kabul ettim", "kabul abi", "evet evet", "tamam abi olur"):
+            self.assertEqual(self.decide(line), "accepted", line)
+
+    def test_a_plain_no_said_any_way_is_a_no(self):
+        for line in ("hayır dedim", "yok dedim sana", "abi yok", "yok hayır"):
+            self.assertEqual(self.decide(line), "declined", line)
+
+    def test_someone_else_s_words_or_an_old_answer_stay_nobody_s_decision(self):
+        for line in ("ona tamam dedim", "dün tamam dedim", "tamam dedim ona", "teklife “tamam” dedi",
+                     "“tamam” dedim ona", "tamam demiştim", "bir şey yok"):
+            self.assertIsNone(self.decide(line), line)
+
+    def test_a_yes_and_a_walk_with_no_comma_is_a_yes_and_a_walk(self):
+        for line in ("tamam gidiyorum", "olur gidelim", "tamam oraya gidiyorum"):
+            self.assertEqual(self.decide(line, kind="errand"), "accepted", line)
+            self.assertTrue(world_threads.read_answer(line)["move"], line)
+
     def test_a_hanging_but_is_not_yet_a_yes(self):
         for line in ("olur ama", "olur ama...", "tamam ama...", "yaparım ama", "olur fakat"):
             self.assertIsNone(self.decide(line), line)

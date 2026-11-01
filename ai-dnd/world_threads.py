@@ -706,11 +706,16 @@ def _read_clause(tokens, asked, table, names, item_stems):
     """One clause's meaning, or 'other' when it is something else entirely."""
     is_item = lambda word: word in table["item_words"] or any(word.startswith(stem) for stem in item_stems)
     fillers = table["fillers"] | names
+    trailing = fillers - table["accept"]  # 'kabul abi' keeps its 'kabul'
     body = list(tokens)
     while body and (body[0] in table["discourse"] or body[0] in names):
         body.pop(0)
-    while body and body[-1] in fillers:
+    while body and body[-1] in trailing:
         body.pop()
+    if body and body[-1] in table["own_say"]:  # 'tamam dedim' to the one in front of you is the answer itself
+        body.pop()
+        while body and body[-1] in trailing:
+            body.pop()
     if not body:
         return "neutral"
     body = [word for index, word in enumerate(body) if index == 0 or word != body[index - 1]]
@@ -721,8 +726,9 @@ def _read_clause(tokens, asked, table, names, item_stems):
         return "unclear"
     if any(word.endswith(_CONDITIONAL_ENDS) for word in body):
         return "unclear"
+    said = [word for word in body if word not in table["discourse"]]
     for meaning in ("decline", "withdraw", "accept"):
-        if phrase in table[meaning]:
+        if phrase in table[meaning] or (said and all(word in table[meaning] for word in said)):
             return "question" if asked else meaning
     if _has_phrase(body, table["question_terms"]):
         return "terms"
@@ -756,12 +762,34 @@ def _read_clause(tokens, asked, table, names, item_stems):
     return "other"
 
 
+def _own_line(text: str, table: dict[str, Any]) -> str | None:
+    """The line without its quotes when they are the player's own; None for anyone else's words."""
+    if not any(mark in text for mark in _QUOTES):
+        return text
+    line = text.strip()
+    close = max(line.rfind(mark) for mark in _QUOTES)
+    inner = line[1:close]
+    after = _folded(line[close + 1:]).split()
+    if line[0] not in _QUOTES or close == 0 or any(mark in inner for mark in _QUOTES):
+        return None
+    return inner if all(word in table["own_say"] or word in table["fillers"] for word in after) else None
+
+
+def _with_the_comma_put_back(tokens, asked, after_but, table):
+    """'tamam gidiyorum', 'vazgeçtim gidiyorum': an answer and a walk, the comma left out."""
+    answers = table["accept"] | table["decline"] | table["withdraw"]
+    if len(tokens) > 1 and tokens[0] in answers and tokens[-1] in table["move"]:
+        return [(tokens[:1], False, after_but), (tokens[1:], asked, False)]
+    return [(tokens, asked, after_but)]
+
+
 def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None) -> dict[str, Any]:
     """What this line says about an offer, by the lists alone. Knows nothing of any offer."""
     reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
                "start": False, "move": False, "reference": False}
     table = answer_table()
-    if not isinstance(text, str) or not text.strip() or not table or any(mark in text for mark in _QUOTES):
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None:
         return reading
     whole = _folded(text)
     names = _names_of(npc)
@@ -777,7 +805,7 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
         for meaning in ("decline", "withdraw", "accept"):
             if whole in table[meaning]:
                 return {**reading, "meaning": meaning}
-    clauses = _clauses(text)
+    clauses = [piece for clause in _clauses(text) for piece in _with_the_comma_put_back(*clause, table)]
     kinds = []
     for tokens, asked, after_but in clauses:
         kind = _read_clause(tokens, asked, table, names, stems)
@@ -988,7 +1016,8 @@ def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()
-    if not isinstance(text, str) or any(mark in text for mark in _QUOTES):
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() else None
+    if text is None:
         return False
     stems = _item_stems(thread)
     names = _names_of(npc)
