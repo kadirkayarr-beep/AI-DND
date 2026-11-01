@@ -278,13 +278,16 @@ class WorldAnswersTests(ThreePlaysTests):
         self.assertTrue(self.world["combat"]["active"])
         self.assertIn(self.world["npcs"][1]["id"], self.world["combat"]["participants"])
 
-    async def test_a_guard_elsewhere_has_heard(self):
+    async def test_a_guard_elsewhere_knows_only_what_reached_him(self):
         await self.begin(BARBARIAN)
         self.world["npcs"].clear()
         guard = self.add_person("Dorn", "Muhafız", location="elsewhere")
-        self.world["flags"]["deeds"] = [{"kind": "killing", "text": "bir barmen öldürüldü", "witnesses": []}]
+        deed = {"kind": "killing", "text": "bir barmen öldürüldü", "witnesses": [], "heard": []}
+        self.world["flags"]["deeds"] = [deed]
         with self.app.state.ollama_adapter.engine_binding():
             import bold_acts
+            self.assertNotIn("barmen öldürüldü", bold_acts.speech_note(self.world, guard))
+            deed["heard"].append(guard["id"])
             self.assertIn("barmen öldürüldü", bold_acts.speech_note(self.world, guard))
 
     async def test_ordering_a_beer_reaches_the_barman(self):

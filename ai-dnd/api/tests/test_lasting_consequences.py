@@ -82,10 +82,183 @@ class WaitingPassesTime(ThreePlaysTests):
     async def test_in_a_fight_waiting_still_ends_the_turn(self):
         await self.begin(FIGHTER)
         self.world["npcs"].clear()
-        self.add_person("Dorn", "Muhafız")
+        self.add_person("Dorn", "Muhafız", current_hp=300, max_hp=300)
         await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))
         self.assertTrue(self.world["combat"]["active"])
         before = self.elapsed()
         out = await self.say("bekliyorum")
         self.assertEqual(out["turn_outcome"]["action"], "action_economy", out["narration"])
         self.assertLess(self.elapsed() - before, 60)
+
+
+class OneTownScene(ThreePlaysTests):
+    async def town(self):
+        await self.begin(FIGHTER)
+        self.session._experimental_npc_dialogue_enabled = True
+        self.world["npcs"].clear()
+        self.city = self.world["location"]
+        self.world["locations"]["shop"] = {
+            "id": "shop", "name": "Quenna Atölyesi", "description": "Talaş kokulu bir atölye.",
+            "parent_location_id": self.city, "exit_location_id": self.city, "scene_type": "building",
+        }
+        self.world["locations"]["post"] = {
+            "id": "post", "name": "Brissa Karakolu", "description": "Sert ışıklı bir karakol.",
+            "parent_location_id": self.city, "exit_location_id": self.city, "scene_type": "building",
+        }
+
+    def binding(self):
+        return self.app.state.ollama_adapter.engine_binding()
+
+    def note(self, npc):
+        import bold_acts
+        return bold_acts.speech_note(self.world, npc)
+
+    def killed_earlier(self, witness=None):
+        """Kalila lies dead in her shop, seen by whoever is given."""
+        kalila = self.add_person("Kalila", "Usta", location="shop", combat_status="dead", current_hp=0)
+        self.world["flags"]["deeds"] = [{
+            "kind": "killing", "text": "Kalila öldürüldü", "location": "shop", "victim_id": kalila["id"],
+            "witnesses": [witness] if witness else [], "turn": 3, "at": 0, "heard": [], "told": [],
+        }]
+        return kalila
+
+    async def wait(self, line):
+        return await self.say(line, PlayClient())
+
+
+class ConfessionsAndGuards(OneTownScene):
+    async def test_a_confession_to_a_guard_makes_him_draw(self):
+        for line in ("peki şunu söyleyim o zaman: quenna atölyesindeki kalilayı ben öldürdüm. ne yapacaksın",
+                     "çavuşa diyorum ki kalila adlı ustanın katili benim"):
+            with self.subTest(line=line):
+                await self.town()
+                guard = self.add_person("Isolde", "Nöbetçi Çavuş")
+                self.killed_earlier()
+                out = await self.say(line, PlayClient(spoken="Ne dedin sen?"))
+                self.assertTrue(self.world["combat"]["active"], out["narration"])
+                self.assertIn(guard["id"], self.world["combat"]["participants"])
+                self.assertIn("katil", out["narration"])
+                self.assertIn("Kalila öldürüldü", self.note(guard))
+
+    async def test_telling_a_barman_is_remembered_without_a_fight(self):
+        await self.town()
+        barman = self.add_person("Veyra", "Barmen")
+        self.killed_earlier()
+        await self.say("kalilayı ben öldürdüm veyra", PlayClient(spoken="Duymamış olayım."))
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertIn("kendi ağzıyla", self.note(barman))
+        self.assertIn("Kalila öldürüldü", self.note(barman))
+
+    async def test_a_boast_about_nothing_is_kept_as_words_only(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş")
+        await self.say("ben bu şehirde üç kişiyi öldürdüm", PlayClient(spoken="Öyle mi?"))
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertIn("üç kişiyi", self.note(guard))
+        self.assertNotIn("Kalila", self.note(guard))
+
+    async def test_a_guard_who_was_told_draws_when_the_player_comes_back(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş")
+        self.killed_earlier()
+        self.world["flags"]["deeds"][0]["told"] = [guard["id"]]
+        out = await self.say("etrafa bakıyorum", PlayClient())
+        self.assertTrue(self.world["combat"]["active"], out["narration"])
+
+    async def test_someone_who_was_only_swung_at_remembers_it_without_drawing_by_himself(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş")
+        await self.say("kılıcımı çekip çavuşa saldırıyorum", PlayClient(intent="attack"))
+        self.assertIn("üzerine yürüdü", self.note(guard))
+        self.assertEqual(self.world["flags"]["deeds"][0]["kind"], "assault")
+
+
+class NewsTravelsByRealRoutes(OneTownScene):
+    async def test_nobody_saw_it_and_nobody_was_told_so_nobody_knows(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş", location="post")
+        self.killed_earlier()
+        await self.wait("iki saat bekliyorum")
+        self.assertNotIn("Kalila", self.note(guard))
+
+    async def test_a_witness_reaches_the_guard_after_an_hour_and_not_before(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş", location="post")
+        boy = self.add_person("Baern", "Çırak", location=self.city)
+        self.killed_earlier(boy["id"])
+        await self.wait("yarım saat bekliyorum")
+        self.assertNotIn("Kalila", self.note(guard))
+        await self.wait("bir saat bekliyorum")
+        self.assertIn("Kalila öldürüldü", self.note(guard))
+
+    async def test_what_was_heard_does_not_point_at_the_player(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş", location=self.city)
+        boy = self.add_person("Baern", "Çırak", location=self.city)
+        self.killed_earlier(boy["id"])
+        await self.wait("iki saat bekliyorum")
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertIn("Kalila öldürüldü", self.note(guard))
+        self.assertNotIn("gözünle gördün", self.note(guard))
+
+    async def test_someone_standing_with_a_witness_hears_it_there(self):
+        await self.town()
+        boy = self.add_person("Baern", "Çırak", location=self.city)
+        girl = self.add_person("Ilyra", "Satıcı", location=self.city)
+        far = self.add_person("Tariq", "Rahip", location="post")
+        self.killed_earlier(boy["id"])
+        await self.wait("yarım saat bekliyorum")
+        self.assertIn("Kalila öldürüldü", self.note(girl))
+        self.assertNotIn("Kalila", self.note(far))
+
+
+class FireGoesOnByTheClock(OneTownScene):
+    def fire_feature(self, location="shop"):
+        return [f["name"] for f in self.world.get("features", []) if f.get("location") == location]
+
+    def light(self):
+        import bold_acts
+        from unittest.mock import patch
+        with self.binding(), patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            bold_acts._burn(self.session)
+
+    async def test_a_fire_spreads_clears_the_room_and_burns_the_place_out(self):
+        await self.town()
+        self.world["location"] = "shop"
+        master = self.add_person("Kalila", "Usta", location="shop")
+        street = self.add_person("Baern", "Çırak", location=self.city)
+        self.light()
+        self.assertIn("Tüten ateş", self.fire_feature())
+        self.assertIn("duman", self.note(street))
+        self.world["location"] = self.city
+        out = await self.wait("yarım saat bekliyorum")
+        self.assertIn("Yayılan yangın", self.fire_feature())
+        self.assertEqual(master["location"], self.city)
+        self.assertIn("Quenna Atölyesi", out["narration"])
+        self.assertIn("duman", self.world["locations"]["shop"]["description"])
+        await self.wait("bir saat bekliyorum")
+        self.assertIn("Yanmış kalıntılar", self.fire_feature())
+        self.assertNotIn("Talaş", self.world["locations"]["shop"]["description"])
+        self.assertIn("kül", self.note(self.add_person("Dorn", "Muhafız", location="post")))
+
+    async def test_a_fire_in_the_open_dies_down_and_leaves_the_city_alone(self):
+        await self.town()
+        before = self.world["locations"][self.city].get("description")
+        self.light()
+        await self.wait("iki saat bekliyorum")
+        self.assertEqual(self.world["locations"][self.city].get("description"), before)
+        self.assertIn("Sönmüş ateş", self.fire_feature(self.city))
+
+
+class ATheftIsMissedLater(OneTownScene):
+    async def test_the_robbed_notice_later_and_do_not_know_who(self):
+        await self.town()
+        master = self.add_person("Kalila", "Usta")
+        import bold_acts
+        from unittest.mock import patch
+        with self.binding(), patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            bold_acts._steal(self.session, "kalilanın kesesini çalıyorum")
+        self.assertNotIn("kesen", self.note(master))
+        await self.wait("yarım saat bekliyorum")
+        self.assertIn("kesen", self.note(master))
+        self.assertIn("kimin aldığını bilmiyorsun", self.note(master))

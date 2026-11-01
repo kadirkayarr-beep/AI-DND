@@ -15334,6 +15334,8 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         started = not combat["active"]
         enemy_actions = []
         if started:
+            import bold_acts
+            bold_acts.attacked(_session(), target_npc)
             start_result = start_combat(target_npc)
             result["combat_id"] = start_result["combat_id"]
             if start_result["current_actor_id"] != "player":
@@ -17393,6 +17395,7 @@ def _run_player_turn(
         import bold_acts
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             bold_acts.answer_to_killing(_session(), result)
+            bold_acts.answer_to_known_doer(_session(), result)
     except IntentInfrastructureError as error:
         if check_feature is not None:
             # The outer opt-in owner restores its earlier snapshot and formats
@@ -17662,9 +17665,13 @@ def _dispatch_player_turn(
                 "action_result": {"action": "narrative", "status": "body_silent", "success": True,
                                   "state_changes": [], "direct_response": line},
             }
-    if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
+    confessed = False
+    if (combat_action is None and interaction_mode != "ask_dm"
             and not _session().world_state.get("combat", {}).get("active")):
         import bold_acts
+        confessed = bold_acts.hear_confession(_session(), player_input)
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
+            and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             bold = bold_acts.resolve(_session(), player_input)
         if bold is not None:

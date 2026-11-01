@@ -13,7 +13,7 @@ from typing import Any
 import living_world
 import relationships
 
-MAX_DEEDS = 12
+MAX_DEEDS = 24
 _STEAL = re.compile(
     r"\b(?:asir\w*|yurut\w*|yagmal\w*|calacag\w*|kapip\b|kistir\w*|el at\w*|arakl\w*|"
     r"keserek al\w*|kesip al\w*|cekip al\w*|sessizce cek\w*|indirip\b.*\bsakl\w*|cal(?:iyorum|ip|ayim|dim))"
@@ -55,33 +55,233 @@ def deeds(world: dict[str, Any]) -> list[dict[str, Any]]:
     return world.setdefault("flags", {}).setdefault("deeds", [])
 
 
-def remember(session, kind: str, text: str, *, victim_id: str | None = None) -> None:
-    """What was done, and who was standing there to see it."""
+def _now(world: dict[str, Any]) -> int:
+    return int((world.get("campaign_time") or {}).get("elapsed_seconds", 0) or 0)
+
+
+def remember(session, kind: str, text: str, *, victim_id: str | None = None, seen: bool = True) -> dict[str, Any]:
+    """What was done, and who was standing there to see it.
+
+    `witnesses` saw the player do it and `told` heard it from the player's own mouth: both
+    can point at the player. `heard` only knows that it happened.
+    """
     world = session.world_state
-    witnesses = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)]
+    witnesses = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)] if seen else []
     ledger = deeds(world)
-    ledger.append({
+    deed = {
         "kind": kind, "text": text[:160], "location": world.get("location"), "victim_id": victim_id,
         "witnesses": witnesses, "turn": int(world.get("flags", {}).get("turn_index", 0) or 0),
-    })
+        "at": _now(world), "heard": [], "told": [],
+    }
+    ledger.append(deed)
     del ledger[:-MAX_DEEDS]
+    return deed
+
+
+def _is_armed(npc: dict[str, Any]) -> bool:
+    import game
+    return bool(game._ARMED_ROLE.search(game._normalize_turkish_typos(str(npc.get("role", "")))))
+
+
+def identifies(deed: dict[str, Any], npc_id: Any) -> bool:
+    """This person can point at the player for it: they saw it or were told by the player."""
+    return npc_id in deed.get("witnesses", []) or npc_id in deed.get("told", [])
+
+
+def knows(deed: dict[str, Any], npc_id: Any) -> bool:
+    return identifies(deed, npc_id) or npc_id in deed.get("heard", [])
+
+
+NEARBY_SECONDS = 600  # people standing together have talked within minutes
+TO_THE_POST_SECONDS = 3600  # someone who knows has walked to whoever keeps the peace
+
+
+def _carry_news(world: dict[str, Any], now: int) -> None:
+    """News moves only from a living person who has it: to whoever stands with them, then to the guards."""
+    import local_places
+    alive = [npc for npc in world.get("npcs", []) if isinstance(npc, dict)
+             and npc.get("combat_status") != "dead" and isinstance(npc.get("id"), str)]
+    for deed in world.get("flags", {}).get("deeds", []):
+        if not isinstance(deed, dict) or not isinstance(deed.get("at"), int):
+            continue
+        carriers = [npc for npc in alive if knows(deed, npc["id"])]
+        if not carriers:
+            continue
+        age = now - deed["at"]
+        towns = {local_places.settlement_of(world, npc.get("location")) for npc in carriers} - {None}
+        for npc in alive:
+            if knows(deed, npc["id"]):
+                continue
+            together = age >= NEARBY_SECONDS and any(c.get("location") == npc.get("location") for c in carriers)
+            reported = (age >= TO_THE_POST_SECONDS and deed.get("kind") in {"killing", "arson"} and _is_armed(npc)
+                        and local_places.settlement_of(world, npc.get("location")) in towns)
+            if together or reported:
+                deed.setdefault("heard", []).append(npc["id"])
+
+
+def on_time(world: dict[str, Any], now: int) -> None:
+    """The clock moved: fires go on and news moves. Only the clock calls this."""
+    _tend_fires(world, now)
+    _carry_news(world, now)
+
+
+_FIRE_STAGES = (
+    (0, "Tüten ateş", "Dumanı sokağa yayılan, yeni tutuşmuş bir ateş.", None),
+    (600, "Yayılan yangın", "Alevler duvarları yalıyor; içerisi duman dolu.",
+     "Pencerelerinden kalın bir duman taşıyor, içeride alevler yükseliyor."),
+    (3600, "Yanmış kalıntılar", "Kararmış kirişler ve hâlâ sıcak kül.",
+     "Kararmış kirişler, sıcak kül ve keskin bir yanık kokusu; burası artık kullanılmaz hâlde."),
+)
+
+
+def _way_out(world: dict[str, Any], location: Any) -> str | None:
+    here = world.get("locations", {}).get(location)
+    out = (here.get("exit_location_id") or here.get("parent_location_id")) if isinstance(here, dict) else None
+    return out if isinstance(out, str) and out in world.get("locations", {}) else None
+
+
+def _fires(world: dict[str, Any]) -> list[dict[str, Any]]:
+    return [fire for fire in world.get("flags", {}).get("fires", []) if isinstance(fire, dict)]
+
+
+def _fire_feature(world: dict[str, Any], fire: dict[str, Any]) -> dict[str, Any] | None:
+    return next((feature for feature in world.get("features", [])
+                 if isinstance(feature, dict) and feature.get("id") == fire.get("feature_id")), None)
+
+
+def _tend_fires(world: dict[str, Any], now: int) -> None:
+    for fire in _fires(world):
+        stage = max(index for index, row in enumerate(_FIRE_STAGES) if now - fire["lit_at"] >= row[0])
+        if stage <= fire["stage"]:
+            continue
+        fire["stage"] = stage
+        feature = _fire_feature(world, fire)
+        out = _way_out(world, fire["location"])
+        if out is None:  # in the open a fire has nothing to take: it burns down and stops
+            if feature is not None and stage == len(_FIRE_STAGES) - 1:
+                feature.update(name="Sönmüş ateş", description="Kararmış bir leke ve soğuyan kül.")
+            continue
+        _, name, description, place_text = _FIRE_STAGES[stage]
+        if feature is not None:
+            feature.update(name=name, description=description)
+        world["locations"][fire["location"]]["description"] = place_text
+        for npc in world.get("npcs", []):
+            if isinstance(npc, dict) and npc.get("location") == fire["location"] and npc.get("combat_status") != "dead":
+                npc["location"] = out
+
+
+def _place_name(world: dict[str, Any], location: Any) -> str:
+    place = world.get("locations", {}).get(location)
+    return str(place.get("name") or "") if isinstance(place, dict) else ""
+
+
+def fire_line(world: dict[str, Any]) -> str:
+    """What a fire looks like from where the player stands; empty when none can be seen."""
+    here = world.get("location")
+    lines = []
+    for fire in _fires(world):
+        out = _way_out(world, fire["location"])
+        if out is None or here not in (fire["location"], out):
+            continue
+        name = _place_name(world, fire["location"])
+        if fire["stage"] == 0:
+            lines.append(f"{name} tarafından ince bir duman yükseliyor.")
+        elif fire["stage"] == 1:
+            lines.append(f"{name} yanıyor; kalın duman göğe tırmanıyor, insanlar kapıdan uzaklaşıyor.")
+        else:
+            lines.append(f"{name} yanıp kül olmuş; geriye kararmış kirişler kalmış.")
+    return " ".join(lines)
+
+
+def _fire_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
+    import local_places
+    notes = []
+    for fire in _fires(world):
+        out = _way_out(world, fire["location"])
+        name = _place_name(world, fire["location"])
+        if out is None or not name:
+            continue
+        if fire["stage"] < 2 and npc.get("location") in (fire["location"], out):
+            notes.append(f" {name} tarafından duman yükseliyor, sen de görüyorsun.")
+        elif fire["stage"] >= 2 and (local_places.settlement_of(world, npc.get("location"))
+                                     == local_places.settlement_of(world, fire["location"])):
+            notes.append(f" {name} yanıp kül oldu, bunu herkes biliyor.")
+    return "".join(notes)
+
+
+def _loss_note(world: dict[str, Any], npc: dict[str, Any], ledger: list[dict[str, Any]]) -> str:
+    now = _now(world)
+    missing = [deed for deed in ledger if deed.get("kind") == "theft_unseen" and deed.get("victim_id") == npc.get("id")
+               and now - deed.get("at", now) >= NEARBY_SECONDS]
+    if not missing:
+        return ""
+    return " Bir süre önce kesenin hafiflediğini fark ettin; kimin aldığını bilmiyorsun."
 
 
 def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
-    """What this person saw the player do, for their next line."""
+    """What this person knows of what the player did, for their next line."""
     ledger = [deed for deed in world.get("flags", {}).get("deeds", []) if isinstance(deed, dict)]
-    seen = [deed["text"] for deed in ledger if npc.get("id") in deed.get("witnesses", [])]
+    npc_id = npc.get("id")
+    seen = [deed["text"] for deed in ledger if npc_id in deed.get("witnesses", [])]
+    told = [deed["text"] for deed in ledger if npc_id in deed.get("told", [])
+            and npc_id not in deed.get("witnesses", [])]
+    heard = [deed["text"] for deed in ledger if npc_id in deed.get("heard", []) and not identifies(deed, npc_id)]
     note = ""
     if seen:
         note = " Karşındaki kişinin şunları yaptığını kendi gözünle gördün: " + "; ".join(seen[-3:]) + \
             ". Ona buna göre davran; görmezden gelme."
-    import game
-    heard = [deed["text"] for deed in ledger if deed.get("kind") == "killing"
-             and npc.get("id") not in deed.get("witnesses", [])]
-    if heard and game._ARMED_ROLE.search(game._normalize_turkish_typos(str(npc.get("role", "")))):
-        note += " Kentte bir cinayet konuşuluyor: " + heard[-1] + \
-            ". Kan izi taşıyan ya da bunu söyleyen biri görürsen üstüne gidersin."
-    return note
+    if told:
+        note += " Karşındaki kişi sana kendi ağzıyla şunları söyledi: " + "; ".join(told[-3:]) + \
+            ". Bunu unutmadın; duymamış gibi davranma."
+    if heard:
+        note += " Kentte şu konuşuluyor: " + heard[-1] + ". Kimin yaptığını bilmiyorsun."
+        if _is_armed(npc):
+            note += " Kan izi taşıyan ya da bunu söyleyen biri görürsen üstüne gidersin."
+    return note + _loss_note(world, npc, ledger) + _fire_note(world, npc)
+
+
+_OWN_DEEDS = (
+    (("killing",), re.compile(r"\b(?:oldurdum|geberttim|bogazladim|katil\w*\s+(?:benim|ben)\b|ben\w*\s+katil\w*)")),
+    (("arson",), re.compile(r"\b(?:yaktim|kundakladim|tutusturdum|ates\w*\s+verdim)\b")),
+    (("theft", "theft_unseen"), re.compile(r"\b(?:caldim|asirdim|yurttum|arakladim)\b")),
+)
+
+
+def _deed_meant(session, text: str, kinds: tuple[str, ...]) -> dict[str, Any] | None:
+    """The real deed the words mean: the one naming its victim, else the latest, unless they name someone else."""
+    world = session.world_state
+    folded = fold(session, text)
+    mine = [deed for deed in world.get("flags", {}).get("deeds", [])
+            if isinstance(deed, dict) and deed.get("kind") in kinds]
+    named = {npc.get("id") for npc in world.get("npcs", []) if isinstance(npc, dict)
+             and session._entity_reference_in_text(npc.get("name", ""), folded)}
+    if named:
+        return next((deed for deed in reversed(mine) if deed.get("victim_id") in named), None)
+    return mine[-1] if mine else None
+
+
+def hear_confession(session, text: Any) -> bool:
+    """The player said aloud that they did it: those here now have it from the player's own mouth.
+
+    Only the knowing changes here. The line goes on to whoever answers it.
+    """
+    if not isinstance(text, str) or "?" in text:
+        return False
+    hearers = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)]
+    folded = fold(session, text)
+    said = [kinds for kinds, pattern in _OWN_DEEDS if pattern.search(folded)]
+    if not hearers or not said:
+        return False
+    for kinds in said:
+        deed = _deed_meant(session, text, kinds) or remember(session, "claim", f"“{text[:120]}”", seen=False)
+        deed["told"] = sorted({*deed.get("told", []), *hearers})
+    return True
+
+
+def attacked(session, npc: dict[str, Any]) -> None:
+    """Going for someone who meant no harm is a deed; a fight with an enemy is not."""
+    if not npc.get("hostile"):
+        remember(session, "assault", f"{living_world.public_npc_name(npc)} üzerine yürüdü", victim_id=npc.get("id"))
 
 
 def killed(session, npc: dict[str, Any]) -> None:
@@ -102,8 +302,7 @@ def answer_to_killing(session, result: Any) -> None:
     import game
     present = session.active_npcs()
     armed = [npc for npc in present if game._ARMED_ROLE.search(fold(session, str(npc.get("role", ""))))]
-    here = world.get("locations", {}).get(world.get("location"), {})
-    way_out = here.get("exit_location_id") or here.get("parent_location_id") if isinstance(here, dict) else None
+    way_out = _way_out(world, world.get("location"))
     lines = []
     if armed:
         guard = armed[0]
@@ -111,11 +310,29 @@ def answer_to_killing(session, result: Any) -> None:
         session.start_combat(guard)
         lines.append(f"{living_world.public_npc_name(guard)} silahını çekip üstüne yürüyor: “Dur orada, katil!”")
     for npc in present:
-        if npc not in armed and isinstance(way_out, str) and way_out in world.get("locations", {}):
+        if npc not in armed and way_out is not None:
             npc["location"] = way_out
             lines.append(f"{living_world.public_npc_name(npc)} bağırarak kapıya koşuyor.")
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()
+
+
+def answer_to_known_doer(session, result: Any) -> None:
+    """A guard who saw it, or heard it from the player's own mouth, goes for them on sight."""
+    world = session.world_state
+    if (not isinstance(result, dict) or world.get("combat", {}).get("active")
+            or session.character.get("current_hp", 0) <= 0):
+        return
+    grave = [deed for deed in world.get("flags", {}).get("deeds", [])
+             if isinstance(deed, dict) and deed.get("kind") in {"killing", "arson"}]
+    guard = next((npc for npc in session.active_npcs()
+                  if _is_armed(npc) and any(identifies(deed, npc.get("id")) for deed in grave)), None)
+    if guard is None:
+        return
+    guard["hostile"] = True
+    session.start_combat(guard)
+    line = f"{living_world.public_npc_name(guard)} silahını çekip üstüne yürüyor: “Dur orada, katil!”"
+    result["narration"] = " ".join([str(result.get("narration") or ""), line]).strip()
 
 
 def _pick_line(session, npc: dict[str, Any]) -> str:
@@ -185,10 +402,15 @@ def _steal(session, text: str) -> dict[str, Any]:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
         wallets["player"] = wallets.get("player", 0) + coins
+        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} soyuldu",
+                 victim_id=victim["id"], seen=False)
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
     label = thing or "Küçük bir ganimet"
     world.setdefault("inventory", []).append(label)
+    if victim is not None:
+        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {label.lower()} eksildi",
+                 victim_id=victim["id"], seen=False)
     narration = f"Elin hızlı: {label.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=label)
 
@@ -199,11 +421,14 @@ def _burn(session) -> dict[str, Any]:
     if check["result"] != "BAŞARILI":
         return _reply(session, "Kıvılcım bir türlü tutmuyor; elinde yalnız is kokusu kalıyor.",
                       "arson", "failed", check, [])
-    session.create_local_feature({
-        "name": "Tüten ateş", "description": "Dumanı sokağa yayılan, yeni tutuşmuş bir ateş.",
-        "location": session.world_state.get("location"),
+    world = session.world_state
+    feature = session.create_local_feature({
+        "name": _FIRE_STAGES[0][1], "description": _FIRE_STAGES[0][2], "location": world.get("location"),
     })
-    remember(session, "arson", "burada ateş yaktı")
+    if isinstance(feature, dict) and not any(fire["location"] == world.get("location") for fire in _fires(world)):
+        world.setdefault("flags", {}).setdefault("fires", []).append(
+            {"location": world.get("location"), "lit_at": _now(world), "stage": 0, "feature_id": feature.get("id")})
+    remember(session, "arson", f"{_place_name(world, world.get('location'))} içinde ateş yaktı")
     narration = "Kıvılcım tutuyor; duman yükselmeye, ardından alev yalamaya başlıyor."
     if present:
         narration += f" {living_world.public_npc_name(present[0])} sana dönüp bağırıyor: “Deli misin sen?”"

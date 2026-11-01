@@ -145,6 +145,8 @@ def advance(world, seconds, reason, source, *, observation=None):
     if actual > 0:
         import world_threads
         world_threads.tick(world, old + actual)
+        import bold_acts
+        bold_acts.on_time(world, old + actual)
     clock["elapsed_seconds"] = old + actual
     return {"elapsed_seconds": actual, "requested_seconds": seconds,
             "remaining_seconds": seconds - actual, "interrupted": resolution["interrupted"],

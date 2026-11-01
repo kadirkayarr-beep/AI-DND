@@ -893,7 +893,9 @@ def resolve_input(session, text):
             journey and journey["status"] != "ARRIVED"
         ) else None
         advancement = _advance(session, duration, "sleep" if "uyu" in normalized else "explicit_wait", observation)
-        return _result("wait", _time_passed_line(advancement), advancement)
+        import bold_acts
+        seen = bold_acts.fire_line(world)
+        return _result("wait", f"{_time_passed_line(advancement)} {seen}".strip(), advancement)
     if task and (duration is not None or world.get("active_task")):
         if journey and journey["status"] != "ARRIVED":
             return _result("task", "Bu yeri incelemek için önce yolculuğunu tamamlamalı veya geri dönmelisin.",
