@@ -317,7 +317,7 @@ class TheAuthoredCatalog(unittest.TestCase):
 
     def test_only_public_and_owner_words_are_read(self):
         allowed = {"id", "type", "place_kinds", "target_place_kinds", "public_lines", "owner_lines",
-                   "offer_hours", "pay", "work_days", "pay_basis", "item_noun", "status_lines"}
+                   "offer_hours", "pay", "work_days", "pay_basis", "item_noun", "status_lines", "group"}
         for template in thread_catalog.load():
             self.assertLessEqual(set(template), allowed)
 

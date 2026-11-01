@@ -111,6 +111,10 @@ def adapt(item: Any, mapping: dict[str, Any]) -> dict[str, Any] | None:
         "public_lines": [public.replace("{place_name}", "{place}")], "owner_lines": [owner],
         "offer_hours": [hours, hours],
     }
+    if item.get("requester_group"):
+        template["group"] = str(item["requester_group"])
+    if item.get("requester_group"):
+        template["group"] = str(item["requester_group"])
     if "{recipient}" in owner or "{target}" in owner:
         template["target_place_kinds"] = list(mapping.get("target_place_kinds", ()))
     if "{pay}" in owner:

@@ -35,6 +35,10 @@ MAX_ACTIVE = 8
 MAX_HISTORY = 8
 MAX_LOG = 6
 WARY_PERCENT = 20
+WANT_PERCENT = 55  # how often one thread that fits what the character is after is moved up the town's list
+MAX_WANTS = 2
+WANT_PERCENT = 55  # how often one thread that fits what the character is after is moved up the town's list
+MAX_WANTS = 2
 MAX_SETTLEMENTS = 4
 MAX_SEEDED_PLACES = 5  # the rest of the settlement's places stay for the player to find
 MIN_OPEN = 2
@@ -317,9 +321,52 @@ def _open_thread(world, state, template, settlement_id, *, create, now, place=No
     return thread
 
 
+def want_table() -> dict[str, Any]:
+    """The things a character can be after; the only ids a reading can name."""
+    import name_catalog
+    try:
+        return json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8")).get("player_wants") or {}
+    except (OSError, ValueError):
+        _LOG.warning("The list of what a character can be after could not be read.")
+        return {}
+
+
+def wants_of(world: dict[str, Any]) -> list[str]:
+    wants = (world.get("flags") or {}).get("player_wants")
+    return list(wants) if isinstance(wants, list) else []
+
+
+def note_want(world: dict[str, Any], want: Any) -> None:
+    """A listed goal the character has; a new one pushes out the oldest."""
+    if want not in want_table():
+        return
+    wants = [held for held in wants_of(world) if held != want]
+    world.setdefault("flags", {})["player_wants"] = [*wants, want][-MAX_WANTS:]
+
+
+def serves(template: dict[str, Any], wants: Any) -> bool:
+    """This kind of work lies in the direction of what the character is after."""
+    table = want_table()
+    return any((template.get("group") in (table.get(want) or {}).get("groups", ())) if template.get("group")
+               else bool(set(template.get("place_kinds") or ()) & set((table.get(want) or {}).get("place_kinds", ())))
+               for want in wants)
+
+
+def _leaning(world, *salt) -> str | None:
+    """A tilt, drawn from the seed: some of the time one fitting kind of work comes up the list, and nothing else changes."""
+    wants = wants_of(world)
+    seed = living_world._campaign_seed(world)
+    if not wants or _rank(seed, "want", *salt) % 100 >= WANT_PERCENT:
+        return None
+    fitting = [t["id"] for t in catalog()["templates"] if serves(t, wants)]
+    return min(fitting, key=lambda identity: _rank(seed, "want", identity, *salt), default=None)
+
+
 def _seed_settlement(world, state, settlement_id):
     seed = living_world._campaign_seed(world)
-    templates = sorted(catalog()["templates"], key=lambda item: _rank(seed, settlement_id, "order", item["id"]))
+    leaning = _leaning(world, settlement_id)
+    templates = sorted(catalog()["templates"], key=lambda item: (
+        item["id"] != leaning, _rank(seed, settlement_id, "order", item["id"])))
     wanted = 3 + _rank(seed, settlement_id, "count") % 2
     types: dict[str, int] = {}
     opened = 0
@@ -1700,8 +1747,9 @@ def _replenish(world, state, now):
                   if t.get("settlement_id") == settlement_id}
         mine = [t for t in state["threads"] if t.get("settlement_id") == settlement_id]
         last_type = mine[-1]["type"] if mine else None
-        order = sorted(catalog()["templates"],
-                       key=lambda item: _rank(seed, settlement_id, "later", now // 86400, item["id"]))
+        leaning = _leaning(world, settlement_id, now // 86400)
+        order = sorted(catalog()["templates"], key=lambda item: (
+            item["id"] != leaning, _rank(seed, settlement_id, "later", now // 86400, item["id"])))
         for template in order:
             if len(active(world, settlement_id)) >= MIN_OPEN or len(state["threads"]) >= MAX_ACTIVE:
                 break

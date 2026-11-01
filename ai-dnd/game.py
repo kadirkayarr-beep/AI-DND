@@ -17930,6 +17930,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
                             else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
+    import world_threads
+    world_threads.note_want(world, front_proposal.want_in(reply, listed))
     route = front_proposal.validate(reply, listed)
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)

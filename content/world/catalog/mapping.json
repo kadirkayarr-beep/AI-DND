@@ -13,6 +13,14 @@
     "sehir_kapisi": [],
     "sehir_cevresi": []
   },
+  "player_wants": {
+    "serve_the_great": {"label": "güçlü birinin yanında hizmet, koruma, mevki", "groups": ["soylu", "muhafiz"], "place_kinds": ["estate", "barracks"]},
+    "coin": {"label": "para, altın, kazanç", "groups": ["tuccar"], "place_kinds": ["market", "harbor"]},
+    "faith": {"label": "inanç, tapınak, kefaret", "groups": ["tapinak"], "place_kinds": ["temple", "graveyard"]},
+    "craft": {"label": "zanaat, ustalık, lonca", "groups": ["lonca"], "place_kinds": ["smithy", "workshop"]},
+    "secrets": {"label": "sır, kayıt, eski bilgi", "groups": [], "place_kinds": ["archive", "library"]},
+    "the_sea": {"label": "deniz, liman, uzak yollar", "groups": ["liman"], "place_kinds": ["harbor"]}
+  },
   "vouch_from": {"estate": ["temple", "market", "harbor"], "barracks": ["harbor", "workshop", "market", "temple"]}, "target_place_kinds": ["market", "harbor", "temple", "barracks", "workshop", "stable", "estate"],
   "pay": {"hiring": [20, 60], "errand": [10, 30]},
   "work_days": [1, 3],
