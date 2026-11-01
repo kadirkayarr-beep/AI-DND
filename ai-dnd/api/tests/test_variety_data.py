@@ -98,6 +98,15 @@ class PlaceTests(unittest.TestCase):
         for line in ("Kızıl Örs Ocağı nerede?", "Kızıl Örs Ocağına gitmiyorum.", "Kızıl dükkâna gidiyorum."):
             self.assertIsNone(local_places.visit_by_name(world, "kent", line), line)
 
+    def test_a_person_recommending_a_real_place_is_not_corrected_to_another(self):
+        for name in ("Lavanta Avlusu Hanı", "Kızıl Örs Ocağı", "Yedi Kadeh Hanı", "Tilki Heybesi Bakkalı"):
+            line = f"{name} şehir merkezinde, uğrayabileceğin sakin bir yerdir."
+            options = [{"name": "Başka Yer", "location_id": "b", "access": "available"},
+                       {"name": name, "location_id": "a", "access": "available"}]
+            with patch.object(game, "_local_place_recommendation_options", lambda *a, **k: options):
+                self.assertEqual(game._ground_local_place_recommendation_reply(
+                    line, {"id": "npc"}, {"locations": {}}, "Şehirde gidebileceğim sakin bir yer önerir misin?"), line)
+
     def test_a_taken_name_is_not_given_again(self):
         world = marked_world("tohum3")
         names = set()

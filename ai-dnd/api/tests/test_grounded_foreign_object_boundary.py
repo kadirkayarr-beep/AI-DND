@@ -6,6 +6,7 @@ from unittest.mock import patch
 import campaign_time
 import grounded_action
 import living_world
+import name_catalog
 from api.tests import test_campaign_api as fixture
 
 
@@ -22,7 +23,7 @@ class ForeignObjectHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def fixture(self):
         original=living_world.stable_local_name
-        with patch.object(living_world,'stable_local_name',lambda world,location,role: 'Dalia' if 'tavern' in role else original(world,location,role)):
+        with patch.object(living_world,'stable_local_name',lambda world,location,role: 'Dalia' if 'tavern' in role else original(world,location,role)), patch.object(name_catalog,'place_name',lambda *args: None):
             _,_,session,url,venue,door=await fixture.create_city_with_locked_tavern(self)
         self.assertEqual(session.world_state['locations'][venue]['name'],'Dalia Hanı')
         door.update(name='Eski Han Kapısı',description='Eski Han Kapısı',open=False,locked=True,broken=False)

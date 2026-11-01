@@ -8704,6 +8704,11 @@ def _ground_local_place_recommendation_reply(
         for alias in place.get("aliases", []) if isinstance(place, dict) else []:
             if isinstance(alias, str) and alias.strip():
                 by_name[npc_statements.fold(alias)] = option
+    spoken_options = [item for item in options if npc_statements.fold(item["name"]) in folded_spoken]
+    if len(spoken_options) == 1 and all(
+        npc_statements.fold(name) in npc_statements.fold(spoken_options[0]["name"]) for name, _, _ in names
+    ):
+        return spoken_text  # a catalog name need not end in a word the parser reads whole
     matched = [by_name.get(npc_statements.fold(name)) for name, _, _ in names]
     if matched and all(item is not None for item in matched) and len(
         {item["location_id"] for item in matched}

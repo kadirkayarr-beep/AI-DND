@@ -1,7 +1,7 @@
 """Task-only fixed-seed diagnostic executing the original compound oracle unchanged."""
 import copy,functools,hashlib,json,unittest
 from unittest.mock import patch
-import game, living_world, uuid, types, itertools
+import game, living_world, name_catalog, uuid, types, itertools
 from api import session_manager
 from api.tests import test_intent_response_consistency as original
 
@@ -23,6 +23,8 @@ class CompoundTrace(unittest.IsolatedAsyncioTestCase):
         else:
             raise AssertionError('No bounded diagnostic campaign found')
         self.diagnostic_campaign = cid
+        # The collision above is found in the seeded pool, so this frozen campaign stays on it.
+        self.enterContext(patch.object(name_catalog, 'adopt', lambda world: None))
         sequence = itertools.chain([uuid.UUID(cid)], (uuid.UUID(int=10000+i, version=4) for i in itertools.count()))
         self.enterContext(patch.object(session_manager, 'uuid', types.SimpleNamespace(uuid4=lambda: next(sequence))))
         factory=game.create_session
