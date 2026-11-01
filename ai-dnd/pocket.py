@@ -14,7 +14,10 @@ import world_threads
 
 _INTO_THE_BAG = re.compile(r"\b(?:cebe|cebime|cebine|cantama|cantaya|cantamiza|heybeme|heybeye|torbama|torbaya)\b")
 _PUTS_IT_THERE = re.compile(r"\b(?:ali(?:p|yorum)|at(?:iyorum|ip|tim|ayim)|koy\w*|sok\w*|topl\w*|tik\w*)\b")
-_TOSSES = re.compile(r"\b(?:firlat\w*|yirt(?:iyorum|ip|tim|ayim)|yak(?:iyorum|ip|tim|ayim)|at(?:iyorum|ip|tim|ayim))\b")
+_TOSSES = re.compile(r"(?:firlat|yirt|yak|at)(?:iyorum|ip|tim|ayim)")
+_PHRASE_NOUNS = frozenset({"goz", "adim", "imza", "tur", "bakis", "kahkaha", "laf", "nara", "tekme"})  # 'göz atmak' throws nothing
+_LIT_NOT_BURNT = ("mesale", "fener", "mum", "lamba", "kandil")
+_ON_THE_WAY_TO_THE_VERB = ("a", "e", "ip", "up")  # 'denize', 'buruşturup'
 _WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese")
 _NOT_THINGS = frozenset({
     "alip", "aliyorum", "atiyorum", "koyuyorum", "sokuyorum", "topluyorum", "toplayip", "iyilerini", "icinde", "icine",
@@ -53,8 +56,11 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
         return None  # nothing here to put away: whoever else this line is for still reads it
     name = thing[:1].upper() + thing[1:].casefold()
     equipment_economy.grant_plain(world, name)
-    line = f"{name} çantana giriyor."
-    flags = world.setdefault("flags", {})
+    return _receipt(session, text, f"{name} çantana giriyor.")
+
+
+def _receipt(session, text: str, line: str) -> dict[str, Any]:
+    flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": line}])
     return {"messages": session.messages, "narration": line, "model_calls": 0,
@@ -62,8 +68,27 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
                               "state_changes": ["inventory"], "direct_response": line}}
 
 
-def _toss(session, words: list[str]) -> None:
-    """Thrown away is gone: the narrator tells it, the bag has already lost it."""
+def _object_of(words: list[str], at: int, stem: str) -> bool:
+    """The thing is what this verb acts on: 'mektubu denize atıyorum', never 'mektuba göz atıyorum'."""
+    for back in range(at - 1, max(at - 4, -1), -1):
+        word = words[back]
+        if word.startswith(stem) and (word[-1] in "iu"):
+            return True
+        if word in _PHRASE_NOUNS or not (word == "bir" or word.endswith(_ON_THE_WAY_TO_THE_VERB)):
+            return False
+    return False
+
+
+def _thrown_at(words: list[str], stem: str) -> int | None:
+    for at, word in enumerate(words):
+        if _TOSSES.fullmatch(word) and _object_of(words, at, stem) and not (
+                word.startswith("yak") and stem.startswith(_LIT_NOT_BURNT)):
+            return at
+    return None
+
+
+def _toss(session, text: str, words: list[str]) -> dict[str, Any] | None:
+    """Thrown away is gone, and the screen says so: the bag has already lost it."""
     world = session.world_state
     held = set((world.get("equipment") or {}).values())
     for item in list(world.get("inventory", [])):
@@ -71,14 +96,15 @@ def _toss(session, words: list[str]) -> None:
         if not isinstance(name, str) or item.get("item_id") in held:
             continue
         stem = world_threads._stem(living_world.normalize_text(name).split()[0]) if name.strip() else ""
-        if len(stem) < 3 or not any(word.startswith(stem) for word in words):
+        if len(stem) < 3 or _thrown_at(words, stem) is None:
             continue
         world["inventory"].remove(item)
         quest = str(item.get("item_id") or "").removeprefix("parcel:")
         for thread in (world_threads.view(world) or {"threads": []})["threads"]:
             if thread.get("quest_id") == quest:
                 thread["parcel_gone"] = True
-        return
+        return _receipt(session, text, f"{name} elinden çıkıyor; artık sende değil.")
+    return None
 
 
 def resolve(session, text: Any) -> dict[str, Any] | None:
@@ -90,6 +116,4 @@ def resolve(session, text: Any) -> dict[str, Any] | None:
     words = folded.split()
     if _INTO_THE_BAG.search(folded) and _PUTS_IT_THERE.search(folded):
         return _take(session, text, words)
-    if _TOSSES.search(folded):
-        _toss(session, words)
-    return None
+    return _toss(session, text, words)

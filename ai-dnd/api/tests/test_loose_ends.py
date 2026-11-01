@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import campaign_time
 import living_world
+import pocket
 import world_threads
 from adventure import dialogue_jobs
 
@@ -58,6 +59,48 @@ class ReadingIsSomethingYouDo(consequences.OnTheJob):
         await self.carrying(template="meeting_note", noun="not")
         self.world["flags"].pop("active_npc_id", None)
         self.assertIn("Kâğıtta", dialogue_jobs.read_parcel(self.session, "notta ne yazıyor?")["narration"])
+
+
+class Bag:
+    """Only what pocket reads of a session."""
+
+    def __init__(self):
+        self.character = {"current_hp": 9}
+        self.messages = []
+        self.world_state = {
+            "inventory": [{"item_id": "parcel:job:abc", "name": "Mektup", "quantity": 1},
+                          {"item_id": "item_torch", "name": "Meşale", "quantity": 1}],
+            "equipment": {}, "flags": {}, "combat": {}, "npcs": [], "location": "kapi",
+            world_threads.KEY: {"version": world_threads.SCHEMA_VERSION, "threads": [{"quest_id": "job:abc", "status": "accepted"}]},
+        }
+
+    def names(self):
+        return [item["name"] for item in self.world_state["inventory"]]
+
+    def thread(self):
+        return self.world_state[world_threads.KEY]["threads"][0]
+
+
+class ThrowingNeedsAThingThrown(unittest.TestCase):
+    def test_a_turn_of_phrase_with_at_in_it_throws_nothing(self):
+        for line in ("mektuba göz atıyorum", "meşaleyle bir adım atıp kapıya bakıyorum", "mektubu alıp bir göz atıyorum",
+                     "mektuba imza atıyorum", "mektubu okuyup kahkaha atıyorum", "mesela meşaleyi verdim atıyorum",
+                     "meşaleyi yakıyorum", "meşaleyi yakıp ilerliyorum", "mektubu fırlatmıyorum"):
+            bag = Bag()
+            self.assertIsNone(pocket.resolve(bag, line), line)
+            self.assertEqual(bag.names(), ["Mektup", "Meşale"], line)
+            self.assertNotIn("parcel_gone", bag.thread(), line)
+
+    def test_a_real_throw_is_told_on_the_screen(self):
+        for line, gone in (("mektubu denize atıyorum", "Mektup"), ("meşaleyi yere fırlatıyorum", "Meşale"),
+                           ("mektubu yırtıyorum", "Mektup"), ("mektubu yakıyorum", "Mektup"),
+                           ("meşaleyi alıp kuyuya atıyorum", "Meşale")):
+            bag = Bag()
+            out = pocket.resolve(bag, line)
+            self.assertNotIn(gone, bag.names(), line)
+            self.assertIn(gone, out["narration"], line)
+            self.assertEqual(out["model_calls"], 0, line)
+        self.assertNotIn("parcel_gone", bag.thread())
 
 
 if __name__ == "__main__":
