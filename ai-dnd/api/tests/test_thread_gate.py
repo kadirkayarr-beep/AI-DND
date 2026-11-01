@@ -34,7 +34,7 @@ class ThreadTable(unittest.IsolatedAsyncioTestCase):
         state = world_threads.view(self.world)
         self.assertIsNotNone(state)
         self.thread = state["threads"][0]
-        self.thread.update(type=kind, status="open", place_id=self.place_id, expires_at=5 * 86400,
+        self.thread.update(type=kind, status="open", place_id=self.place_id, expires_at=5 * 86400, night_only=False,
                            owner_line="Yirmi bakır, iki gün; günlüğü on bakır.",
                            terms={"pay": 20, "work_days": 2, "pay_basis": "total", "pay_timing": "end_of_day",
                                   "deadline_text": "iki gün içinde"})
