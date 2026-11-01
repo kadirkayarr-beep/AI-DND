@@ -18002,13 +18002,15 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
 
 def _narrated_person(word):
     """Someone the last narration described is there to be spoken to: Python makes them real, once."""
+    import pocket
     folded = living_world.normalize_text(word)
     stem = folded[:max(4, len(folded) - 1)]
     if len(folded) < 4:
         return None
     here = _conversation_npcs()
     same = next((npc for npc in here if stem in living_world.normalize_text(npc.get("role"))), None)
-    if same is not None or stem not in living_world.normalize_text(_recent_player_visible_narration()):
+    told = pocket.told_as_there(_recent_player_visible_narration(limit=4000))
+    if same is not None or stem not in living_world.normalize_text(told):
         return same
     label = word.strip().capitalize()
     return create_npc_from_ai({"name": label, "role": label, "appearance": f"Az önce gözüne çarpan {word.strip()}",

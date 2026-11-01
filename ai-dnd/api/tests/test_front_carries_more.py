@@ -258,6 +258,22 @@ class SomeoneTheNarrationDescribed(FrontTable):
         await self.line("nobetci sen bi sey gordun mu")
         self.assertEqual(len(self.world["npcs"]), count)
 
+    async def test_the_players_own_question_describes_nobody(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.narrated("Sen: “burada nobetci var mi”\n\nBarmen bardağı siliyor. “Nöbetçi mi? Bilmem.”")
+        self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
+        await self.line("nobetciye sesleniyorum")
+        self.assertEqual(len(self.world["npcs"]), count)
+
+    async def test_a_narration_that_denies_someone_describes_nobody(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.narrated("Kapıda nöbetçi yok.")
+        self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
+        await self.line("nobetciye sesleniyorum")
+        self.assertEqual(len(self.world["npcs"]), count)
+
     async def test_a_guard_nobody_described_is_not_conjured(self):
         await self.begin()
         count = len(self.world["npcs"])
