@@ -810,6 +810,14 @@ class InPlay(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Sağ ol, bekliyordum.", text)
         self.assertEqual(self.status(), "accepted")
 
+    async def test_walking_to_a_place_in_town_takes_time(self):
+        await self.trouble()
+        place = next(r for r in self.world["locations"].values() if r.get("place_kind") and r["id"] != self.world["location"])
+        before = world_threads._now(self.world)
+        await self.line(f"{place['name']} tarafına gidiyorum", "Hmm.")
+        self.assertEqual(self.world["location"], place["id"])
+        self.assertEqual(world_threads._now(self.world) - before, 600)
+
     async def test_saying_you_will_not_takes_nothing_on(self):
         for line in ("yardım edemem kusura bakma", "derdin bana ne", "hallederim mi bilmem ama yardım etmem"):
             await self.trouble()

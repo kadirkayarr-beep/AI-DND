@@ -17425,6 +17425,9 @@ def _local_place_turn(player_input):
         world.clear()
         world.update(before)
         return None
+    if "campaign_time" in world:  # the walk takes what a walk takes, and the town moves on meanwhile
+        import grounded_action
+        advance_campaign_time(grounded_action.LOCAL_WALK_SECONDS, "exploration")
     npc, feature = local_places.furnish(
         world, record, create_npc=create_npc_from_ai, create_feature=create_local_feature,
     )

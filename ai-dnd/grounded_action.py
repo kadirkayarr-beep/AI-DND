@@ -37,6 +37,7 @@ import npc_statements
 
 KEY = "grounded_actions"
 SCHEMA_VERSION = 1
+LOCAL_WALK_SECONDS = 600
 
 
 def fold(text: Any) -> str:
@@ -1365,6 +1366,13 @@ def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, 
     return ""
 
 
+def _walked(run: _Run, place: dict[str, Any], verb: str) -> dict[str, Any] | None:
+    """Crossing town takes the time it takes; a receipt only when something stopped the walk."""
+    if run.here == place["id"] or not run.spend(LOCAL_WALK_SECONDS).get("interrupted"):
+        return None
+    return _receipt(verb, "blocked", place, reason="interrupted", text="Yolda bir şey seni durduruyor.")
+
+
 def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=None, prefix: str = "") -> dict[str, Any]:
     """Stand in front of a place in the current street (no teleport inside)."""
     import local_places
@@ -2039,7 +2047,7 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
     if target is None and commitment is not None:
         place = _commitment_place(run, commitment)
         if place:
-            return _arrive_front(run, place, verb="go" if verb == "go" else "approach", commitment=commitment)
+            return _walked(run, place, verb) or _arrive_front(run, place, verb="go" if verb == "go" else "approach", commitment=commitment)
     if target is None and step.get("outside"):
         if run.location(run.here) and run.location(run.here).get("parent_location_id"):
             return _do_leave(run, step)
@@ -2090,6 +2098,9 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
     if place is None:
         return _receipt(verb, "blocked", target, reason="no_target", text="Oraya nasıl gideceğini çıkaramadım.")
     run.game._clear_active_interlocutor()
+    stopped = _walked(run, place, verb)
+    if stopped:
+        return stopped
     if verb == "enter":
         if run.here != place["record"].get("parent_location_id") and run.here != place["id"]:
             front = _arrive_front(run, place, verb="approach")
