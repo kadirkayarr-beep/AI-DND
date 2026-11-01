@@ -341,5 +341,8 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
             else:
                 before = s.serialize_game_state(), s.rng.getstate(), self.store.get_campaign(a["campaign_id"])
                 r = await self.http.post(url, json={"message": message, "target_id": target, "action_id": str(uuid.uuid4())})
-                self.assertEqual(r.status_code, 400, r.text)
-                self.assertEqual((s.serialize_game_state(), s.rng.getstate(), self.store.get_campaign(a["campaign_id"])), before)
+                # A plain line a fight will not allow is answered inside the fight, as the owner asked; nothing changes.
+                self.assertEqual(r.status_code, 200, r.text)
+                self.assertEqual(r.json()["turn_outcome"]["status"], "fight_refused")
+                self.assertEqual(s.rng.getstate(), before[1])
+                self.assertEqual(e["current_hp"], 100)

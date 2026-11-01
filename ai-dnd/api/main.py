@@ -1393,6 +1393,7 @@ def create_app(
                                         result = session.player_cannot_act_turn()
                                     except combat_lifecycle.CombatRequestError as error:
                                         if (request.combat_action is not None or effective_mode not in {None, "do"}
+                                                or request.message.lstrip().startswith("/")
                                                 or not session.world_state.get("combat", {}).get("active")):
                                             raise  # typed commands and door rules keep their typed refusal
                                         restore_turn_snapshot()
