@@ -291,6 +291,21 @@ def deliver_late(session,thread,person,text):
         raise
 
 
+def give_plain(world,item_id,person):
+    """Something of the bag that no job names goes to this person, and their hands hold it from now on."""
+    item=next((i for i in world.get('inventory',[]) if isinstance(i,dict) and i.get('item_id')==item_id),None)
+    if item is None: return None
+    kept=_keep(world)
+    try:
+        equipment_economy.materialize(world)
+        equipment_economy.move(world,item,world['inventory'],person.setdefault('inventory',[]),'player')
+        equipment_economy.validate_world(world)
+        return item
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
 def take_reply(session,thread,text,action):
     shown=shown_line(session.world_state,thread,'taken')
     action=dict(action,direct_response=shown)

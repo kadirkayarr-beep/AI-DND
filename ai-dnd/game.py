@@ -8541,6 +8541,10 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
             "varsa onu söyle, yoksa bilmediğini söyle."
         )
+    handed = getattr(_session(), "_handed_note", None)
+    if handed:
+        lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
+        _session()._handed_note = None
     import bold_acts
     return (_SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc)
             + town_knowledge.promise_note(world, npc)
@@ -17918,6 +17922,42 @@ def _front_offer_gate(route, player_input):
         return None
 
 
+def _front_hand_over(route, player_input):
+    """The model read a hand-over and named a listed thing. Python moves it; failing that the person hears the line."""
+    import town_knowledge
+    import world_threads
+    from adventure import dialogue_jobs
+    session = _session()
+    world = session.world_state
+    person = next((npc for npc in active_npcs() if npc.get("id") == route["person_id"]), None)
+    if person is None:
+        return None
+    heard = {"decision": None, "npc_id": person["id"]}
+    item_id = route["item"]
+    if item_id is None or "?" in player_input:
+        return _thread_gate(player_input, person["id"], "say") or heard  # nothing named: the old reader, then their answer
+    try:
+        session.require_player_can_act()
+        thread = world_threads.parcel_thread(world, item_id)
+        if thread is None:
+            given = None if item_id.startswith("parcel:") else dialogue_jobs.give_plain(world, item_id, person)
+            if given is not None:
+                session._handed_note = given.get("name")
+            return heard
+        decision = ("give" if thread in world_threads.deliveries_to(world, person)
+                    else "give_late" if thread in world_threads.late_parcels(world, person) else None)
+        if decision is None:
+            return heard  # not theirs to take: it stays in hand and they say so
+        return _carry_out_thread_turn(session, world, {"thread_id": thread["thread_id"], "decision": decision,
+                                                       "npc_id": person["id"]}, person, player_input)
+    except PlayerCannotAct:
+        raise
+    except Exception:
+        town_knowledge.log_failure()
+        session._thread_turn = None
+        return heard
+
+
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
@@ -18046,6 +18086,7 @@ def _dispatch_player_turn(
     if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
+                    else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _thread_gate(player_input, target_id, interaction_mode))
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]

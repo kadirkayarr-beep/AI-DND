@@ -1206,6 +1206,13 @@ def late_parcels(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and dialogue_jobs.holds_parcel(world, t)]
 
 
+def parcel_thread(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
+    """The job a parcel in the bag belongs to, open or closed."""
+    state = view(world)
+    return next((t for t in (*state["threads"], *state["history"])
+                 if t.get("quest_id") and item_id == f"parcel:{t['quest_id']}"), None) if state else None
+
+
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()
