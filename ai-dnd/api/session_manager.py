@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 import campaign_time
 import game
+import name_catalog
 import character_progression
 import incidents.hooks as incident_hooks
 from incidents.attempts import SqliteAttemptStore
@@ -215,6 +216,7 @@ class SessionManager:
         session.ensure_campaign_clock()
         campaign_id = str(uuid.uuid4())
         campaign_time.seed_start(session.world_state, campaign_id)
+        name_catalog.adopt(session.world_state)
         set_session_world_metadata(session)
         journal = create_initial_campaign_journal(
             session.world_state,

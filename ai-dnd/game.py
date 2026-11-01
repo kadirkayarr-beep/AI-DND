@@ -26,6 +26,7 @@ import local_dialogue
 import local_exploration
 import held_weapon
 import monster_sense
+import name_catalog
 import campaign_time
 import scheduled_events
 import timed_gameplay
@@ -15751,9 +15752,9 @@ def _ensure_local_tavern(parent_location_id, *, open_for_entry=False):
     number = max(1, int(world_state.get("next_location_number", 1)))
     while f"location_{number:03d}" in locations:
         number += 1
-    name = living_world.stable_local_name(
-        world_state, parent_location_id, "local tavern"
-    ) + " Hanı"
+    name = name_catalog.place_name(world_state, "tavern", parent_location_id) or (
+        living_world.stable_local_name(world_state, parent_location_id, "local tavern") + " Hanı"
+    )
     location_id = f"location_{number:03d}"
     world_state["next_location_number"] = number + 1
     record = {
@@ -17229,7 +17230,9 @@ def _local_place_turn(player_input):
     if settlement is None or session.character.get("current_hp", 0) <= 0:
         return None
     person_place = local_places.resident_visit(world, settlement, player_input)
-    kind = local_places.is_local_place_visit(player_input) or (person_place or {}).get("place_kind")
+    named_place = local_places.visit_by_name(world, settlement, player_input)
+    kind = (local_places.is_local_place_visit(player_input) or (person_place or {}).get("place_kind")
+            or (named_place or {}).get("place_kind"))
     if kind is None:
         return None
     record = (person_place or local_places.named_in(world, settlement, player_input)

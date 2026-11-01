@@ -1515,6 +1515,12 @@ def _campaign_seed(world_state: dict[str, Any]) -> str:
     return seed if isinstance(seed, str) else ""
 
 
+def _catalog_people(world_state: dict[str, Any]) -> tuple[str, ...]:
+    """The catalog's people, for a campaign marked when it was created; empty for any other."""
+    import name_catalog
+    return name_catalog.people() if name_catalog.in_use(world_state) else ()
+
+
 def _stable_name(world_state: dict[str, Any], location_id: str, role: str) -> str:
     """Pick a deterministic, unused local NPC name.
 
@@ -1525,7 +1531,7 @@ def _stable_name(world_state: dict[str, Any], location_id: str, role: str) -> st
     their stored name and only block it from being picked again.
     """
     seed = _campaign_seed(world_state)
-    pool = _LOCAL_NAMES if seed else _LEGACY_LOCAL_NAMES
+    pool = (_catalog_people(world_state) or _LOCAL_NAMES) if seed else _LEGACY_LOCAL_NAMES
     material = f"{location_id}\x00{role}\x00{world_state.get('next_npc_number', 1)}"
     if seed:
         material = f"{seed}\x00{material}"

@@ -1,0 +1,4516 @@
+{
+  "schema_version": "1.0.0",
+  "field_descriptions": {
+    "schema_version": "Bu veri belgesinin şema sürümü.",
+    "field_descriptions": "Alan adlarının Türkçe açıklamaları.",
+    "kapsam": "İçeriğin kurmaca niteliği, sınırları ve kullanım amacı.",
+    "türkçe_ek_rehberi": "Temel adı bozmadan bağlama uygun Türkçe kullanım ilkeleri.",
+    "kişiler": "Beş halkın her birinden 60 kişi: 20 erkek, 20 kadın, 20 nötr; tamamı yetişkindir.",
+    "person_id": "Dosya içinde benzersiz ve değişmez kişi kimliği; adın parçası değildir.",
+    "halk": "Kurmaca halk kategorisi: insan, cüce, elf, halfling veya gnome.",
+    "cinsiyet": "Bu havuzdaki adlandırma kategorisi: erkek, kadın veya nötr. Nötr bir adın kullanımı karakterin kimliğini tek başına belirlemez.",
+    "adult": "Her kayıtta true: karakter yalnızca yetişkin olarak kullanılmalıdır.",
+    "ad": "Türkçe harflerle yazılan temel kişi adı.",
+    "soyad": "Kurmaca aile adı; temel biçimi korunur.",
+    "tam_ad": "Ad, bir boşluk ve soyadın birleşimi.",
+    "han_kalıpları": "60 ayrı han ve konaklama yeri adı kalıbı.",
+    "dükkân_kalıpları": "60 ayrı dükkân adı kalıbı.",
+    "mahalle_kalıpları": "30 ayrı mahalle veya semt adı kalıbı.",
+    "template_id": "Dosya içinde benzersiz kalıp kimliği; görünen adın parçası değildir.",
+    "kalıp": "Süslü ayraç içindeki açık yuvaları doldurularak kullanılacak ad kalıbı.",
+    "yuvalar": "Kalıpta geçen yuva anahtarları; açıklamaları yuva_sözlüğü alanındadır.",
+    "örnek_değerleri": "Bu kaydın örneğini oluşturan yuva-değer eşleştirmesi.",
+    "örnek": "Örnek değerleriyle doldurulmuş kurmaca yer veya işletme adı; mevcut bir yer iddiası değildir.",
+    "yuva_sözlüğü": "Yuva anahtarlarına göre değer türü ve örnek seçenekleri.",
+    "açıklama": "İlgili yuvanın hangi tür ifadeyi kabul ettiği.",
+    "örnek_değerler": "Yalın biçimde kullanılabilecek örnek yuva değerleri; liste zorunlu veya kapalı değildir."
+  },
+  "kapsam": {
+    "amaç": "Faerûn atmosferini çağrıştıran, ancak o evrenin kanonunu temsil etmeyen masaüstü fantastik kurgu için ad ve yer adı havuzu.",
+    "kanon_notu": "Kişiler, soyadları ve örnek yerler bu dosya için kurmaca olarak tasarlanmıştır; kanonik kişi, soy, yer, tarih veya lore iddiası taşımaz.",
+    "özgünlük_notu": "Adlar kasıtlı olarak icat edilmiştir; bilinen gerçek kişilerin veya kanonik karakterlerin adları kaynak alınmamıştır. Dünya çapında tesadüfi ad benzerliği bulunmadığı garanti edilemez.",
+    "yetişkinlik": "300 kişinin tamamı yetişkindir; tam yaş, görünüş ve geçmiş bu havuz tarafından belirlenmez.",
+    "adlandırma": "Halk kategorileri yalnızca üslup ayrımı içindir; yetenek, ahlak, meslek veya kişilik hakkında çıkarım oluşturmaz."
+  },
+  "türkçe_ek_rehberi": [
+    "Ad, soyad ve tam_ad değerlerini temel biçimleriyle saklayın; çekimli biçimi ayrı cümle bağlamında üretin.",
+    "Kişi adlarını Türkçe harflerin doğal sesleriyle okuyun; farklı bir okunuş tercih edilirse çekim için o okunuşu esas alın.",
+    "Ek seçimini yalnızca son ünlüye bakarak mekanik biçimde yapmayın. Gerçek okunuş, son ses, ünlü uyumu, ünsüz uyumu, kaynaştırma ve söz dizimini birlikte değerlendirin.",
+    "Kişi adlarına gelen durum, iyelik ve bildirme eklerinde özel ad yazımını gözetin; adın gövdesini değiştirmeyin. Türetilmiş sözcükler, çoğul ekleri ve kurum adları aynı kesme kuralına körlemesine bağlanmamalıdır.",
+    "Tam ada ek gerektiğinde genellikle son bileşen üzerinde çekim yapılır; bağlam ve unvan kullanımı ayrıca değerlendirilmelidir.",
+    "Hanı, Konağı, Dükkânı gibi kalıp sonlarındaki iyelik yapısını dikkate alın; örneğin 'hanında' ile 'handa' aynı yapı değildir.",
+    "Kalıplardaki yuvaları temel değerlerle doldurun; süslü ayraç dışında görünmeyen ek veya otomatik gövde değişikliği varsaymayın.",
+    "Şüpheli bir çekim yerine adı alıntılayarak '… adlı kişi', '… adlı han' veya '… olarak bilinen semt' gibi doğal bir yapı kullanın.",
+    "Yer ve işletme örnekleri ad önerileridir; gerçek yer veya kanonik mekân kaydı olarak sunmayın."
+  ],
+  "kişiler": [
+    {
+      "person_id": "human_001",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Arvelun",
+      "soyad": "Külpatika",
+      "tam_ad": "Arvelun Külpatika"
+    },
+    {
+      "person_id": "human_002",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Beravon",
+      "soyad": "Gümüşekin",
+      "tam_ad": "Beravon Gümüşekin"
+    },
+    {
+      "person_id": "human_003",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Cevralen",
+      "soyad": "Sisçınar",
+      "tam_ad": "Cevralen Sisçınar"
+    },
+    {
+      "person_id": "human_004",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Doralven",
+      "soyad": "Yelkoru",
+      "tam_ad": "Doralven Yelkoru"
+    },
+    {
+      "person_id": "human_005",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Emsarin",
+      "soyad": "Bakıriz",
+      "tam_ad": "Emsarin Bakıriz"
+    },
+    {
+      "person_id": "human_006",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Feroval",
+      "soyad": "Akşamdal",
+      "tam_ad": "Feroval Akşamdal"
+    },
+    {
+      "person_id": "human_007",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Galduren",
+      "soyad": "Közpınar",
+      "tam_ad": "Galduren Közpınar"
+    },
+    {
+      "person_id": "human_008",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Haverin",
+      "soyad": "Dumanova",
+      "tam_ad": "Haverin Dumanova"
+    },
+    {
+      "person_id": "human_009",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "İralvon",
+      "soyad": "Çiykaya",
+      "tam_ad": "İralvon Çiykaya"
+    },
+    {
+      "person_id": "human_010",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Joraven",
+      "soyad": "Kırlıgeçit",
+      "tam_ad": "Joraven Kırlıgeçit"
+    },
+    {
+      "person_id": "human_011",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Kelmaren",
+      "soyad": "Ayılgın",
+      "tam_ad": "Kelmaren Ayılgın"
+    },
+    {
+      "person_id": "human_012",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ladorin",
+      "soyad": "Yağmurtaş",
+      "tam_ad": "Ladorin Yağmurtaş"
+    },
+    {
+      "person_id": "human_013",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Mervalon",
+      "soyad": "Gölgehasat",
+      "tam_ad": "Mervalon Gölgehasat"
+    },
+    {
+      "person_id": "human_014",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Noravel",
+      "soyad": "Kızılkıyı",
+      "tam_ad": "Noravel Kızılkıyı"
+    },
+    {
+      "person_id": "human_015",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ormaven",
+      "soyad": "Sessizsırt",
+      "tam_ad": "Ormaven Sessizsırt"
+    },
+    {
+      "person_id": "human_016",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Peradun",
+      "soyad": "Bozfiliz",
+      "tam_ad": "Peradun Bozfiliz"
+    },
+    {
+      "person_id": "human_017",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Rovelan",
+      "soyad": "Kırağıdere",
+      "tam_ad": "Rovelan Kırağıdere"
+    },
+    {
+      "person_id": "human_018",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Sendarun",
+      "soyad": "Rüzgârsaz",
+      "tam_ad": "Sendarun Rüzgârsaz"
+    },
+    {
+      "person_id": "human_019",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Toravel",
+      "soyad": "Günçakıl",
+      "tam_ad": "Toravel Günçakıl"
+    },
+    {
+      "person_id": "human_020",
+      "halk": "insan",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Vemarun",
+      "soyad": "Kuzeyyaprak",
+      "tam_ad": "Vemarun Kuzeyyaprak"
+    },
+    {
+      "person_id": "human_021",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Velşira",
+      "soyad": "Gökçatı",
+      "tam_ad": "Velşira Gökçatı"
+    },
+    {
+      "person_id": "human_022",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ombrisa",
+      "soyad": "Uzakçay",
+      "tam_ad": "Ombrisa Uzakçay"
+    },
+    {
+      "person_id": "human_023",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kedruna",
+      "soyad": "Kumçalısı",
+      "tam_ad": "Kedruna Kumçalısı"
+    },
+    {
+      "person_id": "human_024",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ferşeli",
+      "soyad": "Şafakkoru",
+      "tam_ad": "Ferşeli Şafakkoru"
+    },
+    {
+      "person_id": "human_025",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Zunavra",
+      "soyad": "Eskiyel",
+      "tam_ad": "Zunavra Eskiyel"
+    },
+    {
+      "person_id": "human_026",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Pavrisa",
+      "soyad": "Solguniz",
+      "tam_ad": "Pavrisa Solguniz"
+    },
+    {
+      "person_id": "human_027",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Nesvola",
+      "soyad": "Mavigedik",
+      "tam_ad": "Nesvola Mavigedik"
+    },
+    {
+      "person_id": "human_028",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Çervida",
+      "soyad": "Akçaköz",
+      "tam_ad": "Çervida Akçaköz"
+    },
+    {
+      "person_id": "human_029",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Haldrisa",
+      "soyad": "Ilgınsırt",
+      "tam_ad": "Haldrisa Ilgınsırt"
+    },
+    {
+      "person_id": "human_030",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tenvora",
+      "soyad": "Gölçardak",
+      "tam_ad": "Tenvora Gölçardak"
+    },
+    {
+      "person_id": "human_031",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Risçela",
+      "soyad": "Yapraksahil",
+      "tam_ad": "Risçela Yapraksahil"
+    },
+    {
+      "person_id": "human_032",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Uvrelia",
+      "soyad": "Bakırtohum",
+      "tam_ad": "Uvrelia Bakırtohum"
+    },
+    {
+      "person_id": "human_033",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Dazmira",
+      "soyad": "Sazliman",
+      "tam_ad": "Dazmira Sazliman"
+    },
+    {
+      "person_id": "human_034",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Sevrola",
+      "soyad": "Alacageçit",
+      "tam_ad": "Sevrola Alacageçit"
+    },
+    {
+      "person_id": "human_035",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Benkula",
+      "soyad": "Yaldızçınar",
+      "tam_ad": "Benkula Yaldızçınar"
+    },
+    {
+      "person_id": "human_036",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Lervişa",
+      "soyad": "Poyrazekin",
+      "tam_ad": "Lervişa Poyrazekin"
+    },
+    {
+      "person_id": "human_037",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Aşvola",
+      "soyad": "Kırçılpınar",
+      "tam_ad": "Aşvola Kırçılpınar"
+    },
+    {
+      "person_id": "human_038",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tulvera",
+      "soyad": "Kehribarsaz",
+      "tam_ad": "Tulvera Kehribarsaz"
+    },
+    {
+      "person_id": "human_039",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Givşela",
+      "soyad": "Serindal",
+      "tam_ad": "Givşela Serindal"
+    },
+    {
+      "person_id": "human_040",
+      "halk": "insan",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Morçisa",
+      "soyad": "Işıkkemer",
+      "tam_ad": "Morçisa Işıkkemer"
+    },
+    {
+      "person_id": "human_041",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kevrul",
+      "soyad": "Dumanova",
+      "tam_ad": "Kevrul Dumanova"
+    },
+    {
+      "person_id": "human_042",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Donşem",
+      "soyad": "Akçaköz",
+      "tam_ad": "Donşem Akçaköz"
+    },
+    {
+      "person_id": "human_043",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Velsor",
+      "soyad": "Kırlıgeçit",
+      "tam_ad": "Velsor Kırlıgeçit"
+    },
+    {
+      "person_id": "human_044",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Çandrel",
+      "soyad": "Gölçardak",
+      "tam_ad": "Çandrel Gölçardak"
+    },
+    {
+      "person_id": "human_045",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Perviş",
+      "soyad": "Yağmurtaş",
+      "tam_ad": "Perviş Yağmurtaş"
+    },
+    {
+      "person_id": "human_046",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Oskel",
+      "soyad": "Bakırtohum",
+      "tam_ad": "Oskel Bakırtohum"
+    },
+    {
+      "person_id": "human_047",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Tirsum",
+      "soyad": "Kızılkıyı",
+      "tam_ad": "Tirsum Kızılkıyı"
+    },
+    {
+      "person_id": "human_048",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Javrek",
+      "soyad": "Alacageçit",
+      "tam_ad": "Javrek Alacageçit"
+    },
+    {
+      "person_id": "human_049",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Yezmol",
+      "soyad": "Bozfiliz",
+      "tam_ad": "Yezmol Bozfiliz"
+    },
+    {
+      "person_id": "human_050",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Belşun",
+      "soyad": "Poyrazekin",
+      "tam_ad": "Belşun Poyrazekin"
+    },
+    {
+      "person_id": "human_051",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Nivrek",
+      "soyad": "Rüzgârsaz",
+      "tam_ad": "Nivrek Rüzgârsaz"
+    },
+    {
+      "person_id": "human_052",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Zumrel",
+      "soyad": "Kehribarsaz",
+      "tam_ad": "Zumrel Kehribarsaz"
+    },
+    {
+      "person_id": "human_053",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Evdun",
+      "soyad": "Kuzeyyaprak",
+      "tam_ad": "Evdun Kuzeyyaprak"
+    },
+    {
+      "person_id": "human_054",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Şorven",
+      "soyad": "Işıkkemer",
+      "tam_ad": "Şorven Işıkkemer"
+    },
+    {
+      "person_id": "human_055",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Vaslem",
+      "soyad": "Gümüşekin",
+      "tam_ad": "Vaslem Gümüşekin"
+    },
+    {
+      "person_id": "human_056",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kerdum",
+      "soyad": "Uzakçay",
+      "tam_ad": "Kerdum Uzakçay"
+    },
+    {
+      "person_id": "human_057",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Pilşen",
+      "soyad": "Yelkoru",
+      "tam_ad": "Pilşen Yelkoru"
+    },
+    {
+      "person_id": "human_058",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ovrak",
+      "soyad": "Şafakkoru",
+      "tam_ad": "Ovrak Şafakkoru"
+    },
+    {
+      "person_id": "human_059",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Denvul",
+      "soyad": "Akşamdal",
+      "tam_ad": "Denvul Akşamdal"
+    },
+    {
+      "person_id": "human_060",
+      "halk": "insan",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Arşem",
+      "soyad": "Solguniz",
+      "tam_ad": "Arşem Solguniz"
+    },
+    {
+      "person_id": "dwarf_001",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Bordamel",
+      "soyad": "Közdamar",
+      "tam_ad": "Bordamel Közdamar"
+    },
+    {
+      "person_id": "dwarf_002",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Darguven",
+      "soyad": "Bakıryamaç",
+      "tam_ad": "Darguven Bakıryamaç"
+    },
+    {
+      "person_id": "dwarf_003",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Erdomar",
+      "soyad": "Kıvılcımyuva",
+      "tam_ad": "Erdomar Kıvılcımyuva"
+    },
+    {
+      "person_id": "dwarf_004",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Fargulen",
+      "soyad": "Taşperçin",
+      "tam_ad": "Fargulen Taşperçin"
+    },
+    {
+      "person_id": "dwarf_005",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Gorduvan",
+      "soyad": "Granitdal",
+      "tam_ad": "Gorduvan Granitdal"
+    },
+    {
+      "person_id": "dwarf_006",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Harburen",
+      "soyad": "Demirkırağı",
+      "tam_ad": "Harburen Demirkırağı"
+    },
+    {
+      "person_id": "dwarf_007",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "İrgomar",
+      "soyad": "Gümüşkeski",
+      "tam_ad": "İrgomar Gümüşkeski"
+    },
+    {
+      "person_id": "dwarf_008",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Kaldurem",
+      "soyad": "Bazaltköz",
+      "tam_ad": "Kaldurem Bazaltköz"
+    },
+    {
+      "person_id": "dwarf_009",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Lorgaven",
+      "soyad": "Çakmakdere",
+      "tam_ad": "Lorgaven Çakmakdere"
+    },
+    {
+      "person_id": "dwarf_010",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Mordulen",
+      "soyad": "Tunçsırt",
+      "tam_ad": "Mordulen Tunçsırt"
+    },
+    {
+      "person_id": "dwarf_011",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Narguven",
+      "soyad": "Külörs",
+      "tam_ad": "Narguven Külörs"
+    },
+    {
+      "person_id": "dwarf_012",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ordumel",
+      "soyad": "Kurşuntaç",
+      "tam_ad": "Ordumel Kurşuntaç"
+    },
+    {
+      "person_id": "dwarf_013",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Pargorin",
+      "soyad": "Kızılkama",
+      "tam_ad": "Pargorin Kızılkama"
+    },
+    {
+      "person_id": "dwarf_014",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Raldumer",
+      "soyad": "Kayafiliz",
+      "tam_ad": "Raldumer Kayafiliz"
+    },
+    {
+      "person_id": "dwarf_015",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Sarguven",
+      "soyad": "Mermeriz",
+      "tam_ad": "Sarguven Mermeriz"
+    },
+    {
+      "person_id": "dwarf_016",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Torgamel",
+      "soyad": "Ocakçiy",
+      "tam_ad": "Torgamel Ocakçiy"
+    },
+    {
+      "person_id": "dwarf_017",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Urdaven",
+      "soyad": "Bakırkalkan",
+      "tam_ad": "Urdaven Bakırkalkan"
+    },
+    {
+      "person_id": "dwarf_018",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Vargulen",
+      "soyad": "Dumançekiç",
+      "tam_ad": "Vargulen Dumançekiç"
+    },
+    {
+      "person_id": "dwarf_019",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Yordamar",
+      "soyad": "Kömürpınar",
+      "tam_ad": "Yordamar Kömürpınar"
+    },
+    {
+      "person_id": "dwarf_020",
+      "halk": "cüce",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Zarguven",
+      "soyad": "Taşyel",
+      "tam_ad": "Zarguven Taşyel"
+    },
+    {
+      "person_id": "dwarf_021",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Gravuşa",
+      "soyad": "Granitkanat",
+      "tam_ad": "Gravuşa Granitkanat"
+    },
+    {
+      "person_id": "dwarf_022",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Demruka",
+      "soyad": "Mermerköprü",
+      "tam_ad": "Demruka Mermerköprü"
+    },
+    {
+      "person_id": "dwarf_023",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Buznela",
+      "soyad": "Kızılmaşa",
+      "tam_ad": "Buznela Kızılmaşa"
+    },
+    {
+      "person_id": "dwarf_024",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kardişa",
+      "soyad": "Bakırbudak",
+      "tam_ad": "Kardişa Bakırbudak"
+    },
+    {
+      "person_id": "dwarf_025",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ortuva",
+      "soyad": "Közsarmal",
+      "tam_ad": "Ortuva Közsarmal"
+    },
+    {
+      "person_id": "dwarf_026",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Zemrika",
+      "soyad": "Kayaoyuk",
+      "tam_ad": "Zemrika Kayaoyuk"
+    },
+    {
+      "person_id": "dwarf_027",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Vunşela",
+      "soyad": "Demirçentik",
+      "tam_ad": "Vunşela Demirçentik"
+    },
+    {
+      "person_id": "dwarf_028",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tağmura",
+      "soyad": "Tunçyankı",
+      "tam_ad": "Tağmura Tunçyankı"
+    },
+    {
+      "person_id": "dwarf_029",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Pervuka",
+      "soyad": "Bazaltışık",
+      "tam_ad": "Pervuka Bazaltışık"
+    },
+    {
+      "person_id": "dwarf_030",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Şurdela",
+      "soyad": "Çelikdamla",
+      "tam_ad": "Şurdela Çelikdamla"
+    },
+    {
+      "person_id": "dwarf_031",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Bravika",
+      "soyad": "Kromgeçit",
+      "tam_ad": "Bravika Kromgeçit"
+    },
+    {
+      "person_id": "dwarf_032",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Dormuça",
+      "soyad": "Kırağıperçin",
+      "tam_ad": "Dormuça Kırağıperçin"
+    },
+    {
+      "person_id": "dwarf_033",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Haskula",
+      "soyad": "Örstohum",
+      "tam_ad": "Haskula Örstohum"
+    },
+    {
+      "person_id": "dwarf_034",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kolmura",
+      "soyad": "Körükyuva",
+      "tam_ad": "Kolmura Körükyuva"
+    },
+    {
+      "person_id": "dwarf_035",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ezruka",
+      "soyad": "Taşçıngırak",
+      "tam_ad": "Ezruka Taşçıngırak"
+    },
+    {
+      "person_id": "dwarf_036",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Urgela",
+      "soyad": "Madençiçek",
+      "tam_ad": "Urgela Madençiçek"
+    },
+    {
+      "person_id": "dwarf_037",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Çarnuva",
+      "soyad": "Kömürçatı",
+      "tam_ad": "Çarnuva Kömürçatı"
+    },
+    {
+      "person_id": "dwarf_038",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Mazduşa",
+      "soyad": "Ocakmerdiven",
+      "tam_ad": "Mazduşa Ocakmerdiven"
+    },
+    {
+      "person_id": "dwarf_039",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Gervika",
+      "soyad": "Kurşunkıvılcım",
+      "tam_ad": "Gervika Kurşunkıvılcım"
+    },
+    {
+      "person_id": "dwarf_040",
+      "halk": "cüce",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tunzala",
+      "soyad": "Gümüştakoz",
+      "tam_ad": "Tunzala Gümüştakoz"
+    },
+    {
+      "person_id": "dwarf_041",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Dumrek",
+      "soyad": "Bazaltköz",
+      "tam_ad": "Dumrek Bazaltköz"
+    },
+    {
+      "person_id": "dwarf_042",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Karguş",
+      "soyad": "Tunçyankı",
+      "tam_ad": "Karguş Tunçyankı"
+    },
+    {
+      "person_id": "dwarf_043",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Bravdum",
+      "soyad": "Tunçsırt",
+      "tam_ad": "Bravdum Tunçsırt"
+    },
+    {
+      "person_id": "dwarf_044",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Zermuk",
+      "soyad": "Çelikdamla",
+      "tam_ad": "Zermuk Çelikdamla"
+    },
+    {
+      "person_id": "dwarf_045",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Hortem",
+      "soyad": "Kurşuntaç",
+      "tam_ad": "Hortem Kurşuntaç"
+    },
+    {
+      "person_id": "dwarf_046",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Vudrek",
+      "soyad": "Kırağıperçin",
+      "tam_ad": "Vudrek Kırağıperçin"
+    },
+    {
+      "person_id": "dwarf_047",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Çarsum",
+      "soyad": "Kayafiliz",
+      "tam_ad": "Çarsum Kayafiliz"
+    },
+    {
+      "person_id": "dwarf_048",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Gerpuk",
+      "soyad": "Körükyuva",
+      "tam_ad": "Gerpuk Körükyuva"
+    },
+    {
+      "person_id": "dwarf_049",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ozdem",
+      "soyad": "Ocakçiy",
+      "tam_ad": "Ozdem Ocakçiy"
+    },
+    {
+      "person_id": "dwarf_050",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Tazruk",
+      "soyad": "Madençiçek",
+      "tam_ad": "Tazruk Madençiçek"
+    },
+    {
+      "person_id": "dwarf_051",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Menduk",
+      "soyad": "Dumançekiç",
+      "tam_ad": "Menduk Dumançekiç"
+    },
+    {
+      "person_id": "dwarf_052",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "İlgrum",
+      "soyad": "Ocakmerdiven",
+      "tam_ad": "İlgrum Ocakmerdiven"
+    },
+    {
+      "person_id": "dwarf_053",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Sorduk",
+      "soyad": "Taşyel",
+      "tam_ad": "Sorduk Taşyel"
+    },
+    {
+      "person_id": "dwarf_054",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kespur",
+      "soyad": "Gümüştakoz",
+      "tam_ad": "Kespur Gümüştakoz"
+    },
+    {
+      "person_id": "dwarf_055",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Balgrum",
+      "soyad": "Bakıryamaç",
+      "tam_ad": "Balgrum Bakıryamaç"
+    },
+    {
+      "person_id": "dwarf_056",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Verduk",
+      "soyad": "Mermerköprü",
+      "tam_ad": "Verduk Mermerköprü"
+    },
+    {
+      "person_id": "dwarf_057",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Nuzrem",
+      "soyad": "Taşperçin",
+      "tam_ad": "Nuzrem Taşperçin"
+    },
+    {
+      "person_id": "dwarf_058",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Paldum",
+      "soyad": "Bakırbudak",
+      "tam_ad": "Paldum Bakırbudak"
+    },
+    {
+      "person_id": "dwarf_059",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ragvek",
+      "soyad": "Demirkırağı",
+      "tam_ad": "Ragvek Demirkırağı"
+    },
+    {
+      "person_id": "dwarf_060",
+      "halk": "cüce",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ürdem",
+      "soyad": "Kayaoyuk",
+      "tam_ad": "Ürdem Kayaoyuk"
+    },
+    {
+      "person_id": "elf_001",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Alevorin",
+      "soyad": "Ayçilenti",
+      "tam_ad": "Alevorin Ayçilenti"
+    },
+    {
+      "person_id": "elf_002",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Beluraven",
+      "soyad": "Söğüntını",
+      "tam_ad": "Beluraven Söğüntını"
+    },
+    {
+      "person_id": "elf_003",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Celaviren",
+      "soyad": "Gümüşyosun",
+      "tam_ad": "Celaviren Gümüşyosun"
+    },
+    {
+      "person_id": "elf_004",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Delunarel",
+      "soyad": "Sisnilüfer",
+      "tam_ad": "Delunarel Sisnilüfer"
+    },
+    {
+      "person_id": "elf_005",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Elvarunen",
+      "soyad": "Yıldızfiliz",
+      "tam_ad": "Elvarunen Yıldızfiliz"
+    },
+    {
+      "person_id": "elf_006",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Feloraven",
+      "soyad": "Gölgeçiy",
+      "tam_ad": "Feloraven Gölgeçiy"
+    },
+    {
+      "person_id": "elf_007",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Gelunavir",
+      "soyad": "Yaprakşafak",
+      "tam_ad": "Gelunavir Yaprakşafak"
+    },
+    {
+      "person_id": "elf_008",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Helaveren",
+      "soyad": "Aksöğüt",
+      "tam_ad": "Helaveren Aksöğüt"
+    },
+    {
+      "person_id": "elf_009",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "İlavorel",
+      "soyad": "Kırağıezgi",
+      "tam_ad": "İlavorel Kırağıezgi"
+    },
+    {
+      "person_id": "elf_010",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Jeloraven",
+      "soyad": "Günnilüfer",
+      "tam_ad": "Jeloraven Günnilüfer"
+    },
+    {
+      "person_id": "elf_011",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Keluvarel",
+      "soyad": "Rüzgârkök",
+      "tam_ad": "Keluvarel Rüzgârkök"
+    },
+    {
+      "person_id": "elf_012",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Lelaviren",
+      "soyad": "Maviyosun",
+      "tam_ad": "Lelaviren Maviyosun"
+    },
+    {
+      "person_id": "elf_013",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Melunaven",
+      "soyad": "Ormanışık",
+      "tam_ad": "Melunaven Ormanışık"
+    },
+    {
+      "person_id": "elf_014",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Nelovarin",
+      "soyad": "Alacadal",
+      "tam_ad": "Nelovarin Alacadal"
+    },
+    {
+      "person_id": "elf_015",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Olevarel",
+      "soyad": "Çiyperde",
+      "tam_ad": "Olevarel Çiyperde"
+    },
+    {
+      "person_id": "elf_016",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Pelunavir",
+      "soyad": "Gecepolen",
+      "tam_ad": "Pelunavir Gecepolen"
+    },
+    {
+      "person_id": "elf_017",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Relaveren",
+      "soyad": "Solukçiçek",
+      "tam_ad": "Relaveren Solukçiçek"
+    },
+    {
+      "person_id": "elf_018",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Seluvorin",
+      "soyad": "Yeltohum",
+      "tam_ad": "Seluvorin Yeltohum"
+    },
+    {
+      "person_id": "elf_019",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Telavuren",
+      "soyad": "Işıkçalılık",
+      "tam_ad": "Telavuren Işıkçalılık"
+    },
+    {
+      "person_id": "elf_020",
+      "halk": "elf",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Velunarin",
+      "soyad": "Pusmenekşe",
+      "tam_ad": "Velunarin Pusmenekşe"
+    },
+    {
+      "person_id": "elf_021",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Çilovesa",
+      "soyad": "Nilüferufuk",
+      "tam_ad": "Çilovesa Nilüferufuk"
+    },
+    {
+      "person_id": "elf_022",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Umerişa",
+      "soyad": "Polenşarkı",
+      "tam_ad": "Umerişa Polenşarkı"
+    },
+    {
+      "person_id": "elf_023",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Luvonela",
+      "soyad": "Gümüşeğrelti",
+      "tam_ad": "Luvonela Gümüşeğrelti"
+    },
+    {
+      "person_id": "elf_024",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Perişune",
+      "soyad": "Şafakyosun",
+      "tam_ad": "Perişune Şafakyosun"
+    },
+    {
+      "person_id": "elf_025",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ozmelia",
+      "soyad": "Aytohum",
+      "tam_ad": "Ozmelia Aytohum"
+    },
+    {
+      "person_id": "elf_026",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Nefaruna",
+      "soyad": "Söğütışıltı",
+      "tam_ad": "Nefaruna Söğütışıltı"
+    },
+    {
+      "person_id": "elf_027",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Viruşela",
+      "soyad": "Yaprakgöl",
+      "tam_ad": "Viruşela Yaprakgöl"
+    },
+    {
+      "person_id": "elf_028",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Cemulora",
+      "soyad": "Kelebekçiy",
+      "tam_ad": "Cemulora Kelebekçiy"
+    },
+    {
+      "person_id": "elf_029",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Esvelina",
+      "soyad": "Gecefidan",
+      "tam_ad": "Esvelina Gecefidan"
+    },
+    {
+      "person_id": "elf_030",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tiyurela",
+      "soyad": "Puslale",
+      "tam_ad": "Tiyurela Puslale"
+    },
+    {
+      "person_id": "elf_031",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Aşmoria",
+      "soyad": "Menekşekök",
+      "tam_ad": "Aşmoria Menekşekök"
+    },
+    {
+      "person_id": "elf_032",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Zeviluna",
+      "soyad": "Yelçiçek",
+      "tam_ad": "Zeviluna Yelçiçek"
+    },
+    {
+      "person_id": "elf_033",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kolunisa",
+      "soyad": "Sisinci",
+      "tam_ad": "Kolunisa Sisinci"
+    },
+    {
+      "person_id": "elf_034",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Heremila",
+      "soyad": "Orkidedal",
+      "tam_ad": "Heremila Orkidedal"
+    },
+    {
+      "person_id": "elf_035",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Şevorisa",
+      "soyad": "Kırağıkanat",
+      "tam_ad": "Şevorisa Kırağıkanat"
+    },
+    {
+      "person_id": "elf_036",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Udelora",
+      "soyad": "Işıkkoza",
+      "tam_ad": "Udelora Işıkkoza"
+    },
+    {
+      "person_id": "elf_037",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Pavilena",
+      "soyad": "Gölgekeman",
+      "tam_ad": "Pavilena Gölgekeman"
+    },
+    {
+      "person_id": "elf_038",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Vesorila",
+      "soyad": "Gündokusu",
+      "tam_ad": "Vesorila Gündokusu"
+    },
+    {
+      "person_id": "elf_039",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Denulisa",
+      "soyad": "Çiyhilal",
+      "tam_ad": "Denulisa Çiyhilal"
+    },
+    {
+      "person_id": "elf_040",
+      "halk": "elf",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "İsmavela",
+      "soyad": "Yıldızkına",
+      "tam_ad": "İsmavela Yıldızkına"
+    },
+    {
+      "person_id": "elf_041",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Eşmirul",
+      "soyad": "Aksöğüt",
+      "tam_ad": "Eşmirul Aksöğüt"
+    },
+    {
+      "person_id": "elf_042",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Lavunel",
+      "soyad": "Kelebekçiy",
+      "tam_ad": "Lavunel Kelebekçiy"
+    },
+    {
+      "person_id": "elf_043",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Zorimel",
+      "soyad": "Günnilüfer",
+      "tam_ad": "Zorimel Günnilüfer"
+    },
+    {
+      "person_id": "elf_044",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Pelusir",
+      "soyad": "Puslale",
+      "tam_ad": "Pelusir Puslale"
+    },
+    {
+      "person_id": "elf_045",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Şevonal",
+      "soyad": "Maviyosun",
+      "tam_ad": "Şevonal Maviyosun"
+    },
+    {
+      "person_id": "elf_046",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "İremuş",
+      "soyad": "Yelçiçek",
+      "tam_ad": "İremuş Yelçiçek"
+    },
+    {
+      "person_id": "elf_047",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Veneril",
+      "soyad": "Alacadal",
+      "tam_ad": "Veneril Alacadal"
+    },
+    {
+      "person_id": "elf_048",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Oşluren",
+      "soyad": "Orkidedal",
+      "tam_ad": "Oşluren Orkidedal"
+    },
+    {
+      "person_id": "elf_049",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Demivul",
+      "soyad": "Gecepolen",
+      "tam_ad": "Demivul Gecepolen"
+    },
+    {
+      "person_id": "elf_050",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Havuşel",
+      "soyad": "Işıkkoza",
+      "tam_ad": "Havuşel Işıkkoza"
+    },
+    {
+      "person_id": "elf_051",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Cevomir",
+      "soyad": "Yeltohum",
+      "tam_ad": "Cevomir Yeltohum"
+    },
+    {
+      "person_id": "elf_052",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Miruşen",
+      "soyad": "Gündokusu",
+      "tam_ad": "Miruşen Gündokusu"
+    },
+    {
+      "person_id": "elf_053",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Yelovar",
+      "soyad": "Pusmenekşe",
+      "tam_ad": "Yelovar Pusmenekşe"
+    },
+    {
+      "person_id": "elf_054",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Vesulir",
+      "soyad": "Yıldızkına",
+      "tam_ad": "Vesulir Yıldızkına"
+    },
+    {
+      "person_id": "elf_055",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kemorin",
+      "soyad": "Söğüntını",
+      "tam_ad": "Kemorin Söğüntını"
+    },
+    {
+      "person_id": "elf_056",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ulivem",
+      "soyad": "Polenşarkı",
+      "tam_ad": "Ulivem Polenşarkı"
+    },
+    {
+      "person_id": "elf_057",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Şemurel",
+      "soyad": "Sisnilüfer",
+      "tam_ad": "Şemurel Sisnilüfer"
+    },
+    {
+      "person_id": "elf_058",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Revomar",
+      "soyad": "Şafakyosun",
+      "tam_ad": "Revomar Şafakyosun"
+    },
+    {
+      "person_id": "elf_059",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Olumir",
+      "soyad": "Gölgeçiy",
+      "tam_ad": "Olumir Gölgeçiy"
+    },
+    {
+      "person_id": "elf_060",
+      "halk": "elf",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Zivanel",
+      "soyad": "Söğütışıltı",
+      "tam_ad": "Zivanel Söğütışıltı"
+    },
+    {
+      "person_id": "halfling_001",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Beralum",
+      "soyad": "Fındıkpatika",
+      "tam_ad": "Beralum Fındıkpatika"
+    },
+    {
+      "person_id": "halfling_002",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Cevilon",
+      "soyad": "Tereyaprak",
+      "tam_ad": "Cevilon Tereyaprak"
+    },
+    {
+      "person_id": "halfling_003",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Dovarel",
+      "soyad": "Balçakıl",
+      "tam_ad": "Dovarel Balçakıl"
+    },
+    {
+      "person_id": "halfling_004",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ebravin",
+      "soyad": "Çörekdere",
+      "tam_ad": "Ebravin Çörekdere"
+    },
+    {
+      "person_id": "halfling_005",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ferumel",
+      "soyad": "Kestaneçit",
+      "tam_ad": "Ferumel Kestaneçit"
+    },
+    {
+      "person_id": "halfling_006",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Govalin",
+      "soyad": "Naneliyol",
+      "tam_ad": "Govalin Naneliyol"
+    },
+    {
+      "person_id": "halfling_007",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Hemerun",
+      "soyad": "Tarlatını",
+      "tam_ad": "Hemerun Tarlatını"
+    },
+    {
+      "person_id": "halfling_008",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "İveralo",
+      "soyad": "Gülüşpınar",
+      "tam_ad": "İveralo Gülüşpınar"
+    },
+    {
+      "person_id": "halfling_009",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Jomarel",
+      "soyad": "Samaniz",
+      "tam_ad": "Jomarel Samaniz"
+    },
+    {
+      "person_id": "halfling_010",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Kovalun",
+      "soyad": "Kayısıtepe",
+      "tam_ad": "Kovalun Kayısıtepe"
+    },
+    {
+      "person_id": "halfling_011",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Lemavor",
+      "soyad": "Cevizcep",
+      "tam_ad": "Lemavor Cevizcep"
+    },
+    {
+      "person_id": "halfling_012",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Miverun",
+      "soyad": "Çiyfırın",
+      "tam_ad": "Miverun Çiyfırın"
+    },
+    {
+      "person_id": "halfling_013",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Nobalen",
+      "soyad": "Kırıntıkoru",
+      "tam_ad": "Nobalen Kırıntıkoru"
+    },
+    {
+      "person_id": "halfling_014",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Omeril",
+      "soyad": "Yulafgölge",
+      "tam_ad": "Omeril Yulafgölge"
+    },
+    {
+      "person_id": "halfling_015",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Pelavor",
+      "soyad": "Böğürtleniz",
+      "tam_ad": "Pelavor Böğürtleniz"
+    },
+    {
+      "person_id": "halfling_016",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Rimerun",
+      "soyad": "Elmasaz",
+      "tam_ad": "Rimerun Elmasaz"
+    },
+    {
+      "person_id": "halfling_017",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Sevalum",
+      "soyad": "Kilerçiçek",
+      "tam_ad": "Sevalum Kilerçiçek"
+    },
+    {
+      "person_id": "halfling_018",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Tovarin",
+      "soyad": "Tarçınbayır",
+      "tam_ad": "Tovarin Tarçınbayır"
+    },
+    {
+      "person_id": "halfling_019",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Umeral",
+      "soyad": "Közçörek",
+      "tam_ad": "Umeral Közçörek"
+    },
+    {
+      "person_id": "halfling_020",
+      "halk": "halfling",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Vobarin",
+      "soyad": "Yoncaçatı",
+      "tam_ad": "Vobarin Yoncaçatı"
+    },
+    {
+      "person_id": "halfling_021",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Çesmina",
+      "soyad": "Çilekmerdiven",
+      "tam_ad": "Çesmina Çilekmerdiven"
+    },
+    {
+      "person_id": "halfling_022",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ulbela",
+      "soyad": "Yoncasepet",
+      "tam_ad": "Ulbela Yoncasepet"
+    },
+    {
+      "person_id": "halfling_023",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Pumrisa",
+      "soyad": "Balcıkbayır",
+      "tam_ad": "Pumrisa Balcıkbayır"
+    },
+    {
+      "person_id": "halfling_024",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Vesçila",
+      "soyad": "Kekikyastık",
+      "tam_ad": "Vesçila Kekikyastık"
+    },
+    {
+      "person_id": "halfling_025",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Zomela",
+      "soyad": "Kestaneoyuk",
+      "tam_ad": "Zomela Kestaneoyuk"
+    },
+    {
+      "person_id": "halfling_026",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Nivşuna",
+      "soyad": "Fındıkçatı",
+      "tam_ad": "Nivşuna Fındıkçatı"
+    },
+    {
+      "person_id": "halfling_027",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Haldisa",
+      "soyad": "Buğdayfener",
+      "tam_ad": "Haldisa Buğdayfener"
+    },
+    {
+      "person_id": "halfling_028",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Eprovna",
+      "soyad": "Elmaçember",
+      "tam_ad": "Eprovna Elmaçember"
+    },
+    {
+      "person_id": "halfling_029",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tümela",
+      "soyad": "Kirazçardak",
+      "tam_ad": "Tümela Kirazçardak"
+    },
+    {
+      "person_id": "halfling_030",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Sivruna",
+      "soyad": "Çörekçiçek",
+      "tam_ad": "Sivruna Çörekçiçek"
+    },
+    {
+      "person_id": "halfling_031",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Bavçisa",
+      "soyad": "Nanelisırt",
+      "tam_ad": "Bavçisa Nanelisırt"
+    },
+    {
+      "person_id": "halfling_032",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kemdila",
+      "soyad": "Tarçınkiler",
+      "tam_ad": "Kemdila Tarçınkiler"
+    },
+    {
+      "person_id": "halfling_033",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ofruna",
+      "soyad": "Yulafyamaç",
+      "tam_ad": "Ofruna Yulafyamaç"
+    },
+    {
+      "person_id": "halfling_034",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Livçela",
+      "soyad": "Cevizsıra",
+      "tam_ad": "Livçela Cevizsıra"
+    },
+    {
+      "person_id": "halfling_035",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Dersina",
+      "soyad": "Kırıntıtepe",
+      "tam_ad": "Dersina Kırıntıtepe"
+    },
+    {
+      "person_id": "halfling_036",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Fovela",
+      "soyad": "Erikdüğme",
+      "tam_ad": "Fovela Erikdüğme"
+    },
+    {
+      "person_id": "halfling_037",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Nümrisa",
+      "soyad": "Turpçeşme",
+      "tam_ad": "Nümrisa Turpçeşme"
+    },
+    {
+      "person_id": "halfling_038",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Gülvona",
+      "soyad": "Balörtü",
+      "tam_ad": "Gülvona Balörtü"
+    },
+    {
+      "person_id": "halfling_039",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Şepila",
+      "soyad": "Samançizme",
+      "tam_ad": "Şepila Samançizme"
+    },
+    {
+      "person_id": "halfling_040",
+      "halk": "halfling",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ruvçina",
+      "soyad": "Bahçetını",
+      "tam_ad": "Ruvçina Bahçetını"
+    },
+    {
+      "person_id": "halfling_041",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Pivşem",
+      "soyad": "Gülüşpınar",
+      "tam_ad": "Pivşem Gülüşpınar"
+    },
+    {
+      "person_id": "halfling_042",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Çolven",
+      "soyad": "Elmaçember",
+      "tam_ad": "Çolven Elmaçember"
+    },
+    {
+      "person_id": "halfling_043",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Umrik",
+      "soyad": "Kayısıtepe",
+      "tam_ad": "Umrik Kayısıtepe"
+    },
+    {
+      "person_id": "halfling_044",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Beşvel",
+      "soyad": "Çörekçiçek",
+      "tam_ad": "Beşvel Çörekçiçek"
+    },
+    {
+      "person_id": "halfling_045",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Duvren",
+      "soyad": "Çiyfırın",
+      "tam_ad": "Duvren Çiyfırın"
+    },
+    {
+      "person_id": "halfling_046",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Şimol",
+      "soyad": "Tarçınkiler",
+      "tam_ad": "Şimol Tarçınkiler"
+    },
+    {
+      "person_id": "halfling_047",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kavşim",
+      "soyad": "Yulafgölge",
+      "tam_ad": "Kavşim Yulafgölge"
+    },
+    {
+      "person_id": "halfling_048",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Erpul",
+      "soyad": "Cevizsıra",
+      "tam_ad": "Erpul Cevizsıra"
+    },
+    {
+      "person_id": "halfling_049",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Nomvel",
+      "soyad": "Elmasaz",
+      "tam_ad": "Nomvel Elmasaz"
+    },
+    {
+      "person_id": "halfling_050",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Yuvrek",
+      "soyad": "Erikdüğme",
+      "tam_ad": "Yuvrek Erikdüğme"
+    },
+    {
+      "person_id": "halfling_051",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Favşen",
+      "soyad": "Tarçınbayır",
+      "tam_ad": "Favşen Tarçınbayır"
+    },
+    {
+      "person_id": "halfling_052",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Pelşik",
+      "soyad": "Balörtü",
+      "tam_ad": "Pelşik Balörtü"
+    },
+    {
+      "person_id": "halfling_053",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Cezrum",
+      "soyad": "Yoncaçatı",
+      "tam_ad": "Cezrum Yoncaçatı"
+    },
+    {
+      "person_id": "halfling_054",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Oşven",
+      "soyad": "Bahçetını",
+      "tam_ad": "Oşven Bahçetını"
+    },
+    {
+      "person_id": "halfling_055",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Timşel",
+      "soyad": "Tereyaprak",
+      "tam_ad": "Timşel Tereyaprak"
+    },
+    {
+      "person_id": "halfling_056",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Vaskem",
+      "soyad": "Yoncasepet",
+      "tam_ad": "Vaskem Yoncasepet"
+    },
+    {
+      "person_id": "halfling_057",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Renpul",
+      "soyad": "Çörekdere",
+      "tam_ad": "Renpul Çörekdere"
+    },
+    {
+      "person_id": "halfling_058",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Hodvel",
+      "soyad": "Kekikyastık",
+      "tam_ad": "Hodvel Kekikyastık"
+    },
+    {
+      "person_id": "halfling_059",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Merşik",
+      "soyad": "Naneliyol",
+      "tam_ad": "Merşik Naneliyol"
+    },
+    {
+      "person_id": "halfling_060",
+      "halk": "halfling",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ulpem",
+      "soyad": "Fındıkçatı",
+      "tam_ad": "Ulpem Fındıkçatı"
+    },
+    {
+      "person_id": "gnome_001",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Bivarel",
+      "soyad": "Bakırmerak",
+      "tam_ad": "Bivarel Bakırmerak"
+    },
+    {
+      "person_id": "gnome_002",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Cimeron",
+      "soyad": "Çarkfiliz",
+      "tam_ad": "Cimeron Çarkfiliz"
+    },
+    {
+      "person_id": "gnome_003",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Duvamil",
+      "soyad": "Camkıvılcım",
+      "tam_ad": "Duvamil Camkıvılcım"
+    },
+    {
+      "person_id": "gnome_004",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Evirum",
+      "soyad": "Yayfısıltı",
+      "tam_ad": "Evirum Yayfısıltı"
+    },
+    {
+      "person_id": "gnome_005",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Fimarel",
+      "soyad": "Pirinçiz",
+      "tam_ad": "Fimarel Pirinçiz"
+    },
+    {
+      "person_id": "gnome_006",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Givaron",
+      "soyad": "Kıvrımyel",
+      "tam_ad": "Givaron Kıvrımyel"
+    },
+    {
+      "person_id": "gnome_007",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Huvamil",
+      "soyad": "Düğümçiy",
+      "tam_ad": "Huvamil Düğümçiy"
+    },
+    {
+      "person_id": "gnome_008",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "İmiver",
+      "soyad": "Minetaş",
+      "tam_ad": "İmiver Minetaş"
+    },
+    {
+      "person_id": "gnome_009",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Juvarel",
+      "soyad": "Gümüşmakara",
+      "tam_ad": "Juvarel Gümüşmakara"
+    },
+    {
+      "person_id": "gnome_010",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Kimerol",
+      "soyad": "Saatpolen",
+      "tam_ad": "Kimerol Saatpolen"
+    },
+    {
+      "person_id": "gnome_011",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Livarum",
+      "soyad": "Tılsımvida",
+      "tam_ad": "Livarum Tılsımvida"
+    },
+    {
+      "person_id": "gnome_012",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Muvarel",
+      "soyad": "Közmercek",
+      "tam_ad": "Muvarel Közmercek"
+    },
+    {
+      "person_id": "gnome_013",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Nivaron",
+      "soyad": "Perçingül",
+      "tam_ad": "Nivaron Perçingül"
+    },
+    {
+      "person_id": "gnome_014",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Ovimel",
+      "soyad": "Mekikyaprak",
+      "tam_ad": "Ovimel Mekikyaprak"
+    },
+    {
+      "person_id": "gnome_015",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Pivarel",
+      "soyad": "Sarmalkök",
+      "tam_ad": "Pivarel Sarmalkök"
+    },
+    {
+      "person_id": "gnome_016",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Rivamon",
+      "soyad": "Kıvılcımcep",
+      "tam_ad": "Rivamon Kıvılcımcep"
+    },
+    {
+      "person_id": "gnome_017",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Sivarel",
+      "soyad": "Çıngırakyosun",
+      "tam_ad": "Sivarel Çıngırakyosun"
+    },
+    {
+      "person_id": "gnome_018",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Timavor",
+      "soyad": "Telgonca",
+      "tam_ad": "Timavor Telgonca"
+    },
+    {
+      "person_id": "gnome_019",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Uvimer",
+      "soyad": "Prizmapınar",
+      "tam_ad": "Uvimer Prizmapınar"
+    },
+    {
+      "person_id": "gnome_020",
+      "halk": "gnome",
+      "cinsiyet": "erkek",
+      "adult": true,
+      "ad": "Vimeron",
+      "soyad": "Pusluçark",
+      "tam_ad": "Vimeron Pusluçark"
+    },
+    {
+      "person_id": "gnome_021",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Şibrena",
+      "soyad": "Dişliçiğdem",
+      "tam_ad": "Şibrena Dişliçiğdem"
+    },
+    {
+      "person_id": "gnome_022",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kevrila",
+      "soyad": "Çarkçiçek",
+      "tam_ad": "Kevrila Çarkçiçek"
+    },
+    {
+      "person_id": "gnome_023",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Pomşuna",
+      "soyad": "Minikmercek",
+      "tam_ad": "Pomşuna Minikmercek"
+    },
+    {
+      "person_id": "gnome_024",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Evnika",
+      "soyad": "Camkelebek",
+      "tam_ad": "Evnika Camkelebek"
+    },
+    {
+      "person_id": "gnome_025",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Dilvona",
+      "soyad": "Kıvılcımtoka",
+      "tam_ad": "Dilvona Kıvılcımtoka"
+    },
+    {
+      "person_id": "gnome_026",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Çumrisa",
+      "soyad": "Yaykoza",
+      "tam_ad": "Çumrisa Yaykoza"
+    },
+    {
+      "person_id": "gnome_027",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Zefnela",
+      "soyad": "Telkırıntı",
+      "tam_ad": "Zefnela Telkırıntı"
+    },
+    {
+      "person_id": "gnome_028",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Tişvora",
+      "soyad": "Pirinçfısıltı",
+      "tam_ad": "Tişvora Pirinçfısıltı"
+    },
+    {
+      "person_id": "gnome_029",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Ümvila",
+      "soyad": "Somunışık",
+      "tam_ad": "Ümvila Somunışık"
+    },
+    {
+      "person_id": "gnome_030",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Gecmira",
+      "soyad": "Vidaçardak",
+      "tam_ad": "Gecmira Vidaçardak"
+    },
+    {
+      "person_id": "gnome_031",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Folpina",
+      "soyad": "Kumsaatiiz",
+      "tam_ad": "Folpina Kumsaatiiz"
+    },
+    {
+      "person_id": "gnome_032",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Bavşela",
+      "soyad": "Menteşeyaprak",
+      "tam_ad": "Bavşela Menteşeyaprak"
+    },
+    {
+      "person_id": "gnome_033",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "İznula",
+      "soyad": "Teldemeti",
+      "tam_ad": "İznula Teldemeti"
+    },
+    {
+      "person_id": "gnome_034",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Velmika",
+      "soyad": "Közmakara",
+      "tam_ad": "Velmika Közmakara"
+    },
+    {
+      "person_id": "gnome_035",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Hecvora",
+      "soyad": "Çarkserçe",
+      "tam_ad": "Hecvora Çarkserçe"
+    },
+    {
+      "person_id": "gnome_036",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Nopşila",
+      "soyad": "Çıngırakdüğüm",
+      "tam_ad": "Nopşila Çıngırakdüğüm"
+    },
+    {
+      "person_id": "gnome_037",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Rüzmela",
+      "soyad": "Bakırprizma",
+      "tam_ad": "Rüzmela Bakırprizma"
+    },
+    {
+      "person_id": "gnome_038",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Cempira",
+      "soyad": "Dişliyosun",
+      "tam_ad": "Cempira Dişliyosun"
+    },
+    {
+      "person_id": "gnome_039",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Sovlika",
+      "soyad": "Sarkaççiy",
+      "tam_ad": "Sovlika Sarkaççiy"
+    },
+    {
+      "person_id": "gnome_040",
+      "halk": "gnome",
+      "cinsiyet": "kadın",
+      "adult": true,
+      "ad": "Kafnisa",
+      "soyad": "Mercekkanat",
+      "tam_ad": "Kafnisa Mercekkanat"
+    },
+    {
+      "person_id": "gnome_041",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Çiprum",
+      "soyad": "Minetaş",
+      "tam_ad": "Çiprum Minetaş"
+    },
+    {
+      "person_id": "gnome_042",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Mezvik",
+      "soyad": "Pirinçfısıltı",
+      "tam_ad": "Mezvik Pirinçfısıltı"
+    },
+    {
+      "person_id": "gnome_043",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Vopşem",
+      "soyad": "Saatpolen",
+      "tam_ad": "Vopşem Saatpolen"
+    },
+    {
+      "person_id": "gnome_044",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Emzuvik",
+      "soyad": "Vidaçardak",
+      "tam_ad": "Emzuvik Vidaçardak"
+    },
+    {
+      "person_id": "gnome_045",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Tuvşik",
+      "soyad": "Közmercek",
+      "tam_ad": "Tuvşik Közmercek"
+    },
+    {
+      "person_id": "gnome_046",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Kefrum",
+      "soyad": "Menteşeyaprak",
+      "tam_ad": "Kefrum Menteşeyaprak"
+    },
+    {
+      "person_id": "gnome_047",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Özpil",
+      "soyad": "Mekikyaprak",
+      "tam_ad": "Özpil Mekikyaprak"
+    },
+    {
+      "person_id": "gnome_048",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Jemvik",
+      "soyad": "Közmakara",
+      "tam_ad": "Jemvik Közmakara"
+    },
+    {
+      "person_id": "gnome_049",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Ropnem",
+      "soyad": "Kıvılcımcep",
+      "tam_ad": "Ropnem Kıvılcımcep"
+    },
+    {
+      "person_id": "gnome_050",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "İvşek",
+      "soyad": "Çıngırakdüğüm",
+      "tam_ad": "İvşek Çıngırakdüğüm"
+    },
+    {
+      "person_id": "gnome_051",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Zulmik",
+      "soyad": "Telgonca",
+      "tam_ad": "Zulmik Telgonca"
+    },
+    {
+      "person_id": "gnome_052",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Hevpin",
+      "soyad": "Dişliyosun",
+      "tam_ad": "Hevpin Dişliyosun"
+    },
+    {
+      "person_id": "gnome_053",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Damşek",
+      "soyad": "Pusluçark",
+      "tam_ad": "Damşek Pusluçark"
+    },
+    {
+      "person_id": "gnome_054",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Upvim",
+      "soyad": "Mercekkanat",
+      "tam_ad": "Upvim Mercekkanat"
+    },
+    {
+      "person_id": "gnome_055",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Fezlok",
+      "soyad": "Çarkfiliz",
+      "tam_ad": "Fezlok Çarkfiliz"
+    },
+    {
+      "person_id": "gnome_056",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Şivpek",
+      "soyad": "Çarkçiçek",
+      "tam_ad": "Şivpek Çarkçiçek"
+    },
+    {
+      "person_id": "gnome_057",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Cuvnim",
+      "soyad": "Yayfısıltı",
+      "tam_ad": "Cuvnim Yayfısıltı"
+    },
+    {
+      "person_id": "gnome_058",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Nizpem",
+      "soyad": "Camkelebek",
+      "tam_ad": "Nizpem Camkelebek"
+    },
+    {
+      "person_id": "gnome_059",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Elvuk",
+      "soyad": "Kıvrımyel",
+      "tam_ad": "Elvuk Kıvrımyel"
+    },
+    {
+      "person_id": "gnome_060",
+      "halk": "gnome",
+      "cinsiyet": "nötr",
+      "adult": true,
+      "ad": "Puzrek",
+      "soyad": "Yaykoza",
+      "tam_ad": "Puzrek Yaykoza"
+    }
+  ],
+  "han_kalıpları": [
+    {
+      "template_id": "inn_001",
+      "kalıp": "Uyuklayan {hayvan} Hanı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Porsuk"
+      },
+      "örnek": "Uyuklayan Porsuk Hanı"
+    },
+    {
+      "template_id": "inn_002",
+      "kalıp": "Kayıp {nesne} Hanı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Kadeh"
+      },
+      "örnek": "Kayıp Kadeh Hanı"
+    },
+    {
+      "template_id": "inn_003",
+      "kalıp": "{renk} {hayvan} Hanı",
+      "yuvalar": [
+        "renk",
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mavi",
+        "hayvan": "Tilki"
+      },
+      "örnek": "Mavi Tilki Hanı"
+    },
+    {
+      "template_id": "inn_004",
+      "kalıp": "{maden} Fener Hanı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Demir"
+      },
+      "örnek": "Demir Fener Hanı"
+    },
+    {
+      "template_id": "inn_005",
+      "kalıp": "{bitki} Avlusu Hanı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Nane"
+      },
+      "örnek": "Nane Avlusu Hanı"
+    },
+    {
+      "template_id": "inn_006",
+      "kalıp": "{göksel} Sofrası Hanı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Alacakaranlık"
+      },
+      "örnek": "Alacakaranlık Sofrası Hanı"
+    },
+    {
+      "template_id": "inn_007",
+      "kalıp": "{yön} Kapısı Hanı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Doğu"
+      },
+      "örnek": "Doğu Kapısı Hanı"
+    },
+    {
+      "template_id": "inn_008",
+      "kalıp": "{sayı_sözü} Kadeh Hanı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Üç"
+      },
+      "örnek": "Üç Kadeh Hanı"
+    },
+    {
+      "template_id": "inn_009",
+      "kalıp": "Gezgin {meslek} Hanı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Dokumacı"
+      },
+      "örnek": "Gezgin Dokumacı Hanı"
+    },
+    {
+      "template_id": "inn_010",
+      "kalıp": "{yer} Sığınağı Hanı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Koru"
+      },
+      "örnek": "Koru Sığınağı Hanı"
+    },
+    {
+      "template_id": "inn_011",
+      "kalıp": "Kanatlı {hayvan} Konağı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Geyik"
+      },
+      "örnek": "Kanatlı Geyik Konağı"
+    },
+    {
+      "template_id": "inn_012",
+      "kalıp": "{renk} Ocak Konağı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Beyaz"
+      },
+      "örnek": "Beyaz Ocak Konağı"
+    },
+    {
+      "template_id": "inn_013",
+      "kalıp": "{maden} Çatı Konağı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Bakır"
+      },
+      "örnek": "Bakır Çatı Konağı"
+    },
+    {
+      "template_id": "inn_014",
+      "kalıp": "{bitki} Bahçesi Konağı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Söğüt"
+      },
+      "örnek": "Söğüt Bahçesi Konağı"
+    },
+    {
+      "template_id": "inn_015",
+      "kalıp": "{göksel} Terası Konağı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Yıldız"
+      },
+      "örnek": "Yıldız Terası Konağı"
+    },
+    {
+      "template_id": "inn_016",
+      "kalıp": "{yön} Yolu Konağı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Yolu Konağı"
+    },
+    {
+      "template_id": "inn_017",
+      "kalıp": "{sayı_sözü} Yastık Konağı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Yedi"
+      },
+      "örnek": "Yedi Yastık Konağı"
+    },
+    {
+      "template_id": "inn_018",
+      "kalıp": "Emektar {meslek} Konağı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Haritacı"
+      },
+      "örnek": "Emektar Haritacı Konağı"
+    },
+    {
+      "template_id": "inn_019",
+      "kalıp": "{nesne} ve Köz Konağı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Pusula"
+      },
+      "örnek": "Pusula ve Köz Konağı"
+    },
+    {
+      "template_id": "inn_020",
+      "kalıp": "{yer} Bekçisi Konağı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Göl"
+      },
+      "örnek": "Göl Bekçisi Konağı"
+    },
+    {
+      "template_id": "inn_021",
+      "kalıp": "Suskun {hayvan} Misafirhanesi",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Tilki"
+      },
+      "örnek": "Suskun Tilki Misafirhanesi"
+    },
+    {
+      "template_id": "inn_022",
+      "kalıp": "{renk} Perde Misafirhanesi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Boz"
+      },
+      "örnek": "Boz Perde Misafirhanesi"
+    },
+    {
+      "template_id": "inn_023",
+      "kalıp": "{maden} Anahtar Misafirhanesi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Altın"
+      },
+      "örnek": "Altın Anahtar Misafirhanesi"
+    },
+    {
+      "template_id": "inn_024",
+      "kalıp": "{bitki} Kokusu Misafirhanesi",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Menekşe"
+      },
+      "örnek": "Menekşe Kokusu Misafirhanesi"
+    },
+    {
+      "template_id": "inn_025",
+      "kalıp": "{göksel} Eşiği Misafirhanesi",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Ay"
+      },
+      "örnek": "Ay Eşiği Misafirhanesi"
+    },
+    {
+      "template_id": "inn_026",
+      "kalıp": "{yön} Kervanı Misafirhanesi",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney Kervanı Misafirhanesi"
+    },
+    {
+      "template_id": "inn_027",
+      "kalıp": "{sayı_sözü} Oda Misafirhanesi",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dört"
+      },
+      "örnek": "Dört Oda Misafirhanesi"
+    },
+    {
+      "template_id": "inn_028",
+      "kalıp": "Yorgun {meslek} Misafirhanesi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Demirci"
+      },
+      "örnek": "Yorgun Demirci Misafirhanesi"
+    },
+    {
+      "template_id": "inn_029",
+      "kalıp": "{nesne} Gölgesi Misafirhanesi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Anahtar"
+      },
+      "örnek": "Anahtar Gölgesi Misafirhanesi"
+    },
+    {
+      "template_id": "inn_030",
+      "kalıp": "{yer} Durağı Misafirhanesi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Bozkır"
+      },
+      "örnek": "Bozkır Durağı Misafirhanesi"
+    },
+    {
+      "template_id": "inn_031",
+      "kalıp": "Neşeli {hayvan} Hanı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Porsuk"
+      },
+      "örnek": "Neşeli Porsuk Hanı"
+    },
+    {
+      "template_id": "inn_032",
+      "kalıp": "{renk} Kupa Hanı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Kızıl"
+      },
+      "örnek": "Kızıl Kupa Hanı"
+    },
+    {
+      "template_id": "inn_033",
+      "kalıp": "{maden} Çan Hanı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Tunç"
+      },
+      "örnek": "Tunç Çan Hanı"
+    },
+    {
+      "template_id": "inn_034",
+      "kalıp": "{bitki} Demeti Hanı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Yonca"
+      },
+      "örnek": "Yonca Demeti Hanı"
+    },
+    {
+      "template_id": "inn_035",
+      "kalıp": "{göksel} Feneri Hanı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Güneş"
+      },
+      "örnek": "Güneş Feneri Hanı"
+    },
+    {
+      "template_id": "inn_036",
+      "kalıp": "{yön} Rüzgârı Hanı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Rüzgârı Hanı"
+    },
+    {
+      "template_id": "inn_037",
+      "kalıp": "{sayı_sözü} Sedir Hanı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "İki"
+      },
+      "örnek": "İki Sedir Hanı"
+    },
+    {
+      "template_id": "inn_038",
+      "kalıp": "Gülümseyen {meslek} Hanı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Kâtip"
+      },
+      "örnek": "Gülümseyen Kâtip Hanı"
+    },
+    {
+      "template_id": "inn_039",
+      "kalıp": "{nesne} ile Saz Hanı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Çıngırak"
+      },
+      "örnek": "Çıngırak ile Saz Hanı"
+    },
+    {
+      "template_id": "inn_040",
+      "kalıp": "{yer} Köprüsü Hanı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Koru"
+      },
+      "örnek": "Koru Köprüsü Hanı"
+    },
+    {
+      "template_id": "inn_041",
+      "kalıp": "Yolcu {hayvan} Hanı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Geyik"
+      },
+      "örnek": "Yolcu Geyik Hanı"
+    },
+    {
+      "template_id": "inn_042",
+      "kalıp": "{renk} Çorba Hanı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Beyaz"
+      },
+      "örnek": "Beyaz Çorba Hanı"
+    },
+    {
+      "template_id": "inn_043",
+      "kalıp": "{maden} Kazan Hanı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Bakır"
+      },
+      "örnek": "Bakır Kazan Hanı"
+    },
+    {
+      "template_id": "inn_044",
+      "kalıp": "{bitki} Çayı Hanı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Söğüt"
+      },
+      "örnek": "Söğüt Çayı Hanı"
+    },
+    {
+      "template_id": "inn_045",
+      "kalıp": "{göksel} Molası Hanı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Yıldız"
+      },
+      "örnek": "Yıldız Molası Hanı"
+    },
+    {
+      "template_id": "inn_046",
+      "kalıp": "{yön} Yolcusu Hanı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney Yolcusu Hanı"
+    },
+    {
+      "template_id": "inn_047",
+      "kalıp": "{sayı_sözü} Tabure Hanı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Yedi"
+      },
+      "örnek": "Yedi Tabure Hanı"
+    },
+    {
+      "template_id": "inn_048",
+      "kalıp": "Dinlenen {meslek} Hanı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Haritacı"
+      },
+      "örnek": "Dinlenen Haritacı Hanı"
+    },
+    {
+      "template_id": "inn_049",
+      "kalıp": "{nesne} ve Ekmek Hanı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Pusula"
+      },
+      "örnek": "Pusula ve Ekmek Hanı"
+    },
+    {
+      "template_id": "inn_050",
+      "kalıp": "{yer} Sofrası Hanı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Göl"
+      },
+      "örnek": "Göl Sofrası Hanı"
+    },
+    {
+      "template_id": "inn_051",
+      "kalıp": "Uysal {hayvan} Konukevi",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Tilki"
+      },
+      "örnek": "Uysal Tilki Konukevi"
+    },
+    {
+      "template_id": "inn_052",
+      "kalıp": "{renk} Pencere Konukevi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Boz"
+      },
+      "örnek": "Boz Pencere Konukevi"
+    },
+    {
+      "template_id": "inn_053",
+      "kalıp": "{maden} Tokmak Konukevi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Altın"
+      },
+      "örnek": "Altın Tokmak Konukevi"
+    },
+    {
+      "template_id": "inn_054",
+      "kalıp": "{bitki} Çardağı Konukevi",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Menekşe"
+      },
+      "örnek": "Menekşe Çardağı Konukevi"
+    },
+    {
+      "template_id": "inn_055",
+      "kalıp": "{göksel} Düşü Konukevi",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Ay"
+      },
+      "örnek": "Ay Düşü Konukevi"
+    },
+    {
+      "template_id": "inn_056",
+      "kalıp": "{yön} Geçidi Konukevi",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Geçidi Konukevi"
+    },
+    {
+      "template_id": "inn_057",
+      "kalıp": "{sayı_sözü} Yorgan Konukevi",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dört"
+      },
+      "örnek": "Dört Yorgan Konukevi"
+    },
+    {
+      "template_id": "inn_058",
+      "kalıp": "Masalcı {meslek} Konukevi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Demirci"
+      },
+      "örnek": "Masalcı Demirci Konukevi"
+    },
+    {
+      "template_id": "inn_059",
+      "kalıp": "{nesne} Hatırası Konukevi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Anahtar"
+      },
+      "örnek": "Anahtar Hatırası Konukevi"
+    },
+    {
+      "template_id": "inn_060",
+      "kalıp": "{yer} Esintisi Konukevi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Bozkır"
+      },
+      "örnek": "Bozkır Esintisi Konukevi"
+    }
+  ],
+  "dükkân_kalıpları": [
+    {
+      "template_id": "shop_001",
+      "kalıp": "{maden} Çekiç Demircisi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Bakır"
+      },
+      "örnek": "Bakır Çekiç Demircisi"
+    },
+    {
+      "template_id": "shop_002",
+      "kalıp": "{renk} Örs Ocağı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Kızıl"
+      },
+      "örnek": "Kızıl Örs Ocağı"
+    },
+    {
+      "template_id": "shop_003",
+      "kalıp": "{hayvan} Damgası Zırhçısı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Tilki"
+      },
+      "örnek": "Tilki Damgası Zırhçısı"
+    },
+    {
+      "template_id": "shop_004",
+      "kalıp": "{yön} Bıçağı Dükkânı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Bıçağı Dükkânı"
+    },
+    {
+      "template_id": "shop_005",
+      "kalıp": "{göksel} Kalkan Atölyesi",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Güneş"
+      },
+      "örnek": "Güneş Kalkan Atölyesi"
+    },
+    {
+      "template_id": "shop_006",
+      "kalıp": "{sayı_sözü} Perçin Nalbantlığı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dokuz"
+      },
+      "örnek": "Dokuz Perçin Nalbantlığı"
+    },
+    {
+      "template_id": "shop_007",
+      "kalıp": "Usta {meslek} Aletçisi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Ozan"
+      },
+      "örnek": "Usta Ozan Aletçisi"
+    },
+    {
+      "template_id": "shop_008",
+      "kalıp": "{yer} Çeliği Ocağı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Göl"
+      },
+      "örnek": "Göl Çeliği Ocağı"
+    },
+    {
+      "template_id": "shop_009",
+      "kalıp": "{bitki} Deseni Bakırcısı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Ardıç"
+      },
+      "örnek": "Ardıç Deseni Bakırcısı"
+    },
+    {
+      "template_id": "shop_010",
+      "kalıp": "{nesne} Tamir Evi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Lamba"
+      },
+      "örnek": "Lamba Tamir Evi"
+    },
+    {
+      "template_id": "shop_011",
+      "kalıp": "{bitki} Kokusu Aktarı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Nane"
+      },
+      "örnek": "Nane Kokusu Aktarı"
+    },
+    {
+      "template_id": "shop_012",
+      "kalıp": "{renk} Kavanoz Baharatçısı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Beyaz"
+      },
+      "örnek": "Beyaz Kavanoz Baharatçısı"
+    },
+    {
+      "template_id": "shop_013",
+      "kalıp": "{maden} Terazi Erzakçısı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Bakır"
+      },
+      "örnek": "Bakır Terazi Erzakçısı"
+    },
+    {
+      "template_id": "shop_014",
+      "kalıp": "{hayvan} Heybesi Bakkalı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Turna"
+      },
+      "örnek": "Turna Heybesi Bakkalı"
+    },
+    {
+      "template_id": "shop_015",
+      "kalıp": "{göksel} Demliği Çaycısı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Yıldız"
+      },
+      "örnek": "Yıldız Demliği Çaycısı"
+    },
+    {
+      "template_id": "shop_016",
+      "kalıp": "{yön} Hasadı Tahılcısı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Hasadı Tahılcısı"
+    },
+    {
+      "template_id": "shop_017",
+      "kalıp": "{sayı_sözü} Sepet Manavı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Yedi"
+      },
+      "örnek": "Yedi Sepet Manavı"
+    },
+    {
+      "template_id": "shop_018",
+      "kalıp": "{meslek} Azığı Dükkânı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Haritacı"
+      },
+      "örnek": "Haritacı Azığı Dükkânı"
+    },
+    {
+      "template_id": "shop_019",
+      "kalıp": "{yer} Tadı Peynir Evi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Vadi"
+      },
+      "örnek": "Vadi Tadı Peynir Evi"
+    },
+    {
+      "template_id": "shop_020",
+      "kalıp": "{nesne} ve Tuz Pazarı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Kadeh"
+      },
+      "örnek": "Kadeh ve Tuz Pazarı"
+    },
+    {
+      "template_id": "shop_021",
+      "kalıp": "{renk} İplik Terzisi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mavi"
+      },
+      "örnek": "Mavi İplik Terzisi"
+    },
+    {
+      "template_id": "shop_022",
+      "kalıp": "{bitki} Nakışı Kumaşçısı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Yonca"
+      },
+      "örnek": "Yonca Nakışı Kumaşçısı"
+    },
+    {
+      "template_id": "shop_023",
+      "kalıp": "{maden} İğne Dikiş Evi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Altın"
+      },
+      "örnek": "Altın İğne Dikiş Evi"
+    },
+    {
+      "template_id": "shop_024",
+      "kalıp": "{hayvan} Motifi Halıcısı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Su Samuru"
+      },
+      "örnek": "Su Samuru Motifi Halıcısı"
+    },
+    {
+      "template_id": "shop_025",
+      "kalıp": "{göksel} Örtüsü Dokumacısı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Ay"
+      },
+      "örnek": "Ay Örtüsü Dokumacısı"
+    },
+    {
+      "template_id": "shop_026",
+      "kalıp": "{yön} Pelerini Giyim Evi",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney Pelerini Giyim Evi"
+    },
+    {
+      "template_id": "shop_027",
+      "kalıp": "{sayı_sözü} İlmek Örgücüsü",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dört"
+      },
+      "örnek": "Dört İlmek Örgücüsü"
+    },
+    {
+      "template_id": "shop_028",
+      "kalıp": "{meslek} Çantası Dericisi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Demirci"
+      },
+      "örnek": "Demirci Çantası Dericisi"
+    },
+    {
+      "template_id": "shop_029",
+      "kalıp": "{yer} Adımı Çizmecisi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Kanyon"
+      },
+      "örnek": "Kanyon Adımı Çizmecisi"
+    },
+    {
+      "template_id": "shop_030",
+      "kalıp": "{nesne} Kılıfı Atölyesi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Kum Saati"
+      },
+      "örnek": "Kum Saati Kılıfı Atölyesi"
+    },
+    {
+      "template_id": "shop_031",
+      "kalıp": "{renk} Mürekkep Kırtasiyesi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mor"
+      },
+      "örnek": "Mor Mürekkep Kırtasiyesi"
+    },
+    {
+      "template_id": "shop_032",
+      "kalıp": "{bitki} Yaprağı Kâğıtçısı",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Söğüt"
+      },
+      "örnek": "Söğüt Yaprağı Kâğıtçısı"
+    },
+    {
+      "template_id": "shop_033",
+      "kalıp": "{maden} Kalem Yazı Evi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Tunç"
+      },
+      "örnek": "Tunç Kalem Yazı Evi"
+    },
+    {
+      "template_id": "shop_034",
+      "kalıp": "{hayvan} Mührü Hakkâkı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Baykuş"
+      },
+      "örnek": "Baykuş Mührü Hakkâkı"
+    },
+    {
+      "template_id": "shop_035",
+      "kalıp": "{göksel} Haritası Dükkânı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Güneş"
+      },
+      "örnek": "Güneş Haritası Dükkânı"
+    },
+    {
+      "template_id": "shop_036",
+      "kalıp": "{yön} Rotası Haritacısı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Rotası Haritacısı"
+    },
+    {
+      "template_id": "shop_037",
+      "kalıp": "{sayı_sözü} Cilt Sahafı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "İki"
+      },
+      "örnek": "İki Cilt Sahafı"
+    },
+    {
+      "template_id": "shop_038",
+      "kalıp": "{meslek} Defteri Kitapçısı",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Kâtip"
+      },
+      "örnek": "Kâtip Defteri Kitapçısı"
+    },
+    {
+      "template_id": "shop_039",
+      "kalıp": "{yer} Öyküsü Ciltevi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Yayla"
+      },
+      "örnek": "Yayla Öyküsü Ciltevi"
+    },
+    {
+      "template_id": "shop_040",
+      "kalıp": "{nesne} Çizimi Resim Atölyesi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Lamba"
+      },
+      "örnek": "Lamba Çizimi Resim Atölyesi"
+    },
+    {
+      "template_id": "shop_041",
+      "kalıp": "{renk} Kıvılcım Tılsımcısı",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Kehribar"
+      },
+      "örnek": "Kehribar Kıvılcım Tılsımcısı"
+    },
+    {
+      "template_id": "shop_042",
+      "kalıp": "{bitki} Özütü İksircisi",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Menekşe"
+      },
+      "örnek": "Menekşe Özütü İksircisi"
+    },
+    {
+      "template_id": "shop_043",
+      "kalıp": "{maden} Mercek Optik Evi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Bakır"
+      },
+      "örnek": "Bakır Mercek Optik Evi"
+    },
+    {
+      "template_id": "shop_044",
+      "kalıp": "{hayvan} Figürü Oyuncakçısı",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Turna"
+      },
+      "örnek": "Turna Figürü Oyuncakçısı"
+    },
+    {
+      "template_id": "shop_045",
+      "kalıp": "{göksel} Sesi Çalgıcısı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Yıldız"
+      },
+      "örnek": "Yıldız Sesi Çalgıcısı"
+    },
+    {
+      "template_id": "shop_046",
+      "kalıp": "{yön} İbresi Pusulacısı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney İbresi Pusulacısı"
+    },
+    {
+      "template_id": "shop_047",
+      "kalıp": "{sayı_sözü} Dişli Saatçisi",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Yedi"
+      },
+      "örnek": "Yedi Dişli Saatçisi"
+    },
+    {
+      "template_id": "shop_048",
+      "kalıp": "{meslek} Buluşu Mekanikçisi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Haritacı"
+      },
+      "örnek": "Haritacı Buluşu Mekanikçisi"
+    },
+    {
+      "template_id": "shop_049",
+      "kalıp": "{yer} Kristali Taşçısı",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Vadi"
+      },
+      "örnek": "Vadi Kristali Taşçısı"
+    },
+    {
+      "template_id": "shop_050",
+      "kalıp": "{nesne} Sırrı Merak Dükkânı",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Kadeh"
+      },
+      "örnek": "Kadeh Sırrı Merak Dükkânı"
+    },
+    {
+      "template_id": "shop_051",
+      "kalıp": "{renk} Sır Çömlekçisi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mavi"
+      },
+      "örnek": "Mavi Sır Çömlekçisi"
+    },
+    {
+      "template_id": "shop_052",
+      "kalıp": "{bitki} Oyması Marangozu",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Yonca"
+      },
+      "örnek": "Yonca Oyması Marangozu"
+    },
+    {
+      "template_id": "shop_053",
+      "kalıp": "{maden} Çerçeve Aynacısı",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Altın"
+      },
+      "örnek": "Altın Çerçeve Aynacısı"
+    },
+    {
+      "template_id": "shop_054",
+      "kalıp": "{hayvan} Silueti Fenercisi",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Su Samuru"
+      },
+      "örnek": "Su Samuru Silueti Fenercisi"
+    },
+    {
+      "template_id": "shop_055",
+      "kalıp": "{göksel} Parıltısı Camcısı",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Ay"
+      },
+      "örnek": "Ay Parıltısı Camcısı"
+    },
+    {
+      "template_id": "shop_056",
+      "kalıp": "{yön} Halatı Urgancısı",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Halatı Urgancısı"
+    },
+    {
+      "template_id": "shop_057",
+      "kalıp": "{sayı_sözü} Tahta Mobilyacısı",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dört"
+      },
+      "örnek": "Dört Tahta Mobilyacısı"
+    },
+    {
+      "template_id": "shop_058",
+      "kalıp": "{meslek} Tezgâhı Sepetçisi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Demirci"
+      },
+      "örnek": "Demirci Tezgâhı Sepetçisi"
+    },
+    {
+      "template_id": "shop_059",
+      "kalıp": "{yer} Esintisi Mumcusu",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Kanyon"
+      },
+      "örnek": "Kanyon Esintisi Mumcusu"
+    },
+    {
+      "template_id": "shop_060",
+      "kalıp": "{nesne} Sandığı Deposu",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Kum Saati"
+      },
+      "örnek": "Kum Saati Sandığı Deposu"
+    }
+  ],
+  "mahalle_kalıpları": [
+    {
+      "template_id": "district_001",
+      "kalıp": "{renk} Kemer Mahallesi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mor"
+      },
+      "örnek": "Mor Kemer Mahallesi"
+    },
+    {
+      "template_id": "district_002",
+      "kalıp": "{maden} Kapı Mahallesi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Gümüş"
+      },
+      "örnek": "Gümüş Kapı Mahallesi"
+    },
+    {
+      "template_id": "district_003",
+      "kalıp": "{bitki} Bahçeleri Mahallesi",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Ardıç"
+      },
+      "örnek": "Ardıç Bahçeleri Mahallesi"
+    },
+    {
+      "template_id": "district_004",
+      "kalıp": "{hayvan} Çeşmesi Mahallesi",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Baykuş"
+      },
+      "örnek": "Baykuş Çeşmesi Mahallesi"
+    },
+    {
+      "template_id": "district_005",
+      "kalıp": "{göksel} Meydanı Mahallesi",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Güneş"
+      },
+      "örnek": "Güneş Meydanı Mahallesi"
+    },
+    {
+      "template_id": "district_006",
+      "kalıp": "{yön} Yamaç Mahallesi",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney Yamaç Mahallesi"
+    },
+    {
+      "template_id": "district_007",
+      "kalıp": "{sayı_sözü} Köprü Mahallesi",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "İki"
+      },
+      "örnek": "İki Köprü Mahallesi"
+    },
+    {
+      "template_id": "district_008",
+      "kalıp": "{meslek} Sokağı Mahallesi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Kâtip"
+      },
+      "örnek": "Kâtip Sokağı Mahallesi"
+    },
+    {
+      "template_id": "district_009",
+      "kalıp": "{nesne} Pazarı Mahallesi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Çıngırak"
+      },
+      "örnek": "Çıngırak Pazarı Mahallesi"
+    },
+    {
+      "template_id": "district_010",
+      "kalıp": "{yer} Eşiği Mahallesi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Koru"
+      },
+      "örnek": "Koru Eşiği Mahallesi"
+    },
+    {
+      "template_id": "district_011",
+      "kalıp": "{renk} Çatı Semti",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Kehribar"
+      },
+      "örnek": "Kehribar Çatı Semti"
+    },
+    {
+      "template_id": "district_012",
+      "kalıp": "{maden} Basamak Semti",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Pirinç"
+      },
+      "örnek": "Pirinç Basamak Semti"
+    },
+    {
+      "template_id": "district_013",
+      "kalıp": "{bitki} Korusu Semti",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Lavanta"
+      },
+      "örnek": "Lavanta Korusu Semti"
+    },
+    {
+      "template_id": "district_014",
+      "kalıp": "{hayvan} Geçidi Semti",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Turna"
+      },
+      "örnek": "Turna Geçidi Semti"
+    },
+    {
+      "template_id": "district_015",
+      "kalıp": "{göksel} Kulesi Semti",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Yıldız"
+      },
+      "örnek": "Yıldız Kulesi Semti"
+    },
+    {
+      "template_id": "district_016",
+      "kalıp": "{yön} Limanı Semti",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Batı"
+      },
+      "örnek": "Batı Limanı Semti"
+    },
+    {
+      "template_id": "district_017",
+      "kalıp": "{sayı_sözü} Avlu Semti",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Yedi"
+      },
+      "örnek": "Yedi Avlu Semti"
+    },
+    {
+      "template_id": "district_018",
+      "kalıp": "{meslek} Loncası Semti",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Haritacı"
+      },
+      "örnek": "Haritacı Loncası Semti"
+    },
+    {
+      "template_id": "district_019",
+      "kalıp": "{nesne} Heykeli Semti",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Pusula"
+      },
+      "örnek": "Pusula Heykeli Semti"
+    },
+    {
+      "template_id": "district_020",
+      "kalıp": "{yer} Surları Semti",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Göl"
+      },
+      "örnek": "Göl Surları Semti"
+    },
+    {
+      "template_id": "district_021",
+      "kalıp": "{renk} Taş Bölgesi",
+      "yuvalar": [
+        "renk"
+      ],
+      "örnek_değerleri": {
+        "renk": "Mavi"
+      },
+      "örnek": "Mavi Taş Bölgesi"
+    },
+    {
+      "template_id": "district_022",
+      "kalıp": "{maden} Çan Bölgesi",
+      "yuvalar": [
+        "maden"
+      ],
+      "örnek_değerleri": {
+        "maden": "Demir"
+      },
+      "örnek": "Demir Çan Bölgesi"
+    },
+    {
+      "template_id": "district_023",
+      "kalıp": "{bitki} Terasları Bölgesi",
+      "yuvalar": [
+        "bitki"
+      ],
+      "örnek_değerleri": {
+        "bitki": "Nane"
+      },
+      "örnek": "Nane Terasları Bölgesi"
+    },
+    {
+      "template_id": "district_024",
+      "kalıp": "{hayvan} İzi Bölgesi",
+      "yuvalar": [
+        "hayvan"
+      ],
+      "örnek_değerleri": {
+        "hayvan": "Su Samuru"
+      },
+      "örnek": "Su Samuru İzi Bölgesi"
+    },
+    {
+      "template_id": "district_025",
+      "kalıp": "{göksel} Seyri Bölgesi",
+      "yuvalar": [
+        "göksel"
+      ],
+      "örnek_değerleri": {
+        "göksel": "Ay"
+      },
+      "örnek": "Ay Seyri Bölgesi"
+    },
+    {
+      "template_id": "district_026",
+      "kalıp": "{yön} Kanalı Bölgesi",
+      "yuvalar": [
+        "yön"
+      ],
+      "örnek_değerleri": {
+        "yön": "Güney"
+      },
+      "örnek": "Güney Kanalı Bölgesi"
+    },
+    {
+      "template_id": "district_027",
+      "kalıp": "{sayı_sözü} Değirmen Bölgesi",
+      "yuvalar": [
+        "sayı_sözü"
+      ],
+      "örnek_değerleri": {
+        "sayı_sözü": "Dört"
+      },
+      "örnek": "Dört Değirmen Bölgesi"
+    },
+    {
+      "template_id": "district_028",
+      "kalıp": "{meslek} Çarşısı Bölgesi",
+      "yuvalar": [
+        "meslek"
+      ],
+      "örnek_değerleri": {
+        "meslek": "Demirci"
+      },
+      "örnek": "Demirci Çarşısı Bölgesi"
+    },
+    {
+      "template_id": "district_029",
+      "kalıp": "{nesne} Ambarı Bölgesi",
+      "yuvalar": [
+        "nesne"
+      ],
+      "örnek_değerleri": {
+        "nesne": "Anahtar"
+      },
+      "örnek": "Anahtar Ambarı Bölgesi"
+    },
+    {
+      "template_id": "district_030",
+      "kalıp": "{yer} Kıyısı Bölgesi",
+      "yuvalar": [
+        "yer"
+      ],
+      "örnek_değerleri": {
+        "yer": "Bozkır"
+      },
+      "örnek": "Bozkır Kıyısı Bölgesi"
+    }
+  ],
+  "yuva_sözlüğü": {
+    "hayvan": {
+      "açıklama": "Yalın biçimde bir hayvan adı.",
+      "örnek_değerler": [
+        "Porsuk",
+        "Turna",
+        "Tilki",
+        "Baykuş",
+        "Geyik",
+        "Su Samuru"
+      ]
+    },
+    "nesne": {
+      "açıklama": "Yalın biçimde somut bir nesne adı.",
+      "örnek_değerler": [
+        "Pusula",
+        "Kadeh",
+        "Çıngırak",
+        "Lamba",
+        "Anahtar",
+        "Kum Saati"
+      ]
+    },
+    "renk": {
+      "açıklama": "Ardından gelen adı niteleyen renk veya renk tonu.",
+      "örnek_değerler": [
+        "Mor",
+        "Kızıl",
+        "Mavi",
+        "Boz",
+        "Kehribar",
+        "Beyaz"
+      ]
+    },
+    "maden": {
+      "açıklama": "Malzeme adı olarak kullanılan metal.",
+      "örnek_değerler": [
+        "Bakır",
+        "Gümüş",
+        "Tunç",
+        "Demir",
+        "Altın",
+        "Pirinç"
+      ]
+    },
+    "bitki": {
+      "açıklama": "Yalın biçimde bitki adı.",
+      "örnek_değerler": [
+        "Lavanta",
+        "Söğüt",
+        "Ardıç",
+        "Yonca",
+        "Nane",
+        "Menekşe"
+      ]
+    },
+    "göksel": {
+      "açıklama": "Yalın biçimde göksel veya gün döngüsüne ilişkin ad.",
+      "örnek_değerler": [
+        "Ay",
+        "Şafak",
+        "Yıldız",
+        "Gün Batımı",
+        "Güneş",
+        "Alacakaranlık"
+      ]
+    },
+    "yön": {
+      "açıklama": "Yalın biçimde yön adı.",
+      "örnek_değerler": [
+        "Kuzey",
+        "Güney",
+        "Doğu",
+        "Batı"
+      ]
+    },
+    "sayı_sözü": {
+      "açıklama": "Rakam içermeyen sayı sözü; takip eden ad tekil kalır.",
+      "örnek_değerler": [
+        "İki",
+        "Üç",
+        "Dört",
+        "Beş",
+        "Yedi",
+        "Dokuz"
+      ]
+    },
+    "meslek": {
+      "açıklama": "Yalın biçimde tekil meslek veya uğraş adı.",
+      "örnek_değerler": [
+        "Ozan",
+        "Kâtip",
+        "Dokumacı",
+        "Demirci",
+        "Kılavuz",
+        "Haritacı"
+      ]
+    },
+    "yer": {
+      "açıklama": "Özel kanonik yer adı olmayan, yalın coğrafi ad.",
+      "örnek_değerler": [
+        "Vadi",
+        "Göl",
+        "Yayla",
+        "Koru",
+        "Kanyon",
+        "Bozkır"
+      ]
+    }
+  }
+}

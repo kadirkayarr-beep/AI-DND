@@ -32,6 +32,7 @@ import time
 from typing import Any
 
 import living_world
+import name_catalog
 import npc_statements
 
 KEY = "grounded_actions"
@@ -1248,7 +1249,8 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
         # decides. A square has no door.
         spec = _GENERIC_BUILDINGS.get(noun or "", _GENERIC_BUILDINGS["dukkan"])
         if not name:
-            name = living_world.stable_local_name(world, settlement, f"local {noun or 'yer'}") + " " + spec["suffix"]
+            name = (name_catalog.place_name(world, noun or "", settlement) if noun else None) or (
+                living_world.stable_local_name(world, settlement, f"local {noun or 'yer'}") + " " + spec["suffix"])
         record = {
             "id": location_id, "name": name, "type": "building",
             "aliases": [alias for alias in dict.fromkeys([name, noun or "", spec["noun"]]) if alias],
@@ -1268,7 +1270,8 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
             })
         return record
     if not name:
-        name = living_world.stable_local_name(world, settlement, f"local tavern {len(taverns) + 1}") + " Hanı"
+        name = name_catalog.place_name(world, "tavern", f"{settlement}:{len(taverns) + 1}") or (
+            living_world.stable_local_name(world, settlement, f"local tavern {len(taverns) + 1}") + " Hanı")
     record = {
         "id": location_id,
         "name": name,

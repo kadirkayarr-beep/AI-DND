@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 import living_world
+import name_catalog
 
 MAX_LOCAL_PLACES_PER_SETTLEMENT = 8
 
@@ -270,12 +271,27 @@ def find_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> di
 def named_in(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
     """The saved place of this settlement the player called by its name, longest name first."""
     folded = _fold(text)
-    places = [
+    known = [
         record for record in world.get("locations", {}).values()
         if isinstance(record, dict) and record.get("parent_location_id") == settlement_id
-        and record.get("place_kind") and _fold(record.get("name")) and _fold(record.get("name")) in folded
+        and record.get("place_kind") and _fold(record.get("name"))
     ]
-    return max(places, key=lambda record: len(_fold(record.get("name"))), default=None)
+    places = [record for record in known if _fold(record.get("name")) in folded]
+    if places:
+        return max(places, key=lambda record: len(_fold(record.get("name"))))
+    # "Örs Ocağına": two words of a three-word name, when only one place has them.
+    partial = [record for record in known if any(pair in folded for pair in _word_pairs(record.get("name")))]
+    return partial[0] if len(partial) == 1 else None
+
+
+def _word_pairs(name: Any) -> list[str]:
+    words = _fold(name).split()
+    return [" ".join(words[at:at + 2]) for at in range(len(words) - 1)] if len(words) > 2 else []
+
+
+def visit_by_name(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
+    """'Kızıl Örs Ocağına gidiyorum': a saved place's own name is enough, no trade word needed."""
+    return named_in(world, settlement_id, text) if isinstance(text, str) and _is_going(text) else None
 
 
 def mentioned_by(world: dict[str, Any], kind: str) -> str | None:
@@ -327,7 +343,8 @@ def create_local_place(
         number += 1
     location_id = f"location_{number:03d}"
     world["next_location_number"] = number + 1
-    name = name or f"{living_world.stable_local_name(world, settlement_id, 'place:' + kind)} {spec['suffix']}"
+    name = name or name_catalog.place_name(world, kind, settlement_id) or (
+        f"{living_world.stable_local_name(world, settlement_id, 'place:' + kind)} {spec['suffix']}")
     record = {
         "id": location_id,
         "name": name,
