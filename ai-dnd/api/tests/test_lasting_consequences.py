@@ -540,3 +540,19 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
         await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
         out = await self.say("ben dün burada ne yaptım hatırlıyor musun", PlayClient(spoken="Hatırlamaz olur muyum, senin yüzünden buradayım."))
         self.assertIn("Hatırlamaz olur muyum", out["narration"])
+
+
+class ASmoulderingFire(OneTownScene):
+    async def test_walking_back_in_the_smoke_is_there_to_see(self):
+        await self.town()
+        import bold_acts
+        import local_places
+        from unittest.mock import patch
+        place = local_places.create_local_place(self.world, self.city, "workshop")
+        place["visited"] = True
+        self.world["location"] = place["id"]
+        with self.binding(), patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            bold_acts._burn(self.session)
+        text = local_places.arrival_text(self.world, place, None, None, first_visit=False)
+        self.assertIn("tütüyor", text)
+        self.assertNotIn("bıraktığın gibi", text)

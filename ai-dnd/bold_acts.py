@@ -209,7 +209,9 @@ def place_marks(world: dict[str, Any], location: Any) -> list[str]:
             deed["shown"] = True
             who = living_world.public_npc_name(people[deed["victim_id"]])
             marks.append(f"{who} durup kesesini yokluyor; yüzü asık, gözleri çevrede dolaşıyor.")
-    return marks[:1]
+    if any(fire["location"] == location and fire["stage"] == 0 for fire in _fires(world)):
+        marks.append("Yaktığın ateş köşede hâlâ için için tütüyor; duman tavana yayılıyor.")
+    return marks
 
 
 def _fire_note(world: dict[str, Any], npc: dict[str, Any]) -> str:

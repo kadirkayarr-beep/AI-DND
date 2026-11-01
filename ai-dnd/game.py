@@ -17425,7 +17425,7 @@ def _run_player_turn(
         )
         import bold_acts
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            _sleep_after_walk(result, player_input, place_before)
+            _sleep_after_walk(result, player_input, place_before, scene_plan)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
     except IntentInfrastructureError as error:
@@ -17911,10 +17911,12 @@ def _dispatch_player_turn(
             )
 
 
-def _sleep_after_walk(walked, player_input, place_before):
+def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
     """"Hana gidip uyuyorum": the walk is only the first half of what was said."""
     world_state = _session().world_state
-    if (not isinstance(walked, dict) or world_state.get("location") == place_before
+    planned = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
+    entered = isinstance(planned, dict) and planned.get("action") == "enter"  # the door was gone through before this turn ran
+    if (not isinstance(walked, dict) or (world_state.get("location") == place_before and not entered)
             or world_state.get("combat", {}).get("active")
             or not timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))):
         return
