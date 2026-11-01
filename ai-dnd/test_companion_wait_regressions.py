@@ -153,15 +153,23 @@ class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(replay.json(), first.json())
                 self.assertEqual(self.world['campaign_time']['elapsed_seconds'], before + expected)
 
-    async def test_bare_wait_asks_duration_instead_of_talking_to_npc(self):
+    async def test_bare_wait_passes_a_short_while_instead_of_talking_to_npc(self):
         await self.setup_free(); campaign_time.initialize(self.world)
-        for text in ('bekle', 'bekliyorum', 'han açılana kadar bekle'):
-            before = copy.deepcopy(self.world['campaign_time'])
+        for text in ('bekle', 'bekliyorum'):
+            before = self.world['campaign_time']['elapsed_seconds']
             r = await self.send(text, mode='do')
             self.assertEqual(r.status_code, 200, r.text)
-            self.assertIn('dakika', r.json()['narration'])
-            self.assertEqual(self.world['campaign_time'], before)
+            self.assertGreater(self.world['campaign_time']['elapsed_seconds'], before)
             self.assertEqual(self.reply.calls, 0)
+
+    async def test_a_wait_for_something_with_no_clock_says_so(self):
+        await self.setup_free(); campaign_time.initialize(self.world)
+        before = copy.deepcopy(self.world['campaign_time'])
+        r = await self.send('han açılana kadar bekle', mode='do')
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertIn('dakika', r.json()['narration'])
+        self.assertEqual(self.world['campaign_time'], before)
+        self.assertEqual(self.reply.calls, 0)
 
     async def test_report_and_unpunctuated_question_remain_npc_dialogue(self):
         await self.setup_free(); campaign_time.initialize(self.world)

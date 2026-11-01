@@ -815,6 +815,8 @@ def _time_passed_line(advancement):
 def is_timed_wait(text):
     """A wait the player gave a length for, whatever else the same line says."""
     normalized = clock.normalize(text)
+    if re.search(r"\b(?:sonra|ardindan|once)\b", normalized):
+        return False  # one thing after another is a plan, and a plan runs step by step
     return bool(re.search(r"\bbekl", normalized)) and "?" not in str(text) and (
         clock.mentions_named_hour(normalized) or clock.requested_duration(text) is not None
     )
