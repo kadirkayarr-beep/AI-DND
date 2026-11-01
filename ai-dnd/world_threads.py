@@ -1237,6 +1237,7 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     except ValueError:
         wanted = hours * HOUR
     before = copy.deepcopy(world)
+    day = campaign_time.public_time(world)["day_index"]  # a shift belongs to the day it began
     thread["shift_until"] = _now(world) + wanted
     try:
         result = game.advance_campaign_time(wanted, "work_shift")
@@ -1245,14 +1246,14 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     thread = by_id(world, thread_id)
     passed = result["elapsed_seconds"]
     thread["shift_seconds"] = thread.get("shift_seconds", 0) + passed
-    day = campaign_time.public_time(world)["day_index"]
     parts = []
     if thread["status"] != "accepted":
         parts.append(words.get("shift_short", ""))
+    elif thread.get("last_paid_day_index") == day:
+        thread["shift_seconds"] = 0  # a day already paid for: these hours count toward nothing
+        parts.append(words.get("shift_no_pay", ""))
     elif thread["shift_seconds"] < hours * HOUR:
         parts.append(words.get("shift_short", ""))
-    elif thread.get("last_paid_day_index") == day:
-        parts.append(words.get("shift_no_pay", ""))
     else:
         thread["days_worked"] = thread.get("days_worked", 0) + 1
         thread["last_paid_day_index"] = day

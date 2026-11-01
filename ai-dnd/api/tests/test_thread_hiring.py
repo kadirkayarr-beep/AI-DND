@@ -115,6 +115,30 @@ class HiringTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.wallet(), money)
         self.assertEqual(self.t()["days_worked"], worked)
 
+    async def test_a_shift_running_past_midnight_belongs_to_the_day_it_began(self):
+        await self.job(pay=39, days=2, basis="total")
+        self.world["campaign_time"]["start_second"] = 8 * HOUR
+        await self.line("başlayalım")
+        money = self.wallet()
+        self.assertEqual(self.t()["days_worked"], 1)
+        await self.line("başlayalım")
+        self.assertEqual(self.wallet(), money)
+        self.assertEqual(self.t()["days_worked"], 1)
+        self.assertEqual(self.t()["status"], "accepted")
+
+    async def test_hours_refused_today_are_not_saved_for_tomorrow(self):
+        for extra in ("7 saat çalışıyorum", "3 saat çalışıyorum"):
+            await self.job(pay=30, days=3, basis="total")
+            self.world["campaign_time"]["start_second"] = 8 * HOUR
+            await self.line("başlayalım")
+            money = self.wallet()
+            await self.line(extra)
+            self.assertEqual(self.t().get("shift_seconds"), 0, extra)
+            self.world["campaign_time"]["elapsed_seconds"] = DAY
+            await self.line("5 saat çalışıyorum")
+            self.assertEqual(self.wallet(), money, extra)
+            self.assertEqual(self.t()["days_worked"], 1, extra)
+
     async def test_a_long_shift_is_still_one_day(self):
         await self.job(days=3)
         money = self.wallet()
