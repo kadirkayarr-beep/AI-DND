@@ -619,13 +619,14 @@ def _buy(session, text: str) -> dict[str, Any] | None:
                   "purchase", "bought", None, ["currency"], price_cp=price)
 
 
-def resolve(session, text: Any) -> dict[str, Any] | None:
+def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
+    """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide."""
     if isinstance(text, str) and "?" not in text:
         settled = _search_body(session, text) or _buy(session, text)
         if settled is not None:
             return settled
-    if is_theft(session, text):
+    if is_theft(session, text) if deed is None else deed == "steal":
         return _steal(session, text)
-    if is_arson(session, text):
+    if is_arson(session, text) if deed is None else deed == "burn":
         return _burn(session)
     return None

@@ -17936,6 +17936,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         return None
     import world_happenings
     import world_threads
+    session._front_deed = front_proposal.deed_in(reply)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
     if threatened:
@@ -18148,6 +18149,7 @@ def _dispatch_player_turn(
                 "state_changes": ["conversation"] if active is not None else [],
             },
         }
+    read = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
@@ -18166,7 +18168,7 @@ def _dispatch_player_turn(
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
             and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            bold = bold_acts.resolve(_session(), player_input)
+            bold = bold_acts.resolve(_session(), player_input, getattr(_session(), "_front_deed", None))
         if bold is not None:
             return bold
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
@@ -18194,9 +18196,9 @@ def _dispatch_player_turn(
             }
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         from adventure import dialogue_jobs
-        read = dialogue_jobs.read_parcel(_session(), player_input)
-        if read is not None:
-            return read
+        parcel_read = dialogue_jobs.read_parcel(_session(), player_input)
+        if parcel_read is not None:
+            return parcel_read
         import town_knowledge
         board = town_knowledge.board_turn(_session(), player_input)
         if board is not None:
@@ -18209,8 +18211,8 @@ def _dispatch_player_turn(
             listed = equipment_economy.execute(_session(), player_input)  # the bag answers for itself, whoever stands near
             if listed is not None:
                 return listed
-    front = (getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False)
-             else _front_step(player_input, target_id, interaction_mode, combat_action, check_feature))
+    front = read if getattr(_session(), "_front_ahead", False) else _front_step(
+        player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None

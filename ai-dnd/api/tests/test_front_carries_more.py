@@ -43,3 +43,36 @@ class ReadsBeforeThePlanner(FrontTable):
         self.assertTrue(reply["narration"].strip())
         self.assertEqual(self.client.chat_calls, len(self.client.schemas))
         self.assertLessEqual(self.client.chat_calls, 2)
+
+
+class ReadsBeforeTheOldOwners(FrontTable):
+    async def test_lighting_a_lantern_is_no_arson(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        await self.line("kandil malzemesini acip sonuk fenere yag koyup yakiyorum")
+        self.assertNotEqual(self.routes()[-1]["owner"], "arson")
+        self.assertFalse(self.world["flags"].get("fires"))
+
+    async def test_a_fire_the_model_read_is_still_a_fire(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "deed": "burn"}
+        await self.line("su dukkani bastan asagi tutusturuyorum")
+        self.assertEqual(self.routes()[-1]["owner"], "arson")
+
+    async def test_a_glance_at_a_purse_is_no_theft(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        await self.line("adamin kesesine bi goz atiyorum, dolu mu diye")
+        self.assertNotEqual(self.routes()[-1]["owner"], "theft")
+
+    async def test_a_theft_the_word_list_never_heard_is_still_a_theft(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "deed": "steal"}
+        await self.line("kalabaligi firsat bilip adamin belindekini usulca kendime katiyorum")
+        self.assertEqual(self.routes()[-1]["owner"], "theft")
+
+    async def test_with_no_reading_the_old_words_still_catch_a_fire(self):
+        await self.begin()
+        self.client.drop_front = True
+        await self.line("dukkani atese veriyorum")
+        self.assertEqual(self.routes()[-1]["owner"], "arson")
