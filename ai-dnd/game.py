@@ -13774,11 +13774,27 @@ def _ensure_venue_window(door):
     })
 
 
+def _finding_says_too_much(text):
+    """A detail of the scene carries no money, key, figure or new name: those are Python's or the world's."""
+    import pocket
+    world_state = _session().world_state
+    known = living_world.normalize_text(" ".join(str(name) for name in (
+        _session().character["name"],
+        *(npc.get("name") for npc in world_state.get("npcs", [])),
+        *(value.get("name") for value in world_state.get("locations", {}).values() if isinstance(value, dict)),
+        *(feature.get("name") for feature in world_state.get("features", []) if isinstance(feature, dict)),
+    )))
+    new_names = [word for word in re.findall(r"(?<=\s)[A-ZÇĞİÖŞÜ]\w{2,}", text)
+                 if living_world.normalize_text(word) not in known]
+    return (bool(new_names) or any(char.isdigit() for char in text) or pocket.names_worth(text)
+            or _has_unregistered_person_name(text))
+
+
 def _found_on_a_pass():
     """A pass with no saved fact to show: the reading proposed what is there, and Python keeps it as a real detail."""
     text, word = getattr(_session(), "_front_found", None) or ("", "")
     text = _clean_world_text(text, 120)
-    if not text:
+    if not text or _finding_says_too_much(text):
         return None
     world_state = _session().world_state
     if any(isinstance(row, dict) and row.get("description") == text and row.get("location") == world_state.get("location")
@@ -13857,17 +13873,18 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
                     continue
                 named_absence.append(word)
             found_now = _found_on_a_pass() if proposed and named_absence else None
-            if found_now is not None or (a_reading_ran and named_absence):
-                return found_now  # with a reading and no proposal the narrator tells it, inside the turn's cap
+            if found_now is not None:
+                return found_now
             found = success and not named_absence
-            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
+            # A pass the reading had nothing to add to still shows what is saved, and no prose invents the rest.
+            line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found or a_reading_ran
                     else f"{feature['name']} üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun.")
             return {"target_kind": "feature", "target_id": feature.get("id"),
                     "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
         found = _found_on_a_pass() if proposed else None
-        if found is not None or a_reading_ran:
-            return found  # with a reading and no proposal the narrator tells it, inside the turn's cap
+        if found is not None:
+            return found
         line = ("İzleri dikkatle inceliyorsun: kalabalık bir zeminde beklendiği gibi birbirine "
                 "karışmışlar; belirli birinin izini ayırmak bu haliyle mümkün değil." if success
                 else "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun.")

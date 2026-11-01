@@ -23,11 +23,16 @@ _NOT_THINGS = frozenset({
     "alip", "aliyorum", "atiyorum", "koyuyorum", "sokuyorum", "topluyorum", "toplayip", "iyilerini", "icinde", "icine",
     "birkac", "biraz", "tane", "hepsini", "ondan", "bunlari", "sunlari", "onlari", "yarar", "neyse", "varsa",
 })
+_UNDER = re.compile(r"altin(?:a|da|dan|daki)")  # 'masanın altında' is no gold
 _SHOWN_TURNS = 8
 _DENIED = re.compile(r"\b(?:yok|degil)\b|m[iu]yor")  # 'yok', 'değil', 'görünmüyor': said as not there
 _TOLD_TO_YOU = ("sun", "sin", "din", "dun")  # 'alıyorsun', 'aldın': the sentence says the player did it
 EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
 _THING_WORD = re.compile(r"[^\W\d_]{4,}")
+
+
+def names_worth(text: Any) -> bool:
+    return any(word.startswith(_WORTH) and not _UNDER.fullmatch(word) for word in living_world.normalize_text(text).split())
 
 
 def told_as_there(text: str) -> str:

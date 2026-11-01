@@ -392,6 +392,36 @@ class APassedCheckFindsSomething(FrontTable):
         reply = {"front": {"found": self.FOUND, "thing_word": "izler"}}
         self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], self.FOUND)
 
+    async def test_a_finding_carries_no_money_key_figure_or_new_name(self):
+        await self.begin()
+        for said in ("Masanın altında paslı bir anahtar duruyor.", "Köşede parlayan üç altın sikke duruyor.",
+                     "Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor.", "Kutunun dibinde kazınmış 12 sayısı görünüyor."):
+            self.session._front_found = (said, "masa")
+            self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"), said)
+            self.assertFalse([row for row in self.world["features"] if row.get("description") == said], said)
+
+    async def test_a_detail_under_something_is_still_a_finding(self):
+        await self.begin()
+        self.session._front_found = ("Masanın altında kurumuş bir çamur izi duruyor.", "masa")
+        found = self.session._inspection_findings("masanin altina bakiyorum", "success")
+        self.assertIs(found["found"], True)
+
+    async def test_a_pass_with_nothing_proposed_shows_what_is_saved_of_a_named_thing(self):
+        await self.begin()
+        self.session.create_local_feature({"location": self.world["location"], "name": "Eğri taş",
+                                           "description": "Yana yatmış eski bir taş.", "aliases": ["taş"]})
+        self.session._front_found = ("", "yazı")
+        found = self.session._inspection_findings("egri tasin altindaki yaziya bakiyorum", "success")
+        self.assertIn("Yana yatmış eski bir taş", found["text"])
+        self.assertNotIn("seçemiyorsun", found["text"])
+        self.assertIs(found["found"], False)
+
+    async def test_a_pass_on_tracks_with_nothing_proposed_keeps_python_s_line(self):
+        await self.begin()
+        self.session._front_found = ("", "izler")
+        found = self.session._inspection_findings("yerdeki izleri inceliyorum", "success")
+        self.assertIn("İzleri dikkatle inceliyorsun", found["text"])
+
     async def test_a_plain_look_with_no_roll_keeps_the_old_line_for_tracks(self):
         await self.begin()
         self.client.front = {"kind": "look"}
