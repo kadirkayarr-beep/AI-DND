@@ -10982,7 +10982,7 @@ def _narration_safety_decision(
         # "Bir tane alırsın": what an NPC says the player may do, not what the player did.
         if (
             spoken_start is not None and match.start() >= spoken_start
-            and normalized_verb in {"alirsin", "odersin", "verirsin", "icersin"}
+            and re.search(r"[aeiu]rsin$", normalized_verb)
         ):
             continue
         committed_step = normalized_verb.startswith("at") and re.search(
@@ -18137,6 +18137,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         return None
     if route["kind"] == "strike":
         if _blow_stands(player_input):
+            # Hurting the wrong person cannot be taken back: the words pick who, and with no name the one at hand.
+            named = [npc["id"] for npc in combat_lifecycle.pointed_targets(session, player_input)]
+            at_hand = listed["speaking_with"] if listed["speaking_with"] in [row["id"] for row in listed["people"]] else None
+            if named:
+                route["id"] = route["id"] if route["id"] in named else named[0]
+            elif at_hand:
+                route["id"] = at_hand
             session._front_strike = route
         else:  # a threat or a question about a blow: words, and they are for that person
             route = {"kind": "speak_to", "id": route["id"]}

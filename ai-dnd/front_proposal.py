@@ -17,7 +17,7 @@ from typing import Any, Mapping, MutableMapping
 
 FLAG = "AI_DND_FRONT_PROPOSAL"
 ROUTE_LOG = "AI_DND_ROUTE_LOG"
-KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit", "strike",
+KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
          "grab", "unclear")
 DEEDS = ("steal", "burn")
 NONE = "none"
@@ -107,6 +107,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
+            "strike_to": {"type": "string", "enum": _ids(listed["people"])},
             "deed": {"type": "string", "enum": [*DEEDS, NONE]},
             "also_says": {"type": "string", "maxLength": 160},
             "place_id": {"type": "string", "enum": _ids(listed["places"])},
@@ -122,7 +123,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
         "required": ["kind", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
-                     "threat_to", "deed", "also_says"],
+                     "threat_to", "strike_to", "deed", "also_says"],
         "additionalProperties": False,
     }
 
@@ -148,11 +149,12 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         "inside=true); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
         "bakıyor, ne olup bittiğini görmek istiyor; bag = cümlede kendi çantası, kesesi, cebi ya da parası geçiyor ve orada ne olduğunu "
-        "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; strike = şu anda listedeki birine vuruyor: yumruk, tekme, tokat, fırlattığı ya da geçirdiği bir şey, savurduğu silah, hangi kelimeyle söylerse söylesin (person_id kime; eliyle değil de bir eşyayla vuruyorsa thing_word o eşyanın adı; soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümle strike değildir); grab = listedeki birine vurmadan el koyuyor: yakasına yapışıyor, itiyor, sıkıştırıyor, bir yere bastırıyor (person_id kim; bastırdığı masa ya da tezgâh thing_id değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
+        "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; grab = listedeki birine vurmadan el koyuyor: yakasına yapışıyor, itiyor, sıkıştırıyor, bir yere bastırıyor (person_id kim; bastırdığı masa ya da tezgâh thing_id değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "
         f"Teklif hakkında soru sormak offer_answer değil speak_to olur. {_at_hand(listed)} "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "
         "threat_to: oyuncu birine canına, malına ya da kapısına zarar vereceğini açıkça söylüyorsa, nasıl söylerse söylesin o kişinin kimliği; yoksa none. "
+        "strike_to: oyuncu şu anda birine vuruyorsa, yumruk, tekme, tokat atıyor, suratına ya da kafasına bir şey geçiriyor, bir şey fırlatıyor, silah savuruyorsa, hangi kelimeyle söylerse söylesin vurduğu kişinin kimliği (bir eşyayla vuruyorsa thing_word o eşyanın adı); soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümlede none. "
         "found: oyuncu bir şeyi inceliyor, okuyor, açıp bakıyor ya da arıyorsa, zar tutarsa orada ne gördüğünü söyleyen yeni bir tam cümle yaz: tek somut ayrıntı, sonu 'var', 'duruyor', 'görünüyor' gibi bir fiille bitsin. Oyuncunun sözünü tekrar etme, 'bir şey yok' yazma, para, anahtar, kişi adı, sır ekleme; inceleme yoksa boş. "
         "person_word: oyuncu people listesinde olmayan birine yöneliyor ya da sesleniyorsa onun yalın adı, ör. nöbetçi; yoksa boş. "
         "deed: oyuncu şu anda birinin malını gizlice alıyorsa steal; bir yeri, binayı ya da başkasının malını şu anda ateşe veriyorsa burn; "
@@ -222,6 +224,9 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     if not isinstance(front, dict) or front.get("kind") not in KINDS:
         return None
     kind = front["kind"]
+    if front.get("strike_to") in [row["id"] for row in listed["people"]]:
+        word = front.get("thing_word")  # a blow is a blow, however the rest of the line was read
+        return {"kind": "strike", "id": front["strike_to"], "with": word.strip() if isinstance(word, str) else ""}
     offer = next((row for row in listed["offers"] if row["id"] == front.get("offer_id")), None)
     if kind == "speak_to" and offer is not None and front.get("answer") in {"accept", "decline"}:
         kind = "offer_answer"  # a small model names the person and the answer both: the answer is the turn
@@ -240,14 +245,6 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
         if item in (None, NONE):
             return {"kind": kind, "person_id": person, "item": None}
         return {"kind": kind, "person_id": person, "item": item} if item in [row["id"] for row in listed["bag"]] else None
-    if kind == "strike":
-        people = [row["id"] for row in listed["people"]]
-        person = front.get("person_id")
-        if person in (None, NONE):  # a blow with no name in it lands on the one at hand
-            person = listed["speaking_with"] if listed["speaking_with"] in people else (
-                people[0] if len(people) == 1 else None)
-        word = front.get("thing_word")
-        return {"kind": kind, "id": person, "with": word.strip() if isinstance(word, str) else ""} if person in people else None
     if kind == "go_to":
         place = front.get("place_id")
         if place not in [row["id"] for row in listed["places"]]:

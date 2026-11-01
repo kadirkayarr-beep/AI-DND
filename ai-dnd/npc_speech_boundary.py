@@ -395,8 +395,9 @@ def strip_player_echo(text, player_input):
         folded = fold(sentence)
         if any(stem and _stem_starts_word(stem, folded) for stem in stems):
             continue
-        # One word of the quote is an answer to it; saying it back takes more than one.
-        if sum(1 for word in words if word and _stem_starts_word(word, folded)) >= 2:
+        # A word or two of the quote is an answer to it; saying it back is most of the sentence.
+        shared = sum(1 for word in words if word and _stem_starts_word(word, folded))
+        if shared >= 2 and shared * 2 >= len(re.findall(r"\w{5,}", folded)):
             continue
         kept.append(sentence)
     return " ".join(kept).strip()

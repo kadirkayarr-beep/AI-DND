@@ -22,7 +22,7 @@ class AnyBlowIsAnAttack(FrontTable):
 
     async def blow(self, line, **front):
         await self.begin()
-        self.client.front = {"kind": "strike", "person_id": self.npc["id"], **front}
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], **front}
         return await self.line(line, "Ne yapıyorsun sen?")
 
     def assert_attacked(self, reply):
@@ -59,11 +59,20 @@ class AnyBlowIsAnAttack(FrontTable):
         self.assert_attacked(reply)
         self.assertNotEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
 
-    async def test_a_reading_with_no_name_in_it_means_the_one_being_spoken_to(self):
-        await self.begin()
-        self.client.front = {"kind": "strike"}
-        reply = await self.line("şuna bi tane patlatıyorum")
+    async def test_a_blow_read_as_talk_is_still_a_blow(self):
+        reply = await self.blow("uzun boylunun suratına bira bardağını geçiriyorum", kind="speak_to",
+                                person_id=None, thing_word="bira bardağı")
         self.assert_attacked(reply)
+
+    async def test_a_blow_with_no_name_lands_on_the_one_being_spoken_to_whoever_the_reading_took(self):
+        await self.begin()
+        other = {**self.npc, "id": "npc_voice_old", "name": "Halvar", "memory": []}
+        self.world["npcs"].insert(0, other)
+        self.client.front = {"kind": "attempt", "strike_to": other["id"]}
+        reply = await self.line("savuruyorum, omzuna")
+        self.assert_attacked(reply)
+        self.assertFalse(other.get("combat_target"))
+        self.assertEqual(other["current_hp"], 12)
 
     async def test_a_question_about_a_blow_strikes_nobody(self):
         self.assert_no_blow(await self.blow("ona bi tane vursam ne olur?"))
@@ -83,7 +92,7 @@ class AnyBlowIsAnAttack(FrontTable):
 
     async def test_a_person_nobody_listed_is_struck_by_nobody(self):
         await self.begin()
-        self.client.front = {"kind": "strike", "person_id": "npc_nobody"}
+        self.client.front = {"kind": "attempt", "strike_to": "npc_nobody"}
         reply = await self.line("şuna bi tane patlatıyorum")
         self.assertNotEqual(reply["turn_outcome"]["action"], "attack")
 
@@ -91,8 +100,8 @@ class AnyBlowIsAnAttack(FrontTable):
         await self.begin()
         self.client.front = {"kind": "look"}
         await self.line("etrafa bakıyorum")
-        self.assertIn("strike", self.front_calls()[0]["properties"]["front"]["properties"]["kind"]["enum"])
-        self.assertIn("strike =", str(self.client.message_batches[0]))
+        self.assertIn("strike_to", self.front_calls()[0]["properties"]["front"]["properties"])
+        self.assertIn("strike_to:", str(self.client.message_batches[0]))
 
     async def test_no_blow_is_left_behind_for_the_next_turn(self):
         await self.blow("ona bi yumruk çakıyorum, kılıç yok daha", thing_word="yumruk")
@@ -207,6 +216,12 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         self.assertEqual(npc_speech_boundary.strip_player_echo(kept, line), kept)
         said_back = "Sahipsiz sandık düşman tuzağı olabilir, doğru."
         self.assertEqual(npc_speech_boundary.strip_player_echo(said_back, line), "")
+        two = "Askerlik alışkanlığı diyorsun da, burası kışla değil, konak; sandığı mındar edeceksin diye korktum doğrusu."
+        self.assertEqual(npc_speech_boundary.strip_player_echo(two, '"askerlik alışkanlığı işte" diyorum'), two)
+
+    async def test_what_a_person_says_you_will_do_next_time_is_their_word_not_your_deed(self):
+        reply = await self.said("kusura bakma, affeder misin", "Affederim evlat, ama bir dahaki sefere önce sorarsın.")
+        self.assertIn("Affederim evlat", reply["narration"])
 
 
 class AHandOnAPersonBeatsTheFurniture(FrontTable):
