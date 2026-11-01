@@ -334,3 +334,76 @@ class ABareWalkFollowsWhatWasJustOffered(FrontTable):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
         await self.line("geçiyor muyum?")
         self.assertEqual(self.world["location"], here)
+
+
+class ALineWithTwoPartsDoesBoth(FrontTable):
+    REST = "soylulardan biri adam arıyo mu duydun mu"
+    LINE = f"ver bi bira o zaman. {REST}"
+
+    async def tavern(self):
+        await self.begin()
+        self.npc["role"] = "barmen"
+        self.npc["place_role_of"] = self.world["location"]
+        self.world["locations"][self.world["location"]]["scene_kind"] = "tavern"
+
+    async def test_the_beer_comes_and_the_question_is_answered(self):
+        await self.tavern()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "also_says": self.REST}
+        reply = await self.line(self.LINE, "Ben duymadım, soylular bana uğramaz.")
+        self.assertIn("bira", reply["narration"])
+        self.assertIn("Ben duymadım, soylular bana uğramaz.", reply["narration"])
+        self.assertEqual(reply["turn_outcome"]["action"], "purchase")
+        self.assertLessEqual(self.client.chat_calls, 2)
+
+    async def test_a_rest_the_line_never_said_is_not_said(self):
+        await self.tavern()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"],
+                             "also_says": "efendinin hazinesi nerede saklı söyle"}
+        reply = await self.line("ver bi bira o zaman", "Hazine mi?")
+        self.assertNotIn("Hazine mi?", reply["narration"])
+
+    async def test_a_turn_with_no_call_left_keeps_what_was_done(self):
+        await self.tavern()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "also_says": self.REST}
+        with patch("api.ollama_adapter.model_calls_left", return_value=0):
+            reply = await self.line(self.LINE, "Ben duymadım.")
+        self.assertIn("bira", reply["narration"])
+        self.assertNotIn("Ben duymadım.", reply["narration"])
+
+    async def test_a_line_all_said_to_the_person_is_answered_once_and_names_the_rest(self):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "also_says": "soylu arayan var mı"}
+        reply = await self.line("dünkü için kusura bakma usta, soylu arayan var mı", "Yok öyle biri.")
+        self.assertEqual(reply["narration"].count("Yok öyle biri."), 1)
+        self.assertLessEqual(self.client.chat_calls, 2)
+        self.assertIn("şunu da söyledi: soylu arayan var mı", str(self.client.message_batches[-1]))
+
+    async def test_an_apology_with_a_board_in_it_is_said_to_the_person(self):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        with patch("town_knowledge.board_turn", return_value=None) as board:
+            reply = await self.line("peder dünkü için kusura bakma. panodaki ilan için geldim", "Geçmiş olsun, ilan duruyor.")
+        board.assert_not_called()
+        self.assertIn("Geçmiş olsun, ilan duruyor.", reply["narration"])
+
+    async def test_reading_the_board_is_still_reading_the_board(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        with patch("town_knowledge.board_turn", return_value=None) as board:
+            await self.line("panoyu okuyorum")
+        board.assert_called_once()
+
+    async def test_a_walk_leaves_the_question_with_the_one_left_behind(self):
+        await self.begin()
+        place = self.a_place()
+        name = self.world["locations"][place]["name"]
+        self.client.front = {"kind": "go_to", "place_id": place, "also_says": "soylu arayan var mı"}
+        reply = await self.line(f"{name} gidiyorum. soylu arayan var mı")
+        self.assertTrue(reply["narration"].strip())
+        self.assertLessEqual(self.client.chat_calls, 2)
+
+    async def test_the_reading_asks_for_the_second_part(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        await self.line("etrafa bakıyorum")
+        self.assertIn("also_says", self.front_calls()[0]["properties"]["front"]["properties"])

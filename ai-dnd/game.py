@@ -8541,6 +8541,9 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
     else:
         lines.append("Adın sorulmadı: kendini tanıtma, kendine ad uydurma.")
+    rest = getattr(_session(), "_front_rest", "")
+    if rest:
+        lines.append(f"Oyuncu aynı sözde şunu da söyledi: {rest} Buna da cevap ver.")
     player_name = _known_player_name(npc)
     if player_name:
         said = len((world.get("npc_speech_log") or {}).get(npc.get("id"), []))
@@ -17721,6 +17724,7 @@ def _run_player_turn(
             _sleep_after_walk(result, player_input, place_before, scene_plan)
             result = _person_answers_stock(result, player_input, messages, target_id, interaction_mode,
                                            action_id, session_id, runtime_snapshot)
+            result = _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
             import world_reactions
@@ -17793,6 +17797,47 @@ def _run_player_turn(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
+    return result
+
+
+def _the_rest_of_the_line(result, messages, action_id, session_id, place_before):
+    """"Bira ver, soylu arayan var mı": the owner did the first part, so the person gets the second, as a paid word does."""
+    session = _session()
+    rest = getattr(session, "_front_rest", "")
+    action_result = result.get("action_result") if isinstance(result, dict) else None
+    from api import ollama_adapter
+    if (not rest or not isinstance(action_result, dict) or session.world_state.get("combat", {}).get("active")
+            or session.world_state.get("location") != place_before  # the one who was asked is left behind
+            or action_result.get("action") in {"dialogue", "query"}
+            or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
+            or not ollama_adapter.model_calls_left()):
+        return result
+    read = getattr(session, "_front_read", None) or {}
+    here = _conversation_npcs()
+    hearer = next((npc for npc in here if npc.get("id") == read.get("id")), None) or _active_interlocutor() or (
+        here[0] if len(here) == 1 else None)
+    if not isinstance(hearer, dict):
+        return result
+    session._front_rest = ""
+    session._thread_gate_done = True
+    try:
+        said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
+    finally:
+        session._thread_gate_done = False
+    line = said.get("narration") or ""
+    if _SCENE_LEVEL_FALLBACK_RE.search(line):
+        line = _person_fallback(session.world_state, hearer, rest)
+    result["narration"] = f"{result.get('narration') or ''} {line}".strip()
+    # The words took a turn index of their own: what the first part proved is handed on under the turn that commits.
+    first, last = result.get("_engine_event_evidence"), said.get("_engine_event_evidence")
+    if first and last:
+        last["quest_outcomes"] = [*first["quest_outcomes"], *last["quest_outcomes"]]
+        last["procedural_entity_ids"] = sorted({*first["procedural_entity_ids"], *last["procedural_entity_ids"]})
+    if last:
+        result["_engine_event_evidence"] = last
+    elif first:
+        turn = session.world_state.get("flags", {}).get("turn_index")
+        first.update(turn_index=turn, action_id=f"turn:{turn}")
     return result
 
 
@@ -18075,6 +18120,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)
     session._front_found = front_proposal.found_in(reply, player_input)
+    session._front_rest = front_proposal.rest_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
     if threatened:
@@ -18419,7 +18465,8 @@ def _dispatch_player_turn(
         if parcel_read is not None:
             return parcel_read
         import town_knowledge
-        board = town_knowledge.board_turn(_session(), player_input)
+        # A line the reading gave to a person is said to them, whatever board it mentions.
+        board = None if (read or {}).get("kind") == "speak_to" else town_knowledge.board_turn(_session(), player_input)
         if board is not None:
             return board
         import pocket
