@@ -181,6 +181,25 @@ class AfterAYes(unittest.TestCase):
             world, thread, npc = offered(status="accepted")
             self.assertEqual(world_threads.bind_player_decision(world, thread, line, npc), "abandoned", line)
 
+    def test_a_line_that_names_the_job_ends_it_in_either_order(self):
+        for line in ("bu işten vazgeçtim", "işten vazgeçtim", "vazgeçtim bu işten", "bu işi bırakıyorum", "işi bırakıyorum",
+                     "işi bıraktım", "bu işi istemiyorum", "bu görevden vazgeçtim", "bu işi yapmam"):
+            world, thread, npc = offered(status="accepted")
+            self.assertEqual(world_threads.bind_player_decision(world, thread, line, npc), "abandoned", line)
+
+    def test_the_job_s_own_item_names_it_too(self):
+        world, thread, npc = offered(status="accepted", kind="errand")
+        self.assertEqual(world_threads.bind_player_decision(world, thread, "mektuptan vazgeçtim", npc), "abandoned")
+
+    def test_a_bare_no_next_to_the_word_for_work_ends_nothing(self):
+        for line in ("iş yok", "bu iş olmaz"):
+            world, thread, npc = offered(status="accepted")
+            self.assertIsNone(world_threads.bind_player_decision(world, thread, line, npc), line)
+
+    def test_the_same_line_on_an_open_offer_is_a_refusal(self):
+        world, thread, npc = offered()
+        self.assertEqual(world_threads.bind_player_decision(world, thread, "bu işten vazgeçtim", npc), "declined")
+
     def test_small_talk_does_not_end_an_accepted_job(self):
         for line in ("Tamam.", "bugün gelemem", "şimdi konuşamam", "hayır", "aç çalışamam", "olmaz", "yok"):
             world, thread, npc = offered(status="accepted")

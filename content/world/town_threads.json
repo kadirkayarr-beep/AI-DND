@@ -335,6 +335,7 @@
     ],
     "withdraw": [
       "vazgeçtim",
+      "bıraktım",
       "vazgeçiyorum",
       "bırakıyorum",
       "yapmayacağım",
@@ -441,6 +442,9 @@
     ],
     "reference": [
       "iş",
+      "işten",
+      "işinden",
+      "görevden",
       "işi",
       "işin",
       "işini",
@@ -467,6 +471,9 @@
     ],
     "work_terms": [
       "iş",
+      "işten",
+      "işinden",
+      "görevden",
       "işi",
       "işin",
       "işe",
@@ -549,6 +556,11 @@
       "bunu",
       "şunu",
       "onu"
+    ],
+    "this_words": [
+      "bu",
+      "şu",
+      "o"
     ],
     "own_say": [
       "dedim",

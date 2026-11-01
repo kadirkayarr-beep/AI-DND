@@ -746,6 +746,13 @@ def _read_clause(tokens, asked, table, names, item_stems):
         return "unclear"
     if asked or any(word in table["question_words"] for word in body) or _has_phrase(body, table["question_words"]):
         return "question"
+    named = [word for word in body if word in table["reference"] or any(word.startswith(stem) for stem in item_stems)]
+    rest = " ".join(word for word in body if word not in named and word not in table["this_words"])
+    if named and rest:  # 'bu işten vazgeçtim', 'vazgeçtim bu işten': the job is named, whichever way round
+        if rest in table["withdraw"] or (rest in table["decline"] and rest not in table["bare_answers"]):
+            return "withdraw"
+        if rest in table["decline"] or rest in table["accept"]:
+            return "decline" if rest in table["decline"] else "accept"
     harmless = fillers | table["reference"] | table["item_words"]
     for size in range(len(body) - 1, 0, -1):
         head, rest = " ".join(body[:size]), body[size:]
