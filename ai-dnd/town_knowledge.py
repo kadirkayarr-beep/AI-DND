@@ -646,6 +646,7 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                     continue
                 if item["kind"] == "news":
                     if _tells_outcome(item, thread, words):
+                        world_happenings.learned(world, thread)
                         world_threads.learn_outcome(world, thread)
                 else:
                     world_threads.mark_heard(thread, turn)

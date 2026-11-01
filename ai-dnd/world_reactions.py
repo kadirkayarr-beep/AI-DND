@@ -357,8 +357,13 @@ def scene_marks(world: dict[str, Any]) -> str:
 
 
 def _due_lines(world: dict[str, Any]) -> list[str]:
-    waiting = world.get("flags", {}).pop("reaction_lines", [])
-    return [row["line"] for row in waiting if isinstance(row, dict) and row.get("place") == world.get("location")]
+    import world_happenings
+    waiting = [row for row in world.get("flags", {}).pop("reaction_lines", []) if isinstance(row, dict)]
+    here = [row for row in waiting if row.get("place") == world.get("location")]
+    for row in waiting:
+        if row not in here:
+            world_happenings.unseen(world, row.get("line"))
+    return [row["line"] for row in here]
 
 
 def _send_guards_home(world: dict[str, Any], now: int) -> None:

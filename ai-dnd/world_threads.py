@@ -1086,8 +1086,6 @@ def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, A
 
 def learn_outcome(world: dict[str, Any], thread: dict[str, Any]) -> None:
     """The player has now heard how this ended; only from here does it exist for them."""
-    import world_happenings
-    world_happenings.learned(world, thread)
     if thread.get("outcome_known_turn") is None:
         thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
         if thread.get("offered_at") is not None:
@@ -1111,8 +1109,9 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
             continue
         learn_outcome(world, thread)
         line = lines[_rank(seed, thread["thread_id"], "arrival", status) % len(lines)]
-        return sentence(_fill(line, who=_mid_sentence(thread.get("filled_by_name") or "başkası"),
-                              owner=spoken_owner(world, thread), place=place.get("name", "")))
+        shown = sentence(_fill(line, who=_mid_sentence(thread.get("filled_by_name") or "başkası"),
+                               owner=spoken_owner(world, thread), place=place.get("name", "")))
+        return " ".join(part for part in (shown, world_happenings.first_sight(world, thread)) if part)
     return world_happenings.arrival_line(world, place_id)
 
 

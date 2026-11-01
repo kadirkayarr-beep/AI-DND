@@ -10,6 +10,7 @@ import living_world
 import local_dialogue
 import pocket
 import town_knowledge
+import world_reactions
 import world_threads
 from adventure import dialogue_jobs
 
@@ -255,6 +256,57 @@ class ATroubleIsItsOwnersOwn(unittest.TestCase):
         other = links.resident(world, thread["place_id"], "komsu")
         other.pop("place_role_of")
         self.assertIn(state["happenings"][-1]["line"], town_knowledge.speech_note(world, other))
+
+
+class WhatHappenedIsSeenBeforeItIsKnown(unittest.TestCase):
+    def test_coming_back_to_a_dropped_trouble_shows_what_it_came_to(self):
+        world, state = links.town_with_trouble()
+        thread = links.thread_at(state)
+        owner = links.resident(world, thread["place_id"])
+        world_threads.mark_offered(world, thread, owner, thread["owner_line"], 0)
+        world_threads.accept_hired(world, thread, 0)
+        campaign_time.advance(world, 3 * DAY, "wait", "test")
+        closed = world_threads.by_id(world, thread["thread_id"])
+        self.assertEqual(closed["status"], "failed")
+        campaign_time.advance(world, 3600, "wait", "test")  # its second chance has run out by now
+        row = next(r for r in world[world_threads.KEY]["happenings"] if r["thread_id"] == thread["thread_id"])
+        self.assertFalse(row["known_to_player"])
+        told = world_threads.arrival_line(world, closed["place_id"])
+        self.assertIn(row["line"], told)
+        self.assertTrue(told.count(".") >= 2)
+        self.assertTrue(row["known_to_player"])
+        self.assertIsNone(world_threads.arrival_line(world, closed["place_id"]))
+
+    def test_a_job_talked_of_leaves_the_sight_of_it_for_later(self):
+        world, state = links.town_with_trouble()
+        thread = links.thread_at(state)
+        state, closed = links.fire(world, thread)
+        row = state["happenings"][-1]
+        world_threads.learn_outcome(world, closed)
+        self.assertFalse(row["known_to_player"])
+
+    def test_a_moment_that_comes_as_you_walk_off_waits_for_your_return(self):
+        world, state = links.town_with_trouble()
+        thread = links.thread_at(state)
+        place = thread["place_id"]
+        world["location"] = place
+        state, closed = links.fire(world, thread)
+        row = state["happenings"][-1]
+        self.assertTrue(row["known_to_player"])
+        world["location"] = "city"
+        self.assertEqual(world_reactions._due_lines(world), [])
+        self.assertFalse(row["known_to_player"])
+        self.assertEqual(world_threads.arrival_line(world, place), row["line"])
+
+    def test_standing_there_you_see_it_and_nothing_comes_back(self):
+        world, state = links.town_with_trouble()
+        thread = links.thread_at(state)
+        world["location"] = thread["place_id"]
+        state, closed = links.fire(world, thread)
+        row = state["happenings"][-1]
+        self.assertEqual(world_reactions._due_lines(world), [row["line"]])
+        self.assertTrue(row["known_to_player"])
+        self.assertIsNone(world_threads.arrival_line(world, thread["place_id"]))
 
 
 if __name__ == "__main__":

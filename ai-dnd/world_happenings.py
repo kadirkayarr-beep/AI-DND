@@ -185,11 +185,30 @@ def show(world: dict[str, Any], thread: dict[str, Any]) -> None:
         world_reactions._wait_line(world, row["place_id"], row["line"])
 
 
+def unseen(world: dict[str, Any], line: Any) -> None:
+    """The player had walked off before this line reached the screen: it waits for their return."""
+    state = world_threads.view(world)
+    for row in (state or {}).get(KEY) or []:
+        if row["line"] == line:
+            row["known_to_player"] = False
+
+
 def learned(world: dict[str, Any], thread: dict[str, Any]) -> None:
+    """Someone has just said this very line to the player."""
     state = world_threads.view(world)
     row = _row_of(state, thread) if state else None
     if row:
         row["known_to_player"] = True
+
+
+def first_sight(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
+    """Its line, the once, for a screen already saying something else about this thread."""
+    state = world_threads.view(world)
+    row = _row_of(state, thread) if state else None
+    if row is None or row["known_to_player"]:
+        return None
+    row["known_to_player"] = True
+    return row["line"]
 
 
 def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
