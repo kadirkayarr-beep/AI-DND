@@ -638,7 +638,7 @@
       "wary_stranger": "Bu kişiyi tanımıyorsun. İşini anlatmadan önce kim olduğunu, neden sorduğunu öğrenmek istiyorsun; ücret söyleme.",
       "unwilling": "Bu kişiye iş vermek istemiyorsun; önceki iş kötü bitti. Kendi tavrınla söyle, teklif etme.",
       "trouble": "Bu bir dert, iş değil: kimseye para ya da ücret teklif etme.",
-      "heard_happening": "Duyduğun: {line}",
+      "heard_happening": "Duyduğun: {heard}",
       "cold": " Bu kişiye karşı soğuksun.",
       "warm": " Bu kişiye ısınmışsın.",
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",

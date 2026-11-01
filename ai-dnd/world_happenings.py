@@ -75,5 +75,5 @@ def speech_line(world: dict[str, Any], npc: Any, listed: Any = frozenset()) -> s
     """One labelled sentence, and only if it is not already among what this person lists."""
     for row in reachable(world, npc):
         if row["thread_id"] not in listed:
-            return " " + world_threads._fill(world_threads.job_lines("shared", "heard_happening") or "", line=row["line"])
+            return " " + world_threads._fill(world_threads.job_lines("shared", "heard_happening") or "", heard=row["line"])
     return ""
