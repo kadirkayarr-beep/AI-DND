@@ -159,11 +159,13 @@ def _attack_targets(session, message, target_id):
     guessed = [n for n in session.active_npcs() if
                session._entity_reference_in_text(n.get("name", ""), text)
                or session._entity_reference_in_text(n.get("role", ""), text)]
-    if guessed or not re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text):
+    people = session.active_npcs()
+    if guessed or (len(people) != 1 and not re.fullmatch(r"\W*(?:ben\s+)?saldir\w*\W*", text)):
         return guessed
+    if re.search(r"\b[A-ZÇĞİÖŞÜ]\w+['’]", str(message)):
+        return []  # "Gromm'a vuruyorum": someone by name who is not here, not the one who is
     flags = world.get("flags", {})
     reference = flags.get("active_npc_id") or flags.get("last_npc_id")
-    people = session.active_npcs()
     return [n for n in people if n.get("id") == reference] or people
 
 

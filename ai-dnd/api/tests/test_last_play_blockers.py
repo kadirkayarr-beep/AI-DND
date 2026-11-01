@@ -302,3 +302,27 @@ class FailedCheckTests(ThreePlaysTests):
     async def test_a_success_is_left_alone(self):
         line = "Satırın altından bir isim seçiliyor."
         self.assertEqual(await self.told(line, {**self.FAILED, "outcome": "success"}), line)
+
+
+class OnlyOnePersonHereTests(ThreePlaysTests):
+    async def room(self, *people):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        return [self.add_person(name, role, current_hp=300, max_hp=300) for name, role in people]
+
+    async def test_a_blow_with_one_person_here_lands_on_them(self):
+        await self.room(("Dorn", "Rahip"))
+        out = await self.say("öldürmicem. kılıcın kabzasıyla şakağına vurup bayıltıyorum", PlayClient(intent="attack"))
+        self.assertNotIn("Kime", out["narration"])
+        self.assertTrue(self.world["combat"]["active"], out["narration"])
+
+    async def test_two_people_are_still_asked_about(self):
+        await self.room(("Dorn", "Rahip"), ("Mira", "Kâtip"))
+        out = await self.say("kılıcın kabzasıyla şakağına vurup bayıltıyorum", PlayClient(intent="attack"))
+        self.assertIn("Kime", out["narration"])
+
+    async def test_a_name_not_here_is_not_the_one_who_is(self):
+        await self.room(("Dorn", "Rahip"))
+        out = await self.say("Gromm'a kılıcımla saldırıyorum", PlayClient(intent="attack"))
+        self.assertIn("Kime", out["narration"])
+        self.assertFalse(self.world["combat"].get("active"))

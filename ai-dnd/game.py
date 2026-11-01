@@ -15356,6 +15356,10 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             npc_target,
             target_id=target_id,
         )
+        if not target_npc and target_id is None:
+            targets = combat_lifecycle._attack_targets(_session(), player_input, None)
+            if combat_lifecycle._single_valid_target(_session(), targets):
+                target_npc = targets[0]  # one person here: the blow needs no name
         if target_npc == "ambiguous":
             candidate_names = [
                 living_world.public_npc_name(npc)

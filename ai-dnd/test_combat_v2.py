@@ -304,18 +304,13 @@ class CombatV2Turns(unittest.TestCase):
                 self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
 
-    def test_targetless_attack_asks_before_resolving_combat(self):
-        rng_before = self.session.rng.getstate()
+    def test_targetless_attack_with_one_person_here_lands_on_them(self):
         result = self.session.execute_intent(
             {"intent": "attack"}, "Saldırıyorum"
         )
         self.assertEqual(result["action"], "attack")
-        self.assertEqual(result["status"], "clarification")
-        self.assertEqual(result["outcome"], "missing_target")
-        self.assertIn("Gromm", result["direct_response"])
-        self.assertEqual(self.npc["current_hp"], 100)
-        self.assertFalse(self.world["combat"]["active"])
-        self.assertEqual(self.session.rng.getstate(), rng_before)
+        self.assertNotEqual(result["status"], "clarification")
+        self.assertTrue(self.world["combat"]["active"])
 
     def test_ambiguous_pronoun_attack_does_not_choose_a_target(self):
         second_npc = dict(
