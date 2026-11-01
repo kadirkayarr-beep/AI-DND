@@ -123,8 +123,9 @@ def shown_line(world,thread,kind,amount=None):
 
 
 _PAPER=('mektu','mektub','not','pusula','kagit','tezkere','zarf','yazi')
-_READING=re.compile(r'\b(?:oku(?!muyor|mam|mayacag|ma\b|madan)\w*|ne\s+yaz\w*|icinde\s+ne\s+yaz\w*|yazani\b|yazanlar\w*)')
-_ASKS_WHAT_IT_SAYS=re.compile(r'\bne\s+yaz\w*')
+# Only the speaker doing it now: 'okumadım', 'okumak istemiyorum', 'okudum sanma' and 'ne yazık ki' are not reading.
+_READING=re.compile(r'\boku(?:yorum|yom|yoruz|yayim|yalim|yacagim|yacam|dum|yup)?\b(?!\s+(?:mi|mu|san\w*|degil\w*)\b)')
+_ASKS_WHAT_IT_SAYS=re.compile(r'\bne\s+yazi(?:yor\w*|yo|li)\b')
 
 
 def _sealed(thread):
@@ -141,6 +142,11 @@ def _paper_in_hand(world,text):
                 and any(word.startswith(stem) for stem in (*world_threads._item_stems(thread),'muhr') for word in words)):
             return thread
     return None
+
+
+def _in_conversation(world):
+    flags=world.get('flags') or {}
+    return bool(flags.get('active_npc_id')) and flags.get('turn_index',0)<=flags.get('active_npc_until_turn',-1)
 
 
 def letter_text(world,thread):
@@ -162,13 +168,16 @@ def read_parcel(session,text):
     if not isinstance(text,str) or world.get('combat',{}).get('active'):
         return None
     folded=living_world.normalize_text(text)
-    if not _READING.search(folded) or ('?' in text and not _ASKS_WHAT_IT_SAYS.search(folded)):
+    reads='?' not in text and bool(_READING.search(folded))
+    if not reads and not _ASKS_WHAT_IT_SAYS.search(folded):
         return None
     thread=_paper_in_hand(world,text)
     words=letter_text(world,thread) if thread is not None else ''
     if not words:
         return None
     breaks=_sealed(thread) and not thread.get('seal_broken')
+    if not reads and (breaks or _in_conversation(world)):
+        return None  # a question opens no seal, and with someone there it is theirs to answer
     thread['seal_broken']=True
     flags=world.setdefault('flags',{})
     flags['turn_index']=flags.get('turn_index',0)+1

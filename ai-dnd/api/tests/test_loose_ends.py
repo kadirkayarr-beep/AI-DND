@@ -30,8 +30,8 @@ class ATroubleFromAnOldSave(unittest.TestCase):
         self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "failed")
 
 
-class ReadingIsSomethingYouDo(consequences.Sealed):
-    """Same table as the sealed letter tests, and only the lines that are not reading."""
+class ReadingIsSomethingYouDo(consequences.OnTheJob):
+    carrying = consequences.Sealed.carrying
 
     async def test_a_line_that_is_not_reading_leaves_the_seal_alone(self):
         for line in ("mektubu okumadım, mühür duruyor", "Ne yazık ki mektup elimde değil", "mektubu okumak istemiyorum",
@@ -53,6 +53,11 @@ class ReadingIsSomethingYouDo(consequences.Sealed):
         await self.carrying(template="meeting_note", noun="not")
         out = await self.line("notta ne yazıyor?", "Bilmem, kapalıydı.")
         self.assertNotIn("Kâğıtta", out["narration"])
+
+    async def test_alone_with_an_open_note_the_question_is_answered_by_the_note(self):
+        await self.carrying(template="meeting_note", noun="not")
+        self.world["flags"].pop("active_npc_id", None)
+        self.assertIn("Kâğıtta", dialogue_jobs.read_parcel(self.session, "notta ne yazıyor?")["narration"])
 
 
 if __name__ == "__main__":
