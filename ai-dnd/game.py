@@ -17959,15 +17959,26 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import world_happenings
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)
+    session._front_found = front_proposal.found_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
-    session._front_found = front_proposal.found_in(reply, player_input)
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     route = front_proposal.validate(reply, listed)
+    word = front_proposal.person_word_in(reply)
+    if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
+        described = _narrated_person(word)
+        if described is not None:
+            route = {"kind": "speak_to", "id": described["id"]}
+            _session()._set_scene_active_npc(described, world.get("flags", {}).get("turn_index", 0))
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         return None
+    if route["kind"] == "talk_around":
+        # the same reply's other half may not walk it after all
+        held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
+    elif route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory":
+        route = {"kind": "bag"}
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
     if route["kind"] == "look":
         held["intent"] = "observe"
@@ -18004,12 +18015,6 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
             or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
         return None
-    word = front_proposal.person_word_in(reply)
-    if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
-        described = _narrated_person(word)
-        if described is not None:
-            route = {"kind": "speak_to", "id": described["id"]}
-            _session()._set_scene_active_npc(described, world.get("flags", {}).get("turn_index", 0))
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     front_proposal.begin(session, typed=target_id is not None or interaction_mode in {"say", "ask_dm"})
     session._front_ahead = True
@@ -18363,13 +18368,14 @@ def _dispatch_player_turn(
         hideout = adventure_play.resolve_dungeon_turn(_session(), player_input, _hideout_check)
         if hideout is not None:
             return hideout
-        scene = _adventure_scene_turn(player_input)
+        talk = front is not None and front["kind"] == "talk_around"  # words to nobody in particular walk nowhere
+        scene = None if talk else _adventure_scene_turn(player_input)
         if scene is not None:
             return scene
         # LR00 fix: read a local physical action once, bind it to a real target
         # and let its owner resolve it (grounded_action). None = older owners.
         import grounded_action
-        if not _scene_observation_proposal_turn(
+        if not talk and not _scene_observation_proposal_turn(
             player_input, _session().world_state, interaction_mode
         ) and not (
             living_world.is_anchored_structure_inquiry(player_input)
@@ -18383,7 +18389,7 @@ def _dispatch_player_turn(
                 )
             if grounded is not None:
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
-        local_place = _local_place_turn(player_input)
+        local_place = None if talk else _local_place_turn(player_input)
         if local_place is not None:
             return local_place
         everyday = _everyday_action_turn(player_input)
@@ -18455,7 +18461,7 @@ def _dispatch_player_turn(
         # target the words alone could not bind gets one bounded model call that
         # may only pick listed candidate IDs; otherwise the full pipeline runs.
         import grounded_action
-        if not _scene_observation_proposal_turn(
+        if not (front is not None and front["kind"] == "talk_around") and not _scene_observation_proposal_turn(
             player_input, _session().world_state, interaction_mode
         ):
             with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):

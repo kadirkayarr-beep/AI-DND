@@ -32,6 +32,18 @@ class ReadsBeforeThePlanner(FrontTable):
         self.assertIn(self.client.narration, reply["narration"])
         self.assertEqual(self.routes()[-1]["owner"], "dialogue")
 
+    async def test_a_threat_read_as_an_attempt_is_not_sat_either(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        await self.line("efendinle gorusmeden bunu vermiyorum. geceleri zifiri karanlikta otur istersen")
+        self.assertNotEqual(self.routes()[-1]["owner"], "sit")
+
+    async def test_sitting_down_read_as_sitting_is_sat(self):
+        await self.begin()
+        self.client.front = {"kind": "sit"}
+        await self.line("yorgunum, su banka oturuyorum")
+        self.assertEqual(self.routes()[-1]["owner"], "sit")
+
     async def test_a_line_that_also_wants_a_proposal_is_read_once_and_the_reply_carries_it(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
@@ -90,6 +102,14 @@ class ReadsBeforeTheOldOwners(FrontTable):
         self.assertEqual(self.routes()[-1]["route"], "front:bag")
         self.assertLessEqual(self.client.chat_calls, 1)
 
+    async def test_the_classifier_half_of_the_reply_can_name_the_bag_too(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        self.client.intent = "inventory"
+        reply = await self.line("çantama koydum mu duyuruyu bi bakayim")
+        self.assertIn("Envanterinde", reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:bag")
+
     async def test_what_is_in_the_purse_goes_the_same_way(self):
         await self.begin()
         self.client.front = {"kind": "bag"}
@@ -132,6 +152,44 @@ class SomeoneLiesOutCold(FrontTable):
         self.client.front = {"kind": "speak_to"}
         reply = await self.line("hey, uyan lan, duyuyor musun")
         self.assertIn("sesini duyacak durumda", reply["narration"])
+
+
+class TalkWithNobodyNamed(FrontTable):
+    async def test_a_line_read_as_talk_with_nobody_named_walks_nowhere(self):
+        await self.begin()
+        for npc in self.world["npcs"]:
+            npc["location"] = "elsewhere"
+        where = self.world["location"]
+        name = self.world["locations"][self.a_place()]["name"]
+        self.client.front = {"kind": "speak_to"}
+        reply = await self.line(f"usta yirtik sayfalari soruyorum, {name} tarafinda son gorulmus, senin defterden mi gitti")
+        self.assertEqual(self.world["location"], where)
+        self.assertEqual(self.routes()[-1]["route"], "front:talk_around")
+        self.assertTrue(reply["narration"].strip())
+
+    async def test_the_classifier_half_of_the_same_reply_cannot_walk_it_either(self):
+        await self.begin()
+        for npc in self.world["npcs"]:
+            npc["location"] = "elsewhere"
+        where = self.world["location"]
+        name = self.world["locations"][self.a_place()]["name"]
+        self.client.front = {"kind": "speak_to"}
+        self.client.intent = "travel"
+        self.client.target = {"type": "location", "reference": name}
+        await self.line(f"usta yirtik sayfalari soruyorum, {name} tarafinda son gorulmus, senin defterden mi gitti")
+        self.assertEqual(self.world["location"], where)
+
+
+    async def test_the_old_walk_to_a_named_place_stays_out_of_it(self):
+        await self.begin()
+        for npc in self.world["npcs"]:
+            npc["location"] = "elsewhere"
+        self.client.front = {"kind": "speak_to"}
+        with patch("game._adventure_scene_turn") as old_walk:
+            await self.line("usta biri bi kayit ariyormus, senin defterden mi gitti")
+        old_walk.assert_not_called()
+
+
 class SomeoneTheNarrationDescribed(FrontTable):
     def narrated(self, text):
         self.session.messages.append({"role": "assistant", "content": text})

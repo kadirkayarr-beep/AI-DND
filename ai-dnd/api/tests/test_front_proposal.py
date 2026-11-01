@@ -28,6 +28,8 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
     def __init__(self, narration="Şimdilik sessiz bir gün."):
         super().__init__(narration)
         self.front = {"kind": "unclear"}
+        self.intent = "narrative"
+        self.target = {"type": "none", "reference": ""}
         self.fails = None
         self.drop_front = False
 
@@ -42,7 +44,7 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
             raise self.fails
         filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
                   "inside": False, **self.front}
-        packet = {"intent": "narrative", "action": "narrative", "target": {"type": "none", "reference": ""},
+        packet = {"intent": self.intent, "action": "narrative", "target": self.target,
                   "completion": "unclear", "confidence": 0.9}
         return {"message": {"content": json.dumps(packet if self.drop_front else {**packet, "front": filled},
                                                   ensure_ascii=False)}}
