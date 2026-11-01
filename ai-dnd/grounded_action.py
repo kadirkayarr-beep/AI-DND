@@ -2505,6 +2505,8 @@ MODEL_VERBS = ("approach", "go", "enter", "leave", "inspect", "search", "wander"
 
 
 def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if getattr(run.session, "_front_reply", None) is not None:
+        return []  # the front reading already spent this turn's classifier call
     game = run.game
     options = [{"id": c["id"], "kind": c["kind"], "name": c["label"]} for c in cands][:24]
     ids = [o["id"] for o in options] + ["none"]
@@ -2797,8 +2799,23 @@ def _looks_like_speech(session, player_input: str) -> bool:
         return False
 
 
+def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool):
+    """The front step chose a listed place; the walk itself is the one a named place gets."""
+    defer = ("defer", None)
+    steps = plan(session, player_input)["steps"]
+    if steps and all(s.get("negated") or s.get("not_now") or s.get("condition") for s in steps):
+        return defer  # "hana gitmiyorum": the words themselves say this is no walk
+    target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
+                  None)
+    if target is None:
+        return defer
+    step = {"verb": "enter" if inside and target["kind"] != "outside" else "go", "target": target, "negated": False}
+    return "execute", (_Run(session, player_input), [step], {"steps": [step]})
+
+
 def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id=None,
-                 allow_model: bool = True, phase: str = "front", dry_run: bool = False):
+                 allow_model: bool = True, phase: str = "front", dry_run: bool = False,
+                 listed_place: dict[str, Any] | None = None):
     """Resolve a local, physical turn, or return None to leave it to the older owners.
 
     Deciding never changes saved state: if the turn is left to another owner
@@ -2831,8 +2848,11 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
                 }
     snapshot = copy.deepcopy(world)
     try:
-        decision, payload = _decide(session, player_input, interaction_mode=interaction_mode,
-                                    allow_model=allow_model and not dry_run, phase=phase)
+        decision, payload = (
+            _decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"])
+            if listed_place is not None else
+            _decide(session, player_input, interaction_mode=interaction_mode,
+                    allow_model=allow_model and not dry_run, phase=phase))
     except Exception:
         decision, payload = "defer", None
     if decision == "defer" or dry_run:

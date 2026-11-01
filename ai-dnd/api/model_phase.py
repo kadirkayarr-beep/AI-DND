@@ -4,6 +4,7 @@ from contextvars import ContextVar
 
 _PHASE = ContextVar("resolved_model_phase", default="unresolved")
 _CLASSIFIER = ContextVar("classifier_model_call", default=False)
+_FRONT = ContextVar("front_model_call", default=False)
 
 
 class ModelFailure(str):
@@ -34,6 +35,20 @@ def classifier_call():
 
 def in_classifier_call():
     return _CLASSIFIER.get()
+
+
+@contextmanager
+def front_call():
+    """The front reading is optional: a failure leaves the old chain, on any provider."""
+    token = _FRONT.set(True)
+    try:
+        yield
+    finally:
+        _FRONT.reset(token)
+
+
+def in_front_call():
+    return _FRONT.get()
 
 
 def only_resolved_narration_failures(failures):

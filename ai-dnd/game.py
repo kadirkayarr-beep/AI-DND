@@ -8992,7 +8992,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                         allow_scene_detail_proposals=False,
                         allow_local_person_proposal=False,
                         experimental_npc_dialogue=False,
-                        recent_scene_narration="", strict=False, speech_note=""):
+                        recent_scene_narration="", strict=False, speech_note="", front_list=None):
     """Ask Qwen only to label the current input; it cannot read or write state.
 
     A classifier reply that is cut or not usable JSON comes back marked
@@ -9000,6 +9000,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
     strict=True, used for an explicit check that cannot stand in for a story
     reply, it raises IntentInfrastructureError instead.
     """
+    held = getattr(_session(), "_front_reply", None)
+    if held is not None and not dialogue_narration and not experimental_npc_dialogue:
+        return copy.deepcopy(held)  # the front step already asked this turn's classifier call
     world_state = _session().world_state
     locations = [
         {"name": value.get("name"), "aliases": value.get("aliases", [])[:6]}
@@ -9296,6 +9299,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         )
     if experimental_npc_dialogue:
         schema = _EXPERIMENTAL_NPC_SPEECH_SCHEMA
+    if front_list is not None:
+        import front_proposal
+        schema = copy.deepcopy(schema)
+        schema["properties"]["front"] = front_proposal.schema(front_list)
+        schema["required"] = list(dict.fromkeys([*schema.get("required", []), "front"]))
+        prompt += front_proposal.guidance(front_list)
     from api.model_phase import classifier_call
     try:
         with classifier_call():
@@ -9315,7 +9324,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 options=(
                     _EXPERIMENTAL_NPC_SPEECH_OPTIONS if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
-                    else {"temperature": 0.0, "num_predict": 400 if interaction_context is not None else 120}
+                    else {"temperature": 0.0,
+                          "num_predict": 400 if interaction_context is not None or front_list is not None else 120}
                 ),
             )
         data = _extract_json_object(ollama_response_content(response))
@@ -17529,8 +17539,20 @@ def run_player_turn(
     check_feature=None, check_evidence=None,
 ):
     if check_feature is None:
-        return _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
-                                session_id, combat_action, interaction_mode)
+        import front_proposal
+        front_on = front_proposal.enabled()
+        result = None
+        session = _session()
+        if front_on:
+            front_proposal.begin(session)
+        try:
+            result = _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
+                                      session_id, combat_action, interaction_mode)
+            return result
+        finally:
+            if front_on:
+                front_proposal.end(session)
+                front_proposal.log_turn(session, result)
     if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:
@@ -17825,6 +17847,79 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
+def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
+    """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
+    import front_proposal
+    session = _session()
+    world = session.world_state
+    if (not front_proposal.enabled() or getattr(session, "_front_reply", None) is not None
+            or getattr(session, "_thread_gate_done", False)):
+        return None
+    if world.get("combat", {}).get("active"):
+        return None
+    if (combat_action is not None or check_feature is not None or target_id is not None
+            or interaction_mode in {"say", "ask_dm"}):
+        front_proposal.note(session, "skipped:typed")
+        return None
+    journey = world.get("journey")
+    if journey and journey.get("status") != "ARRIVED":
+        front_proposal.note(session, "skipped:journey")
+        return None
+    if not isinstance(player_input, str) or not player_input.strip() or player_input.strip().startswith("/"):
+        front_proposal.note(session, "skipped:empty")
+        return None
+    from api.model_phase import front_call
+    try:
+        listed = front_proposal.listing(session)
+    except Exception:
+        front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
+        return None
+    with front_call():
+        reply = parse_player_intent(player_input, front_list=listed,
+                                    recent_scene_narration=_recent_player_visible_narration())
+    held = {key: value for key, value in reply.items() if key != "front"}
+    session._front_reply = held
+    if "front" not in reply:
+        front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable") else "fallback:failed",
+                            reached=bool(reply.get("classifier_unusable")))
+        return None
+    route = front_proposal.validate(reply, listed)
+    if route is None:
+        front_proposal.note(session, "fallback:invalid", reached=True)
+        return None
+    front_proposal.note(session, f"front:{route['kind']}", reached=True)
+    if route["kind"] == "look":
+        held["intent"] = "observe"
+    return route
+
+
+def _front_offer_gate(route, player_input):
+    """A yes or no the model read on a listed offer goes through the same writers as one the word lists read."""
+    import town_knowledge
+    import world_threads
+    session = _session()
+    world = session.world_state
+    person = next((npc for npc in active_npcs() if npc.get("id") == route["person_id"]), None)
+    thread = world_threads.by_id(world, route["id"])
+    if person is None or thread is None or thread.get("status") != "offered":
+        return None
+    try:
+        reading = world_threads.read_answer(player_input, person, thread)
+        says_other = reading["meaning"] in ({"decline", "withdraw"} if route["answer"] == "accept" else {"accept"})
+        if reading["terms"] or world_threads.asks_for_pay(player_input) or says_other or "?" in player_input:
+            return {"decision": None, "npc_id": person["id"]}  # not an answer yet: the person hears it
+        session.require_player_can_act()
+        gate = {"thread_id": route["id"], "npc_id": person["id"],
+                "decision": "accepted" if route["answer"] == "accept" else "declined"}
+        return _carry_out_thread_turn(session, world, gate, person, player_input)
+    except PlayerCannotAct:
+        raise
+    except Exception:
+        town_knowledge.log_failure()
+        session._thread_turn = None
+        return None
+
+
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
@@ -17932,6 +18027,17 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
+    front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
+    if front is not None and front["kind"] == "speak_to":
+        interaction_mode, target_id = "say", front["id"]
+    if front is not None and front["kind"] == "go_to":
+        import front_proposal
+        import grounded_action
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            walked = grounded_action.resolve_turn(_session(), player_input, listed_place=front)
+        if walked is not None:
+            return walked
+        front_proposal.note(_session(), "fallback:no_walk")
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None
             and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
@@ -17939,7 +18045,8 @@ def _dispatch_player_turn(
             interaction_mode, target_id = "say", hearer["id"]
     if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            gate = _thread_gate(player_input, target_id, interaction_mode)
+            gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
+                    else _thread_gate(player_input, target_id, interaction_mode))
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):

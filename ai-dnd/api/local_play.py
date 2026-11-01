@@ -211,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Refused: {refused}", file=sys.stderr)
         return 2
 
+    import front_proposal
+
+    front_proposal.default_on_for_local_play(os.environ)
     # The module-level app would build a second, closed application here.
     os.environ["AI_DND_DISABLE_DEFAULT_APP"] = "1"
     import uvicorn
