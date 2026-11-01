@@ -3228,7 +3228,7 @@ def set_player_max_hp(maximum):
     return None
 
 
-def apply_npc_damage(npc, damage):
+def apply_npc_damage(npc, damage, *, knock_out=False):
     """Single Policy A handoff for already-resolved damage; no rolls or migration."""
     if not any(npc is n for n in _session().world_state["npcs"]):
         raise ValueError("Damage target is not canonical.")
@@ -3238,7 +3238,10 @@ def apply_npc_damage(npc, damage):
     if npc.get("combat_status") == "dead":
         return before
     npc["current_hp"] = max(0, before - damage)
-    if damage > 0 and npc["current_hp"] == 0:
+    if damage > 0 and npc["current_hp"] == 0 and knock_out and npc.get("combat_status") != "unconscious":
+        import fallen
+        fallen.knock_out(_session(), npc)  # PHB 2024: 1 HP and Unconscious instead of 0
+    elif damage > 0 and npc["current_hp"] == 0:
         npc["combat_status"] = "dead"
         import bold_acts
         bold_acts.killed(_session(), npc)
@@ -14803,7 +14806,7 @@ def _commit_travel_action(action_result):
     return True
 
 
-_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur)"
+_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur|bayilt)"
 # A blow said as noun + verb, the usual Turkish way: "yumruk atıyorum", "tekme savuruyorum".
 _ATTACK_BLOW_PHRASE = re.compile(
     r"\b(?:yumruk|tekme|tokat|kafa|dirsek)\w*\s+(?:\w+\s+)?(?:at|savur|indir|gecir|patlat)"
@@ -17428,6 +17431,8 @@ def _run_player_turn(
     check_evidence=None,
 ):
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
+    import fallen
+    fallen.wake(_session())
     before = copy.deepcopy(_session().world_state)
     before_hp = _session().character.get("current_hp")
     try:

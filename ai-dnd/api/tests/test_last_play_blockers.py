@@ -41,3 +41,82 @@ class SecondRestTests(ThreePlaysTests):
         await self.rested()
         out = await self.say("bi gün ortadan kayboluyum en iyisi, ertesi sabaha kadar dinleniyorum")
         self.assertTrue(out["narration"].strip())
+
+
+class KnockOutTests(ThreePlaysTests):
+    """PHB 2024: a melee blow that would drop someone to 0 can leave them at 1 HP, Unconscious."""
+
+    async def nearly_down(self, hp=1):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.session.character.update(current_hp=300, max_hp=300)
+        self.foe = self.add_person("Dorn", "Nöbetçi çavuş", current_hp=500, max_hp=500, armor_class=1,
+                                   inventory=[], coins_cp=8)
+        await self.say("çavuşa yumrukla saldırıyorum", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+        self.foe["current_hp"] = hp
+        for record in self.world["combat"]["participant_records"]:
+            if record["id"] == self.foe["id"]:
+                record["current_hp"] = hp
+
+    async def strike_until_down(self, line):
+        for _ in range(12):
+            out = await self.say(line, PlayClient(intent="attack"))
+            if self.foe["combat_status"] != "active":
+                return out
+        self.fail("the blow never landed")
+
+    async def test_the_line_from_the_play_leaves_him_alive_and_out(self):
+        for line in ("öldürmicem. kılıcın kabzasıyla şakağına vurup bayıltıyorum",
+                     "yumrukla bayıltıyorum", "öldürmeden indiriyorum, kılıcın yan yüzüyle vuruyorum"):
+            with self.subTest(line=line):
+                await self.nearly_down()
+                out = await self.strike_until_down(line)
+                self.assertEqual(self.foe["combat_status"], "unconscious", out["narration"])
+                self.assertEqual(self.foe["current_hp"], 1)
+                self.assertNotIn("ölür", out["narration"])
+                self.assertIn("bilincini kaybeder", out["narration"])
+                self.assertFalse(self.world["combat"]["active"])
+
+    async def test_no_killing_said_once_holds_for_the_fight(self):
+        await self.nearly_down(500)
+        await self.say("bi daha vuruyorum, öldürmek yok, yumruk", PlayClient(intent="attack"))
+        self.foe["current_hp"] = 1
+        for record in self.world["combat"]["participant_records"]:
+            if record["id"] == self.foe["id"]:
+                record["current_hp"] = 1
+        out = await self.strike_until_down("vur vur")
+        self.assertEqual(self.foe["combat_status"], "unconscious", out["narration"])
+
+    async def test_a_plain_blow_still_kills(self):
+        await self.nearly_down()
+        out = await self.strike_until_down("çavuşa vuruyorum")
+        self.assertEqual(self.foe["combat_status"], "dead", out["narration"])
+        self.assertIn("ölür", out["narration"])
+
+    async def test_changing_your_mind_kills(self):
+        await self.nearly_down(500)
+        await self.say("çavuşu bayıltıyorum", PlayClient(intent="attack"))
+        self.foe["current_hp"] = 1
+        for record in self.world["combat"]["participant_records"]:
+            if record["id"] == self.foe["id"]:
+                record["current_hp"] = 1
+        out = await self.strike_until_down("yeter, öldürüyorum bu adamı")
+        self.assertEqual(self.foe["combat_status"], "dead", out["narration"])
+
+    async def test_the_one_out_cold_is_searched_and_described_not_called_dead(self):
+        await self.nearly_down()
+        await self.strike_until_down("yumrukla bayıltıyorum")
+        out = await self.say("etrafa bakıyorum", PlayClient())
+        self.assertIn("baygın", out["narration"])
+        out = await self.say("üstünü arıyorum para var mı", PlayClient())
+        self.assertEqual(out["turn_outcome"]["action"], "loot", out["narration"])
+
+    async def test_he_wakes_after_about_an_hour(self):
+        await self.nearly_down()
+        await self.strike_until_down("yumrukla bayıltıyorum")
+        await self.say("iki saat bekliyorum", PlayClient())
+        await self.say("etrafa bakıyorum", PlayClient())
+        self.assertEqual(self.foe["combat_status"], "active")
+        self.assertEqual(self.foe["current_hp"], 1)
+        self.assertNotIn("unconscious", self.foe.get("conditions", []))

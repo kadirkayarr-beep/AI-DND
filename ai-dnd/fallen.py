@@ -7,18 +7,49 @@ from typing import Any
 import living_world
 
 
+_DOWN = {"dead", "unconscious"}
+_WAKES_AFTER = 3600  # the Short Rest a knocked-out creature starts
+
+
 def here(world: dict[str, Any]) -> list[dict[str, Any]]:
     location = world.get("location")
     return [npc for npc in world.get("npcs", []) if isinstance(npc, dict)
-            and npc.get("combat_status") == "dead" and npc.get("location") == location]
+            and npc.get("combat_status") in _DOWN and npc.get("location") == location]
+
+
+def knock_out(session, npc: dict[str, Any]) -> None:
+    npc.update(current_hp=1, combat_status="unconscious",
+               knocked_out_at=session.world_state.get("campaign_time", {}).get("elapsed_seconds", 0))
+    import weapon_attack
+    weapon_attack.add_condition(npc, "unconscious")
+
+
+def wake(session) -> None:
+    """Whoever was knocked out comes round once the hour is up, hurt and still at 1 HP."""
+    now = session.world_state.get("campaign_time", {}).get("elapsed_seconds", 0)
+    for npc in session.world_state.get("npcs", []):
+        if (isinstance(npc, dict) and npc.get("combat_status") == "unconscious"
+                and "knocked_out_at" in npc and now - npc["knocked_out_at"] >= _WAKES_AFTER):
+            del npc["knocked_out_at"]
+            npc["combat_status"] = "active"
+            conditions = npc.get("conditions", [])
+            if isinstance(conditions, dict):
+                conditions.pop("unconscious", None)
+            else:
+                npc["conditions"] = [name for name in conditions if name != "unconscious"]
 
 
 def scene_line(world: dict[str, Any]) -> str:
     """One sentence for a look or an arrival; empty when nobody lies here."""
     bodies = here(world)
-    if not bodies:
-        return ""
-    return f"Yerde {living_world.public_scene_people(bodies[:3])} kıpırtısız yatıyor."
+    dead = [npc for npc in bodies if npc.get("combat_status") == "dead"]
+    out_cold = [npc for npc in bodies if npc.get("combat_status") != "dead"]
+    parts = []
+    if dead:
+        parts.append(f"Yerde {living_world.public_scene_people(dead[:3])} kıpırtısız yatıyor.")
+    if out_cold:
+        parts.append(f"Yerde {living_world.public_scene_people(out_cold[:3])} baygın yatıyor, nefes alıyor.")
+    return " ".join(parts)
 
 
 def addressed_body(session, text: str) -> dict[str, Any] | None:
@@ -33,7 +64,10 @@ def addressed_body(session, text: str) -> dict[str, Any] | None:
 
 
 def silence(npc: dict[str, Any]) -> str:
-    return f"{living_world.public_npc_name(npc)} yerde kıpırtısız yatıyor; sana cevap verecek biri değil artık."
+    who = living_world.public_npc_name(npc)
+    if npc.get("combat_status") == "unconscious":
+        return f"{who} baygın; sesini duyacak durumda değil."
+    return f"{who} yerde kıpırtısız yatıyor; sana cevap verecek biri değil artık."
 
 
 def named_in(session, text: str, bodies: list[dict[str, Any]]) -> dict[str, Any] | None:

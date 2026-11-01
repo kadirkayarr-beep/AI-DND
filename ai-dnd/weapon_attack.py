@@ -28,7 +28,7 @@ SIZES = ("tiny", "small", "medium", "large", "huge", "gargantuan")
 CHOICES = frozenset({
     "mode", "ability", "grip", "mastery", "push_ft", "cleave_target_id",
     "unarmed_option", "shove_option", "target_save_ability", "draw", "unequip", "weapon_instance_id", "reckless_attack",
-    "sacred_weapon", "radiant_damage",
+    "sacred_weapon", "radiant_damage", "knock_out",
     "cunning_strike", "cunning_strike_move_ft",
     "stunning_strike", "open_hand_technique",
 })
@@ -337,6 +337,8 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     choice = copy.deepcopy(choice or {})
     if set(choice) - CHOICES:
         fail("invalid_attack_choice", "Only player choices, never mechanical numbers, are accepted.")
+    if "knock_out" in choice and type(choice["knock_out"]) is not bool:
+        fail("invalid_attack_choice", "Knocking out requires an explicit boolean.")
     if "reckless_attack" in choice and type(choice["reckless_attack"]) is not bool:
         fail("invalid_attack_choice", "Reckless Attack requires an explicit boolean.")
     attacker, defender = actor_data(session, actor), actor_data(session, target)
@@ -970,7 +972,7 @@ def _resolve(session, c):
             additional_effects.append(deflected)
             additional_effects.extend(monk_features.redirect(session, c, deflected, damage, max(raw_grouped, key=raw_grouped.get)))
     else:
-        hp_after = session.apply_npc_damage(defender, damage)
+        hp_after = session.apply_npc_damage(defender, damage, knock_out=_spares(c, actor, defender))
         hp_result = {"hp_damage": damage, "death_resolution": None}
     if special and hit:
         if c["unarmed_option"] == "grapple":
@@ -1147,6 +1149,20 @@ def _owned_named(normalized, owned, held):
     return []
 
 
+def _spares(c, actor, defender):
+    """The player's word on killing lasts the fight; only a melee blow can knock someone out."""
+    said = c["choice"].get("knock_out")
+    if actor == "player" and said is not None:
+        defender["spare_intent"] = said
+    return actor == "player" and c["mode"] == "melee" and bool(defender.get("spare_intent"))
+
+
+_KNOCK_OUT = re.compile(
+    r"\bbayil(?:t|ana|inca)\w*|\bsersemlet\w*|\bserilene\b|\bkabza\w*|\b(?:yan|duz) yuz\w*"
+    r"|\boldurm(?:e(?:y\w*|den|m|z\w*)?|i\w*|u\w*)\b|\boldurmek (?:yok|degil)\b")
+_KILL = re.compile(r"\boldur(?:uyorum|ecegim|ecem|ucem|cem|eyim|ucu\w*)\b")
+
+
 def natural_choice(session, text):
     """Choices only; no model-derived stats, grants, distance or hand state."""
     normalized = session._normalize_turkish_typos(text)
@@ -1191,4 +1207,8 @@ def natural_choice(session, text):
             choice["mastery"] = mastery
     if re.search(r"cekiyorum|draw", normalized):
         choice["draw"] = True
+    if _KNOCK_OUT.search(normalized):
+        choice["knock_out"] = True
+    elif _KILL.search(normalized):
+        choice["knock_out"] = False
     return identity, choice
