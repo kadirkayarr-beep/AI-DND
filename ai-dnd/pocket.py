@@ -37,9 +37,17 @@ def _shown(session) -> list[str]:
     return _THING_WORD.findall(_PLAYERS_OWN_WORDS.sub(" ", " ".join(reversed(said[:_SHOWN_TURNS]))))
 
 
-def _thing_in(words: list[str], shown: list[str]) -> str | None:
+def _fixed_here(world: dict[str, Any]) -> tuple[str, ...]:
+    """What the scene is made of cannot go in a bag: 'tezgâhtaki şeyi alıyorum' takes no counter."""
+    names = [word for feature in living_world.visible_features(world, world.get("location"))
+             for word in living_world.normalize_text(feature.get("name")).split() if len(word) >= 4]
+    return tuple(world_threads._stem(word).rstrip("aeiou") for word in names)  # 'tezgâhı' is what 'tezgâhtaki' stands on
+
+
+def _thing_in(words: list[str], shown: list[str], fixed: tuple[str, ...] = ()) -> str | None:
     """The thing named both on the screen and in the line: two words if it has two."""
     wanted = [word for word in words if word not in _NOT_THINGS and not _INTO_THE_BAG.fullmatch(word)]
+    wanted = [word for word in wanted if not any(word.startswith(stem) for stem in fixed)]
 
     def said(raw: str) -> bool:
         stem = living_world.normalize_text(raw)
@@ -54,7 +62,7 @@ def _thing_in(words: list[str], shown: list[str]) -> str | None:
 def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     world = session.world_state
     shown = _shown(session)
-    thing = None if any(word.startswith(_WORTH) for word in words) else _thing_in(words, shown)
+    thing = None if any(word.startswith(_WORTH) for word in words) else _thing_in(words, shown, _fixed_here(world))
     if thing is None:
         return None  # nothing here to put away: whoever else this line is for still reads it
     name = thing[:1].upper() + thing[1:].casefold()
@@ -67,12 +75,22 @@ def _stem(word: Any) -> str:
     return world_threads._stem(folded[-1]) if folded else ""
 
 
+def _bare(word: str) -> str:
+    """A thing's plain name even when the model copied it as the line said it: 'keseyi', 'defteri'."""
+    word = word.strip()
+    folded = living_world.normalize_text(word)
+    if len(folded) >= 5 and folded.endswith(("yi", "yu")):
+        return word[:-2]
+    return word[:-1] if len(folded) >= 6 and folded[-1] in "iu" and folded[-2] not in "aeiou" else word
+
+
 def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     """The front reading says the line takes this. It is real if the line names it and the screen showed it."""
     world = session.world_state
     words = living_world.normalize_text(text).split()
     if not word:
         return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)
+    word = _bare(word)
     stem = _stem(word)
     if (len(stem) < 3 or stem.startswith(_WORTH) or not any(w.startswith(stem) for w in words)
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
@@ -87,7 +105,7 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
 def asked_for(text: str, word: str) -> tuple[str, ...]:
     """What a line that took nothing was after: the model's word, or the line's own longer words."""
     if word:
-        return (_stem(word),)
+        return (_stem(_bare(word)),)
     return tuple(w for w in living_world.normalize_text(text).split() if len(w) >= 4 and w not in _NOT_THINGS)
 
 
@@ -142,8 +160,11 @@ def settle_claim(session, claim: Any, text: Any, person: Any = None) -> tuple[An
     if not isinstance(item, str) or not item.strip():
         return text, ""
     item = item.strip()
-    thread = world_threads.parcel_thread(session.world_state, item) if item.startswith("parcel:") else None
-    stem = _stem(thread.get("item_noun") if thread else item)
+    world = session.world_state
+    thread = world_threads.parcel_thread(world, item) if item.startswith("parcel:") else None
+    named = next((entry.get("name") for entry in world.get("inventory", [])
+                  if isinstance(entry, dict) and entry.get("item_id") == item), None)
+    stem = _stem(thread.get("item_noun") if thread else named or item)
     if claim.get("to") != "person" and _committed(session, item, stem, text, person):
         return text, ""
     return without_said(text, stem), stem

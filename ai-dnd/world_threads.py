@@ -722,6 +722,9 @@ def _has_phrase(tokens: list[str], phrases: frozenset[str]) -> bool:
                for start in range(len(tokens)) for end in range(start + 1, min(start + 4, len(tokens)) + 1))
 
 
+_HOURS_NAMED = ("sabaha", "ogleye", "aksama", "geceye")  # 'akşama kadar çalışıyorum' is work with an end to it
+
+
 def _read_clause(tokens, asked, table, names, item_stems):
     """One clause's meaning, or 'other' when it is something else entirely."""
     is_item = lambda word: word in table["item_words"] or any(word.startswith(stem) for stem in item_stems)
@@ -778,7 +781,7 @@ def _read_clause(tokens, asked, table, names, item_stems):
         return "take"
     if " ".join(plain) in table["start"] and plain:
         return "start"
-    numbers = {*_NUMBER_ONES, *_NUMBER_TENS, "saat", "saatlik", "gun", "gunluk"}
+    numbers = {*_NUMBER_ONES, *_NUMBER_TENS, "saat", "saatlik", "gun", "gunluk", "kadar", *_HOURS_NAMED}
     timed = [word for word in plain if word not in numbers and not word.isdigit()]
     if timed and len(timed) < len(plain) and " ".join(timed) in table["start"]:
         return "start"
@@ -926,7 +929,7 @@ def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
     for piece in re.split(r"[,.;!]", str(text or "")):  # a 'not' elsewhere in the line says nothing about the work
         words = _folded(piece).split()
         if (_names_the_work(piece, thread, table) and any(word.endswith(ends) for word in words)
-                and not any(_REFUSED_DOING.search(word) for word in words)):
+                and not any(_REFUSED_DOING.search(word) or word.endswith(_CONDITIONAL_ENDS) for word in words)):
             return True
     return False
 
@@ -1550,8 +1553,8 @@ def _shift_text(world, thread, *parts, short=False):
     return " ".join(p for p in (sentence(_fill(first, owner=spoken_owner(world, thread), place=place.get("name", ""))), *parts) if p)
 
 
-def _shift_plan(world: dict[str, Any], thread: dict[str, Any], text: Any, hours: int) -> tuple[list[int], bool]:
-    """The hours the line asks for, one span a day: never more days than the job has left, never a clock it did not say."""
+def _shift_plan(world: dict[str, Any], thread: dict[str, Any], text: Any, hours: int) -> tuple[list[int], bool, bool]:
+    """(the spans, one a day; cut short; whole days asked for). Never more days than the job has left, never a clock it did not say."""
     import campaign_time
     try:
         wanted = campaign_time.requested_duration(text) or 0
@@ -1559,11 +1562,11 @@ def _shift_plan(world: dict[str, Any], thread: dict[str, Any], text: Any, hours:
         wanted = 0
     if wanted >= DAY:
         left = (thread["terms"].get("work_days") or 1) - thread.get("days_worked", 0)
-        return [hours * HOUR] * max(1, min(wanted // DAY, left)), False
+        return [hours * HOUR] * max(1, min(wanted // DAY, left)), False, True
     until = campaign_time.until_named_hour(world, _folded(text))
     if until is not None and until < DAY / 2:
-        return [until], until < hours * HOUR
-    return [wanted or hours * HOUR], bool(wanted) and wanted < hours * HOUR
+        return [until], until < hours * HOUR, False
+    return [wanted or hours * HOUR], bool(wanted) and wanted < hours * HOUR, False
 
 
 def _one_shift(world, thread_id, seconds, hours, words):
@@ -1595,17 +1598,20 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     The clock step can replace the whole thread state, cut the shift short or kill the
     player, so what is credited is only what actually passed.
     """
+    import campaign_time
     import game
     world = session.world_state
     thread = by_id(world, thread_id)
     words = job_lines("text") or {}
     hours = job_lines("shift_hours") or 8
-    spans, short = _shift_plan(world, thread, text, hours)
+    spans, short, whole_days = _shift_plan(world, thread, text, hours)
     before = copy.deepcopy(world)
     passed, paid, days_paid, finished, unpaid = 0, 0, 0, False, ""
     for index, span in enumerate(spans):
         if index:  # the rest of the night between two days of it
             passed += game.advance_campaign_time(DAY - spans[index - 1], "work_shift")["elapsed_seconds"]
+        elif whole_days and thread.get("last_paid_day_index") == _today(world):  # today is paid: the days start tomorrow
+            passed += game.advance_campaign_time(campaign_time.until_morning(world), "work_shift")["elapsed_seconds"]
         worked, amount, finished, why = _one_shift(world, thread_id, span, hours, words)
         passed += worked
         paid += amount

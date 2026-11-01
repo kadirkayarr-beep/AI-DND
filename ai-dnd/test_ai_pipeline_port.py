@@ -426,8 +426,9 @@ class PipelinePortTests(unittest.TestCase):
         self.assertEqual(captured["format"], game.DM_RESPONSE_SCHEMA)
         self.assertEqual(
             set(game.DM_RESPONSE_SCHEMA["properties"]),
-            # K3 (approved): two OPTIONAL fields, player_line and feature_refs.
-            {"world_updates", "narration", "lore_claims", "player_line", "feature_refs"},
+            # K3 (approved): two OPTIONAL fields, player_line and feature_refs. item_claims is optional too:
+            # what the narration says changed hands, which Python commits or takes off the line.
+            {"world_updates", "narration", "lore_claims", "player_line", "feature_refs", "item_claims"},
         )
         self.assertEqual(
             set(game.DM_RESPONSE_SCHEMA["required"]),

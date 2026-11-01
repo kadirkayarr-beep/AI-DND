@@ -144,6 +144,23 @@ def _paper_in_hand(world,text):
     return None
 
 
+def _paper_with_its_owner(session,text):
+    """The job is the player's and the paper is in reach: reading it starts with it changing hands."""
+    import world_threads
+    world=session.world_state
+    words=living_world.normalize_text(text).split()
+    for thread in (world_threads.view(world) or {'threads':[]})['threads']:
+        owner=world_threads.owner_of(world,thread)
+        noun=living_world.normalize_text(thread.get('item_noun')).split()
+        if (thread.get('status')=='accepted' and thread.get('quest_id') and any(part.startswith(_PAPER) for part in noun)
+                and isinstance(owner,dict) and owner.get('location')==world.get('location')
+                and not holds_parcel(world,thread)
+                and any(word.startswith(stem) for stem in world_threads._item_stems(thread) for word in words)
+                and hand_over(session,thread,owner,own_turn=False)):
+            return thread
+    return None
+
+
 def _in_conversation(world):
     flags=world.get('flags') or {}
     return bool(flags.get('active_npc_id')) and flags.get('turn_index',0)<=flags.get('active_npc_until_turn',-1)
@@ -172,6 +189,8 @@ def read_parcel(session,text):
     if not reads and not _ASKS_WHAT_IT_SAYS.search(folded):
         return None
     thread=_paper_in_hand(world,text)
+    if thread is None:
+        thread=_paper_with_its_owner(session,text)
     words=letter_text(world,thread) if thread is not None else ''
     if not words:
         return None
