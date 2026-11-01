@@ -27,6 +27,7 @@ import local_places
 import name_catalog
 import npc_statements
 import relationships
+import world_happenings
 import world_threads
 
 MAX_ITEMS = 5
@@ -311,6 +312,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
         )
     else:
         lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa bilmediğini söyle.")
+    lines.append(world_happenings.speech_line(world, npc, {item["thread_id"] for item in known if item["kind"] == "news"}))
     lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
     lines.append(job)
     lines.append(role_note(world, npc))

@@ -147,7 +147,7 @@ def _now(world: dict[str, Any]) -> int:
 
 def _new_state() -> dict[str, Any]:
     return {"version": SCHEMA_VERSION, "seeded": [], "next_number": 1, "last_tick": 0,
-            "threads": [], "history": []}
+            "threads": [], "history": [], "happenings": []}
 
 
 def view(world: dict[str, Any]) -> dict[str, Any] | None:
@@ -331,10 +331,12 @@ def _seed_settlement(world, state, settlement_id):
 
 def ensure(world: dict[str, Any]) -> dict[str, Any] | None:
     """Seed this settlement's threads once. Old saves gain them here; a failure changes nothing."""
+    state = view(world)
+    if state is not None:
+        state.setdefault("happenings", [])
     settlement_id = local_places.settlement_of(world, world.get("location"))
     if not settlement_id or not living_world._campaign_seed(world):
-        return view(world)
-    state = view(world)
+        return state
     if state is not None and (settlement_id in state["seeded"] or len(state["seeded"]) >= MAX_SETTLEMENTS):
         return state
     if not catalog()["templates"]:
@@ -1494,6 +1496,8 @@ def tick(world: dict[str, Any], now: int) -> None:
 def validate(state: Any) -> None:
     if not isinstance(state, dict) or state.get("version") != SCHEMA_VERSION:
         raise ValueError("World thread state is invalid.")
+    import world_happenings
+    world_happenings.validate(state.get("happenings"))
     threads, history = state.get("threads"), state.get("history")
     if (
         not isinstance(threads, list) or not isinstance(history, list)
