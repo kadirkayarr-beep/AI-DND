@@ -15043,20 +15043,15 @@ def _is_explicitly_negated_attack(player_input):
     if not _has_explicit_attack_verb(player_input):
         return False
 
-    inflected_negation = re.search(
+    refused = re.compile(
         rf"\b{_ATTACK_VERB_PATTERN}\w*?"
         r"(?:miyorum|miyor|muyor|muyorum|madim|medim|"
-        r"mayacag\w*|meyeceg\w*|mayin|meyin|maz\w*|mez\w*|ma|me)\b",
-        text,
+        r"mayacag\w*|meyeceg\w*|mayin|meyin|maz\w*|mez\w*|ma|me)\b"
+        rf"|\b{_ATTACK_VERB_PATTERN}\w*\s+"
+        r"(?:istem\w*|dusunm\w*|niyetim\s+yok|arzu\s+etm\w*)\b"
     )
-    if inflected_negation:
-        return True
-
-    return bool(re.search(
-        rf"\b{_ATTACK_VERB_PATTERN}\w*\s+"
-        r"(?:istem\w*|dusunm\w*|niyetim\s+yok|arzu\s+etm\w*)\b",
-        text,
-    ))
+    # "Vuruyorum, öldürme": the no is on the killing; a blow still stands beside it.
+    return refused.search(text) is not None and not _has_explicit_attack_verb(refused.sub(" ", text))
 
 
 CHECK_FEATURES = ('primal_knowledge', 'tactical_mind')
@@ -15196,10 +15191,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             success=None,
             status="not_executed",
             outcome="negated_action",
-            direct_response=(
-                "Anlaşıldı; saldırmak istemediğini anladım. "
-                "Saldırı başlatmadım."
-            ),
+            direct_response="Elin silahında kalıyor; kimseye vurmuyorsun.",
         )
         return result
 
@@ -19109,6 +19101,8 @@ def _run_player_turn_internal(
             system_deterministic = True
         elif action == "query" and action_result.get("direct_response"):
             system_deterministic = True
+        elif status == "not_executed" and action_result.get("direct_response"):
+            system_deterministic = True  # no blow ran, so no narrator gets to land one
         elif safety_handling in ("python_memory_response", "python_scene_response"):
             system_deterministic = True
 

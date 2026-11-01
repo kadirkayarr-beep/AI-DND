@@ -52,6 +52,9 @@ def _side_outcome(result: dict, enemies: list, outcomes: tuple[str, ...]) -> boo
     )
 
 
+_FREE_PROSE = frozenset({"narrative", "interaction", "world_interaction"})
+
+
 def packet_from_result(
     action_result: dict | None,
     *,
@@ -117,6 +120,7 @@ def packet_from_result(
         "door_locked": None,
         "player_hidden": None,
         "required": [],
+        "no_blow": result.get("action") in _FREE_PROSE,
     }
     if isinstance(door, dict):
         packet["door_name"] = door.get("name") or "Kapı"
@@ -177,6 +181,8 @@ _OPPONENT_MISS = re.compile(
     r"\brakib(?:in|inin)\b.{0,48}\b(?:iskala\w*|isabet etmez\w*)\b"
 )
 _CRITICAL = re.compile(r"\bkritik\b")
+# Someone else goes down: 'yığılıyorsun' is the player's own and has another owner.
+_FELLED = re.compile(r"\b(?:yigil(?:iyor|di|ir|arak|ip)|bayil(?:iyor|di|ir)|yere seril\w*|bilincini kaybed\w*)\b")
 _DEATH = re.compile(r"\b(?:ölür|öldü|öldür\w*|yere düşer)\b")
 _PLAYER_DEATH_DENIAL = re.compile(r"\bdenemez\b")
 _PLAYER_ALIVE = re.compile(r"\b(?:hayattasin|sapasaglamsin)\b")
@@ -551,6 +557,10 @@ def assess(narration: str, packet: dict | None) -> dict[str, Any]:
 
     if _DODGE.search(folded) and not facts.get("dodge"):
         return _reject("COMBAT_RESULT_CONTRADICTION", "savunmaya gec")
+    if facts.get("no_blow"):  # free prose over a turn in which no attack ran lands no blow
+        landed = _POSITIVE_HIT.search(folded) or _FELLED.search(folded)
+        if landed:
+            return _reject("COMBAT_RESULT_CONTRADICTION", landed.group(0))
     exchanges = [item for item in facts.get("exchanges") or [] if isinstance(item, dict)]
     if _UNRESOLVED_PLAYER_ATTACK.search(folded):
         incoming_attack = any(
