@@ -22,6 +22,7 @@ _STEAL = re.compile(
 _NOT_STOLEN = re.compile(
     r"\b(?:(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz)\w*|can[ia]?)\b.*\bcal(?:iyorum|ip)"
 )
+_ASKS = re.compile(r"\b(?:mi|mu|ne olur)\W*$")  # the owner leaves the question mark out
 _DISTRACTED = re.compile(r"\w+(?:ken|arken|erken)\b")
 _ARSON = re.compile(r"\b(?:ates\w*\s+ver\w*|ates\w*\s+yak\w*|tutustur\w*|alev\w*\s+ver\w*|\w+\s+yakiyorum|\w+\s+yakacagim)")
 _THINGS = (
@@ -619,14 +620,20 @@ def _buy(session, text: str) -> dict[str, Any] | None:
                   "purchase", "bought", None, ["currency"], price_cp=price)
 
 
+def _can_be_done(session, text: Any) -> bool:
+    """The reading names the deed; a line that only asks about it does nothing, whatever the reading says."""
+    return isinstance(text, str) and "?" not in text and not _ASKS.search(fold(session, text))
+
+
 def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide."""
     if isinstance(text, str) and "?" not in text:
         settled = _search_body(session, text) or _buy(session, text)
         if settled is not None:
             return settled
-    if is_theft(session, text) if deed is None else deed == "steal":
+    if is_theft(session, text) if deed is None else deed == "steal" and _can_be_done(session, text) and (
+            not _NOT_STOLEN.search(fold(session, text))):
         return _steal(session, text)
-    if is_arson(session, text) if deed is None else deed == "burn":
+    if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
         return _burn(session)
     return None

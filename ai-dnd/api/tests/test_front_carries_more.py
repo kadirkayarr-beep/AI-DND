@@ -89,6 +89,28 @@ class ReadsBeforeTheOldOwners(FrontTable):
         await self.line("kalabaligi firsat bilip adamin belindekini usulca kendime katiyorum")
         self.assertEqual(self.routes()[-1]["owner"], "theft")
 
+    async def test_asking_about_a_theft_is_no_theft_whatever_the_reading_says(self):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "deed": "steal"}
+        for line in ("su keseyi calsam fark eder mi?", "su keseyi calsam fark eder mi"):
+            await self.line(line)
+            self.assertNotEqual(self.routes()[-1]["owner"], "theft", line)
+        self.assertFalse(self.world["flags"].get("deeds"))
+
+    async def test_asking_about_a_fire_is_no_fire_whatever_the_reading_says(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "deed": "burn"}
+        for line in ("burayi yaksam ne olur?", "burayi yaksam ne olur"):
+            await self.line(line)
+            self.assertNotEqual(self.routes()[-1]["owner"], "arson", line)
+        self.assertFalse(self.world["flags"].get("fires"))
+
+    async def test_ringing_a_bell_is_no_theft_whatever_the_reading_says(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "deed": "steal"}
+        await self.line("zili caliyorum")
+        self.assertNotEqual(self.routes()[-1]["owner"], "theft")
+
     async def test_with_no_reading_the_old_words_still_catch_a_fire(self):
         await self.begin()
         self.client.drop_front = True
