@@ -632,27 +632,6 @@ def _spoken_number(number: int) -> str:
     return " ".join(p for p in (_NUMBER_TENS[number // 10 % 10], _NUMBER_ONES[number % 10]) if p)
 
 
-def names_number(text: Any, number: Any) -> bool:
-    """The figure as said aloud: '38', 'otuz sekiz', 'otuz sekize'. No digit inside another number."""
-    if type(number) is not int:
-        return False
-    words = _folded(text).split()
-    if str(number) in words:
-        return True
-    wanted = _spoken_number(number).split()
-    if not wanted:
-        return False
-    for start in range(len(words) - len(wanted) + 1):
-        window = words[start:start + len(wanted)]
-        short = len(wanted[-1]) < 4  # 'on' is not 'onu'
-        ending = window[-1] == wanted[-1] or (not short and window[-1].startswith(wanted[-1])
-                                              and len(window[-1]) <= len(wanted[-1]) + 2)
-        if window[:-1] == wanted[:-1] and ending and (
-                len(wanted) > 1 or start == 0 or words[start - 1] not in _NUMBER_TENS):
-            return True
-    return False
-
-
 def figure_before(text: Any, number: Any, unit: str | tuple[str, ...]) -> bool:
     """The figure right before its unit: 'yirmi bakır', 'otuz sekiz bakıra', '20 bakır'. A lone 'on' is no figure."""
     if type(number) is not int:

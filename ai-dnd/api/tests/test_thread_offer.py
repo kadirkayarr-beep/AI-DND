@@ -344,13 +344,13 @@ class WhereTheJobStands(unittest.TestCase):
 class OfferOpening(unittest.TestCase):
     def test_the_figure_counts_in_digits_and_in_words(self):
         for text, number in (("Teslim edene dokuz bakır var.", 9), ("Otuz sekiz bakır veririm.", 38), ("38 bakır", 38),
-                             ("otuz sekize olur", 38), ("Ücret 20 bakır", 20), ("yirmi bakır", 20)):
-            self.assertTrue(world_threads.names_number(text, number), text)
+                             ("otuz sekiz bakıra olur", 38), ("Ücret 20 bakır", 20), ("yirmi bakır", 20)):
+            self.assertTrue(world_threads.figure_before(text, number, "bakir"), text)
 
     def test_another_figure_does_not_count(self):
         for text, number in (("yüz seksen bakır", 8), ("Otuz bakır", 38), ("138 bakır", 38), ("onu al", 10),
-                             ("otuz sekiz bakır", 8)):
-            self.assertFalse(world_threads.names_number(text, number), text)
+                             ("otuz sekiz bakır", 8), ("Ön kapıdan gir", 10)):
+            self.assertFalse(world_threads.figure_before(text, number, "bakir"), text)
 
     def test_marking_records_the_terms_the_player_saw(self):
         world, thread, npc = offered(status="heard")
