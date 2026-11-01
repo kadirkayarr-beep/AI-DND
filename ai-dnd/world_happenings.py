@@ -205,6 +205,27 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
     return None
 
 
+def _spoken_time(world: dict[str, Any], moment: int) -> str:
+    """How far off, as a person says it. A figure is the one thing a small model will change."""
+    import campaign_time
+    hour = (campaign_time.public_time(world) or {}).get("hour", 12)
+    ahead = hour + (moment - world_threads._now(world)) / world_threads.HOUR
+    name = "when_today" if ahead < 20 else "when_tonight" if ahead < 30 else "when_tomorrow" if ahead < 48 else "when_later"
+    return (world_threads.job_lines("text") or {}).get(name, "")
+
+
+def waiting_note(world: dict[str, Any], npc: Any) -> str:
+    """This person's own trouble still on the clock: one sentence, in words."""
+    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
+    coming = [t for t in world_threads.owned(world) if place_id and t["place_id"] == place_id
+              and world_threads.fires_at(t) is not None]
+    if not coming:
+        return ""
+    thread = min(coming, key=world_threads.fires_at)
+    line = world_threads.job_lines("shared", "waiting") or ""
+    return " " + world_threads._fill(line, what=thread["public_line"].rstrip(" ."), when=_spoken_time(world, thread["fires_at"]))
+
+
 def _within_reach(world: dict[str, Any], npc: dict[str, Any], place_id: str) -> bool:
     import world_reactions
     here = npc.get("location")

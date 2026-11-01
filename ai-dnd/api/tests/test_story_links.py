@@ -552,6 +552,40 @@ class HalfTruths(unittest.TestCase):
         self.assertNotIn(item["text"], town_knowledge.fallback_line(world, npc) or "")
 
 
+class WhatIsComingForThem(unittest.TestCase):
+    def ahead(self, hours):
+        """A trouble this many hours past the top of the current day."""
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        hour = campaign_time.public_time(world)["hour"]
+        thread["fires_at"] = world_threads._now(world) + (hours - hour) * HOUR
+        return world, thread
+
+    def test_the_owner_has_it_in_a_word_and_never_in_a_figure(self):
+        words = {12: "bugün", 22: "bu gece", 29: "bu gece", 36: "yarın", 80: "birkaç gün"}
+        for hours, word in words.items():
+            world, thread = self.ahead(hours)
+            note = world_happenings.waiting_note(world, resident(world, thread["place_id"]))
+            self.assertEqual(note, f" Seni bekleyen: {thread['public_line'].rstrip('.')}; {word}.", hours)
+            self.assertNotRegex(note.replace(thread["public_line"].rstrip("."), ""), r"\d")
+
+    def test_it_is_in_the_prompt_once(self):
+        world, thread = self.ahead(36)
+        note = town_knowledge.speech_note(world, resident(world, thread["place_id"]))
+        self.assertEqual(note.count("Seni bekleyen:"), 1)
+
+    def test_nobody_else_has_it(self):
+        world, thread = self.ahead(36)
+        other = next(t["place_id"] for t in world[world_threads.KEY]["threads"] if t["place_id"] != thread["place_id"])
+        self.assertEqual(world_happenings.waiting_note(world, resident(world, other)), "")
+
+    def test_in_someones_hands_nothing_is_waiting(self):
+        world, thread = self.ahead(36)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        self.assertEqual(world_happenings.waiting_note(world, npc), "")
+
+
 class InPlay(unittest.IsolatedAsyncioTestCase):
     """The player's own loose words, the real turn, a scripted person."""
 

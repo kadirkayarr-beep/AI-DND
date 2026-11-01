@@ -643,6 +643,7 @@
       "unwilling": "Bu kişiye iş vermek istemiyorsun; önceki iş kötü bitti. Kendi tavrınla söyle, teklif etme.",
       "trouble": "Bu bir dert, iş değil: kimseye para ya da ücret teklif etme.",
       "heard_happening": "Duyduğun: {heard}",
+      "waiting": "Seni bekleyen: {what}; {when}.",
       "trouble_help": "Biri yardım etmek isterse kabul edebilirsin; istemezse ısrar etme.",
       "pay_no_pay": "Para soruyor ama bu dert için ücret konuşmadınız; para vermezsin. Kendi ağzınla söyle, inkâr etme.",
       "cold": " Bu kişiye karşı soğuksun.",
@@ -862,6 +863,10 @@
       "start_tomorrow": "yarın sabah",
       "start_tonight": "bu akşam",
       "pay_none": "ücret yok",
+      "when_today": "bugün",
+      "when_tonight": "bu gece",
+      "when_tomorrow": "yarın",
+      "when_later": "birkaç gün",
       "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil."
     }
   },
