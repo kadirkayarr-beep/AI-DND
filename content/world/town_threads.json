@@ -712,6 +712,30 @@
       "start_tonight": "bu akşam"
     }
   },
+  "gone_words": {
+    "filled_by_other": [
+      "kapmış",
+      "kaptı",
+      "almış",
+      "aldı",
+      "tutmuş",
+      "tuttu",
+      "üstlenmiş"
+    ],
+    "done": [
+      "bitmiş",
+      "bitti",
+      "tamamlanmış",
+      "tamamlandı",
+      "teslim"
+    ],
+    "failed": [
+      "yarım",
+      "gelmemiş",
+      "gelmedi",
+      "bırakılmış"
+    ]
+  },
   "gone_lines": {
     "filled_by_other": "{place} işini {who} kapmış.",
     "done": "{place} işi bitmiş, teslim edilmiş.",

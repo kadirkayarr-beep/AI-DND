@@ -112,6 +112,21 @@ class TheWitness(unittest.TestCase):
         town_knowledge.note_mention(self.world, npc, f"{place} işini Bren kapmış.")
         self.assertEqual(self.thread["outcome_known_turn"], 5)
 
+    def test_naming_the_place_tells_nothing_about_how_the_job_ended(self):
+        npc = self.teller()
+        place = self.world["locations"][self.thread["place_id"]]["name"]
+        for reply in (f"{place} tarafına git, meydanın arkasında.", f"{place} şu yanda."):
+            town_knowledge.note_mention(self.world, npc, reply)
+            self.assertIsNone(self.thread.get("outcome_known_turn"), reply)
+        self.assertFalse([e for e in interaction_adventure.get(self.world)["events"] if "learned" in e.get("kind", "")])
+        self.assertTrue(world_threads.arrival_line(self.world, self.thread["place_id"]))
+
+    def test_saying_it_in_other_words_still_counts(self):
+        npc = self.teller()
+        place = self.world["locations"][self.thread["place_id"]]["name"]
+        town_knowledge.note_mention(self.world, npc, f"{place} tarafındaki işi başkası almış diyorlar.")
+        self.assertEqual(self.thread["outcome_known_turn"], 5)
+
     def test_the_news_goes_stale(self):
         self.world["campaign_time"]["elapsed_seconds"] = 2 * DAY
         for number in range(40):

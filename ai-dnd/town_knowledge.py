@@ -389,6 +389,14 @@ def _mentioned(world, known, words):
     return hits
 
 
+def _tells_outcome(item, thread, words):
+    """The reply says how it ended: the news itself, who took it, or its own words. A place named alone says nothing."""
+    listed = (world_threads.catalog().get("gone_words") or {}).get(thread["status"]) or ()
+    who = npc_statements.fold(thread.get("filled_by_name"))
+    return (npc_statements.fold(item["text"]) in words or bool(who and who in words)
+            or bool({npc_statements.fold(word) for word in listed} & set(words.split())))
+
+
 def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: bool = False,
                  offer_talk: bool = False) -> None:
     """Tie what was just said to the real record it means, so the player can follow it."""
@@ -408,7 +416,8 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                 if thread is None:
                     continue
                 if item["kind"] == "news":
-                    world_threads.learn_outcome(world, thread)
+                    if _tells_outcome(item, thread, words):
+                        world_threads.learn_outcome(world, thread)
                 else:
                     world_threads.mark_heard(thread, turn)
         _open_offer(world, npc, shown_text, turn, job_talk, offer_talk)
