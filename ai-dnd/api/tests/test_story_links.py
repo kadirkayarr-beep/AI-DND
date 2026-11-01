@@ -179,6 +179,7 @@ class ATroubleComesToSomething(unittest.TestCase):
         world, state = town_with_trouble()
         thread = thread_at(state)
         here = resident(world, thread["place_id"])
+        here.pop("place_role_of")  # someone else there; the owner tells it as their own, see test_loose_ends
         state, _ = fire(world, thread)
         row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
         news = [item for item in town_knowledge.public_knowledge(world, here) if item["kind"] == "news"]
@@ -568,8 +569,8 @@ class WhatIsComingForThem(unittest.TestCase):
         for hours, word in words.items():
             world, thread = self.ahead(hours)
             note = world_happenings.waiting_note(world, resident(world, thread["place_id"]))
-            self.assertEqual(note, f" Seni bekleyen: {thread['public_line'].rstrip('.')}; {word}.", hours)
-            self.assertNotRegex(note.replace(thread["public_line"].rstrip("."), ""), r"\d")
+            self.assertEqual(note, f" Seni bekleyen: {world_happenings.own_words(thread)}; {word}.", hours)
+            self.assertNotRegex(note.replace(world_happenings.own_words(thread), ""), r"\d")
 
     def test_it_is_in_the_prompt_once(self):
         world, thread = self.ahead(36)

@@ -225,5 +225,37 @@ class WhatFollowsBenIsNotAlwaysAName(unittest.TestCase):
             self.assertEqual(local_dialogue.explicit_player_name_disclosure(line), name)
 
 
+class ATroubleIsItsOwnersOwn(unittest.TestCase):
+    def owner(self):
+        world, state = links.town_with_trouble()
+        thread = links.thread_at(state)
+        return world, thread, links.resident(world, thread["place_id"])
+
+    def test_what_is_coming_is_said_in_the_first_person(self):
+        world, thread, npc = self.owner()
+        thread.update(public_line="Burası bir dertteymiş, Usta ondan yakınıyor.",
+                      owner_line="Yardımcım iki gündür gelmedi. İstersen Dalia ile konuş.")
+        waiting = town_knowledge.speech_note(world, npc).split("Seni bekleyen:")[1]
+        self.assertIn("Yardımcım iki gündür gelmedi;", waiting)
+        self.assertNotIn("yakınıyor", waiting)
+        self.assertNotIn("İstersen", waiting)
+
+    def test_afterwards_it_happened_to_them_it_is_not_something_they_heard(self):
+        world, thread, npc = self.owner()
+        state, closed = links.fire(world, thread)
+        row = state["happenings"][-1]
+        self.assertEqual(world_threads.recent_closed(world, npc), [closed])
+        note = town_knowledge.speech_note(world, npc)
+        self.assertIn("başına geldi", note)
+        self.assertNotIn(row["line"], note)
+
+    def test_someone_next_door_still_only_heard_it(self):
+        world, thread, npc = self.owner()
+        state, closed = links.fire(world, thread)
+        other = links.resident(world, thread["place_id"], "komsu")
+        other.pop("place_role_of")
+        self.assertIn(state["happenings"][-1]["line"], town_knowledge.speech_note(world, other))
+
+
 if __name__ == "__main__":
     unittest.main()

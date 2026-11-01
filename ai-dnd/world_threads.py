@@ -1151,14 +1151,15 @@ def _speaks_of_work(text, reading, thread, table):
 
 
 def recent_closed(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
-    """Jobs of this person that ended in the last two days, newest first."""
+    """Jobs of this person that ended in the last two days, newest first; a trouble that came down on them counts unasked."""
     state = view(world)
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
     if state is None or not place_id:
         return []
     now = _now(world)
     return [t for t in reversed(state["history"]) if t.get("place_id") == place_id and t.get("type") in JOBS
-            and t.get("offered_at") is not None and now - (t.get("closed_at") or 0) < RECENT_CLOSE]
+            and (t.get("offered_at") is not None or t.get("status") == "fired")
+            and now - (t.get("closed_at") or 0) < RECENT_CLOSE]
 
 
 def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:

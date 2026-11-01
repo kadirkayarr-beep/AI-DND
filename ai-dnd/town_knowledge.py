@@ -88,6 +88,11 @@ def _places(world, settlement_id, npc):
             yield {"kind": "place", "text": f"{record['name']} ({noun})", "location_id": place_id, "thread_id": None}
 
 
+def _own_past(world: dict[str, Any], npc: Any) -> set[str]:
+    """What ended on this person's own doorstep: theirs to tell as their own, never as talk they picked up."""
+    return {thread["thread_id"] for thread in world_threads.recent_closed(world, npc)}
+
+
 def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     """At most five short things this person knows, within 600 bytes. Writes nothing."""
     settlement_id = _settlement(world)
@@ -105,11 +110,12 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     gone = []
     now = world_threads._now(world)
     lines = world_threads.catalog().get("gone_lines") or {}
+    own_past = _own_past(world, npc)
     for thread in state["history"]:
         place = world.get("locations", {}).get(thread["place_id"])
         line = lines.get(thread["status"])
         if (
-            line and isinstance(place, dict)
+            line and isinstance(place, dict) and thread["thread_id"] not in own_past
             and thread["settlement_id"] == settlement_id and now - (thread.get("closed_at") or 0) < GONE_WINDOW
             and (_percent(world, npc.get("id"), thread["thread_id"]) < share or thread["place_id"] == npc.get("location"))
         ):
@@ -320,7 +326,8 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
         )
     else:
         lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa bilmediğini söyle.")
-    lines.append(world_happenings.speech_line(world, npc, {item["thread_id"] for item in known if item["kind"] == "news"}))
+    lines.append(world_happenings.speech_line(world, npc, {item["thread_id"] for item in known if item["kind"] == "news"}
+                                              | _own_past(world, npc)))
     lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
     lines.append(job)
     lines.append(role_note(world, npc))

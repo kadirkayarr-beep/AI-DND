@@ -214,6 +214,11 @@ def _spoken_time(world: dict[str, Any], moment: int) -> str:
     return (world_threads.job_lines("text") or {}).get(name, "")
 
 
+def own_words(thread: dict[str, Any]) -> str:
+    """The trouble as its owner says it: their first sentence, not what the street says of them."""
+    return thread["owner_line"].split(". ")[0].rstrip(" .")
+
+
 def waiting_note(world: dict[str, Any], npc: Any) -> str:
     """This person's own trouble still on the clock: one sentence, in words."""
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
@@ -223,7 +228,7 @@ def waiting_note(world: dict[str, Any], npc: Any) -> str:
         return ""
     thread = min(coming, key=world_threads.fires_at)
     line = world_threads.job_lines("shared", "waiting") or ""
-    return " " + world_threads._fill(line, what=thread["public_line"].rstrip(" ."), when=_spoken_time(world, thread["fires_at"]))
+    return " " + world_threads._fill(line, what=own_words(thread), when=_spoken_time(world, thread["fires_at"]))
 
 
 def _within_reach(world: dict[str, Any], npc: dict[str, Any], place_id: str) -> bool:
