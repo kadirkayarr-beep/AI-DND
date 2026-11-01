@@ -601,9 +601,9 @@ class TestNarrativeRebalance(unittest.TestCase):
                 self.assertEqual(result["action_result"]["query_type"], "location")
                 self.assertEqual(
                     result["action_result"]["direct_response"],
-                    "Bulunduğun yer: Eski Han.",
+                    "Şu an Eski Han içindesin.",
                 )
-                self.assertIn("Bulunduğun yer: Eski Han.", result["narration"])
+                self.assertIn("Şu an Eski Han içindesin.", result["narration"])
                 telemetry = result["_engine_event_evidence"]["telemetry"]
                 self.assertEqual(telemetry["intent_model_calls"], 0)
                 self.assertEqual(telemetry["narration_model_calls"], 0)

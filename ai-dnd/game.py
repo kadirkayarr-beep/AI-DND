@@ -1503,14 +1503,14 @@ def _handle_query(player_input, query_type, npc_target=None):
                 return grounded_action.place_hint(_session(), named)
         elif _detect_query_type(player_input, npc_target) != "location":
             return None
-        return f"Bulunduğun yer: {location_display_name(world_state.get('location'))}."
+        return f"Şu an {location_display_name(world_state.get('location'))} içindesin."
 
     if query_type == "presence":
         location_id = _location_reference_in_text(player_input) or world_state.get("location")
         npcs = active_npcs(location_id)
         if npcs:
             names = [_public_scene_person_text(npc) for npc in npcs]
-            return f"Burada şunlar var: {', '.join(names)}."
+            return f"Etrafında {', '.join(names)} var."
         location_id = world_state.get("location")
         if location_id in world_state.get("locations", {}):
             # "Who is here?" can be the first thing asked in a scene nobody has looked at yet.
@@ -9742,8 +9742,7 @@ def _fallback_narration(player_input, npc_target=None):
 
 
 _GENERIC_NO_CHANGE_RESPONSE = (
-    "Çevrede şimdilik belirgin bir değişiklik olmuyor; sahne bir sonraki "
-    "hamleni bekliyor."
+    "Çevrede şimdilik belirgin bir değişiklik olmuyor."
 )
 # Every variant keeps the prefix _SCENE_LEVEL_FALLBACK_RE recognizes.
 _GENERIC_NO_CHANGE_RESPONSES = (
@@ -14815,6 +14814,7 @@ _ATTACK_BLOW_PHRASE = re.compile(
 # Folded words that share an attack stem but are not attacks: kesinlikle,
 # keşif/keşfetmek, kestirme (shortcut), vurgulamak, and the instrumental nouns
 # "bıçakla"/"yumrukla" ("with a knife/fist") that only name the means.
+_CHARGING_IN = re.compile(r"\b\w+(?:la|le|yla|yle)\s+(?:\w+\s+)?(?:giriyorum|daliyorum|atiliyorum)\b")
 _ATTACK_LOOKALIKE_TOKEN = re.compile(
     r"^(?:kesin|kesif|kesfe|kesfi|kestirme|vurgu|vurdumduymaz)"
 )
@@ -14870,6 +14870,8 @@ def _has_explicit_attack_verb(player_input):
     tokens = text.split()
     if _ATTACK_BLOW_PHRASE.search(text):
         return True
+    if _session().world_state.get("combat", {}).get("active") and _CHARGING_IN.search(text):
+        return True  # in a fight, going in with a weapon is a blow
     attack_positions = [
         index for index, token in enumerate(tokens)
         if token in _attack_verb_tokens(token)
@@ -15010,7 +15012,10 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
-        raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
+        if not combat_lifecycle.is_attack_decision(_session(), player_input):
+            raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
+        intent_type = "attack"
+        intent = {**intent, "intent": "attack"}
     if (intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input)
             and not combat_lifecycle.is_attack_decision(_session(), player_input)
             and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input)):
@@ -16673,7 +16678,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "status": "unavailable",
                 "success": False,
                 "state_changes": [],
-                "direct_response": "Yakınlarda yeni bir tüccarla karşılaşmıyorsun.",
+                "direct_response": "Yakınlarda tüccara benzer kimseyi görmüyorsun.",
             }
 
     if not combat.get("active") and action == "enter":
@@ -16807,8 +16812,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "success": False,
                 "state_changes": [],
                 "direct_response": (
-                    "Az önce gördüğün kişi artık yakında görünmüyor; "
-                    "buradaki başka birine yönelebilirsin."
+                    "Az önce gördüğün kişi ortalıkta yok artık."
                 ),
             }
         elif ref_resolution["status"] == "ambiguous":
@@ -17616,6 +17620,31 @@ def _last_call():
     heal_player(1)
     return ("Sesin karanlıkta yankılanıyor ve bir şey karşılık veriyor. Ciğerlerine yakıcı bir hava doluyor; "
             "gözlerini açıyorsun. Yerdesin ama nefes alıyorsun."), "player_rescued"
+
+
+_FIGHT_REFUSALS = {
+    "combat_travel": "Karşında biri silahını kaldırmışken öylece yürüyüp gidemezsin.",
+    "out_of_turn": "Rakibin hamlesi sürüyor; önce onun ne yaptığını görüyorsun.",
+    "reaction_pending": "Rakibin açık veriyor; önce bu ana ne yapacağına karar vermelisin.",
+    "invalid_combat_target": "Burada öyle vurabileceğin biri yok.",
+    "no_weapon": "Elinde bunu yapacak bir silah yok.",
+}
+
+
+def combat_refusal_turn(error):
+    """A plain line that a fight will not allow is answered in the fight, never in English."""
+    said = str(error)
+    narration = _FIGHT_REFUSALS.get(error.code) or (
+        said if re.search(r"[çğıöşüÇĞİÖŞÜ]", said) else "Dövüşün ortasında bu olmuyor.")
+    return {
+        "messages": _session().messages,
+        "narration": narration,
+        "model_calls": 0,
+        "action_result": {
+            "action": "narrative", "status": "fight_refused", "success": False,
+            "state_changes": [], "direct_response": narration,
+        },
+    }
 
 
 def player_cannot_act_turn():

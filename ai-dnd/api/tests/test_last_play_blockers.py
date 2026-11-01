@@ -216,3 +216,43 @@ class InnRoomTests(ThreePlaysTests):
         await self.inn()
         out = await self.say("yukarı çıkıp yatıyorum, sabaha kadar uyurum")
         self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])
+
+
+class NoRawVoiceTests(ThreePlaysTests):
+    async def fight(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.session.character.update(current_hp=300, max_hp=300)
+        self.foe = self.add_person("Dorn", "Nöbetçi çavuş", current_hp=500, max_hp=500, armor_class=1)
+        await self.say("çavuşa saldırıyorum", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+
+    async def test_going_in_with_the_sword_is_a_blow(self):
+        for intent in ("attack", "travel"):
+            with self.subTest(intent=intent):
+                await self.fight()
+                round_before = self.world["combat"]["round"]
+                out = await self.say("madem öyle kılıçla giriyorum, bitirelim şu işi", PlayClient(intent=intent))
+                self.assertEqual(out["turn_outcome"]["action"], "attack", out["narration"])
+                self.assertGreater(self.world["combat"]["round"], round_before)
+
+    async def test_walking_off_mid_fight_gets_a_line_and_changes_nothing(self):
+        await self.fight()
+        place = self.world["location"]
+        round_before = self.world["combat"]["round"]
+        out = await self.say("tavernaya gidiyorum", PlayClient(intent="travel"))
+        self.assertTrue(self.world["combat"]["active"])
+        self.assertEqual(self.world["location"], place)
+        self.assertEqual(self.world["combat"]["round"], round_before)
+        self.assertNotRegex(out["narration"], r"[Tt]ravel|combat|Normal ")
+        self.assertTrue(out["narration"].strip())
+
+    async def test_where_and_who_are_told_like_a_person(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Muhafız")
+        out = await self.say("neredeyim ben şimdi?", PlayClient())
+        self.assertNotIn("Bulunduğun yer:", out["narration"])
+        self.assertIn("Neverwinter", out["narration"])
+        out = await self.say("burada kim var?", PlayClient())
+        self.assertNotIn("şunlar var", out["narration"])

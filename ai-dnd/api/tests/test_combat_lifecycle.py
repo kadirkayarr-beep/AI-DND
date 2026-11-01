@@ -204,8 +204,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
         for changes, status in (({"combat_id": str(uuid4())}, 409), ({"combat_round": 20}, 409),
                                 ({"combat_turn_index": 1}, 409), ({"target_id": other["id"]}, 400),
                                 ({"target_id": "foreign"}, 400), ({"actor_id": npc["id"]}, 422),
-                                ({"combat_round": None}, 422), ({"combat_round": True}, 422),
-                                ({"message": "Orman'a gidiyorum."}, 400)):
+                                ({"combat_round": None}, 422), ({"combat_round": True}, 422)):
             await self.assert_rejected_unchanged(session, self.request(session, npc, **changes), status)
 
     async def test_wrong_actor_does_not_roll(self):

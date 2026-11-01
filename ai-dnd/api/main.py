@@ -1169,7 +1169,9 @@ def create_app(
                         combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
                     )
                 except combat_lifecycle.CombatRequestError as error:
-                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+                    # Walking off mid-fight is a plain line: the turn answers it in the fight.
+                    if error.code != "combat_travel" or request.combat_action is not None:
+                        raise refuse_before_commit(error.status_code, error.code, str(error)) from None
                 except ValueError:
                     raise refuse_before_commit(409, "invalid_combat_state", "Combat state is invalid.") from None
             # Pure opt-in admission precedes adapter preflight and every mutating
@@ -1389,6 +1391,12 @@ def create_app(
                                     except game.PlayerCannotAct:
                                         restore_turn_snapshot()
                                         result = session.player_cannot_act_turn()
+                                    except combat_lifecycle.CombatRequestError as error:
+                                        if (request.combat_action is not None or effective_mode not in {None, "do"}
+                                                or not session.world_state.get("combat", {}).get("active")):
+                                            raise  # typed commands and door rules keep their typed refusal
+                                        restore_turn_snapshot()
+                                        result = session.combat_refusal_turn(error)
                     finally:
                         if previous_claims is missing_claims:
                             delattr(session, "_supported_player_claims")

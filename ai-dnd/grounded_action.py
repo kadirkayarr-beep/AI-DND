@@ -3066,7 +3066,7 @@ def _execute(run: _Run, steps, p) -> dict[str, Any]:
         handler = HANDLERS.get(step["verb"])
         if step["verb"] == "talk" and index > 0:
             results.append(_receipt("talk", "not_attempted", step.get("target"), reason="speak_next_turn",
-                                    text="Ne söyleyeceğini bir sonraki hamlende yazabilirsin."))
+                                    text=""))
             continue
         result = handler(run, step) if handler else None
         if result is not None and steps[index]["verb"] == "go" and step["verb"] == "approach":

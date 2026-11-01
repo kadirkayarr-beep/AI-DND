@@ -292,6 +292,8 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
         import action_economy
         if is_flight(session, message) or action_economy.wants_rage(session, text):
             return
+        if is_attack_decision(session, message):
+            return
         if (re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text)
                 or re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?", text)
                 or living_world.classify_scene_action(message) == "exit"):
