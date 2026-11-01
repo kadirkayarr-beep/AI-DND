@@ -180,6 +180,16 @@ class TalkWithNobodyNamed(FrontTable):
         self.assertEqual(self.world["location"], where)
 
 
+    async def test_a_known_place_and_a_walk_word_in_talk_do_not_turn_the_intent_into_a_walk(self):
+        await self.begin()
+        for npc in self.world["npcs"]:
+            npc["location"] = "elsewhere"
+        where = self.world["location"]
+        name = self.world["locations"][self.a_place()]["name"]
+        self.client.front = {"kind": "speak_to"}
+        await self.line(f"{name} nerede usta, oraya nasil gidilir, senin defterden mi gitti o sayfalar")
+        self.assertEqual(self.world["location"], where)
+
     async def test_the_old_walk_to_a_named_place_stays_out_of_it(self):
         await self.begin()
         for npc in self.world["npcs"]:
@@ -318,6 +328,12 @@ class APassedCheckFindsSomething(FrontTable):
         await self.begin()
         self.session._front_found = ("", "")
         self.assertIsNone(self.session._inspection_findings("kirik muhurlu kutuyu acip icine bakiyorum", "success"))
+
+    async def test_the_same_sentence_again_is_no_new_finding(self):
+        await self.begin()
+        self.roll("yerdeki izleri inceliyorum", word="izler")
+        self.assertIsNone(self.roll("kirik muhurlu kutuya bakiyorum", word="kutu"))
+        self.assertEqual(len(self.saved()), 1)
 
     async def test_a_proposal_that_only_says_the_line_back_is_no_finding(self):
         await self.begin()

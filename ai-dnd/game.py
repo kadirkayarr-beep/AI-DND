@@ -9452,7 +9452,8 @@ def normalize_intent(raw_intent, player_input):
         intent_type, explore_type, query_type = "explore", explore_type or "observe", None
 
     known_location = _location_reference_in_text(unquoted_input)
-    travel_language = _has_travel_language(player_input)
+    stays = (getattr(_session(), "_front_read", None) or {}).get("kind") in {"talk_around", "look", "sit"}
+    travel_language = not stays and _has_travel_language(player_input)  # the reading already said this is no walk
     travel_location = (
         _travel_destination_reference_in_text(unquoted_input)
         if travel_language else None
@@ -13779,6 +13780,10 @@ def _found_on_a_pass():
     text = _clean_world_text(text, 120)
     if not text:
         return None
+    world_state = _session().world_state
+    if any(isinstance(row, dict) and row.get("description") == text and row.get("location") == world_state.get("location")
+           for row in world_state.get("features", [])):
+        return None  # the small model said the last finding again: that is no new finding
     name = _clean_world_text(word, 60) or "Gözüne çarpan ayrıntı"
     feature = create_local_feature({"location": _session().world_state.get("location"), "description": text,
                                     "name": f"{name[:1].upper()}{name[1:]}", "aliases": [name], "kind": "detail"})
