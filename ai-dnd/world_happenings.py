@@ -18,6 +18,13 @@ MAX_LINE_BYTES = 90
 KINDS = ("visit", "closed", "lost", "averted")
 OUTCOMES = ("visit", "closed", "lost")
 RECENT_SECONDS = 2 * world_threads.DAY  # how long it stays what people talk about
+CLOSED_SECONDS = 2 * world_threads.DAY
+# What each ending starts, first that can be opened: (kind of thread, at the same place).
+FOLLOW_ON = {
+    "visit": (("trouble", True), ("trouble", False)),
+    "lost": (("errand", False), ("trouble", False)),
+    "closed": (("errand", False), ("trouble", False)),
+}
 SECOND_CHANCE_SECONDS = 6 * world_threads.HOUR
 LET_GO = ("abandoned", "expired", "failed")
 HAPPENED = "happened"  # in the clock's list of effects: the ledger gained a row for this thread
@@ -85,9 +92,37 @@ def fire_due(world: dict[str, Any], state: dict[str, Any], now: int) -> list[tup
         at = thread.pop("fires_at")
         kind = _outcome_of(seed, thread)
         line = _line_for(world, seed, thread, world_threads.job_lines("trouble", "fired_lines", kind))
-        write(state, thread, kind, at, line, known=world.get("location") == thread["place_id"])
+        row = write(state, thread, kind, at, line, known=world.get("location") == thread["place_id"])
+        row["next_thread_id"] = _follow_on(world, state, seed, thread, kind, now)
         effects.append((thread["thread_id"], HAPPENED))
     return effects
+
+
+def barred(state: dict[str, Any], place_id: str, kind: str, now: int) -> bool:
+    """A place that shut its doors takes nobody on for a while."""
+    return kind == "hiring" and any(row["kind"] == "closed" and row["place_id"] == place_id and 0 <= now - row["at"] < CLOSED_SECONDS
+                                    for row in state.get(KEY) or [])
+
+
+def _follow_on(world: dict[str, Any], state: dict[str, Any], seed: str, thread: dict[str, Any], kind: str, now: int) -> str | None:
+    """What this ending starts: one rule, read from the ending, and it may find nothing to start."""
+    settlement = thread["settlement_id"]
+    if len(state["threads"]) >= world_threads.MAX_ACTIVE or settlement not in state["seeded"]:
+        return None
+    record = world.get("locations", {}).get(thread["place_id"])
+    talked_of = {t.get("template_id") for t in (*state["threads"], *state["history"])}
+    choices = sorted((t for t in world_threads.catalog()["templates"] if t["id"] != thread.get("template_id")),
+                     key=lambda t: (t["id"] in talked_of, world_threads._rank(seed, thread["thread_id"], "next", t["id"])))
+    for wanted, same_place in FOLLOW_ON[kind]:
+        for template in choices:
+            if template["type"] != wanted or (same_place and not (
+                    isinstance(record, dict) and record.get("place_kind") in template["place_kinds"])):
+                continue
+            where = {"place": record} if same_place else {"avoid": {thread["place_id"]}}
+            opened = world_threads._open_thread(world, state, template, settlement, create=False, now=now, tied=True, **where)
+            if opened:
+                return opened["thread_id"]
+    return None
 
 
 def on_close(world: dict[str, Any], thread: dict[str, Any], status: str) -> None:

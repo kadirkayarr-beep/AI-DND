@@ -319,6 +319,98 @@ class SomeoneTakesItOn(unittest.TestCase):
         self.assertNotIn("ücreti ve süreyi aynen söyle", note)
 
 
+def fired_rows(count=40):
+    """(world, parent thread, its ledger row) for the first trouble of many campaigns."""
+    for number in range(count):
+        world, state = town(f"seed-chain-{number}")
+        thread = next((t for t in state["threads"] if t["type"] == "trouble"), None)
+        if thread is None:
+            continue
+        moment = thread["fires_at"]
+        parent = dict(thread)
+        world_threads.tick(world, moment)
+        state = world[world_threads.KEY]
+        yield world, state, parent, next(r for r in state["happenings"] if r["thread_id"] == parent["thread_id"])
+
+
+class OneThingLeadsToAnother(unittest.TestCase):
+    def test_it_opens_something_new_at_that_moment_and_says_which(self):
+        followed = 0
+        for world, state, parent, row in fired_rows():
+            following = world_threads.by_id(world, row["next_thread_id"])
+            if following is None:
+                continue
+            followed += 1
+            self.assertEqual(following["opened_at"], parent["fires_at"])
+            self.assertNotEqual(following["template_id"], parent["template_id"])
+            self.assertIn(following, state["threads"])
+        self.assertGreater(followed, 10)
+
+    def test_each_ending_leads_its_own_way(self):
+        seen = set()
+        for world, state, parent, row in fired_rows(60):
+            following = world_threads.by_id(world, row["next_thread_id"])
+            if following is None:
+                continue
+            seen.add(row["kind"])
+            if row["kind"] == "visit" and following["place_id"] == parent["place_id"]:
+                self.assertEqual(following["type"], "trouble")
+            if row["kind"] in {"lost", "closed"}:
+                self.assertNotEqual(following["place_id"], parent["place_id"])
+                self.assertNotEqual(following["type"], "hiring")
+        self.assertEqual(seen, {"visit", "closed", "lost"})
+
+    def test_a_visit_stays_at_the_place_when_something_fits_it(self):
+        same = [following["place_id"] == parent["place_id"]
+                for world, state, parent, row in fired_rows(60) if row["kind"] == "visit"
+                for following in [world_threads.by_id(world, row["next_thread_id"])] if following is not None]
+        self.assertTrue(same)
+        self.assertGreater(sum(same), len(same) / 2)
+
+    def test_a_closed_place_hires_nobody_for_two_days(self):
+        for world, state, parent, row in fired_rows(60):
+            if row["kind"] != "closed":
+                continue
+            template = next(t for t in world_threads.catalog()["templates"]
+                            if t["type"] == "hiring" and world["locations"][parent["place_id"]]["place_kind"] in t["place_kinds"])
+            record = world["locations"][parent["place_id"]]
+            at = parent["fires_at"]
+            self.assertIsNone(world_threads._open_thread(world, state, template, parent["settlement_id"], create=False,
+                                                         now=at + 2 * DAY - 1, place=record))
+            self.assertIsNotNone(world_threads._open_thread(world, state, template, parent["settlement_id"], create=False,
+                                                            now=at + 2 * DAY, place=record))
+            return
+        self.fail("no campaign closed a place")
+
+    def test_a_full_town_opens_nothing_more(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        moment = thread["fires_at"]
+        while len(state["threads"]) < world_threads.MAX_ACTIVE:
+            state["threads"].append(dict(state["threads"][-1], thread_id=f"thread_{len(state['threads']) + 50}", fires_at=moment + 9 * DAY,
+                                         expires_at=moment + 9 * DAY, type="hiring", status="accepted", work_until=moment + 9 * DAY))
+        self.assertIsNone(world_happenings._follow_on(world, state, "seed", thread, "visit", moment))
+        world_threads.tick(world, moment)
+        state = world[world_threads.KEY]
+        self.assertLessEqual(len(state["threads"]), world_threads.MAX_ACTIVE)
+        world_threads.validate(state)
+
+    def test_seeing_it_through_leads_nowhere_by_itself(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        world_threads._credit_day(world, thread, 0)
+        self.assertIsNone(world[world_threads.KEY]["happenings"][-1]["next_thread_id"])
+
+    def test_the_same_campaign_takes_the_same_turn(self):
+        def run():
+            world, state = town_with_trouble(30)
+            world_threads.tick(world, thread_at(state)["fires_at"])
+            return world[world_threads.KEY]
+        self.assertEqual(run(), run())
+
+
 class InPlay(unittest.IsolatedAsyncioTestCase):
     """The player's own loose words, the real turn, a scripted person."""
 

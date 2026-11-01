@@ -254,16 +254,18 @@ def _fill(line: str, **slots: Any) -> str:
     return text
 
 
-def _open_thread(world, state, template, settlement_id, *, create, now):
+def _open_thread(world, state, template, settlement_id, *, create, now, place=None, avoid=(), tied=False):
+    """One new thread. place: this very place. avoid: anywhere but these. tied: it grows out of something already talked of."""
+    import world_happenings
     seed = living_world._campaign_seed(world)
     number = state["next_number"]
     identity = f"{settlement_id}\x00{template['id']}\x00{number}"
     # Half the time a new thread ties into a place the town already talks about,
     # so some campaigns get a tight knot of places and others a loose scatter.
-    linked = bool(_rank(seed, identity, "link") % 2)
-    place = _place_for(world, state, seed, settlement_id, template["place_kinds"],
-                       salt=f"{identity}:place", create=create)
-    if place is None:
+    linked = tied or bool(_rank(seed, identity, "link") % 2)
+    place = place or _place_for(world, state, seed, settlement_id, template["place_kinds"],
+                                salt=f"{identity}:place", avoid=avoid, create=create)
+    if place is None or world_happenings.barred(state, place["id"], template["type"], now):
         return None
     target = None
     if template.get("target_place_kinds"):
