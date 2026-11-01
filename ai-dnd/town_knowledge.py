@@ -28,6 +28,7 @@ import name_catalog
 import npc_statements
 import relationships
 import town_rumours
+import vouching
 import world_happenings
 import world_threads
 
@@ -248,7 +249,8 @@ def _job_note(world, npc, decision):
         if mood == "no":
             lines.append(shared.get("unwilling", ""))
         elif mood == "wary":
-            lines.append(shared.get("wary_stranger", ""))
+            lines.append((vouching.needs_word(world, available, npc) and vouching.wary_line(world, available))
+                         or shared.get("wary_stranger", ""))
         else:
             lines.append(
                 f"Bu senin kendi işin: {available['owner_line']} Sorulursa ücreti ve süreyi aynen söyle; "

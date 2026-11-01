@@ -15,6 +15,7 @@ import grounded_action
 import local_dialogue
 import local_places
 import npc_statements
+import relationships
 import town_knowledge
 import world_threads
 from api.main import create_app
@@ -124,6 +125,7 @@ class WhoKnowsWhat(unittest.TestCase):
         world = seeded()
         thread = world_threads.active(world)[0]
         owner = person("npc_009", "Demirci", location=thread["place_id"], place_role_of=thread["place_id"])
+        relationships.note(world, owner["id"], 1, "knows the player")  # the seed may stand this at a house that wants a word first
         known = town_knowledge.public_knowledge(world, owner)
         self.assertIn(thread["thread_id"], [item["thread_id"] for item in known])
         self.assertIn(thread["owner_line"], town_knowledge.speech_note(world, owner))

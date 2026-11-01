@@ -9,6 +9,7 @@ import campaign_time
 import relationships
 import town_knowledge
 import town_rumours
+import vouching
 import world_happenings
 import world_threads
 from adventure import dialogue_jobs
@@ -584,6 +585,90 @@ class WhatIsComingForThem(unittest.TestCase):
         npc = owner_of(world, thread)
         take_on(world, thread, npc)
         self.assertEqual(world_happenings.waiting_note(world, npc), "")
+
+
+def gated_town(start=0, kind="estate"):
+    """A town whose first thread stands at a house that does not open to strangers, with a place that could speak for you."""
+    for number in range(start, start + 300):
+        world, state = town(f"seed-gate-{number}")
+        thread = state["threads"][0]
+        other = next((t for t in state["threads"] if t["place_id"] != thread["place_id"]), None)
+        if other is None or world_threads._rank("x", 0) is None:
+            continue
+        seed = world["scene_state"]["campaign_seed"]
+        if world_threads._rank(seed, thread["thread_id"], "wary") % 100 < world_threads.WARY_PERCENT:
+            continue
+        world["locations"][thread["place_id"]]["place_kind"] = kind
+        world["locations"][other["place_id"]]["place_kind"] = vouching.chosen_kinds(world, thread)[0]
+        for record in world["locations"].values():
+            if record.get("place_kind") not in (None, kind) and record["id"] != other["place_id"]:
+                record["place_kind"] = "bakery"
+        npc = resident(world, thread["place_id"], "kapici")
+        return world, state, thread, npc, resident(world, other["place_id"], "tanidik")
+    raise AssertionError("no such town")
+
+
+class ADoorThatWantsAWord(unittest.TestCase):
+    def test_a_stranger_is_wary_met_never_refused(self):
+        world, state, thread, npc, friend = gated_town()
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "wary")
+
+    def test_talking_alone_does_not_open_it(self):
+        world, state, thread, npc, friend = gated_town()
+        with patch.object(world_threads, "WARY_PERCENT", 0):
+            self.assertEqual(world_threads.owner_mood(world, thread, npc, this_exchange=5), "wary")
+
+    def test_someone_who_owes_you_one_opens_it(self):
+        world, state, thread, npc, friend = gated_town()
+        relationships.note(world, friend["id"], 1, "test")
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
+
+    def test_a_finished_job_at_that_place_is_what_does_it(self):
+        world, state, thread, npc, friend = gated_town()
+        job = next(t for t in state["threads"] if t["place_id"] == friend["location"])
+        job.update(type="hiring", status="accepted", accepted_at=0, work_until=DAY, owner_npc_id=friend["id"])
+        job["terms"].update(pay=9, work_days=1, pay_basis="total")
+        world_threads._credit_day(world, job, 0)
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
+
+    def test_someone_of_another_kind_does_not(self):
+        world, state, thread, npc, friend = gated_town()
+        stranger = {"id": "uzak", "name": "Uzak", "role": "usta", "location": "city"}
+        world["npcs"].append(stranger)
+        relationships.note(world, stranger["id"], 1, "test")
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "wary")
+
+    def test_having_worked_for_them_is_word_enough(self):
+        world, state, thread, npc, friend = gated_town()
+        relationships.note(world, npc["id"], 1, "test")
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
+
+    def test_they_say_where_a_word_would_have_to_come_from(self):
+        world, state, thread, npc, friend = gated_town()
+        thread.update(type="hiring", status="open")
+        note = town_knowledge.speech_note(world, npc)
+        self.assertIn(world["locations"][friend["location"]]["name"], note)
+        self.assertNotIn(thread["owner_line"], note)
+
+    def test_campaigns_differ_in_who_can_speak_for_you(self):
+        picks = set()
+        for number in range(30):
+            world, state = town(f"seed-word-{number}")
+            picks.add(tuple(vouching.chosen_kinds(world, state["threads"][0], "barracks")))
+        self.assertGreater(len(picks), 2)
+        for pick in picks:
+            self.assertEqual(len(pick), 2)
+
+    def test_a_town_where_nobody_could_speak_for_you_leaves_the_door_as_it_was(self):
+        world, state, thread, npc, friend = gated_town()
+        world["locations"][friend["location"]]["place_kind"] = "bakery"
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
+
+    def test_a_barracks_is_the_same_and_an_ordinary_shop_is_not(self):
+        world, state, thread, npc, friend = gated_town(kind="barracks")
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "wary")
+        world["locations"][thread["place_id"]]["place_kind"] = "bakery"
+        self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
 
 
 class InPlay(unittest.IsolatedAsyncioTestCase):

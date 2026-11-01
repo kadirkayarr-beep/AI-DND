@@ -1040,6 +1040,7 @@ def owner_mood(world: dict[str, Any], thread: dict[str, Any], npc: Any, *, this_
     """
     import npc_statements
     import relationships
+    import vouching
     if not isinstance(npc, dict):
         return "no"
     state = view(world) or {"history": []}
@@ -1047,6 +1048,8 @@ def owner_mood(world: dict[str, Any], thread: dict[str, Any], npc: Any, *, this_
     past = [t for t in state["history"] if t.get("place_id") == place_id and t.get("offered_at") is not None]
     if relationships.score(world, npc.get("id")) <= -1 and past and past[-1]["status"] in {"failed", "abandoned"}:
         return "no"
+    if vouching.needs_word(world, thread, npc):
+        return "wary"
     seed = living_world._campaign_seed(world)
     said = npc_statements.view(world)["statements"].get(npc.get("id")) or []
     if _rank(seed, thread["thread_id"], "wary") % 100 < WARY_PERCENT and len(said) <= this_exchange:
