@@ -743,12 +743,12 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_state["npcs"] = [
             {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "tavern", "relationship": "neutral", "memory": [], "knowledge": []},
         ]
-        result = self.session.run_player_turn("Gromm bana ejderha hazinesinden bahsetmişti.")
+        # The person now gets to answer in their own words; with no usable reply the claim is still refused.
+        with patch("game.ollama.chat", side_effect=ConnectionError("no model")):
+            result = self.session.run_player_turn("Gromm bana ejderha hazinesinden bahsetmişti.")
         action = result["action_result"]
-        telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(action.get("status"), "unverified")
         self.assertFalse(action.get("success"))
-        self.assertEqual(telemetry["total_model_calls"], 0)
         self.assertTrue(denies_claim(result["narration"]), result["narration"])
         self.assertNotIn("ejderha hazinesi", result["narration"].lower())
 
