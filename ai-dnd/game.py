@@ -9634,23 +9634,23 @@ def _explicit_sword_drop(player_input):
     """Only an unambiguous present-tense sword drop bypasses model intent."""
     if not isinstance(player_input, str):
         return False
-    return re.fullmatch(
-        r"\s*(?:kılıcımı|kılıcı|kılıç)\s+(?:yere\s+)?"
-        r"(?:bırakıyorum|koyuyorum|atıyorum)\s*[.!]?\s*",
-        player_input.casefold(),
+    return re.fullmatch(  # the owner types without the dots
+        r"\s*(?:kilicimi|kilici|kilic)\s+(?:yere\s+)?"
+        r"(?:birakiyorum|koyuyorum|atiyorum)\s*[.!]?\s*",
+        _normalize_turkish_typos(player_input),
     ) is not None
 
 
 def update_inventory_from_player(player_input):
     """Move the explicitly named sword using Python-owned inventory state."""
     world_state = _session().world_state
-    text = player_input.casefold()
-    mentions_weapon = any(token in text for token in ("kılıç", "kılıc", "silah"))
+    text = _normalize_turkish_typos(player_input)
+    mentions_weapon = any(token in text for token in ("kilic", "silah"))
     if not mentions_weapon:
         return None
 
-    dropping = any(token in text for token in ("bırak", "yere koy", "yere at"))
-    picking_up = any(token in text for token in ("alıyorum", "yerden al", "tekrar al"))
+    dropping = any(token in text for token in ("birak", "yere koy", "yere at"))
+    picking_up = any(token in text for token in ("aliyorum", "yerden al", "tekrar al"))
     if not (dropping or picking_up):
         return None
 
@@ -18005,8 +18005,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route["kind"] == "talk_around":
         # the same reply's other half may not walk it after all
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
-    elif route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory":
-        route = {"kind": "bag"}
+    elif (route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory"
+          and (_model_query_type_is_plausible(player_input) or equipment_economy._natural_inventory_query(player_input))):
+        route = {"kind": "bag"}  # the label alone also fits moving a thing, and those lines have owners of their own
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
     if route["kind"] == "look":
         held["intent"] = "observe"

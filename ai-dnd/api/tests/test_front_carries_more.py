@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import equipment_economy
 import fallen
 import front_proposal
 import grounded_action
@@ -109,6 +110,32 @@ class ReadsBeforeTheOldOwners(FrontTable):
         reply = await self.line("çantama koydum mu duyuruyu bi bakayim")
         self.assertIn("Envanterinde", reply["narration"])
         self.assertEqual(self.routes()[-1]["route"], "front:bag")
+
+    async def test_dropping_the_sword_labelled_inventory_really_drops_it(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        self.client.intent = "inventory"
+        reply = await self.line("kilici yere birakiyorum")
+        self.assertNotIn("Envanterinde", reply["narration"])
+        self.assertNotIn("Kılıç", equipment_economy.labels(self.world["inventory"]))
+
+    async def test_putting_a_thing_away_labelled_inventory_really_puts_it_away(self):
+        await self.begin()
+        self.session.messages.append({"role": "assistant", "content": "Yolun kenarında yuvarlak bir çakıl duruyor."})
+        self.client.front = {"kind": "attempt"}
+        self.client.intent = "inventory"
+        reply = await self.line("bu cakili cantama koyuyorum")
+        self.assertNotIn("Envanterinde", reply["narration"])
+        self.assertTrue([name for name in equipment_economy.labels(self.world["inventory"]) if "akıl" in name.casefold()])
+
+    async def test_tossing_a_thing_labelled_inventory_really_tosses_it(self):
+        await self.begin()
+        equipment_economy.grant_plain(self.world, "Kâğıt")
+        self.client.front = {"kind": "attempt"}
+        self.client.intent = "inventory"
+        reply = await self.line("kagidi yirtip atiyorum")
+        self.assertNotIn("Envanterinde", reply["narration"])
+        self.assertNotIn("Kâğıt", equipment_economy.labels(self.world["inventory"]))
 
     async def test_what_is_in_the_purse_goes_the_same_way(self):
         await self.begin()
