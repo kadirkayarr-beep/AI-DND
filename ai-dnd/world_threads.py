@@ -889,6 +889,14 @@ def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
     return _names_the_work(text, thread, table) and any(word.endswith(ends) for word in words)
 
 
+def speaks_of_pay(text: Any) -> bool:
+    """The player's line is about money at all: what a model's 'pay' or 'give' needs before coin moves."""
+    table = answer_table()
+    words = _folded(text).split() if isinstance(text, str) else []
+    money = (*table.get("pay_money", ()), *table.get("pay_topic", ()))
+    return asks_for_pay(text) or any(word.startswith(money) for word in words)
+
+
 def asks_for_pay(text: Any) -> bool:
     """'Paramı ver', '25 bakırı alayım', 'ödeyecek misin': one clause holds the money and the asking."""
     table = answer_table()

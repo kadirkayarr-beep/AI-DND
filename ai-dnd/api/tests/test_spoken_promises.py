@@ -171,6 +171,12 @@ class TheField(Table):
         self.assertTrue(any("yarın kapıda" in " ".join(c.get("objects") or []) or c.get("terms") == "yarın kapıda"
                             for c in open_ones))
 
+    async def test_a_promise_the_words_never_made_does_not_go_into_the_ledger(self):
+        await self.job()
+        await self.line("limana nerden gidilir", "Sağdan aşağı in.",
+                        commitment={"kind": "escort", "thread_id": "", "terms": "limana kadar"}, mode="say")
+        self.assertFalse(npc_statements.open_commitments(self.world, npc_id=self.npc["id"], kind="escort"))
+
     async def test_a_reply_with_a_broken_field_still_speaks(self):
         await self.job()
         text = (await self.line("selam", "Selam yabancı.", commitment={"kind": "pay", "amount_cp": "çok"}))["narration"]
@@ -204,6 +210,16 @@ class Pay(Table):
                                 commitment={"kind": "pay", "thread_id": self.tid, "amount_cp": 25})
         self.assertEqual(self.wallet() - money, 8, "the day's share, whatever the model said")
         self.assertIn("8 bakır", reply["narration"])
+
+    async def test_the_field_alone_pays_nothing_on_a_line_that_is_not_about_money(self):
+        await self.job(status="accepted")
+        self.worked_a_while()
+        money = self.wallet()
+        reply = await self.line("hava güzel bugün usta", "Al sana bugünkü hakkın, sekiz bakır.", mode="say",
+                                commitment={"kind": "pay", "thread_id": self.tid, "amount_cp": 8})
+        self.assertEqual(self.wallet(), money)
+        self.assertEqual(self.t().get("paid_cp", 0), 0)
+        self.assertNotIn("sekiz bakır", reply["narration"])
 
     async def test_words_that_refuse_what_was_just_paid_do_not_stand(self):
         await self.job(status="accepted")
@@ -360,6 +376,18 @@ class Repair(Table):
         self.assertEqual(self.wallet() - money, 5)
         self.assertEqual(self.world["currency"][self.npc["id"]], 2)
         self.assertIn("beş bakır", reply["narration"])
+
+
+class Unasked(Table):
+    async def test_a_gift_nobody_asked_about_moves_no_coin(self):
+        await self.job()
+        self.world.setdefault("currency", {})[self.npc["id"]] = 400
+        money = self.wallet()
+        reply = await self.line("selam", "Al sana yüz bakır, yolun açık olsun.", mode="say",
+                                commitment={"kind": "give", "thread_id": "", "amount_cp": 100})
+        self.assertEqual(self.wallet(), money)
+        self.assertEqual(self.world["currency"][self.npc["id"]], 400)
+        self.assertNotIn("yüz bakır", reply["narration"])
 
 
 class Denial(Table):

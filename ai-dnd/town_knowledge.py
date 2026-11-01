@@ -471,14 +471,16 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
                                    or world_threads.goes_to_the_work(player_text, thread)):
             accept_job(thread)
     elif kind == "pay" and not moved:
-        thread = _named_job(world, npc, proposal["thread_id"], {"accepted"})
+        asked = world_threads.speaks_of_pay(player_text)
+        thread = _named_job(world, npc, proposal["thread_id"], {"accepted"}) if asked else None
         moved, finished = world_threads.pay_day(world, thread) if thread is not None else (0, False)
         if moved:
             allowed.add(moved)
             note = world_threads.paid_line(moved, finished)
     elif kind == "give" and proposal["amount_cp"]:
         wallets = world.get("currency") or {}
-        if wallets.get(npc.get("id"), 0) >= proposal["amount_cp"]:
+        if (not moved and world_threads.speaks_of_pay(player_text)
+                and wallets.get(npc.get("id"), 0) >= proposal["amount_cp"]):
             import equipment_economy
             equipment_economy.pay(world, npc["id"], "player", proposal["amount_cp"])
             moved = proposal["amount_cp"]

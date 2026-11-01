@@ -596,6 +596,7 @@
       "çalışır mısın"
     ],
     "pay_money": ["para", "param", "bakır", "gümüş", "altın", "ücret", "yevmiye", "borc", "borç", "alacağ", "hakkım"],
+    "pay_topic": ["hesap", "hesab", "ödeme", "öde", "kese", "mangır", "harçlık", "bahşiş", "sadaka"],
     "pay_verbs": [
       "ver", "verin", "versene", "verecek", "verecen", "vereceksin", "verir", "alayım", "alıyorum", "alırım",
       "alacağım", "alcam", "say", "sayıyorum", "sayıp", "atıyorum", "istiyorum", "isterim", "uzat", "nerede", "nerde"

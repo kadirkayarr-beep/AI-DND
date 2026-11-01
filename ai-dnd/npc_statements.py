@@ -92,6 +92,7 @@ _REFUSAL = re.compile(
     r"\w+(?:emem|amam|meyecegim|mayacagim))\b"
 )
 _AGREE = re.compile(r"\b(?:tamam|olur|peki|elbette|tabii|tabi|hemen|haydi|hadi|gidelim|anlastik|kabul)\b")
+_SPEAKS_FOR_THEMSELF = re.compile(r"\b\w+(?:[aeiou]r[iu]m|[aeiou]r[iu]z|[ae]y[iu]m|[ae]l[iu]m|[ae]c[ae]g[iu]m|[ae]c[ae]g[iu]z)\b")
 _COMMIT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("escort", re.compile(
         r"\b(?:gotur(?:urum|eyim|ecegim|uruz|elim)|gidelim|gidebiliriz|birlikte\s+gid\w*|"
@@ -621,6 +622,8 @@ def commit(world: dict[str, Any], npc: dict[str, Any], kind: str, terms: str, sp
     words = str(spoken or "").strip()
     if kind not in {name for name, _ in _COMMIT_PATTERNS} or not words or not isinstance(npc.get("id"), str):
         return None
+    if _REFUSAL.search(fold(words)) or not _SPEAKS_FOR_THEMSELF.search(fold(words)):
+        return None  # the field may name a promise; it cannot make one the mouth never made
     state = ensure(world)
     turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
     objects = _objects(fold(terms or words))
