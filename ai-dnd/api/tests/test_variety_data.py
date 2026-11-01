@@ -1,5 +1,6 @@
 """New campaigns draw their people, places, first lines and role knowledge from the catalog; old saves keep theirs."""
 import copy
+import json
 import unittest
 import uuid
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ import grounded_action
 import living_world
 import local_places
 import name_catalog
+import town_knowledge
 from api import opening_narrative
 from api.tests import test_campaign_api as api
 from api.tests.test_natural_addressing import TownClient
@@ -187,6 +189,55 @@ class OpeningTests(unittest.TestCase):
         for hour in (8, 13, 18, 22):
             for line in self.lines(hour):
                 self.assertNotRegex(line.casefold(), "görev|sen |senin|hissed|görüyorsun")
+
+
+class RoleKnowledgeTests(unittest.TestCase):
+    def note(self, role, seed="tohum1", npc_id="npc_001"):
+        world = {"scene_state": {"campaign_seed": seed}}
+        return town_knowledge.role_note(world, {"id": npc_id, "role": role})
+
+    def test_a_smith_is_told_what_a_smith_knows_and_does_not(self):
+        note = self.note("Demirci")
+        self.assertIn("metal işlerinin", note)
+        self.assertIn("gizli ya da büyülü", note)
+        self.assertIn("bilmediğini söyle", note)
+
+    def test_a_role_with_no_profile_gets_nothing(self):
+        self.assertEqual(self.note("Hamal"), "")
+        self.assertEqual(self.note(""), "")
+
+    def test_each_person_of_a_role_keeps_one_profile_and_people_differ(self):
+        self.assertEqual(self.note("Rahip"), self.note("Rahip"))
+        self.assertGreater(len({self.note("Rahip", npc_id=f"npc_{n}") for n in range(30)}), 1)
+
+    def test_no_stock_line_or_visible_sign_goes_to_the_model(self):
+        roles = json.loads((name_catalog.CATALOG_DIR / "npc_roles.json").read_text(encoding="utf-8"))["items"]
+        notes = {self.note(key, npc_id=f"npc_{n}") for n in range(8)
+                 for key in ("Demirci", "Rahip", "Muhafız", "Barmen", "Kâhya", "Liman işçisi", "Usta", "Gezgin")}
+        for note in notes:
+            self.assertLess(len(note.encode("utf-8")), 520)
+            for item in roles:
+                self.assertNotIn(item["example_line"], note)
+                self.assertNotIn(item["typical_attitude"], note)
+                self.assertFalse(set(item["visible_signs"]) & set(note.split("; ")))
+
+    def test_every_table_entry_is_a_real_role_of_the_catalog(self):
+        ids = {item["id"] for item in json.loads(
+            (name_catalog.CATALOG_DIR / "npc_roles.json").read_text(encoding="utf-8"))["items"]}
+        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        for chosen in mapping["role_profiles"]["roles"].values():
+            self.assertLessEqual(set(chosen), ids)
+
+    def test_the_note_reaches_a_persons_prompt_even_when_they_keep_the_town_to_themselves(self):
+        world = {"scene_state": {"campaign_seed": "tohum1"}}
+        npc = {"id": "npc_001", "role": "Demirci"}
+        with (patch.object(town_knowledge.world_threads, "view", lambda w: {"threads": [], "history": []}),
+              patch.object(town_knowledge, "_settlement", lambda w: "kent"),
+              patch.object(town_knowledge, "_job_note", lambda *a: ""),
+              patch.object(town_knowledge, "public_knowledge", lambda *a: [])):
+            self.assertIn("metal işlerinin", town_knowledge.speech_note(world, npc))
+            with patch.object(town_knowledge, "is_closed_mouthed", lambda *a: True):
+                self.assertIn("metal işlerinin", town_knowledge.speech_note(world, npc))
 
 
 class NewCampaignOpeningTests(unittest.IsolatedAsyncioTestCase):

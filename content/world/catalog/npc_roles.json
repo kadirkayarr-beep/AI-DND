@@ -1,0 +1,795 @@
+{
+  "schema_version": "1.0.0",
+  "content_status": "özgün_aday",
+  "field_descriptions": {
+    "schema_version": "Bu aday veri dosyasının şema sürümü.",
+    "content_status": "İçeriğin özgün taslak olduğunu belirtir; yayımlanmış ürün veya kanon statüsü değildir.",
+    "field_descriptions": "Dosyadaki alanların kısa Türkçe açıklamaları.",
+    "binding_rules": "Bütün rollere uygulanan kapsam ve yorumlama kuralları.",
+    "knowledge_acquisition_rules": "Yeni bilginin hangi koşullarda edinilip kullanılabileceğini açıklayan ortak kurallar.",
+    "items": "Tam otuz yetişkin rol şablonu; somut kişi kayıtları değildir.",
+    "id": "ROLE001–ROLE030 biçiminde benzersiz rol kimliği.",
+    "role_name": "Türkçe rol adı; kişisel ad veya oyun sınıfı değildir.",
+    "group": "Toplumsal çalışma çevresi: soylu, tuccar, tapinak, muhafiz, liman veya lonca.",
+    "known_topics": "Rolün kendi görevi, yerel alanı ve deneyimiyle sınırlı varsayılan bilgi başlıkları; somut olay doğruluğunu tek başına kurmaz.",
+    "unknown_topics": "Rolün başlangıçta sahip olduğu varsayılmayan bilgiler; kalıcı öğrenme yasağı değildir.",
+    "typical_attitude": "İlk karşılaşma için önerilen konuşma ve davranış eğilimi; değişmez kişilik veya zorunlu tepki değildir.",
+    "visible_signs": "Sahneye yerleştirildiğinde dışarıdan doğrudan görülebilecek ayrıntılar; gizli gerçek veya yetenek kanıtı değildir.",
+    "example_line": "Yalnızca bir kısa Türkçe ses örneği; replik havuzu veya sahnede yaşanmış olay değildir.",
+    "location_types": "Rolün yerleştirilebileceği yer türleri; o anda orada bulunduğunu veya bütün bu yerlere erişebildiğini göstermez."
+  },
+  "binding_rules": [
+    "Bu dosya yalnızca özgün aday veridir. OYNANACAK_SEY_PLAN_20261031.md kaynak planı incelenmiştir; bu inceleme ürün entegrasyonunun yapıldığı veya uygulama motoruyla uyumluluğun doğrulandığı anlamına gelmez.",
+    "Roller, Neverwinter çevresinde kurulabilecek bir fantastik şehir sahnesi için özgün önerilerdir; resmî kişi, kurum, tarih veya kanon doğruluğu iddia edilmez.",
+    "Bütün rol örnekleri yetişkindir; somut kişi adı, kişisel oyuncu kaydı veya önceden yaşanmış oyuncu öyküsü tanımlanmaz.",
+    "Her grupta beş rol vardır. Grup, sosyal veya mesleki çevreyi belirtir; oyun sınıfını, soyunu, hizbini, gizli bağlılığını veya kent bilgisi kapsama profilini belirlemez. Yolculuk ve sakinlik gibi durumlar ayrıca değerlendirilir.",
+    "Her rol ancak kendi görev alanı, doğrudan deneyimi ve kendisine aktarılmış bilgiler kapsamında bilir; bütün şehri veya oyuncunun geçmişini kendiliğinden bilemez.",
+    "known_topics, bilgi sahibi olunabilecek alanları sınırlar; belirli bir olay, belge, ilişki, fiyat veya yol koşulu rolün sırf varlığıyla üretilmez.",
+    "Kaynak plandaki kent bilgisi seçimi, gerçek kampanya kayıtlarından tohumlu ve kişi başına en çok beş madde, toplam en çok 600 UTF-8 baytı hedefleyen bir öneridir. Bu dosyadaki known_topics dizileri o bilgi paketi değildir; yalnızca uygunluk başlıklarıdır ve tamamı otomatik bağlama alınmaz.",
+    "Kaynak planda barmen/tüccar için 70, muhafız için 50, sakin için 35, yolcu için 10 önerilen kapsama yüzdeleri; her aday kamu bilgisinin tohumlu seçimine ilişkindir, kesin bilme oranı veya şehirdeki her şeyi bilme garantisi değildir. Bu oranlar bu veri dosyasında uygulanmış ya da test edilmiş sayılmaz.",
+    "Han barmeni barmen örneğidir; Zanaatkâr mahalle sakini sakin örneğidir; Yolcu deri ustası yolcu örneğidir. Mesleki grup adı bu durumları otomatik olarak başka kapsama profiline dönüştürmez; kesin motor eşlemesi entegrasyonda belirlenir.",
+    "unknown_topics, başlangıçtaki bilgi eksiklerini belirtir. Sonradan edinilen bilgiler kaynak ve bağlamla güncellenebilir; mahremiyet, erişim ve açıklama izni ayrıca değerlendirilir.",
+    "visible_signs yalnızca dışarıdan gözlenebilir sahne ayrıntılarıdır; bunlardan kesin suçluluk, oyun sınıfı, gizli niyet, büyülü nitelik veya zihinsel içerik çıkarılmaz.",
+    "typical_attitude başlangıç eğilimidir; sahne koşullarına göre değişebilir ve bir gruptaki herkese genellenmez.",
+    "Her example_line tek kısa ses örneğidir. Örnekten yeni görev, eşya, olay, karakter ilişkisi veya kalıcı diyalog gerçeği türetilmez.",
+    "location_types yalnızca şu değerleri kullanır: sokak, han, pazar, liman, tapinak, soylu_konagi, muhafiz_karakolu, lonca_atolyesi, sehir_kapisi, sehir_cevresi.",
+    "Bu özgün metinler kitap metni alıntısı değildir; özel bir oyuncu senaryosuna veya hazır olay örgüsüne dayanmaz."
+  ],
+  "knowledge_acquisition_rules": [
+    "Somut kent bilgisi yalnızca mevcut kampanyanın erişime açık ve keşfedilmiş yerleri, kamuya gösterilen kişi adı ve bilinen rolü, dünya iplerinin kamu yüzü ve kaynak gösterilen söylentilerinden seçilebilir. Şablon veya anlatıcı tek başına yeni bir yer, kişi veya iş gerçeği ilan etmez; planın izin verdiği yeni kayıt önce motor tarafından oluşturulup doğrulanarak kalıcı kampanya kaydına bağlanır, sonra izinli kamu bilgisi seçilebilir.",
+    "Bir kişinin gerçek veya gizli adı yerine yalnızca oyuncuya açık kamu adı kullanılabilir; rolü kamuya bilinmiyorsa role dair bilgi eklenmez. Gizli ilişki puanı, özel ip satırı veya görünmeyen kayıt alanları kamu bilgisine katılmaz.",
+    "İp sahibinin özel iş satırı ancak kayıtla doğrulanmış o sahibin uygun konuşma bağlamına aittir; başkalarının kent bilgisine aktarılmaz. Sahiplik ve aynı yerde sakinlik kuralı da kayıttan doğrulanır, rol adından çıkarılmaz.",
+    "Yeni somut bilgi yalnızca sahnede gerçekleşen doğrudan gözlem, açık iletişim veya rolün meşru erişimine açık bir kayıt üzerinden edinilir; kaynağı belirtilir.",
+    "Başkasından duyulan iddia, doğrulanmadıkça aktarılmış iddia olarak tutulur; rol anlatılanı sırf duymakla kesin gerçek kabul etmez.",
+    "Gözlem zamanla ve yerle sınırlıdır. Eski bir gözlem güncel durum diye, bir sokaktaki gözlem bütün şehir hakkında diye genellenmez.",
+    "Rol bilmediğinde belirsizliğini söyler; uygun bir kişiye veya açık kaynağa yöneltebilir, fakat bilmediği içeriği boşluğu doldurmak için üretmez.",
+    "Gizli veya kişisel bilgiye erişim kendiliğinden verilmez. Bir bilgiyi öğrenmiş olmak onu paylaşma yetkisi vermez.",
+    "Görünmeyen niyet, ilahi irade veya gizli eşya niteliği gündelik rol bilgisinden çıkarılmaz; yeni bir iddia varsa yalnızca erişilebilir kanıt ve anlatım kaynağı kadar değerlendirilir.",
+    "Yeni bilgi edinimi yalnızca ilgili rol örneğini etkiler; aynı role veya gruba ait diğer kişilere kendiliğinden yayılmaz."
+  ],
+  "items": [
+    {
+      "id": "ROLE001",
+      "role_name": "Konak kabul görevlisi",
+      "group": "soylu",
+      "known_topics": [
+        "Görev yaptığı konağın halka açık kabul saatleri ve ziyaretçi bekleme düzeni",
+        "Kendi vardiyasında duyurulan randevular ve konuklara gösterilen giriş yolu"
+      ],
+      "unknown_topics": [
+        "Kapalı görüşmelerin içeriği",
+        "Başka konakların ziyaretçi kayıtları",
+        "Oyuncunun daha önce açıklamadığı kimliği veya amacı"
+      ],
+      "typical_attitude": "Ölçülü ve resmî; randevusuz ziyaretçiyi önce dinler, yetkisini aşan isteği ilgili kişiye iletir.",
+      "visible_signs": [
+        "Girişte duran temiz bir ziyaretçi defteri",
+        "Kapının yanında özenle düzeltilmiş sandalyeler",
+        "Yakaya takılı, üzerinde okunabilir görev işareti bulunan rozet"
+      ],
+      "example_line": "Kiminle görüşeceğinizi söylerseniz haber iletebilirim.",
+      "location_types": [
+        "soylu_konagi"
+      ]
+    },
+    {
+      "id": "ROLE002",
+      "role_name": "Konak yazışma kâtibi",
+      "group": "soylu",
+      "known_topics": [
+        "Kendisinin hazırladığı ve paylaşılmasına izin verilen duyuruların teslim durumu",
+        "Düzenli kullandığı konak ile haberci durağı arasındaki yol"
+      ],
+      "unknown_topics": [
+        "Açılmamış mektupların içeriği",
+        "Kendisine iletilmeyen aile kararları",
+        "Kentin bütün haberci güzergâhları"
+      ],
+      "typical_attitude": "Dikkatli ve kısa konuşur; aktarılmasına izin verilmeyen yazışmaları sohbet konusu yapmaz.",
+      "visible_signs": [
+        "Parmaklarda mürekkep lekeleri",
+        "Masada kurutma kumu ve kesilmiş kalemler",
+        "Bağlı, dış yüzü görülebilen evrak demetleri"
+      ],
+      "example_line": "Duyurunun açık nüshasını size okuyabilirim.",
+      "location_types": [
+        "soylu_konagi",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE003",
+      "role_name": "Konak iaşe sorumlusu",
+      "group": "soylu",
+      "known_topics": [
+        "Sorumlu olduğu mutfağın güncel açık siparişleri ve teslim günleri",
+        "Bizzat alışveriş yaptığı yakın tezgâhların ürünleri"
+      ],
+      "unknown_topics": [
+        "Tedarikçilerin açıklamadığı stokları",
+        "Konağın özel davetlerinde konuşulanlar",
+        "Kent genelindeki bütün erzak fiyatları"
+      ],
+      "typical_attitude": "Pratik ve hesaplı; teslim miktarı ile zamanı konusunda açık yanıt ister.",
+      "visible_signs": [
+        "Elde taşınan alışveriş çizelgesi",
+        "Kontrol için açılmış sebze sepetleri",
+        "Önlük cebinden görünen ölçü ipi"
+      ],
+      "example_line": "Önce kaç çuval getirdiğinizi birlikte sayalım.",
+      "location_types": [
+        "soylu_konagi",
+        "pazar"
+      ]
+    },
+    {
+      "id": "ROLE004",
+      "role_name": "Mülk hesap görevlisi",
+      "group": "soylu",
+      "known_topics": [
+        "Kendisine teslim edilmiş mülk bakım faturaları ve ödeme makbuzları",
+        "Görev alanındaki binaların kayda geçmiş bakım talepleri"
+      ],
+      "unknown_topics": [
+        "Kayda girmemiş borç veya anlaşmalar",
+        "Kiracıların paylaşmadığı kişisel yaşamları",
+        "Başka ailelerin mülk hesapları"
+      ],
+      "typical_attitude": "Sabırlı fakat kayıt odaklı; belgesiz iddiayı kesin bilgi gibi sunmaz.",
+      "visible_signs": [
+        "Sayı sütunları görünen açık hesap defteri",
+        "Sayım taşlarıyla dolu küçük bir tabla",
+        "Tarihe göre ayrılmış makbuzlar"
+      ],
+      "example_line": "Makbuzun tarihini bilirsek kaydı daha kolay buluruz.",
+      "location_types": [
+        "soylu_konagi",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE005",
+      "role_name": "Konak sahibi",
+      "group": "soylu",
+      "known_topics": [
+        "Kendi konağında bizzat onayladığı açık kabul düzeni",
+        "Doğrudan katıldığı yerel yardım toplantılarında alınan açıklanabilir kararlar"
+      ],
+      "unknown_topics": [
+        "Diğer konakların özel niyetleri",
+        "Kendi adına yapılıp kendisine bildirilmemiş işler",
+        "Oyuncunun geçmişi ve bağlılıkları"
+      ],
+      "typical_attitude": "Nazik ve temkinli; toplumsal konumunu her konuda uzmanlık saymaz.",
+      "visible_signs": [
+        "Bakımlı, işlemeli bir üstlük",
+        "Elinde tuttuğu davet kartları",
+        "Görüşme sırasında önüne koyduğu not kâğıdı"
+      ],
+      "example_line": "Bu öneriyi kendi sorumluluk alanım için değerlendirebilirim.",
+      "location_types": [
+        "soylu_konagi",
+        "tapinak"
+      ]
+    },
+    {
+      "id": "ROLE006",
+      "role_name": "Tahıl satıcısı",
+      "group": "tuccar",
+      "known_topics": [
+        "Kendi tezgâhındaki tahılların miktarı, fiyatı ve teslim aldığı tarih",
+        "Düzenli kullandığı pazar girişinin yük indirme saatleri"
+      ],
+      "unknown_topics": [
+        "Açılmamış başka tüccar çuvallarının içeriği",
+        "Uzak çiftliklerdeki güncel hasat durumu",
+        "Kentteki bütün gıda depoları"
+      ],
+      "typical_attitude": "Açık sözlü ve pazarlığa hazır; bilmediği hasat haberini söylenti diye ayırır.",
+      "visible_signs": [
+        "Tezgâh önünde duran tahıl ölçeği",
+        "Çuval ağızlarına bağlanmış ürün etiketleri",
+        "Kollarda görülen un tozu"
+      ],
+      "example_line": "Bu ölçeği doldurup fiyatı öyle konuşalım.",
+      "location_types": [
+        "pazar"
+      ]
+    },
+    {
+      "id": "ROLE007",
+      "role_name": "Kumaş satıcısı",
+      "group": "tuccar",
+      "known_topics": [
+        "Kendi tezgâhındaki kumaşların dokusu, ölçüsü ve satış bedeli",
+        "Kendi müşterilerinin açıkça ilettiği sipariş teslim tarihleri"
+      ],
+      "unknown_topics": [
+        "Alıcıların söylemediği kullanım amaçları",
+        "Diğer dükkânların kapalı sipariş defterleri",
+        "Kumaştan tek başına bir yabancının soyu veya bağlılığı"
+      ],
+      "typical_attitude": "İlgili ve konuşkan; giysiden kişilik ya da köken çıkarmak yerine ihtiyacı sorar.",
+      "visible_signs": [
+        "Askılara asılmış kumaş örnekleri",
+        "Tezgâh boyunca uzanan ölçü şeridi",
+        "Kesim artıkları için ayrılmış sepet"
+      ],
+      "example_line": "Yağmurda giyecekseniz şu dokuyu elinizle yoklayın.",
+      "location_types": [
+        "pazar",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE008",
+      "role_name": "Yol erzağı satıcısı",
+      "group": "tuccar",
+      "known_topics": [
+        "Kendi sattığı kuru erzağın paket miktarı ve saklama koşulları",
+        "Son yolculuğunda bizzat geçtiği yakın güzergâhın o tarihteki durumu"
+      ],
+      "unknown_topics": [
+        "Geçmediği patikaların güncel güvenliği",
+        "Son ziyaretinden sonra yollarda yaşananlar",
+        "Her yolcunun hedefi ve taşıdığı yük"
+      ],
+      "typical_attitude": "Yardımsever ve ihtiyatlı; eski yol bilgisini tarih belirterek aktarır.",
+      "visible_signs": [
+        "Askılara dizilmiş kapalı erzak torbaları",
+        "Tezgâh yanında duran yıpranmış taşıma heybesi",
+        "Üzerinde miktar yazan küçük ahşap levhalar"
+      ],
+      "example_line": "O yoldan son geçişim eski, bugünkü durumu sorup öğrenin.",
+      "location_types": [
+        "pazar",
+        "sehir_kapisi",
+        "sehir_cevresi"
+      ]
+    },
+    {
+      "id": "ROLE009",
+      "role_name": "İkinci el alet satıcısı",
+      "group": "tuccar",
+      "known_topics": [
+        "Elindeki aletlerin görülebilen aşınması ve kendi yaptığı işlev denemeleri",
+        "Kendisine bırakılan ürünlerin kayda geçirilmiş satış koşulları"
+      ],
+      "unknown_topics": [
+        "Kaydı olmayan eşyaların önceki sahipleri",
+        "Bir aletin görünüşünden gizli ya da büyülü özellikleri",
+        "Kentteki bütün kayıp eşya bildirimleri"
+      ],
+      "typical_attitude": "Rahat ve meraklı; ürün geçmişinde boşluk varsa bunu saklamaz.",
+      "visible_signs": [
+        "Boylarına göre sıralanmış kullanılmış aletler",
+        "Deneme için ayrılmış küçük tahta parçası",
+        "Tezgâh kenarındaki fiyat levhaları"
+      ],
+      "example_line": "Sapını denedik, ama önceki kullanımını bilmiyorum.",
+      "location_types": [
+        "pazar",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE010",
+      "role_name": "Han barmeni",
+      "group": "tuccar",
+      "known_topics": [
+        "Çalıştığı hanın duyurulmuş hizmetleri ve kendi vardiyasındaki açık ortak alan düzeni",
+        "Han çevresinde doğrudan gördüğü yerler ile müşterilerin açıkça aktardığı, doğrulanmış olmayan yerel haberler"
+      ],
+      "unknown_topics": [
+        "Kapalı konuk odalarındaki konuşmalar ve eşyalar",
+        "Konukların söylemediği kimlikleri, amaçları ve geçmişleri",
+        "Kentin bütün iş fırsatları veya bütün sakinlerinin ilişkileri"
+      ],
+      "typical_attitude": "Konuşmaya açık ama sınırlarını bilen; duyduğu haberi kaynağı ve belirsizliğiyle aktarır.",
+      "visible_signs": [
+        "Tezgâha dizilmiş temiz kupalar",
+        "Omuzda taşınan servis bezi",
+        "Duvara asılı, okunabilir günlük hizmet levhası"
+      ],
+      "example_line": "Duyduğumu aktarırım, ama doğruluğuna kefil olamam.",
+      "location_types": [
+        "han",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE011",
+      "role_name": "Tapınak ziyaretçi karşılayıcısı",
+      "group": "tapinak",
+      "known_topics": [
+        "Görev yaptığı ibadet yerinin duyurulmuş ziyaret saatleri",
+        "Ziyaretçilere açık bölümler ve kendi vardiyasındaki sıra düzeni"
+      ],
+      "unknown_topics": [
+        "Kapalı odalardaki görüşmeler",
+        "Diğer ibadet yerlerinin duyurulmamış programları",
+        "Ziyaretçilerin söylemediği inançları ve niyetleri"
+      ],
+      "typical_attitude": "Yumuşak ve kapsayıcı; ziyaretçinin neye ihtiyaç duyduğunu varsaymadan sorar.",
+      "visible_signs": [
+        "Girişteki duyuru levhasını düzelten eller",
+        "Ziyaretçilere uzatılan sade oturma minderleri",
+        "Kapının yanında bekleyen su testisi"
+      ],
+      "example_line": "Sessizce oturmak mı, biriyle konuşmak mı istersiniz?",
+      "location_types": [
+        "tapinak"
+      ]
+    },
+    {
+      "id": "ROLE012",
+      "role_name": "Bağış kayıt görevlisi",
+      "group": "tapinak",
+      "known_topics": [
+        "Kendi işlediği bağışların açıklanmasına izin verilen toplamları",
+        "Yayımlanmış yardım çağrıları ve bağış teslim noktası"
+      ],
+      "unknown_topics": [
+        "Gizli tutulması istenen bağışçı bilgileri",
+        "Henüz kayda alınmamış bağışlar",
+        "Başka kurumların gelir ve giderleri"
+      ],
+      "typical_attitude": "Özenli ve ölçülü; bağış miktarını kişinin değeriyle ilişkilendirmez.",
+      "visible_signs": [
+        "Tarih sütunları bulunan kayıt defteri",
+        "Makbuz yazmak için ayrılmış küçük masa",
+        "Önünde duran mühür ve mürekkep kabı"
+      ],
+      "example_line": "İsterseniz tesliminiz için bir makbuz hazırlayayım.",
+      "location_types": [
+        "tapinak"
+      ]
+    },
+    {
+      "id": "ROLE013",
+      "role_name": "Tören hazırlık görevlisi",
+      "group": "tapinak",
+      "known_topics": [
+        "Bizzat hazırladığı duyurulmuş törenin oturma ve malzeme düzeni",
+        "Kendisine verilmiş hazırlık takvimi ve görev dağılımı"
+      ],
+      "unknown_topics": [
+        "Duyurulmamış tören kararları",
+        "Katılımcıların içten inançları",
+        "İlahi irade, kehanet veya görünmeyen varlıkların niyetleri"
+      ],
+      "typical_attitude": "Düzenli ve nazik; hazırlık telaşında bile kısa, anlaşılır yönlendirme yapar.",
+      "visible_signs": [
+        "Sıralanmış boş oturaklar",
+        "Elde taşınan katlanmış tören örtüleri",
+        "Yere bırakılmış çiçek sepetleri"
+      ],
+      "example_line": "Bu geçidi açık bırakırsak herkes rahatça yerleşir.",
+      "location_types": [
+        "tapinak"
+      ]
+    },
+    {
+      "id": "ROLE014",
+      "role_name": "Tapınak kandil bakıcısı",
+      "group": "tapinak",
+      "known_topics": [
+        "Kendi bakımını yaptığı açık alan kandillerinin durumu",
+        "Bizzat kontrol ettiği yağ ve fitil malzemelerinin miktarı"
+      ],
+      "unknown_topics": [
+        "Bakım yetkisi olmayan odaların içi",
+        "Kandil ışığından ziyaretçilerin gizli duyguları",
+        "İbadet yerinin bütün idari kararları"
+      ],
+      "typical_attitude": "Sessiz ve işine odaklı; açık sorulara kısa, somut yanıt verir.",
+      "visible_signs": [
+        "Kolda asılı temizleme bezleri",
+        "Taşınan küçük yağ ibriği",
+        "Bakım için çıkarılmış isli kandil camları"
+      ],
+      "example_line": "Şuradaki ışık sönük, önce onun fitilini değiştireyim.",
+      "location_types": [
+        "tapinak"
+      ]
+    },
+    {
+      "id": "ROLE015",
+      "role_name": "Aşevi dağıtım sorumlusu",
+      "group": "tapinak",
+      "known_topics": [
+        "Kendi vardiyasındaki öğün miktarı ve ilan edilmiş dağıtım saati",
+        "Sorumlu olduğu sıranın erişilebilir giriş yolu"
+      ],
+      "unknown_topics": [
+        "Sıradaki kişilerin açıklamadığı yaşam öyküleri",
+        "Henüz bildirilmemiş erzak teslimatları",
+        "Kentteki bütün yardım ihtiyaçları"
+      ],
+      "typical_attitude": "Sabırlı ve adil; yardım isteyenleri görünüşlerine göre değerlendirmez.",
+      "visible_signs": [
+        "Önünde duran temiz kâse yığınları",
+        "Kazana dayalı uzun saplı kepçe",
+        "Girişte asılı dağıtım saati levhası"
+      ],
+      "example_line": "Sıra size gelince bir kâse ayıracağım.",
+      "location_types": [
+        "tapinak",
+        "sokak"
+      ]
+    },
+    {
+      "id": "ROLE016",
+      "role_name": "Şehir kapısı nöbetçisi",
+      "group": "muhafiz",
+      "known_topics": [
+        "Nöbet tuttuğu kapının kendisine bildirilmiş geçiş düzeni",
+        "Kendi vardiyasında doğrudan gördüğü giriş çıkış olayları"
+      ],
+      "unknown_topics": [
+        "Diğer kapıların güncel nöbet olayları",
+        "Yolcuların açıklamadığı geçmişi veya suçu",
+        "Yetkili aramayla görülmemiş kapalı yüklerin içeriği"
+      ],
+      "typical_attitude": "Dikkatli ve usule bağlı; yalnızca somut gerekçeye dayanan sorular sorar.",
+      "visible_signs": [
+        "Dıştan görülebilen görev arması",
+        "Kapı yanında tutulan vardiya çizelgesi",
+        "Dik tutulan uzun saplı görev ekipmanı"
+      ],
+      "example_line": "Geçiş sırasını koruyun, sorunuzu birazdan dinleyeceğim.",
+      "location_types": [
+        "sehir_kapisi"
+      ]
+    },
+    {
+      "id": "ROLE017",
+      "role_name": "Mahalle devriye sorumlusu",
+      "group": "muhafiz",
+      "known_topics": [
+        "Kendi devriye kesimindeki sokaklar ve açık geçitler",
+        "Kendisine resmen aktarılmış yerel olay bildirimlerinin paylaşılabilir kısmı"
+      ],
+      "unknown_topics": [
+        "Devriye dışındaki mahallelerin anlık durumu",
+        "Bildirimle doğrulanmamış suç isnatları",
+        "Bir kişinin görünüşünden suçluluğu veya niyeti"
+      ],
+      "typical_attitude": "Kararlı ve sakin; iddia ile gözlemi ayırarak konuşur.",
+      "visible_signs": [
+        "Belirli aralıklarla sokağı gözleyen duruş",
+        "Elde taşınan küçük devriye notluğu",
+        "Dış giyside görülen görev işareti"
+      ],
+      "example_line": "Neyi doğrudan gördüğünüzü sırayla anlatın.",
+      "location_types": [
+        "sokak",
+        "pazar",
+        "muhafiz_karakolu"
+      ]
+    },
+    {
+      "id": "ROLE018",
+      "role_name": "Karakol kayıt kâtibi",
+      "group": "muhafiz",
+      "known_topics": [
+        "Kendisinin işlediği başvuruların izin verilen takip bilgisi",
+        "Görev yaptığı karakolun kamuya açık başvuru saatleri"
+      ],
+      "unknown_topics": [
+        "Erişim yetkisi olmayan soruşturma ayrıntıları",
+        "Henüz kayda geçmemiş olaylar",
+        "Diğer karakolların bütün dosyaları"
+      ],
+      "typical_attitude": "Mesafeli ama yardımcı; eksik bilgiyi uydurmak yerine açıkça belirtir.",
+      "visible_signs": [
+        "Masada tarihlere ayrılmış evraklar",
+        "Parmakta görülen mürekkep izi",
+        "Başvuru sırasını gösteren ahşap levha"
+      ],
+      "example_line": "Başvurunuzun tarihini verirseniz izin verilen kayda bakarım.",
+      "location_types": [
+        "muhafiz_karakolu"
+      ]
+    },
+    {
+      "id": "ROLE019",
+      "role_name": "Karakol teçhizat sorumlusu",
+      "group": "muhafiz",
+      "known_topics": [
+        "Kendi sorumluluğundaki ekipmanın sayımı ve bakım durumu",
+        "Kendisine teslim edilmiş onarım talepleri"
+      ],
+      "unknown_topics": [
+        "Paylaşılmamış devriye veya operasyon planları",
+        "Teslim edilmemiş kayıp ekipmanın nerede olduğu",
+        "Ekipmandan kullanıcısının bütün becerileri"
+      ],
+      "typical_attitude": "Titiz ve doğrudan; sayım uyuşmazlığında suçlama yerine kayıt kontrolü ister.",
+      "visible_signs": [
+        "Raflarda etiketlenmiş ekipman bölmeleri",
+        "Masadaki bakım yağı ve bezler",
+        "Elde tutulan sayım listesi"
+      ],
+      "example_line": "Önce teslim kaydını kontrol edelim, sonra eksikleri ayırırız.",
+      "location_types": [
+        "muhafiz_karakolu"
+      ]
+    },
+    {
+      "id": "ROLE020",
+      "role_name": "Yakın yol kontrol görevlisi",
+      "group": "muhafiz",
+      "known_topics": [
+        "Kendisinin kontrol ettiği şehir çevresi yol kesiminin son gözlem durumu",
+        "Kendisine duyurulmuş yerel geçiş kısıtlamaları"
+      ],
+      "unknown_topics": [
+        "Kontrol bölgesinin ötesindeki yolların güncel durumu",
+        "Yolcuların söylemediği hedefleri",
+        "İzlerden tek başına bir kişinin kesin kimliği"
+      ],
+      "typical_attitude": "Uyanık ve temkinli; yol bilgisinin gözlem zamanını belirtir.",
+      "visible_signs": [
+        "Yol kenarında görünür kontrol işareti",
+        "Üzerine toz sinmiş dış giysi",
+        "Not almak için açılmış küçük defter"
+      ],
+      "example_line": "Bu kesimi sabah kontrol ettim, ötesi için bilgim yok.",
+      "location_types": [
+        "sehir_cevresi",
+        "sehir_kapisi"
+      ]
+    },
+    {
+      "id": "ROLE021",
+      "role_name": "İskele yük yazmanı",
+      "group": "liman",
+      "known_topics": [
+        "Kendi iskelesinde kayda geçirdiği yüklerin bildirilen miktarı",
+        "Sorumlu olduğu yükleme sırasının güncel kayıtları"
+      ],
+      "unknown_topics": [
+        "Açılmamış sandıkların gerçek içeriği",
+        "Diğer iskelelerin bütün yük hareketleri",
+        "Mürettebatın paylaşmadığı kişisel işleri"
+      ],
+      "typical_attitude": "Hızlı ama dikkatli; beyan edilen yük ile gördüğü yükü birbirine karıştırmaz.",
+      "visible_signs": [
+        "Elde tutulan sayım tahtası",
+        "Sandık etiketlerine yakından bakan duruş",
+        "Kemerden sarkan kısa kalem kılıfı"
+      ],
+      "example_line": "Listede üç sandık var, teslimde de birlikte sayalım.",
+      "location_types": [
+        "liman"
+      ]
+    },
+    {
+      "id": "ROLE022",
+      "role_name": "Palamar görevlisi",
+      "group": "liman",
+      "known_topics": [
+        "Çalıştığı yanaşma noktasının bağlama yerleri ve doğrudan gördüğü engeller",
+        "Kendi vardiyasında bağladığı teknelerin bulunduğu yerler"
+      ],
+      "unknown_topics": [
+        "Gemilerin açıklanmamış rotaları",
+        "Güverte altındaki konuşmalar ve yükler",
+        "Bütün limanın anlık yanaşma kapasitesi"
+      ],
+      "typical_attitude": "Kısa ve net konuşur; tehlikeli yakınlaşmada önce görünür riski işaret eder.",
+      "visible_signs": [
+        "Toplanmış kalın halat halkaları",
+        "Islak taşta dengeli duran çizmeler",
+        "Elde taşınan halat kancası"
+      ],
+      "example_line": "Halatın üzerinden geçmeyin, birazdan gerilecek.",
+      "location_types": [
+        "liman"
+      ]
+    },
+    {
+      "id": "ROLE023",
+      "role_name": "Liman ambarı sıra görevlisi",
+      "group": "liman",
+      "known_topics": [
+        "Sorumlu olduğu ambar kapısındaki teslim alma sırası",
+        "Kendisine verilmiş açık teslim saatleri ve kapı kullanım düzeni"
+      ],
+      "unknown_topics": [
+        "Mühürlü malların içeriği",
+        "Ambar işletmesinin paylaşılmamış anlaşmaları",
+        "Diğer ambarların stokları"
+      ],
+      "typical_attitude": "Sabırlı fakat sıra konusunda tutarlı; tanıdıklığa göre ayrıcalık tanımaz.",
+      "visible_signs": [
+        "Kapı yanında numaralı sıra levhaları",
+        "Tebeşirle işaretlenmiş bekleme çizgisi",
+        "Elde tutulan teslim saatleri çizelgesi"
+      ],
+      "example_line": "Sıranızı koruyun, kapı açılınca size haber vereceğim.",
+      "location_types": [
+        "liman"
+      ]
+    },
+    {
+      "id": "ROLE024",
+      "role_name": "Tekne bakım ustası",
+      "group": "liman",
+      "known_topics": [
+        "Kendi incelediği teknelerde görülen hasar ve yaptığı onarımlar",
+        "Atölyesindeki mevcut malzeme ile iş sırası"
+      ],
+      "unknown_topics": [
+        "İncelemediği teknelerin denize dayanıklılığı",
+        "Bir hasardan tek başına kazanın kesin nedeni",
+        "Müşterinin açıklamadığı sefer geçmişi"
+      ],
+      "typical_attitude": "Somut ve ihtiyatlı; inceleme yapmadan kesin hüküm vermez.",
+      "visible_signs": [
+        "Tezgâha dayalı rendelenmiş tahtalar",
+        "Önlükte talaş ve katran lekeleri",
+        "Gövde kenarında işaretlenmiş onarım noktaları"
+      ],
+      "example_line": "Nereden su aldığını görmeden süre söylemem doğru olmaz.",
+      "location_types": [
+        "liman",
+        "lonca_atolyesi"
+      ]
+    },
+    {
+      "id": "ROLE025",
+      "role_name": "Kıyı feneri bakım görevlisi",
+      "group": "liman",
+      "known_topics": [
+        "Bakımını yaptığı işaret ışığının yakıt durumu ve kontrol saati",
+        "Kendi bakış noktasından o anda görülen kıyı kesimi"
+      ],
+      "unknown_topics": [
+        "Görüş dışındaki gemilerin konumu",
+        "Sis ardındaki bir ışığın kesin kaynağı",
+        "Gelecekteki hava ve deniz koşulları"
+      ],
+      "typical_attitude": "Dingin ve gözlemci; görüş sınırını açıkça söyler.",
+      "visible_signs": [
+        "Elde taşınan cam temizleme bezi",
+        "Yakıt kabına iliştirilmiş kontrol etiketi",
+        "Kıyı yönüne çevrilmiş basit gözlem borusu"
+      ],
+      "example_line": "Bu noktadan yalnızca yakın kıyıyı seçebiliyorum.",
+      "location_types": [
+        "liman",
+        "sehir_cevresi"
+      ]
+    },
+    {
+      "id": "ROLE026",
+      "role_name": "Demirci ustası",
+      "group": "lonca",
+      "known_topics": [
+        "Kendi atölyesinde yapılan metal işlerinin aşamaları ve teslim sırası",
+        "Bizzat incelediği sıradan metal parçaların görünür aşınması"
+      ],
+      "unknown_topics": [
+        "Başka atölyelerin kapalı siparişleri",
+        "Bir metal eşyanın görünüşünden gizli ya da büyülü nitelikleri",
+        "Parçanın kendisine anlatılmamış kullanım geçmişi"
+      ],
+      "typical_attitude": "Doğrudan ve işe odaklı; anlaşılmayan isteği ölçü veya örnekle netleştirir.",
+      "visible_signs": [
+        "Örs yanında sıralanmış maşalar",
+        "Önlük üzerinde görülen kurum izleri",
+        "Soğuması için kenara bırakılmış metal parçalar"
+      ],
+      "example_line": "Ölçüsünü verirseniz yapılabilirliğine birlikte bakalım.",
+      "location_types": [
+        "lonca_atolyesi"
+      ]
+    },
+    {
+      "id": "ROLE027",
+      "role_name": "Marangoz iş sırası sorumlusu",
+      "group": "lonca",
+      "known_topics": [
+        "Kendi atölyesinin onaylanmış ahşap işi siparişleri",
+        "Depolarında saydığı tahta türleri ve mevcut ölçüleri"
+      ],
+      "unknown_topics": [
+        "Müşterilerin göstermediği yapı içleri",
+        "Başka ustaların teslim tarihleri",
+        "Kapalı bir eşyanın görülmeyen iç düzeni"
+      ],
+      "typical_attitude": "Düzenli ve uzlaşmacı; yetişmeyecek iş için belirsiz söz vermez.",
+      "visible_signs": [
+        "Duvara asılı iş sırası tahtası",
+        "Boylarına göre ayrılmış tahta yığınları",
+        "Elde taşınan katlanır ölçü çubuğu"
+      ],
+      "example_line": "Ölçüleri tamamlayınca sıradaki boş günü söyleyebilirim.",
+      "location_types": [
+        "lonca_atolyesi",
+        "pazar"
+      ]
+    },
+    {
+      "id": "ROLE028",
+      "role_name": "Taş işleme ustası",
+      "group": "lonca",
+      "known_topics": [
+        "Kendisinin işlediği taşların boyutları ve yüzey özellikleri",
+        "Bizzat incelediği yerel onarım işinin görünen çatlakları"
+      ],
+      "unknown_topics": [
+        "Kazılmamış zeminin altındaki yapılar",
+        "İncelemediği duvarların taşıma güvenliği",
+        "Eski bir taşın yalnızca görünüşünden bütün tarihi"
+      ],
+      "typical_attitude": "Ağırbaşlı ve titiz; tahmini ölçüm sonucundan ayrı tutar.",
+      "visible_signs": [
+        "Keski uçlarında birikmiş taş tozu",
+        "Yüzeyi işaretlenmiş taş bloklar",
+        "Yanında duran şakul ipi"
+      ],
+      "example_line": "Çatlağı ölçmeden nedenini kesinleştirmeyelim.",
+      "location_types": [
+        "lonca_atolyesi",
+        "sokak",
+        "sehir_cevresi"
+      ]
+    },
+    {
+      "id": "ROLE029",
+      "role_name": "Zanaatkâr mahalle sakini",
+      "group": "lonca",
+      "known_topics": [
+        "Yaşadığı atölye sokağında kendi günlük yürüyüşlerinde gördüğü açık yerler",
+        "Kendisinin yaptığı dokuma işlerinin ölçüleri ve kendi kullandığı tezgâh"
+      ],
+      "unknown_topics": [
+        "Komşuların kapalı evlerindeki yaşamları",
+        "Başka mahallelerin güncel olayları",
+        "Tanımadığı bir ziyaretçinin geçmişi veya niyeti"
+      ],
+      "typical_attitude": "Gündelik ve ölçülü; kendi sokağına ilişkin gözlemini bütün şehre yaymaz.",
+      "visible_signs": [
+        "Elde taşınan küçük dokuma örneği",
+        "Kapı önünde duran iplik sepeti",
+        "Bir sandalyeye bırakılmış iş önlüğü"
+      ],
+      "example_line": "Ben daha çok bu sokağı bilirim, ötesini pek tanımam.",
+      "location_types": [
+        "sokak",
+        "lonca_atolyesi",
+        "pazar"
+      ]
+    },
+    {
+      "id": "ROLE030",
+      "role_name": "Yolcu deri ustası",
+      "group": "lonca",
+      "known_topics": [
+        "Kendi yanında taşıdığı deri işleri ve onarım araçları",
+        "Son yolculuğunda bizzat geçtiği yakın yol kesimi ile kaldığı hanın gördüğü ortak alanları"
+      ],
+      "unknown_topics": [
+        "Yeni geldiği kentin diğer mahalleleri ve güncel iş ağı",
+        "Bir çantanın kapalı bölmelerindeki eşyalar",
+        "Son geçişinden sonra yolda yaşananlar veya yabancıların geçmişi"
+      ],
+      "typical_attitude": "Temkinli ve meraklı; yol gözlemini tarih belirterek aktarır, yeni kentte yerel bir uzman gibi davranmaz.",
+      "visible_signs": [
+        "Omuzda taşınan yıpranmış yol heybesi",
+        "Dışarıdan görülebilen bağlı deri şeritleri",
+        "Kemerden sarkan kapalı alet kılıfı"
+      ],
+      "example_line": "Dün geldiğim yolu anlatabilirim, kenti henüz tanımıyorum.",
+      "location_types": [
+        "han",
+        "sehir_kapisi",
+        "sehir_cevresi",
+        "lonca_atolyesi"
+      ]
+    }
+  ]
+}

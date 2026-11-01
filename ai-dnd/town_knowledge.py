@@ -15,11 +15,14 @@ reaches a real place without any new phrase pattern.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+from functools import lru_cache
 from typing import Any
 
 import living_world
 import local_places
+import name_catalog
 import npc_statements
 import relationships
 import world_threads
@@ -238,6 +241,29 @@ def _job_note(world, npc, decision):
     return " " + " ".join(line for line in lines if line) + tone
 
 
+@lru_cache(maxsize=1)
+def _role_profiles() -> tuple[dict[str, Any], dict[str, Any]]:
+    try:
+        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        roles = json.loads((name_catalog.CATALOG_DIR / "npc_roles.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        _LOG.warning("The role profiles could not be read.")
+        return {}, {}
+    return mapping["role_profiles"]["roles"], {item["id"]: item for item in roles["items"]}
+
+
+def role_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
+    """What this person's work lets them know and what it does not. Bounds speech, adds no fact."""
+    table, profiles = _role_profiles()
+    chosen = table.get(npc_statements.fold(npc.get("role") or ""))
+    if not chosen:
+        return ""
+    profile = profiles[chosen[_percent(world, npc.get("id"), "role") % len(chosen)]]
+    return (f" İşin gereği bildiğin konular: {'; '.join(profile['known_topics'])}."
+            f" Bilmediğin konular: {'; '.join(profile['unknown_topics'][:2])}."
+            " Bunlar sorulursa bilmediğini söyle; ayrıntı uydurma.")
+
+
 def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None = None) -> str:
     """Plain lines for this person's prompt; empty when the town is not in play here."""
     if not isinstance(npc, dict) or world_threads.view(world) is None or not _settlement(world):
@@ -254,6 +280,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
                if place else "")
             + " Başka kimseyi ve hiçbir başka yeri adıyla anma."
             + job
+            + role_note(world, npc)
         )
     known = public_knowledge(world, npc)
     lines = []
@@ -268,6 +295,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
         lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa bilmediğini söyle.")
     lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
     lines.append(job)
+    lines.append(role_note(world, npc))
     return "".join(lines)
 
 
