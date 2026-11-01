@@ -977,25 +977,31 @@ def hint(text, npc=None):
 
 
 _UNKNOWN_LINES = (
-    "{n} omuz silkiyor. “Bunu gerçekten bilmiyorum; ağzıma gelen her şey "
-    "tahminden öteye geçmez.”",
-    "{n} başını yana eğiyor. “Emin değilim. Yanlış bir şey söyleyip seni "
-    "yoldan çıkarmak istemem.”",
-    "{n} kaşlarını kaldırıyor. “Bu konuda bir şey bilmiyorum, yabancı. Başka "
-    "birine sorsan daha iyi edersin.”",
-    "{n} bir an düşünüp iç çekiyor. “Doğrusu emin değilim; duyduklarımın "
-    "hangisi doğru, hangisi söylenti, ayıramıyorum.”",
+    "{n} omuz silkiyor. “Onu bilmem.”",
+    "{n} başını iki yana sallıyor. “Hiç duymadım öyle bir şey.”",
+    "{n} kaşlarını kaldırıyor. “Bana sorma, başkasına sor.”",
+    "{n} bir an düşünüyor. “Yok, aklıma bir şey gelmiyor.”",
+    "{n} dudak büküyor. “Benim işim değil, bilmiyorum.”",
+    "{n} ensesini kaşıyor. “Valla bilemeyeceğim.”",
+    "{n} elini sallıyor. “Nereden bileyim ben?”",
+    "{n} sana şöyle bir bakıyor. “Duymadım, bilmiyorum.”",
+    "{n} işine dönüyor. “Öyle şeylerle uğraşmıyorum.”",
+    "{n} gözlerini kısıyor. “Kimse bana bir şey anlatmadı.”",
+    "{n} iç çekiyor. “Bilsem söylerdim, bilmiyorum.”",
+    "{n} başını kaldırmadan konuşuyor. “Bilmem. Başka bir şey var mı?”",
 )
 
 
 def immersive_unknown(npc=None, seed=""):
-    """In-character 'I do not know'. Deterministic for a given NPC and seed."""
+    """In-character 'I do not know'. The same person does not say the same line twice while they have another."""
     if npc:
         key = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{seed}"
-        index = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % len(
-            _UNKNOWN_LINES
-        )
-        return _UNKNOWN_LINES[index].format(n=living_world.public_npc_name(npc))
+        start = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % len(_UNKNOWN_LINES)
+        name = living_world.public_npc_name(npc)
+        lines = [_UNKNOWN_LINES[(start + step) % len(_UNKNOWN_LINES)].format(n=name)
+                 for step in range(len(_UNKNOWN_LINES))]
+        said = str(npc.get("memory") or "") if isinstance(npc, dict) else ""
+        return next((line for line in lines if line not in said), lines[0])
     # Narrator voice: the world simply gives no sign yet; the player is not told
     # that anything was checked or refused.
     return (

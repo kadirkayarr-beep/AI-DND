@@ -32,6 +32,12 @@ def denies_claim(text):
     return any(marker in folded for marker in CLAIM_DENIAL_MARKERS)
 
 
+def stock_unknown_lines(npc):
+    """Any of them: the one chosen depends on what this person already said."""
+    name = living_world.public_npc_name(npc)
+    return [line.format(n=name) for line in interaction_adventure._UNKNOWN_LINES]
+
+
 class TestNarrativeRebalance(unittest.TestCase):
     def setUp(self):
         # Individual model fixtures override this guard; all other paths stay
@@ -185,8 +191,7 @@ class TestNarrativeRebalance(unittest.TestCase):
         # speech route. Keep the fail-closed content assertions, and label the
         # Python fallback truthfully rather than claiming Qwen was accepted.
         # Valid spoken/stage lore separation is covered by StageContractTests.
-        self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(
-            self.session.world_state["npcs"][0]))
+        self.assertIn(result["narration"], stock_unknown_lines(self.session.world_state["npcs"][0]))
         self.assertNotIn("King Vharion", result["narration"])
         self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
         self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
@@ -341,7 +346,7 @@ class TestNarrativeRebalance(unittest.TestCase):
         # 6. This legacy world_updates envelope is rejected by the active
         # structured speech contract. Rejection must not be reported as an
         # accepted model answer. All state/memory assertions above are retained.
-        self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(npc))
+        self.assertIn(result["narration"], stock_unknown_lines(npc))
         self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
         self.assertEqual(telemetry["fallback_reason"], "INVALID_NARRATION")
         self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
@@ -990,13 +995,10 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
         self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
 
     def test_invalid_or_unsafe_resolved_fallback_keeps_legacy_behavior(self):
-        legacy = self.session._fallback_for_action_result(
-            self.player_input, self.action, npc_target=self.npc
-        )
         for candidate in (None, "", " \n ", 17, "<think>discard</think>", self.unsafe_response):
             with self.subTest(candidate=candidate):
                 self.session.recent_dm_narrations.clear()
-                self.assertEqual(self.finalize(self.unsafe_response, candidate), legacy)
+                self.assertIn(self.finalize(self.unsafe_response, candidate), stock_unknown_lines(self.npc))
                 self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
         self.assertEqual([npc["name"] for npc in self.world["npcs"]], ["Darian"])
 

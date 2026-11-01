@@ -940,6 +940,15 @@ def _reads_as_question(player_input):
     ))
 
 
+def _asked_of_the_one_at_hand(player_input, npc):
+    """A question in the middle of a talk goes to that person, name or mark or neither."""
+    active = _active_interlocutor()
+    return bool(active is not None and isinstance(npc, dict) and active.get("id") == npc.get("id") and (
+        "?" in str(player_input)
+        or re.search(r"\b(?:mi|mu|misin|musun|misiniz|musunuz)\b", _normalize_turkish_typos(str(player_input)))
+    ))
+
+
 def is_npc_dialogue_input(player_input):
     if not isinstance(player_input, str):
         return False
@@ -1104,6 +1113,7 @@ def _report_of_someone_else(player_input, npc_target):
 
 # "Tariq nerde dedim sana": the player repeating their own words, which claims nothing about anyone else's.
 _SAID_IT_AGAIN = re.compile(r"\b(?:dedim|diyorum)\b(?:\s+(?:sana|size|ya|be|yahu))*")
+_ENDS_IN_SPEECH = re.compile(r"\b(?:dedim|diyorum|soyle|soylesene|soyledim)\b(?:\s+(?:sana|size|ya|be|yahu))*[.! ]*$")
 
 
 def is_npc_historical_claim(player_input):
@@ -17693,7 +17703,7 @@ def _dispatch_player_turn(
                 },
             }
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None
-            and _SAID_IT_AGAIN.search(player_input.casefold())):
+            and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
         if hearer is not None:
             interaction_mode, target_id = "say", hearer["id"]
@@ -18760,7 +18770,7 @@ def _run_player_turn_internal(
         }
         return finish_turn(
             action_result,
-            interaction_adventure.immersive_unknown(target),
+            interaction_adventure.immersive_unknown(target, player_input),
             safety_reason_code="INVALID_CONVERSATION_PROPOSAL",
             safety_handling="python_fallback",
             is_final=True,
@@ -19653,11 +19663,15 @@ def _run_player_turn_internal(
                 ),
             )
         )
-        if conversation_rejected:
+        # A reading the classifier got wrong is no reason for a person to stop being one: they answer the line.
+        answer_in_person = conversation_rejected and _npc_speech_enabled() and isinstance(npc_target, dict)
+        if conversation_rejected and not answer_in_person:
             return finish_conversation_rejection(npc_target)
-        action_result = interaction_adventure.resolve(
-            _session(), player_input, raw.get("interaction"), npc_target,
-            fallback_operation=interaction_hint,
+        action_result = (
+            {"status": "proposal_rejected"} if answer_in_person else interaction_adventure.resolve(
+                _session(), player_input, raw.get("interaction"), npc_target,
+                fallback_operation=interaction_hint,
+            )
         )
         if action_result.get("status") == "proposal_rejected" and _has_spoken_to_player(npc_target):
             # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
@@ -20107,6 +20121,7 @@ def _run_player_turn_internal(
         or local_dialogue.personal_question_kind(player_input) == "local_work"  # "burada ... var mı" also reads as a look
         or _is_short_conversation_continuation(player_input)
         or _is_spoken_to(player_input, npc_target)
+        or _asked_of_the_one_at_hand(player_input, npc_target)
     ))
     profile_focus = interaction_adventure.current_conversation_focus(world_state, npc_target)
     canonical_profile_question = (

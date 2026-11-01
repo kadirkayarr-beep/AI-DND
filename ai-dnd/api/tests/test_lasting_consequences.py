@@ -382,3 +382,58 @@ class TheLedger(OneTownScene):
         }}
         fitted, _ = narrative_memory._fit_context_packet(packet)
         self.assertEqual(fitted["relevant_continuity"]["ledger"], {"did": ["Kalila öldürüldü"]})
+
+
+class PeopleAnswerInPerson(OneTownScene):
+    STOCK = ("tahminden öteye", "yoldan çıkarmak", "söylentiler belirsiz", "herkes başka bir şey fısıldıyor")
+
+    async def asked(self, role, name, line):
+        await self.town()
+        person = self.add_person(name, role)
+        client = PlayClient(spoken="Sen işine bak, ben kendi işime.")
+        await self.say(f"selam {name.lower()}", client)
+        out = await self.say(line, client)
+        for stock in self.STOCK:
+            self.assertNotIn(stock, out["narration"])
+        self.assertIn("Sen işine bak", out["narration"], out["turn_outcome"])
+        return person
+
+    async def test_a_threat_gets_a_person_not_i_do_not_know(self):
+        await self.asked("Çırak", "Baern", "baerne dönüp ne bakıyorsun lan, gördüklerini unut diyorum")
+
+    async def test_a_question_about_people_gets_a_person(self):
+        await self.asked("Nöbetçi Çavuş", "Isolde",
+                         "ne ölümü çavuş, çizelgedeki isimden bahsediyorum. sana adam lazım mı onu söyle")
+
+    async def test_being_asked_about_smoke_gets_a_person(self):
+        await self.asked("Barmen", "Veyra", "quenna atölyesi tarafından duman geliyordu, sen bişey duydun mu veyra")
+
+    async def test_being_asked_for_news_gets_a_person(self):
+        await self.asked("Barmen", "Veyra", "günaydın veyra, dün gece şehirde neler oldu? bi haber var mı")
+
+    async def test_being_asked_about_lords_gets_a_person(self):
+        await self.asked("Barmen", "Veyra", "birasından bi yudum alıp barmene soruyorum: buralarda en güçlü lord kim, koruma arayan bi soylu var mı")
+
+
+class StockLinesDoNotRepeat(OneTownScene):
+    def test_the_same_person_does_not_say_the_same_thing_twice(self):
+        import interaction_adventure
+        npc = {"id": "npc_a", "name": "Veyra", "name_known_to_player": True, "memory": []}
+        said = []
+        for turn in range(5):
+            line = interaction_adventure.immersive_unknown(npc, "soru")
+            self.assertNotIn(line, said)
+            said.append(line)
+            npc["memory"].append({"type": "dialogue", "response": line})
+
+    def test_there_are_enough_of_them_to_tell_people_apart(self):
+        import interaction_adventure
+        self.assertGreaterEqual(len(interaction_adventure._UNKNOWN_LINES), 10)
+        lines = {interaction_adventure.immersive_unknown({"id": f"npc_{i}", "name": "Veyra"}, "soru") for i in range(40)}
+        self.assertGreaterEqual(len(lines), 6)
+
+    def test_nothing_in_them_sounds_like_a_machine(self):
+        import interaction_adventure
+        for line in interaction_adventure._UNKNOWN_LINES:
+            self.assertNotIn("doğrula", line)
+            self.assertNotIn("tahminden öteye", line)
