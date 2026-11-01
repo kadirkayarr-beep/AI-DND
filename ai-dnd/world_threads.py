@@ -850,7 +850,9 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     elsewhere = any(kind == "question" and not _asks_about_the_job(tokens, table, names, thread) for kind, tokens in said)
     bare = all(_bare_answer(tokens, table, names) for kind, tokens in said if kind in _DECISIONS)
     if "unclear" in kinds or "other" in kinds or len(decided) > 1 or (elsewhere and bare):
-        return {**reading, "take": False, "give": False, "start": False, "move": False}
+        # 'sabah oldu, hadi başlayalım': other words beside it do not undo a plain start, only a no or a doubt does.
+        start = "start" in kinds and "unclear" not in kinds and not (decided - {"accept"})
+        return {**reading, "take": False, "give": False, "start": start, "move": False}
     if decided:
         return {**reading, "meaning": decided.pop()}
     return reading
@@ -881,12 +883,16 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
                for kind, (tokens, _, _) in zip(read, clauses))
 
 
+_REFUSED_DOING = re.compile(r"(?:m[aeiu]yor|mam$|mem$|mayacag|meyecek|meyecen|mayacan|amam$|emem$)")
+
+
 def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
     """'Dediğin işi yapıyorum': the speaker names the work and is doing it, which is a yes in deed."""
     table = answer_table()
     ends = tuple(table["first_person_ends"])
     words = _folded(text).split()
-    return _names_the_work(text, thread, table) and any(word.endswith(ends) for word in words)
+    refused = any(_REFUSED_DOING.search(word) for word in words)
+    return _names_the_work(text, thread, table) and not refused and any(word.endswith(ends) for word in words)
 
 
 def speaks_of_pay(text: Any) -> bool:
@@ -1188,6 +1194,9 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         decision = bind_player_decision(world, thread, text, npc)
         if decision:
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
+        if (thread["status"] == "accepted" and thread.get("type") == "hiring" and "?" not in text
+                and goes_to_the_work(text, thread)):
+            return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
     for thread in closed:
         if thread["status"] == "done" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
