@@ -373,5 +373,106 @@ class AWordAtTheDoor(unittest.TestCase):
         self.assertTrue(world_threads.offers_to_help(world, "derdini ben hallederim", npc, thread))
 
 
+class ATroubleEndsWhereItsWordsSay(OnATrouble):
+    async def sent_away(self):
+        await self.trouble()
+        self.world["locations"]["place_x"] = {"id": "place_x", "name": "Kuzey Karakolu", "type": "building",
+                                              "scene_kind": "building", "place_kind": "barracks",
+                                              "parent_location_id": self.city, "exit_location_id": self.city,
+                                              "hidden": False, "aliases": []}
+        self.other = {"id": "npc_alici", "name": "Halvar", "role": "Muhafız", "location": "place_x", "place_role_of": "place_x",
+                      "status": "active", "combat_status": "active", "current_hp": 8, "max_hp": 8, "memory": [], "knowledge": [],
+                      "reality_layer": "PROCEDURAL_LOCAL_FICTION", "personal_profile": {}, "inventory": []}
+        self.world["npcs"].append(self.other)
+        self.thread.update(target_place_id="place_x", recipient_name="Halvar", owner_name=self.npc["name"],
+                           owner_line="Halvar bana borçlu, Kuzey Karakolu içinde bulursun. Hesap açık duruyor.",
+                           public_line="Ödenmemiş bir hesabın peşinde olduğu konuşuluyor.")
+
+    async def at_the_recipient(self):
+        await self.sent_away()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        self.world["location"] = "place_x"
+        for flag in ("active_npc_id", "last_npc_id"):
+            self.world["flags"].pop(flag, None)
+
+    async def test_taking_it_on_says_on_the_screen_what_it_takes(self):
+        await self.sent_away()
+        text = (await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True))["narration"]
+        self.assertIn("Sağ ol.", text)
+        self.assertIn("Halvar", text)
+        self.assertIn("Kuzey Karakolu", text)
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_the_owner_says_so_too_if_asked(self):
+        await self.sent_away()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        note = town_knowledge.speech_note(self.world, self.npc)
+        self.assertIn("Halvar", note)
+        self.assertIn("Kuzey Karakolu", note)
+
+    async def test_speaking_to_the_one_named_ends_it(self):
+        for line in ("borcunu ödemen lazım", "hesap ne olacak abi", "Marek seninle konuşmamı istedi", "bu dert nasıl çözülür"):
+            await self.at_the_recipient()
+            line = line.replace("Marek", self.npc["name"])
+            purse = (self.world.get("currency") or {}).get("player")
+            before = world_threads._now(self.world)
+            out = await self.line(line, "Peki, hallederiz.")
+            self.assertEqual(self.status(), "done", line)
+            self.assertIn("Peki, hallederiz.", out["narration"], line)
+            self.assertIn("yatıştı", out["narration"], line)
+            self.assertEqual(world_threads._now(self.world), before, line)
+            self.assertEqual((self.world.get("currency") or {}).get("player"), purse, line)
+            self.assertEqual(relationships.score(self.world, self.npc["id"]), 1, line)
+            self.assertEqual(links.ending(self.world, self.thread), ["averted"], line)
+
+    async def test_they_know_what_the_player_came_about(self):
+        await self.at_the_recipient()
+        note = town_knowledge.speech_note(self.world, self.other)
+        self.assertIn(self.npc["name"], note)
+        self.assertIn(self.thread["public_line"], note)
+
+    async def test_small_talk_with_them_ends_nothing(self):
+        for line in ("selam", "iş var mı", "burası neresi"):
+            await self.at_the_recipient()
+            await self.line(line, "Selam.")
+            self.assertEqual(self.status(), "accepted", line)
+
+    async def test_a_yes_to_them_bringing_it_up_ends_it(self):
+        await self.at_the_recipient()
+        self.world["npc_speech_log"] = {self.other["id"]: [{"player": "selam", "npc": "Hesap için mi geldin? Borcu biliyorum."}]}
+        await self.line("evet", "Tamam, öderim.")
+        self.assertEqual(self.status(), "done")
+
+    async def test_no_shift_beside_the_owner_stands_in_for_it(self):
+        for line in ("hadi başlayalım", "dediğin işi yapıyorum", "işe başlıyorum"):
+            await self.sent_away()
+            await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+            before = world_threads._now(self.world)
+            out = await self.line(line, "Halvar'a git sen.")
+            self.assertNotEqual(out["turn_outcome"]["action"], "work", line)
+            self.assertEqual(world_threads._now(self.world), before, line)
+            self.assertEqual(self.status(), "accepted", line)
+
+    async def test_saying_yes_and_start_together_runs_no_shift_either(self):
+        await self.sent_away()
+        world_happenings.put_forward(self.world, self.thread, self.npc, self.thread["owner_line"])
+        self.world["npc_speech_log"] = {self.npc["id"]: [{"player": "derdin ne", "npc": self.thread["owner_line"]}]}
+        before = world_threads._now(self.world)
+        await self.line("tamam başlayalım", "İyi.", mode="say", target=True)
+        self.assertEqual(self.status(), "accepted")
+        self.assertEqual(world_threads._now(self.world), before)
+
+    async def test_left_alone_it_still_fails(self):
+        await self.sent_away()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        campaign_time.advance(self.world, 3 * DAY, "wait", "test")
+        self.assertEqual(self.status(), "failed")
+
+    async def test_a_trouble_on_the_spot_says_so(self):
+        await self.trouble()
+        text = (await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True))["narration"]
+        self.assertIn("burada", text)
+
+
 if __name__ == "__main__":
     unittest.main()

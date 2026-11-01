@@ -8304,6 +8304,11 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     if decision == "give_late":
         gate["reply"] = dialogue_jobs.deliver_late(session, thread, person, player_input)
         return gate
+    if decision == "matter":
+        world_threads.settle_matter(world, thread, person)
+        gate.update(decision="matter_settled", paid_line=(world_threads.job_lines("text") or {}).get("matter_done"))
+        session._thread_turn = gate
+        return gate
     if decision == "take_up":
         import world_happenings
         world_happenings.put_forward(world, thread, person, thread["owner_line"])
@@ -8322,12 +8327,14 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     thread = world_threads.by_id(world, gate["thread_id"])
     if decision == "abandoned" and reading["move"]:
         return None  # the job is over and the walk is still a walk
-    if thread.get("type") in world_threads.WORKED and thread.get("status") == "accepted" and (
+    if world_threads.worked_on_the_spot(thread) and thread.get("status") == "accepted" and (
             gate["decision"] == "work" or (gate["decision"] == "accepted" and reading["start"])):
         if world_threads.can_start_now(world, thread):
             gate["reply"] = world_threads.work_turn(session, thread["thread_id"], player_input)
             return gate
         gate["decision"] = "come_at_night"
+    if gate["decision"] == "accepted" and thread.get("type") == "trouble" and thread.get("status") == "accepted":
+        gate["paid_line"] = world_threads.what_it_takes(world, thread)
     in_hand = errand and thread.get("status") == "accepted" and gate["decision"] in {"accepted", "take"}
     if in_hand and reading["move"] and dialogue_jobs.holds_parcel(world, thread):
         return None  # parcel in hand and walking off: that is simply the walk

@@ -650,6 +650,8 @@
       "heard_happening": "Duyduğun: {heard}",
       "wary_vouch": "Bu kişiyi tanımıyorsun, kapını yabancıya açmazsın. {place} tarafında bir iş görüp oradakilerin güvenini kazanırsa konuşursun; bunu kendi ağzınla söyle, işini anlatma, ücret söyleme.",
       "vouch_earned": "Biri senden {place} kapısı için bir çift söz isterse: onu henüz tanımıyorsun; burada bir iş görürse söz edersin, daha önce etmezsin.",
+      "matter_open": "Bu kişi {owner} adına gelebilir. Mesele şu: {what} Konu açılırsa bunu biliyorsun, inkâr etme; kendiliğinden anlatma.",
+      "matter_settled": "Bu kişi {owner} adına geldi, mesele konuşuldu: {what} Yatıştırmayı kabul ediyorsun; kendi tavrınla söyle, para verme, rakam söyleme.",
       "vouch_given": "Bu kişi burada iş gördü; {place} kapısında onun için bir çift söz ettin. Sorulursa inkâr etme.",
       "waiting": "Seni bekleyen: {what}; {when}.",
       "trouble_help": "Biri yardım etmek isterse kabul edebilirsin; istemezse ısrar etme.",
@@ -720,6 +722,9 @@
       "fired_short": "Kentte bir dert sonunda patlak vermiş.",
       "accepted": [
         "Bu derdi üstlendi; ücret konuşmadınız, para çıkmaz. Başlamak istediğinde ne yapılacağını gösterirsin."
+      ],
+      "accepted_elsewhere": [
+        "Bu derdi üstlendi; ücret konuşmadınız, para çıkmaz. Yapacağı şey {recipient} ile {target} içinde konuşmak; burada çalışarak bitmez. Sorarsa bunu kendi ağzınla söyle."
       ],
       "done": [
         "Bu derdi birlikte çözdünüz, rahatladın. Teşekkür edebilirsin; para borcun yok."
@@ -875,7 +880,10 @@
       "when_tonight": "bu gece",
       "when_tomorrow": "yarın",
       "when_later": "birkaç gün",
-      "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil."
+      "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil.",
+      "trouble_goes": "Bunun için {recipient} ile {target} içinde konuşman gerekiyor.",
+      "trouble_stays": "Bunun için burada iş başına geçmen gerekiyor; başladığında söyle, bir gün sürer.",
+      "matter_done": "Mesele konuşuldu, dert yatıştı."
     }
   },
   "rumour_lines": [

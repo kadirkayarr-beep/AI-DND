@@ -1233,6 +1233,52 @@ def speaks_of_the_matter(line: Any, thread: dict[str, Any]) -> bool:
         len({word[:4] for word in words} & stems) >= 2)
 
 
+def worked_on_the_spot(thread: dict[str, Any]) -> bool:
+    """Done a shift at a time beside its owner. A trouble that sends the player to someone is not."""
+    return thread.get("type") in WORKED and not (thread.get("type") == "trouble" and thread.get("target_place_id"))
+
+
+def matters_with(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """Troubles the player took on that come down to speaking with this person."""
+    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
+    return [t for t in owned(world) if place_id and t.get("status") == "accepted" and t.get("type") == "trouble"
+            and t.get("target_place_id") == place_id]
+
+
+def raises_the_matter(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """The player brought it up with them: the owner's name, the trouble, its own words, or a yes to them bringing it up."""
+    table = answer_table()
+    line = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if line is None:
+        return False
+    words = _folded(line).split()
+    place = world.get("locations", {}).get(thread.get("target_place_id")) or {}
+    theirs = {word[:4] for word in _folded(f"{thread.get('recipient_name')} {place.get('name')}").split()}
+    stems = _matter_stems(thread, table) - theirs
+    owner = _folded(thread.get("owner_name")).split()[:1]
+    if any(_REFUSED_DOING.search(word) for word in words if word not in table["accept"]):
+        return False
+    return (any(word.startswith(tuple(table.get("matter_nouns", ()))) or word[:4] in stems for word in words)
+            or bool(owner and any(word.startswith(owner[0]) for word in words))
+            or (_just_told(world, thread, npc) and holds_a_yes(text, npc, thread)))
+
+
+def settle_matter(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any]) -> None:
+    """Spoken with the one it came down to: the trouble is over, with no clock and no coin."""
+    thread["recipient_npc_id"] = npc.get("id")
+    _close_as_done(world, thread)
+    validate(world[KEY])
+
+
+def what_it_takes(world: dict[str, Any], thread: dict[str, Any]) -> str:
+    """Said on the screen as a trouble is taken on, so the player knows what they just agreed to do."""
+    words = job_lines("text") or {}
+    if worked_on_the_spot(thread):
+        return words.get("trouble_stays", "")
+    place = world.get("locations", {}).get(thread.get("target_place_id")) or {}
+    return _fill(words.get("trouble_goes", ""), recipient=spoken_recipient(world, thread), target=place.get("name", ""))
+
+
 def _just_told(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
     last = _last_exchange(world, npc)
     return bool(last and last.get("npc")) and speaks_of_the_matter(last["npc"], thread)
@@ -1292,6 +1338,9 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in late_parcels(world, npc):
         if gives_item(text, npc, thread):
             return {"thread_id": thread["thread_id"], "decision": "give_late", "npc_id": npc.get("id")}
+    for thread in matters_with(world, npc):
+        if raises_the_matter(world, text, npc, thread):
+            return {"thread_id": thread["thread_id"], "decision": "matter", "npc_id": npc.get("id")}
     mine = jobs_of(world, npc)
     closed = recent_closed(world, npc)
     if not (mine or closed) or answer_table() == {}:
@@ -1299,7 +1348,9 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in mine:
         if (thread["status"] == "accepted" and thread.get("type") in WORKED and read_answer(text, npc, thread)["start"]
                 and not _says_later(text, answer_table())):
-            return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
+            # A trouble that is someone else's door has no shift: its owner says where it is.
+            return {"thread_id": thread["thread_id"], "npc_id": npc.get("id"),
+                    "decision": "work" if worked_on_the_spot(thread) else None}
         if thread["status"] == "accepted" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and thread.get("type") == "errand":
@@ -1312,7 +1363,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
         if (thread["status"] == "accepted" and thread.get("type") in WORKED and "?" not in text
                 and does_the_work_now(text, thread)):
-            return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
+            return {"thread_id": thread["thread_id"], "npc_id": npc.get("id"),
+                    "decision": "work" if worked_on_the_spot(thread) else None}
         if offers_to_help(world, text, npc, thread):
             return {"thread_id": thread["thread_id"], "decision": "take_up", "npc_id": npc.get("id")}
     for thread in closed:
@@ -1389,8 +1441,14 @@ def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tupl
     if amount:
         _pay_wage(world, thread, amount, day)
         note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
-    if thread["days_worked"] < (thread["terms"].get("work_days") or 1) or not transition(thread, "done"):
+    if thread["days_worked"] < (thread["terms"].get("work_days") or 1):
         return amount, False
+    return amount, _close_as_done(world, thread)
+
+
+def _close_as_done(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+    if not transition(thread, "done"):
+        return False
     now = _now(world)
     thread["closed_at"] = now
     _log(thread, now, "done")
@@ -1399,7 +1457,7 @@ def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tupl
     state["history"].extend(closed)
     _trim_history(state)
     _apply_effects(world, [(thread["thread_id"], "done")])
-    return amount, True
+    return True
 
 
 def _today(world: dict[str, Any]) -> int:
@@ -1552,6 +1610,8 @@ def can_start_now(world: dict[str, Any], thread: dict[str, Any]) -> bool:
 def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str:
     """The plain fact of where this job stands, for this person to say in their own words."""
     own = thread.get("status_lines") if isinstance(thread.get("status_lines"), dict) else {}
+    if kind == "accepted" and thread.get("type") == "trouble" and not worked_on_the_spot(thread):
+        kind = "accepted_elsewhere"
     line = None if thread.get("accepted_at") is not None else own.get(kind)  # written for an offer nobody took
     if line:
         line = _fill(job_lines("shared", "own_plan") or "{plan}", plan=line)

@@ -216,9 +216,23 @@ def _parcel_line(world, thread):
     return f"{noun.capitalize()} şu an {'oyuncunun elinde' if held else 'sende, henüz vermedin'}."
 
 
+def _matter_note(world, npc, decision):
+    """The person a trouble comes down to knows what the player has come about, and what came of it."""
+    shared = world_threads.job_lines("shared") or {}
+    settled = (decision or {}).get("decision") == "matter_settled"
+    thread = world_threads.by_id(world, decision.get("thread_id")) if settled else next(
+        iter(world_threads.matters_with(world, npc)), None)
+    if thread is None:
+        return ""
+    line = shared.get("matter_settled" if settled else "matter_open", "")
+    return " " + world_threads._fill(line, owner=thread.get("owner_name") or "", what=thread["public_line"])
+
+
 def _job_note(world, npc, decision):
     """Where this person's work stands, for them to say. Python decided all of it already."""
     shared = world_threads.job_lines("shared") or {}
+    if (decision or {}).get("decision") == "matter_settled":
+        return ""  # the job was someone else's; the note on the matter says all of it
     awaited = world_threads.deliveries_to(world, npc)
     if awaited:
         noun = awaited[0].get("item_noun") or "paket"
@@ -305,7 +319,8 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     job = _job_note(world, npc, decision)
     if job and not job.startswith(" "):
         job = " " + job
-    job += world_happenings.waiting_note(world, npc) + vouching.speaker_note(world, npc)
+    job += (world_happenings.waiting_note(world, npc) + vouching.speaker_note(world, npc)
+            + _matter_note(world, npc, decision))
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
         place = _brush_off_place(world, npc)
@@ -500,6 +515,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
         elif trouble is not None and world_threads.steps_into(world, player_text, npc, trouble):
             world_happenings.put_forward(world, trouble, npc, trouble["owner_line"])
             accept_job(trouble)
+            note = world_threads.what_it_takes(world, trouble)
     elif kind == "pay" and not moved:
         asked = world_threads.speaks_of_pay(player_text)
         thread = _named_job(world, npc, proposal["thread_id"], {"accepted"}) if asked else None
