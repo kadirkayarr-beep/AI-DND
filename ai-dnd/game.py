@@ -17977,7 +17977,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     route = front_proposal.validate(reply, listed)
     word = front_proposal.person_word_in(reply)
     if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
-        described = _narrated_person(word)
+        described = _narrated_person(word, player_input, listed)
         if described is not None:
             route = {"kind": "speak_to", "id": described["id"]}
             _session()._set_scene_active_npc(described, world.get("flags", {}).get("turn_index", 0))
@@ -18000,7 +18000,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag"}
 
 
-def _narrated_person(word):
+def _narrated_person(word, player_input, listed):
     """Someone the last narration described is there to be spoken to: Python makes them real, once."""
     import pocket
     folded = living_world.normalize_text(word)
@@ -18009,8 +18009,10 @@ def _narrated_person(word):
         return None
     here = _conversation_npcs()
     same = next((npc for npc in here if stem in living_world.normalize_text(npc.get("role"))), None)
-    told = pocket.told_as_there(_recent_player_visible_narration(limit=4000))
-    if same is not None or stem not in living_world.normalize_text(told):
+    told = living_world.normalize_text(pocket.told_as_there(_recent_player_visible_narration(limit=4000)))
+    scene = living_world.normalize_text(" ".join(str(row["name"]) for row in [*listed["things"], *listed["places"]]))
+    if (same is not None or stem not in told or stem in scene
+            or stem not in living_world.normalize_text(player_input)):
         return same
     label = word.strip().capitalize()
     return create_npc_from_ai({"name": label, "role": label, "appearance": f"Az önce gözüne çarpan {word.strip()}",

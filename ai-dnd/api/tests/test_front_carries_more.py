@@ -258,6 +258,33 @@ class SomeoneTheNarrationDescribed(FrontTable):
         await self.line("nobetci sen bi sey gordun mu")
         self.assertEqual(len(self.world["npcs"]), count)
 
+    async def test_the_listed_person_the_model_named_stays_the_one_who_answers(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "person_word": "nöbetçi"}
+        await self.line("nobetci ne zamandir orada")
+        self.assertEqual(len(self.world["npcs"]), count)
+        self.assertEqual(self.world["flags"]["active_npc_id"], self.npc["id"])
+
+    async def test_a_word_the_line_never_said_makes_nobody(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
+        self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
+        await self.line("oradaki adama soruyorum dun gece ne oldu")
+        self.assertEqual(len(self.world["npcs"]), count)
+
+    async def test_a_thing_of_the_scene_is_nobody(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.session.create_local_feature({"location": self.world["location"], "name": "Eski kuyu",
+                                           "description": "Taşları yosun tutmuş bir kuyu.", "aliases": ["kuyu"]})
+        self.narrated("Eski kuyu avlunun ortasında duruyor.")
+        self.client.front = {"kind": "speak_to", "person_word": "kuyu"}
+        await self.line("kuyuya sesleniyorum, kim var orda")
+        self.assertEqual(len(self.world["npcs"]), count)
+
     async def test_the_players_own_question_describes_nobody(self):
         await self.begin()
         count = len(self.world["npcs"])

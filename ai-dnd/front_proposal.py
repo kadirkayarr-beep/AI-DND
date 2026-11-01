@@ -195,10 +195,11 @@ def found_in(reply: Any, line: str) -> tuple[str, str]:
 
 
 def person_word_in(reply: Any) -> str:
-    """The plain word for someone the lists do not hold, as the model read it from the line."""
+    """The plain word for someone the lists do not hold: a listed person named beside it is who the line is for."""
     front = reply.get("front") if isinstance(reply, dict) else None
     word = front.get("person_word") if isinstance(front, dict) else None
-    return word.strip() if isinstance(word, str) else ""
+    named = front.get("person_id") not in (None, "", NONE) if isinstance(front, dict) else False
+    return word.strip() if isinstance(word, str) and not named else ""
 
 
 def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
