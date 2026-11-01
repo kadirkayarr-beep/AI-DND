@@ -207,6 +207,11 @@ def _job_note(world, npc, decision):
     if awaited:
         noun = awaited[0].get("item_noun") or "paket"
         return " " + world_threads._fill(shared.get("awaiting", ""), item=noun, owner=awaited[0].get("owner_name") or "")
+    late = world_threads.late_parcels(world, npc)
+    for thread in late:
+        if thread.get("recipient_npc_id") == npc.get("id"):
+            return " " + world_threads._fill(shared.get("too_late", ""), item=thread.get("item_noun") or "paket",
+                                             owner=thread.get("owner_name") or "")
     received = world_threads.delivered_to(world, npc)
     if received:
         noun = received[-1].get("item_noun") or "paket"
@@ -237,6 +242,8 @@ def _job_note(world, npc, decision):
                 f"Bu senin kendi işin: {available['owner_line']} Sorulursa ücreti ve süreyi aynen söyle; "
                 "kabul edip etmemek onun kararı. Peşin para verme."
             )
+    if late:
+        lines.append(world_threads._fill(shared.get("parcel_out", ""), item=late[0].get("item_noun") or "paket"))
     for thread in owned_threads(world, npc):
         if thread.get("type") == "trouble":
             lines.append(f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')}")

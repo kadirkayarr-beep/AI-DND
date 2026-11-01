@@ -609,6 +609,8 @@
       "come_at_night": "İş gece; şimdi başlatamazsın. Akşam olunca gelmesini kendi ağzınla söyle.",
       "withdraw_unclear": "Bir şeyden vazgeçtiğini söylüyor ama anlaştığınız işi mi kastediyor belli değil; iş olduğu gibi duruyor. Neyi kastettiğini kendi ağzınla sor.",
       "own_plan": "Aklındaki plan bu, henüz olmuş bir şey değil; böyle sunma: {plan}",
+      "too_late": "{owner} sana bir {item} gönderecekti; vakti geçti, iş kapandı, ama {item} hâlâ bu kişinin elinde. Bunu inkâr etme, geç kalmasına kendi tavrınla karşılık ver; ücret senden çıkmaz.",
+      "parcel_out": "{item} hâlâ onun elinde; getirirse geri alırsın, ücret yok.",
       "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
       "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
       "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."
@@ -652,6 +654,12 @@
         "delivered": [
           "{item} artık {recipient} elinde. Bedeli anlaşıldığı gibi sayılıp avucuna bırakılıyor: {pay_text}.",
           "{recipient} teslimatı alıp kontrol ediyor; {pay_text} kesene giriyor."
+        ],
+        "late": [
+          "{item} sonunda {recipient} eline geçiyor; iş çoktan kapanmıştı, para çıkmıyor."
+        ],
+        "returned": [
+          "{item} yeniden {owner} yanında; iş kapandı, para çıkmıyor."
         ],
         "not_in_hand": [
           "{item} elinde değil; hâlâ {owner} yanında."

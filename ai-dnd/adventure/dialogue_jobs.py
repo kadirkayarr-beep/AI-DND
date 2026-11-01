@@ -132,7 +132,7 @@ def _move_parcel(session,thread,npc,to_player,text=''):
     destination=world.setdefault('inventory',[]) if to_player else npc.setdefault('inventory',[])
     item=next((i for i in source if isinstance(i,dict) and i.get('item_id')==item_id),None)
     if item is None: return False
-    if not to_player:  # someone reached the door without the journal seeing the walk
+    if not to_player and q.get('status')=='ACTIVE':  # someone reached the door without the journal seeing the walk
         road=next((o for o in q['objectives'] if o['objective_id']=='road'),None)
         if road is not None and road.get('graph_state')=='ACTIVE':
             elsewhere=copy.deepcopy(world)
@@ -187,6 +187,27 @@ def deliver(session,thread,recipient,text):
         closed['paid_cp']=closed['terms']['pay']
         world_threads.note_event(world,closed,'paid',f"{closed['terms']['pay']} bakır ödendi",npc=recipient)
         shown=shown_line(world,closed,'delivered')
+        action['direct_response']=shown
+        session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+        return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
+def deliver_late(session,thread,person,text):
+    """The job is over but the parcel still reaches someone it belongs with: it changes hands and nobody pays."""
+    import world_threads
+    world=session.world_state
+    kept=_keep(world)
+    try:
+        action=_move_parcel(session,thread,person,False)
+        if not action: raise ValueError('The parcel did not move.')
+        to_owner=person.get('id')==thread.get('owner_npc_id')
+        if not to_owner: thread['delivered_late']=True
+        world_threads.note_event(world,thread,'parcel_returned' if to_owner else 'parcel_late',
+            f"{thread.get('item_noun') or 'paket'} geç de olsa yerine ulaştı",npc=person)
+        shown=shown_line(world,thread,'returned' if to_owner else 'late')
         action['direct_response']=shown
         session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
         return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}

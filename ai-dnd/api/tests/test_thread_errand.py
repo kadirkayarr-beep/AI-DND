@@ -231,6 +231,60 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(row["reward_application_id"])
         self.assertEqual(self.parcel_owner(), ["player"])
 
+    async def missed_the_day(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        await self.line("iki gün bekliyorum")
+        self.assertEqual(self.status(), "failed")
+
+    async def test_the_recipient_knows_what_the_late_parcel_is(self):
+        await self.missed_the_day()
+        self.go_to_recipient()
+        await self.line("selam", "Selam.", mode="say", target=self.recipient()["id"])
+        prompt = str(self.client.message_batches[-1])
+        self.assertIn("vakti geçti", prompt)
+        self.assertNotIn("verecek bir işin yok", prompt)
+
+    async def test_a_parcel_brought_too_late_is_taken_and_pays_nothing(self):
+        await self.missed_the_day()
+        npc = self.go_to_recipient()
+        start = self.wallet()
+        text = (await self.line("buyur, mektubunu getirdim"))["narration"]
+        self.assertEqual(self.wallet(), start)
+        self.assertEqual(self.parcel_owner(), [npc["id"]])
+        self.assertEqual(self.status(), "failed")
+        self.assertIn("para çıkmıyor", text)
+        await self.line("selam", "Selam.", mode="say", target=npc["id"])
+        self.assertIn("inkâr etme", str(self.client.message_batches[-1]))
+
+    async def test_a_parcel_can_go_back_to_the_owner_after_the_job_failed(self):
+        await self.missed_the_day()
+        await self.line("selam", "Selam.", mode="say", target=self.owner["id"])
+        self.assertIn("hâlâ onun elinde", str(self.client.message_batches[-1]))
+        start = self.wallet()
+        text = (await self.line("mektubu getirdim"))["narration"]
+        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+        self.assertEqual(self.wallet(), start)
+        self.assertIn("para çıkmıyor", text)
+
+    async def test_a_dead_recipient_leaves_the_parcel_for_the_owner_to_take_back(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        self.recipient().update(combat_status="dead", current_hp=0)
+        await self.line("bir saat bekliyorum")
+        self.assertEqual(self.status(), "expired")
+        await self.line("mektubu getirdim")
+        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+
+    async def test_a_parcel_given_to_someone_else_after_the_day_stays_in_hand(self):
+        await self.missed_the_day()
+        self.world["npcs"].append({"id": "npc_other", "name": "Bren", "role": "Hamal", "location": self.city,
+                                   "status": "alive", "personality": "", "appearance": "", "relationship": "neutral",
+                                   "knowledge": [], "memory": []})
+        self.world["flags"].update(active_npc_id="npc_other", last_npc_id="npc_other", active_npc_until_turn=99)
+        await self.line("mektubu getirdim", "Ne mektubu?", mode="say", target="npc_other")
+        self.assertEqual(self.parcel_owner(), ["player"])
+
     async def test_withdrawing_gives_the_parcel_back_and_cools_the_owner(self):
         await self.job()
         await self.line("mektubu alıyorum", "Al.")

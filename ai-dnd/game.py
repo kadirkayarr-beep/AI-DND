@@ -8268,6 +8268,9 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     if decision == "give":
         gate["reply"] = dialogue_jobs.deliver(session, thread, person, player_input)
         return gate
+    if decision == "give_late":
+        gate["reply"] = dialogue_jobs.deliver_late(session, thread, person, player_input)
+        return gate
     reading = world_threads.read_answer(player_input, person, thread)
     errand = thread.get("type") == "errand"
     if decision == "accepted" and errand:

@@ -1086,8 +1086,20 @@ def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     state = view(world)
     if state is None or not isinstance(npc, dict):
         return []
-    return [t for t in state["history"] if t.get("status") == "done" and t.get("type") == "errand"
-            and t.get("recipient_npc_id") == npc.get("id")]
+    return [t for t in state["history"] if (t.get("status") == "done" or t.get("delivered_late"))
+            and t.get("type") == "errand" and t.get("recipient_npc_id") == npc.get("id")]
+
+
+def late_parcels(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """Errands that closed with the parcel still in the player's hand, where this person is who it belongs with."""
+    from adventure import dialogue_jobs
+    state = view(world)
+    if state is None or not isinstance(npc, dict):
+        return []
+    return [t for t in reversed(state["history"]) if t.get("type") == "errand"
+            and t.get("status") in {"failed", "expired", "abandoned"}
+            and npc.get("id") in {t.get("recipient_npc_id"), t.get("owner_npc_id")}
+            and dialogue_jobs.holds_parcel(world, t)]
 
 
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
@@ -1116,6 +1128,9 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in deliveries_to(world, npc):
         if gives_item(text, npc, thread):
             return {"thread_id": thread["thread_id"], "decision": "give", "npc_id": npc.get("id")}
+    for thread in late_parcels(world, npc):
+        if gives_item(text, npc, thread):
+            return {"thread_id": thread["thread_id"], "decision": "give_late", "npc_id": npc.get("id")}
     mine = jobs_of(world, npc)
     closed = recent_closed(world, npc)
     if not (mine or closed) or answer_table() == {}:
