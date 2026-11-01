@@ -273,6 +273,13 @@ class Wave3ConversationUxTests(unittest.TestCase):
                 session.character["current_hp"] = 0
                 session.world_state["player_combat_status"] = "unconscious"
                 with patch("game.ollama.chat", side_effect=AssertionError("unconscious speech")):
+                    # Real death: a dying body's turn is its save, and a stable one cannot act at all.
+                    result = session.run_player_turn(text, interaction_mode=mode)
+                    self.assertEqual(result["action_result"]["action"], "death_save")
+                    self.assertEqual(result["model_calls"], 0)
+                    session.character["current_hp"] = 0
+                    session.world_state["player_combat_status"] = "unconscious"
+                    session.world_state["death_state"]["stable"] = True
                     with self.assertRaises(ValueError):
                         session.run_player_turn(text, interaction_mode=mode)
                 self.assertEqual(session.world_state["flags"]["active_npc_id"], "npc_aylin")

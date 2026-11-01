@@ -309,8 +309,8 @@ class HttpResolutionBoundaryTests(unittest.IsolatedAsyncioTestCase):
             "action_id": str(uuid4()),
         })
         self.assertEqual(response.status_code, 200, response.text[:300])
-        self.assertEqual(len(client.message_batches), batches_before,
-                         "Python-owned unverified lore must not reach the model.")
+        # The owner rejected the stock 'cannot verify' line: the one spoken to answers, once, and states no fact.
+        self.assertEqual(len(client.message_batches), batches_before + 1)
         self.assertNotIn("ejderha", response.json()["narration"].casefold())
 
 

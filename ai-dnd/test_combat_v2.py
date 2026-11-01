@@ -209,28 +209,28 @@ class CombatV2Turns(unittest.TestCase):
                              "Enemy attacked again after stabilization")
             return original_turn(session, actor_id)
 
-        with patch.object(monster_combat, "run_turn", side_effect=enemy_turn), self.rolls(
-            (20, 15), (20, 5), (20, 1), (20, 20), (6, 3), (6, 4),
-            (20, 10), (20, 1), (20, 1), (20, 10),
-            (20, 1), (20, 1), (20, 10), (4, 2),
-        ):
-            result = self.turn()
-        self.assertEqual(result["enemy_action"]["outcome"], "critical_hit")
-        self.assertEqual(result["enemy_action"]["damage"], 10)
-        saves = [action["death_save"] for action in result["enemy_actions"]
-                 if action["action"] == "death_save"]
-        self.assertEqual([save["roll"] for save in saves], [10, 10, 10])
-        self.assertEqual(saves[-1]["outcome"], "stable")
+        # Real death gives one player-rolled save a turn, so the saves no longer run inside the blow's turn.
+        with patch.object(monster_combat, "run_turn", side_effect=enemy_turn) as enemy:
+            with self.rolls((20, 15), (20, 5), (20, 1), (20, 20), (6, 3), (6, 4)):
+                result = self.turn()
+            self.assertEqual(result["enemy_action"]["outcome"], "critical_hit")
+            self.assertEqual(result["enemy_action"]["damage"], 10)
+            self.assertFalse(self.world["death_state"]["stable"])
+            self.assert_snapshot(result)
+            for rolls, outcome in ((((20, 10), (20, 1), (20, 1)), "success"),
+                                   (((20, 10), (20, 1), (20, 1)), "success"),
+                                   (((20, 10), (4, 2)), "stable")):
+                with self.rolls(*rolls):
+                    result = self.session.run_player_turn("Hamle.")
+                self.assertEqual(result["action_result"]["outcome"], outcome)
+        result = result["action_result"]
         self.assertFalse(result.get("combat_ended", False))
         self.assertEqual(self.session.character["current_hp"], 0)
         self.assertEqual(self.world["player_combat_status"], "unconscious")
-        self.assertTrue(result["combat"]["active"])
-        self.assertEqual(result["combat"]["current_actor_id"], "player")
+        self.assertTrue(self.world["combat"]["active"])
+        self.assertEqual(self.world["combat"]["current_actor_id"], "player")
         self.assertTrue(self.world["death_state"]["stable"])
-        self.assert_snapshot(result)
-        attacks = [action for action in result["enemy_actions"]
-                   if action["action"] == "enemy_attack"]
-        self.assertEqual(len(attacks), 3, "Enemy attacked again after stabilization")
+        self.assertEqual(enemy.call_count, 3, "Enemy attacked again after stabilization")
 
     def test_round_advance(self):
         # Initiative consumes two dice only once, then two misses per exchange.

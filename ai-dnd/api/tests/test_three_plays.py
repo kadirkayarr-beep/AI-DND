@@ -459,6 +459,7 @@ class SparedTests(ThreePlaysTests):
         person.update(current_hp=300, max_hp=300, role_known_to_player=True,
                       reality_layer="PROCEDURAL_LOCAL_FICTION")
         self.session.character["current_hp"] = 1
+        self.session.rng.seed(1776)  # a natural 20 on the blow that fells you is a fair crit; this pins a plain one
         out = None
         for _ in range(40):
             out = await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))

@@ -1408,9 +1408,10 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             "Daha önce bana Mavi Fener Camhanesi'ni bulacağına söz vermiştin.",
             "Daha önce bana Mavi Fener Camhanesi'ni önermediğini söylemiştin.",
         )
-        before_veto_calls = recommendation_client.chat_calls
+        places_before = set(session.world_state["locations"])
         for message in (hidden_question, *history_claims):
             with self.subTest(veto_message=message):
+                before_veto_calls = recommendation_client.chat_calls
                 response = await test_campaign_api.CampaignApiTests.post_scene_turn(
                     self,
                     turn_url,
@@ -1422,12 +1423,18 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                     },
                 )
                 self.assertEqual(response.status_code, 200, response.text)
+                # The owner rejected a stock reply: the person answers a plain question and a denial of their own
+                # words, once each. A claimed promise stays vetoed with no call, and none of them makes a place.
+                asked = message != history_claims[0]
                 self.assertEqual(
-                    response.json()["turn_outcome"]["status"], "unverified"
+                    response.json()["turn_outcome"]["status"],
+                    "experimental_attributed_speech" if asked else "unverified",
                 )
                 self.assertEqual(
-                    recommendation_client.chat_calls, before_veto_calls
+                    recommendation_client.chat_calls, before_veto_calls + (1 if asked else 0)
                 )
+                self.assertEqual(set(session.world_state["locations"]), places_before)
+                self.assertNotIn("Mavi Fener", response.json()["narration"])
 
     async def test_default_npc_place_statement_keeps_attribution_after_resume_and_respects_locked_target(self):
         city_id, session_id, session, turn_url, tavern_id, door = (

@@ -180,8 +180,12 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.unchanged_rejection("/item list", "existing_action_owner_required")
 
     def test_terminal_or_unconscious_actor_is_not_bypassed(self):
+        # Real death: a dying body's turn is its save, so the command never reaches the item owner.
         self.s.character["current_hp"] = 0
-        self.unchanged_rejection("/item list", "existing_action_owner_required")
+        self.w["player_combat_status"] = "unconscious"
+        inventory = copy.deepcopy(self.w["inventory"])
+        self.assertEqual(self.run_item("/item list")["action"], "death_save")
+        self.assertEqual(self.w["inventory"], inventory)
 
     def test_armor_changes_fail_closed(self):
         self.w["inventory"].append("Chain Mail")

@@ -469,13 +469,16 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(client.chat_calls, 0)
 
     async def test_unaddressed_world_question_does_not_become_npc_identity(self):
+        from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
         await self.first_look()
         npc = self.world["npcs"][0]
         await self.turn("İsmin nedir?", target_id=npc["id"])
-        result = await self.turn("Şehrin yöneticisi kim?", interaction_mode="do")
-        self.assertFalse(result["narration"].startswith(npc["name"] + ":"))
+        # The owner rejected a stock line here: mid-talk the person answers, but not as if asked their name.
+        client = ScriptedNpcSpeechClient("Onu ben de bilmem.")
+        with patch.object(self.app.state.ollama_adapter, "_client", client):
+            result = await self.turn("Şehrin yöneticisi kim?", interaction_mode="do")
+        self.assertIn("Onu ben de bilmem.", result["narration"])
         self.assertNotIn("Ben " + npc["name"], result["narration"])
-        self.assertEqual(self.client.calls, 0)
 
     async def test_attributed_questions_are_not_blocked_by_topic_words(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
