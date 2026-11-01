@@ -1097,7 +1097,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and thread.get("type") == "errand":
             reading = read_answer(text, npc, thread)
-            if reading["take"] or reading["move"]:
+            if (reading["take"] or reading["move"]) and reading["meaning"] in {None, "accept"}:
                 return {"thread_id": thread["thread_id"], "decision": "take", "npc_id": npc.get("id"),
                         "reading": reading}
         decision = bind_player_decision(world, thread, text, npc)

@@ -8274,6 +8274,8 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
         if not world_threads.apply_decision(world, thread, decision, turn):
             gate["decision"] = None
     thread = world_threads.by_id(world, gate["thread_id"])
+    if decision == "abandoned" and reading["move"]:
+        return None  # the job is over and the walk is still a walk
     if thread.get("type") == "hiring" and thread.get("status") == "accepted" and (
             gate["decision"] == "work" or (gate["decision"] == "accepted" and reading["start"])):
         if world_threads.can_start_now(world, thread):

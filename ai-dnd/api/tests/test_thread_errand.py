@@ -238,6 +238,29 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.parcel_owner(), [self.owner["id"]])
         self.assertEqual(self.world["relationships"][self.owner["id"]]["score"], -1)
 
+    async def test_quitting_and_walking_off_does_not_hand_over_the_parcel(self):
+        for line in ("vazgeçtim, gidiyorum", "vazgeçtim gidiyorum"):
+            await self.job()
+            await self.line("olur", "Tamam.")
+            await self.line(line, "Sen bilirsin.")
+            self.assertEqual(self.status(), "abandoned", line)
+            self.assertEqual(self.parcel_owner(), [self.owner["id"]], line)
+
+    async def test_saying_no_and_walking_off_does_not_hand_over_the_parcel(self):
+        for line in ("hayır, gidiyorum", "yok gidiyorum"):
+            await self.job()
+            await self.line("olur", "Tamam.")
+            await self.line(line, "Peki.")
+            self.assertEqual(self.status(), "accepted", line)
+            self.assertEqual(self.parcel_owner(), [self.owner["id"]], line)
+
+    async def test_quitting_with_the_parcel_in_hand_gives_it_back_on_the_way_out(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        await self.line("vazgeçtim, gidiyorum", "Sen bilirsin.")
+        self.assertEqual(self.status(), "abandoned")
+        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+
     async def test_small_talk_after_taking_it_changes_nothing(self):
         await self.job()
         await self.line("mektubu alıyorum", "Al.")
