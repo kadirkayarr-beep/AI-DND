@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
 import re
+from functools import lru_cache
 from typing import Any
 
+import campaign_time
 import living_world
+import name_catalog
 from api.world_metadata import world_metadata_for_state
+
+_LOG = logging.getLogger(__name__)
 
 
 _TIME_OPENERS = {
@@ -28,6 +36,52 @@ _CITY_SPELLINGS = {
     "baldursgate": "Baldur's Gate", "neverwinter": "Neverwinter", "waterdeep": "Waterdeep",
     "luskan": "Luskan", "silverymoon": "Silverymoon", "phandalin": "Phandalin",
 }
+
+
+# Used only when a world has no clock to read an hour from.
+_HOUR_OF_PERIOD = {"dawn": 7, "day": 13, "evening": 18, "night": 22}
+
+
+@lru_cache(maxsize=1)
+def _catalog() -> dict[str, Any]:
+    try:
+        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        lines = json.loads((name_catalog.CATALOG_DIR / "opening_lines.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        _LOG.warning("The opening lines could not be read.")
+        return {}
+    tags = dict(mapping["openings"]["scene_tags"])
+    place_tags = {kind: tag for tag, kinds in mapping.get("place_tags", {}).items() for kind in kinds}
+    return {"rules": mapping["openings"], "scene_tags": tags, "place_tags": place_tags, "items": lines["items"]}
+
+
+def _line_fits(item: dict[str, Any], tag: str, hour: int, weather: Any, rules: dict[str, Any]) -> bool:
+    return (
+        tag in item["location_types"]
+        and any(window["start_hour"] <= hour < window["end_hour"] for window in item["time_windows"])
+        and set(item["required_bindings"]) <= set(rules["bound_slots"])
+        and (weather == "clear" or item["id"] not in rules["clear_sky_only"])
+    )
+
+
+def catalog_line(world: dict[str, Any], location_id: str, weather: Any, time_of_day: str = "day") -> str | None:
+    """One first line for this place and hour, drawn by the campaign seed, or None when none fits."""
+    data = _catalog()
+    place = world.get("locations", {}).get(location_id)
+    if not data or not isinstance(place, dict):
+        return None
+    tag = data["place_tags"].get(place.get("place_kind")) or data["scene_tags"].get(
+        living_world.scene_kind(world, location_id))
+    clock = campaign_time.public_time(world) if world.get("campaign_time") else None
+    hour = clock["hour"] if clock else _HOUR_OF_PERIOD.get(time_of_day, 13)
+    items = [item for item in data["items"] if tag and _line_fits(item, tag, hour, weather, data["rules"])]
+    if not items:
+        return None
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{location_id}\x00opening".encode("utf-8")).digest()
+    text = items[int.from_bytes(digest[:4], "big") % len(items)]["opening_template"]
+    for slot in data["rules"]["bound_slots"]:
+        text = text.replace("{" + slot + "}", place["name"])
+    return text
 
 
 def _tone(character: dict[str, Any], metadata: dict[str, str]) -> str:
@@ -99,7 +153,13 @@ def initialize_campaign_opening(
     tone = _tone(character, metadata)
     time_opener = _TIME_OPENERS[metadata["time_of_day"]]
     weather_line = _WEATHER_LINES[metadata["weather"]]
-    parts = [f"{time_opener} {location['name']}.", weather_line, event["text"]]
+    line = catalog_line(world_state, location_id, metadata["weather"], metadata["time_of_day"])
+    if line:
+        where = "" if location["name"] in line else f"{location['name']}."
+        sky = "" if metadata["weather"] == "clear" else weather_line
+        parts = [where, line, sky, event["text"]]
+    else:
+        parts = [f"{time_opener} {location['name']}.", weather_line, event["text"]]
     home = _home_elsewhere(character.get("origin"), location["name"])
     if home:
         parts.append(f"{home} uzakta kaldı.")

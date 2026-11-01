@@ -1,0 +1,904 @@
+{
+  "schema_version": "1.0.0",
+  "content_status": "özgün_aday",
+  "field_descriptions": {
+    "schema_version": "Bu veri zarfının şema sürümü.",
+    "content_status": "İçeriğin özgün ve henüz entegrasyonu doğrulanmamış aday olduğunu belirtir.",
+    "field_descriptions": "Alanların kısa Türkçe açıklamaları.",
+    "binding_rules": "Motorun seçim, bağlama ve gösterim kuralları.",
+    "items": "Tam olarak 40 kısa, bağımsız sahne açılışı adayı.",
+    "location_types": "Olayın seçilebileceği doğrulanmış konum türleri.",
+    "time_tags": "Motorca mevcut saate uygunluğu doğrulanacak zaman etiketleri.",
+    "time_windows": "Başlangıcı dahil, sonu hariç dünya içi yerel saat aralıkları.",
+    "start_hour": "0–23 arasında başlangıç saati; aralığa dahildir.",
+    "end_hour": "1–24 arasında bitiş saati; aralığa dahil değildir.",
+    "preconditions": "Seçimden önce motorun doğrulayacağı koşullar; oyuncuya veya anlatı modeline gönderilmez.",
+    "required_bindings": "Metindeki yer tutucular ve bunları doldurmak için gerekli doğrulanmış kamusal bilginin açıklamaları.",
+    "id": "OPN001–OPN040 aralığında benzersiz açılış kimliği.",
+    "opening_template": "Konum ve zamanla uyumlu, kısa ve kamusal sahne kurma satırı; olay örgüsü veya oyuncu eylemi dayatmaz."
+  },
+  "binding_rules": [
+    "İçerik özgün bir ek aday kataloğudur. OYNANACAK_SEY_PLAN_20261031.md planının motorun karar vermesi, tohumlu seçim ve sıfır ek model çağrısı ilkeleri esas alınmıştır; bu alanlar planın tanımladığı mevcut çalışma zamanı şeması değildir. Ürün entegrasyonu veya canlı kullanım doğrulanmamıştır.",
+    "İzinli location_types değerleri: sokak, han, pazar, liman, tapinak, soylu_konagi, muhafiz_karakolu, lonca_atolyesi, sehir_kapisi, sehir_cevresi. Gece bir konum türü değildir.",
+    "Bu dosyada beş temel konum kullanılır. Motor mevcut gerçek konum türünü doğrulamadan bir kayıt seçemez.",
+    "Saatler dünya içindeki yerel saattir. Aralıklar başlangıç dahil, bitiş hariçtir. Gece 20–24 ve 0–6 olmak üzere iki aralıktır; 24 ertesi günün sınırıdır.",
+    "Sabah 6–11, gündüz 11–17, akşam 17–20, gece 20–24 ile 0–6 aday etiketleridir. Motorun mevcut saat ve zaman etiketi onayı olmadan uygulanmaz; oyun başlangıç saati dayatılmaz.",
+    "Önkoşullar ve bağlama açıklamaları yalnızca motor içindir. Anlatı modeline yalnızca tüm yer tutucuları doldurulmuş, seçilmiş kamusal satır aktarılır; ham kayıt, motor koşulları veya bağlama kuralları aktarılmaz.",
+    "Süslü parantezli her yer tutucu required_bindings içindeki açıklamaya göre motorun doğruladığı kamusal bağlamdan doldurulur. Bağlama eksikse tahmin yürütmek yerine kayıt elenir. Boş nesne, bağlanacak yer tutucu olmadığını belirtir.",
+    "Mekân adı bağlamak, o mekâna yeni kanon tarihi, inanç, kişi, görev, özel oda veya erişim izni eklemez. Metinler Neverwinter uyumlu genel şehir fantezisi için özgün adaylardır; resmî kaynak alıntısı veya kanon beyanı değildir.",
+    "Belirtilen açık alan veya gece işletmesi ayrıca doğrulanmalıdır. Hanların, pazarların ve tapınakların tamamının aynı saatte açık ya da kapalı olduğu varsayılmaz.",
+    "Bir adayın seçilmesi oyuncunun hareket ettiğini, konuştuğunu, hizmet aldığını, alışveriş yaptığını, savaşa girdiğini veya görev kabul ettiğini ileri sürmez.",
+    "Açılış yalnızca sahnenin gözlenebilir başlangıç görünümüdür. Sabit bir hikâye, zorunlu karakter, görev ilanı veya sonraki eylem eklenmez.",
+    "Açılış metnine motor kuralları, içerik havuzu açıklamaları veya görev olup olmadığına dair meta ifadeler eklenmez.",
+    "Motor uygun kayıtları kampanya tohumu, doğrulanmış konum ve zaman bağlamıyla deterministik olarak seçer; yer tutucuları ve katılımcıları bağlar, gözlenebilir olay ya da sahne örneğini önce dünya durumuna kaydeder, sonra yalnızca o örneğin kamusal satırını mevcut anlatım yoluna iletir. Bu katalog kendiliğinden durum değiştirmez.",
+    "Seçim, bağlama, koşul değerlendirme ve Yaklaş tepkisinin karara bağlanması ek model çağrısı gerektirmeyen motor işleri olarak tasarlanır. Yeni model, model ayarı veya ayrı üretim çağrısı istenmez; anlatıcı yalnız motorun kesinleştirdiği kamusal satırı seslendirir.",
+    "Katalogların bütünü, koşullar veya katılımcı listeleri prompta dökülmez. Anlatıma yalnız seçilmiş ve bağlanmış gerekli kamusal satır gönderilir.",
+    "Katılımcı rolleri motor içi seçim ipuçlarıdır. Bir kişinin adı yalnız kamusal kimliği gerçekten biliniyorsa, rolü yalnız gözlenmiş veya kamusal olarak doğrulanmışsa kullanılabilir; gizli kimlik, gizli sınıf, özel kayıt ve iç bilgi türetilmez.",
+    "Tür etiketleri bu aday dosyanın Türkçe sözlüğüdür; mevcut çalışma zamanı place kind anahtarlarına doğrudan ithal edilebilir olduğu iddia edilmez. Örneğin han/tavern, pazar/market, tapinak/temple eşlemeleri için ayrı, doğrulanmış bir uyarlama gerekir; bu dosya uyarlayıcı uygulamaz.",
+    "Şablondaki bütün kişi, nesne, eylem, ışık, hava ve erişim ayrıntıları motorun dünya kaydıyla doğrulanır. Eksik bir ayrıntı ancak mevcut motor kuralları yaratılmasına izin veriyorsa üretilip kaydedilebilir; aksi halde aday elenir. Hiçbir şablon tek başına gerçek kişi, nesne veya olay yaratma yetkisi vermez."
+  ],
+  "items": [
+    {
+      "id": "OPN001",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Sabah ışığı, {sokak_adi} boyunca uzanan pencere pervazlarına vuruyor.",
+      "required_bindings": {
+        "sokak_adi": "Motorun doğruladığı mevcut sokağın görünen adı."
+      },
+      "preconditions": [
+        "Bu sokakta dışarıdan görülen pencereler ve gün ışığı bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN002",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Kepenkler birer birer açılırken sokaktaki ilk el arabaları taşların üzerinden geçiyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Sokakta sabah açılan işyerleri ve el arabası trafiği bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN003",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Dar sokağın bir yanı güneşte, öteki yanı çıkmaların serin gölgesinde kalıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Dar sokak, çıkmalı yapılar ve doğrudan gün ışığı bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN004",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Çeşmenin su sesi, sokağın iki ucundan gelen ayak seslerine karışıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Sokakta çalışan bir çeşme ve gündüz yaya trafiği bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN005",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Sokak fenerleri yanarken çatıların üzerindeki son ışık yavaşça soluyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Akşam gökyüzü görülebilmeli ve sokak fenerleri yakılıyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN006",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Günün son yük arabası köşeyi dönüyor; taş duvarların gölgeleri sokağı kaplıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Bu sokakta gündüz yük trafiği sona eriyor ve akşam gölgeleri oluşuyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN007",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "{sokak_adi} boyunca birkaç fener yanıyor; aralarındaki karanlıkta adımlar daha belirgin duyuluyor.",
+      "required_bindings": {
+        "sokak_adi": "Motorun doğruladığı mevcut sokağın görünen adı."
+      },
+      "preconditions": [
+        "Sokak gece erişilebilir ve aralıklı fenerlerle aydınlatılmış olmalı."
+      ]
+    },
+    {
+      "id": "OPN008",
+      "location_types": [
+        "sokak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Gece serinliği taşlara sinmiş; açık bir üst pencereden alçak bir konuşma sesi geliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Sokak gece erişilebilir, hava serin ve dışarıya ses veren açık bir pencere bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN009",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "{han_adi} salonunda sabah ışığı boş kupaların arasından geçiyor.",
+      "required_bindings": {
+        "han_adi": "Motorun doğruladığı mevcut hanın görünen adı."
+      },
+      "preconditions": [
+        "Hanın ortak salonu sabah açık, pencereli ve kupalarla kullanılan bir yer olmalı."
+      ]
+    },
+    {
+      "id": "OPN010",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Hanın avlusundan kova sesleri geliyor; ortak salonda birkaç sandalye yeni yerine çekilmiş.",
+      "required_bindings": {},
+      "preconditions": [
+        "Hanın ortak salonu ve avlusu bu saatte erişilebilir, sabah düzenlemesi sürüyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN011",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Hanın ortak salonuna pencerelerden geniş ışık şeritleri düşüyor; bir köşede çalgı kılıfı duvara yaslı.",
+      "required_bindings": {},
+      "preconditions": [
+        "Ortak salon açık, pencereler ışık alıyor ve kamusal alanda bir çalgı kılıfı bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN012",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Açık avlu kapısı hanın salonuna serin hava taşıyor; masalardan alçak konuşmalar yükseliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Ortak salon açık, avlu kapısı kullanılabilir ve hava serin olmalı."
+      ]
+    },
+    {
+      "id": "OPN013",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "{han_adi} salonunda lambalar yakılmış; masalar arasından tabakların hafif tıkırtısı geliyor.",
+      "required_bindings": {
+        "han_adi": "Motorun doğruladığı mevcut hanın görünen adı."
+      },
+      "preconditions": [
+        "Hanın ortak salonu akşam açık, aydınlatılmış ve yemek servisi sürüyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN014",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Hanın ocağındaki alevler canlanıyor; girişe yakın sandalyeler birer birer doluyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Ortak salon akşam açık, ocak güvenle yanıyor ve konuklar geliyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN015",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Hanın gece açık kalan salonunda birkaç kandil yanıyor; ocaktan arada bir çıtırtı geliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Bu hanın ortak salonu gece açık, kandiller ve etkin ocak bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN016",
+      "location_types": [
+        "han"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "{han_adi} girişinde küçük bir lamba yanıyor; iç salondan tek tük kupa sesleri duyuluyor.",
+      "required_bindings": {
+        "han_adi": "Motorun doğruladığı mevcut hanın görünen adı."
+      },
+      "preconditions": [
+        "Han girişi ve ortak salonu gece erişilebilir, içeride konuklar bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN017",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Pazar örtüleri geriliyor; boş tezgâhların üzerine ilk sepetler yerleşiyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Pazar bu sabah kuruluyor olmalı; örtülü tezgâhlar ve ürün sepetleri bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN018",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "{pazar_adi} girişinde sabahın eğik ışığı, henüz açılan kumaş rulolarını aydınlatıyor.",
+      "required_bindings": {
+        "pazar_adi": "Motorun doğruladığı mevcut pazarın görünen adı."
+      },
+      "preconditions": [
+        "Pazar sabah açık, giriş yakınında kumaş tezgâhı ve doğrudan ışık bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN019",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Tezgâh örtülerinin gölgeleri pazar yolunu çizgilere bölüyor; sepetler elden ele geçiyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Pazar gündüz açık, örtülü tezgâhlar ve olağan alışveriş hareketi bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN020",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Pazarın ortasında çağrılar birbirine karışıyor; terazilerin küçük ağırlıkları güneşte parlıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Pazar açık ve canlı olmalı; terazili tezgâhlar doğrudan ışık almalı."
+      ]
+    },
+    {
+      "id": "OPN021",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Pazarın kenarındaki birkaç tezgâh toplanıyor; açık kalanların lambaları henüz yakılmış.",
+      "required_bindings": {},
+      "preconditions": [
+        "Pazar akşam kısmen açık, bazı tezgâhlar kapanıyor ve diğerleri aydınlatılıyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN022",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "{pazar_adi} yolunda günün gölgeleri uzuyor; kasa taşıyanlar yavaşlayan kalabalığın arasından geçiyor.",
+      "required_bindings": {
+        "pazar_adi": "Motorun doğruladığı mevcut pazarın görünen adı."
+      },
+      "preconditions": [
+        "Pazar akşam erişilebilir, kalabalık azalmaya başlamış ve kasa taşıması sürüyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN023",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Gece pazarında kandiller, örtülerin altındaki tezgâhları küçük ışık adalarına ayırıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Bu yerde gece pazarı açık olmalı; örtülü tezgâhlar ve kandiller bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN024",
+      "location_types": [
+        "pazar"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Pazarın kamusal geçidinde kapalı örtüler sıralanıyor; nöbet fenerinin ışığı kasaların üzerinden geçiyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Pazarın kamusal geçidi gece erişilebilir, bu kesimde tezgâhlar kapalı ve devriye bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN025",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Sabah ışığı iskele tahtalarına vuruyor; ilk yük halatları kıyıda çözülüyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Limanın kamusal kıyısı açık, gün ışığı ve sabah yük işi bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN026",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "{iskele_adi} çevresinde martılar dönüyor; suya vuran küreklerin sesi kıyıya ulaşıyor.",
+      "required_bindings": {
+        "iskele_adi": "Motorun mevcut limanda doğruladığı iskelenin adı."
+      },
+      "preconditions": [
+        "İskele kamusal kıyıdan görülebilmeli; martılar ve hareket eden küçük tekneler bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN027",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Limanın açık kıyısında halatlar kuruyor; suda sallanan teknelerin gölgeleri birbirine değiyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Kamusal kıyı açık, kurutulan halatlar ve gündüz ışığında görülen tekneler bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN028",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "İskele boyunca yük sesleri yayılıyor; direklerin arasından kıyıya kesik kesik rüzgâr geliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Kamusal iskele erişilebilir, yük işi sürüyor ve rüzgâr bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN029",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Kıyı lambaları yanarken teknelerin direkleri solan gökyüzünün önünde ince çizgiler gibi kalıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Kamusal kıyı erişilebilir, akşam gökyüzü görülebilmeli ve kıyı aydınlatması yakılıyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN030",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "{iskele_adi} ucunda su koyulaşıyor; toplanan halatların sesi taş kıyıda yankılanıyor.",
+      "required_bindings": {
+        "iskele_adi": "Motorun mevcut limanda doğruladığı iskelenin adı."
+      },
+      "preconditions": [
+        "İskele kamusal alandan görülebilmeli; akşam ışığı azalıyor ve halat toplama işi sürüyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN031",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Liman fenerleri suyun üzerinde kırık çizgiler bırakıyor; bağlı tekneler hafifçe gıcırdıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Kamusal kıyı gece erişilebilir; yanan fenerler, bağlı tekneler ve hafif su hareketi bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN032",
+      "location_types": [
+        "liman"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Gece iskeleye serilmiş; bir işaret lambası, boş kasalarla kıyı basamaklarını aydınlatıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "İskeledeki kamusal yol gece açık, işaret lambası ve güvenli kıyı basamakları bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN033",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "Tapınağın açık avlusuna sabah ışığı düşüyor; su kabının yüzeyinde küçük halkalar yayılıyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Avlu sabah ziyarete açık, gün ışığı ve hareket eden suyu bulunan bir kap olmalı."
+      ]
+    },
+    {
+      "id": "OPN034",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "sabah"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 6,
+          "end_hour": 11
+        }
+      ],
+      "opening_template": "{tapinak_adi} girişinde yeni süpürülmüş taşlar aydınlanıyor; içeriden yumuşak ayak sesleri geliyor.",
+      "required_bindings": {
+        "tapinak_adi": "Motorun doğruladığı mevcut tapınağın görünen adı; inanç ayrıntıları buradan türetilmez."
+      },
+      "preconditions": [
+        "Tapınağın kamusal girişi sabah açık ve içeride görevliler veya ziyaretçiler bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN035",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Tapınak avlusunun bir yanı gölgede kalıyor; oturakların çevresinden düşük sesli konuşmalar yükseliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Avlu gündüz ziyarete açık, oturaklar ve konuşmaya izin verilen kamusal alan bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN036",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gunduz"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 11,
+          "end_hour": 17
+        }
+      ],
+      "opening_template": "Yüksek pencerelerden giren ışık tapınağın taş zemininde geniş lekeler oluşturuyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Tapınağın bu iç bölümü gündüz kamusal erişime açık, yüksek pencereli ve ışık alıyor olmalı."
+      ]
+    },
+    {
+      "id": "OPN037",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "Tapınağın giriş kandilleri yakılmış; avlunun duvarlarında gölgeler yavaşça uzuyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Giriş ve avlu akşam ziyarete açık, kandil kullanımı uygun ve akşam ışığı bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN038",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "aksam"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 17,
+          "end_hour": 20
+        }
+      ],
+      "opening_template": "{tapinak_adi} avlusunda günün ışığı çekiliyor; taş oturakların yanındaki ilk kandil yanıyor.",
+      "required_bindings": {
+        "tapinak_adi": "Motorun doğruladığı mevcut tapınağın görünen adı; inanç ayrıntıları buradan türetilmez."
+      },
+      "preconditions": [
+        "Avlu akşam ziyarete açık, taş oturaklar ve yerel uygulamaya uygun kandiller bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN039",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Tapınağın gece açık girişinde alçak bir kandil yanıyor; avludan serin hava geliyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Giriş gece ziyarete açık, avluyla hava bağlantısı ve serin hava bulunmalı."
+      ]
+    },
+    {
+      "id": "OPN040",
+      "location_types": [
+        "tapinak"
+      ],
+      "time_tags": [
+        "gece"
+      ],
+      "time_windows": [
+        {
+          "start_hour": 20,
+          "end_hour": 24
+        },
+        {
+          "start_hour": 0,
+          "end_hour": 6
+        }
+      ],
+      "opening_template": "Gece ziyaretine açık avluda kandil ışıkları taş yolu izliyor; görevlinin adımları aralıklarla duyuluyor.",
+      "required_bindings": {},
+      "preconditions": [
+        "Avlu gece ziyarete açık, aydınlatılmış taş yol ve görevli bulunmalı."
+      ]
+    }
+  ]
+}

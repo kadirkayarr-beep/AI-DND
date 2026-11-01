@@ -5,11 +5,13 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import campaign_time
 import game
 import grounded_action
 import living_world
 import local_places
 import name_catalog
+from api import opening_narrative
 from api.tests import test_campaign_api as api
 from api.tests.test_natural_addressing import TownClient
 
@@ -131,6 +133,80 @@ class PlaceTests(unittest.TestCase):
                 SimpleNamespace(world=world), "kent", name=None, kind="generic", provenance={}, noun="dukkan")
         self.assertNotIn(record["name"].split()[0], name_catalog.people())
         self.assertIn(record["name"], [door["name"].rsplit(" ", 1)[0] for door in world["doors"]])
+
+
+class OpeningTests(unittest.TestCase):
+    def world(self, hour, kind="city", **place):
+        world = {"location": "yer", "locations": {"yer": {"name": "Neverwinter", "scene_kind": kind, **place}},
+                 "scene_state": {"campaign_seed": "tohum1"}}
+        campaign_time.initialize(world)
+        world["campaign_time"]["start_second"] = hour * 3600
+        return world
+
+    def lines(self, hour, weather="clear", **kwargs):
+        texts = set()
+        for seed in range(40):
+            world = self.world(hour, **kwargs)
+            world["scene_state"]["campaign_seed"] = f"tohum{seed}"
+            texts.add(opening_narrative.catalog_line(world, "yer", weather))
+        return texts
+
+    def test_the_line_fits_the_hour_and_varies_by_seed(self):
+        morning, noon, evening, night = (self.lines(hour) for hour in (8, 13, 18, 22))
+        self.assertTrue(all(len(lines) >= 1 for lines in (morning, noon, evening, night)))
+        self.assertGreaterEqual(len(noon | evening), 3)
+        self.assertFalse(morning & noon or noon & evening or evening & night)
+        self.assertTrue(all("Sabah" in line or "Kepenk" in line for line in morning), morning)
+
+    def test_the_same_seed_gives_the_same_line(self):
+        self.assertEqual(*(opening_narrative.catalog_line(self.world(13), "yer", "clear") for _ in range(2)))
+
+    def test_no_street_name_is_invented_for_a_city(self):
+        for hour in (8, 13, 18, 22):
+            for line in self.lines(hour):
+                self.assertNotIn("{", line)
+                self.assertNotIn("Neverwinter boyunca", line)
+
+    def test_a_line_of_sunlight_does_not_open_a_rainy_day(self):
+        for weather in ("rain", "fog", "snow", "storm"):
+            for hour in (8, 13, 18):
+                lines = self.lines(hour, weather)
+                self.assertTrue(lines, (weather, hour))
+                for line in lines:
+                    self.assertNotRegex(line, "güneş|Sabah ışığı|son ışık", (weather, hour))
+
+    def test_an_inn_opens_as_an_inn_with_its_name_filled_in(self):
+        lines = self.lines(18, kind="tavern")
+        self.assertTrue(lines)
+        self.assertTrue(all(("Han" in line or "Neverwinter" in line) and "sokak" not in line for line in lines), lines)
+
+    def test_a_place_with_no_lines_has_none(self):
+        self.assertIsNone(opening_narrative.catalog_line(self.world(13, kind="dungeon"), "yer", "clear"))
+
+    def test_a_catalog_line_is_only_what_can_be_seen(self):
+        for hour in (8, 13, 18, 22):
+            for line in self.lines(hour):
+                self.assertNotRegex(line.casefold(), "görev|sen |senin|hissed|görüyorsun")
+
+
+class NewCampaignOpeningTests(unittest.IsolatedAsyncioTestCase):
+    seeded_street = True
+    asyncSetUp = api.CampaignApiTests.asyncSetUp
+    asyncTearDown = api.CampaignApiTests.asyncTearDown
+
+    async def test_campaigns_no_longer_open_on_the_same_fixed_words_and_a_reload_keeps_theirs(self):
+        openings = set()
+        for _ in range(10):
+            created = await self.http.post("/api/game/campaigns", json=START)
+            self.assertEqual(created.status_code, 200, created.text)
+            world = self.manager.get(created.json()["session_id"]).game_session.world_state
+            text = living_world.public_scene_projection(copy.deepcopy(world), 0)["opening"]
+            self.assertTrue(text.startswith("Neverwinter."), text)
+            for fixed in ("Şafak sökerken", "Gün ışığı altında", "Akşam yaklaşırken", "Gece çökmüşken",
+                          "Gökyüzü açık; çevrenin çizgileri belirgin."):
+                self.assertNotIn(fixed, text)
+            openings.add(text)
+        self.assertGreaterEqual(len(openings), 4, openings)
 
 
 class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
