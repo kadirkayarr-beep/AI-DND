@@ -6146,7 +6146,8 @@ def _normalize_interaction_mode(value):
 
 def _conversation_npcs():
     import exploration
-    return exploration.player_entities(_session().world_state, active_npcs())
+    awake = [npc for npc in active_npcs() if npc.get("combat_status") != "unconscious"]
+    return exploration.player_entities(_session().world_state, awake)
 
 
 def _active_interlocutor():

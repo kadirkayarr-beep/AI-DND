@@ -252,14 +252,19 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     """What this person knows of what the player did, for their next line."""
     ledger = [deed for deed in world.get("flags", {}).get("deeds", []) if isinstance(deed, dict)]
     npc_id = npc.get("id")
-    seen = [deed["text"] for deed in ledger if npc_id in deed.get("witnesses", [])]
+    done_to_them = [deed for deed in ledger if deed.get("kind") == "assault" and deed.get("victim_id") == npc_id]
+    seen = [deed["text"] for deed in ledger if npc_id in deed.get("witnesses", []) and deed not in done_to_them]
     told = [deed["text"] for deed in ledger if npc_id in deed.get("told", [])
             and npc_id not in deed.get("witnesses", [])]
     heard = [deed.get("rumour", deed["text"]) for deed in ledger
              if npc_id in deed.get("heard", []) and not identifies(deed, npc_id)]
     note = ""
+    if done_to_them:
+        struck = "sana vurup seni bayılttı" if any(deed.get("knocked_out") for deed in done_to_them) else "sana saldırdı"
+        hurt = " Canın hâlâ yanıyor." if npc.get("current_hp", 1) < npc.get("max_hp", 0) else ""
+        note = f" Karşındaki kişi {struck}; bunu sen yaşadın, unutmadın.{hurt} Bunu inkâr etme, ona göre davran."
     if seen:
-        note = " Karşındaki kişinin şunları yaptığını kendi gözünle gördün: " + "; ".join(seen[-3:]) + \
+        note += " Karşındaki kişinin şunları yaptığını kendi gözünle gördün: " + "; ".join(seen[-3:]) + \
             ". Ona buna göre davran; görmezden gelme."
     if told:
         note += " Karşındaki kişi sana kendi ağzıyla şunları söyledi: " + "; ".join(told[-3:]) + \
@@ -319,6 +324,14 @@ def attacked(session, npc: dict[str, Any]) -> None:
         world = session.world_state
         remember(session, "assault", f"{living_world.public_npc_name(npc)} üzerine yürüdü", victim_id=npc.get("id"))
         relationships.note(world, npc["id"], -3, f"attacked:{world.get('flags', {}).get('turn_index', 0)}")
+
+
+def put_down(world: dict[str, Any], npc: dict[str, Any]) -> None:
+    """The blow that knocked them out belongs to the assault they will remember."""
+    for deed in reversed(deeds(world)):
+        if deed.get("kind") == "assault" and deed.get("victim_id") == npc.get("id"):
+            deed["knocked_out"] = True
+            return
 
 
 def killed(session, npc: dict[str, Any]) -> None:

@@ -24,6 +24,8 @@ def knock_out(session, npc: dict[str, Any]) -> None:
                knocked_out_at=session.world_state.get("campaign_time", {}).get("elapsed_seconds", 0))
     import weapon_attack
     weapon_attack.add_condition(npc, "unconscious")
+    import bold_acts
+    bold_acts.put_down(session.world_state, npc)
 
 
 def wake(session) -> None:
@@ -59,10 +61,15 @@ def scene_line(world: dict[str, Any]) -> str:
 def addressed_body(session, text: str) -> dict[str, Any] | None:
     """The body a line names, when nobody living answers to those words."""
     normalized = session._normalize_turkish_typos(text)
-    bodies = [npc for npc in here(session.world_state)
+    down = here(session.world_state)
+    bodies = [npc for npc in down
               if session.named_by_sight(npc, normalized)
               or session._entity_reference_in_text(npc.get("name", ""), normalized)]
-    if not bodies or any(session.named_by_sight(npc, normalized) for npc in session.active_npcs()):
+    awake = [npc for npc in session.active_npcs() if not any(npc is body for body in down)]
+    if not bodies and not awake:  # the one being talked to went down and nobody else is here to answer
+        focus = (session.world_state.get("flags") or {}).get("active_npc_id")
+        bodies = [npc for npc in down if npc.get("id") == focus]
+    if not bodies or any(session.named_by_sight(npc, normalized) for npc in awake):
         return None
     return bodies[0]
 
