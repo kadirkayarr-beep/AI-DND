@@ -686,6 +686,8 @@ def _clauses(text: str) -> list[tuple[list[str], bool, bool]]:
             close("?" in match.group(1))
     words += text[position:]
     close(False)
+    if after_but:  # 'olur ama' with nothing after it: the condition is still to come
+        found.append((["ama"], False, True))
     return found
 
 

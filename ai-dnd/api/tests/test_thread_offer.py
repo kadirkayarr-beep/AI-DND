@@ -62,6 +62,10 @@ class ClearAnswers(unittest.TestCase):
                      "evet, hayır", "tamam, kalsın", "tamam, gitmem lazım", "peki ama nasıl"):
             self.assertIsNone(self.decide(line), line)
 
+    def test_a_hanging_but_is_not_yet_a_yes(self):
+        for line in ("olur ama", "olur ama...", "tamam ama...", "yaparım ama", "olur fakat"):
+            self.assertIsNone(self.decide(line), line)
+
     def test_asking_about_the_money_leaves_the_offer_standing(self):
         for line in ("peki ne kadar veriyorsun", "önce parayı görelim", "olur ama önce parayı görelim",
                      "tamam da para ne zaman", "tamam da ne kadar", "ne kadar vereceksin", "ama peşin isterim",
