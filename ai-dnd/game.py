@@ -18143,7 +18143,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import grounded_action
     import npc_speech_boundary
     hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
-    if route["kind"] in {"attempt", "unclear"} and hearer and (
+    if route["kind"] in {"attempt", "unclear"} and hearer and not combat_lifecycle.is_attack_decision(
+            session, player_input) and (
             grounded_action.hands_on_a_body(player_input)
             or (not route.get("thing") and npc_speech_boundary.player_supplied_quote(player_input))):
         route = {"kind": "speak_to", "id": hearer}  # a body in the line, or words in quotes: this is for the person here
@@ -18621,6 +18622,7 @@ def _dispatch_player_turn(
             return dungeon_result
     planning = (combat_action is None
                 and not _session().world_state.get("combat", {}).get("active")
+                and not getattr(_session(), "_front_strike", None)
                 and interaction_adventure.compound_plan(player_input) is not None)
     if (combat_action is None and not planning
             and not combat_lifecycle.is_attack_decision(_session(), player_input)):
@@ -19711,7 +19713,9 @@ def _run_player_turn_internal(
         return spoken
     sleeping = bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))
                     or timed_gameplay.is_timed_wait(player_input))
-    compound = None if sleeping else interaction_adventure.compound_plan(player_input)
+    # A blow the reading found lands now, however many clauses lead up to it: it is no plan to keep.
+    compound = (None if sleeping or getattr(_session(), "_front_strike", None)
+                else interaction_adventure.compound_plan(player_input))
     # "Marek'in yanına gidiyorum, bir bira istiyorum": the second clause is said to him.
     import grounded_action
     request = grounded_action.spoken_request(player_input) if compound is not None else None

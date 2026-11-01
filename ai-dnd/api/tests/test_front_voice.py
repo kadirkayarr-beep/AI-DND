@@ -46,6 +46,9 @@ class AnyBlowIsAnAttack(FrontTable):
         self.assert_attacked(reply)
         self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
 
+    async def test_a_blow_at_the_end_of_two_clauses_is_no_plan(self):
+        self.assert_attacked(await self.blow("adamın yakasını tutup masaya itiyorum, suratına yumruğu indiriyorum"))
+
     async def test_a_thrown_mug_is_an_attack_too(self):
         reply = await self.blow("elimdeki bardağı adamın kafasına fırlatıyorum", thing_word="bardak")
         self.assert_attacked(reply)

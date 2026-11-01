@@ -2844,7 +2844,7 @@ def _looks_like_speech(session, player_input: str) -> bool:
 _SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")
 
 
-def _pointed_at(cands: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _pointed_at(cands: list[dict[str, Any]], *, doors_only: bool = False) -> dict[str, Any] | None:
     """What the last words on screen point to: a door here first, then the place named last."""
     import game
     tokens = fold(game._recent_player_visible_narration(limit=_OFFER_WINDOW)).split()
@@ -2855,6 +2855,8 @@ def _pointed_at(cands: list[dict[str, Any]]) -> dict[str, Any] | None:
                                         if not word.startswith(_DOOR_NOUNS))]
         if len(told) == 1 or len(doors) == 1:
             return (told or doors)[0]
+    if doors_only:
+        return None  # "oraya" has an owner of its own for places: the topic of the talk
     places = [(max((_phrase_at(n.split(), tokens) or 0) for n in c["names"] if n), c) for c in cands
               if c["kind"] in {"place", "reference"}
               and any(n and _phrase_at(n.split(), tokens) is not None for n in c["names"])]
@@ -2873,7 +2875,7 @@ def offered_walk(session, player_input: Any) -> dict[str, Any] | None:
     if (step.get("negated") or step.get("question") or step.get("condition")
             or not all(t in _BARE_GO_WORDS or t in _THERE for t in step["goal_tokens"])):
         return None
-    return _pointed_at(p["candidates"])
+    return _pointed_at(p["candidates"], doors_only=any(t in _THERE for t in step["goal_tokens"]))
 
 
 def _walk_to_offer(session, player_input: str):
