@@ -392,6 +392,11 @@ def is_open_local_place_discovery(value: Any) -> bool:
 
 
 _FINITE_VERB = re.compile(r"(?:iyor|uyor|yor|acag|eceg|acak|ecek)\w*$")
+_FIRST_PERSON = re.compile(r"(?:[aeiou]rim|[ae]yim)$")  # 'hallederim', 'karışmayım'; short ones are names like Kerim
+
+
+def _reads_as_verb(folded: str) -> bool:
+    return bool(_FINITE_VERB.search(folded)) or (len(folded) >= 7 and bool(_FIRST_PERSON.search(folded)))
 
 
 def explicit_player_name_disclosure(value: Any) -> str | None:
@@ -431,7 +436,7 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
             normalized_name = normalize_text(name)
             if normalized_name in {"ne", "nedir"}:
                 continue
-            if name and normalized_name not in {"adim", "ismim"} and not _FINITE_VERB.search(normalized_name):
+            if name and normalized_name not in {"adim", "ismim"} and not _reads_as_verb(normalized_name):
                 return name
     return None
 

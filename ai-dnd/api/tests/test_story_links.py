@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 import campaign_time
+import local_dialogue
 import relationships
 import town_knowledge
 import town_rumours
@@ -738,6 +739,16 @@ class SameSeedDifferentStory(unittest.TestCase):
             self.assertFalse(world["flags"].get("deeds"))
 
 
+class SayingYouWillIsNotYourName(unittest.TestCase):
+    def test_a_first_person_verb_after_ben_is_no_name(self):
+        for line in ("tamam ben hallederim", "bana düşmez, ben karışmayım", "ben yaparım", "ben bakayım", "ben giderim"):
+            self.assertIsNone(local_dialogue.explicit_player_name_disclosure(line), line)
+
+    def test_a_name_still_is(self):
+        for line, name in (("ben Kerim", "Kerim"), ("ben Carius", "Carius"), ("ben Selim.", "Selim"), ("adım Tarım", "Tarım")):
+            self.assertEqual(local_dialogue.explicit_player_name_disclosure(line), name)
+
+
 class ASaveFromBefore(unittest.TestCase):
     def old_town(self):
         """A save as it stood: no ledger, no moments, an accepted trouble-shaped record among them."""
@@ -792,6 +803,12 @@ class InPlay(unittest.IsolatedAsyncioTestCase):
             await self.line(line, "Sağ ol.", mode="say", target=True)
             self.assertEqual(self.status(), "accepted", line)
             self.assertNotIn("fires_at", self.thread)
+
+    async def test_the_person_answers_it_as_an_offer_and_no_name_is_taken_from_it(self):
+        await self.trouble()
+        text = (await self.line("tamam ben hallederim", "Sağ ol, bekliyordum.", mode="say", target=True))["narration"]
+        self.assertIn("Sağ ol, bekliyordum.", text)
+        self.assertEqual(self.status(), "accepted")
 
     async def test_saying_you_will_not_takes_nothing_on(self):
         for line in ("yardım edemem kusura bakma", "derdin bana ne", "hallederim mi bilmem ama yardım etmem"):
