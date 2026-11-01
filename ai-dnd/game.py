@@ -17409,6 +17409,9 @@ def _everyday_action_turn(player_input):
         world, first_step, door=_current_door(),
         reference=_entity_reference_in_text, turn=int(flags.get("turn_index", 0)) + 1,
     )
+    if (isinstance(outcome, dict) and outcome.get("kind") == "read" and outcome.get("item") is None
+            and getattr(session, "_front_read", None) is not None):
+        return None  # read as an act on what is at hand, it is no search of the bag for a book
     if outcome is None:
         return None
     narration = outcome["text"]
@@ -18270,7 +18273,7 @@ def _dispatch_player_turn(
         player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
-    if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
             and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
         if hearer is not None:
@@ -18368,7 +18371,8 @@ def _dispatch_player_turn(
         hideout = adventure_play.resolve_dungeon_turn(_session(), player_input, _hideout_check)
         if hideout is not None:
             return hideout
-        talk = front is not None and front["kind"] == "talk_around"  # words to nobody in particular walk nowhere
+        # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
+        talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
         scene = None if talk else _adventure_scene_turn(player_input)
         if scene is not None:
             return scene
@@ -18461,7 +18465,7 @@ def _dispatch_player_turn(
         # target the words alone could not bind gets one bounded model call that
         # may only pick listed candidate IDs; otherwise the full pipeline runs.
         import grounded_action
-        if not (front is not None and front["kind"] == "talk_around") and not _scene_observation_proposal_turn(
+        if not (front is not None and front["kind"] in {"talk_around", "look", "sit"}) and not _scene_observation_proposal_turn(
             player_input, _session().world_state, interaction_mode
         ):
             with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):

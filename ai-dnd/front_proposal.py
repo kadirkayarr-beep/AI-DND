@@ -94,12 +94,6 @@ def listing(session) -> dict[str, Any]:
     }
 
 
-def at_work(listed: Mapping[str, Any]) -> bool:
-    """A job or its parcel is at hand, so this line may be the doing of it however long it runs."""
-    return bool(listed["offers"] or listed["jobs"] or listed["parcels"]
-                or any(str(row["id"]).startswith("parcel:") for row in listed["bag"]))
-
-
 def _ids(rows: list[dict[str, Any]]) -> list[str]:
     return [*dict.fromkeys(str(row["id"]) for row in rows), NONE]
 

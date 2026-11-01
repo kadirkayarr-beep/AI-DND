@@ -190,6 +190,37 @@ class TalkWithNobodyNamed(FrontTable):
         old_walk.assert_not_called()
 
 
+class TheOldOwnersThatLostTheirTraffic(FrontTable):
+    async def test_a_look_that_names_a_place_stays_a_look(self):
+        await self.begin()
+        where = self.world["location"]
+        name = self.world["locations"][self.a_place()]["name"]
+        self.client.front = {"kind": "look"}
+        with patch("game._adventure_scene_turn") as old_walk, patch("game._local_place_turn") as old_place:
+            await self.line(f"etrafa bakiyorum, {name} tarafinda ne var")
+        old_walk.assert_not_called()
+        old_place.assert_not_called()
+        self.assertEqual(self.world["location"], where)
+
+    async def test_reading_what_is_in_hand_is_not_answered_with_an_empty_bag(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        reply = await self.line("defteri okuyorum")
+        self.assertNotIn("okuyabileceğin bir kitap yok", reply["narration"])
+
+    async def test_with_no_reading_the_old_owners_still_answer(self):
+        await self.begin()
+        self.client.drop_front = True
+        reply = await self.line("defteri okuyorum")
+        self.assertIn("okuyabileceğin bir kitap yok", reply["narration"])
+
+    async def test_a_reading_decides_who_hears_a_line_that_ends_in_dedim(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt"}
+        await self.line("masaya yumruk vurup sus artik dedim")
+        self.assertNotEqual(self.routes()[-1]["owner"], "dialogue")
+
+
 class SomeoneTheNarrationDescribed(FrontTable):
     def narrated(self, text):
         self.session.messages.append({"role": "assistant", "content": text})
