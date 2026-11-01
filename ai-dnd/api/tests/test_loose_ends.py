@@ -9,7 +9,9 @@ import campaign_time
 import living_world
 import local_dialogue
 import pocket
+import relationships
 import town_knowledge
+import vouching
 import world_happenings
 import world_reactions
 import world_threads
@@ -323,6 +325,52 @@ class AClosedPlaceStaysTrue(unittest.TestCase):
         thread = state["threads"][0]
         world_happenings.write(state, thread, "closed", 0, "İşler durmuş.")
         self.assertTrue(world_happenings.barred(state, thread["place_id"], "hiring", 0))
+
+
+class AWordAtTheDoor(unittest.TestCase):
+    def test_the_door_says_what_earns_the_word_and_where_there_is_work(self):
+        world, state, thread, npc, friend = links.gated_town()
+        thread.update(type="hiring", status="open")
+        place = world["locations"][friend["location"]]
+        idle = {**place, "id": "bos_yer", "name": "Boş Köşe"}
+        world["locations"] = {"bos_yer": idle, **world["locations"]}
+        line = vouching.wary_line(world, thread)
+        self.assertIn(place["name"], line)
+        self.assertIn("iş gör", line)
+
+    def test_with_no_work_anywhere_that_could_speak_the_door_is_as_it_always_was(self):
+        world, state, thread, npc, friend = links.gated_town()
+        state["threads"] = [t for t in state["threads"] if t["place_id"] != friend["location"]]
+        self.assertFalse(vouching.needs_word(world, thread, npc))
+
+    def test_the_one_who_could_speak_knows_it_is_theirs_to_give(self):
+        world, state, thread, npc, friend = links.gated_town()
+        door = world["locations"][thread["place_id"]]["name"]
+        note = town_knowledge.speech_note(world, friend)
+        self.assertIn(door, note)
+        self.assertIn("iş görürse", note)
+        relationships.note(world, friend["id"], 1, "test")
+        self.assertIn("söz ettin", town_knowledge.speech_note(world, friend))
+
+    def test_someone_of_no_such_place_hears_nothing_of_it(self):
+        world, state, thread, npc, friend = links.gated_town()
+        world["locations"][friend["location"]]["place_kind"] = "bakery"
+        self.assertEqual(vouching.speaker_note(world, friend), "")
+
+    def test_a_trouble_stands_behind_the_same_door(self):
+        world, state, thread, npc, friend = links.gated_town()
+        thread.update(type="trouble", status="open", fires_at=None)
+        note = town_knowledge.speech_note(world, npc)
+        self.assertNotIn("Bu senin kendi meselen", note)
+        self.assertNotIn(thread["owner_line"], note)
+        self.assertIn(world["locations"][friend["location"]]["name"], note)
+
+    def test_a_stranger_cannot_step_into_it_either_until_the_word_is_there(self):
+        world, state, thread, npc, friend = links.gated_town()
+        thread.update(type="trouble", status="heard", heard_turn=0)
+        self.assertFalse(world_threads.offers_to_help(world, "derdini ben hallederim", npc, thread))
+        relationships.note(world, friend["id"], 1, "test")
+        self.assertTrue(world_threads.offers_to_help(world, "derdini ben hallederim", npc, thread))
 
 
 if __name__ == "__main__":

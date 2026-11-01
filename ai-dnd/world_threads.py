@@ -1269,13 +1269,19 @@ def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str,
     refused = any(_REFUSED_DOING.search(word) for word in words if word not in table["accept"])  # 'tamam' ends like 'yapamam'
     return (_plain_help(line, table) and not refused and _is_on_the_table(world, thread, npc)
             and not any(t.get("status") == "accepted" for t in jobs_of(world, npc))
-            and owner_mood(world, thread, npc) != "no")
+            and owner_mood(world, thread, npc) != "no" and not _door_shut(world, thread, npc))
+
+
+def _door_shut(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+    import vouching
+    return isinstance(npc, dict) and vouching.needs_word(world, thread, npc)
 
 
 def steps_into(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """The model named a trouble nobody offered: only the player's own words, or a yes to it just told, take it on."""
-    return (holds_a_yes(text, npc, thread, firm=True) or offers_to_help(world, text, npc, thread)
-            or goes_to_the_work(text, thread) or (_just_told(world, thread, npc) and holds_a_yes(text, npc, thread)))
+    return not _door_shut(world, thread, npc) and (
+        holds_a_yes(text, npc, thread, firm=True) or offers_to_help(world, text, npc, thread)
+        or goes_to_the_work(text, thread) or (_just_told(world, thread, npc) and holds_a_yes(text, npc, thread)))
 
 
 def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | None:

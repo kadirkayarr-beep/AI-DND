@@ -266,7 +266,9 @@ def _job_note(world, npc, decision):
         lines.append(world_threads._fill(shared.get("parcel_out", ""), item=late[0].get("item_noun") or "paket"))
     for thread in owned_threads(world, npc):
         if thread.get("type") == "trouble" and thread["status"] in world_threads.PUBLIC:
-            lines.append(f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')} {shared.get('trouble_help', '')}")
+            door = vouching.wary_line(world, thread) if vouching.needs_word(world, thread, npc) else None
+            lines.append(("" if door in lines else door) if door else
+                         f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')} {shared.get('trouble_help', '')}")
             break
     if not lines:
         lines.append(shared.get("no_job", ""))
@@ -303,7 +305,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     job = _job_note(world, npc, decision)
     if job and not job.startswith(" "):
         job = " " + job
-    job += world_happenings.waiting_note(world, npc)
+    job += world_happenings.waiting_note(world, npc) + vouching.speaker_note(world, npc)
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
         place = _brush_off_place(world, npc)

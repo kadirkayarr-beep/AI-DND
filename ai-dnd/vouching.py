@@ -49,18 +49,41 @@ def _places(world: dict[str, Any], thread: dict[str, Any]) -> list[dict[str, Any
             and record.get("parent_location_id") == thread.get("settlement_id") and record.get("place_kind") in kinds]
 
 
+def _with_work(world: dict[str, Any], places: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """A word is earned by work done there: a place with nothing to do has no word to give."""
+    busy = {thread.get("place_id") for thread in world_threads.owned(world)}
+    return [record for record in places if record["id"] in busy]
+
+
 def needs_word(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any]) -> bool:
     """Nobody here has said anything for the player yet, and somebody could."""
     places = _places(world, thread)
     if not places or relationships.score(world, npc.get("id")) >= 1:
         return False
     ids = {record["id"] for record in places}
-    return not any(isinstance(person, dict) and person.get("place_role_of") in ids
-                   and relationships.score(world, person.get("id")) >= 1 for person in world.get("npcs", []))
+    return bool(_with_work(world, places)) and not any(
+        isinstance(person, dict) and person.get("place_role_of") in ids
+        and relationships.score(world, person.get("id")) >= 1 for person in world.get("npcs", []))
 
 
 def wary_line(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
-    places = _places(world, thread)
+    places = _with_work(world, _places(world, thread))
     if not places:
         return None
     return world_threads._fill(world_threads.job_lines("shared", "wary_vouch") or "", place=places[0].get("name", ""))
+
+
+def speaker_note(world: dict[str, Any], npc: Any) -> str:
+    """The one a door names knows what is asked of them: a word given, or one still to be earned here."""
+    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
+    record = world.get("locations", {}).get(place_id) or {}
+    door = next((thread for thread in world_threads.owned(world)
+                 if thread.get("settlement_id") == record.get("parent_location_id")
+                 and record.get("place_kind") in chosen_kinds(world, thread)), None)
+    if door is None:
+        return ""
+    given = relationships.score(world, npc.get("id")) >= 1
+    if not given and not _with_work(world, [record]):
+        return ""
+    name = world.get("locations", {}).get(door["place_id"], {}).get("name", "")
+    return " " + world_threads._fill(world_threads.job_lines("shared", "vouch_given" if given else "vouch_earned") or "", place=name)
