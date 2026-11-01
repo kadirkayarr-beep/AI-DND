@@ -17953,7 +17953,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "go_to", "offer_answer", "hand_over", "work", "take"}
+_PLANNER_STAYS_OUT = {"speak_to", "go_to", "offer_answer", "hand_over", "work", "take", "bag"}
 
 
 def front_read_ahead(player_input, target_id=None, interaction_mode=None):
@@ -18194,6 +18194,10 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
+    if read is not None and read["kind"] == "bag":
+        listed = equipment_economy.execute(_session(), "çantamda ne var")
+        if listed is not None:
+            return listed
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         from adventure import dialogue_jobs
         parcel_read = dialogue_jobs.read_parcel(_session(), player_input)

@@ -17,7 +17,7 @@ from typing import Any, Mapping, MutableMapping
 
 FLAG = "AI_DND_FRONT_PROPOSAL"
 ROUTE_LOG = "AI_DND_ROUTE_LOG"
-KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "unclear")
+KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "unclear")
 DEEDS = ("steal", "burn")
 NONE = "none"
 MAX_PEOPLE = 12
@@ -148,7 +148,8 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "\nfront alanında cümlenin anlamını da söyle; kimlikleri yalnız aşağıdaki listelerden seç, yoksa none yaz. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor; go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         "inside=true); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
-        "bakıyor, ne olup bittiğini görmek istiyor; attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
+        "bakıyor, ne olup bittiğini görmek istiyor; bag = kendi çantasına, kesesine, cebine bakıyor ya da orada bir şey "
+        "var mı, parası ne kadar diye yokluyor; attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "
         f"Teklif hakkında soru sormak offer_answer değil speak_to olur. {_at_hand(listed)} "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "

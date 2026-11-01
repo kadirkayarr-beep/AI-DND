@@ -76,3 +76,18 @@ class ReadsBeforeTheOldOwners(FrontTable):
         self.client.drop_front = True
         await self.line("dukkani atese veriyorum")
         self.assertEqual(self.routes()[-1]["owner"], "arson")
+
+    async def test_what_is_in_my_bag_goes_by_the_reading_however_it_is_said(self):
+        await self.begin()
+        self.client.front = {"kind": "bag"}
+        reply = await self.line("çantama koydum mu duyuruyu bi bakayim")
+        self.assertIn("Envanterinde", reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:bag")
+        self.assertLessEqual(self.client.chat_calls, 1)
+
+    async def test_what_is_in_the_purse_goes_the_same_way(self):
+        await self.begin()
+        self.client.front = {"kind": "bag"}
+        self.world.setdefault("currency", {})["player"] = 2412
+        reply = await self.line("kese ne alemde, kac bakirim var")
+        self.assertIn("24 altın 12 bakır", reply["narration"])
