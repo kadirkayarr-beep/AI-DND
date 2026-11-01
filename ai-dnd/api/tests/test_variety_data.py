@@ -12,6 +12,7 @@ import grounded_action
 import living_world
 import local_places
 import name_catalog
+import npc_statements
 import town_knowledge
 from api import opening_narrative
 from api.tests import test_campaign_api as api
@@ -106,6 +107,23 @@ class PlaceTests(unittest.TestCase):
             with patch.object(game, "_local_place_recommendation_options", lambda *a, **k: options):
                 self.assertEqual(game._ground_local_place_recommendation_reply(
                     line, {"id": "npc"}, {"locations": {}}, "Şehirde gidebileceğim sakin bir yer önerir misin?"), line)
+
+    def test_a_generated_name_is_read_back_whole_from_a_persons_line(self):
+        pools = name_catalog._pools()["pools"]["yuva_sözlüğü"]
+        cut = []
+        for kind, templates in name_catalog.place_templates().items():
+            for template in templates:
+                names = [template]
+                for slot, entry in pools.items():
+                    names = [n.replace("{" + slot + "}", value) for n in names for value in (
+                        entry["örnek_değerler"] if "{" + slot + "}" in n else [""])]
+                for name in names:
+                    if name_catalog._reads_as_something_else(name, kind):
+                        continue
+                    read = [found[0] for found in npc_statements._named_places(f"{name} sakin bir yerdir.")]
+                    if read and read != [name]:
+                        cut.append((name, read))
+        self.assertEqual(cut, [])
 
     def test_a_taken_name_is_not_given_again(self):
         world = marked_world("tohum3")
