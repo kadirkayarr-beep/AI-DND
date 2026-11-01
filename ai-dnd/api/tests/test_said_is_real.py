@@ -237,3 +237,59 @@ class HandingOver(ErrandBase):
         reply = await self.line("duyuruyu eline veriyorum", "Neyi?")
         self.assertIn("Neyi?", reply["narration"])
         self.assertEqual(self.wallet(), 0)
+
+
+class TakingThings(ErrandBase):
+    async def shown(self, words="Lavunel bakır defterine bir şeyler kaydediyor."):
+        await self.errand()
+        self.session.messages.append({"role": "assistant", "content": words})
+
+    async def test_something_the_screen_showed_comes_into_the_bag_for_real(self):
+        await self.shown()
+        self.client.front = {"kind": "take", "thing_word": "defter"}
+        reply = await self.line("defteri aliyorum elinden")
+        self.assertIn("Defter", self.bag())
+        self.assertEqual(reply["turn_outcome"]["action"], "pocket")
+        self.client.front = {"kind": "unclear"}
+        text = (await self.line("defteri okuyorum"))["narration"]
+        self.assertNotIn("kitap yok", text)
+        self.assertIn("Defter", text)
+
+    async def test_the_job_parcel_in_the_owner_hands_is_listed_and_taken(self):
+        await self.errand()
+        await self.line("olur", "Tamam.")
+        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+        self.client.front = {"kind": "take", "item_id": self.parcel()}
+        await self.line("hadi uzat bakalim su seyi")
+        self.assertEqual(self.parcel_owner(), ["player"])
+
+    async def test_a_coin_purse_never_comes_this_way_and_the_line_drops_the_claim(self):
+        await self.shown("Arşivci keseyi masaya bırakıyor.")
+        self.client.front = {"kind": "take", "thing_word": "kese"}
+        self.client.narration = "Masadaki keseyi kavrayıp ağırlığını tartıyorsun. Odada kısa bir sessizlik oluyor."
+        reply = await self.line("keseyi aliyorum")
+        self.assertNotIn("Kese", self.bag())
+        self.assertNotIn("kavrayıp", reply["narration"])
+        self.assertIn("sessizlik", reply["narration"])
+
+    async def test_a_thing_nobody_showed_stays_out_of_the_bag_and_out_of_the_line(self):
+        await self.shown()
+        self.client.front = {"kind": "take", "thing_word": "yumurta"}
+        self.client.narration = "Ejderha yumurtasını alıyorsun."
+        reply = await self.line("ejderha yumurtasini aliyorum")
+        self.assertNotIn("Yumurta", self.bag())
+        self.assertNotIn("yumurtasını alıyorsun", reply["narration"])
+        self.assertTrue(reply["narration"].strip())
+
+    async def test_the_players_own_echo_shows_nothing(self):
+        await self.shown("Sen: “defteri aliyorum”\n\nRüzgâr esiyor.")
+        self.client.front = {"kind": "take", "thing_word": "defter"}
+        await self.line("defteri aliyorum")
+        self.assertNotIn("Defter", self.bag())
+
+    async def test_taking_it_twice_makes_no_second_one(self):
+        await self.shown()
+        self.client.front = {"kind": "take", "thing_word": "defter"}
+        await self.line("defteri aliyorum elinden")
+        await self.line("defteri aliyorum elinden")
+        self.assertEqual(self.bag().count("Defter"), 1)

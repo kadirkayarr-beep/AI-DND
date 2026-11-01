@@ -23,7 +23,10 @@ _NOT_THINGS = frozenset({
     "alip", "aliyorum", "atiyorum", "koyuyorum", "sokuyorum", "topluyorum", "toplayip", "iyilerini", "icinde", "icine",
     "birkac", "biraz", "tane", "hepsini", "ondan", "bunlari", "sunlari", "onlari", "yarar", "neyse", "varsa",
 })
-_SHOWN_TURNS = 4
+_SHOWN_TURNS = 8
+_PLAYERS_OWN_WORDS = re.compile(r"Sen: “[^”]*”")
+_TOLD_TO_YOU = ("sun", "sin", "din", "dun")  # 'alıyorsun', 'aldın': the sentence says the player did it
+_EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
 _THING_WORD = re.compile(r"[^\W\d_]{4,}")
 
 
@@ -31,7 +34,7 @@ def _shown(session) -> list[str]:
     """The words of the last few things the screen said, in order."""
     said = [item.get("content") for item in reversed(session.messages)
             if isinstance(item, dict) and item.get("role") == "assistant" and isinstance(item.get("content"), str)]
-    return _THING_WORD.findall(" ".join(reversed(said[:_SHOWN_TURNS])))
+    return _THING_WORD.findall(_PLAYERS_OWN_WORDS.sub(" ", " ".join(reversed(said[:_SHOWN_TURNS]))))
 
 
 def _thing_in(words: list[str], shown: list[str]) -> str | None:
@@ -57,6 +60,48 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     name = thing[:1].upper() + thing[1:].casefold()
     equipment_economy.grant_plain(world, name)
     return _receipt(session, text, f"{name} çantana giriyor.")
+
+
+def _stem(word: Any) -> str:
+    folded = living_world.normalize_text(word).split()
+    return world_threads._stem(folded[-1]) if folded else ""
+
+
+def take_named(session, text: str, word: str) -> dict[str, Any] | None:
+    """The front reading says the line takes this. It is real if the line names it and the screen showed it."""
+    world = session.world_state
+    words = living_world.normalize_text(text).split()
+    if not word:
+        return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)
+    stem = _stem(word)
+    if (len(stem) < 3 or stem.startswith(_WORTH) or not any(w.startswith(stem) for w in words)
+            or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
+        return None
+    name = word[:1].upper() + word[1:].casefold()
+    if any(_stem(item.get("name") if isinstance(item, dict) else item) == stem for item in world.get("inventory", [])):
+        return None
+    equipment_economy.grant_plain(world, name)
+    return _receipt(session, text, f"{name} çantana giriyor.")
+
+
+def asked_for(text: str, word: str) -> tuple[str, ...]:
+    """What a line that took nothing was after: the model's word, or the line's own longer words."""
+    if word:
+        return (_stem(word),)
+    return tuple(w for w in living_world.normalize_text(text).split() if len(w) >= 4 and w not in _NOT_THINGS)
+
+
+def without_the_taking(narration: Any, stems: tuple[str, ...]) -> Any:
+    """Repair: the sentences that say the player has what Python never gave them leave the line."""
+    if not isinstance(narration, str) or not narration.strip() or not stems:
+        return narration
+    kept = [sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()) if not _tells_it_taken(sentence, stems)]
+    return " ".join(kept) or _EMPTY_HANDED
+
+
+def _tells_it_taken(sentence: str, stems: tuple[str, ...]) -> bool:
+    words = living_world.normalize_text(sentence).split()
+    return any(word.startswith(stems) for word in words) and any(word.endswith(_TOLD_TO_YOU) for word in words)
 
 
 def _receipt(session, text: str, line: str) -> dict[str, Any]:

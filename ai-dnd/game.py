@@ -14287,8 +14287,10 @@ def finalize_narration(
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
     if not attributed_speech and _narrated_money_can_lie(action_result):
+        import pocket
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
+        narration = pocket.without_the_taking(narration, getattr(session, "_nothing_taken", None) or ())
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -17958,6 +17960,25 @@ def _front_hand_over(route, player_input):
         return heard
 
 
+def _front_take(route, player_input):
+    """A job's parcel, or a plain thing the screen showed; if neither, the prose may not say it was taken."""
+    import pocket
+    import world_threads
+    from adventure import dialogue_jobs
+    session = _session()
+    world = session.world_state
+    session.require_player_can_act()
+    thread = world_threads.by_id(world, route["thread_id"]) if route.get("thread_id") else None
+    person = next((npc for npc in active_npcs() if npc.get("id") == route.get("person_id")), None)
+    if thread is not None and person is not None:
+        action = dialogue_jobs.hand_over(session, thread, person)
+        return dialogue_jobs.take_reply(session, thread, player_input, action) if action else None
+    taken = pocket.take_named(session, player_input, route.get("word") or "")
+    if taken is None:
+        session._nothing_taken = pocket.asked_for(player_input, route.get("word") or "")
+    return taken
+
+
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
@@ -18115,6 +18136,11 @@ def _dispatch_player_turn(
             return walked
         if gate is not None:
             interaction_mode, target_id = "say", gate["npc_id"]
+    if front is not None and front["kind"] == "take" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            taken = _front_take(front, player_input)
+        if taken is not None:
+            return taken
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
