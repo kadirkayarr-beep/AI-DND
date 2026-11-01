@@ -857,7 +857,8 @@ def execute(session, text, *, advance_turn=True):
         success = True
     except (EquipmentError, ValueError, TypeError, KeyError) as exc:
         reason = str(exc) if isinstance(exc, EquipmentError) else "invalid_economic_state"
-        narration = f"Eşya işlemi reddedildi: {reason}. Dünya durumu değişmedi."
+        narration = ("Kavganın ortasında çantanı karıştıracak vaktin yok." if natural_list
+                     else f"Eşya işlemi reddedildi: {reason}. Dünya durumu değişmedi.")
     return {
         "messages": session.messages, "narration": narration, "model_calls": 0,
         "action_result": {

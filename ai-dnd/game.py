@@ -10983,6 +10983,7 @@ def _narration_safety_decision(
         if (
             spoken_start is not None and match.start() >= spoken_start
             and re.search(r"[aeiu]rsin$", normalized_verb)
+            and not re.match(r"gir|cik|git|gid|yuru|don", normalized_verb)  # a walk told this way still moves the player
         ):
             continue
         committed_step = normalized_verb.startswith("at") and re.search(
@@ -18150,7 +18151,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import grounded_action
     import npc_speech_boundary
     hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
-    if route["kind"] in {"attempt", "unclear"} and hearer and not combat_lifecycle.is_attack_decision(
+    if route["kind"] in {"attempt", "unclear", "look"} and hearer and not combat_lifecycle.is_attack_decision(
             session, player_input) and (
             grounded_action.hands_on_a_body(player_input)
             or (not route.get("thing") and npc_speech_boundary.player_supplied_quote(player_input))):
@@ -20484,6 +20485,8 @@ def _run_player_turn_internal(
         or combat_lifecycle.quoted_report(_session(), player_input)
         else interaction_adventure.hint(player_input, npc_target)
     )
+    if interaction_hint == "plan" and (getattr(_session(), "_front_read", None) or {}).get("kind") == "speak_to":
+        interaction_hint = None  # two clauses said to a person are no plan to keep: they answer them
     if target_id is None and not combat["active"] and _turns_to_someone_else(player_input):
         others = [npc for npc in _conversation_npcs()
                   if not isinstance(npc_target, dict) or npc.get("id") != npc_target.get("id")]

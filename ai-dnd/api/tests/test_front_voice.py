@@ -12,6 +12,7 @@ import grounded_action
 import interaction_adventure
 import living_world
 import npc_speech_boundary
+from api.tests.test_front_carries_more import ProposalClient
 from api.tests.test_front_proposal import FrontTable
 
 
@@ -58,6 +59,12 @@ class AnyBlowIsAnAttack(FrontTable):
         reply = await self.blow("savuruyorum, omzuna")
         self.assert_attacked(reply)
         self.assertNotEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
+
+    async def test_a_look_in_the_bag_in_a_fight_is_told_in_the_fight(self):
+        await self.blow("ona bi yumruk çakıyorum", thing_word="yumruk")
+        if self.world["combat"]["active"]:
+            reply = await self.line("ne anahtar ne parşömen, cebimde ne var bakıyım")
+            self.assertNotIn("_", reply["narration"])
 
     async def test_a_blow_read_as_talk_is_still_a_blow(self):
         reply = await self.blow("uzun boylunun suratına bira bardağını geçiriyorum", kind="speak_to",
@@ -154,6 +161,27 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         reply = await self.line('"sakin ol, sandık tuzak olabilir diye baktım" diyip sırıtıyorum', "Tuzakmış, yürü git.")
         self.assertIn("Tuzakmış, yürü git.", reply["narration"])
         self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+    async def test_a_quoted_joke_read_as_a_look_is_said_to_the_person_too(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        reply = await self.line('"sakin ol, sandık tuzak olabilir" diyip sırıtıyorum', "Tuzakmış, yürü git.")
+        self.assertIn("Tuzakmış, yürü git.", reply["narration"])
+
+    async def test_two_clauses_read_as_a_plan_and_said_to_a_person_get_the_person(self):
+        await self.begin()
+        self.client = ProposalClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.client.front = {"kind": "grab", "person_id": self.npc["id"]}
+        line = "yakasına yapışıp masaya bastırıyorum, korkutarak konuşturmaya çalışıyorum"
+        self.client.interaction = {"operation": "plan", "quote": line, "privacy": "private",
+                                   "steps": [{"quote": "yakasına yapışıp masaya bastırıyorum", "depends_on": None,
+                                              "precondition": ""},
+                                             {"quote": "korkutarak konuşturmaya çalışıyorum", "depends_on": 0,
+                                              "precondition": ""}]}
+        reply = await self.line(line, "Çek ellerini!")
+        self.assertIn("Çek ellerini!", reply["narration"])
+        self.assertNotIn("tartıyorsun", reply["narration"])
 
     async def test_a_quote_beside_a_listed_door_keeps_the_hand_on_the_door(self):
         await self.begin()
