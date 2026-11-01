@@ -784,14 +784,16 @@ def explicit_wait_request(text):
                    ("question", "reported", "conditional", "negated", "not_now"))
 
 
-_SLEEPING = re.compile(r"\buyu(?:yorum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu")
+_SLEEPING = re.compile(
+    r"\buyu(?:yorum|rum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu"
+    r"|\byat(?:iyorum|acagim|acam|icam|ayim|alim)\b")
 
 
 def input_route_markers(world, normalized):
     """Pure recognition shared by the timed owner and immediate-check admission."""
     journey = world.get("journey")
     movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
-    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
+    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized) or _SLEEPING.search(normalized)
     passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
     task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
     if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
@@ -900,7 +902,7 @@ def resolve_input(session, text):
             if not explicit_wait_request(text):
                 return None  # Non-action atmosphere remains with its existing owner.
             duration = _UNNAMED_WAIT
-        if "uyu" in normalized and duration >= 8 * 3600:
+        if ("uyu" in normalized or _SLEEPING.search(normalized)) and duration >= 8 * 3600:
             return _take_rest(session, "long_rest", duration)
         if "dinlen" in normalized:
             if duration < 3600:

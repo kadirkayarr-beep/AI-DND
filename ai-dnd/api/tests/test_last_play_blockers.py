@@ -4,6 +4,7 @@ Each test goes through the HTTP turn with a mocked model, so it proves what
 Python does on its own: no raw error, no second reading of the player's words.
 """
 
+import bold_acts
 import local_places
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
@@ -152,3 +153,66 @@ class EnteringWhereYouStandTests(ThreePlaysTests):
         self.world["location"] = self.world["locations"][self.inn["id"]]["parent_location_id"]
         out = await self.say("içeri giriyorum")
         self.assertEqual(self.world["location"], self.inn["id"], out["narration"])
+
+
+class InnRoomTests(ThreePlaysTests):
+    async def inn(self, *, inside=True):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.city = self.world["location"]
+        self.place = local_places.create_local_place(self.world, self.city, "smithy", name="Göl Sofrası Hanı")
+        self.place.update(scene_kind="tavern", place_kind="tavern")
+        bold_acts.settle_coin_labels(self.world)
+        self.world["currency"]["player"] = 2400
+        self.world["location"] = self.place["id"]
+        self.add_person("Dorn", "Barmen")
+        self.session.character.update(current_hp=5)
+        if not inside:
+            self.world["location"] = self.city
+
+    def coin(self):
+        return self.world["currency"]["player"]
+
+    async def test_neyse_is_not_a_condition(self):
+        for line in ("neyse ben hana dönüp oda tutayım, yarın sabaha kadar uyuyorum",
+                     "neyse hana gidiyorum"):
+            with self.subTest(line=line):
+                await self.inn(inside=False)
+                out = await self.say(line)
+                self.assertNotIn("Koşulun", out["narration"])
+                self.assertEqual(self.world["location"], self.place["id"], out["narration"])
+
+    async def test_asking_for_a_room_pays_and_the_night_passes(self):
+        await self.inn()
+        before = self.world["campaign_time"]["elapsed_seconds"]
+        out = await self.say("usta bana bi oda ver, sabaha kadar yatıcam")
+        self.assertLess(self.coin(), 2400, out["narration"])
+        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, out["narration"])
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"])
+        self.assertEqual(self.world["location"], self.place["id"])
+
+    async def test_walking_in_to_take_a_room_and_sleep_pays_too(self):
+        await self.inn(inside=False)
+        out = await self.say("neyse ben hana dönüp oda tutayım, yarın sabaha kadar uyuyorum")
+        self.assertLess(self.coin(), 2400, out["narration"])
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])
+
+    async def test_a_room_with_no_money_is_a_no_from_the_barman(self):
+        await self.inn()
+        self.world["currency"]["player"] = 1
+        out = await self.say("bana bi oda ver usta")
+        self.assertEqual(self.coin(), 1)
+        self.assertIn("oda da yok", out["narration"])
+
+    async def test_going_up_stays_in_the_inn(self):
+        for line in ("yukarı çıkıp yatıyorum, sabaha kadar uyurum", "yukarı çıkıyorum",
+                     "merdivenden yukarı çıkıp odama geçiyorum", "üst kata çıkıyorum"):
+            with self.subTest(line=line):
+                await self.inn()
+                out = await self.say(line)
+                self.assertEqual(self.world["location"], self.place["id"], out["narration"])
+
+    async def test_going_up_to_sleep_sleeps(self):
+        await self.inn()
+        out = await self.say("yukarı çıkıp yatıyorum, sabaha kadar uyurum")
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])

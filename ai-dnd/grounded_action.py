@@ -126,7 +126,8 @@ _QUESTION_WORDS = frozenset({"ne", "neler", "nerede", "nereye", "nereden", "nasi
 _QUESTION_PARTICLE = re.compile(r"^(?:mi|mu|misin|musun|miyim|muyum|miyiz|muyuz|midir|mudur|mi\w{0,3})$")
 _REPORTED = re.compile(r"\b(?:dedi|soyledi|istedi|onerdi|emretti|diyor|soyluyor|istiyor\s+benden)\b")
 _CONDITION_WORD = re.compile(
-    r"^(?:eger|sayet|\w+(?:rsa|rse|ysa|yse|osa|ose|mazsa|mezse|degilse|dise|disa)|aciksa|kapaliysa|kilitliyse|varsa|yoksa)$"
+    r"^(?!(?:her)?neyse$|oyleyse$|kose$)"
+    r"(?:eger|sayet|\w+(?:rsa|rse|ysa|yse|osa|ose|mazsa|mezse|degilse|dise|disa)|aciksa|kapaliysa|kilitliyse|varsa|yoksa)$"
 )
 _IMPLICIT_GO = re.compile(r"^(?:gidelim|gidiyoruz|yuruyelim|haydi|hadi)$")
 
@@ -2703,6 +2704,8 @@ def _climbs_somewhere(step) -> bool:
     if (step.get("target") or {}).get("kind") == "outside":
         return False
     tokens, goal = step.get("tokens") or [], step.get("goal_tokens") or []
+    if any(token.startswith(("yukari", "merdiven")) for token in tokens):
+        return True
     index = next((i for i, token in enumerate(tokens) if token not in goal), 0)
     before = tokens[index - 1] if index else ""
     return before.endswith(("a", "e")) and not before.startswith(_OUTSIDE_NOUNS)
@@ -2972,7 +2975,12 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
     if first["ambiguous"] and first["verb"] in {"open", "force", "knock", "unlock", "close"} \
             and all(c["kind"] == "door" for c in first["ambiguous"]):
         return "clarify", (run, first["ambiguous"])  # two doors and no context: never a guess
-    if len(steps) == 1 and not _owned_single_step(first, p.get("conditional_seen", False)):
+    import timed_gameplay
+    if (len(steps) == 1 and first["verb"] == "go" and (first["target"] or {}).get("kind") == "place"
+            and timed_gameplay._SLEEPING.search(fold(player_input))):
+        # "Hana dönüp uyuyorum": the walk goes indoors; sleeping there follows it, not the street.
+        first["verb"] = "enter"
+    elif len(steps) == 1 and not _owned_single_step(first, p.get("conditional_seen", False)):
         # One plain act that an existing owner already resolves with its own
         # contract (enter/exit with door checks, knocking, forcing, building
         # inspection with scene-detail proposals): keep it there.
@@ -3045,7 +3053,7 @@ def _execute(run: _Run, steps, p) -> dict[str, Any]:
                                         step.get("target"),
                                         text=(f"{why} " if why else "") + (
                                             "Koşulun gerçekleşmiyor; bunu yapmıyorsun." if holds is False
-                                            else "Koşulun şu an belli değil; bunu yapmıyorsun.")))
+                                            else "Bunun böyle olup olmadığını buradan çıkaramıyorsun.")))
                 continue
         if index > 0 and step.get("door_by_default"):
             # "...yaklaşıp kulak veriyorum, ses yoksa kilide bakıyorum": "the lock"

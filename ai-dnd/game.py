@@ -17947,9 +17947,20 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
     world_state = _session().world_state
     planned = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
     entered = isinstance(planned, dict) and planned.get("action") == "enter"  # the door was gone through before this turn ran
-    if (not isinstance(walked, dict) or (world_state.get("location") == place_before and not entered)
-            or world_state.get("combat", {}).get("active")
-            or not timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))):
+    if not isinstance(walked, dict) or world_state.get("combat", {}).get("active"):
+        return
+    moved = world_state.get("location") != place_before or entered
+    receipt = walked.get("action_result") or {}
+    if moved:
+        import bold_acts
+        room = bold_acts.take_room(_session(), player_input)
+        if room is not None:
+            walked["narration"] = f"{walked.get('narration') or ''} {room['line']}".strip()
+            if not room["room"]:
+                return
+    elif (receipt.get("action"), receipt.get("status")) != ("lodging", "rented"):
+        return
+    if not timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input)):
         return
     slept = timed_gameplay.resolve_input(_session(), player_input)
     if slept is not None:

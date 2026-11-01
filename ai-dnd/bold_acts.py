@@ -528,8 +528,42 @@ def settle_coin_labels(world: dict[str, Any]) -> None:
     world["inventory"] = kept
 
 
+_ROOM = re.compile(r"\boda(?:y[ai])?\b")
+_ROOM_ASK = re.compile(r"\b(?:tut\w*|kirala\w*|ver\w*|alayim|alirim|aliyorum|istiyorum|isterim)\b")
+_ROOM_PRICE = 50  # a modest inn stay, 5 silver a night
+_ROOM_DAY = 24 * 3600
+
+
+def take_room(session, text: str) -> dict[str, Any] | None:
+    """A night's room is paid to whoever serves here; a refusal leaves the player on their feet."""
+    folded = fold(session, text)
+    server = next((npc for npc in session.active_npcs()
+                   if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
+    if server is None or not (_ROOM.search(folded) and _ROOM_ASK.search(folded)):
+        return None
+    world = session.world_state
+    who = living_world.public_npc_name(server)
+    now = world.get("campaign_time", {}).get("elapsed_seconds", 0)
+    held = world.setdefault("flags", {}).get("inn_room")
+    if isinstance(held, dict) and held.get("place") == world.get("location") and now < held.get("until", 0):
+        return {"line": f"{who} başıyla merdivenleri gösteriyor. “Odan yukarıda, duruyor.”", "paid": 0, "room": True}
+    settle_coin_labels(world)
+    wallets = world.setdefault("currency", {})
+    if wallets.get("player", 0) < _ROOM_PRICE:
+        return {"line": f"{who} kesene bakıp başını sallıyor. “Parası yoksa oda da yok.”", "paid": 0, "room": False}
+    wallets["player"] -= _ROOM_PRICE
+    world["flags"]["inn_room"] = {"place": world.get("location"), "until": now + _ROOM_DAY}
+    return {"line": f"{who} başıyla merdivenleri gösteriyor; {_ROOM_PRICE} bakır kesenden tezgâha geçiyor.",
+            "paid": _ROOM_PRICE, "room": True}
+
+
 def _buy(session, text: str) -> dict[str, Any] | None:
     folded = fold(session, text)
+    if not re.search(r"\b(?:gid|git|gir|gec|yuru|yaklas)\w*", folded):
+        room = take_room(session, text)
+        if room is not None:
+            return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
+                          ["currency"] if room["paid"] else [], price_cp=room["paid"])
     wanted = next((item for item in _PRICES if item[0] in folded), None)
     server = next((npc for npc in session.active_npcs()
                    if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
