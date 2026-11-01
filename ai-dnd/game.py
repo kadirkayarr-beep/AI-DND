@@ -18043,6 +18043,11 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
+    if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
+        from adventure import dialogue_jobs
+        read = dialogue_jobs.read_parcel(_session(), player_input)
+        if read is not None:
+            return read
     front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]

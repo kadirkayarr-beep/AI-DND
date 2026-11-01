@@ -351,7 +351,20 @@
       "çalışmaya başlıyorum",
       "çalışıyorum",
       "işe başlayalım",
-      "çalışmaya başlayalım"
+      "çalışmaya başlayalım",
+      "başlayayım",
+      "başlayım",
+      "başlıyalım",
+      "başlıyoz",
+      "başlıyoruz",
+      "başlayalım o zaman",
+      "işe koyuluyorum",
+      "işe koyulalım",
+      "işe girişiyorum",
+      "işe başlayayım",
+      "işe başlayım",
+      "işe başlıyom",
+      "koyuluyorum"
     ],
     "take": [
       "al",
@@ -701,8 +714,23 @@
         ],
         "not_in_hand": [
           "{item} elinde değil; hâlâ {owner} yanında."
+        ],
+        "thrown": [
+          "{item} artık sende değil; onu kendi elinle attın."
+        ],
+        "delivered_opened": [
+          "{recipient} kırık mührü görünce kaşlarını çatıyor, kâğıdı kapıp bir kenara koyuyor. Anlaşılanın yarısı sayılıyor: {amount} bakır.",
+          "{recipient} mührün kırıldığını hemen görüyor; sana uzun uzun bakıp ücretin yarısını masaya bırakıyor: {amount} bakır."
         ]
       },
+      "letters": [
+        "Sözünü ettiğim yük {target} yoluyla bu hafta gelmeyecek. Soran olursa bir şey bilmiyorsun. Bu kâğıdı okuyunca yak.",
+        "Hesap tutmuyor. {target} tarafında biri defterlere bakmış. Bir sonraki sayımdan önce konuşmamız gerek, yalnız gel.",
+        "Dediğin adam yine soru soruyor. {target} çevresinde görülmüş. Kimseye güvenme, ben haber verene kadar ortalıkta durma.",
+        "Borcun vadesi geçti. Üç gün içinde {target} tarafına getirmezsen işi başkalarına bırakırım, bunu ikimiz de istemeyiz.",
+        "Anlaştığımız gibi: gece yarısından sonra {target} arkasında, ışık yakmadan. Yanında kimse olmasın.",
+        "Aradığın kayıt bende değil. Son gören {target} içindeydi. Mühür kırılmışsa bunu ben yazmadım, sen de okumadın."
+      ],
       "accepted": [
         "Bu senin kendi işin, sen verdin; inkâr etme. {item} {recipient} eline, {target} içinde gidecek. Ücret {pay_text}, ödeme {timing_text}, alıcı sayar; süre {deadline_text}. Şartları tekrar etme."
       ],

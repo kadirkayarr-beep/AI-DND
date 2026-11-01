@@ -7,6 +7,7 @@ import equipment_economy
 import living_world
 import local_dialogue
 import local_places
+import relationships
 import scheduled_events
 from adventure import templates, director
 
@@ -111,14 +112,68 @@ def _lines(kind):
     return world_threads.job_lines('errand','shown',kind) or []
 
 
-def shown_line(world,thread,kind):
+def shown_line(world,thread,kind,amount=None):
     import world_threads
     lines=_lines(kind)
     if not lines: return ''
     line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],kind)%len(lines)]
     noun=thread.get('item_noun') or 'paket'
     return world_threads.sentence(world_threads._fill(line,item=noun[:1].upper()+noun[1:],owner=world_threads.spoken_owner(world,thread),
-        recipient=world_threads.spoken_recipient(world,thread),pay_text=world_threads.pay_text(thread)))
+        recipient=world_threads.spoken_recipient(world,thread),pay_text=world_threads.pay_text(thread),amount=amount))
+
+
+_PAPER=('mektu','mektub','not','pusula','kagit','tezkere','zarf','yazi')
+_READING=re.compile(r'\b(?:oku(?!muyor|mam|mayacag|ma\b|madan)\w*|ne\s+yaz\w*|icinde\s+ne\s+yaz\w*|yazani\b|yazanlar\w*)')
+_ASKS_WHAT_IT_SAYS=re.compile(r'\bne\s+yaz\w*')
+
+
+def _sealed(thread):
+    return 'muhr' in living_world.normalize_text(thread.get('owner_line'))
+
+
+def _paper_in_hand(world,text):
+    """The letter or note in the bag this line means, or None."""
+    import world_threads
+    words=living_world.normalize_text(text).split()
+    for thread in (world_threads.view(world) or {'threads':[]})['threads']:
+        noun=living_world.normalize_text(thread.get('item_noun'))
+        if (thread.get('status')=='accepted' and noun.startswith(_PAPER) and holds_parcel(world,thread)
+                and any(word.startswith(stem) for stem in (*world_threads._item_stems(thread),'muhr') for word in words)):
+            return thread
+    return None
+
+
+def letter_text(world,thread):
+    """What it says. Picked once by the campaign's seed, so a second reading finds the same words."""
+    import world_threads
+    lines=world_threads.job_lines('errand','letters') or []
+    if not lines: return ''
+    line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],'letter')%len(lines)]
+    place=world.get('locations',{}).get(thread.get('target_place_id')) or {}
+    return world_threads._fill(line,target=place.get('name') or 'orası')
+
+
+def read_parcel(session,text):
+    """Reading what the player carries: the words are Python's, and a broken seal stays broken."""
+    world=session.world_state
+    if not isinstance(text,str) or world.get('combat',{}).get('active'):
+        return None
+    folded=living_world.normalize_text(text)
+    if not _READING.search(folded) or ('?' in text and not _ASKS_WHAT_IT_SAYS.search(folded)):
+        return None
+    thread=_paper_in_hand(world,text)
+    words=letter_text(world,thread) if thread is not None else ''
+    if not words:
+        return None
+    breaks=_sealed(thread) and not thread.get('seal_broken')
+    thread['seal_broken']=True
+    flags=world.setdefault('flags',{})
+    flags['turn_index']=flags.get('turn_index',0)+1
+    shown=('Mührü kırıyorsun. ' if breaks else '')+f'Kâğıtta şunlar yazıyor: “{words}”'
+    session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+    return {'messages':session.messages,'narration':shown,'model_calls':0,
+            'action_result':{'action':'read_parcel','status':'resolved','success':True,
+                             'state_changes':['world_threads'],'direct_response':shown}}
 
 
 def _move_parcel(session,thread,npc,to_player,text=''):
@@ -178,15 +233,21 @@ def deliver(session,thread,recipient,text):
                 'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}
     kept=_keep(world)
     try:
+        opened=_sealed(thread) and thread.get('seal_broken') is True
+        pay=max(1,thread['terms']['pay']//2) if opened else thread['terms']['pay']
+        _quest_of(world,thread)['reward_plan']['success']['gold']=pay
         action=_move_parcel(session,thread,recipient,False)
         if not action: raise ValueError('The parcel did not move.')
         world_threads.sync_from_quests(world)
         closed=world_threads.by_id(world,thread['thread_id'])
         if closed is None or closed.get('status')!='done':
             raise ValueError('The delivery did not finish the job.')
-        closed['paid_cp']=closed['terms']['pay']
-        world_threads.note_event(world,closed,'paid',f"{closed['terms']['pay']} bakır ödendi",npc=recipient)
-        shown=shown_line(world,closed,'delivered')
+        closed['paid_cp']=pay
+        world_threads.note_event(world,closed,'paid',f"{pay} bakır ödendi",npc=recipient)
+        if opened:
+            for person in (recipient.get('id'),thread.get('owner_npc_id')):
+                if isinstance(person,str): relationships.note(world,person,-1,'broke_seal:'+thread['thread_id'])
+        shown=shown_line(world,closed,'delivered_opened' if opened else 'delivered',amount=pay)
         action['direct_response']=shown
         session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
         return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}
