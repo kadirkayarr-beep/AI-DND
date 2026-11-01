@@ -607,6 +607,7 @@
       "warm": " Bu kişiye ısınmışsın.",
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
       "come_at_night": "İş gece; şimdi başlatamazsın. Akşam olunca gelmesini kendi ağzınla söyle.",
+      "withdraw_unclear": "Bir şeyden vazgeçtiğini söylüyor ama anlaştığınız işi mi kastediyor belli değil; iş olduğu gibi duruyor. Neyi kastettiğini kendi ağzınla sor.",
       "busy": "Elinde sana ait başka bir teslimat duruyor; onu bitirmeden bunu vermezsin. Teklif açık, bunu kendi ağzınla söyle.",
       "awaiting": "Sana {owner} tarafından bir {item} gönderiliyor; bekliyorsun.",
       "no_job": "Şu an kimseye verecek bir işin yok; iş, ücret, randevu ya da deftere yazma sözü verme, verdiysen geri al."

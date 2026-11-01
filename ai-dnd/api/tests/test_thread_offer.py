@@ -202,6 +202,24 @@ class AfterAYes(unittest.TestCase):
         world, thread, npc = offered()
         self.assertEqual(world_threads.bind_player_decision(world, thread, "bu işten vazgeçtim", npc), "declined")
 
+    def test_a_bare_word_after_the_talk_moved_on_ends_nothing(self):
+        for last, line in (("Ekmeği alacak mısın?", "vazgeçtim"), ("Bir daha böyle şey yapma.", "yapmayacağım"),
+                           ("Kapıyı kapatır mısın?", "bırakıyorum")):
+            world, thread, npc = offered(status="accepted")
+            world["npc_speech_log"][npc["id"]].append({"player": "x", "npc": last})
+            self.assertEqual(world_threads.bind_player_decision(world, thread, line, npc), "withdraw_unclear", line)
+            self.assertEqual(thread["status"], "accepted", line)
+
+    def test_the_same_word_naming_the_job_ends_it_whatever_was_last_said(self):
+        world, thread, npc = offered(status="accepted")
+        world["npc_speech_log"][npc["id"]].append({"player": "x", "npc": "Ekmeği alacak mısın?"})
+        self.assertEqual(world_threads.bind_player_decision(world, thread, "bu işi bırakıyorum", npc), "abandoned")
+
+    def test_the_owner_s_last_words_about_the_work_keep_it_the_subject(self):
+        world, thread, npc = offered(status="accepted")
+        world["npc_speech_log"][npc["id"]].append({"player": "x", "npc": "Bu iş kolay, korkma."})
+        self.assertEqual(world_threads.bind_player_decision(world, thread, "vazgeçtim", npc), "abandoned")
+
     def test_small_talk_does_not_end_an_accepted_job(self):
         for line in ("Tamam.", "bugün gelemem", "şimdi konuşamam", "hayır", "aç çalışamam", "olmaz", "yok"):
             world, thread, npc = offered(status="accepted")

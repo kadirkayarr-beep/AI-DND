@@ -262,6 +262,23 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.status(), "abandoned")
         self.assertEqual(self.parcel_owner(), [self.owner["id"]])
 
+    async def test_a_bare_word_about_something_else_makes_the_owner_ask(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        self.world["npc_speech_log"][self.owner["id"]].append({"player": "x", "npc": "Ekmeği alacak mısın?"})
+        await self.line("vazgeçtim", "Neyden?")
+        self.assertEqual(self.status(), "accepted")
+        self.assertEqual(self.parcel_owner(), ["player"])
+        self.assertIn("kastettiğini", str(self.client.message_batches[-1]))
+        await self.line("vazgeçtim bu işten", "Sen bilirsin.")
+        self.assertEqual(self.status(), "abandoned")
+
+    async def test_what_the_owner_said_on_the_job_turn_is_about_the_job(self):
+        await self.job()
+        await self.line("olur", "Yolun açık olsun.")
+        await self.line("vazgeçtim", "Sen bilirsin.")
+        self.assertEqual(self.status(), "abandoned")
+
     async def test_small_talk_after_taking_it_changes_nothing(self):
         await self.job()
         await self.line("mektubu alıyorum", "Al.")

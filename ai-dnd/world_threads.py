@@ -918,6 +918,14 @@ def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -
             and not _asks_something_else(line, thread, answer_table()))
 
 
+def _last_line_is_the_job(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+    """A bare 'vazgeçtim' means the job only while the job is what this person was last talking about."""
+    last = _last_exchange(world, npc)
+    line = last.get("npc") if last else None
+    return not line or line in {thread.get("offer_line"), thread.get("job_line")} or (
+        _names_the_work(line, thread, answer_table()))
+
+
 def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> str | None:
     """Python's reading of the player's own words on this thread. Writes nothing."""
     status = thread.get("status")
@@ -925,7 +933,12 @@ def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: An
         return None
     reading = read_answer(text, npc, thread)
     if status == "accepted":
-        return "abandoned" if reading["meaning"] == "withdraw" else None
+        if reading["meaning"] != "withdraw":
+            return None
+        table = answer_table()
+        said = [word for word in _folded(text).split() if word not in table["fillers"]]
+        clear = reading["reference"] or len(said) > 1 or _last_line_is_the_job(world, thread, npc)
+        return "abandoned" if clear else "withdraw_unclear"
     if reading["terms"]:
         return "questioning_terms" if status == "offered" else None
     current = reading["reference"] or answers_the_offer(world, thread, npc)
