@@ -316,7 +316,9 @@ def hear_confession(session, text: Any) -> bool:
 def attacked(session, npc: dict[str, Any]) -> None:
     """Going for someone who meant no harm is a deed; a fight with an enemy is not."""
     if not npc.get("hostile"):
+        world = session.world_state
         remember(session, "assault", f"{living_world.public_npc_name(npc)} üzerine yürüdü", victim_id=npc.get("id"))
+        relationships.note(world, npc["id"], -3, f"attacked:{world.get('flags', {}).get('turn_index', 0)}")
 
 
 def killed(session, npc: dict[str, Any]) -> None:

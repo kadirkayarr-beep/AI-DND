@@ -14967,7 +14967,8 @@ _ATTACK_INSTRUMENT_TOKENS = frozenset({"bicakla", "yumrukla", "bicaklar", "bicak
 # ringing or cutting - never a combat decision - unless a creature is named.
 _INANIMATE_HIT_OBJECT = re.compile(
     r"\b(?:kapi(?!ci)|pencere|kepenk|panjur|masa|tezgah|duvar|zil|can(?:i|a|in)?\b"
-    r"|sandik|kutu|ip(?:i|in|e)?\b|halat|kilit|cam(?:a|i)?\b|tahta|agac|odun|kaya"
+    r"|sandi[kg]|kutu|ip(?:i|in|e|ini|ine|ten|ler\w*)?\b|halat|urgan|zincir|cuval|fici|varil|sepet"
+    r"|kilit|cam(?:a|i)?\b|tahta|agac|odun|kaya"
     r"|kitap|ekmek|sopa|direk|kazik|kumas|bez|dal(?:i|a)?\b|davul|gong|tokmak)\w*"
 )
 _CREATURE_REFERENCE = re.compile(
@@ -18199,6 +18200,11 @@ def _dispatch_player_turn(
             proposal_result = monster_combat.player_response(_session(), player_input, target_id)
             if proposal_result is not None:
                 return proposal_result
+    if combat_action is None and combat_lifecycle.is_standing_down(_session(), player_input):
+        with resolution_action_scope(action_id, session_id):
+            settled = combat_lifecycle.stand_down(_session(), action_id, session_id)
+        if settled is not None:
+            return settled
     if combat_action is None and combat_lifecycle.is_flight(_session(), player_input):
         with resolution_action_scope(action_id, session_id):
             fled = combat_lifecycle.flee(_session(), action_id, session_id)

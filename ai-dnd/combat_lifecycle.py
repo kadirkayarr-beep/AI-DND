@@ -217,6 +217,59 @@ def flee(session, action_id=None, session_id=None):
     return result
 
 
+_STAND_DOWN = re.compile(
+    r"\b(?:kusura bakma\w*|ozur dile\w*|affet\w*|bagisla\w*|yanlislik\w*|dur dur|sakin ol\w*|barisalim|"
+    r"kilic\w* indir\w*|silah\w* (?:indir|birak|kinina)\w*|saldirmiyorum|saldirmayacagim|vurmayacagim|"
+    r"(?:dovusmek|kavga etmek) istemiyorum|kavga bitsin|teslim ol\w*|vazgectim)\b"
+)
+
+
+def is_standing_down(session, message):
+    """"Kılıcı indiriyorum, kusura bakma": the words end the fight, unless a blow goes with them."""
+    world = session.world_state
+    if not isinstance(message, str) or not world.get("combat", {}).get("active"):
+        return False
+    text = session._normalize_turkish_typos(message)
+    return bool(_STAND_DOWN.search(text)) and not is_attack_decision(session, message)
+
+
+def _meant_no_harm(session):
+    combat = session.world_state["combat"]
+    others = [npc for npc in session.world_state.get("npcs", [])
+              if isinstance(npc, dict) and npc.get("id") in combat.get("participants", [])]
+    return bool(others) and not any(npc.get("hostile") for npc in others), others
+
+
+def stand_down(session, action_id=None, session_id=None):
+    """Someone who never wanted this fight may take the way out. A real attempt, and it can fail."""
+    import relationships
+    world = session.world_state
+    combat = world["combat"]
+    harmless, others = _meant_no_harm(session)
+    if not harmless or combat.get("current_actor_id") != "player" or session.character.get("current_hp", 0) <= 0:
+        return None
+    character = session.character
+    check = session.perform_skill_check(
+        "Persuasion", 12, character["modifiers"], character.get("proficient_skills") or [],
+        character.get("proficiency_bonus") or 2, expertise_skills=character.get("expertise_skills") or (),
+    )
+    turn = world.get("flags", {}).get("turn_index", 0)
+    if check["result"] == "BAŞARILI":
+        session.end_combat("stood_down")
+        for npc in others:
+            relationships.note(world, npc["id"], -1, f"stood_down:{turn}")
+        who = living_world.public_npc_name(others[0])
+        narration = (f"Kılıcını indiriyorsun. {who} soluk soluğa bir adım geri çekiliyor, ellerini indirmiyor ama "
+                     "üstüne de gelmiyor. Kavga bitti; bu iş unutulmuş değil.")
+        return {"messages": session.messages, "narration": narration, "model_calls": 0,
+                "action_result": {"action": "stand_down", "status": "resolved", "success": True,
+                                  "state_changes": ["combat", "relationships"], "direct_response": narration}}
+    import action_economy
+    result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
+    result["narration"] = f"Seni dinleyecek halde değil; üstüne gelmeyi bırakmıyor. {result.get('narration', '')}".strip()
+    return result
+
+
 def answered_attack_question(session, message):
     """"Kime saldırıyorsun?" - "çelimsiz biri": the answer finishes the sentence."""
     asked = getattr(session, "_attack_asked", False)
