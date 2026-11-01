@@ -309,7 +309,7 @@ class ABareWalkFollowsWhatWasJustOffered(FrontTable):
         self.world["doors"].remove(self.door)
         self.pointed(f"Marek başparmağıyla sokağı gösteriyor. “{name} tarafına git, orada bulursun.”")
         self.client.front = {"kind": "unclear"}
-        reply = await self.line("tamam oraya gidiyorum")
+        reply = await self.line("tamam gidiyorum")
         self.assertIn(name, reply["narration"])
 
     async def test_a_word_for_where_is_kept_over_the_offer(self):
