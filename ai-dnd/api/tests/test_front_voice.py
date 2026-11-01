@@ -77,6 +77,11 @@ class AnyBlowIsAnAttack(FrontTable):
     async def test_a_question_about_a_blow_strikes_nobody(self):
         self.assert_no_blow(await self.blow("ona bi tane vursam ne olur?"))
 
+    async def test_wondering_about_a_blow_with_no_mark_strikes_nobody(self):
+        await self.begin()
+        self.client.front = {"kind": "unclear"}
+        self.assert_no_blow(await self.line("ona bi tane vursam ne olur sence", "Denemeni tavsiye etmem."))
+
     async def test_a_threat_strikes_nobody_and_is_said_to_them(self):
         reply = await self.blow("bi daha bana bakarsan suratını dağıtırım")
         self.assert_no_blow(reply)

@@ -117,7 +117,7 @@ def is_attack_decision(session, message):
     text = session._normalize_turkish_typos(spoken)
     return (session._has_explicit_attack_verb(spoken)
             and not session._is_explicitly_negated_attack(spoken)
-            and not re.search(r"\b(?:tehdit|gozdagi|varsay|saldirsam)\w*\b", text)
+            and not re.search(r"\b(?:tehdit|gozdagi|varsay)\w*\b|\b\w+(?:sam|sem)\b", text)  # "vursam ne olur": no blow yet
             and not str(message).rstrip().endswith("?"))
 
 
