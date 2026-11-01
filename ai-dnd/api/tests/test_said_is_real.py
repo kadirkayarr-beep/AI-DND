@@ -293,6 +293,26 @@ class TakingThings(ErrandBase):
         await self.line("defteri aliyorum")
         self.assertNotIn("Defter", self.bag())
 
+    async def test_a_thing_someone_only_said_is_not_on_the_table(self):
+        await self.shown("Barmen: “Halka mı? Duymadım öyle bir şey.”")
+        self.client.front = {"kind": "take", "thing_word": "halka"}
+        await self.line("halkayi aliyorum")
+        self.assertNotIn("Halka", self.bag())
+
+    async def test_a_thing_the_narration_says_is_not_there_is_not_there(self):
+        await self.shown("Rüzgâr esiyor.")
+        self.client.front = {"kind": "take", "thing_word": "halka"}
+        for said in ("Ortada halka falan yok.", "Halka görünmüyor.", "Bu bir halka değil."):
+            self.session.messages.append({"role": "assistant", "content": said})
+            await self.line("halkayi aliyorum")
+            self.assertNotIn("Halka", self.bag(), said)
+
+    async def test_the_sentence_beside_a_denial_still_shows(self):
+        await self.shown("Ortada kimse yok. Tezgâhta kırık bir halka duruyor.")
+        self.client.front = {"kind": "take", "thing_word": "halka"}
+        await self.line("halkayi aliyorum")
+        self.assertIn("Halka", self.bag())
+
     async def test_taking_it_twice_makes_no_second_one(self):
         await self.shown()
         self.client.front = {"kind": "take", "thing_word": "defter"}

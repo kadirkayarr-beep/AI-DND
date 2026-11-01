@@ -24,17 +24,23 @@ _NOT_THINGS = frozenset({
     "birkac", "biraz", "tane", "hepsini", "ondan", "bunlari", "sunlari", "onlari", "yarar", "neyse", "varsa",
 })
 _SHOWN_TURNS = 8
-_PLAYERS_OWN_WORDS = re.compile(r"Sen: “[^”]*”")
+_DENIED = re.compile(r"\b(?:yok|degil)\b|m[iu]yor")  # 'yok', 'değil', 'görünmüyor': said as not there
 _TOLD_TO_YOU = ("sun", "sin", "din", "dun")  # 'alıyorsun', 'aldın': the sentence says the player did it
 EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
 _THING_WORD = re.compile(r"[^\W\d_]{4,}")
+
+
+def told_as_there(text: str) -> str:
+    """What the screen itself says is there: no quoted words, whoever said them, and no sentence that denies it."""
+    sentences = re.split(r"(?<=[.!?…])\s+|\n+", living_world._text_outside_quotes(text))
+    return " ".join(part for part in sentences if not _DENIED.search(living_world.normalize_text(part)))
 
 
 def _shown(session) -> list[str]:
     """The words of the last few things the screen said, in order."""
     said = [item.get("content") for item in reversed(session.messages)
             if isinstance(item, dict) and item.get("role") == "assistant" and isinstance(item.get("content"), str)]
-    return _THING_WORD.findall(_PLAYERS_OWN_WORDS.sub(" ", " ".join(reversed(said[:_SHOWN_TURNS]))))
+    return _THING_WORD.findall(told_as_there("\n".join(reversed(said[:_SHOWN_TURNS]))))
 
 
 def _fixed_here(world: dict[str, Any]) -> tuple[str, ...]:
