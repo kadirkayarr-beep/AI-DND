@@ -472,5 +472,13 @@ class ATroubleEndsWhereItsWordsSay(OnATrouble):
         self.assertIn("burada", text)
 
 
+class AnItemNamedWithBir(unittest.TestCase):
+    def test_bir_in_its_name_does_not_make_birakiyorum_the_item(self):
+        thread = {"item_noun": "bir saat değişikliği notu"}
+        self.assertEqual(world_threads.read_answer("işi bırakıyorum, hana gidiyorum", None, thread)["meaning"], "withdraw")
+        self.assertFalse(world_threads.read_answer("bırakıyorum", None, {})["reference"])
+        self.assertTrue(world_threads.read_answer("saat notunu aldım", None, thread)["reference"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -680,7 +680,7 @@ def _stem(word: str) -> str:
 
 def _item_stems(thread: dict[str, Any]) -> tuple[str, ...]:
     words = _folded(thread.get("item_noun")).split()
-    return tuple(_stem(word) for word in words if len(word) > 2)
+    return tuple(_stem(word) for word in words if len(word) > 2 and word != "bir")  # 'bir not': the article is no name
 
 
 def _clauses(text: str) -> list[tuple[list[str], bool, bool]]:
