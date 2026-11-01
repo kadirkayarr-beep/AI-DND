@@ -799,6 +799,27 @@ def input_route_markers(world, normalized):
     return movement, wait, task, passive_observation
 
 
+_UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
+
+
+def _time_passed_line(advancement):
+    seconds = advancement["elapsed_seconds"]
+    if advancement.get("interrupted") or seconds < 60:
+        return "Bir süre bekliyorsun."
+    hours, minutes = seconds // 3600, seconds % 3600 // 60
+    if seconds == 1800:
+        return "Yarım saat geçiyor."
+    return " ".join(part for part in (f"{hours} saat" if hours else "", f"{minutes} dakika" if minutes else "", "geçiyor.") if part)
+
+
+def is_timed_wait(text):
+    """A wait the player gave a length for, whatever else the same line says."""
+    normalized = clock.normalize(text)
+    return bool(re.search(r"\bbekl", normalized)) and "?" not in str(text) and (
+        clock.mentions_named_hour(normalized) or clock.requested_duration(text) is not None
+    )
+
+
 def resolve_input(session, text):
     """Narrow deterministic player-intent grammar before model interpretation."""
     normalized = clock.normalize(text)
@@ -844,8 +865,7 @@ def resolve_input(session, text):
         return None
     duration = clock.requested_duration(text)
     if wait or passive_observation:
-        if "sabaha kadar" in normalized:
-            duration = clock.until_morning(world)
+        duration = clock.until_named_hour(world, normalized) or duration
         if duration is None and _SLEEPING.search(normalized):
             duration = 8 * 3600  # Lying down anywhere is sleeping; where is the player's business.
         if duration is None:
@@ -855,10 +875,9 @@ def resolve_input(session, text):
                 # into a duration. Do not advance time or invent an unlock.
                 return _result("wait", "Ne zaman açılacağı bilinmiyor. Kaç dakika veya saat beklemek istediğini belirt.",
                                status="clarification", success=False)
-            if explicit_wait_request(text):
-                return _result("wait", "Kaç dakika veya saat beklemek istediğini belirt.",
-                               status="clarification", success=False)
-            return None  # Non-action atmosphere remains with its existing owner.
+            if not explicit_wait_request(text):
+                return None  # Non-action atmosphere remains with its existing owner.
+            duration = _UNNAMED_WAIT
         if "uyu" in normalized and duration >= 8 * 3600:
             rest = session.resolve_species_trait_action("long_rest", elapsed_seconds=duration)
             return _result("rest", rest["message"], rest["effects"]["time_result"])
@@ -872,7 +891,7 @@ def resolve_input(session, text):
             journey and journey["status"] != "ARRIVED"
         ) else None
         advancement = _advance(session, duration, "sleep" if "uyu" in normalized else "explicit_wait", observation)
-        return _result("wait", "Belirttiğin süre geçti.", advancement)
+        return _result("wait", _time_passed_line(advancement), advancement)
     if task and (duration is not None or world.get("active_task")):
         if journey and journey["status"] != "ARRIVED":
             return _result("task", "Bu yeri incelemek için önce yolculuğunu tamamlamalı veya geri dönmelisin.",

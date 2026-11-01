@@ -18836,7 +18836,8 @@ def _run_player_turn_internal(
         )
         spoken["narration"] = f"{walked_up['direct_response']} {spoken['narration']}"
         return spoken
-    sleeping = bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input)))
+    sleeping = bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))
+                    or timed_gameplay.is_timed_wait(player_input))
     compound = None if sleeping else interaction_adventure.compound_plan(player_input)
     # "Marek'in yanına gidiyorum, bir bira istiyorum": the second clause is said to him.
     import grounded_action

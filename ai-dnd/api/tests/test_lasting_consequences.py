@@ -51,3 +51,41 @@ class OwnWordsAndConfessions(ThreePlaysTests):
             self.assertTrue(combat_lifecycle.is_attack_decision(self.session, "isoldeye vurdum"))
             self.assertTrue(combat_lifecycle.is_attack_decision(self.session, "çavuşa saldırıyorum"))
             self.assertFalse(combat_lifecycle.is_attack_decision(self.session, "adamı dün gece ben öldürdüm"))
+
+
+class WaitingPassesTime(ThreePlaysTests):
+    def elapsed(self):
+        return self.world["campaign_time"]["elapsed_seconds"]
+
+    async def test_a_wait_with_a_length_passes_that_time_even_with_more_said(self):
+        await self.begin(FIGHTER)
+        before = self.elapsed()
+        out = await self.say("bir duvarın dibine oturup yarım saat kadar bekliyorum, atölyeye ne oluyor izliyorum")
+        self.assertEqual(self.elapsed() - before, 1800, out["narration"])
+        self.assertIn("Yarım saat", out["narration"])
+
+    async def test_a_bare_wait_passes_a_little_time_instead_of_asking_how_long(self):
+        for line in ("bekliyorum", "biraz bekliyorum", "bir süre bekliyorum"):
+            with self.subTest(line=line):
+                await self.begin(FIGHTER)
+                before = self.elapsed()
+                out = await self.say(line)
+                self.assertGreater(self.elapsed(), before, out["narration"])
+                self.assertNotIn("Kaç dakika", out["narration"])
+
+    async def test_waiting_until_evening_reaches_evening(self):
+        await self.begin(FIGHTER)
+        self.world["campaign_time"]["start_second"] = 10 * 3600
+        await self.say("akşama kadar burada bekliyorum")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], 8 * 3600)
+
+    async def test_in_a_fight_waiting_still_ends_the_turn(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        self.add_person("Dorn", "Muhafız")
+        await self.say("muhafıza saldırıyorum", PlayClient(intent="attack"))
+        self.assertTrue(self.world["combat"]["active"])
+        before = self.elapsed()
+        out = await self.say("bekliyorum")
+        self.assertEqual(out["turn_outcome"]["action"], "action_economy", out["narration"])
+        self.assertLess(self.elapsed() - before, 60)

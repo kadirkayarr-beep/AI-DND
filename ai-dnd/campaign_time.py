@@ -177,6 +177,23 @@ def requested_duration(text):
 
 
 def until_morning(world):
+    return _until_hour(world, 7)
+
+
+def _until_hour(world, hour):
     time = public_time(world)
     second = time["hour"] * 3600 + time["minute"] * 60 + time["second"]
-    return (7 * 3600 - second) % DAY or DAY
+    return (hour * 3600 - second) % DAY or DAY
+
+
+_NAMED_HOURS = (("sabaha kadar", 7), ("ogleye kadar", 12), ("ogle vaktine kadar", 12),
+                ("aksama kadar", 18), ("geceye kadar", 21))
+
+
+def mentions_named_hour(normalized):
+    return any(words in normalized for words, _ in _NAMED_HOURS)
+
+
+def until_named_hour(world, normalized):
+    """Seconds to the part of the day the player named, if they named one."""
+    return next((_until_hour(world, hour) for words, hour in _NAMED_HOURS if words in normalized), None)
