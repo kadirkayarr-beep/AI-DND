@@ -13793,16 +13793,19 @@ def _found_on_a_pass():
             "found": True, "text": text}
 
 
-def _inspection_findings(player_input, outcome):
+def _inspection_findings(player_input, outcome, *, rolled=True):
     """Concrete, target-bound result of a look or search (LR00-P2).
 
     Only saved facts are revealed. A failed or empty look is stated as limited
     to this attempt ("bu bakışla"), never as proof that nothing is there.
+    rolled=False is a look with no check: what the reading proposed takes a pass.
     """
     world_state = _session().world_state
     # Words inside quotes are only words, never the thing being looked at.
     text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
     success = outcome in ("success", "critical_success")
+    proposed = rolled and success
+    a_reading_ran = proposed and getattr(_session(), "_front_found", None) is not None
     door = _current_door()
     if isinstance(door, dict) and _WINDOW_WORDS.search(text):
         window = _ensure_venue_window(door)
@@ -13853,9 +13856,8 @@ def _inspection_findings(player_input, outcome):
                 if stem in recorded or word in recorded:
                     continue
                 named_absence.append(word)
-            found_now = _found_on_a_pass() if success and named_absence else None
-            if found_now is not None or (success and named_absence
-                                         and getattr(_session(), "_front_found", None) is not None):
+            found_now = _found_on_a_pass() if proposed and named_absence else None
+            if found_now is not None or (a_reading_ran and named_absence):
                 return found_now  # with a reading and no proposal the narrator tells it, inside the turn's cap
             found = success and not named_absence
             line = (f"{feature['name']}: {feature.get('description') or 'olağan görünüyor.'}" if found
@@ -13863,8 +13865,8 @@ def _inspection_findings(player_input, outcome):
             return {"target_kind": "feature", "target_id": feature.get("id"),
                     "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
-        found = _found_on_a_pass() if success else None
-        if found is not None or (success and getattr(_session(), "_front_found", None) is not None):
+        found = _found_on_a_pass() if proposed else None
+        if found is not None or a_reading_ran:
             return found  # with a reading and no proposal the narrator tells it, inside the turn's cap
         line = ("İzleri dikkatle inceliyorsun: kalabalık bir zeminde beklendiği gibi birbirine "
                 "karışmışlar; belirli birinin izini ayırmak bu haliyle mümkün değil." if success
@@ -13877,14 +13879,14 @@ def _inspection_findings(player_input, outcome):
             # The surroundings are the thing looked at, so the answer is what is there.
             return {"target_kind": "feature", "target_id": None, "target_name": None, "found": False,
                     "text": _scene_look_text(world_state.get("location"))}
-        return _found_on_a_pass() or {
+        return (_found_on_a_pass() if proposed else None) or {
             "target_kind": "feature",
             "target_id": None,
             "target_name": None,
             "found": False,
             "text": "Bu bakışla adlandırdığın ayrıntı seçilmiyor.",
         }
-    return _found_on_a_pass() if success else None
+    return _found_on_a_pass() if proposed else None
 
 
 def _resolved_skill_result_narration(result):
@@ -15458,8 +15460,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     if intent_type == "explore":
         # Looking at a named door, window or detail reveals what is plainly
         # visible without a roll (LR00-P2: no needless check for open facts).
-        _session()._front_found = ("", "")  # no roll, no pass: only what is saved shows
-        findings = _inspection_findings(player_input, "success")
+        findings = _inspection_findings(player_input, "success", rolled=False)
         if findings:
             findings["auto_visible"] = True
             result["inspection"] = findings

@@ -392,6 +392,32 @@ class APassedCheckFindsSomething(FrontTable):
         reply = {"front": {"found": self.FOUND, "thing_word": "izler"}}
         self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], self.FOUND)
 
+    async def test_a_plain_look_with_no_roll_keeps_the_old_line_for_tracks(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        reply = await self.line("yerdeki izlere bakiyorum")
+        self.assertIn("İzleri dikkatle inceliyorsun", str(self.client.message_batches[-1]) + reply["narration"])
+
+    async def test_a_plain_look_with_no_roll_keeps_the_old_line_for_a_named_thing(self):
+        await self.begin()
+        self.session.create_local_feature({"location": self.world["location"], "name": "Eğri taş",
+                                           "description": "Yana yatmış eski bir taş.", "aliases": ["taş"]})
+        self.client.front = {"kind": "look"}
+        reply = await self.line("egri tasin altindaki yaziya bakiyorum")
+        self.assertIn("yeni bir ayrıntı seçemiyorsun", str(self.client.message_batches[-1]) + reply["narration"])
+
+    async def test_a_plain_look_saves_nothing_the_reading_proposed(self):
+        await self.begin()
+        self.client.front = {"kind": "look", "found": self.FOUND, "thing_word": "izler"}
+        await self.line("yerdeki izlere bakiyorum")
+        self.assertEqual(self.saved(), [])
+
+    async def test_a_look_leaves_the_reading_as_it_found_it(self):
+        await self.begin()
+        self.session._front_found = None
+        self.session._inspection_findings("yerdeki izlere bakiyorum", "success", rolled=False)
+        self.assertIsNone(self.session._front_found)
+
     async def test_a_second_look_finds_the_same_thing(self):
         await self.begin()
         self.roll("yerdeki izleri yakindan inceliyorum", word="ayak izi")
