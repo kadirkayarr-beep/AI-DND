@@ -10826,10 +10826,10 @@ def _narration_safety_decision(
     # ordinary nouns such as "tütün" are not treated as verbs.
     second_person_verb = re.compile(
         r"\b(?!kadın\b|adın\b|çadırın\b|yardımın\b|sırrın\b)"
-        r"([a-zçğıöşü]{2,}?)(?:dın|din|dun|dün|tın|tin|tun|tün|"
+        r"([a-zçğıöşü]{2,}?)(?:dın|din|dun|dün|(?<=[çfhkpsşt])(?:tın|tin|tun|tün)|"
         r"yorsun|ıyorsun|iyorsun|uyorsun|üyorsun|arsın|ersin|"
         r"ırsın|irsin|ursun|ürsün|mışsın|mişsin|muşsun|müşsün|"
-        r"dınız|diniz|dunuz|dünüz|tınız|tiniz|tunuz|tünüz|"
+        r"dınız|diniz|dunuz|dünüz|(?<=[çfhkpsşt])(?:tınız|tiniz|tunuz|tünüz)|"
         r"sınız|siniz|sunuz|sünüz|acaksın|eceksin)\b"
     )
     player_action_text = text

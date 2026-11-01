@@ -377,6 +377,21 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(tavern_name, response.json()["narration"])
         self.assertNotIn("Karanlık Han", response.json()["narration"])
 
+    async def test_an_inn_named_with_gold_is_not_read_as_something_the_player_did(self):
+        _, session, turn_url, tavern_id, guard = (
+            await self._focused_recommendation_fixture()
+        )
+        # "Altın" ends like "aldın", but a past tense after l is never -tın.
+        session.world_state["locations"][tavern_id]["name"] = "Altın Kazan Hanı"
+        line = "Altın Kazan Hanı şehir merkezinde, uğrayabileceğin sakin bir yerdir."
+        response = await self._recommendation_turn(
+            turn_url,
+            AttributedPlaceClient(guard["id"], line),
+            "Şehirde gidebileceğim sakin bir yer önerir misin?",
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Altın Kazan Hanı", response.json()["narration"])
+
     async def test_harmless_gesture_survives_place_repair_over_http(self):
         _, session, turn_url, tavern_id, guard = (
             await self._focused_recommendation_fixture()
