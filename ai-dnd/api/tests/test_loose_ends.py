@@ -8,6 +8,7 @@ from unittest.mock import patch
 import campaign_time
 import living_world
 import pocket
+import town_knowledge
 import world_threads
 from adventure import dialogue_jobs
 
@@ -130,6 +131,62 @@ class SettingAParcelDown(consequences.OnTheJob):
         await self.line("mektubu önüne atıyorum", "Hmm.")
         self.assertTrue(dialogue_jobs.holds_parcel(self.world, self.thread))
         self.assertNotIn("parcel_gone", self.thread)
+
+
+class OnATrouble(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = links.InPlay.asyncSetUp
+    asyncTearDown = links.InPlay.asyncTearDown
+    campaign_with_npc = links.InPlay.campaign_with_npc
+    open_job = links.InPlay.open_job
+    line = links.InPlay.line
+    status = links.InPlay.status
+    trouble = links.InPlay.trouble
+
+
+class TakingATroubleOn(OnATrouble):
+    """A line has to be an offer of help, about something the player knows of."""
+
+    async def test_nothing_is_taken_on_by_a_question_a_maybe_or_a_price(self):
+        for line in ("yükünü taşımana yardım edeyim mi?", "yardım edeyim mi", "yardımcı olabilirim ama ne kadar verirsin?",
+                     "ben bakayım bir düşüneyim", "belki yardım ederim", "hallederim ama para isterim",
+                     "yardım ederim de ne kadar kazanırım"):
+            await self.trouble()
+            await self.line(line, "Hmm.", mode="say", target=True)
+            self.assertNotEqual(self.status(), "accepted", line)
+            self.assertIn("fires_at", self.thread, line)
+
+    async def test_a_trouble_nobody_mentioned_cannot_be_stepped_into(self):
+        await self.trouble()
+        self.thread.update(status="open", heard_turn=None)
+        await self.line("derdini ben hallederim", "Ne derdi?", mode="say", target=True)
+        self.assertIn(self.status(), world_threads.PUBLIC)
+        self.assertIn("fires_at", self.thread)
+
+    async def test_the_one_who_just_told_it_can_be_answered(self):
+        await self.trouble()
+        self.thread.update(status="open", heard_turn=None)
+        await self.line("derdin ne senin", "Hesap tutmuyor işte, bakan biri lazım.", mode="say", target=True)
+        await self.line("tamam ben hallederim", "Sağ ol.", mode="say", target=True)
+        self.assertEqual(self.status(), "accepted")
+
+
+class ABareYesToAModelsId(OnATrouble):
+    async def proposal(self, last_line, said):
+        await self.trouble()
+        self.world["npc_speech_log"] = {self.npc["id"]: [{"player": "selam", "npc": last_line}]}
+        taken = []
+        town_knowledge.settle_reply(self.world, self.npc, said, {"kind": "job_accepted", "thread_id": self.thread["thread_id"]},
+                                    "Oldu.", accept_job=taken.append)
+        return taken
+
+    async def test_it_does_not_bind_a_trouble_when_the_question_was_something_else(self):
+        self.assertEqual(await self.proposal("Yorgun görünüyorsun, bir oturur musun?", "evet"), [])
+
+    async def test_it_binds_when_the_trouble_was_just_put_to_the_player(self):
+        self.assertTrue(await self.proposal("Hesap tutmuyor, bakan biri lazım. Bakar mısın?", "evet"))
+
+    async def test_real_words_are_enough_whatever_came_before(self):
+        self.assertTrue(await self.proposal("Yorgun görünüyorsun.", "tamam derdini ben hallederim"))
 
 
 if __name__ == "__main__":

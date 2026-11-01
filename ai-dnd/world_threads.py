@@ -1205,6 +1205,48 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     return False
 
 
+def _matter_stems(thread: dict[str, Any], table: dict[str, Any]) -> set[str]:
+    """The words of this very matter, cut short enough to meet 'borçlu' in 'borcunu'."""
+    common = tuple(table.get("matter_common", ()))
+    said = _folded(f"{thread.get('owner_line')} {thread.get('public_line')}").split()
+    return {word[:4] for word in said if len(word) > 3 and not word.startswith(common)}
+
+
+def speaks_of_the_matter(line: Any, thread: dict[str, Any]) -> bool:
+    """This line is about this trouble: it says so, or it uses the trouble's own words."""
+    table = answer_table()
+    words = _folded(line).split()
+    stems = _matter_stems(thread, table)
+    return any(word.startswith(tuple(table.get("matter_nouns", ()))) for word in words) or (
+        len({word[:4] for word in words} & stems) >= 2)
+
+
+def _just_told(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+    last = _last_exchange(world, npc)
+    return bool(last and last.get("npc")) and speaks_of_the_matter(last["npc"], thread)
+
+
+def _is_on_the_table(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+    """The player knows of it: put to them, overheard, or just told."""
+    return thread.get("status") in {"offered", "declined"} or thread.get("heard_turn") is not None or (
+        _just_told(world, thread, npc))
+
+
+def _plain_help(line: str, table: dict[str, Any]) -> bool:
+    """One clause is an offer of help and nothing in the line asks, bargains or hedges around it."""
+    clauses = _clauses(line)
+    phrases = table.get("help", frozenset())
+    if any(after for _, _, after in clauses) or _has_phrase(_folded(line).split(), table["question_terms"]):
+        return False
+    for tokens, asked, _ in clauses:
+        found = [" ".join(tokens[start:end]) for start in range(len(tokens))
+                 for end in range(start + 1, min(start + 4, len(tokens)) + 1) if " ".join(tokens[start:end]) in phrases]
+        beside = set(tokens) - {word for phrase in found for word in phrase.split()}
+        if found and not asked and not beside & (table["hedges"] | {"mi", "mu"}):
+            return True
+    return False
+
+
 def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Derdini ben hallederim': a trouble needs no spoken terms to be taken on, only the word."""
     table = answer_table()
@@ -1213,9 +1255,15 @@ def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str,
         return False
     words = _folded(line).split()
     refused = any(_REFUSED_DOING.search(word) for word in words if word not in table["accept"])  # 'tamam' ends like 'yapamam'
-    return (_has_phrase(words, table.get("help", frozenset())) and not refused
+    return (_plain_help(line, table) and not refused and _is_on_the_table(world, thread, npc)
             and not any(t.get("status") == "accepted" for t in jobs_of(world, npc))
             and owner_mood(world, thread, npc) != "no")
+
+
+def steps_into(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """The model named a trouble nobody offered: only the player's own words, or a yes to it just told, take it on."""
+    return (holds_a_yes(text, npc, thread, firm=True) or offers_to_help(world, text, npc, thread)
+            or goes_to_the_work(text, thread) or (_just_told(world, thread, npc) and holds_a_yes(text, npc, thread)))
 
 
 def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | None:

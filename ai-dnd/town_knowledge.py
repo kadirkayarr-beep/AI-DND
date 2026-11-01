@@ -483,12 +483,14 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     if kind == "job_offer":
         spoken = _settle_offer(world, npc, proposal, spoken, allowed=allowed)
     elif kind == "job_accepted":
-        thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"}) or _named_trouble(
-            world, npc, proposal["thread_id"])
+        thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"})
+        trouble = None if thread else _named_trouble(world, npc, proposal["thread_id"])
         if thread is not None and (world_threads.holds_a_yes(player_text, npc, thread)
                                    or world_threads.goes_to_the_work(player_text, thread)):
-            world_happenings.put_forward(world, thread, npc, thread["owner_line"])
             accept_job(thread)
+        elif trouble is not None and world_threads.steps_into(world, player_text, npc, trouble):
+            world_happenings.put_forward(world, trouble, npc, trouble["owner_line"])
+            accept_job(trouble)
     elif kind == "pay" and not moved:
         asked = world_threads.speaks_of_pay(player_text)
         thread = _named_job(world, npc, proposal["thread_id"], {"accepted"}) if asked else None
@@ -640,6 +642,9 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                         world_threads.learn_outcome(world, thread)
                 else:
                     world_threads.mark_heard(thread, turn)
+        for thread in owned_threads(world, npc):
+            if thread["type"] == "trouble" and world_threads.speaks_of_the_matter(shown_text, thread):
+                world_threads.mark_heard(thread, turn)  # told by its owner, in whatever words
         _open_offer(world, npc, shown_text, turn, job_talk, offer_talk)
         if job_talk:
             for thread in world_threads.recent_closed(world, npc):
