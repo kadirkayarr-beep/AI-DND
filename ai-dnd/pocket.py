@@ -13,6 +13,7 @@ import living_world
 import world_threads
 
 _INTO_THE_BAG = re.compile(r"\b(?:cebe|cebime|cebine|cantama|cantaya|cantamiza|heybeme|heybeye|torbama|torbaya)\b")
+_PUTS_IT_THERE = re.compile(r"\b(?:ali(?:p|yorum)|at(?:iyorum|ip|tim|ayim)|koy\w*|sok\w*|topl\w*|tik\w*)\b")
 _TOSSES = re.compile(r"\b(?:firlat\w*|yirt(?:iyorum|ip|tim|ayim)|yak(?:iyorum|ip|tim|ayim)|at(?:iyorum|ip|tim|ayim))\b")
 _WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese")
 _NOT_THINGS = frozenset({
@@ -88,7 +89,7 @@ def resolve(session, text: Any) -> dict[str, Any] | None:
         return None
     folded = living_world.normalize_text(text)
     words = folded.split()
-    if _INTO_THE_BAG.search(folded):
+    if _INTO_THE_BAG.search(folded) and _PUTS_IT_THERE.search(folded):
         return _take(session, text, words)
     if _TOSSES.search(folded):
         _toss(session, words)

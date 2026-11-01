@@ -808,6 +808,8 @@ def _natural_inventory_query(text):
     lowered = text.casefold().strip()
     if re.search(r"\b(?:çantam|üstüm|üzerim|yanım|cebim|kesem)(?:da|de)\b.{0,12}\bne(?:ler)?\s+var\b", lowered):
         return True  # "çantamda ne var", "üstümde ne var bakayım"
+    if re.search(r"\b(?:çantam|kesem|cebim|heybem)(?:a|ı|i|e)?\s+(?:bak|kontrol)\w*", lowered):
+        return True  # "çantama bakıyorum", "keseme bakıyorum"
     if not re.search(r"\benvanter(?:im|imde|imi|ime|imin)\b", lowered):
         return False
     return bool(re.search(

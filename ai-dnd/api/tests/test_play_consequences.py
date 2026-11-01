@@ -241,6 +241,13 @@ class Pocket(ThreePlaysTests):
         self.assertIn("Demir parça", self.names())
         self.assertIn("emir parça", out["narration"])
 
+    async def test_looking_in_the_bag_or_the_purse_shows_what_is_there(self):
+        for line in ("çantama bakıyorum", "keseme bakıyorum, ne kadar param var"):
+            await self.shown("Rıhtımda kalın halatlar yatıyor.")
+            out = await self.say(line, PlayClient())
+            self.assertEqual(out["turn_outcome"]["action"], "inventory", line)
+            self.assertIn("Envanterinde", out["narration"], line)
+
     async def test_money_cannot_be_taken_out_of_a_description(self):
         await self.shown("Masanın üstünde bir kese altın duruyor.")
         before = self.names()
