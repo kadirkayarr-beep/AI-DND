@@ -593,7 +593,7 @@ def gated_town(start=0, kind="estate"):
         world, state = town(f"seed-gate-{number}")
         thread = state["threads"][0]
         other = next((t for t in state["threads"] if t["place_id"] != thread["place_id"]), None)
-        if other is None or world_threads._rank("x", 0) is None:
+        if other is None:
             continue
         seed = world["scene_state"]["campaign_seed"]
         if world_threads._rank(seed, thread["thread_id"], "wary") % 100 < world_threads.WARY_PERCENT:
@@ -669,6 +669,105 @@ class ADoorThatWantsAWord(unittest.TestCase):
         self.assertEqual(world_threads.owner_mood(world, thread, npc), "wary")
         world["locations"][thread["place_id"]]["place_kind"] = "bakery"
         self.assertEqual(world_threads.owner_mood(world, thread, npc), "yes")
+
+
+def walk(world, *, turns, hours=2, choose=None):
+    """Turns of nothing but time, with an optional choice made on each. Read fresh: a tick replaces the state."""
+    for turn in range(turns):
+        if choose:
+            choose(world, turn)
+        campaign_time.advance(world, hours * HOUR, "wait", "test")
+    return world[world_threads.KEY]
+
+
+def outline(state):
+    """What a run came to, with every name taken out."""
+    rows = state["happenings"]
+    chain = sorted(state["threads"] + state["history"], key=lambda t: t["thread_id"])
+    return (tuple(t["template_id"] for t in chain), tuple(r["kind"] for r in rows),
+            tuple(bool(r["next_thread_id"]) for r in rows))
+
+
+class SameSeedDifferentStory(unittest.TestCase):
+    def test_the_same_turns_twice_are_the_same_town(self):
+        def run():
+            world, _ = town_with_trouble(11)
+            state = walk(world, turns=12)
+            return state["happenings"], state["history"], world["flags"].get("deeds")
+        self.assertEqual(run(), run())
+
+    def test_taking_a_trouble_on_tells_a_different_story_from_leaving_it(self):
+        def run(helping):
+            world, state = town_with_trouble(11)
+            thread = thread_at(state)
+            npc = owner_of(world, thread)
+            def choose(world, turn):
+                if helping and turn == 0:
+                    take_on(world, world_threads.by_id(world, thread["thread_id"]), npc)
+                if helping and turn == 3:
+                    world_threads._credit_day(world, world_threads.by_id(world, thread["thread_id"]), 1)
+            state = walk(world, turns=12, hours=3, choose=choose)
+            return ending(world, thread), [r["kind"] for r in state["happenings"]]
+        helped, left = run(True), run(False)
+        self.assertEqual(helped[0], ["averted"])
+        self.assertIn(left[0][0], {"visit", "closed", "lost"})
+        self.assertNotEqual(helped[1], left[1])
+
+    def test_twenty_campaigns_are_not_one_skeleton_with_the_names_changed(self):
+        shapes = set()
+        for number in range(20):
+            world, _ = town(f"seed-shape-{number}")
+            shapes.add(outline(walk(world, turns=30)))
+        self.assertGreaterEqual(len(shapes), 15)
+        self.assertGreater(len({shape[1] for shape in shapes}), 8)
+
+    def test_every_trouble_in_a_long_run_came_to_something(self):
+        for number in range(12):
+            world, _ = town(f"seed-end-of-it-{number}")
+            state = walk(world, turns=30, hours=4)
+            ended = {r["thread_id"] for r in state["happenings"]}
+            for thread in state["history"]:
+                if thread["type"] == "trouble":
+                    self.assertIn(thread["thread_id"], ended)
+            world_threads.validate(state)
+
+    def test_nothing_in_a_long_run_is_a_deed(self):
+        for number in range(8):
+            world, _ = town(f"seed-no-deed-{number}")
+            walk(world, turns=30, hours=6)
+            self.assertFalse(world["flags"].get("deeds"))
+
+
+class ASaveFromBefore(unittest.TestCase):
+    def old_town(self):
+        """A save as it stood: no ledger, no moments, an accepted trouble-shaped record among them."""
+        world, state = town_with_trouble()
+        del state["happenings"]
+        for thread in state["threads"]:
+            thread.pop("fires_at", None)
+        thread = thread_at(state)
+        thread.update(status="accepted", accepted_at=0, accepted_turn=1, work_until=9 * DAY, days_worked=0, type="hiring",
+                      starts_at=0, shift_seconds=0, paid_cp=0)
+        return world, state, thread
+
+    def test_it_loads_gains_the_ledger_and_validates(self):
+        world, state, _ = self.old_town()
+        world_threads.validate(state)
+        world_threads.ensure(world)
+        self.assertEqual(world[world_threads.KEY]["happenings"], [])
+        world_threads.validate(world[world_threads.KEY])
+
+    def test_work_already_agreed_gets_no_clock_afterwards(self):
+        world, state, thread = self.old_town()
+        world_threads.ensure(world)
+        world_threads.tick(world, 3 * DAY)
+        self.assertNotIn("fires_at", world_threads.by_id(world, thread["thread_id"]))
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+
+    def test_a_tick_on_it_needs_no_ensure_first(self):
+        world, state, _ = self.old_town()
+        world_threads.tick(world, 6 * DAY)
+        world_threads.validate(world[world_threads.KEY])
 
 
 class InPlay(unittest.IsolatedAsyncioTestCase):
