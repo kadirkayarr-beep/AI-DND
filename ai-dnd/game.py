@@ -9001,7 +9001,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
     reply, it raises IntentInfrastructureError instead.
     """
     held = getattr(_session(), "_front_reply", None)
-    if held is not None and not dialogue_narration and not experimental_npc_dialogue:
+    if held is not None and not dialogue_narration and not experimental_npc_dialogue and operation_hint is None:
         return copy.deepcopy(held)  # the front step already asked this turn's classifier call
     world_state = _session().world_state
     locations = [
@@ -17547,7 +17547,8 @@ def run_player_turn(
         result = None
         session = _session()
         if front_on:
-            front_proposal.begin(session)
+            front_proposal.begin(session, typed=(combat_action is not None or target_id is not None
+                                                 or interaction_mode in {"say", "ask_dm"}))
         try:
             result = _run_player_turn(player_input, messages, target_id, scene_plan, action_id,
                                       session_id, combat_action, interaction_mode)
@@ -17871,6 +17872,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if not isinstance(player_input, str) or not player_input.strip() or player_input.strip().startswith("/"):
         front_proposal.note(session, "skipped:empty")
         return None
+    if adventure_play.inside_hideout(world):
+        front_proposal.note(session, "skipped:hideout")  # the town's lists are not what is around the player here
+        return None
+    if (interaction_adventure.hint(player_input, True) is not None or should_generate_npcs(player_input)
+            or _scene_detail_proposals_allowed(player_input, world, interaction_mode)):
+        front_proposal.note(session, "skipped:proposal")  # only the old chain's own call can carry that proposal
+        return None
     from api.model_phase import front_call
     try:
         listed = front_proposal.listing(session)
@@ -17883,8 +17891,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
     if "front" not in reply:
-        front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable") else "fallback:failed",
-                            reached=bool(reply.get("classifier_unusable")))
+        answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
+        front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
+                            else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
     route = front_proposal.validate(reply, listed)
     if route is None:
@@ -17893,6 +17902,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
     if route["kind"] == "look":
         held["intent"] = "observe"
+    session._front_thing = route.get("thing")
     return route
 
 
@@ -17910,7 +17920,8 @@ def _front_offer_gate(route, player_input):
         reading = world_threads.read_answer(player_input, person, thread)
         says_other = reading["meaning"] in ({"decline", "withdraw"} if route["answer"] == "accept" else {"accept"})
         if reading["terms"] or world_threads.asks_for_pay(player_input) or says_other or "?" in player_input:
-            return {"decision": None, "npc_id": person["id"]}  # not an answer yet: the person hears it
+            # The model's yes or no is overruled, so Python's own reading of the line decides the turn.
+            return _thread_gate(player_input, person["id"], "say") or {"decision": None, "npc_id": person["id"]}
         session.require_player_can_act()
         gate = {"thread_id": route["id"], "npc_id": person["id"],
                 "decision": "accepted" if route["answer"] == "accept" else "declined"}
@@ -18033,19 +18044,12 @@ def _dispatch_player_turn(
     front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
-    if front is not None and front["kind"] == "go_to":
-        import front_proposal
-        import grounded_action
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            walked = grounded_action.resolve_turn(_session(), player_input, listed_place=front)
-        if walked is not None:
-            return walked
-        front_proposal.note(_session(), "fallback:no_walk")
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None
             and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
         if hearer is not None:
             interaction_mode, target_id = "say", hearer["id"]
+    gate = None
     if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
@@ -18077,6 +18081,14 @@ def _dispatch_player_turn(
             return walked
         if gate is not None:
             interaction_mode, target_id = "say", gate["npc_id"]
+    if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        import front_proposal
+        import grounded_action
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            walked = grounded_action.resolve_turn(_session(), player_input, listed_place=front)
+        if walked is not None:
+            return walked
+        front_proposal.note(_session(), "fallback:no_walk")
     if combat_action is None:
         import dialogue_runtime
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):

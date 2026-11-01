@@ -28,6 +28,7 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
         super().__init__(narration)
         self.front = {"kind": "unclear"}
         self.fails = None
+        self.drop_front = False
 
     def chat(self, *args, **kwargs):
         schema = kwargs.get("format") or {}
@@ -38,11 +39,12 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
         self.message_batches.append(kwargs.get("messages", []))
         if self.fails is not None:
             raise self.fails
-        filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "answer": "none", "inside": False,
-                  **self.front}
-        return {"message": {"content": json.dumps(
-            {"intent": "narrative", "action": "narrative", "target": {"type": "none", "reference": ""},
-             "completion": "unclear", "confidence": 0.9, "front": filled}, ensure_ascii=False)}}
+        filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
+                  "inside": False, **self.front}
+        packet = {"intent": "narrative", "action": "narrative", "target": {"type": "none", "reference": ""},
+                  "completion": "unclear", "confidence": 0.9}
+        return {"message": {"content": json.dumps(packet if self.drop_front else {**packet, "front": filled},
+                                                  ensure_ascii=False)}}
 
 
 class FrontTable(unittest.IsolatedAsyncioTestCase):
@@ -170,6 +172,102 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(reply["narration"].strip())
         self.assertEqual(self.routes()[-1]["route"], "front:look")
 
+    async def test_a_line_that_needs_a_proposal_keeps_the_call_that_can_carry_one(self):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("sana söz veriyorum, paketi yarın getiririm")
+        self.assertEqual(self.front_calls(), [])
+        self.assertEqual(self.routes()[-1]["route"], "skipped:proposal")
+        self.assertTrue(any("interaction" in (schema.get("properties") or {}) for schema in self.client.schemas))
+
+    async def test_a_job_answer_outranks_the_walk_in_the_same_line(self):
+        await self.begin()
+        self.offer()
+        place = self.a_place()
+        self.client.front = {"kind": "go_to", "place_id": place}
+        await self.line("tamam kabul, hemen gidiyorum oraya")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_leaving_a_job_on_the_way_out_still_leaves_it(self):
+        await self.begin()
+        self.offer()
+        world_threads.accept_hired(self.world, self.thread)
+        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        await self.line("işi bırakıyorum, hana gidiyorum")
+        self.assertEqual(self.status(), "abandoned")
+
+    async def no_walk(self, line):
+        await self.begin()
+        here = self.world["location"]
+        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        await self.line(line)
+        self.assertEqual(self.world["location"], here, line)
+
+    async def test_a_question_about_going_is_no_walk_whatever_the_model_read(self):
+        await self.no_walk("oraya nasıl giderim?")
+
+    async def test_a_quote_about_going_is_no_walk_whatever_the_model_read(self):
+        await self.no_walk("adama 'oraya gidiyorum' diyorum")
+
+    async def test_a_walk_with_more_said_after_it_goes_to_the_chain_that_keeps_the_rest(self):
+        await self.begin()
+        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        await self.line("oraya gidiyorum, sonra kapıyı dinliyorum")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:no_walk")
+
+    async def test_the_hideout_keeps_its_own_owner(self):
+        await self.begin()
+        with patch("adventure.play.inside_hideout", return_value=True):
+            await self.line("etrafa şöyle bir göz atayım")
+        self.assertEqual(self.front_calls(), [])
+        self.assertEqual(self.routes()[-1]["route"], "skipped:hideout")
+
+    async def test_a_no_the_model_misread_as_a_yes_is_still_a_no(self):
+        await self.begin()
+        self.offer()
+        self.client.front = {"kind": "offer_answer", "offer_id": self.thread["thread_id"], "answer": "accept"}
+        await self.line("yok, istemiyorum")
+        self.assertEqual(self.status(), "declined")
+
+    async def test_terms_asked_after_a_misread_yes_are_shown(self):
+        await self.begin()
+        self.offer()
+        self.client.front = {"kind": "offer_answer", "offer_id": self.thread["thread_id"], "answer": "accept"}
+        await self.line("ne kadar veriyorsun peki?", "Hmm.")
+        self.assertEqual(self.status(), "offered")
+        self.assertIn("Parayı soruyor", str(self.client.message_batches))
+
+    async def test_a_loose_answer_shape_is_a_bad_reading_not_a_crash(self):
+        await self.begin()
+        self.offer()
+        self.client.front = {"kind": "offer_answer", "offer_id": self.thread["thread_id"], "answer": ["accept"]}
+        reply = await self.line("hmm belki")
+        self.assertTrue(reply["narration"].strip())
+        self.assertEqual(self.routes()[-1]["route"], "fallback:invalid")
+
+    async def test_a_reply_with_no_reading_in_it_is_not_logged_as_a_dead_model(self):
+        await self.begin()
+        self.client.drop_front = True
+        await self.line("etrafa şöyle bir göz atayım")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:no_front")
+        self.assertIs(self.routes()[-1]["reached_model"], True)
+
+    async def test_a_thing_the_model_picked_from_the_list_is_what_the_hand_goes_to(self):
+        await self.begin()
+        door = {"id": "door_front_test", "name": "Mavi Kapak", "description": "Mavi bir kapak",
+                "location": self.world["location"], "open": False, "locked": False, "broken": False}
+        self.world.setdefault("doors", []).append(door)
+        self.client.front = {"kind": "attempt", "thing_id": door["id"]}
+        reply = await self.line("şu yandakine yaklaşıyorum")
+        self.assertIn("thing_id", self.front_calls()[0]["properties"]["front"]["properties"])
+        self.assertIn("Mavi Kapak", reply["narration"])
+
+    async def test_a_line_nothing_binds_asks_what_is_meant_after_the_reading(self):
+        await self.begin()
+        self.client.front = {"kind": "unclear"}
+        reply = await self.line("şu yandakine yaklaşıyorum")
+        self.assertEqual(reply["turn_outcome"]["status"], "clarification")
+
     async def test_typed_speech_keeps_its_own_way_and_says_why_in_the_log(self):
         await self.begin()
         await self.line("selam", mode="say", target=True)
@@ -201,8 +299,18 @@ class FlagIsLocalPlayOnly(unittest.TestCase):
 
     def test_the_share_counts_free_lines_that_reached_the_model(self):
         rows = [{"route": "front:look", "reached_model": True}, {"route": "owner_first", "reached_model": False},
-                {"route": "skipped:combat", "reached_model": False}, {"route": "fallback:invalid", "reached_model": True}]
+                {"route": "skipped:typed", "reached_model": False}, {"route": "skipped:combat", "reached_model": False},
+                {"route": "fallback:invalid", "reached_model": True}]
         self.assertEqual(front_proposal.share(rows), {"free_lines": 3, "reached_model": 2, "share": 2 / 3})
+
+    def test_a_typed_turn_an_early_owner_answers_is_no_free_line(self):
+        class Session:
+            world_state = {}
+        session = Session()
+        front_proposal.begin(session, typed=True)
+        self.assertEqual(session._front_route, "skipped:typed")
+        front_proposal.begin(session, typed=False)
+        self.assertEqual(session._front_route, "owner_first")
 
 
 if __name__ == "__main__":

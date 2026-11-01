@@ -2506,7 +2506,10 @@ MODEL_VERBS = ("approach", "go", "enter", "leave", "inspect", "search", "wander"
 
 def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if getattr(run.session, "_front_reply", None) is not None:
-        return []  # the front reading already spent this turn's classifier call
+        run.model_calls += 1  # the front reading was this turn's call; what it picked is the answer
+        thing = next((c for c in cands if c["id"] == getattr(run.session, "_front_thing", None)), None)
+        return [{"verb": "inspect", "target": thing, "negated": False, "conditional": False, "new_thing": "",
+                 "detail": None, "place_noun": None}] if thing else []
     game = run.game
     options = [{"id": c["id"], "kind": c["kind"], "name": c["label"]} for c in cands][:24]
     ids = [o["id"] for o in options] + ["none"]
@@ -2799,18 +2802,29 @@ def _looks_like_speech(session, player_input: str) -> bool:
         return False
 
 
+_SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")
+
+
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
     defer = ("defer", None)
-    steps = plan(session, player_input)["steps"]
-    if steps and all(s.get("negated") or s.get("not_now") or s.get("condition") for s in steps):
+    p = plan(session, player_input)
+    steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
+    if (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
+            or _SAID_AT_THE_END.search(fold(player_input))):
+        return defer  # "hana nasıl giderim?": whatever the model read, Python's own reading says this is no walk
+    if steps and all(s.get("negated") or s.get("condition") for s in steps):
         return defer  # "hana gitmiyorum": the words themselves say this is no walk
+    if len(steps) > 1 or spoken_request(player_input):
+        return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
     target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
                   None)
     if target is None:
         return defer
     step = {"verb": "enter" if inside and target["kind"] != "outside" else "go", "target": target, "negated": False}
-    return "execute", (_Run(session, player_input), [step], {"steps": [step]})
+    run = _Run(session, player_input)
+    run.model_calls = 1  # the front reading chose this walk
+    return "execute", (run, [step], {"steps": [step]})
 
 
 def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id=None,
