@@ -5,13 +5,14 @@ Real app, real adapter, real engine; only the Ollama client is scripted. The lin
 
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import equipment_economy
 import fallen
 import front_proposal
 import grounded_action
-from api.tests.test_front_proposal import FrontTable
+from api.tests.test_front_proposal import FrontClient, FrontTable
 
 
 class ReadsBeforeThePlanner(FrontTable):
@@ -61,6 +62,64 @@ class ReadsBeforeThePlanner(FrontTable):
         self.assertTrue(reply["narration"].strip())
         self.assertEqual(self.client.chat_calls, len(self.client.schemas))
         self.assertLessEqual(self.client.chat_calls, 2)
+
+
+class ProposalClient(FrontClient):
+    """The reading's reply also carries the interaction half, as the real schema asks."""
+
+    interaction = None
+
+    def chat(self, *args, **kwargs):
+        reply = super().chat(*args, **kwargs)
+        if self.interaction and "front" in ((kwargs.get("format") or {}).get("properties") or {}):
+            packet = json.loads(reply["message"]["content"])
+            packet["interaction"] = self.interaction
+            reply = {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+        return reply
+
+
+class TheReadingCarriesTheProposal(FrontTable):
+    async def set_up(self):
+        await self.begin()
+        self.client = ProposalClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        for key in ("active_npc_id", "last_npc_id"):
+            self.world["flags"].pop(key, None)
+        self.name = self.npc["name"]
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+
+    def proposal(self, operation, line, addressee):
+        self.client.interaction = {
+            "operation": operation, "quote": line, "privacy": "addressed",
+            "conversation": {"addressee_id": addressee, "subject_phrase": "", "subject_role": "unknown",
+                             "meaning": "unknown", "topic_relation": "new", "candidate_evidence_ids": []}}
+
+    async def test_the_person_the_line_names_is_who_the_reading_is_built_for(self):
+        await self.set_up()
+        await self.line(f"{self.name}, sembol hakkinda ne biliyorsun")
+        schema = self.front_calls()[0]
+        self.assertIn(self.npc["id"], json.dumps(schema["$defs"]["ConversationProposal"]["properties"]["addressee_id"]))
+
+    async def test_an_information_line_makes_the_reading_ask_for_the_conversation(self):
+        await self.set_up()
+        await self.line(f"{self.name}, sembol hakkinda ne biliyorsun")
+        self.assertIn("conversation önerisini tüketecek", str(self.client.message_batches[0]))
+
+    async def test_a_promise_to_the_named_person_is_recorded(self):
+        await self.set_up()
+        line = f"{self.name}, sana soz veriyorum, paketi yarin getiririm"
+        self.proposal("promise", line, self.npc["id"])
+        reply = await self.line(line)
+        self.assertEqual(reply["turn_outcome"]["status"], "recorded")
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+    async def test_a_reading_that_left_the_addressee_out_lets_the_person_answer(self):
+        await self.set_up()
+        line = f"{self.name}, sana soz veriyorum, paketi yarin getiririm"
+        self.proposal("promise", line, None)
+        reply = await self.line(line, "Görürüz bakalım.")
+        self.assertIn("Görürüz bakalım", reply["narration"])
+        self.assertNotEqual(reply["turn_outcome"]["status"], "recorded")
 
 
 class ReadsBeforeTheOldOwners(FrontTable):

@@ -17939,6 +17939,17 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
+def _addressed_in(player_input):
+    """Who the line names, or else who the talk is with. Finding them here starts no conversation."""
+    flags = _session().world_state.setdefault("flags", {})
+    kept = {key: flags.get(key) for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn") if key in flags}
+    found = resolve_npc_reference(player_input, force_dialogue=True, allow_active_fallback=False)
+    for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn"):
+        flags.pop(key, None)
+    flags.update(kept)
+    return found.get("npc") or _active_interlocutor()
+
+
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
     import front_proposal
@@ -17970,12 +17981,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         return None
     hint = interaction_adventure.hint(player_input, True)
+    addressed = _addressed_in(player_input) if hint else None
     with front_call():  # one reading answers for the whole turn, so it carries whatever proposal the line may need
         reply = parse_player_intent(
             player_input, front_list=listed, recent_scene_narration=_recent_player_visible_narration(),
-            interaction_context=(interaction_adventure.context(world, _active_interlocutor(), player_input)
-                                 if hint else None),
-            operation_hint=hint, allow_local_person_proposal=should_generate_npcs(player_input),
+            interaction_context=interaction_adventure.context(world, addressed, player_input) if hint else None,
+            operation_hint=hint, require_conversation=hint == "information" and addressed is not None,
+            allow_local_person_proposal=should_generate_npcs(player_input),
             allow_scene_detail_proposals=_scene_detail_proposals_allowed(player_input, world, interaction_mode))
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
@@ -20356,10 +20368,12 @@ def _run_player_turn_internal(
             )
         )
         # A reading the classifier got wrong is no reason for a person to stop being one: they answer the line.
-        # A promise or a condition is different: those must never stand on a reading that failed.
+        # A promise or a condition must never be recorded on a reading that failed; the turn's one reading was
+        # not built for this proposal alone, so with it the person still answers and nothing is recorded.
         answer_in_person = (conversation_rejected and isinstance(npc_target, dict)
-                            and interaction_hint in {"information", "generate"}
-                            and _people_speak_for_themselves(world_state))
+                            and (getattr(_session(), "_front_reply", None) is not None
+                                 or (interaction_hint in {"information", "generate"}
+                                     and _people_speak_for_themselves(world_state))))
         if conversation_rejected and not answer_in_person:
             return finish_conversation_rejection(npc_target)
         action_result = (
