@@ -195,9 +195,11 @@ class TalkWithNobodyNamed(FrontTable):
         for npc in self.world["npcs"]:
             npc["location"] = "elsewhere"
         self.client.front = {"kind": "speak_to"}
-        with patch("game._adventure_scene_turn") as old_walk:
-            await self.line("usta biri bi kayit ariyormus, senin defterden mi gitti")
+        name = self.world["locations"][self.a_place()]["name"]
+        with patch("game._adventure_scene_turn") as old_walk, patch("timed_gameplay.start_travel") as old_journey:
+            await self.line(f"usta biri bi kayit ariyormus, {name} tarafinda son gorulmus, senin defterden mi gitti")
         old_walk.assert_not_called()
+        old_journey.assert_not_called()
 
 
 class TheOldOwnersThatLostTheirTraffic(FrontTable):

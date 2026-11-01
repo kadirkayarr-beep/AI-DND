@@ -880,6 +880,8 @@ def resolve_input(session, text):
         return _result("travel", "Hangi konuma geri dönmek istediğini belirt.",
                        status="clarification", success=False)
     if movement and not wait and not task:
+        if (getattr(session, "_front_read", None) or {}).get("kind") in {"talk_around", "look", "sit"}:
+            return None  # the reading already said this line is no walk
         candidates = [loc for loc in world.get("locations", {}) if (
             clock.normalize(loc) in normalized
             or clock.normalize(world["locations"][loc].get("name", loc)) in normalized
