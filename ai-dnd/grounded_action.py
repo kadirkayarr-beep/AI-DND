@@ -119,6 +119,7 @@ _PRONOUNS = ("onu", "ona", "orada", "oraya", "orayi", "suna", "sunu", "buna", "b
 _THERE = frozenset({"oraya", "orayi", "orada", "oradaki", "suraya"})
 _BARE_GO_WORDS = frozenset({"tamam", "peki", "olur", "o", "zaman", "oyleyse", "hadi", "haydi", "simdi",
                             "hemen", "iyi", "evet", "ben", "ee", "e", "ozaman"})
+_OFFER_WINDOW = 500  # the last words on screen, not the scene told a while ago
 _RELATIONAL = {"altina", "altinda", "onune", "onunde", "yanina", "yaninda", "arkasina", "arkasinda",
                "ustune", "ustunde", "dibine", "dibinde", "basina", "basinda"}
 _SAID_BY = re.compile(r"\b(?:soyledig|bahsettig|dedig|onerdig|anlattig|gosterdig|tarif ettig)\w*")
@@ -2843,9 +2844,53 @@ def _looks_like_speech(session, player_input: str) -> bool:
 _SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")
 
 
+def _pointed_at(cands: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """What the last words on screen point to: a door here first, then the place named last."""
+    import game
+    tokens = fold(game._recent_player_visible_narration(limit=_OFFER_WINDOW)).split()
+    doors = [c for c in cands if c["kind"] == "door" and not c.get("inside")]
+    if _noun_hit(_DOOR_NOUNS[0], tokens):
+        # "İç kapıyı gösteriyor": a door is told apart by the other words of its name.
+        told = [c for c in doors if any(_noun_hit(word, tokens) for name in c["names"] for word in name.split()
+                                        if not word.startswith(_DOOR_NOUNS))]
+        if len(told) == 1 or len(doors) == 1:
+            return (told or doors)[0]
+    places = [(max((_phrase_at(n.split(), tokens) or 0) for n in c["names"] if n), c) for c in cands
+              if c["kind"] in {"place", "reference"}
+              and any(n and _phrase_at(n.split(), tokens) is not None for n in c["names"])]
+    return max(places, key=lambda row: row[0])[1] if places else None
+
+
+def offered_walk(session, player_input: Any) -> dict[str, Any] | None:
+    """A walk with no word for where follows what was just offered; a line with a place in it keeps its place."""
+    if not isinstance(player_input, str):
+        return None
+    p = plan(session, player_input)
+    steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
+    if p["speech"] or len(steps) != 1 or steps[0]["verb"] != "go":
+        return None  # "içeri giriyorum" has its own door: the one the player stands at
+    step = steps[0]
+    if (step.get("negated") or step.get("question") or step.get("condition")
+            or not all(t in _BARE_GO_WORDS or t in _THERE for t in step["goal_tokens"])):
+        return None
+    return _pointed_at(p["candidates"])
+
+
+def _walk_to_offer(session, player_input: str):
+    offered = offered_walk(session, player_input)
+    if offered is None:
+        return None
+    step = {"verb": "enter" if offered["kind"] == "door" else "go", "target": offered, "negated": False, "via_near": True}
+    return "execute", (_Run(session, player_input), [step], {"steps": [step]})
+
+
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
     defer = ("defer", None)
+    offered = _walk_to_offer(session, player_input)
+    if offered is not None:
+        offered[1][0].model_calls = 1  # the front reading was spent on this line
+        return offered
     p = plan(session, player_input)
     steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
     if not whole_line and (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
@@ -2969,6 +3014,9 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         return "execute", (run, [step], {"steps": [step]})
     if re.search(r"\w+(?:yorum|yoruz)\s*:", player_input):
         return defer  # "barmene bağırıyorum: ...": what follows the colon is said, not done
+    offered = _walk_to_offer(session, player_input)
+    if offered is not None:
+        return offered
     p = plan(session, player_input)
     # "Sunağın üstüne çıkıp oturuyorum": up onto something, not out of the building.
     p["steps"] = [s for s in p["steps"] if not (s["verb"] == "leave" and _climbs_somewhere(s))]

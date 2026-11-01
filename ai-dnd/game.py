@@ -18101,6 +18101,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             grounded_action.hands_on_a_body(player_input)
             or (not route.get("thing") and npc_speech_boundary.player_supplied_quote(player_input))):
         route = {"kind": "speak_to", "id": hearer}  # a body in the line, or words in quotes: this is for the person here
+    if route["kind"] in {"speak_to", "talk_around", "look", "attempt", "unclear"} and grounded_action.offered_walk(
+            session, player_input) is not None:
+        route = {"kind": "go_to", "id": None, "inside": False}  # "tamam geçiyorum": a yes to the way just shown
     if route["kind"] == "talk_around":
         # the same reply's other half may not walk it after all
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})

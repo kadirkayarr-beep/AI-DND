@@ -256,3 +256,81 @@ class AHandOnAPersonBeatsTheFurniture(FrontTable):
         await self.line("etrafa bakıyorum")
         self.assertIn("grab", self.front_calls()[0]["properties"]["front"]["properties"]["kind"]["enum"])
         self.assertIn("grab =", str(self.client.message_batches[0]))
+
+
+class ABareWalkFollowsWhatWasJustOffered(FrontTable):
+    async def begin(self, **kwargs):
+        await super().begin(**kwargs)
+        here = self.world["location"]
+        self.room_id = "location_voice_room"
+        self.world["locations"][self.room_id] = {
+            "name": "Karakol Komuta Odası", "parent_location_id": here, "exit_location_id": here, "inner_of": here,
+            "scene_kind": "building", "description": "Dar bir oda.", "aliases": []}
+        self.door = {"id": f"venue-door:{self.room_id}", "name": "Karakol İç Kapısı", "location": here,
+                     "description": "Ağır bir iç kapı.", "open": False, "locked": False, "broken": False}
+        self.world.setdefault("doors", []).append(self.door)
+
+    def pointed(self, words):
+        self.session.messages.append({"role": "assistant", "content": words})
+
+    async def test_passing_goes_through_the_door_just_pointed_at(self):
+        await self.begin()
+        self.pointed("Ferumel iç kapıyı başıyla gösteriyor. “Geçebilirsin. Seni kabul edecek.”")
+        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        await self.line("tamam geçiyorum")
+        self.assertEqual(self.world["location"], self.room_id)
+
+    async def test_it_does_whatever_the_reading_called_the_line(self):
+        for front in ({"kind": "unclear"}, {"kind": "attempt"}, {"kind": "speak_to", "person_id": None}):
+            await self.begin()
+            self.pointed("Ferumel iç kapıyı başıyla gösteriyor. “Geçebilirsin.”")
+            self.client.front = front | ({"person_id": self.npc["id"]} if front["kind"] == "speak_to" else {})
+            await self.line("tamam gidiyorum")
+            self.assertEqual(self.world["location"], self.room_id, front)
+            await self.asyncTearDown()
+            await self.asyncSetUp()
+
+    async def test_a_shut_door_is_told_shut_not_walked_past(self):
+        await self.begin()
+        self.door["locked"] = True
+        self.pointed("Ferumel iç kapıyı gösteriyor. “Geç hadi.”")
+        here = self.world["location"]
+        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        await self.line("geçiyorum")
+        self.assertEqual(self.world["location"], here)
+
+    async def test_a_place_just_named_comes_before_one_named_long_ago(self):
+        await self.begin()
+        place = self.a_place()
+        name = self.world["locations"][place]["name"]
+        self.world["doors"].remove(self.door)
+        self.pointed(f"Marek başparmağıyla sokağı gösteriyor. “{name} tarafına git, orada bulursun.”")
+        self.client.front = {"kind": "unclear"}
+        reply = await self.line("tamam oraya gidiyorum")
+        self.assertIn(name, reply["narration"])
+
+    async def test_a_word_for_where_is_kept_over_the_offer(self):
+        await self.begin()
+        place = self.a_place()
+        name = self.world["locations"][place]["name"]
+        self.pointed("Ferumel iç kapıyı gösteriyor. “Geç hadi.”")
+        self.client.front = {"kind": "go_to", "place_id": place}
+        reply = await self.line(f"yok {name} gidiyorum ben")
+        self.assertNotEqual(self.world["location"], self.room_id)
+        self.assertIn(name, reply["narration"])
+
+    async def test_refusing_to_pass_does_not_pass(self):
+        await self.begin()
+        self.pointed("Ferumel iç kapıyı gösteriyor. “Geç hadi.”")
+        here = self.world["location"]
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("geçmiyorum")
+        self.assertEqual(self.world["location"], here)
+
+    async def test_a_question_about_passing_does_not_pass(self):
+        await self.begin()
+        self.pointed("Ferumel iç kapıyı gösteriyor. “Geç hadi.”")
+        here = self.world["location"]
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("geçiyor muyum?")
+        self.assertEqual(self.world["location"], here)
