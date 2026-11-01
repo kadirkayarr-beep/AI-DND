@@ -178,7 +178,7 @@ class WhatNeverShows(unittest.TestCase):
         owner = person(world, "owner", thread["place_id"])
         note = town_knowledge.speech_note(world, owner)
         self.assertIn("kimseye para ya da ücret teklif etme", note)
-        self.assertEqual(world_threads.jobs_of(world, owner), [])
+        self.assertNotIn("ücreti ve süreyi aynen söyle", note)
 
 
 if __name__ == "__main__":

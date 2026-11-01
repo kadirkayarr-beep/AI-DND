@@ -10,6 +10,7 @@ from unittest.mock import patch
 import campaign_time
 import relationships
 import town_knowledge
+import vouching
 import world_threads
 
 HOUR = 3600
@@ -278,7 +279,8 @@ class WhoWillOffer(unittest.TestCase):
     def test_someone_they_have_spoken_with_is_no_stranger(self):
         for number in range(60):
             world, thread, npc = offered(f"mood-{number}")
-            self.assertNotEqual(world_threads.owner_mood(world, thread, npc), "wary", number)
+            with patch.object(vouching, "needs_word", return_value=False):  # a house that wants a word has its own tests
+                self.assertNotEqual(world_threads.owner_mood(world, thread, npc), "wary", number)
 
 
 class SpeechOpensNoOffer(unittest.TestCase):
