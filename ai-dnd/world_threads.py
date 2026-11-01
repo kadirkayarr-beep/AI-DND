@@ -446,7 +446,7 @@ def _broken(thread):
     """An accepted record a later step could not trust."""
     return any(
         thread.get(name) is not None and type(thread.get(name)) is not int for name in _OPTIONAL_INTS
-    ) or (thread.get("type") == "hiring" and type(thread.get("work_until")) is not int)
+    ) or (thread.get("type") in WORKED and type(thread.get("work_until")) is not int)
 
 
 def _clean(thread):
@@ -523,7 +523,7 @@ def _time_outcome(world, thread, now, seed):
     if _dead(owner_of(world, thread)) or _dead(recipient_of(world, thread)) or _route_lost(world, thread):
         return "expired", now
     until = thread.get("work_until")
-    if thread.get("type") == "hiring" and now > until and thread.get("days_worked", 0) < (thread["terms"].get("work_days") or 0):
+    if thread.get("type") in WORKED and now > until and thread.get("days_worked", 0) < (thread["terms"].get("work_days") or 0):
         return "failed", until
     return None
 
@@ -620,6 +620,7 @@ def _apply_effects(world, effects):
         if status == world_happenings.HAPPENED:
             world_happenings.show(world, thread)
             continue
+        world_happenings.on_close(world, thread, status)
         owner = owner_of(world, thread)
         if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
             relationships.note(world, owner["id"], _RELATION[status], f"thread:{thread_id}:{status}"[:160])
@@ -1106,6 +1107,8 @@ def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None
     days = thread["terms"].get("work_days") or 1
     thread.update(accepted_at=now, accepted_turn=turn, starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0, paid_cp=0)
     thread.pop("declined_turn", None)
+    if thread.pop("fires_at", None) is not None:  # it is in someone's hands now; only they can let it go
+        thread["terms"]["work_days"] = days
     _log(thread, now, "accepted")
     note_event(world, thread, "accepted", f"Anlaşıldı: {pay_text(thread)}", npc=owner_of(world, thread))
     return True
@@ -1120,7 +1123,8 @@ def decline(world: dict[str, Any], thread: dict[str, Any], turn: int) -> bool:
     return True
 
 
-JOBS = ("hiring", "errand")
+JOBS = ("hiring", "errand", "trouble")
+WORKED = ("hiring", "trouble")  # what is done on the spot, a shift at a time
 RECENT_CLOSE = 48 * HOUR
 
 
@@ -1144,7 +1148,7 @@ def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
     order = {"accepted": 0, "offered": 1, "declined": 2}
     return sorted((t for t in owned(world) if place_id and t.get("place_id") == place_id and t.get("type") in JOBS),
-                  key=lambda t: order.get(t["status"], 3))
+                  key=lambda t: (order.get(t["status"], 3), t.get("type") == "trouble"))
 
 
 def deliveries_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
@@ -1195,6 +1199,19 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     return False
 
 
+def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """'Derdini ben hallederim': a trouble needs no spoken terms to be taken on, only the word."""
+    table = answer_table()
+    line = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if line is None or thread.get("type") != "trouble" or thread.get("status") not in (*PUBLIC, "offered", "declined"):
+        return False
+    words = _folded(line).split()
+    refused = any(_REFUSED_DOING.search(word) for word in words if word not in table["accept"])  # 'tamam' ends like 'yapamam'
+    return (_has_phrase(words, table.get("help", frozenset())) and not refused
+            and not any(t.get("status") == "accepted" for t in jobs_of(world, npc))
+            and owner_mood(world, thread, npc) != "no")
+
+
 def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | None:
     """What this line does to this person's work: a decision, talk about it, or nothing."""
     for thread in deliveries_to(world, npc):
@@ -1208,7 +1225,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     if not (mine or closed) or answer_table() == {}:
         return None
     for thread in mine:
-        if thread["status"] == "accepted" and thread.get("type") == "hiring" and read_answer(text, npc, thread)["start"]:
+        if thread["status"] == "accepted" and thread.get("type") in WORKED and read_answer(text, npc, thread)["start"]:
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
@@ -1220,9 +1237,11 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         decision = bind_player_decision(world, thread, text, npc)
         if decision:
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
-        if (thread["status"] == "accepted" and thread.get("type") == "hiring" and "?" not in text
+        if (thread["status"] == "accepted" and thread.get("type") in WORKED and "?" not in text
                 and goes_to_the_work(text, thread)):
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
+        if offers_to_help(world, text, npc, thread):
+            return {"thread_id": thread["thread_id"], "decision": "take_up", "npc_id": npc.get("id")}
     for thread in closed:
         if thread["status"] == "done" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
@@ -1240,7 +1259,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
 
 def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
     """Write what the player said. Money and goods stay with their own owners."""
-    if decision == "accepted" and thread.get("type") == "hiring":
+    if decision == "accepted" and thread.get("type") in WORKED:
         return accept_hired(world, thread, turn)
     if decision == "declined":
         return decline(world, thread, turn)
@@ -1294,8 +1313,9 @@ def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tupl
     thread["last_paid_day_index"] = day
     thread["shift_seconds"] = 0
     amount = _day_wage(thread)
-    _pay_wage(world, thread, amount, day)
-    note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
+    if amount:
+        _pay_wage(world, thread, amount, day)
+        note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
     if thread["days_worked"] < (thread["terms"].get("work_days") or 1) or not transition(thread, "done"):
         return amount, False
     now = _now(world)
@@ -1322,6 +1342,8 @@ def wage_due(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, str | 
     """
     if thread.get("status") != "accepted":
         return 0, "settled" if thread.get("status") == "done" else None
+    if thread.get("type") == "trouble":
+        return 0, "no_pay"
     if thread.get("type") != "hiring":
         return 0, "on_delivery"
     if thread.get("last_paid_day_index") == _today(world):
@@ -1412,8 +1434,8 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
         parts.append(words.get("shift_short", ""))
     else:
         amount, finished = _credit_day(world, thread, day)
-        parts.append(_fill(words.get("shift_paid", ""), amount=amount))
-        if finished:
+        parts.append(_fill(words.get("shift_paid", ""), amount=amount) if amount else words.get("trouble_done", ""))
+        if finished and amount:
             parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
     validate(world[KEY])
     shown = _shift_text(world, thread, *parts)
@@ -1429,6 +1451,8 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
 def pay_text(thread: dict[str, Any]) -> str:
     words = job_lines("text") or {}
     pay = (thread.get("terms") or {}).get("pay")
+    if pay is None:
+        return words.get("pay_none", "")
     name = {"daily": "pay_daily", "total": "pay_total", "per_trip": "pay_delivery"}.get(pay_basis(thread), "pay_delivery")
     return _fill(words.get(name, "{pay} bakır"), pay=pay)
 

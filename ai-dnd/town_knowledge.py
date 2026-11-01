@@ -156,7 +156,7 @@ def _tone(world, npc):
 
 
 def _offerable(world, npc):
-    """The one job this person could put to the player now; none while another is running."""
+    """The one job or trouble this person could put to the player now; none while another is running."""
     jobs = world_threads.jobs_of(world, npc)
     if any(thread["status"] in {"offered", "accepted"} for thread in jobs):
         return None
@@ -240,7 +240,7 @@ def _job_note(world, npc, decision):
     elif (past := world_threads.recent_closed(world, npc)):
         lines = _lines_for(world, past[0], npc, None)
     available = _offerable(world, npc)
-    if available is not None and chosen is None:
+    if available is not None and chosen is None and available["type"] != "trouble":
         mood = world_threads.owner_mood(world, available, npc)
         if mood == "no":
             lines.append(shared.get("unwilling", ""))
@@ -254,8 +254,8 @@ def _job_note(world, npc, decision):
     if late:
         lines.append(world_threads._fill(shared.get("parcel_out", ""), item=late[0].get("item_noun") or "paket"))
     for thread in owned_threads(world, npc):
-        if thread.get("type") == "trouble":
-            lines.append(f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')}")
+        if thread.get("type") == "trouble" and thread["status"] in world_threads.PUBLIC:
+            lines.append(f"Bu senin kendi meselen: {thread['owner_line']} {shared.get('trouble', '')} {shared.get('trouble_help', '')}")
             break
     if not lines:
         lines.append(shared.get("no_job", ""))
@@ -443,6 +443,12 @@ def _named_job(world, npc, thread_id, statuses):
     return named or (jobs[0] if not thread_id and len(jobs) == 1 else None)
 
 
+def _named_trouble(world, npc, thread_id):
+    """A trouble needs no spoken terms before someone can step into it."""
+    return next((t for t in world_threads.jobs_of(world, npc) if t["thread_id"] == thread_id and t["type"] == "trouble"
+                 and t["status"] in world_threads.PUBLIC), None)
+
+
 def _settle_offer(world, npc, proposal, spoken, *, allowed):
     """A real job put to the player: its real terms stand on the line, and the record follows from them."""
     thread = _offerable(world, npc)
@@ -452,7 +458,7 @@ def _settle_offer(world, npc, proposal, spoken, *, allowed):
     allowed.clear()
     allowed.update(money_backed_by(world, npc))
     spoken = without_unbacked_money(spoken, allowed=allowed)
-    return spoken if _shows_terms(thread, spoken) else f"{spoken} {thread['owner_line']}".strip()
+    return spoken if _shows_terms(thread, spoken) or thread["owner_line"] in spoken else f"{spoken} {thread['owner_line']}".strip()
 
 
 def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
@@ -471,9 +477,11 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     if kind == "job_offer":
         spoken = _settle_offer(world, npc, proposal, spoken, allowed=allowed)
     elif kind == "job_accepted":
-        thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"})
+        thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"}) or _named_trouble(
+            world, npc, proposal["thread_id"])
         if thread is not None and (world_threads.holds_a_yes(player_text, npc, thread)
                                    or world_threads.goes_to_the_work(player_text, thread)):
+            world_happenings.put_forward(world, thread, npc, thread["owner_line"])
             accept_job(thread)
     elif kind == "pay" and not moved:
         asked = world_threads.speaks_of_pay(player_text)
@@ -515,7 +523,7 @@ def _shows_terms(thread, text):
 def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) -> str | None:
     """The owner's terms, when they were asked for the work and the reply left the figures out."""
     thread = _offerable(world, npc) if isinstance(npc, dict) else None
-    if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply)
+    if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply) or thread["owner_line"] in reply
             or world_threads.owner_mood(world, thread, npc) != "yes" or not asks_about_work(player_text, thread)):
         return None
     return thread["owner_line"]

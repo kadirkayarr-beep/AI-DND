@@ -18,6 +18,8 @@ MAX_LINE_BYTES = 90
 KINDS = ("visit", "closed", "lost", "averted")
 OUTCOMES = ("visit", "closed", "lost")
 RECENT_SECONDS = 2 * world_threads.DAY  # how long it stays what people talk about
+SECOND_CHANCE_SECONDS = 6 * world_threads.HOUR
+LET_GO = ("abandoned", "expired", "failed")
 HAPPENED = "happened"  # in the clock's list of effects: the ledger gained a row for this thread
 
 
@@ -86,6 +88,27 @@ def fire_due(world: dict[str, Any], state: dict[str, Any], now: int) -> list[tup
         write(state, thread, kind, at, line, known=world.get("location") == thread["place_id"])
         effects.append((thread["thread_id"], HAPPENED))
     return effects
+
+
+def on_close(world: dict[str, Any], thread: dict[str, Any], status: str) -> None:
+    """A trouble someone took on: seen through it is over; dropped, it comes back in a few hours."""
+    state = world_threads.view(world)
+    if state is None or thread.get("type") != "trouble":
+        return
+    closed = thread.get("closed_at") or world_threads._now(world)
+    if status == "done":
+        seed = world_threads.living_world._campaign_seed(world)
+        write(state, thread, "averted", closed, _line_for(world, seed, thread, world_threads.job_lines("trouble", "averted_lines")),
+              known=True)
+    elif status in LET_GO and thread.get("accepted_at") is not None:
+        thread["fires_at"] = closed + SECOND_CHANCE_SECONDS
+
+
+def put_forward(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any], shown: str) -> None:
+    """A public trouble someone just stepped into: the offer is made by the taking."""
+    turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
+    if thread.get("status") in world_threads.PUBLIC:
+        world_threads.mark_offered(world, thread, npc, shown, turn)
 
 
 def _row_of(state: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:

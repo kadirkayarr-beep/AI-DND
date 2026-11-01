@@ -8304,6 +8304,10 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     if decision == "give_late":
         gate["reply"] = dialogue_jobs.deliver_late(session, thread, person, player_input)
         return gate
+    if decision == "take_up":
+        import world_happenings
+        world_happenings.put_forward(world, thread, person, thread["owner_line"])
+        decision = gate["decision"] = "accepted"
     reading = world_threads.read_answer(player_input, person, thread)
     errand = thread.get("type") == "errand"
     if decision == "accepted" and errand:
@@ -8318,7 +8322,7 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     thread = world_threads.by_id(world, gate["thread_id"])
     if decision == "abandoned" and reading["move"]:
         return None  # the job is over and the walk is still a walk
-    if thread.get("type") == "hiring" and thread.get("status") == "accepted" and (
+    if thread.get("type") in world_threads.WORKED and thread.get("status") == "accepted" and (
             gate["decision"] == "work" or (gate["decision"] == "accepted" and reading["start"])):
         if world_threads.can_start_now(world, thread):
             gate["reply"] = world_threads.work_turn(session, thread["thread_id"], player_input)

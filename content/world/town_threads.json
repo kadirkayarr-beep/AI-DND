@@ -292,6 +292,9 @@
     }
   ],
   "offer_answers": {
+    "help": ["yardım ederim", "yardım edeyim", "yardım edebilirim", "yardımcı olurum", "yardımcı olayım", "yardımcı olabilirim",
+             "hallederim", "halledeyim", "halledebilirim", "ben bakarım", "ben bakayım", "ben ilgilenirim", "ben ilgileneyim",
+             "üstlenirim", "üstleneyim", "çözerim", "çözeyim", "çözebilirim"],
     "accept": [
       "evet",
       "kabul ettim",
@@ -454,6 +457,7 @@
       "yarın konuşuruz"
     ],
     "reference": [
+      "dert", "derdi", "derdin", "derdini", "derdinden", "mesele", "meseleyi", "meselen", "meseleni", "sorun", "sorunu", "sorunun", "sorununu",
       "iş",
       "işten",
       "işinden",
@@ -639,6 +643,8 @@
       "unwilling": "Bu kişiye iş vermek istemiyorsun; önceki iş kötü bitti. Kendi tavrınla söyle, teklif etme.",
       "trouble": "Bu bir dert, iş değil: kimseye para ya da ücret teklif etme.",
       "heard_happening": "Duyduğun: {heard}",
+      "trouble_help": "Biri yardım etmek isterse kabul edebilirsin; istemezse ısrar etme.",
+      "pay_no_pay": "Para soruyor ama bu dert için ücret konuşmadınız; para vermezsin. Kendi ağzınla söyle, inkâr etme.",
       "cold": " Bu kişiye karşı soğuksun.",
       "warm": " Bu kişiye ısınmışsın.",
       "repeat_decline": "Teklifini reddetti. Israr etme, yeniden sunma; o sorarsa iş hâlâ boşta.",
@@ -665,6 +671,7 @@
       "pay_paid_today": ["Bugünkünü aldın, yarın gel.", "Bugünlük hesabımız kapalı."],
       "pay_not_yet": ["Önce işi gör, sonra konuşuruz.", "Daha bir şey yapmadın ki, gün bitsin."],
       "pay_on_delivery": ["Ücret teslimde, alıcıdan alırsın.", "Götür, parası orada çıkar."],
+      "pay_no_pay": ["Bunun parası yok, biliyorsun.", "Para konuşmadık ki."],
       "pay_settled": ["Hesabımız kapandı, aldın paranı.", "Sana borcum kalmadı."]
     },
     "hiring": {
@@ -702,6 +709,38 @@
         "Bu dert sonunda başına geldi; geç kalındı. Kendi tavrınla söyle, kimseyi suçlamak zorunda değilsin."
       ],
       "fired_short": "Kentte bir dert sonunda patlak vermiş.",
+      "accepted": [
+        "Bu derdi üstlendi; ücret konuşmadınız, para çıkmaz. Başlamak istediğinde ne yapılacağını gösterirsin."
+      ],
+      "done": [
+        "Bu derdi birlikte çözdünüz, rahatladın. Teşekkür edebilirsin; para borcun yok."
+      ],
+      "failed": [
+        "Üstlendiği derde el sürmedi; kırgınsın, dert hâlâ senin sırtında."
+      ],
+      "abandoned": [
+        "Üstlendiği derdi yarıda bıraktı; dert yine senin sırtında."
+      ],
+      "declined": [
+        "Yardım etmek istemedi. Israr etme; o sorarsa dert hâlâ duruyor."
+      ],
+      "called_off": [
+        "Bu dert artık onun üstünde değil; bu kimsenin suçu değil."
+      ],
+      "expired": [
+        "Bu dert kendi kendine kapandı, konuşacak bir şey kalmadı."
+      ],
+      "filled": [
+        "Bu derde {who} el attı; artık boşta değil."
+      ],
+      "declined_unfilled": [
+        "Yardım etmek istememişti; derdi sonunda kendin göğüsledin."
+      ],
+      "averted_lines": [
+        "{place} derdi çözülmüş, ortalık yatışmış.",
+        "{place} tarafında dert geride kalmış, yüzler gülüyor.",
+        "{place} rahatlamış; o dert kapanmış."
+      ],
       "fired_lines": {
         "visit": [
           "{place} önüne gece birileri gelmiş, uzun uzun konuşulmuş.",
@@ -815,7 +854,9 @@
       "shift_no_pay": "Bugünkü ücretini almıştın; bu saatler hesaba yazılmıyor.",
       "start_today": "bugün",
       "start_tomorrow": "yarın sabah",
-      "start_tonight": "bu akşam"
+      "start_tonight": "bu akşam",
+      "pay_none": "ücret yok",
+      "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil."
     }
   },
   "gone_words": {

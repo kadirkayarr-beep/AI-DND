@@ -3,12 +3,16 @@
 No model is called anywhere in here. Same seed, different choices, different story.
 """
 import unittest
+from unittest.mock import patch
 
 import campaign_time
+import relationships
 import town_knowledge
 import world_happenings
 import world_threads
 
+from api.tests import test_experimental_npc_dialogue as speech
+from api.tests import test_thread_gate as gate_tests
 from api.tests.test_world_threads import DAY, HOUR, city
 
 
@@ -197,6 +201,179 @@ class ATroubleComesToSomething(unittest.TestCase):
         row = next(r for r in state["happenings"] if r["thread_id"] == thread["thread_id"])
         self.assertTrue(row["known_to_player"])
         self.assertIn({"place": thread["place_id"], "line": row["line"]}, world["flags"]["reaction_lines"])
+
+
+def owner_of(world, thread):
+    thread["owner_npc_id"] = "sahip"
+    return resident(world, thread["place_id"], "sahip")
+
+
+def take_on(world, thread, npc, turn=2):
+    world_threads.mark_offered(world, thread, npc, thread["owner_line"], turn)
+    return world_threads.apply_decision(world, thread, "accepted", turn)
+
+
+def ending(world, thread):
+    return [r["kind"] for r in world[world_threads.KEY]["happenings"] if r["thread_id"] == thread["thread_id"]]
+
+
+class SomeoneTakesItOn(unittest.TestCase):
+    def test_it_is_listed_as_this_persons_own_with_no_money_in_it(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        self.assertIn(thread, world_threads.jobs_of(world, npc))
+        note = town_knowledge.promise_note(world, npc)
+        self.assertIn(thread["thread_id"], note)
+        self.assertNotIn("None", note)
+        self.assertIsNone(thread["terms"]["pay"])
+
+    def test_paid_work_comes_before_a_trouble(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        job = next(t for t in state["threads"] if t["type"] != "trouble")
+        job["place_id"] = thread["place_id"]
+        state["threads"].sort(key=lambda t: t["type"] != "trouble")
+        npc = owner_of(world, thread)
+        self.assertEqual(world_threads.jobs_of(world, npc)[0], job)
+
+    def test_taking_it_on_stops_the_clock_on_it(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        moment = thread["fires_at"]
+        self.assertTrue(take_on(world, thread, npc))
+        self.assertNotIn("fires_at", thread)
+        world_threads.tick(world, moment + 60)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "accepted")
+        self.assertEqual(ending(world, thread), [])
+
+    def test_same_seed_seen_through_it_is_averted_left_alone_it_happens(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        world_threads._credit_day(world, thread, 0)
+        self.assertEqual(thread["status"], "done")
+        self.assertEqual(ending(world, thread), ["averted"])
+        self.assertGreaterEqual(relationships.score(world, npc["id"]), 1)
+        self.assertNotIn("deeds", world["flags"])
+        other, other_state = town_with_trouble()
+        same = thread_at(other_state)
+        self.assertEqual(same["thread_id"], thread["thread_id"])
+        _, closed = fire(other, same)
+        self.assertEqual(closed["status"], "fired")
+        self.assertIn(ending(other, same)[0], {"visit", "closed", "lost"})
+
+    def test_dropping_it_only_buys_six_hours(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        world_threads.apply_decision(world, thread, "abandoned", 3)
+        closed = world_threads.by_id(world, thread["thread_id"])
+        self.assertEqual(closed["status"], "abandoned")
+        self.assertEqual(closed["fires_at"], closed["closed_at"] + 6 * HOUR)
+        world_threads.tick(world, closed["fires_at"] - 1)
+        self.assertEqual(ending(world, thread), [])
+        world_threads.tick(world, closed["fires_at"])
+        self.assertEqual(len(ending(world, thread)), 1)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "abandoned")
+
+    def test_leaving_it_undone_comes_to_the_same_thing(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        limit = thread["work_until"]
+        world_threads.tick(world, limit + 1)
+        closed = world_threads.by_id(world, thread["thread_id"])
+        self.assertEqual(closed["status"], "failed")
+        self.assertEqual(closed["fires_at"], limit + 6 * HOUR)
+        world_threads.validate(world[world_threads.KEY])
+
+    def test_no_coin_moves_and_asking_for_some_is_answered_as_such(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        npc = owner_of(world, thread)
+        take_on(world, thread, npc)
+        self.assertEqual(world_threads.wage_due(world, thread), (0, "no_pay"))
+        before = dict(world.get("currency") or {})
+        world_threads._credit_day(world, thread, 0)
+        self.assertEqual(dict(world.get("currency") or {}), before)
+
+    def test_the_owner_says_it_came_to_this(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        here = resident(world, thread["place_id"])
+        thread.update(offered_at=0, offered_turn=1, status="offered", owner_npc_id=here["id"])
+        fire(world, thread)
+        self.assertIn(world_threads.job_lines("trouble", "fired")[0], town_knowledge.speech_note(world, here))
+
+    def test_a_person_who_has_a_trouble_still_says_no_money_is_in_it(self):
+        world, state = town_with_trouble()
+        thread = thread_at(state)
+        note = town_knowledge.speech_note(world, owner_of(world, thread))
+        self.assertIn(thread["owner_line"], note)
+        self.assertIn(world_threads.job_lines("shared", "trouble"), note)
+        self.assertNotIn("ücreti ve süreyi aynen söyle", note)
+
+
+class InPlay(unittest.IsolatedAsyncioTestCase):
+    """The player's own loose words, the real turn, a scripted person."""
+
+    asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
+    asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
+    campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+    open_job = gate_tests.ThreadTable.open_job
+    line = gate_tests.ThreadTable.line
+    status = gate_tests.ThreadTable.status
+
+    async def trouble(self):
+        await self.open_job(kind="trouble")
+        self.thread.update(owner_line="Hesap tutmuyor, bakan biri lazım.", fires_at=2 * DAY, expires_at=2 * DAY,
+                           public_line="Burada hesap tutmuyormuş.",
+                           terms={"pay": None, "work_days": None, "pay_basis": None, "pay_timing": None, "deadline_text": None})
+
+    async def test_saying_you_will_help_takes_it_on(self):
+        for line in ("derdini ben hallederim abi", "tamam yardım edeyim sana", "ben bakarım o işe usta", "yardımcı olurum merak etme"):
+            await self.trouble()
+            await self.line(line, "Sağ ol.", mode="say", target=True)
+            self.assertEqual(self.status(), "accepted", line)
+            self.assertNotIn("fires_at", self.thread)
+
+    async def test_saying_you_will_not_takes_nothing_on(self):
+        for line in ("yardım edemem kusura bakma", "derdin bana ne", "hallederim mi bilmem ama yardım etmem"):
+            await self.trouble()
+            await self.line(line, "Peki.", mode="say", target=True)
+            self.assertIn(self.status(), world_threads.PUBLIC, line)
+
+    async def test_asking_for_work_gets_the_trouble_told(self):
+        await self.trouble()
+        text = (await self.line("bana iş ver", "Hmm.", mode="say", target=True))["narration"]
+        self.assertEqual(text.count("Hesap tutmuyor"), 1)
+        self.assertEqual(self.status(), "offered")
+        await self.line("tamam yaparım", "İyi.", mode="say", target=True)
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_the_work_itself_ends_it_and_pays_nothing(self):
+        await self.trouble()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        purse = (self.world.get("currency") or {}).get("player")
+        out = await self.line("hadi başlayalım", "Hmm.")
+        self.assertEqual(out["turn_outcome"]["action"], "work")
+        self.assertEqual(self.status(), "done")
+        self.assertEqual((self.world.get("currency") or {}).get("player"), purse)
+        self.assertEqual(ending(self.world, self.thread), ["averted"])
+        self.assertNotIn("bakır", out["narration"])
+
+    async def test_asking_for_money_gets_a_plain_no(self):
+        await self.trouble()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        self.world["flags"]["turn_index"] += 3
+        await self.line("paramı ver", "Para yok.", mode="say", target=True)
+        self.assertEqual(self.session._thread_turn["decision"], "pay_no_pay")
+        self.assertEqual(self.status(), "accepted")
 
 
 if __name__ == "__main__":
