@@ -142,12 +142,12 @@ def advance(world, seconds, reason, source, *, observation=None):
     import adventure.play as adventure_play
     adventure_play.close_due(world)
     actual = resolution["stop_at"] - old
+    clock["elapsed_seconds"] = old + actual  # before the town moves: what happens now happens at the new hour
     if actual > 0:
         import world_threads
         world_threads.tick(world, old + actual)
         import bold_acts
         bold_acts.on_time(world, old + actual)
-    clock["elapsed_seconds"] = old + actual
     return {"elapsed_seconds": actual, "requested_seconds": seconds,
             "remaining_seconds": seconds - actual, "interrupted": resolution["interrupted"],
             "before": before, "after": public_time(world),

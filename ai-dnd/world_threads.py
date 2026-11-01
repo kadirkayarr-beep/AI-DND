@@ -254,7 +254,7 @@ def _fill(line: str, **slots: Any) -> str:
     return text
 
 
-def _open_thread(world, state, template, settlement_id, *, create):
+def _open_thread(world, state, template, settlement_id, *, create, now):
     seed = living_world._campaign_seed(world)
     number = state["next_number"]
     identity = f"{settlement_id}\x00{template['id']}\x00{number}"
@@ -287,7 +287,6 @@ def _open_thread(world, state, template, settlement_id, *, create):
     if len(public) > MAX_PUBLIC_LINE or len(private) > MAX_OWNER_LINE:
         return None  # measured once the names are in; a line is never cut into a new meaning
     hours = _between(seed, template.get("offer_hours"), identity, "offer") or 24
-    now = _now(world)
     words = job_lines("text") or {}
     deadline = words.get("deadline_errand") if template["type"] == "errand" else (
         _fill(words.get("deadline_hiring", ""), days=days) if template["type"] == "hiring" and days else None)
@@ -324,7 +323,7 @@ def _seed_settlement(world, state, settlement_id):
             break
         if types.get(template["type"], 0) >= 2:
             continue  # never a town of one sort of need
-        if _open_thread(world, state, template, settlement_id, create=True):
+        if _open_thread(world, state, template, settlement_id, create=True, now=_now(world)):
             types[template["type"]] = types.get(template["type"], 0) + 1
             opened += 1
     state["seeded"].append(settlement_id)
@@ -1463,7 +1462,7 @@ def _replenish(world, state, now):
                 break
             if template["id"] in recent or template["type"] == last_type:
                 continue
-            if _open_thread(world, state, template, settlement_id, create=False):
+            if _open_thread(world, state, template, settlement_id, create=False, now=now):
                 last_type = template["type"]
 
 
