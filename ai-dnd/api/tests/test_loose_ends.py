@@ -189,5 +189,28 @@ class ABareYesToAModelsId(OnATrouble):
         self.assertTrue(await self.proposal("Yorgun görünüyorsun.", "tamam derdini ben hallederim"))
 
 
+class ALaterPromiseIsNotAShift(OnATrouble):
+    async def taken_on(self):
+        await self.trouble()
+        await self.line("yardım edeyim", "Sağ ol.", mode="say", target=True)
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_promising_it_for_later_runs_no_clock(self):
+        for line in ("merak etme derdini hallederim", "derdini yarın hallederim", "derdini sonra hallederim",
+                     "işi yarın yaparım", "yarın işe başlayalım", "işe başlayalım, yarın sabah", "bu işi haftaya yapıyorum"):
+            await self.taken_on()
+            before = world_threads._now(self.world)
+            out = await self.line(line, "İyi.", mode="say", target=True)
+            self.assertNotEqual(out["turn_outcome"]["action"], "work", line)
+            self.assertEqual(world_threads._now(self.world), before, line)
+            self.assertEqual(self.status(), "accepted", line)
+
+    async def test_doing_it_now_still_does_it(self):
+        for line in ("dediğin işi yapıyorum", "derdini halledeyim o zaman, işi yapayım"):
+            await self.taken_on()
+            out = await self.line(line, "Hmm.")
+            self.assertEqual(out["turn_outcome"]["action"], "work", line)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -292,6 +292,8 @@
     }
   ],
   "offer_answers": {
+    "later_words": ["yarın", "yarına", "sonra", "sonraya", "haftaya", "ileride", "ilerde", "birazdan"],
+    "now_ends": ["yorum", "yom", "yim", "lim"],
     "matter_nouns": ["dert", "derd", "mesele", "sorun"],
     "matter_common": ["istersen", "konuş", "tarafında", "tarafına", "tarafından", "içinde", "bulursun", "yakınında", "konusunda", "gitmeye", "vaktim"],
     "help": ["yardım ederim", "yardım edeyim", "yardım edebilirim", "yardımcı olurum", "yardımcı olayım", "yardımcı olabilirim",

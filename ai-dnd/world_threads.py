@@ -921,6 +921,18 @@ def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
     return False
 
 
+def _says_later(text: Any, table: dict[str, Any]) -> bool:
+    return bool(set(_folded(text).split()) & table["later_words"])
+
+
+def does_the_work_now(text: Any, thread: dict[str, Any]) -> bool:
+    """Going to the work and at it this moment: 'yapıyorum', 'yapayım'. 'Yarın yaparım' is a promise, and so is 'hallederim'."""
+    table = answer_table()
+    now = tuple(table["now_ends"])
+    return goes_to_the_work(text, thread) and not _says_later(text, table) and any(
+        word.endswith(now) for word in _folded(text).split())
+
+
 def speaks_of_pay(text: Any) -> bool:
     """The player's line is about money at all: what a model's 'pay' or 'give' needs before coin moves."""
     table = answer_table()
@@ -1279,7 +1291,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     if not (mine or closed) or answer_table() == {}:
         return None
     for thread in mine:
-        if thread["status"] == "accepted" and thread.get("type") in WORKED and read_answer(text, npc, thread)["start"]:
+        if (thread["status"] == "accepted" and thread.get("type") in WORKED and read_answer(text, npc, thread)["start"]
+                and not _says_later(text, answer_table())):
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
         if thread["status"] == "accepted" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
@@ -1292,7 +1305,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         if decision:
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
         if (thread["status"] == "accepted" and thread.get("type") in WORKED and "?" not in text
-                and goes_to_the_work(text, thread)):
+                and does_the_work_now(text, thread)):
             return {"thread_id": thread["thread_id"], "decision": "work", "npc_id": npc.get("id")}
         if offers_to_help(world, text, npc, thread):
             return {"thread_id": thread["thread_id"], "decision": "take_up", "npc_id": npc.get("id")}
