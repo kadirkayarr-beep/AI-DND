@@ -353,6 +353,8 @@ def _token_match_quality(name_token: str, text_token: str) -> int:
     """Exact/inflected name matches outrank the typo-tolerant fallback."""
     if not name_token or not text_token:
         return 0
+    if name_token == text_token:
+        return 2  # "Ay Feneri": a short word has no endings to try, but it is still the word
     variants = {name_token, _soften(name_token)}
     if len(name_token) >= 5 and name_token[-1] in "iu":
         variants.add(name_token[:-1])  # "Garrick Hanı" typed "garrick han" (not "kapı" -> "kapağı")

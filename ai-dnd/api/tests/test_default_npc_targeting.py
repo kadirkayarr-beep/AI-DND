@@ -392,6 +392,17 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertIn("Altın Kazan Hanı", response.json()["narration"])
 
+    async def test_an_inn_with_a_two_letter_word_in_its_name_is_still_that_inn(self):
+        _, session, turn_url, tavern_id, _ = await self._focused_recommendation_fixture()
+        session.world_state["locations"][tavern_id]["name"] = "Ay Feneri Hanı"
+        unlock_venue_door(session.world_state, tavern_id)
+        travel = await self.http.post(turn_url, json={
+            "message": "Marek'in söylediği Ay Feneri Hanı'e gidiyorum.", "interaction_mode": "do",
+            "action_id": str(uuid.uuid4()),
+        })
+        self.assertEqual(travel.status_code, 200, travel.text)
+        self.assertNotIn("Hangisine", travel.json()["narration"])
+
     async def test_harmless_gesture_survives_place_repair_over_http(self):
         _, session, turn_url, tavern_id, guard = (
             await self._focused_recommendation_fixture()
