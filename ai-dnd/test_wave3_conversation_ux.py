@@ -173,7 +173,7 @@ class Wave3ConversationUxTests(unittest.TestCase):
         with patch("game.ollama.chat", side_effect=AssertionError("NPC memory used model")):
             spoken = session.run_player_turn("Aylin daha \u00f6nce bana ejderhadan bahsetmi\u015fti.", interaction_mode="say")
         self.assertEqual(spoken["action_result"]["npc_id"], "npc_aylin")
-        self.assertEqual(len(session.world_state["npcs"][0]["memory"]), 2)
+        self.assertEqual(session.world_state["npcs"], before_npcs)  # a claim nobody recorded never becomes memory
 
     def test_say_explicit_name_or_role_wins_over_previous_interlocutor(self):
         for text in ("Tuna, buralarda yeniyim.", "Muhaf\u0131z, buralarda yeniyim."):

@@ -13868,6 +13868,8 @@ def _states_the_failed_check(narration, result, player_input):
         return narration
     told = _fallback_for_action_result(player_input, result)
     room = narration.strip()
+    if told.strip() in room:
+        return narration  # the narration already is the failure line
     return f"{told} {room[:1].upper()}{room[1:]}".strip()
 
 
@@ -15478,8 +15480,9 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         )
         if not target_npc and target_id is None:
             targets = combat_lifecycle._attack_targets(_session(), player_input, None)
-            if combat_lifecycle._single_valid_target(_session(), targets):
-                target_npc = targets[0]  # one person here: the blow needs no name
+            if (combat_lifecycle._single_valid_target(_session(), targets)
+                    and not _entity_reference_in_text(targets[0].get("name", ""), _normalize_turkish_typos(player_input))):
+                target_npc = targets[0]  # one person here: the blow needs no name, but a guessed hidden name is asked about
         if target_npc == "ambiguous":
             candidate_names = [
                 living_world.public_npc_name(npc)
