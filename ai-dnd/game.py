@@ -7909,10 +7909,9 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
             "type": "object",
             "properties": {
                 "kind": {"type": "string", "enum": [
-                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help", "warn", "warned",
+                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help",
                 ]},
                 "thread_id": {"type": "string", "maxLength": 24},
-                "person_id": {"type": "string", "maxLength": 48},
                 "amount_cp": {"type": "integer"},
                 "terms": {"type": "string", "maxLength": 160},
                 "item": {"type": "string", "maxLength": 48},
@@ -7920,8 +7919,10 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
             "required": ["kind"],
             "additionalProperties": False,
         },
+        # Required, because a small model leaves an optional field out: real play never once filled one for a threat.
+        "threat": {"type": "string", "maxLength": 48},
     },
-    "required": ["spoken_text", "stage_direction"],
+    "required": ["spoken_text", "stage_direction", "threat"],
     "additionalProperties": False,
 }
 _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
@@ -8474,7 +8475,7 @@ def _accept_named_job(session, world, npc, thread):
         world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken):
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
@@ -8483,7 +8484,7 @@ def _settle_spoken_commitment(world, npc, player_input, raw, spoken):
         settled = town_knowledge.settle_reply(
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
-            moved=(gate or {}).get("paid_cp") or 0,
+            moved=(gate or {}).get("paid_cp") or 0, threat=threat,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
@@ -17930,8 +17931,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
                             else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
+    import world_happenings
     import world_threads
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
+    threatened = front_proposal.threat_in(reply, listed)
+    if threatened:
+        world_happenings.threatened(world, world_threads._npc(world, threatened))
     route = front_proposal.validate(reply, listed)
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
@@ -20954,6 +20959,7 @@ def _run_player_turn_internal(
                         "spoken_text",
                         "stage_direction",
                         "commitment",
+                        "threat",
                         # The intent pre-parser can merge its recognized,
                         # untrusted envelope into the narration packet.
                         "intent",
@@ -21028,6 +21034,7 @@ def _run_player_turn_internal(
                     )
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
+                        threat=raw_intent.get("threat"),
                     )
                     cleaned_spoken = settled_money["spoken"]
                     if getattr(_session(), "_empty_handed", False):

@@ -1417,7 +1417,7 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
     record = place["record"]
     if run.here == place["id"]:
         room = local_places.inner_room_of(run.world, run.here)
-        if room is None:
+        if not local_places.goes_further_in(run.world, run.here, run.text):
             return _receipt("enter", "completed", place, text=f"{prefix}Zaten {record.get('name')} içindesin.".strip())
         place, record = {"id": room["id"], "kind": "place", "label": room.get("name"), "record": room}, room  # further in
     door = run.door_for(place["id"])
@@ -2857,8 +2857,8 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
         return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
     target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
                   None)
-    if target is None:
-        return defer
+    if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):
+        return defer  # 'sokağa çıkıyorum' at a house: a small model can take the first room on the list for it
     step = {"verb": "enter" if inside and target["kind"] != "outside" else "go", "target": target, "negated": False}
     run = _Run(session, player_input)
     run.model_calls = 1  # the front reading chose this walk

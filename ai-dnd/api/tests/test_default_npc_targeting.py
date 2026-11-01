@@ -1296,8 +1296,8 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(
                 set(schema.get("properties", {}))
-                == {"spoken_text", "stage_direction", "commitment"}
-                and schema.get("required") == ["spoken_text", "stage_direction"]
+                == {"spoken_text", "stage_direction", "commitment", "threat"}
+                and schema.get("required") == ["spoken_text", "stage_direction", "threat"]
                 for schema in recommendation_client.schemas
             ),
             recommendation_client.schemas,

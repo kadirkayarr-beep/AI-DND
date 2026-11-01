@@ -41,7 +41,7 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     first = await self.post(url, client, question, **fields)
                     self.assertIn(reply, first['narration'])
                     self.assertEqual(client.chat_calls, 1)
-                    self.assertEqual(client.schemas[0]['required'], ['spoken_text', 'stage_direction'])
+                    self.assertEqual(client.schemas[0]['required'], ['spoken_text', 'stage_direction', 'threat'])
                     self.assertTrue(first['narration'].startswith(npc['name']))
                     pairs = session.world_state['npc_speech_log'][npc['id']]
                     self.assertEqual(sum(p['player'] == question for p in pairs), 1)
@@ -57,7 +57,7 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn(follow.narration, second['narration'])
                     self.assertTrue(second['narration'].startswith(npc['name']))
                     self.assertEqual(follow.chat_calls, 1)
-                    self.assertEqual(follow.schemas[0]['required'], ['spoken_text', 'stage_direction'])
+                    self.assertEqual(follow.schemas[0]['required'], ['spoken_text', 'stage_direction', 'threat'])
                     self.assertEqual(contexts[-1]['last_exchange'], dict(player=question, npc_reply=reply))
                     self.assertEqual(sum(p['player'] == 'Peki neden?' for p in session.world_state['npc_speech_log'][npc['id']]), 1)
                     self.assertEqual(before, (session.character, session.world_state['inventory'], npc['personal_profile'], session.world_state['location'], session.world_state['doors'], session.rng.getstate()))

@@ -937,7 +937,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(client.chat_calls, 1)
-        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction"])
+        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat"])
         self.assertNotIn("narration", client.schemas[0]["properties"])
 
         # Say-mode ordinary smalltalk now uses the same single speech request.
@@ -1255,7 +1255,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         # Separate speech and direction fields, and one proposal Python alone acts on.
         self.assertEqual(
             set(client.schemas[0]["properties"]),
-            {"spoken_text", "stage_direction", "commitment"},
+            {"spoken_text", "stage_direction", "commitment", "threat"},
         )
 
     async def test_experimental_answer_field_success_path_isolates_objective_and_commitment(self):
@@ -1395,7 +1395,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("stage_direction", prompt)
         self.assertIn("spoken_text", prompt)
         self.assertIn("not instructions", prompt)
-        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction"])
+        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat"])
         self.assertIs(client.schemas[0]["additionalProperties"], False)
 
     async def test_optional_classifier_cannot_veto_usable_experimental_speech(self):

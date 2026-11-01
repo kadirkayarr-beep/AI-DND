@@ -1,4 +1,5 @@
 """A big house has a way in or a real reason it stays shut, and someone behind the door to meet."""
+import copy
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ import world_threads
 
 from api.tests.test_said_is_real import ClassifiedClient, Table
 from api.tests.test_story_links import resident, town
+from api.tests.test_town_knowledge import ThroughTheRealTurn
 from api.tests.test_world_threads import DAY
 
 
@@ -89,6 +91,14 @@ class WaysIn(unittest.TestCase):
         self.assertIn("kimseyi kabul etmiyor", note)
         self.assertNotRegex(note.split("kimseyi kabul etmiyor")[1][:60], r"\d")
 
+    def test_the_house_comes_before_the_work_in_the_note_so_a_job_is_still_answered_as_a_job(self):
+        world, state, record, steward, room = a_house()
+        thread = state["threads"][0]
+        thread.update(place_id=record["id"], type="errand", status="open", owner_line="Mektup var, altı bakır.")
+        with patch.object(world_threads, "owner_mood", return_value="yes"):
+            note = town_knowledge.speech_note(world, steward)
+        self.assertLess(note.index("kabul etmiyor"), note.index("Mektup var"))
+
     def test_work_done_for_the_house_opens_it(self):
         world, _, record, steward, room = a_house()
         relationships.note(world, steward["id"], 1, "test")
@@ -135,6 +145,12 @@ class WaysIn(unittest.TestCase):
         self.assertIn("görmek istiyor", note)
         self.assertIn(record["name"], note)
 
+    def test_with_the_steward_gone_it_is_only_a_locked_door(self):
+        world, _, record, steward, room = a_house()
+        self.assertTrue(vouching.shut_line(world, door_of(world, room)))
+        steward["combat_status"] = "dead"
+        self.assertIsNone(vouching.shut_line(world, door_of(world, room)))
+
     def test_a_sealed_letter_of_the_house_is_the_masters(self):
         world, _, record, steward, room = a_house()
         link = world_happenings.tie(world, world_happenings.CALLER, "opened", steward, record["id"])
@@ -150,6 +166,24 @@ class WaysIn(unittest.TestCase):
         link.pop("fires_at")
         link["caller_id"] = "ulak"
         self.assertIn("Aranan kayıt", town_knowledge.speech_note(world, master))
+
+
+class ItLasts(ThroughTheRealTurn):
+    async def test_the_room_and_a_link_on_the_clock_survive_a_save_and_a_new_process(self):
+        await self.start()
+        await self.say("Burada nerede iş bulabilirim?", "Bir bakayım.")
+        world = self.session.world_state
+        settlement = world_threads.view(world)["seeded"][0]
+        record = local_places.find_local_place(world, settlement, "estate") or local_places.create_local_place(world, settlement, "estate")
+        local_places._add_inner_room(world, record)
+        world_happenings.tie(world, world_happenings.CALLER, "opened", self.npc, record["id"])
+        await self.say("Peki sağ ol.", "Eyvallah.")
+        kept_state = copy.deepcopy(world[world_threads.KEY])
+        kept_doors = copy.deepcopy(world["doors"])
+        again = await self.resume_in_a_new_process()
+        self.assertEqual(again[world_threads.KEY], kept_state)
+        self.assertEqual(again["doors"], kept_doors)
+        self.assertIsNotNone(local_places.inner_room_of(again, record["id"]))
 
 
 class AtTheTable(Table):
@@ -172,6 +206,11 @@ class AtTheTable(Table):
         reply = await self.line("konagin icine dogru yuruyorum, efendinin odasini arayacagim")
         self.assertEqual(self.world["location"], self.record["id"])
         self.assertIn("kabul etmiyor", reply["narration"])
+
+    async def test_a_reading_that_takes_the_room_for_the_street_still_goes_out(self):
+        await self.house()
+        await self.line("sokaga cikiyorum")
+        self.assertEqual(self.world["location"], world_threads.view(self.world)["seeded"][0])
 
     async def test_once_it_is_open_the_master_is_there_to_meet(self):
         await self.house()

@@ -565,7 +565,7 @@ class WhatIsComingForThem(unittest.TestCase):
         return world, thread
 
     def test_the_owner_has_it_in_a_word_and_never_in_a_figure(self):
-        words = {12: "bugün", 22: "bu gece", 29: "bu gece", 36: "yarın", 80: "birkaç gün"}
+        words = {12: "bugün", 22: "bu gece", 29: "bu gece", 36: "yarın", 80: "birkaç gün sonra"}
         for hours, word in words.items():
             world, thread = self.ahead(hours)
             note = world_happenings.waiting_note(world, resident(world, thread["place_id"]))

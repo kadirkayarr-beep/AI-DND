@@ -30,7 +30,7 @@ class MeaningBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 body = speech.ExperimentalNpcDialogueTests.request(npc, message=self.question)
                 response = await api.CampaignApiTests.post_scene_turn(self, url, client, body)
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction"])
+                self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat"])
                 self.assertNotIn("narration", client.schemas[0]["properties"])
                 self.assertIn(self.reply, response.json()["narration"])
                 self.assertTrue(response.json()["narration"].startswith(npc["name"]))

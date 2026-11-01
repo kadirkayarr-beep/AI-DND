@@ -70,7 +70,9 @@ def owned_threads(world: dict[str, Any], npc: dict[str, Any]) -> list[dict[str, 
 
 def is_closed_mouthed(world: dict[str, Any], npc: dict[str, Any]) -> bool:
     """The same person always answers the same way; someone with work to give does talk."""
+    place = world.get("locations", {}).get(npc.get("place_role_of")) or {}
     return (not owned_threads(world, npc) and not world_threads.recent_closed(world, npc)
+            and not npc.get("caller_of") and not place.get("inner_of")  # sent with a message, or the master of the house
             and _percent(world, npc.get("id"), "closed") < CLOSED_PERCENT)
 
 
@@ -401,8 +403,9 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     job = _job_note(world, npc, decision)
     if job and not job.startswith(" "):
         job = " " + job
-    job += (world_happenings.waiting_note(world, npc) + world_happenings.link_note(world, npc)
-            + vouching.speaker_note(world, npc) + vouching.house_note(world, npc)
+    job = vouching.house_note(world, npc) + job  # ahead of the work: what comes last is what a small model answers with
+    job += (world_happenings.waiting_note(world, npc) + vouching.speaker_note(world, npc)
+            + world_happenings.link_note(world, npc)
             + _matter_note(world, npc, decision))
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
@@ -544,7 +547,7 @@ def money_backed_by(world: dict[str, Any], npc: Any) -> set[int]:
     return backed
 
 
-_PROPOSAL_KINDS = frozenset({"job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help", "warn", "warned"})
+_PROPOSAL_KINDS = frozenset({"job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help"})
 
 
 def read_proposal(raw: Any) -> dict[str, Any] | None:
@@ -554,7 +557,6 @@ def read_proposal(raw: Any) -> dict[str, Any] | None:
     amount = raw.get("amount_cp")
     return {"kind": raw["kind"], "thread_id": raw.get("thread_id") if isinstance(raw.get("thread_id"), str) else "",
             "item": raw.get("item") if isinstance(raw.get("item"), str) else "",
-            "person_id": raw.get("person_id") if isinstance(raw.get("person_id"), str) else "",
             "amount_cp": amount if type(amount) is int and amount > 0 else 0,
             "terms": raw["terms"][:160] if isinstance(raw.get("terms"), str) else ""}
 
@@ -585,7 +587,7 @@ def _settle_offer(world, npc, proposal, spoken, *, allowed):
 
 
 def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
-                 *, accept_job: Any, moved: int = 0) -> dict[str, Any]:
+                 *, accept_job: Any, moved: int = 0, threat: Any = None) -> dict[str, Any]:
     """Python's half of 'the model proposes': commit what checks out.
 
     moved: copper a gate already paid this turn. The result says what money stands behind
@@ -594,6 +596,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     proposal = read_proposal(raw)
     kind = proposal["kind"] if proposal else None
     allowed = money_backed_by(world, npc)
+    world_happenings.threat_said(world, npc, threat)
     note = None
     if moved:
         allowed.add(moved)
@@ -609,10 +612,6 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             world_happenings.put_forward(world, trouble, npc, trouble["owner_line"])
             accept_job(trouble)
             note = world_threads.what_it_takes(world, trouble)
-    elif kind == "warn":
-        world_happenings.warn(world, npc, proposal["thread_id"], proposal["person_id"])
-    elif kind == "warned":
-        world_happenings.threatened(world, npc)
     elif kind == "pay" and not moved:
         asked = world_threads.speaks_of_pay(player_text)
         thread = _named_job(world, npc, proposal["thread_id"], {"accepted"}) if asked else None

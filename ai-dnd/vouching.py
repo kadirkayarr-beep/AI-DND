@@ -109,7 +109,9 @@ def shut_line(world: dict[str, Any], door: dict[str, Any]) -> str | None:
     import world_happenings
     house = world.get("locations", {}).get(door.get("location")) or {}
     keeper = local_places.resident_of(world, house.get("id"))
-    who = living_world.turkish_initial_upper(living_world.public_npc_name(keeper)) if isinstance(keeper, dict) else "Biri"
+    if not isinstance(keeper, dict) or keeper.get("combat_status") == "dead":
+        return None  # nobody left to stand in the way: it is only a locked door now
+    who = living_world.turkish_initial_upper(living_world.public_npc_name(keeper))
     return world_threads._fill(world_threads.job_lines("text", "house_shut") or "", who=who,
                                when=world_happenings._spoken_time(world, door.get("opens_at", 0)), how=_ways(world, house))
 

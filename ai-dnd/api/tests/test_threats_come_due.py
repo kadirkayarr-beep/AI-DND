@@ -7,6 +7,8 @@ import unittest
 from unittest.mock import patch
 
 import campaign_time
+import front_proposal
+import game
 import relationships
 import town_knowledge
 import world_happenings
@@ -18,8 +20,8 @@ from api.tests.test_said_is_real import ClassifiedClient, Table
 from api.tests.test_world_threads import DAY, HOUR
 
 
-def settle(world, npc, commitment, spoken="O zaman görürsün.", player="kim yakacak, sen mi"):
-    return town_knowledge.settle_reply(world, npc, player, commitment, spoken, accept_job=lambda thread: None)
+def settle(world, npc, threat, spoken="O zaman görürsün.", player="kim yakacak, sen mi"):
+    return town_knowledge.settle_reply(world, npc, player, None, spoken, accept_job=lambda thread: None, threat=threat)
 
 
 def someone(seed="seed-threat"):
@@ -35,7 +37,7 @@ def links(world):
 class AThreatBecomesAMoment(unittest.TestCase):
     def test_one_said_about_a_listed_job_gets_a_moment_python_chose(self):
         world, state, thread, npc = someone()
-        settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"], "terms": "üç saate kadar"})
+        settle(world, npc, thread["thread_id"])
         link = links(world)[0]
         self.assertEqual(link["about_thread_id"], thread["thread_id"])
         hours = (link["fires_at"] - world_threads._now(world)) / HOUR
@@ -47,13 +49,28 @@ class AThreatBecomesAMoment(unittest.TestCase):
         moments = set()
         for _ in range(2):
             world, _, thread, npc = someone()
-            settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"]})
+            settle(world, npc, thread["thread_id"])
             moments.add(links(world)[0]["fires_at"])
         self.assertEqual(len(moments), 1)
 
-    def test_an_id_the_list_never_had_falls_back_on_the_one_who_said_it(self):
+    def test_words_that_are_no_listed_id_tie_nothing_and_change_no_reply(self):
         world, _, thread, npc = someone()
-        settle(world, npc, {"kind": "warn", "thread_id": "thread_999", "person_id": "uydurma"})
+        for said in ("none", "yok", "thread_999", "uydurma", "", None, 7):
+            shown = settle(world, npc, said)
+            self.assertEqual(shown["spoken"], "O zaman görürsün.")
+        self.assertEqual(links(world), [])
+
+    def test_a_bare_word_or_an_id_with_its_label_still_counts(self):
+        world, _, thread, npc = someone()
+        settle(world, npc, "warn")
+        self.assertEqual(links(world)[0]["owner_npc_id"], npc["id"])
+        other, _, thread, npc = someone("seed-threat-2")
+        settle(other, npc, f"{npc['id']} (Bir kâhya)")
+        self.assertEqual(links(other)[0]["owner_npc_id"], npc["id"])
+
+    def test_naming_themselves_it_is_their_own_threat(self):
+        world, _, thread, npc = someone()
+        settle(world, npc, npc["id"])
         link = links(world)[0]
         self.assertIsNone(link["about_thread_id"])
         self.assertEqual(link["owner_npc_id"], npc["id"])
@@ -67,23 +84,24 @@ class AThreatBecomesAMoment(unittest.TestCase):
         self.assertIn("gonderen", town_knowledge.promise_note(world, npc))
         listed = world_happenings.who_can_be_named(world, npc)
         self.assertIn(sender["id"], [row["id"] for row in listed["people"]])
-        settle(world, npc, {"kind": "warn", "person_id": sender["id"]})
+        settle(world, npc, sender["id"])
         self.assertEqual(links(world)[0]["owner_npc_id"], sender["id"])
 
     def test_saying_it_twice_is_one_moment_and_the_town_keeps_a_few(self):
         world, state, thread, npc = someone()
-        settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"]})
-        settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"]}, spoken="Görürsün dedim.")
+        settle(world, npc, thread["thread_id"])
+        settle(world, npc, thread["thread_id"], spoken="Görürsün dedim.")
         self.assertEqual(len(links(world)), 1)
         for number in range(12):
-            settle(world, resident(world, thread["place_id"], f"biri{number}"), {"kind": "warn"})
+            speaker = resident(world, thread["place_id"], f"biri{number}")
+            settle(world, speaker, speaker["id"])
         self.assertLessEqual(len(links(world)), world_happenings.MAX_LINKS)
         world_threads.validate(world_threads.view(world))
 
     def test_an_old_save_has_none_and_a_damaged_one_is_refused(self):
         world, state, thread, npc = someone()
         world_threads.validate(state)
-        settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"]})
+        settle(world, npc, thread["thread_id"])
         world_threads.validate(state)
         broken = copy.deepcopy(state)
         broken[world_happenings.LINKS][0]["fires_at"] = "yarın"
@@ -92,26 +110,23 @@ class AThreatBecomesAMoment(unittest.TestCase):
 
     def test_nothing_comes_of_a_person_who_threatened_nobody(self):
         world, _, thread, npc = someone()
-        settle(world, npc, {"kind": "meet", "terms": "akşam gel"})
+        town_knowledge.settle_reply(world, npc, "gel", {"kind": "meet", "terms": "akşam gel"}, "Gel.", accept_job=lambda thread: None)
         self.assertEqual(links(world), [])
 
     def test_the_prompt_lists_what_a_threat_can_name_and_the_field_exists(self):
         import game
         world, _, thread, npc = someone()
         note = town_knowledge.promise_note(world, npc)
-        self.assertIn("warn", note)
+        self.assertIn("threat", note)
         self.assertIn(thread["thread_id"], note)
         self.assertIn(npc["id"], note)
-        fields = game._EXPERIMENTAL_NPC_SPEECH_SCHEMA["properties"]["commitment"]["properties"]
-        self.assertIn("warn", fields["kind"]["enum"])
-        self.assertIn("warned", fields["kind"]["enum"])
-        self.assertIn("person_id", fields)
+        self.assertIn("threat", game._EXPERIMENTAL_NPC_SPEECH_SCHEMA["required"])
 
 
 class ItComesDue(unittest.TestCase):
     def armed(self):
         world, state, thread, npc = someone()
-        settle(world, npc, {"kind": "warn", "thread_id": thread["thread_id"]})
+        settle(world, npc, thread["thread_id"])
         return world, thread, npc, links(world)[0]
 
     def test_before_its_moment_nothing_has_happened(self):
@@ -143,10 +158,25 @@ class ItComesDue(unittest.TestCase):
         self.assertEqual(len(rows), 1)
 
 
+class WhatTheVisitLeaves(unittest.TestCase):
+    def test_a_broken_seal_costs_and_a_whole_one_earns_when_the_visitor_arrives(self):
+        for tone, change in (("opened", -1), ("kept", -1), ("delivered", 1), ("warned", 0)):
+            world, _, thread, npc = someone()
+            link = world_happenings.tie(world, world_happenings.CALLER, tone, npc, thread["place_id"])
+            world_happenings._settle_up(world, link)
+            self.assertEqual(relationships.score(world, npc["id"]), change, tone)
+
+    def test_the_visitor_and_their_message_are_never_closed_mouthed(self):
+        world, _, thread, npc = someone()
+        for number in range(40):
+            visitor = {"id": f"ulak-{number}", "caller_of": "link_001", "location": world["location"]}
+            self.assertFalse(town_knowledge.is_closed_mouthed(world, visitor))
+
+
 class ThePlayerSaysIt(unittest.TestCase):
     def threatened(self):
         world, state, thread, npc = someone()
-        settle(world, npc, {"kind": "warned"}, spoken="Beni tehdit mi ediyorsun?", player="kapina dayanirim bak")
+        settle(world, npc, "warned", spoken="Beni tehdit mi ediyorsun?", player="kapina dayanirim bak")
         return world, thread, npc, links(world)[0]
 
     def test_the_threatened_person_gets_ready_by_the_clock(self):
@@ -277,7 +307,7 @@ class AtTheTable(Table):
         self.client = ClassifiedClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        self.client.speech_extra = {"commitment": {"kind": "warn", "person_id": self.npc["id"]}}
+        self.client.speech_extra = {"threat": self.npc["id"]}
         await self.line("ellerimi yakacakmis. kim yakacak sen mi",
                         "O mührün sahibi kapına dayandığında görürsün kimin eli yanıyormuş.")
         self.client.speech_extra = {}
@@ -303,6 +333,8 @@ class AtTheTable(Table):
         await self.line("hmm bir daha bakiyim")
         self.assertEqual(sum(1 for npc in self.world["npcs"] if npc.get("caller_of")), 1)
         self.assertIn("gönderdi", town_knowledge.speech_note(self.world, visitor))
+        self.assertIn("gönderdi", visitor["personal_profile"]["reason_for_being_here"])
+        self.assertIn("adına", visitor["personal_profile"]["occupation"])
 
     async def test_a_player_away_from_town_meets_them_on_coming_back(self):
         link = await self.threat()
@@ -315,11 +347,34 @@ class AtTheTable(Table):
         await self.line("bi daha bakayim")
         self.assertTrue(any(npc.get("caller_of") for npc in self.world["npcs"]))
 
+    async def test_the_reading_of_the_line_finds_the_player_threat_with_no_extra_call(self):
+        await self.begin()
+        self.client = ClassifiedClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "threat_to": self.npc["id"]}
+        before = self.client.chat_calls
+        await self.line("seni de dukkanini da yakarim haberin olsun", "Dene de görelim.")
+        self.assertTrue(links(self.world), self.routes())
+        self.assertEqual(links(self.world)[0]["kind"], world_happenings.GUARDED)
+        self.assertEqual(self.client.chat_calls - before, 2)
+
+    async def test_the_one_who_just_arrived_is_who_a_bare_question_goes_to(self):
+        link = await self.threat()
+        campaign_time.advance(self.world, link["fires_at"] - world_threads._now(self.world) + 1, "rest", "test")
+        self.client.front = {"kind": "look"}
+        await self.line("etrafa bi bakiyim")
+        token = game._ACTIVE_SESSION.set(self.session)
+        try:
+            listed = front_proposal.listing(self.session)
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertEqual(listed["people"][0]["id"], links(self.world)[0]["caller_id"])
+
     async def test_the_owner_threatening_back_the_player_threat_needs_no_extra_call(self):
         await self.begin()
         self.client = ClassifiedClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        self.client.speech_extra = {"commitment": {"kind": "warned"}}
+        self.client.speech_extra = {"threat": "warned"}
         await self.line("bak sana diyim, gece kapina dayanirim haberin olsun", "Dene de görelim.")
         self.assertEqual(links(self.world)[0]["kind"], world_happenings.GUARDED)

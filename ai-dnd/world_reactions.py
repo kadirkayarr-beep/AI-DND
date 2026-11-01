@@ -519,9 +519,12 @@ def _overheard(session) -> list[str]:
     return []
 
 
-def _board_hint(world: dict[str, Any]) -> list[str]:
-    """Only on a turn with nothing else to tell."""
+def _board_hint(world: dict[str, Any], result: dict[str, Any]) -> list[str]:
+    """Only on a turn with nothing else to tell, and never on the end of what someone just said."""
     import town_knowledge
+    action = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    if action.get("action") in {"dialogue", "local_inquiry"} or (world.get("flags") or {}).get("active_npc_id"):
+        return []
     hint = town_knowledge.board_hint(world)
     return [hint] if hint else []
 
@@ -544,6 +547,6 @@ def answer(session, result: Any) -> None:
     lines += _search(session, now)
     lines += _challenge(session)
     lines += _overheard(session)
-    lines = lines[-MAX_LINES_PER_TURN:] or _board_hint(world)
+    lines = lines[-MAX_LINES_PER_TURN:] or _board_hint(world, result)
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()
