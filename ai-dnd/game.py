@@ -18094,11 +18094,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             session._front_strike = route
         else:  # a threat or a question about a blow: words, and they are for that person
             route = {"kind": "speak_to", "id": route["id"]}
+    import grounded_action
     import npc_speech_boundary
     hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
-    if (route["kind"] in {"attempt", "unclear"} and not route.get("thing") and hearer
-            and npc_speech_boundary.player_supplied_quote(player_input)):
-        route = {"kind": "speak_to", "id": hearer}  # words in quotes with someone here are for them, whatever else is done
+    if route["kind"] in {"attempt", "unclear"} and hearer and (
+            grounded_action.hands_on_a_body(player_input)
+            or (not route.get("thing") and npc_speech_boundary.player_supplied_quote(player_input))):
+        route = {"kind": "speak_to", "id": hearer}  # a body in the line, or words in quotes: this is for the person here
     if route["kind"] == "talk_around":
         # the same reply's other half may not walk it after all
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
@@ -19612,7 +19614,7 @@ def _run_player_turn_internal(
             }
             return finish_turn(
                 action_result,
-                interaction_adventure.immersive_unknown(target),
+                interaction_adventure.immersive_unknown(target, player_input),
                 safety_reason_code="UNVERIFIED_CONVERSATION_RESOLUTION",
                 safety_handling="python_fallback",
                 is_final=True,
@@ -20483,6 +20485,9 @@ def _run_player_turn_internal(
         if action_result.get("status") == "proposal_rejected" and _has_spoken_to_player(npc_target):
             # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
             answer_in_person = True
+        if (action_result.get("status") in {"proposal_rejected", "no_effect"} and isinstance(npc_target, dict)
+                and (getattr(_session(), "_front_read", None) or {}).get("kind") == "speak_to"):
+            answer_in_person = True  # the reading said this is for that person: a proposal with nothing in it changes no ear
         narrated_without_model = (
             scene_preparse_model_calls > 0
             and interaction_hint in {"promise", "goal"}

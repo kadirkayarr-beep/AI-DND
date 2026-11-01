@@ -8,6 +8,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import game
+import grounded_action
 import interaction_adventure
 import living_world
 import npc_speech_boundary
@@ -203,3 +204,55 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         self.assertEqual(npc_speech_boundary.strip_player_echo(kept, line), kept)
         said_back = "Sahipsiz sandık düşman tuzağı olabilir, doğru."
         self.assertEqual(npc_speech_boundary.strip_player_echo(said_back, line), "")
+
+
+class AHandOnAPersonBeatsTheFurniture(FrontTable):
+    BLOCKED = "açılacak bir şey değil"
+    LINE = "yakasına yapışıp tezgaha bastırıyorum, korkutarak konuşturmaya çalışıyorum"
+
+    async def begin(self, **kwargs):
+        await super().begin(**kwargs)
+        self.bench = {"id": "feature_voice_bench", "name": "Çalışma tezgâhı", "description": "Talaş dolu bir tezgâh",
+                      "location": self.world["location"], "kind": "furnishing", "aliases": ["tezgah"]}
+        self.world.setdefault("features", []).append(self.bench)
+
+    async def test_the_person_answers_a_hand_on_their_collar(self):
+        await self.begin()
+        self.client.front = {"kind": "grab", "person_id": self.npc["id"]}
+        reply = await self.line(self.LINE, "Çek ellerini!")
+        self.assertIn("Çek ellerini!", reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+    async def test_a_reading_that_took_the_bench_is_corrected_by_the_collar(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "thing_id": self.bench["id"]}
+        reply = await self.line(self.LINE, "Çek ellerini!")
+        self.assertNotIn(self.BLOCKED, reply["narration"])
+        self.assertIn("Çek ellerini!", reply["narration"])
+
+    async def test_no_reading_at_all_still_leaves_the_bench_alone(self):
+        await self.begin()
+        self.client.fails = RuntimeError("dead")
+        reply = await self.line(self.LINE, "Çek ellerini!")
+        self.assertNotIn(self.BLOCKED, reply["narration"])
+
+    async def test_my_own_hand_on_the_bench_is_about_the_bench(self):
+        await self.begin()
+        self.assertFalse(grounded_action.hands_on_a_body("elimi tezgaha bastırıyorum"))
+        self.assertFalse(grounded_action.hands_on_a_body("kolumu tezgaha dayıyorum"))
+
+    async def test_the_handle_of_a_door_is_no_arm(self):
+        await self.begin()
+        self.assertFalse(grounded_action.hands_on_a_body("kapının kolunu çeviriyorum"))
+
+    def test_the_ways_a_person_is_held(self):
+        for line in ("gırtlağına yapışıp duvara dayıyorum", "omzundan tutup masaya bastırıyorum",
+                     "kolunu büküp tezgaha yapıştırıyorum", "adamın boğazını sıkıyorum", "saçından tutup kapıya itiyorum"):
+            self.assertTrue(grounded_action.hands_on_a_body(line), line)
+
+    async def test_the_reading_tells_the_model_what_a_hand_on_a_person_is(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        await self.line("etrafa bakıyorum")
+        self.assertIn("grab", self.front_calls()[0]["properties"]["front"]["properties"]["kind"]["enum"])
+        self.assertIn("grab =", str(self.client.message_batches[0]))

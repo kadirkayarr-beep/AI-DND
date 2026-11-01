@@ -1195,20 +1195,20 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             raw = {**raw, "candidates": cleaned}
         envelope = Envelope.model_validate(raw)
     except (ValueError, TypeError):
-        return _result("unknown", "proposal_rejected", immersive_unknown(npc),
+        return _result("unknown", "proposal_rejected", immersive_unknown(npc, player_input),
                        reason_code="invalid_interaction_proposal")
     data = envelope.model_dump()
     operation = data["operation"]
     if operation == "none":
-        return _result(operation, "no_effect", immersive_unknown(npc))
+        return _result(operation, "no_effect", immersive_unknown(npc, player_input))
     quote = data["quote"]
     # Keep Unicode/original phrasing; accent folding is for routing only.
     if not quote or quote not in player_input:
-        return _result(operation, "proposal_rejected", immersive_unknown(npc),
+        return _result(operation, "proposal_rejected", immersive_unknown(npc, player_input),
                        reason_code="ungrounded_player_intent")
     if fallback_operation and operation != fallback_operation and operation not in {
             "request", "negotiate", "conditional", "promise", "information", "plan"}:
-        return _result(operation, "proposal_rejected", immersive_unknown(npc),
+        return _result(operation, "proposal_rejected", immersive_unknown(npc, player_input),
                        reason_code="mismatched_player_intent")
     if data["privacy"] == "public" and not re.search(
             r"\b(?:herkese|herkesin|yuksek sesle|public|everyone|aloud)\b", normalize(player_input)):
@@ -1222,7 +1222,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
     state = get(world)
     thread = _thread(state, data["thread_id"])
     if data["thread_id"] and thread is None:
-        return _result(operation, "proposal_rejected", immersive_unknown(npc),
+        return _result(operation, "proposal_rejected", immersive_unknown(npc, player_input),
                        reason_code="unknown_thread")
     if len(state["threads"]) >= MAX_THREADS and operation in {"goal", "generate"}:
         return _result(operation, "no_effect", "Önce yarım kalan işlerinden birine dönmek isteyebilirsin.")
@@ -1232,7 +1232,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
         existing = next((t for t in state["threads"] if t["title"] == quote[:400]
                          and t["origin"] == "player"), None)
         if any(not route_valid(world, r) for r in data["routes"]):
-            return _result(operation, "proposal_rejected", immersive_unknown(npc),
+            return _result(operation, "proposal_rejected", immersive_unknown(npc, player_input),
                            reason_code="invalid_objective_route")
         thread = existing or _new_thread(
             world, state, quote, npc,
@@ -1287,7 +1287,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
         entries = perspective(world, npc)
         entry = next((e for e in (entries or {}).get("entries", [])
                       if e["entry_id"] == data["evidence_id"]), None)
-        text = immersive_unknown(npc)
+        text = immersive_unknown(npc, player_input)
         if entry:
             prefix = {"belief": "Bana kalırsa", "rumor": "Duyduğuma göre",
                       "lie": "Sana söyleyebileceğim şu", "player_claim": "Senin söylediğin",
@@ -1307,7 +1307,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             thread["reframing_evidence"] = data["evidence_id"]
             if data["routes"]:
                 if any(not route_valid(world, r) for r in data["routes"]):
-                    return _result(operation, "proposal_rejected", immersive_unknown(npc))
+                    return _result(operation, "proposal_rejected", immersive_unknown(npc, player_input))
                 # Keep existing legitimate routes; a missed clue need not dead-end.
                 for objective in thread["objectives"]:
                     for route in grounded_goal_routes(world, quote, data["routes"]):
@@ -1381,7 +1381,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
         else:
             result = _result(operation, "no_effect", "Şimdilik yeni bir iş çıkmıyor; sohbet olağan akışında sürüyor.")
     if result is None:
-        result = _result(operation, "no_effect", immersive_unknown(npc))
+        result = _result(operation, "no_effect", immersive_unknown(npc, player_input))
     if npc and operation != "information":
         _remember_claim(world, state, quote, npc, data["privacy"])
     if state != before:

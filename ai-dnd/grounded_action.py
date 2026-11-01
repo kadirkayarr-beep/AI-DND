@@ -2932,11 +2932,23 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
 
 
 _DOOR_HANDS = frozenset({"open", "force", "knock", "close", "touch"})
+# A part of someone else's body in the line, owned as "-(s)I(n)": "yakasına", "omzundan". "Elimi", "kolumu" are one's own.
+_BODY_OF_ANOTHER = re.compile(
+    r"^(?:yaka|bogaz|girtlag|ense|sac|kafa|surat|yuz|cene|burn|omz|bileg|kol|gomleg)s?[iu](?:n(?:a|e|i|u|dan|den|da|de))?$")
+
+
+def hands_on_a_body(text: Any) -> bool:
+    """A body in the line beats any furniture word in it: pressing someone on a bench is no business with the bench."""
+    tokens = fold(text).split()
+    return any(_BODY_OF_ANOTHER.match(token)
+               and not (token.startswith("kol") and index and tokens[index - 1].endswith(("nin", "nun")))  # a door's handle
+               for index, token in enumerate(tokens))
 
 
 def _lays_hands_on_person(session, step, parsed) -> bool:
     text = " ".join(step.get("tokens") or [])
-    return any(c["kind"] == "npc" and session.named_by_sight(c["record"], text) for c in parsed["candidates"])
+    people = [c for c in parsed["candidates"] if c["kind"] == "npc"]
+    return any(session.named_by_sight(c["record"], text) for c in people) or (bool(people) and hands_on_a_body(text))
 
 
 def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, phase: str):
