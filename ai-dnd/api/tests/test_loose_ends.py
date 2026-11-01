@@ -102,6 +102,35 @@ class ThrowingNeedsAThingThrown(unittest.TestCase):
             self.assertEqual(out["model_calls"], 0, line)
         self.assertNotIn("parcel_gone", bag.thread())
 
+    def test_a_parcel_goes_only_when_it_is_thrown_somewhere(self):
+        bag = Bag()
+        self.assertIsNone(pocket.resolve(bag, "mektubu atıyorum"))
+        self.assertIn("Mektup", bag.names())
+        pocket.resolve(bag, "meşaleyi atıyorum")
+        self.assertNotIn("Meşale", bag.names())
+
+
+class SettingAParcelDown(consequences.OnTheJob):
+    carrying = consequences.Sealed.carrying
+
+    async def at_the_door(self):
+        await self.carrying()
+        self.world["location"] = "place_x"
+        self.world["flags"].pop("active_npc_id", None)
+        self.world["flags"].pop("last_npc_id", None)
+
+    async def test_put_down_for_the_one_it_is_for_it_is_delivered(self):
+        await self.at_the_door()
+        await self.line("mektubu masaya atıyorum", "Hmm.")
+        self.assertEqual(self.status(), "done")
+        self.assertNotIn("parcel_gone", self.thread)
+
+    async def test_in_the_owners_face_it_is_still_in_hand(self):
+        await self.carrying()
+        await self.line("mektubu önüne atıyorum", "Hmm.")
+        self.assertTrue(dialogue_jobs.holds_parcel(self.world, self.thread))
+        self.assertNotIn("parcel_gone", self.thread)
+
 
 if __name__ == "__main__":
     unittest.main()

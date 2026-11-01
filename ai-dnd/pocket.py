@@ -96,15 +96,27 @@ def _toss(session, text: str, words: list[str]) -> dict[str, Any] | None:
         if not isinstance(name, str) or item.get("item_id") in held:
             continue
         stem = world_threads._stem(living_world.normalize_text(name).split()[0]) if name.strip() else ""
-        if len(stem) < 3 or _thrown_at(words, stem) is None:
+        at = _thrown_at(words, stem) if len(stem) >= 3 else None
+        if at is None:
             continue
-        world["inventory"].remove(item)
         quest = str(item.get("item_id") or "").removeprefix("parcel:")
-        for thread in (world_threads.view(world) or {"threads": []})["threads"]:
-            if thread.get("quest_id") == quest:
-                thread["parcel_gone"] = True
+        threads = [t for t in (world_threads.view(world) or {"threads": []})["threads"] if t.get("quest_id") == quest]
+        if any(_only_set_down(world, thread, words, at) for thread in threads):
+            return None  # whoever it belongs with is here: the person hears this line, the parcel stays a parcel
+        world["inventory"].remove(item)
+        for thread in threads:
+            thread["parcel_gone"] = True
         return _receipt(session, text, f"{name} elinden çıkıyor; artık sende değil.")
     return None
+
+
+def _only_set_down(world: dict[str, Any], thread: dict[str, Any], words: list[str], at: int) -> bool:
+    """'At-' alone, or 'at-' in front of the person the parcel is for, does not throw an errand away."""
+    if not words[at].startswith("at"):
+        return False
+    people = (world_threads.recipient_of(world, thread), world_threads.owner_of(world, thread))
+    here = any(isinstance(npc, dict) and npc.get("location") == world.get("location") for npc in people)
+    return here or not words[at - 1].endswith(("a", "e"))
 
 
 def resolve(session, text: Any) -> dict[str, Any] | None:
