@@ -173,14 +173,6 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(reply["narration"].strip())
         self.assertEqual(self.routes()[-1]["route"], "front:look")
 
-    async def test_a_line_that_needs_a_proposal_keeps_the_call_that_can_carry_one(self):
-        await self.begin()
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        await self.line("sana söz veriyorum, paketi yarın getiririm")
-        self.assertEqual(self.front_calls(), [])
-        self.assertEqual(self.routes()[-1]["route"], "skipped:proposal")
-        self.assertTrue(any("interaction" in (schema.get("properties") or {}) for schema in self.client.schemas))
-
     async def test_a_job_answer_outranks_the_walk_in_the_same_line(self):
         await self.begin()
         self.offer()

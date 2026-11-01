@@ -1,10 +1,10 @@
 """The model reads a free line first; Python checks the listed ids and routes it to its owner.
 
-Roadmap step 5, first part. The reading is the turn's classifier call asked earlier and with the real
-lists beside it: the same reply answers the classifier for the rest of the turn, except a line that needs a
-proposal the reading cannot carry, which keeps its own call. A line Python alone used to answer now spends this one
-call, inside the turn's cap. A reply that does not check out leaves the old chain in charge. Nothing here writes
-game state.
+Roadmap step 5. The reading is the turn's classifier call asked earlier and with the real lists beside it: the
+same reply answers the classifier for the rest of the turn and carries any proposal the line may need. It comes
+before the scene planner, so a line is read before anything moves the player. A line Python alone used to answer
+now spends this one call, inside the turn's cap. A reply that does not check out leaves the old chain in charge.
+Nothing here writes game state.
 """
 
 from __future__ import annotations
@@ -234,7 +234,6 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_thing = None
     session._nothing_taken = None
     session._empty_handed = False
-    session._front_answers_all = False
     combat = (getattr(session, "world_state", None) or {}).get("combat") or {}
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")
@@ -243,6 +242,8 @@ def begin(session, *, typed: bool = False) -> None:
 
 def end(session) -> None:
     session._front_reply = None
+    session._front_read = None
+    session._front_ahead = False
 
 
 def note(session, route: str, *, reached: bool | None = None) -> None:

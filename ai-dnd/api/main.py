@@ -10,6 +10,7 @@ import json
 import logging
 import os
 
+import front_proposal
 import game
 from dataclasses import replace
 from typing import Any
@@ -1306,6 +1307,19 @@ def create_app(
                         ).parameters
                     if "interaction_mode" in plan_parameters:
                         plan_kwargs["interaction_mode"] = effective_mode
+                calls_before_turn: list[str] = []
+                if (
+                    isinstance(session, game.GameSession) and front_proposal.enabled()
+                    and not slot_conversion and request.combat_action is None
+                    and request.check_feature is None
+                ):
+                    # The reading stands before the planner and counts against this turn's cap.
+                    with active_adapter.capture_model_calls() as calls_before_turn:
+                        session.front_read_ahead(
+                            narrative_player_message,
+                            target_id=effective_target_id,
+                            interaction_mode=effective_mode,
+                        )
                 # Exact resource-only conversion has no scene/reference authority.
                 # Its display label or a retained UI target must not focus an NPC,
                 # materialize a place, or alter an existing conversation first.
@@ -1352,6 +1366,7 @@ def create_app(
                             )
                         ):
                             with active_adapter.capture_model_calls() as model_calls:
+                                model_calls.extend(calls_before_turn)
                                 with active_adapter.capture_model_failures() as model_failures:
                                     run_turn = session.run_player_turn
                                     try:

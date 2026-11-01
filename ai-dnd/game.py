@@ -9013,8 +9013,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
     reply, it raises IntentInfrastructureError instead.
     """
     held = getattr(_session(), "_front_reply", None)
-    if held is not None and not dialogue_narration and not experimental_npc_dialogue and (
-            operation_hint is None or getattr(_session(), "_front_answers_all", False)):
+    if held is not None and not dialogue_narration and not experimental_npc_dialogue:
         return copy.deepcopy(held)  # the front step already asked this turn's classifier call
     world_state = _session().world_state
     locations = [
@@ -9338,7 +9337,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                     _EXPERIMENTAL_NPC_SPEECH_OPTIONS if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
                     else {"temperature": 0.0,
-                          "num_predict": 400 if interaction_context is not None or front_list is not None else 120}
+                          "num_predict": (700 if interaction_context is not None and front_list is not None
+                                          else 400 if interaction_context is not None or front_list is not None
+                                          else 120)}
                 ),
             )
         data = _extract_json_object(ollama_response_content(response))
@@ -16576,6 +16577,9 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     _reopen_public_doors()
     world_state = _session().world_state
     interaction_mode = _normalize_interaction_mode(interaction_mode)
+    if (getattr(_session(), "_front_read", None) or {}).get("kind") in _PLANNER_STAYS_OUT:
+        return {"direct_result": None, "state_changes": [],
+                "procedural_entity_ids_before": _current_procedural_entity_ids()}
     anchored_structure = living_world.is_anchored_structure_inquiry(player_input)
     affirmative_anchored_inspection = (
         anchored_structure
@@ -17580,7 +17584,7 @@ def run_player_turn(
         front_on = front_proposal.enabled()
         result = None
         session = _session()
-        if front_on:
+        if front_on and not getattr(session, "_front_ahead", False):
             front_proposal.begin(session, typed=(combat_action is not None or target_id is not None
                                                  or interaction_mode in {"say", "ask_dm"}))
         try:
@@ -17909,21 +17913,20 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if adventure_play.inside_hideout(world):
         front_proposal.note(session, "skipped:hideout")  # the town's lists are not what is around the player here
         return None
-    wants_proposal = (interaction_adventure.hint(player_input, True) is not None or should_generate_npcs(player_input)
-                      or _scene_detail_proposals_allowed(player_input, world, interaction_mode))
     from api.model_phase import front_call
     try:
         listed = front_proposal.listing(session)
     except Exception:
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         return None
-    if wants_proposal and not front_proposal.at_work(listed):
-        front_proposal.note(session, "skipped:proposal")  # only the old chain's own call can carry that proposal
-        return None
-    session._front_answers_all = wants_proposal  # with work at hand the cap has no room for a second reading
-    with front_call():
-        reply = parse_player_intent(player_input, front_list=listed,
-                                    recent_scene_narration=_recent_player_visible_narration())
+    hint = interaction_adventure.hint(player_input, True)
+    with front_call():  # one reading answers for the whole turn, so it carries whatever proposal the line may need
+        reply = parse_player_intent(
+            player_input, front_list=listed, recent_scene_narration=_recent_player_visible_narration(),
+            interaction_context=(interaction_adventure.context(world, _active_interlocutor(), player_input)
+                                 if hint else None),
+            operation_hint=hint, allow_local_person_proposal=should_generate_npcs(player_input),
+            allow_scene_detail_proposals=_scene_detail_proposals_allowed(player_input, world, interaction_mode))
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
     if "front" not in reply:
@@ -17946,6 +17949,26 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         held["intent"] = "observe"
     session._front_thing = route.get("thing")
     return route
+
+
+# What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
+_PLANNER_STAYS_OUT = {"speak_to", "go_to", "offer_answer", "hand_over", "work", "take"}
+
+
+def front_read_ahead(player_input, target_id=None, interaction_mode=None):
+    """The planner moves the player on word lists before the turn proper, so the reading has to come first."""
+    import front_proposal
+    session = _session()
+    session._front_ahead = False
+    if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
+            or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
+            or _is_end_conversation_request(player_input)):
+        return None
+    interaction_mode = _normalize_interaction_mode(interaction_mode)
+    front_proposal.begin(session, typed=target_id is not None or interaction_mode in {"say", "ask_dm"})
+    session._front_ahead = True
+    session._front_read = _front_step(player_input, target_id, interaction_mode, None, None)
+    return session._front_read
 
 
 def _front_offer_gate(route, player_input):
@@ -18186,7 +18209,8 @@ def _dispatch_player_turn(
             listed = equipment_economy.execute(_session(), player_input)  # the bag answers for itself, whoever stands near
             if listed is not None:
                 return listed
-    front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
+    front = (getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False)
+             else _front_step(player_input, target_id, interaction_mode, combat_action, check_feature))
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None

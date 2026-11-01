@@ -515,7 +515,7 @@ class SmallModelSlips(ErrandBase):
         self.client.front = {"kind": "look"}
         reply = await self.line("cantamda ne var")
         self.assertIn("Macera çantası", reply["narration"])
-        self.assertEqual(self.client.chat_calls, 0)
+        self.assertLessEqual(self.client.chat_calls, 1)
 
     async def test_the_answer_wins_when_the_model_also_named_the_person(self):
         await self.errand()
