@@ -39,7 +39,8 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.thread = state["threads"][0]
         self.thread.update(type="errand", template_id="courier", status="offered", place_id=self.city,
                            target_place_id=self.target["id"], recipient_name="Tariq", item_noun=noun,
-                           owner_name="Kalila", expires_at=5 * DAY, offered_at=0, offered_turn=0,
+                           owner_name="Kalila", expires_at=5 * DAY, offered_at=0,
+                           offered_turn=self.world["flags"].get("turn_index", 0),
                            offer_line=f"{noun.capitalize()} Tariq eline. Dokuz bakır.",
                            owner_line=f"{noun.capitalize()} Tariq eline. Dokuz bakır.",
                            terms={"pay": pay, "work_days": None, "pay_basis": "per_trip", "pay_timing": "on_delivery",

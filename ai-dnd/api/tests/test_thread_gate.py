@@ -61,7 +61,8 @@ class ThreadTable(unittest.IsolatedAsyncioTestCase):
         return world_threads.by_id(self.world, self.thread["thread_id"])["status"]
 
     def offer(self):
-        world_threads.mark_offered(self.world, self.thread, self.npc, "Yirmi bakır, iki gün.", 1)
+        turn = self.world["flags"].get("turn_index", 0)
+        world_threads.mark_offered(self.world, self.thread, self.npc, "Yirmi bakır, iki gün.", turn)
         self.world["npc_speech_log"] = {self.npc["id"]: [{"player": "iş var mı", "npc": "Yirmi bakır, iki gün."}]}
 
     async def test_the_figures_on_screen_open_the_offer(self):
@@ -107,6 +108,38 @@ class ThreadTable(unittest.IsolatedAsyncioTestCase):
             self.offer()
             await self.line("yok ya", "Sen bilirsin.", mode=mode, target=target)
             self.assertEqual(self.status(), "declined", mode)
+
+    async def test_an_offer_on_screen_takes_a_yes_on_the_very_next_turn(self):
+        for mode, target in ((None, False), ("say", True)):
+            await self.open_job()
+            await self.line("iş var mı?", "Yirmi bakır, iki gün. Ne dersin?", mode="say", target=True)
+            await self.line("olur", "Güzel.", mode=mode, target=target)
+            self.assertEqual(self.status(), "accepted", mode)
+
+    async def test_a_yes_to_a_later_subject_does_not_take_the_job(self):
+        await self.open_job()
+        self.offer()
+        await self.line("ailen nasıl", "İyiler. Akşam bize yemeğe gel.")
+        self.assertEqual(self.status(), "offered")
+        await self.line("olur", "Sevindim.")
+        self.assertEqual(self.status(), "offered")
+        self.assertEqual(self.thread["offer_line"], "Yirmi bakır, iki gün.")
+
+    async def test_a_yes_after_the_scene_moved_on_needs_to_name_the_job(self):
+        await self.open_job()
+        self.offer()
+        await self.line("etrafa bakıyorum", "Oda boş, kapı aralık. Ne yaparsın?")
+        await self.line("evet", "Hmm.")
+        self.assertEqual(self.status(), "offered")
+        await self.line("o işi yaparım", "Güzel.")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_being_asked_again_takes_the_yes(self):
+        await self.open_job()
+        self.offer()
+        await self.line("hmm", "Ee, yapacak mısın?")
+        await self.line("tamam", "Güzel.")
+        self.assertEqual(self.status(), "accepted")
 
     async def test_the_model_cannot_answer_for_the_player(self):
         await self.open_job()

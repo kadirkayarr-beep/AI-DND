@@ -36,7 +36,8 @@ class HiringTable(unittest.IsolatedAsyncioTestCase):
         self.thread = state["threads"][0]
         self.thread.update(type="hiring", template_id="hand_wanted", status="offered", place_id=self.city,
                            target_place_id=None, recipient_name=None, owner_name="Kalila", expires_at=30 * DAY,
-                           offered_at=0, offered_turn=0, offer_line="Günlüğü yirmi bakır, iki gün. Yapar mısın?",
+                           offered_at=0, offered_turn=self.world["flags"].get("turn_index", 0),
+                           offer_line="Günlüğü yirmi bakır, iki gün. Yapar mısın?",
                            owner_line="Günlüğü yirmi bakır, iki gün.",
                            terms={"pay": pay, "work_days": days, "pay_basis": basis, "pay_timing": "end_of_day",
                                   "deadline_text": "iki gün içinde"})

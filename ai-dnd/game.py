@@ -7988,7 +7988,7 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
     npc = next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
     if npc is not None:
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
-        town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc))
+        town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc), offer_talk=_offer_talk_with(npc))
 
 
 _CLAIM_REJECTION_RE = re.compile(
@@ -8213,6 +8213,12 @@ def _job_talk_with(npc):
     """This turn was about this person's work, whatever the model made of it."""
     turn = getattr(_session(), "_thread_turn", None)
     return bool(turn and isinstance(npc, dict) and turn.get("npc_id") == npc.get("id"))
+
+
+def _offer_talk_with(npc):
+    """This reply answers the offer itself: the money was argued, it was turned down, or the line named the work."""
+    turn = getattr(_session(), "_thread_turn", None)
+    return _job_talk_with(npc) and bool(turn.get("offer_talk") or turn.get("decision") in {"questioning_terms", "declined"})
 
 
 def _offer_terms_shown(world, npc, player_input, shown):

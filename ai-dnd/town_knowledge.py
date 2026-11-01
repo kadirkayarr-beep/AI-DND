@@ -324,11 +324,15 @@ def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) 
     return thread["owner_line"]
 
 
-def _open_offer(world, npc, shown_text, turn, job_talk):
+def _open_offer(world, npc, shown_text, turn, job_talk, offer_talk):
     """An offer exists once its real terms were on screen: Python's own line, or the figures on a turn about work."""
+    line = shown_text.strip()[:400]
     for thread in world_threads.jobs_of(world, npc):
-        if thread["status"] in {"offered", "declined"} and job_talk:
-            thread["offer_line"] = shown_text.strip()[:400]
+        if thread["status"] == "accepted" and job_talk:
+            thread["job_line"] = line
+        elif thread["status"] in {"offered", "declined"} and (
+                offer_talk or _shows_terms(thread, shown_text) or world_threads.stays_on_the_offer(shown_text, thread)):
+            thread.update(offer_line=line, offer_line_turn=turn)
     thread = _offerable(world, npc)
     if thread is None or not (thread["owner_line"] in shown_text or (job_talk and _shows_terms(thread, shown_text))):
         return
@@ -383,7 +387,8 @@ def _mentioned(world, known, words):
     return hits
 
 
-def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: bool = False) -> None:
+def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: bool = False,
+                 offer_talk: bool = False) -> None:
     """Tie what was just said to the real record it means, so the player can follow it."""
     if not isinstance(npc, dict) or not isinstance(shown_text, str):
         return
@@ -404,7 +409,7 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                     world_threads.learn_outcome(world, thread)
                 else:
                     world_threads.mark_heard(thread, turn)
-        _open_offer(world, npc, shown_text, turn, job_talk)
+        _open_offer(world, npc, shown_text, turn, job_talk, offer_talk)
         if job_talk:
             for thread in world_threads.recent_closed(world, npc):
                 world_threads.learn_outcome(world, thread)

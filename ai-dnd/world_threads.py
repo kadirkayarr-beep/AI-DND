@@ -59,9 +59,9 @@ TRANSITIONS = {
 }
 _OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", "starts_at", "work_until",
                   "days_worked", "shift_seconds", "shift_until", "last_paid_day_index", "paid_cp",
-                  "outcome_known_turn")
+                  "outcome_known_turn", "offer_line_turn")
 _OPTIONAL_TEXTS = ("owner_npc_id", "recipient_npc_id", "quest_id", "item_noun", "filled_by_npc_id", "filled_by_name",
-                   "offer_line")
+                   "offer_line", "job_line")
 _LOG = logging.getLogger(__name__)
 _catalog_cache: dict[str, Any] | None = None
 _answers_cache: dict[str, Any] | None = None
@@ -898,16 +898,24 @@ def _closes_on_the_job(line: str, thread: dict[str, Any], table) -> bool:
             or figure_before(sentence, (thread.get("terms") or {}).get("pay"), "bakir"))
 
 
+def stays_on_the_offer(line: str, thread: dict[str, Any]) -> bool:
+    """A reply that keeps the job on the table: 'Ee, yapacak mısın?', not 'Akşam yemeğe gel.'"""
+    return _closes_on_the_job(line, thread, answer_table())
+
+
 def _asks_something_else(line: str, thread: dict[str, Any], table) -> bool:
     """The line ended on another question: 'olur' answers that one, not the job."""
     return line.rstrip().endswith("?") and not _closes_on_the_job(line, thread, table)
 
 
 def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
-    """This person's last line to the player was this very offer, and asked nothing else."""
+    """This person's last line to the player was this very offer, no turn has passed since, and it asked nothing else."""
     last = _last_exchange(world, npc)
     line = thread.get("offer_line")
-    return bool(last and line and last.get("npc") == line) and not _asks_something_else(line, thread, answer_table())
+    said = thread.get("offer_line_turn", thread.get("offered_turn"))
+    turn = (world.get("flags") or {}).get("turn_index", 0)
+    return (bool(last and line and last.get("npc") == line) and type(said) is int and said >= turn
+            and not _asks_something_else(line, thread, answer_table()))
 
 
 def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> str | None:
@@ -968,6 +976,7 @@ def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, A
     terms = thread["terms"]
     now = _now(world)
     thread.update(owner_npc_id=npc.get("id"), offered_turn=turn, offered_at=now, offer_line=shown.strip()[:400],
+                  offer_line_turn=turn,
                   offered_terms_shown={"pay": terms.get("pay"), "days": terms.get("work_days"),
                                        "pay_basis": pay_basis(thread), "pay_timing": terms.get("pay_timing"),
                                        "deadline_text": terms.get("deadline_text")})
@@ -1115,7 +1124,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         short = len(_folded(text).split()) <= 4  # a word or two back at the owner, not a new subject
         current = thread.get("status") == "offered" and short and answers_the_offer(world, thread, npc)
         if about or current:
-            return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id")}
+            return {"thread_id": thread["thread_id"], "decision": None, "npc_id": npc.get("id"),
+                    "offer_talk": _names_the_work(text, thread, answer_table())}
     return None
 
 
