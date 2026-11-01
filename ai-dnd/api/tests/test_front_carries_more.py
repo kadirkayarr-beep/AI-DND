@@ -132,6 +132,40 @@ class SomeoneLiesOutCold(FrontTable):
         self.client.front = {"kind": "speak_to"}
         reply = await self.line("hey, uyan lan, duyuyor musun")
         self.assertIn("sesini duyacak durumda", reply["narration"])
+class SomeoneTheNarrationDescribed(FrontTable):
+    def narrated(self, text):
+        self.session.messages.append({"role": "assistant", "content": text})
+
+    async def test_asking_a_guard_the_narration_described_reaches_a_real_guard(self):
+        await self.begin()
+        self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
+        self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
+        reply = await self.line("off tamam. nobetciye gidiyorum, kapidakine soruyorum dun gece bi sey oldu mu diye")
+        guard = next((npc for npc in self.world["npcs"] if "nöbetçi" in str(npc.get("role")).casefold()), None)
+        self.assertIsNotNone(guard)
+        self.assertEqual(guard["location"], self.world["location"])
+        self.assertIn(self.client.narration, reply["narration"])
+        self.assertEqual(self.world["flags"]["active_npc_id"], guard["id"])
+
+    async def test_the_same_guard_is_not_made_twice(self):
+        await self.begin()
+        self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
+        self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
+        await self.line("nobetciye soruyorum dun gece bi sey oldu mu")
+        count = len(self.world["npcs"])
+        self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
+        await self.line("nobetci sen bi sey gordun mu")
+        self.assertEqual(len(self.world["npcs"]), count)
+
+    async def test_a_guard_nobody_described_is_not_conjured(self):
+        await self.begin()
+        count = len(self.world["npcs"])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "person_word": "nöbetçi"}
+        await self.line("nobetciye soruyorum dun gece bi sey oldu mu diye")
+        self.assertEqual(len(self.world["npcs"]), count)
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+
 class WhatAClarificationNames(FrontTable):
     def place(self, label, known=False):
         record = {"id": f"place_{label}", "name": label, "visited": known}

@@ -17953,7 +17953,23 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "go_to", "offer_answer", "hand_over", "work", "take", "bag"}
+_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag"}
+
+
+def _narrated_person(word):
+    """Someone the last narration described is there to be spoken to: Python makes them real, once."""
+    folded = living_world.normalize_text(word)
+    stem = folded[:max(4, len(folded) - 1)]
+    if len(folded) < 4:
+        return None
+    here = _conversation_npcs()
+    same = next((npc for npc in here if stem in living_world.normalize_text(npc.get("role"))), None)
+    if same is not None or stem not in living_world.normalize_text(_recent_player_visible_narration()):
+        return same
+    label = word.strip().capitalize()
+    return create_npc_from_ai({"name": label, "role": label, "appearance": f"Az önce gözüne çarpan {word.strip()}",
+                               "location": _session().world_state.get("location"), "relationship": "neutral"},
+                              request_key=_local_person_request_key(word))
 
 
 def front_read_ahead(player_input, target_id=None, interaction_mode=None):
@@ -17965,6 +17981,12 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
             or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
         return None
+    word = front_proposal.person_word_in(reply)
+    if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
+        described = _narrated_person(word)
+        if described is not None:
+            route = {"kind": "speak_to", "id": described["id"]}
+            _session()._set_scene_active_npc(described, world.get("flags", {}).get("turn_index", 0))
     interaction_mode = _normalize_interaction_mode(interaction_mode)
     front_proposal.begin(session, typed=target_id is not None or interaction_mode in {"say", "ask_dm"})
     session._front_ahead = True
