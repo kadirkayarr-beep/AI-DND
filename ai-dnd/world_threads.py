@@ -1112,7 +1112,8 @@ def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None
     days = thread["terms"].get("work_days") or 1
     thread.update(accepted_at=now, accepted_turn=turn, starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0, paid_cp=0)
     thread.pop("declined_turn", None)
-    if thread.pop("fires_at", None) is not None:  # it is in someone's hands now; only they can let it go
+    if thread.get("type") == "trouble":  # it is in someone's hands now; only they can let it go
+        thread.pop("fires_at", None)
         thread["terms"]["work_days"] = days
     _log(thread, now, "accepted")
     note_event(world, thread, "accepted", f"Anlaşıldı: {pay_text(thread)}", npc=owner_of(world, thread))
