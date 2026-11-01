@@ -44,6 +44,7 @@ class ThreadTable(unittest.IsolatedAsyncioTestCase):
             self.thread["thread_id"] = next(
                 f"thread_{n:03d}" for n in range(1, 500)
                 if world_threads._rank(self.seed, f"thread_{n:03d}", "wary") % 100 >= world_threads.WARY_PERCENT)
+            state["next_number"] = max(state["next_number"], int(self.thread["thread_id"][-3:]) + 1)
 
     async def line(self, message, reply=None, *, mode=None, target=False):
         if reply is not None:
