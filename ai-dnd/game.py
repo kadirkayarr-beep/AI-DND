@@ -8338,7 +8338,7 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     in_hand = errand and thread.get("status") == "accepted" and gate["decision"] in {"accepted", "take"}
     if in_hand and reading["move"] and dialogue_jobs.holds_parcel(world, thread):
         return None  # parcel in hand and walking off: that is simply the walk
-    if in_hand and (reading["take"] or reading["move"]) and not dialogue_jobs.holds_parcel(world, thread):
+    if in_hand and (reading["take"] or reading["move"] or gate.get("takes")) and not dialogue_jobs.holds_parcel(world, thread):
         action = dialogue_jobs.hand_over(session, thread, person)
         if action and reading["move"]:
             gate["moving"] = dialogue_jobs.shown_line(world, thread, "taken")
@@ -17907,7 +17907,7 @@ def _front_offer_gate(route, player_input):
             # The model's yes or no is overruled, so Python's own reading of the line decides the turn.
             return _thread_gate(player_input, person["id"], "say") or {"decision": None, "npc_id": person["id"]}
         session.require_player_can_act()
-        gate = {"thread_id": route["id"], "npc_id": person["id"],
+        gate = {"thread_id": route["id"], "npc_id": person["id"], "takes": route.get("takes", False),
                 "decision": "accepted" if route["answer"] == "accept" else "declined"}
         return _carry_out_thread_turn(session, world, gate, person, player_input)
     except PlayerCannotAct:

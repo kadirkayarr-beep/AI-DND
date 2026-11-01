@@ -6,12 +6,15 @@ Real app, real engine; only the Ollama client is scripted. Lines are typed the w
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from unittest.mock import patch
 
+import world_threads
 from api.tests import test_front_proposal as front_tests
-from api.tests import test_thread_gate as gate_tests
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests import test_thread_errand as errand_tests
+from api.tests import test_thread_gate as gate_tests
 
 
 class Table(unittest.IsolatedAsyncioTestCase):
@@ -89,3 +92,65 @@ class BlowsThatRan(Table):
         reply = await self.line("onu oldurmuyorum")
         self.assertNotIn("darbe", reply["narration"])
         self.assertNotIn("yığılıyor", reply["narration"])
+
+
+class ErrandBase(unittest.IsolatedAsyncioTestCase):
+    """A real offered errand with the front reading on, its answer scripted turn by turn."""
+
+    asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
+    asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
+    campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+    job = errand_tests.ErrandTable.job
+    line = errand_tests.ErrandTable.line
+    status = errand_tests.ErrandTable.status
+    row = errand_tests.ErrandTable.row
+    wallet = errand_tests.ErrandTable.wallet
+    parcel_owner = errand_tests.ErrandTable.parcel_owner
+    recipient = errand_tests.ErrandTable.recipient
+    go_to_recipient = errand_tests.ErrandTable.go_to_recipient
+
+    async def errand(self, noun="buluşma notu", pay=10, front=True):
+        await self.job(noun=noun, pay=pay)
+        if front:
+            self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        self.client = ClassifiedClient("Şimdilik sessiz bir gün.")
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+
+    def parcel(self):
+        return "parcel:" + world_threads.by_id(self.world, self.tid)["quest_id"]
+
+    def bag(self):
+        return [item.get("name") if isinstance(item, dict) else item for item in self.world.get("inventory", [])]
+
+
+class SayingYes(ErrandBase):
+    async def test_the_real_price_said_back_is_a_yes_not_a_bargain(self):
+        await self.errand(front=False)
+        await self.line("tamam o notu alirim, on bakir", "Peki, al öyleyse.")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_another_price_is_still_a_bargain(self):
+        await self.errand(front=False)
+        await self.line("tamam o notu alirim, on bes bakir", "Olmaz.")
+        self.assertEqual(self.status(), "offered")
+
+    async def test_a_yes_with_a_question_beside_it_is_a_yes(self):
+        await self.errand(noun="yol kapanışı duyurusu", pay=25, front=False)
+        await self.line("peki tamam alirim isi, nerden alacam duyuruyu", "Benden alacaksın.")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_the_front_yes_stands_on_the_real_price(self):
+        await self.errand()
+        self.client.front = {"kind": "offer_answer", "offer_id": self.tid, "answer": "accept"}
+        await self.line("eh iyi madem, on bakira razi geldim", "Peki.")
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_the_thing_offered_taken_is_the_job_and_the_real_paper_in_the_bag(self):
+        await self.errand()
+        self.client.front = {"kind": "take", "offer_id": self.tid}
+        await self.line("hadi uzat su kagidi", "Peki, al öyleyse.")
+        self.assertEqual(self.status(), "accepted")
+        self.assertEqual(self.parcel_owner(), ["player"])
+        self.client.front = {"kind": "unclear"}
+        text = (await self.line("notu acip okuyorum gizlice"))["narration"]
+        self.assertIn("Kâğıtta şunlar yazıyor", text)

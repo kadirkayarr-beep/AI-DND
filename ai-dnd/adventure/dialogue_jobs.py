@@ -122,7 +122,7 @@ def shown_line(world,thread,kind,amount=None):
         recipient=world_threads.spoken_recipient(world,thread),pay_text=world_threads.pay_text(thread),amount=amount))
 
 
-_PAPER=('mektu','mektub','not','pusula','kagit','tezkere','zarf','yazi')
+_PAPER=('mektu','mektub','not','pusula','kagit','tezkere','zarf','yazi','duyuru','ilan','belge')
 # Only the speaker doing it now: 'okumadım', 'okumak istemiyorum', 'okudum sanma' and 'ne yazık ki' are not reading.
 _READING=re.compile(r'\boku(?:yorum|yom|yoruz|yayim|yalim|yacagim|yacam|dum|yup)?\b(?!\s+(?:mi|mu|san\w*|degil\w*)\b)')
 _ASKS_WHAT_IT_SAYS=re.compile(r'\bne\s+yazi(?:yor\w*|yo|li)\b')
@@ -137,8 +137,8 @@ def _paper_in_hand(world,text):
     import world_threads
     words=living_world.normalize_text(text).split()
     for thread in (world_threads.view(world) or {'threads':[]})['threads']:
-        noun=living_world.normalize_text(thread.get('item_noun'))
-        if (thread.get('status')=='accepted' and noun.startswith(_PAPER) and holds_parcel(world,thread)
+        noun=living_world.normalize_text(thread.get('item_noun')).split()
+        if (thread.get('status')=='accepted' and any(part.startswith(_PAPER) for part in noun) and holds_parcel(world,thread)
                 and any(word.startswith(stem) for stem in (*world_threads._item_stems(thread),'muhr') for word in words)):
             return thread
     return None

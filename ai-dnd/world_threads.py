@@ -772,6 +772,8 @@ def _read_clause(tokens, asked, table, names, item_stems):
                     return meaning
     bare_yes = {word for word in body[:2] if word in table["accept"]}
     plain = [word for word in body if word not in bare_yes and word not in fillers]
+    if " ".join(plain) in table["accept"]:  # 'peki tamam işi alırım'
+        return "accept"
     if plain and all(word in table["take"] or is_item(word) for word in plain) and any(word in table["take"] for word in plain):
         return "take"
     if " ".join(plain) in table["start"] and plain:
@@ -787,6 +789,14 @@ def _read_clause(tokens, asked, table, names, item_stems):
     if " ".join(plain) in table["move"] and plain:
         return "move"
     return "other"
+
+
+def _only_the_real_pay(tokens: list[str], thread: dict[str, Any] | None) -> bool:
+    """'On bakır' back at someone who said ten is the deal repeated, not a counter-offer."""
+    pay = ((thread or {}).get("terms") or {}).get("pay")
+    words = [word for word in tokens if not word.isdigit() and word not in _NUMBER_ONES and word not in _NUMBER_TENS]
+    return type(pay) is int and figure_before(" ".join(tokens), pay, "bakir") and all(
+        word.startswith("bakir") for word in words)
 
 
 def _own_line(text: str, table: dict[str, Any]) -> str | None:
@@ -856,7 +866,7 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     clauses = [piece for clause in _clauses(text) for piece in _with_the_comma_put_back(*clause, table)]
     said = []
     for tokens, asked, after_but in clauses:
-        kind = _read_clause(tokens, asked, table, names, stems)
+        kind = "neutral" if _only_the_real_pay(tokens, thread) else _read_clause(tokens, asked, table, names, stems)
         repaired = tokens[0] in table["repair"] or " ".join(tokens[:2]) in table["repair"]
         if repaired and said:
             said = []  # 'yok ya... neyse olur': the later word is the answer
