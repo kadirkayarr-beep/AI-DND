@@ -519,6 +519,13 @@ def _overheard(session) -> list[str]:
     return []
 
 
+def _board_hint(world: dict[str, Any]) -> list[str]:
+    """Only on a turn with nothing else to tell."""
+    import town_knowledge
+    hint = town_knowledge.board_hint(world)
+    return [hint] if hint else []
+
+
 def answer(session, result: Any) -> None:
     """The end of a turn: what the player can perceive of all this joins the narration, a line or two at most."""
     world = session.world_state
@@ -535,6 +542,6 @@ def answer(session, result: Any) -> None:
     lines += _search(session, now)
     lines += _challenge(session)
     lines += _overheard(session)
-    lines = lines[-MAX_LINES_PER_TURN:]
+    lines = lines[-MAX_LINES_PER_TURN:] or _board_hint(world)
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()

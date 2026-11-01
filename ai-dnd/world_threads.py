@@ -1130,7 +1130,8 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
         shown = sentence(_fill(line, who=_mid_sentence(thread.get("filled_by_name") or "başkası"),
                                owner=spoken_owner(world, thread), place=place.get("name", "")))
         return " ".join(part for part in (shown, world_happenings.first_sight(world, thread)) if part)
-    return world_happenings.arrival_line(world, place_id)
+    import town_knowledge
+    return world_happenings.arrival_line(world, place_id) or town_knowledge.notice_at(world, place_id)
 
 
 def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None = None) -> bool:

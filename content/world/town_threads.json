@@ -922,7 +922,10 @@
       "trouble_done": "Dert yatıştı; kimse kimseye borçlu değil.",
       "trouble_goes": "Bunun için {recipient} ile {target} içinde konuşman gerekiyor.",
       "trouble_stays": "Bunun için burada iş başına geçmen gerekiyor; başladığında söyle, bir gün sürer.",
-      "matter_done": "Mesele konuşuldu, dert yatıştı."
+      "matter_done": "Mesele konuşuldu, dert yatıştı.",
+      "board": "Panoya çivili kâğıtlarda şunlar yazıyor: {lines}",
+      "board_hint": "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş.",
+      "door_notice": "Kapıya bir kâğıt çivilenmiş: {paper}"
     }
   },
   "rumour_lines": [

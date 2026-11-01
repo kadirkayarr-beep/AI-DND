@@ -8429,7 +8429,8 @@ def _overheard_work(world):
         if not threads:
             return None
         turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
-        thread = threads[turn % len(threads)]
+        fresh = [t for t in threads if t.get("heard_turn") is None]
+        thread = (fresh or threads)[turn % len(fresh or threads)]
         world_threads.mark_heard(thread, turn)
         world_threads.note_heard_names(world, thread["public_line"])
         grounded_action.note_last(world, thread["place_id"])
@@ -18161,6 +18162,10 @@ def _dispatch_player_turn(
         read = dialogue_jobs.read_parcel(_session(), player_input)
         if read is not None:
             return read
+        import town_knowledge
+        board = town_knowledge.board_turn(_session(), player_input)
+        if board is not None:
+            return board
         import pocket
         pocketed = pocket.resolve(_session(), player_input)
         if pocketed is not None:

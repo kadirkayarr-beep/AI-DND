@@ -36,6 +36,7 @@ MAX_ITEMS = 5
 MAX_BYTES = 600
 GONE_WINDOW = 86400
 CLOSED_PERCENT = 15  # people who will not discuss the town with a stranger
+BOARD_LINES = 3
 _LOG = logging.getLogger(__name__)
 
 
@@ -93,6 +94,81 @@ def _own_past(world: dict[str, Any], npc: Any) -> set[str]:
     return {thread["thread_id"] for thread in world_threads.recent_closed(world, npc)}
 
 
+def _news_first(world: dict[str, Any], thread_id: Any) -> tuple[bool, bool]:
+    """What the player has not heard yet, and work before trouble: what someone would pass on to a stranger."""
+    thread = world_threads.by_id(world, thread_id) or {}
+    return thread.get("heard_turn") is not None, thread.get("type") == "trouble"
+
+
+def posted_work(world: dict[str, Any]) -> list[dict[str, Any]]:
+    """Paid work nobody has taken in this town, what is new to the player first."""
+    settlement = _settlement(world)
+    jobs = [t for t in world_threads.active(world, settlement) if t["type"] != "trouble"] if settlement else []
+    return sorted(jobs, key=lambda thread: thread.get("heard_turn") is not None)
+
+
+def read_board(world: dict[str, Any]) -> str | None:
+    """A town's notices are its real open work, in the street's own words, and reading them is hearing them."""
+    jobs = posted_work(world)[:BOARD_LINES]
+    if not jobs:
+        return None
+    turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
+    for thread in jobs:
+        world_threads.mark_heard(thread, turn)
+        world_threads.note_heard_names(world, thread["public_line"])
+    place = world.get("locations", {}).get(jobs[0]["place_id"]) or {}
+    npc_statements.overheard_place(world, jobs[0]["place_id"], place.get("name", ""))
+    return world_threads._fill(world_threads.job_lines("text", "board") or "{lines}",
+                               lines=" / ".join(thread["public_line"] for thread in jobs))
+
+
+_LOOKS_AT = re.compile(r"\b(?:bak|oku|incele|goz at|ne yaz)")
+
+
+def board_turn(session: Any, text: Any) -> dict[str, Any] | None:
+    """Looking at the town's notices answers for itself, whoever stands near; the screen said they are there."""
+    import grounded_action
+    world = session.world_state
+    if not isinstance(text, str) or world.get("combat", {}).get("active") or not _settlement(world):
+        return None
+    folded = world_threads._folded(text)
+    if grounded_action._detail_in(folded.split()) not in grounded_action._BOARD_WORDS or not _LOOKS_AT.search(folded):
+        return None
+    world_threads.ensure(world)
+    shown = read_board(world)
+    if shown is None:
+        return None
+    flags = world.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    return {"messages": session.messages, "narration": shown, "model_calls": 0,
+            "action_result": {"action": "read_board", "status": "resolved", "success": True,
+                              "state_changes": ["world_threads"], "direct_response": shown}}
+
+
+def board_hint(world: dict[str, Any]) -> str | None:
+    """Standing in the street with new work posted: it catches the eye once a day."""
+    import campaign_time
+    if world.get("location") != _settlement(world) or not any(t.get("heard_turn") is None for t in posted_work(world)):
+        return None
+    flags = world.setdefault("flags", {})
+    day = (campaign_time.public_time(world) or {}).get("day_index") if world.get("campaign_time") else 0
+    if flags.get("board_hint_day") == day:
+        return None
+    flags["board_hint_day"] = day
+    return world_threads.job_lines("text", "board_hint")
+
+
+def notice_at(world: dict[str, Any], place_id: Any) -> str | None:
+    """Walking up to a place with work to give: the paper on its door, the once."""
+    thread = next((t for t in world_threads.owned(world) if t.get("place_id") == place_id and t["status"] == "open"
+                   and t["type"] != "trouble"), None)
+    if thread is None:
+        return None
+    world_threads.mark_heard(thread, int((world.get("flags") or {}).get("turn_index", 0) or 0))
+    return world_threads._fill(world_threads.job_lines("text", "door_notice") or "{paper}", paper=thread["public_line"])
+
+
 def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     """At most five short things this person knows, within 600 bytes. Writes nothing."""
     settlement_id = _settlement(world)
@@ -106,7 +182,13 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
         if own or _percent(world, npc.get("id"), thread["thread_id"]) < share:
             threads.append({"kind": "thread", "text": thread["public_line"], "location_id": thread["place_id"],
                             "thread_id": thread["thread_id"]})
-    threads.sort(key=lambda item: _percent(world, npc.get("id"), "order", item["thread_id"]))
+    threads.sort(key=lambda item: (*_news_first(world, item["thread_id"]), _percent(world, npc.get("id"), "order", item["thread_id"])))
+    if not threads:  # a street where nobody has heard a thing is the dead end that stopped play
+        lead = min(world_threads.active(world, settlement_id), default=None,
+                   key=lambda thread: (*_news_first(world, thread["thread_id"]), _percent(world, npc.get("id"), "lead", thread["thread_id"])))
+        if lead is not None:
+            threads.append({"kind": "thread", "text": lead["public_line"], "location_id": lead["place_id"],
+                            "thread_id": lead["thread_id"]})
     gone = []
     now = world_threads._now(world)
     lines = world_threads.catalog().get("gone_lines") or {}

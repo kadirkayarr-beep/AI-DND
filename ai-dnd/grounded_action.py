@@ -695,6 +695,8 @@ DETAILS: dict[str, dict[str, Any]] = {
         "Binaların arkasından dolanan, çöp ve kırık kasalarla dolu dar bir sokak.",)},
     "ilan": {"class": "flavor", "name": "İlan panosu", "descriptions": (
         "Üstüne üst üste çivilenmiş, yarısı yırtılmış ilanlarla dolu bir pano.",)},
+    "pano": {"class": "flavor", "name": "İlan panosu", "descriptions": (
+        "Üstüne üst üste çivilenmiş, yarısı yırtılmış ilanlarla dolu bir pano.",)},
     "afis": {"class": "flavor", "name": "İlan panosu", "descriptions": (
         "Üstüne üst üste çivilenmiş, yarısı yırtılmış ilanlarla dolu bir pano.",)},
     "heykel": {"class": "flavor", "name": "Heykel", "descriptions": (
@@ -1790,7 +1792,17 @@ def _detail_feature(run: _Run, key: str, host: dict[str, Any] | None, *, decide=
     return feature, decision
 
 
+_BOARD_WORDS = ("ilan", "afis", "pano")
+
+
 def _observe_detail(run: _Run, step, key: str) -> dict[str, Any]:
+    if key in _BOARD_WORDS:
+        import town_knowledge
+        import world_threads
+        world_threads.ensure(run.world)
+        board = town_knowledge.read_board(run.world)
+        if board:
+            return _receipt(step["verb"], "completed", {"id": None, "label": DETAILS[key]["name"]}, found=True, detail=key, text=board)
     host = _host_place(run, step)
     spec = DETAILS[key]
     if spec["class"] == "access" and host is None:
@@ -1977,7 +1989,7 @@ def _do_read(run: _Run, step) -> dict[str, Any]:
     if isinstance(note, str) and note.strip():
         return _receipt("read", "completed", None, text=f"Notta şunlar yazıyor: “{note.strip()}”")
     target = step.get("target")
-    if target is None and step.get("detail") in {"tabela", "ilan", "afis"}:
+    if target is None and step.get("detail") in {"tabela", *_BOARD_WORDS}:
         return _observe_detail(run, step, step["detail"])
     if target and target["kind"] in {"place", "door", "reference"}:
         place = _place_target(run, target)
