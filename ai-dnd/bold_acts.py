@@ -107,7 +107,7 @@ def _carry_news(world: dict[str, Any], now: int) -> None:
         carriers = [npc for npc in alive if knows(deed, npc["id"])]
         if not carriers:
             continue
-        age = now - deed["at"]
+        age = now - deed.get("found_at", deed["at"])
         towns = {local_places.settlement_of(world, npc.get("location")) for npc in carriers} - {None}
         for npc in alive:
             if knows(deed, npc["id"]):
@@ -121,8 +121,11 @@ def _carry_news(world: dict[str, Any], now: int) -> None:
 
 def on_time(world: dict[str, Any], now: int) -> None:
     """The clock moved: fires go on and news moves. Only the clock calls this."""
+    import world_reactions
     _tend_fires(world, now)
+    world_reactions.discover(world, now)
     _carry_news(world, now)
+    world_reactions.spread(world, now)
 
 
 _FIRE_STAGES = (
@@ -208,10 +211,13 @@ def place_marks(world: dict[str, Any], location: Any) -> list[str]:
                 and deed.get("victim_id") in people and now - deed.get("at", now) >= NEARBY_SECONDS):
             deed["shown"] = True
             who = living_world.public_npc_name(people[deed["victim_id"]])
-            marks.append(f"{who} durup kesesini yokluyor; yüzü asık, gözleri çevrede dolaşıyor.")
+            item = str(deed.get("item") or "").casefold()
+            marks.append(f"{who} ortalıkta {item} arıyor; yüzü asık." if item
+                         else f"{who} durup kesesini yokluyor; yüzü asık, gözleri çevrede dolaşıyor.")
     if any(fire["location"] == location and fire["stage"] == 0 for fire in _fires(world)):
         marks.append("Yaktığın ateş köşede hâlâ için için tütüyor; duman tavana yayılıyor.")
-    return marks
+    import world_reactions
+    return marks + world_reactions.place_marks(world, location, people)
 
 
 def _fire_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
@@ -236,6 +242,9 @@ def _loss_note(world: dict[str, Any], npc: dict[str, Any], ledger: list[dict[str
                and now - deed.get("at", now) >= NEARBY_SECONDS]
     if not missing:
         return ""
+    item = str(missing[-1].get("item") or "").casefold()
+    if item:
+        return f" Bir süre önce {item} eksildiğini fark ettin; kimin aldığını bilmiyorsun. Görürsen tanırsın."
     return " Bir süre önce kesenin hafiflediğini fark ettin; kimin aldığını bilmiyorsun."
 
 
@@ -246,7 +255,8 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     seen = [deed["text"] for deed in ledger if npc_id in deed.get("witnesses", [])]
     told = [deed["text"] for deed in ledger if npc_id in deed.get("told", [])
             and npc_id not in deed.get("witnesses", [])]
-    heard = [deed["text"] for deed in ledger if npc_id in deed.get("heard", []) and not identifies(deed, npc_id)]
+    heard = [deed.get("rumour", deed["text"]) for deed in ledger
+             if npc_id in deed.get("heard", []) and not identifies(deed, npc_id)]
     note = ""
     if seen:
         note = " Karşındaki kişinin şunları yaptığını kendi gözünle gördün: " + "; ".join(seen[-3:]) + \
@@ -258,7 +268,8 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
         note += " Kentte şu konuşuluyor: " + heard[-1] + ". Kimin yaptığını bilmiyorsun."
         if _is_armed(npc):
             note += " Kan izi taşıyan ya da bunu söyleyen biri görürsen üstüne gidersin."
-    return note + _loss_note(world, npc, ledger) + _fire_note(world, npc)
+    import world_reactions
+    return note + _loss_note(world, npc, ledger) + _fire_note(world, npc) + world_reactions.speech_note(world, npc)
 
 
 _OWN_DEEDS = (
@@ -437,7 +448,8 @@ def _steal(session, text: str) -> dict[str, Any]:
             return _reply(session, "Elin tam uzanacakken duraksıyorsun; bu sefer fırsat geçip gidiyor.",
                           "theft", "failed", check, [])
         relationships.note(world, victim["id"], -3, f"caught_stealing:{world.get('flags', {}).get('turn_index', 0)}")
-        remember(session, "theft", "seni soymaya kalktı", victim_id=victim["id"])
+        remember(session, "theft", "seni soymaya kalktı", victim_id=victim["id"])["rumour"] = (
+            f"{living_world.public_npc_name(victim)} soyulmak istenmiş")
         return _reply(session, _pick_line(session, victim), "theft", "caught", check,
                       ["relationships"], npc_id=victim["id"])
     if thing is None and victim is not None:
@@ -452,7 +464,7 @@ def _steal(session, text: str) -> dict[str, Any]:
     world.setdefault("inventory", []).append(label)
     if victim is not None:
         remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {label.lower()} eksildi",
-                 victim_id=victim["id"], seen=False)
+                 victim_id=victim["id"], seen=False)["item"] = label
     narration = f"Elin hızlı: {label.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=label)
 
@@ -543,6 +555,9 @@ def take_room(session, text: str) -> dict[str, Any] | None:
         return None
     world = session.world_state
     who = living_world.public_npc_name(server)
+    import world_reactions
+    if world_reactions.refuses(world, server):
+        return {"line": world_reactions.refusal_line(server), "paid": 0, "room": False}
     now = world.get("campaign_time", {}).get("elapsed_seconds", 0)
     held = world.setdefault("flags", {}).get("inn_room")
     if isinstance(held, dict) and held.get("place") == world.get("location") and now < held.get("until", 0):
@@ -572,6 +587,9 @@ def _buy(session, text: str) -> dict[str, Any] | None:
     if wanted is None or server is None or walking or not _BUY.search(folded):
         return None
     world = session.world_state
+    import world_reactions
+    if world_reactions.refuses(world, server):
+        return _reply(session, world_reactions.refusal_line(server), "purchase", "refused", None, [])
     settle_coin_labels(world)
     wallets = world.setdefault("currency", {})
     _, label, price = wanted

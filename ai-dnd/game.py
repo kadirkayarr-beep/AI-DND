@@ -7264,6 +7264,10 @@ def build_world_context(npc_target=None):
     scene_incidents = incident_projection.scene_annotation(world_state)
     if scene_incidents:
         context["scene_incidents"] = scene_incidents
+    import world_reactions
+    scene_marks = world_reactions.scene_marks(world_state)
+    if scene_marks:
+        context["scene_marks"] = scene_marks
     known_history = incident_projection.known_history(world_state)
     if known_history:
         context["known_history"] = known_history
@@ -17595,6 +17599,8 @@ def _run_player_turn(
             _sleep_after_walk(result, player_input, place_before, scene_plan)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
+            import world_reactions
+            world_reactions.answer(_session(), result)
             import fallen
             fallen.wake(_session())  # the next look sees who got up while this turn's time passed
     except IntentInfrastructureError as error:

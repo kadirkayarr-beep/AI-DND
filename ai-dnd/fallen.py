@@ -12,9 +12,11 @@ _WAKES_AFTER = 3600  # the Short Rest a knocked-out creature starts
 
 
 def here(world: dict[str, Any]) -> list[dict[str, Any]]:
+    import world_reactions
     location = world.get("location")
+    gone = world_reactions.carried_off(world)
     return [npc for npc in world.get("npcs", []) if isinstance(npc, dict)
-            and npc.get("combat_status") in _DOWN and npc.get("location") == location]
+            and npc.get("combat_status") in _DOWN and npc.get("location") == location and npc.get("id") not in gone]
 
 
 def knock_out(session, npc: dict[str, Any]) -> None:
@@ -49,7 +51,9 @@ def scene_line(world: dict[str, Any]) -> str:
         parts.append(f"Yerde {living_world.public_scene_people(dead[:3])} kıpırtısız yatıyor.")
     if out_cold:
         parts.append(f"Yerde {living_world.public_scene_people(out_cold[:3])} baygın yatıyor, nefes alıyor.")
-    return " ".join(parts)
+    import world_reactions
+    parts.append(world_reactions.scene_marks(world))
+    return " ".join(part for part in parts if part)
 
 
 def addressed_body(session, text: str) -> dict[str, Any] | None:
@@ -79,15 +83,20 @@ def named_in(session, text: str, bodies: list[dict[str, Any]]) -> dict[str, Any]
 
 def named_elsewhere(session, text: str) -> dict[str, Any] | None:
     """A body the line names that lies in some other place."""
+    import world_reactions
     world = session.world_state
+    gone = world_reactions.carried_off(world)
     return named_in(session, text, [npc for npc in world.get("npcs", []) if isinstance(npc, dict)
                                     and npc.get("combat_status") == "dead"
-                                    and npc.get("location") != world.get("location")])
+                                    and (npc.get("location") != world.get("location") or npc.get("id") in gone)])
 
 
 def lies_elsewhere(world: dict[str, Any], npc: dict[str, Any]) -> str:
     place = world.get("locations", {}).get(npc.get("location"))
     where = place.get("name") if isinstance(place, dict) else None
     who = living_world.public_npc_name(npc)
+    import world_reactions
+    if npc.get("id") in world_reactions.carried_off(world):
+        return f"{who} artık burada değil; cesedini götürmüşler."
     return (f"{who} burada değil; onu {where} içinde bıraktın." if where
             else f"{who} burada değil; onu başka bir yerde bıraktın.")

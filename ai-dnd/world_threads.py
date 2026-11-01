@@ -593,6 +593,7 @@ def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary
 def _apply_effects(world, effects):
     """What a close means beyond the thread. Runs only after the state itself is valid."""
     import relationships
+    import world_reactions
     from adventure import director
     from adventure.transitions import TransitionError
     for thread_id, status in effects:
@@ -602,6 +603,7 @@ def _apply_effects(world, effects):
         owner = owner_of(world, thread)
         if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
             relationships.note(world, owner["id"], _RELATION[status], f"thread:{thread_id}:{status}"[:160])
+        world_reactions.promise_broken(world, thread, owner, status)
         if thread.get("offered_at") is not None:
             note_event(world, thread, status, _CLOSE_SUMMARY.get(status, status), npc=owner,
                        player_known=status in {"done", "abandoned"})
