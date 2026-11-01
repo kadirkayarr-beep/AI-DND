@@ -20051,12 +20051,14 @@ def _run_player_turn_internal(
         # Someone the player has talked to answers for their own words in their
         # own voice: "38 bakır dedin" is haggling, not a forged promise. Only a
         # claimed promise still has to be turned down.
+        import bold_acts
         spoken_reference = bool(
-            ledger["status"] != "absent"
-            and ledger.get("claim_kind") in (None, "said")
-            and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
-            and isinstance(npc_target, dict) and claimed_npc is npc_target
+            isinstance(npc_target, dict) and claimed_npc is npc_target
             and npc_target.get("location") == world_state.get("location")
+            and (bold_acts.remembers(world_state, npc_target) or (
+                ledger["status"] != "absent" and ledger.get("claim_kind") in (None, "said")
+                and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
+            ))
         )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
@@ -20214,7 +20216,8 @@ def _run_player_turn_internal(
             and _people_speak_for_themselves(world_state)
             and not _ASKS_DISTANCE.search(local_dialogue.normalize_text(player_input))):
         # Asked aloud with someone standing there, the town's talk is theirs to answer, not the street's.
-        npc_target = npc_target or most_plausible_addressee(_conversation_npcs(), player_input)
+        here = _conversation_npcs()
+        npc_target = _explicit_addressee(player_input, here) or npc_target or most_plausible_addressee(here, player_input)
         if isinstance(npc_target, dict):
             lore_gate = False
             npc_dialogue_route = experimental_dialogue_session = True

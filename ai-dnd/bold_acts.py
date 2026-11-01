@@ -339,16 +339,33 @@ def answer_to_killing(session, result: Any) -> None:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()
 
 
+LOST_SIGHT_TURNS = 4
+
+
+def remembers(world: dict[str, Any], npc: Any) -> bool:
+    """This person saw or was told something the player did, so a question about it is not a false claim."""
+    npc_id = npc.get("id") if isinstance(npc, dict) else None
+    return any(isinstance(deed, dict) and identifies(deed, npc_id)
+               for deed in world.get("flags", {}).get("deeds", []))
+
+
 def answer_to_known_doer(session, result: Any) -> None:
     """A guard who saw it, or heard it from the player's own mouth, goes for them on sight."""
     world = session.world_state
     if (not isinstance(result, dict) or world.get("combat", {}).get("active")
             or session.character.get("current_hp", 0) <= 0):
         return
+    turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
+    outcome = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    if outcome.get("action") == "flee":  # the player got away: whoever was here has lost them for a while
+        for npc in session.active_npcs():
+            npc["lost_sight_turn"] = turn
+        return
     grave = [deed for deed in world.get("flags", {}).get("deeds", [])
              if isinstance(deed, dict) and deed.get("kind") in {"killing", "arson"}]
     guard = next((npc for npc in session.active_npcs()
-                  if _is_armed(npc) and any(identifies(deed, npc.get("id")) for deed in grave)), None)
+                  if _is_armed(npc) and turn - npc.get("lost_sight_turn", -LOST_SIGHT_TURNS) >= LOST_SIGHT_TURNS
+                  and any(identifies(deed, npc.get("id")) for deed in grave)), None)
     if guard is None:
         return
     guard["hostile"] = True

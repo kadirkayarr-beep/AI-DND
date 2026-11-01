@@ -497,3 +497,46 @@ class FoundInRealPlayAgain(OneTownScene):
         inn = local_places.create_local_place(self.world, self.city, "temple")
         out = await self.say(f"{inn['name']} içine gidip uyuyorum", PlayClient())
         self.assertGreaterEqual(self.world["campaign_time"]["elapsed_seconds"], 8 * 3600, out["narration"])
+
+
+class GuardsAndMemoryInRealPlay(OneTownScene):
+    def burnt_with(self, guard):
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": [], "turn": 1, "at": 0, "heard": [], "told": [guard["id"]],
+        }]
+
+    async def test_getting_away_on_the_street_is_not_undone_the_same_breath(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Muhafız")
+        self.burnt_with(guard)
+        import bold_acts
+        with self.binding():
+            result = {"narration": "Sıyrılıyorsun.", "action_result": {"action": "flee"}}
+            bold_acts.answer_to_known_doer(self.session, result)
+            self.assertFalse(self.world["combat"]["active"])
+            bold_acts.answer_to_known_doer(self.session, {"narration": "", "action_result": {"action": "explore"}})
+            self.assertFalse(self.world["combat"]["active"])
+            self.world["flags"]["turn_index"] += bold_acts.LOST_SIGHT_TURNS
+            bold_acts.answer_to_known_doer(self.session, {"narration": "", "action_result": {"action": "explore"}})
+            self.assertTrue(self.world["combat"]["active"])
+
+    async def test_a_called_out_guard_answers_rather_than_the_last_person_spoken_to(self):
+        await self.town()
+        self.add_person("Kalila", "Usta")
+        self.add_person("Isolde", "Muhafız", role_known_to_player=True)
+        await self.say("selam kalila", PlayClient(spoken="Selam."))
+        out = await self.say("muhafız, buralarda en güçlü lord kim, koruma arayan bi soylu var mı", PlayClient(spoken="Sor bakalım."))
+        self.assertTrue(out["narration"].startswith("Isolde") or "uhafız" in out["narration"].split("“")[0], out["narration"])
+
+    async def test_someone_who_saw_it_does_not_deny_it_was_ever_said(self):
+        await self.town()
+        self.add_person("Kalila", "Usta")
+        deed_owner = self.world["npcs"][0]
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": [deed_owner["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
+        }]
+        await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
+        out = await self.say("ben dün burada ne yaptım hatırlıyor musun", PlayClient(spoken="Hatırlamaz olur muyum, senin yüzünden buradayım."))
+        self.assertIn("Hatırlamaz olur muyum", out["narration"])
