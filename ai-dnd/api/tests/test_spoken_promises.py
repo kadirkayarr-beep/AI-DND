@@ -142,6 +142,12 @@ class TheField(Table):
                         commitment={"kind": "job_accepted", "thread_id": self.tid})
         self.assertEqual(self.t()["status"], "accepted")
 
+    async def test_taking_up_the_work_is_a_yes_the_person_can_point_at(self):
+        await self.job()
+        await self.line("dediğin işi yapıyorum, bitene kadar başından ayrılmıyorum", "Güzel, bakalım.", mode="say",
+                        commitment={"kind": "job_accepted", "thread_id": self.tid})
+        self.assertEqual(self.t()["status"], "accepted")
+
     async def test_the_model_still_cannot_say_yes_for_the_player(self):
         await self.job()
         await self.line("hmm", "Anlaştık o zaman, işe başladın.",
@@ -409,6 +415,28 @@ class Denial(Table):
         self.world.pop(npc_statements.KEY, None)
         reply = await self.line("dün iş verdin ya bana, paramı ver", "Ne parası? Seni ilk kez görüyorum.", mode="say")
         self.assertIn("Seni ilk kez görüyorum", reply["narration"])
+
+    async def test_money_asked_of_a_stranger_gets_his_answer_in_the_default_mode(self):
+        await self.job()
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        reply = await self.line("dün bana iş verdin ya, paramı ver", "Ne işi, ne parası?")
+        self.assertIn("Ne işi, ne parası", reply["narration"])
+
+    async def test_a_plain_no_in_his_own_words_stands_even_with_the_claim_quoted_in_it(self):
+        await self.job()
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        reply = await self.line("dün kapıda söz verdin 20 bakır diye. ver paramı",
+                                "Dün mü? Bana söz verdiğini hatırlamıyorum, beni birine benzetiyorsun.", mode="say")
+        self.assertIn("birine benzetiyorsun", reply["narration"])
+
+    async def test_a_question_about_what_he_said_is_not_a_claim_to_turn_down(self):
+        await self.job()
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        reply = await self.line("ne dedin duymadım usta? iş var mı yok mu", "Duymadın mı? Şimdilik sana göre bir şey görmedim.")
+        self.assertIn("sana göre bir şey görmedim", reply["narration"])
 
     async def test_the_last_resort_never_says_the_same_thing_twice(self):
         await self.job()

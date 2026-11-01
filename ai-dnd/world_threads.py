@@ -879,6 +879,14 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
                for kind, (tokens, _, _) in zip(read, clauses))
 
 
+def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
+    """'Dediğin işi yapıyorum': the speaker names the work and is doing it, which is a yes in deed."""
+    table = answer_table()
+    ends = tuple(table["first_person_ends"])
+    words = _folded(text).split()
+    return _names_the_work(text, thread, table) and any(word.endswith(ends) for word in words)
+
+
 def asks_for_pay(text: Any) -> bool:
     """'Paramı ver', '25 bakırı alayım', 'ödeyecek misin': one clause holds the money and the asking."""
     table = answer_table()

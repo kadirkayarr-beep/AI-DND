@@ -8039,7 +8039,7 @@ _CLAIM_ACCEPTANCE_RE = re.compile(
     # Live 18 Oct: "Hayır, unutmadım", "seninle söz verdiklerim var".
     r"unutmadim|unutmam|unutmadik|hatirladim|hatirlarim|verecektim|vericektim|"
     r"tutacagim|tutarim|soz\s+verdi\w*|soz\s+vermis\w*|sozum\s+var|"
-    r"soz\s+verdiklerim\w*)\b"
+    r"soz\s+verdiklerim\w*|odeme\w*|odeyecegim|oderim)\b"
 )
 
 
@@ -8150,9 +8150,15 @@ def _npc_speech_rejects_claim(text):
     return bool(_CLAIM_REJECTION_RE.search(folded))
 
 
+_CLAIM_PLAIN_DENIAL_RE = re.compile(
+    r"\b(?:hatirlamiyorum|hatirlamam|animsamiyorum|soylemedim|sozum\s+yok|karistir\w*)\b"
+)
+
+
 def _npc_speech_grants_claim(text):
     """True when the line goes along with an unrecorded claim; asking back is a person's own answer."""
-    return bool(_CLAIM_ACCEPTANCE_RE.search(local_dialogue.normalize_text(text)))
+    folded = local_dialogue.normalize_text(text)
+    return bool(_CLAIM_ACCEPTANCE_RE.search(folded)) and not _CLAIM_PLAIN_DENIAL_RE.search(folded)
 
 
 def _npc_speech_is_claim_refusal(text, npc=None):
@@ -8369,7 +8375,9 @@ def _thread_gate(player_input, target_id, interaction_mode):
         person = _thread_person(player_input, target_id)
         gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
         if gate is None:
-            return None
+            # Money asked of someone with no job to their name is still said to them, and they answer it.
+            spoken_to = isinstance(person, dict) and world_threads.asks_for_pay(player_input) and not _physical_line(player_input)
+            return {"decision": None, "npc_id": person["id"]} if spoken_to else None
         if (gate["decision"] is None and not gate.get("yes_heard") and interaction_mode != "say"
                 and _physical_line(player_input)):
             return None
@@ -20780,6 +20788,8 @@ def _run_player_turn_internal(
                 unverified_history_echo = (
                     not invalid_or_empty and not _npc_speech_is_claim_refusal(text)
                 )
+                if not invalid_or_empty and not unverified_history_echo:
+                    action_result["own_words"] = True  # their own answer stands; nothing was granted
             else:
                 unverified_history_echo = (
                     not invalid_or_empty

@@ -467,7 +467,8 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
         spoken = _settle_offer(world, npc, proposal, spoken, allowed=allowed)
     elif kind == "job_accepted":
         thread = _named_job(world, npc, proposal["thread_id"], {"offered", "declined"})
-        if thread is not None and world_threads.holds_a_yes(player_text, npc, thread):
+        if thread is not None and (world_threads.holds_a_yes(player_text, npc, thread)
+                                   or world_threads.goes_to_the_work(player_text, thread)):
             accept_job(thread)
     elif kind == "pay" and not moved:
         thread = _named_job(world, npc, proposal["thread_id"], {"accepted"})
