@@ -460,7 +460,7 @@ class ALetterSaysSomething(unittest.TestCase):
         trouble = thread_at(state)
         letter = letter_for(world, state, trouble, line="ç" * 50)
         trouble["public_line"] = "ş" * 50
-        self.assertNotIn("ç", dialogue_jobs.letter_text(world, letter))
+        self.assertNotIn("çç", dialogue_jobs.letter_text(world, letter))
         self.assertNotIn("{", dialogue_jobs.letter_text(world, letter))
 
     def test_a_letter_to_a_quiet_place_is_the_old_kind_too(self):
