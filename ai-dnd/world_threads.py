@@ -177,7 +177,8 @@ def owned(world: dict[str, Any], settlement_id: str | None = None) -> list[dict[
 def by_id(world: dict[str, Any], thread_id: Any) -> dict[str, Any] | None:
     """The live record. A clock step replaces the state, so nothing is held across one."""
     state = view(world)
-    return next((t for t in (*state["threads"], *state["history"]) if t.get("thread_id") == thread_id), None) if state else None
+    return next((t for t in (*state["threads"], *state["history"], *state.get("links", ()))
+                 if t.get("thread_id") == thread_id), None) if state else None
 
 
 def job_lines(*path: str) -> Any:
@@ -1737,6 +1738,7 @@ def validate(state: Any) -> None:
         raise ValueError("World thread state is invalid.")
     import world_happenings
     world_happenings.validate(state.get("happenings"))
+    world_happenings._validate_links(state.get(world_happenings.LINKS))
     threads, history = state.get("threads"), state.get("history")
     if (
         not isinstance(threads, list) or not isinstance(history, list)

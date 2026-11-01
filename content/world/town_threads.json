@@ -644,6 +644,32 @@
     ]
   },
   "job_lines": {
+    "link": {
+      "someone": "biri",
+      "no_matter": "söylenen söz",
+      "lines": {
+        "warned": ["{place} tarafından biri yola çıkmış, birini soruyormuş.", "{place} tarafından gelen biri kapı kapı birini arıyor."],
+        "opened": ["{place} tarafından biri yola çıkmış, mühür soruyormuş.", "{place} tarafından gelen biri kırık bir mührün peşinde."],
+        "kept": ["{place} tarafından biri yola çıkmış, geri dönmeyen bir şeyi soruyormuş.", "{place} tarafından gelen biri eksik kalan bir teslimatı arıyor."],
+        "guarded": ["{place} kapısına fazladan kilit vurulmuş, yabancıya açılmıyor.", "{place} sahibi önlem almış; kimse içeri alınmıyor."]
+      },
+      "caller": {
+        "role": "Ulak",
+        "appearance": "Yol tozu üstünde, gözü sende, elleri boş duran biri.",
+        "personality": "Sözünü kısa keser, kimin adına geldiğini unutmaz.",
+        "warned": ["{who} yanına gelip duruyor, seni baştan aşağı süzüyor. “{owner} adına geldim. Söylenen söz unutulmadı.”", "{who} yolunu kesiyor. “Sen olmalısın. {owner} gönderdi beni.”"],
+        "opened": ["{who} yanına gelip duruyor, gözünü senden ayırmıyor. “{owner} adına geldim. Kırılan mührü konuşacağız.”", "{who} yolunu kesiyor. “Mührü kıran sensin. {owner} gönderdi beni.”"],
+        "kept": ["{who} yanına gelip duruyor, elini uzatıyor. “{owner} adına geldim. {what} sende kaldı, geri istiyor.”", "{who} yolunu kesiyor. “{owner} gönderdi beni: {what} nerede?”"]
+      },
+      "notes": {
+        "caller": "Seni bekleyen: {what}; {when}. Bu senin tehdidin; birinin geleceğini biliyorsun, inkâr etme, gün ya da saat söyleme.",
+        "guarded": "Karşındaki seni tehdit etti ({what}); {when} önlemini almış olacaksın. Bunu kendi tavrınla belli et.",
+        "sent": "Tehdidin yerine geldi, gönderdiğin kişi oyuncuyu buldu; sorulursa inkâr etme.",
+        "caller_warned": "Seni {owner} gönderdi. Mesele: {what}. Bunu biliyorsun; kimin adına geldiğini saklamıyorsun, para teklif etme, kendi tavrınla konuş.",
+        "caller_opened": "Seni {owner} gönderdi. Mesele: {what}; mührü kırıldı ve bunu karşındakinin yaptığını biliyorsun. Bedelini hatırlat, para teklif etme, mektupta ne yazdığını bilmiyorsun.",
+        "caller_kept": "Seni {owner} gönderdi. Mesele: {what} geri dönmedi, karşındakinde kaldı; geri almaya geldin. Para teklif etme."
+      }
+    },
     "shared": {
       "questioning_terms": "Parayı soruyor. Teklif duruyor; ücret {pay_text}, ödeme {timing_text}. Peşin ya da avans veremezsin, ücreti değiştiremezsin; bunu kendi ağzınla söyle.",
       "unclear": "Net cevap vermedi: teklif duruyor, üsteleme, soru sormak zorunda değilsin.",
@@ -675,9 +701,10 @@
       "pay_paid_today": "Ücretini istiyor ama bugünkü payını aldı; yarına kadar para çıkmaz. Kendi tavrınla söyle, inkâr etme; iş ve sözün duruyor.",
       "pay_not_yet": "Ücretini istiyor ama daha iş görmedi; ücret çalışılan günün sonunda. Kendi ağzınla söyle, inkâr etme; iş ve sözün duruyor.",
       "pay_on_delivery": "Ücretini istiyor; ücret teslimde, alıcıdan çıkar. Kendi ağzınla söyle, inkâr etme.",
-      "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Oyuncunun eline şimdi bir şey veriyorsan kind give ve item alanına o şeyin yalın adını ya da aşağıdaki parcel kimliğini yaz; oyun onaylamazsa o cümle düşer. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
+      "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Sen oyuncuyu açıkça tehdit ediyorsan ya da başına birinin geleceğini söylüyorsan kind warn; oyuncu seni açıkça tehdit ettiyse kind warned; zamanı oyun belirler, gün ya da saat söyleme. Oyuncunun eline şimdi bir şey veriyorsan kind give ve item alanına o şeyin yalın adını ya da aşağıdaki parcel kimliğini yaz; oyun onaylamazsa o cümle düşer. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
       "listed_jobs": "İşlerin: {jobs}.",
       "listed_parcels": "İşin eşyası: {parcels}.",
+      "listed_threats": "Tehdidin neyle ilgili olabilir (warn için thread_id): {jobs}. Kimden gelebilir (warn için person_id): {people}.",
       "own_promises": "Verdiğin sözler: {promises}. Bunları inkâr etme.",
       "said_before": "Daha önce sen gerçekten şunları söyledin: {lines} Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
     },

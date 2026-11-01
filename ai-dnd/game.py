@@ -7909,9 +7909,10 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
             "type": "object",
             "properties": {
                 "kind": {"type": "string", "enum": [
-                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help",
+                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help", "warn", "warned",
                 ]},
                 "thread_id": {"type": "string", "maxLength": 24},
+                "person_id": {"type": "string", "maxLength": 48},
                 "amount_cp": {"type": "integer"},
                 "terms": {"type": "string", "maxLength": 160},
                 "item": {"type": "string", "maxLength": 48},

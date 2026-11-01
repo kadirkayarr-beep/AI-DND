@@ -319,7 +319,8 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     job = _job_note(world, npc, decision)
     if job and not job.startswith(" "):
         job = " " + job
-    job += (world_happenings.waiting_note(world, npc) + vouching.speaker_note(world, npc)
+    job += (world_happenings.waiting_note(world, npc) + world_happenings.link_note(world, npc)
+            + vouching.speaker_note(world, npc)
             + _matter_note(world, npc, decision))
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.
@@ -369,6 +370,10 @@ def promise_note(world: dict[str, Any], npc: Any) -> str:
         lines.append(world_threads._fill(shared.get("listed_parcels", ""), parcels="; ".join(parcels)))
     if promises:
         lines.append(world_threads._fill(shared.get("own_promises", ""), promises=" / ".join(promises)))
+    named = world_happenings.who_can_be_named(world, npc)
+    lines.append(world_threads._fill(shared.get("listed_threats", ""),
+                                     jobs="; ".join(f"{row['id']} ({row['name']})" for row in named["jobs"]) or "yok",
+                                     people="; ".join(f"{row['id']} ({row['name']})" for row in named["people"]) or "yok"))
     return " " + " ".join(line for line in lines if line)
 
 
@@ -457,7 +462,7 @@ def money_backed_by(world: dict[str, Any], npc: Any) -> set[int]:
     return backed
 
 
-_PROPOSAL_KINDS = frozenset({"job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help"})
+_PROPOSAL_KINDS = frozenset({"job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help", "warn", "warned"})
 
 
 def read_proposal(raw: Any) -> dict[str, Any] | None:
@@ -467,6 +472,7 @@ def read_proposal(raw: Any) -> dict[str, Any] | None:
     amount = raw.get("amount_cp")
     return {"kind": raw["kind"], "thread_id": raw.get("thread_id") if isinstance(raw.get("thread_id"), str) else "",
             "item": raw.get("item") if isinstance(raw.get("item"), str) else "",
+            "person_id": raw.get("person_id") if isinstance(raw.get("person_id"), str) else "",
             "amount_cp": amount if type(amount) is int and amount > 0 else 0,
             "terms": raw["terms"][:160] if isinstance(raw.get("terms"), str) else ""}
 
@@ -521,6 +527,10 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             world_happenings.put_forward(world, trouble, npc, trouble["owner_line"])
             accept_job(trouble)
             note = world_threads.what_it_takes(world, trouble)
+    elif kind == "warn":
+        world_happenings.warn(world, npc, proposal["thread_id"], proposal["person_id"])
+    elif kind == "warned":
+        world_happenings.threatened(world, npc)
     elif kind == "pay" and not moved:
         asked = world_threads.speaks_of_pay(player_text)
         thread = _named_job(world, npc, proposal["thread_id"], {"accepted"}) if asked else None

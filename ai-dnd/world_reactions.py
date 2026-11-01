@@ -525,9 +525,11 @@ def answer(session, result: Any) -> None:
     if (not isinstance(result, dict) or world.get("combat", {}).get("active")
             or session.character.get("current_hp", 0) <= 0):
         return
+    import world_happenings
     now = _now(world)
     _send_guards_home(world, now)
     lines = _due_lines(world) + _fill_post_here(session)
+    lines += world_happenings.caller_comes(session, now)
     _tell_successors(world)
     lines += _watch_comes(session, now)
     lines += _search(session, now)
