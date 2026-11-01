@@ -822,6 +822,26 @@ def is_timed_wait(text):
     )
 
 
+def _take_rest(session, kind, duration):
+    """Rest for what the player said. A Long Rest needs 16 hours since the last one, and honest time still passes."""
+    lead_in = ""
+    if kind == "long_rest":
+        gap = game_module().long_rest_gap_seconds(session.world_state)
+        if gap and duration - gap < 8 * 3600:
+            passed = _advance(session, duration, "explicit_wait")
+            return _result("rest", f"Daha yeni dinlenmiştin; bu kez yatıp kalkmak sana bir şey katmıyor. {_time_passed_line(passed)}",
+                           passed, rested=False)
+        if gap:
+            passed = _advance(session, gap, "explicit_wait")
+            if passed.get("interrupted"):
+                return _result("rest", _time_passed_line(passed), passed, rested=False)
+            lead_in = " ".join(e["summary"] for e in passed["player_known_events"])
+            duration -= gap
+    rest = session.resolve_species_trait_action(kind, elapsed_seconds=duration)
+    time_result = rest.get("effects", {}).get("time_result") or rest["time_advance"]
+    return _result("rest", f"{lead_in} {rest['message']}".strip(), time_result)
+
+
 def resolve_input(session, text):
     """Narrow deterministic player-intent grammar before model interpretation."""
     normalized = clock.normalize(text)
@@ -881,14 +901,11 @@ def resolve_input(session, text):
                 return None  # Non-action atmosphere remains with its existing owner.
             duration = _UNNAMED_WAIT
         if "uyu" in normalized and duration >= 8 * 3600:
-            rest = session.resolve_species_trait_action("long_rest", elapsed_seconds=duration)
-            return _result("rest", rest["message"], rest["effects"]["time_result"])
+            return _take_rest(session, "long_rest", duration)
         if "dinlen" in normalized:
             if duration < 3600:
                 return _result("rest", "Kısa dinlenme için en az bir saat gerekir.", status="clarification", success=False)
-            kind = "long_rest" if duration >= 8 * 3600 else "short_rest"
-            rest = session.resolve_species_trait_action(kind, elapsed_seconds=duration)
-            return _result("rest", rest["message"], rest["effects"]["time_result"])
+            return _take_rest(session, "long_rest" if duration >= 8 * 3600 else "short_rest", duration)
         observation = {"kind": "observe", "location_id": world["location"]} if passive_observation and not (
             journey and journey["status"] != "ARRIVED"
         ) else None

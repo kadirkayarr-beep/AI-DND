@@ -2325,6 +2325,14 @@ def _validate_long_rest_history(world):
     return completed
 
 
+def long_rest_gap_seconds(world):
+    """How long until a new Long Rest may begin: 16 game hours after the last one finished."""
+    completed = _validate_long_rest_history(world)
+    if completed is None:
+        return 0
+    return max(0, completed + 16 * 3600 - world["campaign_time"]["elapsed_seconds"])
+
+
 def _validate_saved_multilevel_slots(player, saved_world):
     """Expanded encoding is not entitlement; keep the legacy level-one mirror contract."""
     slots = player.get("spell_slots_remaining")
@@ -4658,8 +4666,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         if ensure_combat_state()["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
         if action == "long_rest":
-            completed = _validate_long_rest_history(_session().world_state)
-            if completed is not None and _session().world_state["campaign_time"]["elapsed_seconds"] - completed < 16 * 3600:
+            if long_rest_gap_seconds(_session().world_state):
                 raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
