@@ -927,7 +927,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
         if step["verb"] == "enter" and step["target"] is None and not step["place_noun"]:
             near = (world.get(KEY) or {}).get("near_target_id")
             doors = [c for c in cands if c["kind"] == "door" and not c.get("inside")]
-            chosen = next((c for c in doors if c["id"] == near), None) or (doors[0] if len(doors) == 1 else None)
+            at_place = any(c["kind"] == "place" and c["id"] == near for c in cands)
+            chosen = next((c for c in doors if near in {c["id"], c.get("place_id")}), None) or (
+                doors[0] if len(doors) == 1 and not at_place else None)
             if chosen:
                 step["target"] = chosen
         step["outside"] = any(t.startswith(_OUTSIDE_NOUNS) for t in goal_tokens) and step["target"] is None

@@ -4,6 +4,7 @@ Each test goes through the HTTP turn with a mocked model, so it proves what
 Python does on its own: no raw error, no second reading of the player's words.
 """
 
+import local_places
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
 HOUR = 3600
@@ -120,3 +121,34 @@ class KnockOutTests(ThreePlaysTests):
         self.assertEqual(self.foe["combat_status"], "active")
         self.assertEqual(self.foe["current_hp"], 1)
         self.assertNotIn("unconscious", self.foe.get("conditions", []))
+
+
+class EnteringWhereYouStandTests(ThreePlaysTests):
+    async def town(self):
+        await self.begin(FIGHTER)
+        self.world["npcs"].clear()
+        city = self.world["location"]
+        self.temple = local_places.create_local_place(self.world, city, "temple", name="Çilovesa Tapınağı")
+        post = local_places.create_local_place(self.world, city, "archive", name="Rovelan Karakolu")
+        self.inn = local_places.create_local_place(self.world, city, "smithy", name="Göl Sofrası Hanı")
+        self.world.setdefault("doors", []).append({
+            "id": f"venue-door:{self.inn['id']}", "name": "Göl Sofrası Hanı Kapısı",
+            "description": "Göl Sofrası Hanı Kapısı", "location": city, "place_id": self.inn["id"],
+            "destination_location_id": self.inn["id"], "open": True, "locked": False, "broken": False,
+        })
+        self.world["location"] = post["id"]
+        return city
+
+    async def test_in_goes_where_the_walk_ended_not_to_the_only_door_in_town(self):
+        city = await self.town()
+        out = await self.say("hızlıca dışarı çıkıyorum, kılıcı silip tapınağa gidiyorum sanki bişey olmamış gibi")
+        self.assertIn("Çilovesa", out["narration"])
+        self.assertEqual(self.world["location"], city)
+        out = await self.say("içeri giriyorum")
+        self.assertEqual(self.world["location"], self.temple["id"], out["narration"])
+
+    async def test_a_plain_door_still_opens_when_you_stand_at_nothing_else(self):
+        await self.town()
+        self.world["location"] = self.world["locations"][self.inn["id"]]["parent_location_id"]
+        out = await self.say("içeri giriyorum")
+        self.assertEqual(self.world["location"], self.inn["id"], out["narration"])
