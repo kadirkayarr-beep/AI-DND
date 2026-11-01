@@ -182,6 +182,7 @@ class OneSaveATurnTests(Dying):
 
     async def test_the_counterblow_that_fells_you_is_the_same_scene(self):
         await self.fight(hp=1)
+        self.foe.update(current_hp=300, max_hp=300)  # a strong enough hit of yours must not end the fight first
         with patch("game.roll_d20", return_value=15):
             out = await self.say("hodrike saldırıyorum", PlayClient(intent="attack"))
         self.assertEqual(self.session.character["current_hp"], 0, out["narration"])
