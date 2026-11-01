@@ -1615,7 +1615,7 @@ def _do_open(run: _Run, step) -> dict[str, Any]:
     ):
         return _do_unlock(run, step)
     target = step.get("target")
-    if step.get("detail") in _CONTAINERS and (target is None or target["kind"] == "feature"):
+    if step.get("detail") in _CONTAINERS and (target is None or target["kind"] != "door"):
         return _open_container(run, step, step["detail"])
     if target and target["kind"] == "feature":
         return _open_feature(run, target)
