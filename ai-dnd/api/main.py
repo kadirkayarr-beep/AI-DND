@@ -1330,6 +1330,7 @@ def create_app(
                 with narrative_turn_context(
                     record.narrative_memory,
                     narrative_player_message,
+                    journal=record.journal,
                 ) as narrative_frame:
                     missing_claims = object()
                     previous_claims = getattr(

@@ -199,6 +199,11 @@ def _job_note(world, npc, decision):
     if awaited:
         noun = awaited[0].get("item_noun") or "paket"
         return " " + world_threads._fill(shared.get("awaiting", ""), item=noun, owner=awaited[0].get("owner_name") or "")
+    received = world_threads.delivered_to(world, npc)
+    if received:
+        noun = received[-1].get("item_noun") or "paket"
+        return (f" Karşındaki kişi {received[-1].get('owner_name') or 'birinin'} gönderdiği {noun} sana teslim etti; "
+                "bunu biliyorsun, inkâr etme.")
     if not isinstance(npc, dict) or not npc.get("place_role_of"):
         return shared.get("no_job", "")
     decided = world_threads.by_id(world, (decision or {}).get("thread_id"))

@@ -974,6 +974,15 @@ def deliveries_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and isinstance(npc, dict) and t.get("recipient_npc_id") == npc.get("id")]
 
 
+def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+    """Errands that really ended in this person's hands."""
+    state = view(world)
+    if state is None or not isinstance(npc, dict):
+        return []
+    return [t for t in state["history"] if t.get("status") == "done" and t.get("type") == "errand"
+            and t.get("recipient_npc_id") == npc.get("id")]
+
+
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()

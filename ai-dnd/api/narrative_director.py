@@ -7,6 +7,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 
+import campaign_ledger
 from api.narrative_memory import (
     build_narrative_context,
     validate_narrative_memory,
@@ -20,6 +21,7 @@ class NarrativeTurnContext:
     action_result: dict[str, Any] | None = None
     diagnostics: dict[str, Any] = field(default_factory=dict)
     selected_player_claims: list[dict[str, str]] = field(default_factory=list)
+    journal: dict[str, Any] | None = None
 
 
 _active_turn: ContextVar[NarrativeTurnContext | None] = ContextVar(
@@ -61,12 +63,14 @@ def _selected_player_claims(interactions: Any) -> list[dict[str, str]]:
 def narrative_turn_context(
     memory: dict[str, Any],
     player_message: str,
+    journal: dict[str, Any] | None = None,
 ) -> Iterator[NarrativeTurnContext]:
     """Bind a copy of campaign memory to this request/thread only."""
     validated_memory = validate_narrative_memory(memory)
     frame = NarrativeTurnContext(
         memory=validated_memory,
         player_message=player_message,
+        journal=journal,
         selected_player_claims=_selected_player_claims(
             validated_memory.get("npc_interactions", {})
         ),
@@ -119,6 +123,7 @@ def install_narrative_context_adapter(game_module: Any) -> None:
             canonical_context,
             frame.player_message,
             frame.action_result,
+            campaign_ledger.project(game_module._session().world_state, frame.journal) if frame.journal else None,
         )
         frame.diagnostics = diagnostics
         relevant = packet.get("relevant_continuity", {})

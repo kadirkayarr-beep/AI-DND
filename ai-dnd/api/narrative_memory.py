@@ -607,6 +607,7 @@ def build_narrative_context(
     canonical_context: dict[str, Any],
     player_message: str,
     action_result: dict[str, Any] | None = None,
+    ledger: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build a bounded, ID-grounded context packet for a narrator.
 
@@ -707,6 +708,7 @@ def build_narrative_context(
         "authority_boundary": {
             "canonical_state": "authoritative; must not be contradicted",
             "narrative_continuity": "descriptive only; never mechanical authority",
+            "ledger": "engine record of what really happened; wins over any narration",
             "temporary_texture": (
                 "presentation only; do not promote to facts, entities, "
                 "interactive objects, quests, or mechanics"
@@ -734,6 +736,8 @@ def build_narrative_context(
             "repetition_fingerprint": memory["repetition_fingerprint"],
         },
     }
+    if ledger:
+        packet["relevant_continuity"]["ledger"] = copy.deepcopy(ledger)
     packet, final_size = _fit_context_packet(packet)
     estimated_tokens = (final_size + 1) // 2
     reserved_prompt_tokens = 8192
@@ -794,6 +798,7 @@ def _fit_context_packet(packet: dict[str, Any]) -> tuple[dict[str, Any], int]:
         ("npc_interactions", {}),
         ("unresolved_threads", []),
         ("recent_turns", []),
+        ("ledger", {}),
     )
     for key, empty in reductions:
         if len(encoded().encode("utf-8")) <= 4800:

@@ -262,3 +262,123 @@ class ATheftIsMissedLater(OneTownScene):
         await self.wait("yarım saat bekliyorum")
         self.assertIn("kesen", self.note(master))
         self.assertIn("kimin aldığını bilmiyorsun", self.note(master))
+
+
+class ThePlaceShowsWhatHappened(OneTownScene):
+    async def workshop(self):
+        await self.town()
+        import local_places
+        self.place = local_places.create_local_place(self.world, self.city, "workshop")
+        self.world["location"] = self.place["id"]
+        self.master = self.add_person("Kalila", "Usta", location=self.place["id"])
+
+    def arrive(self):
+        import local_places
+        return local_places.arrival_text(self.world, self.place, self.master, None, first_visit=False)
+
+    def later(self, seconds):
+        self.world["campaign_time"]["elapsed_seconds"] += seconds
+
+    async def test_back_at_once_nothing_has_changed(self):
+        await self.workshop()
+        self.place["visited"] = True
+        self.arrive()
+        self.later(60)
+        self.assertIn("bıraktığın gibi", self.arrive())
+
+    async def test_the_next_morning_it_is_not_the_same_sentence(self):
+        await self.workshop()
+        self.place["visited"] = True
+        evening = self.arrive()
+        self.later(14 * 3600)
+        morning = self.arrive()
+        self.assertNotIn("bıraktığın gibi", morning)
+        self.assertNotEqual(evening, morning)
+
+    async def test_people_are_not_always_doing_the_same_thing(self):
+        await self.workshop()
+        self.place["visited"] = True
+        seen = set()
+        for _ in range(6):
+            self.later(24 * 3600)
+            seen.add(self.arrive())
+        self.assertGreater(len(seen), 1)
+
+    async def test_the_robbed_person_is_seen_missing_it_once(self):
+        await self.workshop()
+        self.place["visited"] = True
+        self.world["flags"]["deeds"] = [{"kind": "theft_unseen", "text": "Kalila soyuldu", "victim_id": self.master["id"],
+                                         "at": 0, "witnesses": [], "heard": [], "told": []}]
+        self.arrive()
+        self.later(3600)
+        self.assertIn("kesesini yokluyor", self.arrive())
+        self.assertNotIn("kesesini yokluyor", self.arrive())
+
+    async def test_a_burnt_place_reads_burnt_and_nobody_works_there(self):
+        await self.workshop()
+        self.place["visited"] = True
+        import bold_acts
+        from unittest.mock import patch
+        with self.binding(), patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            bold_acts._burn(self.session)
+        await self.wait("iki saat bekliyorum")
+        text = self.arrive()
+        self.assertIn("Kararmış", text)
+        self.assertNotIn("burada.", text)
+        self.assertNotIn("bıraktığın gibi", text)
+
+
+class TheLedger(OneTownScene):
+    def project(self, journal=None):
+        import campaign_ledger
+        return campaign_ledger.project(self.world, journal or {})
+
+    async def test_it_holds_what_the_player_did_and_said_and_nothing_private(self):
+        await self.town()
+        boy = self.add_person("Baern", "Çırak")
+        self.killed_earlier(boy["id"])
+        self.world["flags"]["deeds"][0]["told"] = [boy["id"]]
+        self.world.setdefault("relationships", {})[boy["id"]] = {"score": -99}
+        self.world["quests"] = [{"quest_id": "q", "title": "SIR GOREV", "status": "AVAILABLE"}]
+        ledger = self.project({"quests": [
+            {"title": "Paket işi", "status": "COMPLETED"}, {"title": "SIR GOREV", "status": "AVAILABLE"},
+        ]})
+        text = str(ledger)
+        self.assertIn("Kalila öldürüldü (Quenna Atölyesi)", text)
+        self.assertIn("Kendi ağzınla söyledin", text)
+        self.assertIn("Paket işi: COMPLETED", text)
+        for secret in ("SIR GOREV", boy["id"], "-99", "witnesses"):
+            self.assertNotIn(secret, text)
+
+    async def test_it_stays_small_and_the_same_for_the_same_world(self):
+        await self.town()
+        self.killed_earlier()
+        journal = {"known_npcs": [{"name": f"Kişi {i}", "role": "Satıcı " * 8} for i in range(30)],
+                   "discovered_locations": [{"name": f"Yer {i} " * 8} for i in range(30)]}
+        import json
+        first = self.project(journal)
+        self.assertLessEqual(len(json.dumps(first, ensure_ascii=False).encode("utf-8")), 900)
+        self.assertEqual(first, self.project(journal))
+        self.assertIn("did", first)
+
+    async def test_the_narrator_is_given_the_ledger(self):
+        await self.town()
+        self.killed_earlier()
+        prompts = []
+
+        class Listening(PlayClient):
+            def chat(self, *args, **kwargs):
+                prompts.append(str(kwargs.get("messages") or args))
+                return super().chat(*args, **kwargs)
+
+        out = await self.say("boğazından tutup duvara yapıştırıyorum, paraları çıkar diyorum", Listening())
+        self.assertTrue(any("Kalila öldürüldü" in prompt for prompt in prompts), (len(prompts), out["narration"], out["turn_outcome"]))
+
+    def test_the_ledger_is_the_last_thing_cut_from_the_packet(self):
+        from api import narrative_memory
+        packet = {"canonical": {}, "action_result": {}, "relevant_continuity": {
+            "recent_turns": [{"player": "x" * 3000}], "unresolved_threads": ["y" * 3000],
+            "ledger": {"did": ["Kalila öldürüldü"]},
+        }}
+        fitted, _ = narrative_memory._fit_context_packet(packet)
+        self.assertEqual(fitted["relevant_continuity"]["ledger"], {"did": ["Kalila öldürüldü"]})

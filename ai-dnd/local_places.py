@@ -422,24 +422,49 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
     return npc, feature
 
 
+AWAY_SECONDS = 1800  # back within this and nothing that matters has had time to change
+_TIME_OF_DAY_LINES = {
+    "dawn": "Şafağın soluk ışığı içeri süzülüyor.",
+    "day": "Gün ışığı içeriyi dolduruyor.",
+    "evening": "Akşamın loşluğu çökmeye başlamış.",
+    "night": "Gece olmuş; içerisi loş ve sessiz.",
+}
+
+
 def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> str:
+    import bold_acts
+    import campaign_time
+    import fallen
     spec = PLACE_KINDS[record["place_kind"]]
     parts = []
     first_visit = first_visit or not record.get("visited")
     record["visited"] = True
+    now = int((world.get("campaign_time") or {}).get("elapsed_seconds", 0) or 0)
+    away = now - record.get("seen_at", now)
+    record["seen_at"] = now
+    clock = campaign_time.public_time(world) if world.get("campaign_time") else None
+    marks = bold_acts.place_marks(world, record["id"])
+    burning = bold_acts.is_burnt_or_burning(world, record["id"])
     if first_visit:
         parts.append(f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
         parts.append(str(record.get("description") or ""))
-    else:
+    elif burning:
+        parts.append(f"Yeniden {record['name']} içindesin. {record.get('description') or ''}")
+    elif away < AWAY_SECONDS and not marks:
         parts.append(f"Yeniden {record['name']} içindesin; her şey bıraktığın gibi.")
-    if isinstance(feature, dict):
+    else:
+        parts.append(f"Yeniden {record['name']} içindesin.")
+        if clock and away >= AWAY_SECONDS:
+            parts.append(_TIME_OF_DAY_LINES[clock["time_of_day"]])
+    if isinstance(feature, dict) and not burning:
         parts.append(str(feature.get("description") or ""))
-    if isinstance(npc, dict) and npc.get("combat_status") != "dead":
+    if isinstance(npc, dict) and npc.get("combat_status") != "dead" and npc.get("location") == record["id"]:
         who = living_world.public_npc_name(npc)
-        activity = _pick(world, record["id"], spec["activities"], "activity")[0]
+        hour = f":{clock['day_index']}:{clock['time_of_day']}" if clock and not first_visit else ""
+        activity = _pick(world, record["id"], spec["activities"], f"activity{hour}")[0]
         parts.append(f"{who} burada. {activity}")
     if first_visit and record.get("local_issue"):
         parts.append(str(record["local_issue"]))
-    import fallen
+    parts.extend(marks)
     parts.append(fallen.scene_line(world))
     return " ".join(part.strip() for part in parts if part and part.strip())

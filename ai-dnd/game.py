@@ -13324,6 +13324,8 @@ def ask_dungeon_master(
     user_prompt = (
         "Yalnızca bu turu yanıtla; aynı cümleyi tekrarlama. Oyuncunun iddialarını doğrulanmış gerçek sayma. "
         "RECENT NARRATION listesi yalnızca tekrar ve ifade çeşitliliği içindir; olgusal kaynak değildir. "
+        "narrative_continuity içindeki ledger oyuncunun gerçekten yaptıklarının kaydıdır; bir şey sorulursa ona dayan, "
+        "çelişkide ledger geçerlidir. "
         "Listedeki cümleleri yeniden kullanma. "
         "Python mekanikleri, envanteri, kapıları, HP'yi, zarları, DC'yi, karakter verisini ve konumu değiştirilemez. "
         "Yeni konum, NPC veya kalıcı çevre ayrıntısı oluşturacaksan bunu aynı yanıttaki world_updates içinde öner; "

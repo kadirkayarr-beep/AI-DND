@@ -193,6 +193,25 @@ def fire_line(world: dict[str, Any]) -> str:
     return " ".join(lines)
 
 
+def is_burnt_or_burning(world: dict[str, Any], location: Any) -> bool:
+    return any(fire["location"] == location and fire["stage"] >= 1 and _way_out(world, location) for fire in _fires(world))
+
+
+def place_marks(world: dict[str, Any], location: Any) -> list[str]:
+    """What has changed here that the player would see walking in; each shows once."""
+    now = _now(world)
+    people = {npc.get("id"): npc for npc in world.get("npcs", []) if isinstance(npc, dict)
+              and npc.get("location") == location and npc.get("combat_status") != "dead"}
+    marks = []
+    for deed in world.get("flags", {}).get("deeds", []):
+        if (isinstance(deed, dict) and deed.get("kind") == "theft_unseen" and not deed.get("shown")
+                and deed.get("victim_id") in people and now - deed.get("at", now) >= NEARBY_SECONDS):
+            deed["shown"] = True
+            who = living_world.public_npc_name(people[deed["victim_id"]])
+            marks.append(f"{who} durup kesesini yokluyor; yüzü asık, gözleri çevrede dolaşıyor.")
+    return marks[:1]
+
+
 def _fire_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     import local_places
     notes = []
