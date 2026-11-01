@@ -859,7 +859,8 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
 
     For a line the lists cannot read whole: the model can point at the agreement, but
     only the player's words make it. firm asks for more than 'tamam' or 'peki', which
-    can as well open something else, so the words stand with no model behind them.
+    can as well open something else, unless the line goes straight on to the work, so
+    the words stand with no model behind them.
     """
     table = answer_table()
     text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
@@ -870,8 +871,12 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
     read = [_read_clause(tokens, asked, table, names, _item_stems(thread)) for tokens, asked, _ in clauses]
     if "accept" not in read or {"decline", "withdraw", "unclear"} & set(read) or any(after for _, _, after in clauses):
         return False
-    return not firm or any(kind == "accept" and not _bare_answer(tokens, table, names)
-                           for kind, (tokens, _, _) in zip(read, clauses))
+    if not firm or any(kind == "accept" and not _bare_answer(tokens, table, names)
+                       for kind, (tokens, _, _) in zip(read, clauses)):
+        return True
+    ends = tuple(table["first_person_ends"])  # 'tamam, nereden başlayım': going straight on to the doing of it
+    return any(kind != "accept" and any(word.endswith(ends) and word not in table["fillers"] for word in tokens)
+               for kind, (tokens, _, _) in zip(read, clauses))
 
 
 def asks_for_pay(text: Any) -> bool:
@@ -955,7 +960,7 @@ def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: An
         said = [word for word in _folded(text).split() if word not in table["fillers"]]
         clear = reading["reference"] or len(said) > 1 or _last_line_is_the_job(world, thread, npc)
         return "abandoned" if clear else "withdraw_unclear"
-    if reading["terms"]:
+    if reading["terms"] or (status == "offered" and asks_for_pay(text)):
         return "questioning_terms" if status == "offered" else None
     current = reading["reference"] or answers_the_offer(world, thread, npc)
     # 'bunu alayım' points at goods; only a line that names the job's item takes the job.
@@ -1043,13 +1048,13 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
     return None
 
 
-def accept_hired(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None = None) -> bool:
     if not transition(thread, "accepted"):
         return False
     now = _now(world)
+    turn = int((world.get("flags") or {}).get("turn_index", 0) or 0) if turn is None else turn
     days = thread["terms"].get("work_days") or 1
-    thread.update(accepted_at=now, accepted_turn=int((world.get("flags") or {}).get("turn_index", 0) or 0),
-                  starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0, paid_cp=0)
+    thread.update(accepted_at=now, accepted_turn=turn, starts_at=now, work_until=now + (days + 1) * DAY, days_worked=0, shift_seconds=0, paid_cp=0)
     thread.pop("declined_turn", None)
     _log(thread, now, "accepted")
     note_event(world, thread, "accepted", f"Anlaşıldı: {pay_text(thread)}", npc=owner_of(world, thread))
@@ -1165,6 +1170,9 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
         decision = bind_player_decision(world, thread, text, npc)
         if decision:
             return {"thread_id": thread["thread_id"], "decision": decision, "npc_id": npc.get("id")}
+    for thread in closed:
+        if thread["status"] == "done" and asks_for_pay(text):
+            return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
     for thread in (*mine, *closed):
         reading = read_answer(text, npc, thread)
         about = _speaks_of_work(text, reading, thread, answer_table())
@@ -1180,7 +1188,7 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
 def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
     """Write what the player said. Money and goods stay with their own owners."""
     if decision == "accepted" and thread.get("type") == "hiring":
-        return accept_hired(world, thread)
+        return accept_hired(world, thread, turn)
     if decision == "declined":
         return decline(world, thread, turn)
     if decision == "abandoned":
@@ -1260,7 +1268,7 @@ def wage_due(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, str | 
     never past the agreed total, and not to someone who shook on it a moment ago.
     """
     if thread.get("status") != "accepted":
-        return 0, None
+        return 0, "settled" if thread.get("status") == "done" else None
     if thread.get("type") != "hiring":
         return 0, "on_delivery"
     if thread.get("last_paid_day_index") == _today(world):

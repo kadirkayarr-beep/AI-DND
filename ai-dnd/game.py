@@ -8463,7 +8463,8 @@ def _accept_named_job(session, world, npc, thread):
     if thread.get("type") == "errand":
         dialogue_jobs.accept_thread_job(session, thread, npc)
     else:
-        world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0))
+        # A reply is settled after the turn was counted; a yes read from the lists before it.
+        world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
 def _settle_spoken_commitment(world, npc, player_input, raw, spoken):
@@ -8542,7 +8543,8 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         )
     import bold_acts
     return (_SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc)
-            + town_knowledge.promise_note(world, npc) + "\n")
+            + town_knowledge.promise_note(world, npc)
+            + town_knowledge.money_decided_note(getattr(_session(), "_thread_turn", None)) + "\n")
 
 
 def _experimental_npc_dialogue_context(
@@ -9724,6 +9726,13 @@ def _mechanical_outcome(player_input):
     return None
 
 
+def _stands_by_their_words(npc, player_input):
+    """The line is about this person's real work or real words: nothing in it is theirs to deny."""
+    import npc_statements
+    return _job_talk_with(npc) or npc_statements.claim_support(
+        _session().world_state, npc, player_input).get("status") == "supported"
+
+
 def _fallback_narration(player_input, npc_target=None):
     world_state = _session().world_state
     outcome = _mechanical_outcome(player_input)
@@ -9758,6 +9767,9 @@ def _fallback_narration(player_input, npc_target=None):
         if is_hitap:
             return f'{living_world.public_npc_name(target_npc)}, “Bana henüz adını söylemedin; adını bilmeden sana adınla hitap edemem,” der.'
         return f'{living_world.public_npc_name(target_npc)}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
+    if target_npc and is_npc_historical_claim(player_input) and _stands_by_their_words(target_npc, player_input):
+        return (_job_fallback(_session().world_state)
+                or interaction_adventure.immersive_unknown(target_npc, player_input))
     if target_npc and is_npc_historical_claim(player_input) and not npc_memory_supports_claim(target_npc, player_input):
         return historical_claim_denial(target_npc)
     if target_npc and is_npc_historical_claim(player_input):
@@ -20844,7 +20856,13 @@ def _run_player_turn_internal(
                 and attributed_speech is not None
                 and text == _compose_experimental_npc_speech(attributed_speech)
             )
-            if accepted_model_speech and not _with_only_backed_money(attributed_speech, settled_money):
+            turned_down_what_was_paid = (
+                accepted_model_speech and settled_money.get("moved")
+                and _npc_speech_rejects_claim(attributed_speech["spoken_text"])
+            )
+            if turned_down_what_was_paid or (
+                accepted_model_speech and not _with_only_backed_money(attributed_speech, settled_money)
+            ):
                 accepted_model_speech = False
                 text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
                         or interaction_adventure.immersive_unknown(npc_target, player_input))

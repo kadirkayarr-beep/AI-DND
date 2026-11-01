@@ -121,9 +121,15 @@ class TheField(Table):
         await self.line("gör işte, ordu adamıyım. tamam kabul, bu gece kapıdayım", "Güzel.")
         self.assertEqual(self.t()["status"], "accepted")
 
+    async def test_a_yes_that_goes_straight_on_to_the_work_takes_the_job_with_no_help(self):
+        for line in ("iyi tamam. ver duyuruları, nereye asıcam bunları", "iyi tamam. ne yapıcam söyle, nereden başlıyım"):
+            await self.job()
+            await self.line(line, "Kapının yanındaki tahtaya as.")
+            self.assertEqual(self.t()["status"], "accepted", line)
+
     async def test_a_softer_yes_reaches_the_person_who_says_what_came_of_it(self):
         await self.job()
-        line = "iyi tamam. ver duyuruları, nereye asıcam bunları"
+        line = "tamam. duyuruları ver bakalım"
         await self.line(line, "Kapının yanındaki tahtaya as.", commitment={"kind": "job_accepted", "thread_id": self.tid})
         self.assertEqual(self.t()["status"], "accepted")
 
@@ -193,6 +199,13 @@ class Pay(Table):
         self.assertEqual(self.wallet() - money, 8, "the day's share, whatever the model said")
         self.assertIn("8 bakır", reply["narration"])
 
+    async def test_words_that_refuse_what_was_just_paid_do_not_stand(self):
+        await self.job(status="accepted")
+        self.worked_a_while()
+        reply = await self.line("paramı ver", "Hangi parayı, hiç anlamadım.")
+        self.assertNotIn("anlamadım", reply["narration"])
+        self.assertIn("8 bakır", reply["narration"])
+
     async def test_a_day_is_paid_once(self):
         await self.job(status="accepted")
         self.worked_a_while()
@@ -237,12 +250,32 @@ class Pay(Table):
         await self.line("paramı ver", "Aldın ya bugünkünü.")
         self.assertEqual(self.wallet(), money)
 
-    async def test_an_offer_nobody_took_pays_nothing(self):
-        await self.job()
+    async def test_a_finished_job_is_not_paid_twice_and_the_person_knows_it(self):
+        await self.job(status="accepted", days=1)
+        self.worked_a_while()
         money = self.wallet()
-        await self.line("önce paramı ver", "Peşin yok.")
-        self.assertEqual(self.wallet(), money)
-        self.assertEqual(self.t()["status"], "offered")
+        await self.line("paramı ver", "Al.")
+        self.assertEqual(self.wallet() - money, 25)
+        self.assertEqual(self.t()["status"], "done")
+        await self.line(ASK_ON_THE_SPOT, "Aldın ya.")
+        self.assertEqual(self.wallet() - money, 25)
+        self.assertIn("parasını aldı", str(self.client.message_batches[-1]))
+
+    async def test_the_person_is_told_last_that_the_coin_already_moved(self):
+        await self.job(status="accepted")
+        self.worked_a_while()
+        await self.line("paramı ver", "Al.")
+        note = self.client.message_batches[-1][-1]["content"]
+        self.assertGreater(note.rindex("Oldu bitti"), note.rindex("commitment"))
+
+    async def test_an_offer_nobody_took_pays_nothing(self):
+        for line in ("önce paramı ver", ASK_ON_THE_SPOT):
+            await self.job()
+            money = self.wallet()
+            reply = await self.line(line, "Peşin yok.")
+            self.assertEqual(self.wallet(), money)
+            self.assertEqual(self.t()["status"], "offered")
+            self.assertIn("Peşin yok", reply["narration"], line)
 
     async def test_narration_cannot_pay_where_python_did_not(self):
         await self.job(status="accepted")
@@ -271,6 +304,31 @@ class Repair(Table):
                                 commitment={"kind": "job_offer", "thread_id": self.tid, "amount_cp": 40})
         self.assertNotIn("kırk bakır", reply["narration"])
         self.assertIn("25 bakır", reply["narration"])
+        self.assertEqual(self.t()["status"], "offered")
+
+    async def test_a_wary_person_who_names_the_real_terms_has_made_the_offer(self):
+        await self.job()
+        self.thread["status"] = "open"
+        self.thread["thread_id"] = next(
+            f"thread_{n:03d}" for n in range(1, 500)
+            if world_threads._rank(living_world._campaign_seed(self.world), f"thread_{n:03d}", "wary") % 100
+            < world_threads.WARY_PERCENT)
+        self.tid = self.thread["thread_id"]
+        self.world.pop("npc_speech_log", None)
+        self.world.pop(npc_statements.KEY, None)
+        await self.line("iş var mı?", "Yirmi beş bakır, üç gün. Kabul edersen başlarız.", mode="say")
+        self.assertEqual(self.t()["status"], "offered")
+
+    async def test_the_real_figures_from_the_owner_are_an_offer_whatever_the_line_was_read_as(self):
+        await self.job()
+        self.thread["status"] = "open"
+        await self.line("ne verirsin bana", "Bir gün sürecek de değil, üç gün, ücreti yirmi beş bakır.", mode="say")
+        self.assertEqual(self.t()["status"], "offered")
+
+    async def test_pay_and_days_together_are_an_offer_with_no_promise_word(self):
+        await self.job()
+        self.thread["status"] = "open"
+        await self.line("ne verirsin bana", "Nemli paketleri ayırma işi. Üç günlük, yirmi beş bakır.", mode="say")
         self.assertEqual(self.t()["status"], "offered")
 
     async def test_a_figure_with_no_promise_in_it_is_only_a_price(self):
@@ -334,6 +392,14 @@ class Denial(Table):
         await self.job()
         found = npc_statements.claim_support(self.world, self.npc, "dedin ya bana kılıç hediye edecektin")
         self.assertNotEqual(found["status"], "supported")
+
+    async def test_a_reply_the_safety_turned_down_does_not_become_a_denial_of_a_real_job(self):
+        await self.job(status="accepted", days=1)
+        self.worked_a_while()
+        await self.line("paramı ver", "Al.")
+        reply = await self.line("nasıl yani, kabul ediyosan başla dedin. şimdi ödeyecek misin",
+                                "Parayı saydın da gittin; şimdi neyin ısrarı bu?")
+        self.assertFalse(any(word in reply["narration"] for word in DENIALS), reply["narration"])
 
     async def test_a_job_that_never_was_gets_his_own_answer(self):
         await self.job()

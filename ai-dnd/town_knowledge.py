@@ -165,7 +165,7 @@ def _offerable(world, npc):
 def _lines_for(world, thread, npc, decision):
     shared = world_threads.job_lines("shared") or {}
     status = thread["status"]
-    if isinstance(decision, str) and decision.startswith("pay_"):
+    if isinstance(decision, str) and decision.startswith("pay_") and status != "done":
         return [shared.get(decision, "")]
     if decision == "busy":
         return [shared.get("busy", "")]
@@ -331,6 +331,13 @@ def promise_note(world: dict[str, Any], npc: Any) -> str:
     if promises:
         lines.append(world_threads._fill(shared.get("own_promises", ""), promises=" / ".join(promises)))
     return " " + " ".join(line for line in lines if line)
+
+
+def money_decided_note(decision: Any) -> str:
+    """What Python already did about the money, last in the prompt, where a small model weighs it most."""
+    kind = (decision or {}).get("decision") if isinstance(decision, dict) else None
+    line = (world_threads.job_lines("shared") or {}).get(kind) if isinstance(kind, str) and kind.startswith("pa") else None
+    return " " + world_threads._fill(line, amount=decision.get("paid_cp")) if line else ""
 
 
 def said_before_note(world: dict[str, Any], npc: Any, stock: tuple[str, ...]) -> str:
@@ -506,8 +513,14 @@ def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) 
     return thread["owner_line"]
 
 
+def _said_as_pay(thread, text):
+    """Pay and days together cannot be chance; a lone figure needs a word that promises it."""
+    return bool((thread.get("terms") or {}).get("work_days")) or bool(
+        set(world_threads._folded(text).split()) & _money_words().get("promises", frozenset()))
+
+
 def _open_offer(world, npc, shown_text, turn, job_talk, offer_talk):
-    """An offer exists once its real terms were on screen: Python's own line, or the figures on a turn about work."""
+    """An offer exists once its real terms were on screen, from the mouth of the one who owns the work."""
     line = shown_text.strip()[:400]
     for thread in world_threads.jobs_of(world, npc):
         if thread["status"] == "accepted" and job_talk:
@@ -516,9 +529,10 @@ def _open_offer(world, npc, shown_text, turn, job_talk, offer_talk):
                 offer_talk or _shows_terms(thread, shown_text) or world_threads.stays_on_the_offer(shown_text, thread)):
             thread.update(offer_line=line, offer_line_turn=turn)
     thread = _offerable(world, npc)
-    if thread is None or not (thread["owner_line"] in shown_text or (job_talk and _shows_terms(thread, shown_text))):
+    if thread is None or not (thread["owner_line"] in shown_text or (
+            _shows_terms(thread, shown_text) and (job_talk or _said_as_pay(thread, shown_text)))):
         return
-    if world_threads.owner_mood(world, thread, npc, this_exchange=1) == "yes":
+    if world_threads.owner_mood(world, thread, npc, this_exchange=1) != "no":  # said aloud is said, however wary
         world_threads.mark_offered(world, thread, npc, shown_text, turn)
 
 
