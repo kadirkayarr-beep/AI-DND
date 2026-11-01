@@ -40,6 +40,7 @@ class HiringTable(unittest.IsolatedAsyncioTestCase):
                            owner_line="Günlüğü yirmi bakır, iki gün.",
                            terms={"pay": pay, "work_days": days, "pay_basis": basis, "pay_timing": "end_of_day",
                                   "deadline_text": "iki gün içinde"})
+        self.thread.pop("night_only", None)  # the seed may have drawn a night job for this record
         if night:
             self.thread["night_only"] = True
         state["threads"] = [self.thread]

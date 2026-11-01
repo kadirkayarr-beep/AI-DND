@@ -334,6 +334,8 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         item = next(i for i in known if i["kind"] == "thread")
         self.thread = next(t for t in world_threads.active(world) if t["thread_id"] == item["thread_id"])
         self.place = world["locations"][self.thread["place_id"]]
+        for door in world.get("doors", []):  # the hour may shut the drawn place; getting in has its own tests
+            door.update(open=True, locked=False)
         return world
 
     async def go(self, message):
