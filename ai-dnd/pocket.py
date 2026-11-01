@@ -26,7 +26,7 @@ _NOT_THINGS = frozenset({
 _SHOWN_TURNS = 8
 _PLAYERS_OWN_WORDS = re.compile(r"Sen: “[^”]*”")
 _TOLD_TO_YOU = ("sun", "sin", "din", "dun")  # 'alıyorsun', 'aldın': the sentence says the player did it
-_EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
+EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
 _THING_WORD = re.compile(r"[^\W\d_]{4,}")
 
 
@@ -78,7 +78,7 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
     name = word[:1].upper() + word[1:].casefold()
-    if any(_stem(item.get("name") if isinstance(item, dict) else item) == stem for item in world.get("inventory", [])):
+    if _named_in_bag(world, stem):
         return None
     equipment_economy.grant_plain(world, name)
     return _receipt(session, text, f"{name} çantana giriyor.")
@@ -96,12 +96,64 @@ def without_the_taking(narration: Any, stems: tuple[str, ...]) -> Any:
     if not isinstance(narration, str) or not narration.strip() or not stems:
         return narration
     kept = [sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()) if not _tells_it_taken(sentence, stems)]
-    return " ".join(kept) or _EMPTY_HANDED
+    return " ".join(kept) or EMPTY_HANDED
 
 
 def _tells_it_taken(sentence: str, stems: tuple[str, ...]) -> bool:
     words = living_world.normalize_text(sentence).split()
     return any(word.startswith(stems) for word in words) and any(word.endswith(_TOLD_TO_YOU) for word in words)
+
+
+def _says_it(text: str, stem: str) -> bool:
+    return any(word.startswith(stem) for word in living_world.normalize_text(text).split())
+
+
+def without_said(text: Any, stem: str) -> Any:
+    """Repair: the sentences that name a thing nobody moved leave the line."""
+    if not isinstance(text, str) or not text.strip() or not stem:
+        return text
+    return " ".join(part for part in re.split(r"(?<=[.!?…])\s+", text.strip()) if not _says_it(part, stem))
+
+
+def _named_in_bag(world: dict[str, Any], stem: str) -> bool:
+    return any(_stem(item.get("name") if isinstance(item, dict) else item) == stem for item in world.get("inventory", []))
+
+
+def _committed(session, item: str, stem: str, text: str, person: Any) -> bool:
+    """The claim comes true or stays false: the job's parcel from its owner, or a plain thing with no worth."""
+    from adventure import dialogue_jobs
+    world = session.world_state
+    if item.startswith("parcel:"):
+        thread = world_threads.parcel_thread(world, item)
+        return bool(thread and thread.get("status") == "accepted" and isinstance(person, dict)
+                    and thread.get("owner_npc_id") == person.get("id")
+                    and dialogue_jobs.hand_over(session, thread, person, own_turn=False))
+    if _named_in_bag(world, stem):
+        return True
+    if len(stem) < 2 or stem.startswith(_WORTH) or not _says_it(text, stem):
+        return False
+    equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())
+    return True
+
+
+def settle_claim(session, claim: Any, text: Any, person: Any = None) -> tuple[Any, str]:
+    """What a reply says changed hands: (the line, what was taken off it). Python commits it or it goes."""
+    item = claim.get("item") if isinstance(claim, dict) else None
+    if not isinstance(item, str) or not item.strip():
+        return text, ""
+    item = item.strip()
+    thread = world_threads.parcel_thread(session.world_state, item) if item.startswith("parcel:") else None
+    stem = _stem(thread.get("item_noun") if thread else item)
+    if claim.get("to") != "person" and _committed(session, item, stem, text, person):
+        return text, ""
+    return without_said(text, stem), stem
+
+
+def bag_names(world: dict[str, Any]) -> list[str]:
+    """What the player really has, for the prompt, in the words of the bag."""
+    names = [item.get("name") or item.get("weapon_id") if isinstance(item, dict) else item
+             for item in world.get("inventory", [])]
+    return [str(name) for name in names if name][:12]
 
 
 def _receipt(session, text: str, line: str) -> dict[str, Any]:

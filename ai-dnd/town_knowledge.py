@@ -363,6 +363,10 @@ def promise_note(world: dict[str, Any], npc: Any) -> str:
     lines = [shared.get("commitment_rule", "")]
     if jobs:
         lines.append(world_threads._fill(shared.get("listed_jobs", ""), jobs="; ".join(jobs)))
+    parcels = [f"parcel:{t['quest_id']} ({t.get('item_noun') or 'paket'})" for t in world_threads.jobs_of(world, npc)
+               if t["status"] == "accepted" and t.get("quest_id")]
+    if parcels:
+        lines.append(world_threads._fill(shared.get("listed_parcels", ""), parcels="; ".join(parcels)))
     if promises:
         lines.append(world_threads._fill(shared.get("own_promises", ""), promises=" / ".join(promises)))
     return " " + " ".join(line for line in lines if line)
@@ -462,6 +466,7 @@ def read_proposal(raw: Any) -> dict[str, Any] | None:
         return None
     amount = raw.get("amount_cp")
     return {"kind": raw["kind"], "thread_id": raw.get("thread_id") if isinstance(raw.get("thread_id"), str) else "",
+            "item": raw.get("item") if isinstance(raw.get("item"), str) else "",
             "amount_cp": amount if type(amount) is int and amount > 0 else 0,
             "terms": raw["terms"][:160] if isinstance(raw.get("terms"), str) else ""}
 
@@ -532,7 +537,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             moved = proposal["amount_cp"]
             allowed.add(moved)
             note = world_threads.paid_line(moved, False)
-    elif kind in {"give", "escort", "show", "meet", "help"}:
+    elif kind in {"give", "escort", "show", "meet", "help"} and not proposal["item"]:
         npc_statements.commit(world, npc, kind, proposal["terms"], spoken, str(player_text or ""))
     return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved}
 

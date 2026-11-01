@@ -190,7 +190,7 @@ def read_parcel(session,text):
                              'state_changes':['world_threads'],'direct_response':shown}}
 
 
-def _move_parcel(session,thread,npc,to_player,text=''):
+def _move_parcel(session,thread,npc,to_player,text='',own_turn=True):
     """The parcel really changes hands and the journal hears of it from that change alone."""
     import adventure
     world=session.world_state
@@ -211,20 +211,21 @@ def _move_parcel(session,thread,npc,to_player,text=''):
     equipment_economy.move(world,item,source,destination,npc['id'] if to_player else 'player')
     equipment_economy.validate_world(world)
     flags=world.setdefault('flags',{})
-    flags['turn_index']=flags.get('turn_index',0)+1
-    action={'action':'item_transfer','status':'completed','success':True,'npc_id':npc['id'],'action_id':f"turn:{flags['turn_index']}",
+    if own_turn:
+        flags['turn_index']=flags.get('turn_index',0)+1
+    action={'action':'item_transfer','status':'completed','success':True,'npc_id':npc['id'],'action_id':f"turn:{flags.get('turn_index',0)}",
             'state_changes':['inventory','npcs','quests']}
     action['quest_outcomes']=session.evaluate_quest_events(before,action)
     return action
 
 
-def hand_over(session,thread,giver):
-    """Owner to player. A word of 'oraya' after this means where it is going."""
+def hand_over(session,thread,giver,*,own_turn=True):
+    """Owner to player, as this turn's own act or inside a turn already counted. A word of 'oraya' after this means where it is going."""
     import grounded_action
     world=session.world_state
     kept=_keep(world)
     try:
-        action=_move_parcel(session,thread,giver,True)
+        action=_move_parcel(session,thread,giver,True,own_turn=own_turn)
         if action and thread.get('target_place_id'):
             grounded_action.note_last(world,thread['target_place_id'])
         if action:

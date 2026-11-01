@@ -166,6 +166,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reply = None
     session._front_thing = None
     session._nothing_taken = None
+    session._empty_handed = False
     combat = (getattr(session, "world_state", None) or {}).get("combat") or {}
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")

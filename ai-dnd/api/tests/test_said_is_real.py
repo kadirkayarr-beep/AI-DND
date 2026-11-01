@@ -38,6 +38,7 @@ class ClassifiedClient(front_tests.FrontClient):
 
     intent = None
     narrator_extra = {}
+    speech_extra = {}
 
     def chat(self, *args, **kwargs):
         properties = (kwargs.get("format") or {}).get("properties") or {}
@@ -48,6 +49,9 @@ class ClassifiedClient(front_tests.FrontClient):
             packet = {"narration": self.narration, "world_updates": {}, "lore_claims": []}
             return {"message": {"content": json.dumps({**packet, **self.narrator_extra}, ensure_ascii=False)}}
         reply = super().chat(*args, **kwargs)
+        if self.speech_extra and "commitment" in properties:
+            packet = json.loads(reply["message"]["content"])
+            reply = {"message": {"content": json.dumps({**packet, **self.speech_extra}, ensure_ascii=False)}}
         if self.intent and "intent" in properties:
             packet = json.loads(reply["message"]["content"])
             packet.update(intent=self.intent, action=self.intent)
@@ -293,3 +297,74 @@ class TakingThings(ErrandBase):
         await self.line("defteri aliyorum elinden")
         await self.line("defteri aliyorum elinden")
         self.assertEqual(self.bag().count("Defter"), 1)
+
+
+class TheChannel(ErrandBase):
+    async def test_a_person_handing_over_the_job_parcel_really_hands_it(self):
+        await self.errand()
+        await self.line("olur", "Tamam.")
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": self.parcel()}}
+        await self.line("e nerde bu kagit simdi", "Al işte, burada.")
+        self.assertEqual(self.parcel_owner(), ["player"])
+
+    async def test_a_person_handing_over_a_plain_thing_really_hands_it(self):
+        await self.errand()
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "elma"}}
+        reply = await self.line("acim usta bi sey var mi", "Al şu elmayı, ye.")
+        self.assertIn("Elma", self.bag())
+        self.assertIn("elmayı", reply["narration"])
+
+    async def test_a_purse_nobody_moved_leaves_the_speech(self):
+        await self.errand()
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "kese"}}
+        self.client.stage_direction = "Keseyi masaya bırakır."
+        reply = await self.line("usta hakkimi ver", "Al şu keseyi. Hayırlı işler.")
+        self.assertNotIn("keseyi", reply["narration"].casefold())
+        self.assertIn("Hayırlı işler", reply["narration"])
+        self.assertNotIn("Kese", self.bag())
+
+    def alone(self):
+        for npc in self.world["npcs"]:
+            npc["location"] = "elsewhere"
+        for key in ("active_npc_id", "last_npc_id"):
+            self.world["flags"].pop(key, None)
+
+    async def test_the_narrator_can_put_a_thing_in_the_bag_through_the_channel(self):
+        await self.errand()
+        self.alone()
+        self.client.front = {"kind": "attempt"}
+        self.client.narration = "Tezgâhın altından çıkan ipi eline alıyorsun."
+        self.client.narrator_extra = {"item_claims": [{"item": "ip", "to": "player"}]}
+        reply = await self.line("tezgahin altindaki ipi aliyorum")
+        self.assertIn("Ip", self.bag())
+        self.assertIn("ipi", reply["narration"])
+
+    async def test_a_thing_told_as_given_away_that_never_moved_leaves_the_line(self):
+        await self.errand()
+        self.alone()
+        self.client.front = {"kind": "attempt"}
+        self.client.narration = "Halkayı ona veriyorsun. Rüzgâr esiyor."
+        self.client.narrator_extra = {"item_claims": [{"item": "halka", "to": "person"}]}
+        reply = await self.line("sessizce bekliyorum orda")
+        self.assertNotIn("Halkayı", reply["narration"])
+
+    async def test_the_prompts_know_what_is_really_in_the_bag(self):
+        await self.errand()
+        equipment_economy.grant_plain(self.world, "Kırık halka")
+        self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
+        await self.line("usta bi sey soracam", "Sor.")
+        self.assertIn("Kırık halka", str(self.client.message_batches[-1]))
+        self.alone()
+        self.client.front = {"kind": "attempt"}
+        await self.line("biraz ortaligi kolacan ediyorum")
+        self.assertIn("Kırık halka", str(self.client.message_batches[-1]))
+
+    async def test_handing_over_what_is_not_there_keeps_no_taking_gesture(self):
+        await self.errand()
+        self.client.front = {"kind": "hand_over", "person_id": self.owner["id"]}
+        self.client.stage_direction = "Kâğıdı alıp defterinin yanına çeker."
+        reply = await self.line("duyuruyu eline veriyorum", "Bakalım.")
+        self.assertNotIn("Kâğıdı", reply["narration"])

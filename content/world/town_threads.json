@@ -675,8 +675,9 @@
       "pay_paid_today": "Ücretini istiyor ama bugünkü payını aldı; yarına kadar para çıkmaz. Kendi tavrınla söyle, inkâr etme; iş ve sözün duruyor.",
       "pay_not_yet": "Ücretini istiyor ama daha iş görmedi; ücret çalışılan günün sonunda. Kendi ağzınla söyle, inkâr etme; iş ve sözün duruyor.",
       "pay_on_delivery": "Ücretini istiyor; ücret teslimde, alıcıdan çıkar. Kendi ağzınla söyle, inkâr etme.",
-      "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
+      "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Oyuncunun eline şimdi bir şey veriyorsan kind give ve item alanına o şeyin yalın adını ya da aşağıdaki parcel kimliğini yaz; oyun onaylamazsa o cümle düşer. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
       "listed_jobs": "İşlerin: {jobs}.",
+      "listed_parcels": "İşin eşyası: {parcels}.",
       "own_promises": "Verdiğin sözler: {promises}. Bunları inkâr etme.",
       "said_before": "Daha önce sen gerçekten şunları söyledin: {lines} Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
     },
