@@ -7026,16 +7026,6 @@ _SPEECH_REPEAT_LINES = (
 )
 
 
-_SPEECH_CLARIFY_LINES = (
-    "{n} kaşlarını çatıp başını yana eğiyor. “Tam anlayamadım; ne demek "
-    "istediğini biraz daha açık söyler misin?”",
-    "{n} sana dikkatle bakıyor. “Hmm… bunu bir daha, biraz daha yavaş söyle "
-    "bakalım.”",
-    "{n} dinlemeye çalışıyor ama yüzünde bir şaşkınlık var. “Ne istediğini "
-    "tam kavrayamadım, yabancı. Başka türlü anlatır mısın?”",
-    "{n} omuz silkip hafifçe gülümsüyor. “Sözün nereye varacağını "
-    "kestiremedim. Biraz açar mısın?”",
-)
 # Sentences written for the narrator or the engine, never for a person's mouth.
 _SCENE_LEVEL_FALLBACK_RE = re.compile(
     r"sahnedeki hareketlilik|çevrende bu düşünceyi destekleyen|"
@@ -7044,20 +7034,6 @@ _SCENE_LEVEL_FALLBACK_RE = re.compile(
     r"karşındaki kişi sözünü dinliyor, ancak",
     re.IGNORECASE,
 )
-
-
-def speech_clarification_line(npc, player_input=""):
-    """The NPC asks the player to say it again, in their own voice.
-
-    Deterministic per NPC and message. Used when a reply that was written for the
-    narrator or the engine would otherwise be put in an NPC's mouth.
-    """
-    name = living_world.public_npc_name(npc) if npc else "Bu kişi"
-    seed = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{player_input}|clarify"
-    index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(
-        _SPEECH_CLARIFY_LINES
-    )
-    return _SPEECH_CLARIFY_LINES[index].format(n=name)
 
 
 def _lines_already_said(npc, world_state):
@@ -7105,7 +7081,7 @@ def historical_claim_denial(npc, player_input=""):
         line = _CLAIM_DENIAL_LINES[(index + step) % len(_CLAIM_DENIAL_LINES)].format(n=name)
         if not any(line.split("“", 1)[-1].rstrip("”") in earlier for earlier in said):
             return line
-    return speech_clarification_line(npc, player_input)
+    return interaction_adventure.immersive_unknown(npc, player_input)
 
 
 # What anyone can see of a person right now. Goals, past and details stay out
@@ -16956,7 +16932,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             world_state, str(action_input), turn_index
         )
         referent = ref_resolution.get("referent")
-        if ref_resolution["status"] == "expired":
+        if ref_resolution["status"] == "expired" and _active_interlocutor() is None:
             direct = {
                 "action": "referent",
                 "status": "expired",
@@ -18048,6 +18024,10 @@ def _dispatch_player_turn(
         read = dialogue_jobs.read_parcel(_session(), player_input)
         if read is not None:
             return read
+        import pocket
+        pocketed = pocket.resolve(_session(), player_input)
+        if pocketed is not None:
+            return pocketed
     front = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
@@ -20973,7 +20953,9 @@ def _run_player_turn_internal(
             ):
                 narration_source = "deterministic_fallback"
             if experimental_npc_dialogue and _SCENE_LEVEL_FALLBACK_RE.search(text):
-                text = speech_clarification_line(npc_target, player_input)
+                # A clear line never earns "say it again": the person answers from what Python has for them.
+                text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
+                        or interaction_adventure.immersive_unknown(npc_target, player_input))
             if experimental_npc_dialogue:
                 _speech_debug_trail({
                     "player": player_input,
