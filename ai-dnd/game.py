@@ -17790,9 +17790,13 @@ def _dispatch_player_turn(
                     _session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
                 )
             if grounded is not None:
+                if _sleeps_after_walking(grounded, player_input):
+                    return _sleep_after_walk(grounded, player_input, action_id, session_id)
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
         local_place = _local_place_turn(player_input)
         if local_place is not None:
+            if _sleeps_after_walking(local_place, player_input):
+                return _sleep_after_walk(local_place, player_input, action_id, session_id)
             return local_place
         everyday = _everyday_action_turn(player_input)
         if everyday is not None:
@@ -17867,6 +17871,12 @@ def _dispatch_player_turn(
                     target_id=target_id, phase="fallback",
                 )
             if grounded is not None:
+                if _sleeps_after_walking(grounded, player_input):
+                    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+                        slept = timed_gameplay.resolve_input(_session(), player_input)
+                    if slept is not None:
+                        grounded["narration"] = f"{grounded['narration']} {slept['direct_response']}"
+                    return grounded
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
     combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
@@ -17889,6 +17899,21 @@ def _dispatch_player_turn(
             return _narrate_resolved_turn(
                 e.resolved_turn, player_input, messages, target_id
             )
+
+
+def _sleeps_after_walking(grounded, player_input):
+    """"Hana gidip uyuyorum": the walk is only the first half of what was said."""
+    result = grounded.get("action_result") or {}
+    return (result.get("status") in {"completed", "partial", "resolved"}
+            and bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))))
+
+
+def _sleep_after_walk(walked, player_input, action_id, session_id):
+    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+        slept = timed_gameplay.resolve_input(_session(), player_input)
+    if slept is not None:
+        walked["narration"] = f"{walked['narration']} {slept['direct_response']}"
+    return walked
 
 
 def _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id):
@@ -20166,7 +20191,7 @@ def _run_player_turn_internal(
         local_dialogue.personal_question_kind(player_input)
         if isinstance(npc_target, dict) else None
     )
-    if answerable_personal_kind is None and not experimental_dialogue_session and (
+    lore_gate = answerable_personal_kind is None and not experimental_dialogue_session and (
         (
             not npc_place_recommendation
             and (world_subject_question or local_dialogue.is_world_subject_question(player_input))
@@ -20174,7 +20199,14 @@ def _run_player_turn_internal(
         or _player_question_has_unverified_lore_claim(
             lore_safety_input, lore_context, world_state
         )
-    ):
+    )
+    if lore_gate and interaction_mode != "ask_dm" and _npc_speech_enabled() and not combat["active"]:
+        # Asked aloud with someone standing there, the town's talk is theirs to answer, not the street's.
+        npc_target = npc_target or most_plausible_addressee(_conversation_npcs(), player_input)
+        if isinstance(npc_target, dict):
+            lore_gate = False
+            npc_dialogue_route = experimental_dialogue_session = True
+    if lore_gate:
         action_result = {
             "action": "dialogue",
             "status": "unverified",

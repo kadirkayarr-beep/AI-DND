@@ -44,6 +44,7 @@ TESTS = (
     "api/tests/test_thread_hiring.py",
     "api/tests/test_thread_visibility.py",
     "api/tests/test_step4_branches.py",
+    "api/tests/test_lasting_consequences.py",
     "test_local_exploration.py",
     "test_held_weapon.py",
     "test_monster_sense.py",

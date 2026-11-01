@@ -493,7 +493,7 @@ def personal_question_kind(value: Any) -> str | None:
         return "recent_activity"
     if re.search(
         r"\b(?:nereden|nerden|nerde|hangi taraftan)\b.{0,35}"
-        r"\b(?:gel\w*|yolculuk|yola cik\w*)\b|"
+        r"\b(?:gel(?!iyor\b|di\b|ir\b)\w*|yolculuk|yola cik\w*)\b|"
         r"\b(?:yolculuk|yol)\b.{0,35}\b(?:nereden|nerden|hangi taraftan)\b",
         text,
     ):

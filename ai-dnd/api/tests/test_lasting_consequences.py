@@ -437,3 +437,44 @@ class StockLinesDoNotRepeat(OneTownScene):
         for line in interaction_adventure._UNKNOWN_LINES:
             self.assertNotIn("doğrula", line)
             self.assertNotIn("tahminden öteye", line)
+
+
+class FoundInRealPlay(OneTownScene):
+    async def test_nobody_addressed_the_one_person_here_still_answers_about_the_town(self):
+        for line in ("günaydın, dün gece şehirde neler oldu? bi haber var mı",
+                     "barmene soruyorum: buralarda en güçlü lord kim, koruma arayan bi soylu var mı"):
+            with self.subTest(line=line):
+                await self.town()
+                self.add_person("Veyra", "Barmen")
+                out = await self.say(line, PlayClient(spoken="Ben bira doldururum, gerisini bilmem."))
+                self.assertIn("Ben bira doldururum", out["narration"], out["turn_outcome"])
+
+    async def test_with_nobody_here_the_street_still_answers(self):
+        await self.town()
+        out = await self.say("dün gece şehirde neler oldu? bi haber var mı", PlayClient())
+        self.assertEqual(out["turn_outcome"]["status"], "unverified", out["narration"])
+
+    def test_smoke_coming_from_somewhere_is_not_asking_where_someone_is_from(self):
+        import local_dialogue
+        self.assertIsNone(local_dialogue.personal_question_kind("joren bu duman nerden geliyor sence"))
+        self.assertEqual(local_dialogue.personal_question_kind("nereden geliyorsun"), "origin")
+
+    async def test_a_guard_calls_a_burner_what_he_is(self):
+        await self.town()
+        guard = self.add_person("Isolde", "Nöbetçi Çavuş")
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": [], "turn": 3, "at": 0, "heard": [], "told": [guard["id"]],
+        }]
+        out = await self.say("etrafa bakıyorum", PlayClient())
+        self.assertIn("kundakçı", out["narration"])
+        self.assertNotIn("katil", out["narration"])
+
+    async def test_walking_to_the_inn_to_sleep_also_sleeps(self):
+        await self.town()
+        import local_places
+        inn = local_places.create_local_place(self.world, self.city, "temple")
+        before = self.world["campaign_time"]["elapsed_seconds"]
+        out = await self.say(f"{inn['name']} içine gidip uyuyorum sabaha kadar", PlayClient())
+        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 3600, out["narration"])
+        self.assertEqual(self.world["location"], inn["id"], out["narration"])

@@ -350,7 +350,8 @@ def answer_to_known_doer(session, result: Any) -> None:
         return
     guard["hostile"] = True
     session.start_combat(guard)
-    line = f"{living_world.public_npc_name(guard)} silahını çekip üstüne yürüyor: “Dur orada, katil!”"
+    named = "katil" if any(deed["kind"] == "killing" and identifies(deed, guard.get("id")) for deed in grave) else "kundakçı"
+    line = f"{living_world.public_npc_name(guard)} silahını çekip üstüne yürüyor: “Dur orada, {named}!”"
     result["narration"] = " ".join([str(result.get("narration") or ""), line]).strip()
 
 

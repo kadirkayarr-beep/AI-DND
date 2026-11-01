@@ -51,6 +51,7 @@ class RunnerInventoryTests(unittest.TestCase):
     "api/tests/test_thread_hiring.py",
     "api/tests/test_thread_visibility.py",
     "api/tests/test_step4_branches.py",
+    "api/tests/test_lasting_consequences.py",
             "test_local_exploration.py", "test_held_weapon.py", "test_monster_sense.py",
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
@@ -94,8 +95,8 @@ class RunnerInventoryTests(unittest.TestCase):
                                     for call in execute.call_args_list))
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
                             if len(call.args[0]) == 5]
-                self.assertEqual(len(receipts), 17)
-                self.assertEqual(len(set(receipts)), 17)
+                self.assertEqual(len(receipts), 18)
+                self.assertEqual(len(set(receipts)), 18)
                 self.assertTrue(all(not path.parent.exists() for path in receipts))
 
     def test_api_completion_evidence_must_be_valid_and_cannot_override_failure(self):
