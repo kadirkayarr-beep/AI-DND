@@ -669,7 +669,8 @@
         "coming_kept": "{what} geri gelmedi; {when} onu almaya biri gidecek. Sorulursa inkâr etme, gün ya da saat söyleme.",
         "coming_delivered": "{what} mührü bozulmadan yerine vardı; {when} bunu bilen biri teşekkürünü götürecek.",
         "coming_guarded": "Karşındaki seni tehdit etti ({what}); {when} önlemini almış olacaksın. Bunu kendi tavrınla belli et.",
-        "sent": "Tehdidin yerine geldi, gönderdiğin kişi oyuncuyu buldu; sorulursa inkâr etme.",
+        "sent": "Gönderdiğin kişi oyuncuyu buldu, mesele: {what}. {letter} Sorulursa inkâr etme.",
+        "summons": "{owner} onu {place} içinde görmek istiyor; bunu söyle.",
         "caller_warned": "Seni {owner} gönderdi. Mesele: {what}. Bunu biliyorsun; kimin adına geldiğini saklamıyorsun, para teklif etme, kendi tavrınla konuş.",
         "caller_opened": "Seni {owner} gönderdi. Mesele: {what}; mührü kırıldı ve bunu karşındakinin yaptığını biliyorsun. Bedelini hatırlat, para teklif etme, mektupta ne yazdığını bilmiyorsun.",
         "caller_kept": "Seni {owner} gönderdi. Mesele: {what} geri dönmedi, karşındakinde kaldı; geri almaya geldin. Para teklif etme.",
@@ -710,6 +711,9 @@
       "commitment_rule": "Cevabın gerçekten bir iş teklif ediyor, kabul edilen işi bildiriyor, para ödüyor ya da söz veriyorsa commitment alanını doldur: kind (job_offer, job_accepted, pay, give, escort, show, meet, help), thread_id yalnız aşağıdaki işlerden, amount_cp bakır olarak, terms kısa şart. Sen oyuncuyu açıkça tehdit ediyorsan ya da başına birinin geleceğini söylüyorsan kind warn; oyuncu seni açıkça tehdit ettiyse kind warned; zamanı oyun belirler, gün ya da saat söyleme. Oyuncunun eline şimdi bir şey veriyorsan kind give ve item alanına o şeyin yalın adını ya da aşağıdaki parcel kimliğini yaz; oyun onaylamazsa o cümle düşer. Başka durumda commitment yazma. Listede olmayan iş, ücret ya da ödeme söyleme; parayı elinle verdiğini sen yazma, ödemeyi oyun yapar.",
       "listed_jobs": "İşlerin: {jobs}.",
       "listed_parcels": "İşin eşyası: {parcels}.",
+      "house_shut": "Efendin bugünlerde kimseyi kabul etmiyor, iç kapıdan kimseyi geçirmezsin. Sorulursa nedenini söyle: kabul günü {when}; daha önce görmek isteyen {how}. Bunu kendi ağzınla söyle, efendinin adını verme.",
+      "house_open": "Efendin bu kişiyi kabul edecek; iç kapıdan içeri geçebilir. Sorulursa bunu söyle.",
+      "house_head": "Bu evin sahibi sensin; kapıya {keeper} bakar. Evin açık işleri: {work}. Karşındakini tartar, kendi kararını kendin verirsin; söz verirsen commitment alanını doldur.",
       "listed_threats": "Tehdidin neyle ilgili olabilir (warn için thread_id): {jobs}. Kimden gelebilir (warn için person_id): {people}.",
       "own_promises": "Verdiğin sözler: {promises}. Bunları inkâr etme.",
       "said_before": "Daha önce sen gerçekten şunları söyledin: {lines} Oyuncu bunlardan söz ediyorsa inkâr etme; kendi sözün olarak karşılık ver."
@@ -925,7 +929,11 @@
       "matter_done": "Mesele konuşuldu, dert yatıştı.",
       "board": "Panoya çivili kâğıtlarda şunlar yazıyor: {lines}",
       "board_hint": "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş.",
-      "door_notice": "Kapıya bir kâğıt çivilenmiş: {paper}"
+      "door_notice": "Kapıya bir kâğıt çivilenmiş: {paper}",
+      "house_shut": "{who} önüne geçiyor. “Efendi bugünlerde kimseyi kabul etmiyor. Kabul günü {when}; daha önce görmek istiyorsan {how}.”",
+      "house_way_word": "{place} tarafında bir iş gör, oradakiler senin için bir çift söz etsin",
+      "house_way_work": "önce bu eve bir iş gör",
+      "house_opens": "{who} iç kapıyı başıyla gösteriyor. “Geçebilirsin. Seni kabul edecek.”"
     }
   },
   "rumour_lines": [

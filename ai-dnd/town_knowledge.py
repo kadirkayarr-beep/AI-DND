@@ -402,7 +402,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
     if job and not job.startswith(" "):
         job = " " + job
     job += (world_happenings.waiting_note(world, npc) + world_happenings.link_note(world, npc)
-            + vouching.speaker_note(world, npc)
+            + vouching.speaker_note(world, npc) + vouching.house_note(world, npc)
             + _matter_note(world, npc, decision))
     if is_closed_mouthed(world, npc):
         # Unhelpful is a character; a whole street with nothing to say is the dead end that stopped play.

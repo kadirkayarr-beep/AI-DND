@@ -1392,6 +1392,8 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
     if door is not None:
         run.near(door["id"])
         text = f"{prefix}{record.get('name')} önüne geliyorsun.{with_text} {_door_state_text(door)}"
+        if verb == "go" and door.get("house_door"):
+            return _enter(run, place, prefix=prefix)
         if verb == "go" and not door.get("locked"):
             return _enter(run, place, prefix=text + " ")
         return _receipt(verb, "completed", place, text=text.strip(), door_state=_door_public(door),
@@ -1414,14 +1416,18 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
 
     record = place["record"]
     if run.here == place["id"]:
-        return _receipt("enter", "completed", place, text=f"{prefix}Zaten {record.get('name')} içindesin.".strip())
+        room = local_places.inner_room_of(run.world, run.here)
+        if room is None:
+            return _receipt("enter", "completed", place, text=f"{prefix}Zaten {record.get('name')} içindesin.".strip())
+        place, record = {"id": room["id"], "kind": "place", "label": room.get("name"), "record": room}, room  # further in
     door = run.door_for(place["id"])
     opened = ""
     if door is not None and not door.get("open") and not door.get("broken"):
         if door.get("locked"):
             run.near(door["id"])
-            return _receipt("enter", "blocked", place, reason="door_locked",
-                            text=f"{prefix}{_door_state_text(door)} İçeri giremiyorsun.".strip(),
+            import vouching
+            shut = vouching.shut_line(run.world, door) or f"{_door_state_text(door)} İçeri giremiyorsun."
+            return _receipt("enter", "blocked", place, reason="door_locked", text=f"{prefix}{shut}".strip(),
                             door_state=_door_public(door))
         door["open"] = True
         opened = f"{door.get('name', 'Kapı')} kolunu çevirip açıyorsun. "
@@ -2052,9 +2058,13 @@ def _commitment_place(run: _Run, commitment) -> dict[str, Any] | None:
 
 
 def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
+    import local_places
+
     target = step.get("target")
     commitment = step.get("commitment")
     if target is not None and target["kind"] == "here":
+        if local_places.goes_further_in(run.world, run.here, run.text):
+            return _enter(run, target)
         return _receipt(verb, "completed", target, text=f"Zaten {target['label']} içindesin.")
     if target is None and commitment is not None:
         place = _commitment_place(run, commitment)
@@ -2187,6 +2197,9 @@ def _do_search(run: _Run, step, *, move: bool = False) -> dict[str, Any]:
                 result["text"] = f"{result['text']} {text}"
             return result
     if target and target["kind"] == "here" and not step.get("other"):
+        import local_places
+        if local_places.goes_further_in(run.world, run.here, run.text):
+            return _enter(run, target)
         return _receipt("search", "completed", target, found=True, text=f"Zaten {target['label']} içindesin.")
     if _ACCESS_GOAL.search(text) or (step.get("detail") and DETAILS[step["detail"]]["class"] == "access"):
         return _search_access(run, step)  # "başka bir giriş": around the building, not to its front door
@@ -2830,17 +2843,17 @@ def _looks_like_speech(session, player_input: str) -> bool:
 _SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")
 
 
-def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool):
+def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
     defer = ("defer", None)
     p = plan(session, player_input)
     steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
-    if (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
-            or _SAID_AT_THE_END.search(fold(player_input))):
+    if not whole_line and (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
+                           or _SAID_AT_THE_END.search(fold(player_input))):
         return defer  # "hana nasıl giderim?": whatever the model read, Python's own reading says this is no walk
     if steps and all(s.get("negated") or s.get("condition") for s in steps):
         return defer  # "hana gitmiyorum": the words themselves say this is no walk
-    if len(steps) > 1 or spoken_request(player_input):
+    if not whole_line and (len(steps) > 1 or spoken_request(player_input)):
         return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
     target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
                   None)
@@ -2888,7 +2901,8 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     snapshot = copy.deepcopy(world)
     try:
         decision, payload = (
-            _decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"])
+            _decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"],
+                                whole_line=bool(listed_place.get("whole_line")))
             if listed_place is not None else
             _decide(session, player_input, interaction_mode=interaction_mode,
                     allow_model=allow_model and not dry_run, phase=phase))

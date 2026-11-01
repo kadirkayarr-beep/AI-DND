@@ -17442,6 +17442,11 @@ def _local_place_turn(player_input):
     record = (person_place or local_places.named_in(world, settlement, player_input)
               or local_places.find_local_place(world, settlement, kind))
     if record is not None and record.get("id") == current:
+        if local_places.goes_further_in(world, current, player_input):
+            import grounded_action
+            room = local_places.inner_room_of(world, current)
+            return grounded_action.resolve_turn(session, player_input,
+                                                listed_place={"id": room["id"], "inside": True, "whole_line": True})
         narration = f"Zaten {record['name']} içindesin."
         return {
             "messages": session.messages,

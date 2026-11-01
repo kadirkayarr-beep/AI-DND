@@ -147,6 +147,29 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
                    ("Duvar dibinde, kimsenin sahiplenmediği bir sandık duruyor.",
                     "Duvarın dibine bir sandık bırakmışlar; kimin olduğunu öğrenmem gerek.")),
     },
+    # Rooms behind another place's door: no stems, so nobody wanders into one from the street.
+    "hall": {
+        "stems": (), "suffix": "Salonu", "noun": "salon", "role": "Konağın sahibi",
+        "descriptions": ("Duvarları ağır perdeli, ocağın sessizce yandığı uzun bir salon.",
+                         "Tavanı yüksek, ayak sesini halıların yuttuğu serin bir salon."),
+        "feature": ("Uzun masa", "Üzerinde mühür mumu ve dürülü kâğıtlar duran, koyu renk uzun bir masa.",
+                    ["masa", "muhur mumu", "kagit"]),
+        "activities": (("Masadaki kâğıtları tek tek okuyup bir kenara ayırıyor.", "Kâğıtlarıma bakıyorum."),
+                       ("Ocağın başında durmuş, ellerini ısıtıyor.", "Biraz soluklanıyorum.")),
+        "issues": (("Masanın üstünde mührü açılmamış birkaç mektup birikmiş.",
+                    "Birikmiş mektupların hepsi aynı kötü haberi taşıyor; güvenecek birini arıyorum."),
+                   ("Duvardaki kılıç askısının biri boş duruyor.",
+                    "Yanımda iş bilen kimse kalmadı; kapımdakilere de eskisi kadar güvenmiyorum.")),
+    },
+    "quarters": {
+        "stems": (), "suffix": "Komuta Odası", "noun": "oda", "role": "Bölük komutanı",
+        "descriptions": ("Duvarında nöbet çizelgeleri asılı, dar ve sert ışıklı bir oda.",),
+        "feature": ("Harita masası", "Üzerine kent sokaklarının çizildiği, köşeleri kıvrılmış bir harita.",
+                    ["harita", "masa"]),
+        "activities": (("Haritanın üstüne eğilmiş, bir şeyler işaretliyor.", "Haritaya bakıyorum."),),
+        "issues": (("Haritanın bir köşesine kırmızıyla çarpı atılmış.",
+                    "Doğu sokaklarında adamım eksik; güvenilir birine ihtiyacım var."),),
+    },
     "stable": {
         "stems": ("ahir",), "suffix": "Ahırı", "noun": "ahır", "role": "Seyis",
         "descriptions": ("Saman ve at kokusunun yoğun olduğu, loş bir ahır.",),
@@ -158,6 +181,8 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
     },
 }
 
+INNER_ROOMS = {"estate": "hall", "barracks": "quarters"}
+RECEIVES_AFTER_DAYS = (3, 6)
 _MOTION = re.compile(
     r"\b(?:gid|git|yonel|ugra|ugru|varmak|variyor|varacag|varir|ilerl|yuru|don(?:uyor|ecek|ucem|eyim|elim)"
     r"|doguru|dogru|gec(?:iyor|ecek)|gir(?:iyor|ecek|eyim|elim))\w*\b"
@@ -249,6 +274,8 @@ def settlement_of(world: dict[str, Any], location_id: Any) -> str | None:
     if not isinstance(record, dict):
         return None
     parent = record.get("parent_location_id")
+    if record.get("inner_of"):
+        return settlement_of(world, record["inner_of"])
     if isinstance(parent, str) and living_world.scene_kind(world, parent) == "city":
         return parent
     if living_world.scene_kind(world, location_id) == "city":
@@ -399,10 +426,42 @@ def feature_of(world: dict[str, Any], place_id: str, name: str) -> dict[str, Any
     )
 
 
+def inner_room_of(world: dict[str, Any], place_id: Any) -> dict[str, Any] | None:
+    return next((record for record in world.get("locations", {}).values()
+                 if isinstance(record, dict) and record.get("inner_of") == place_id), None)
+
+
+def goes_further_in(world: dict[str, Any], place_id: Any, text: Any) -> bool:
+    """At a house, 'içeri' is the room behind the door, not the courtyard the player already stands in."""
+    return inner_room_of(world, place_id) is not None and bool(re.search(r"\bic(?:eri|ine|ine\w*|i)\b", _fold(text)))
+
+
+def _add_inner_room(world: dict[str, Any], record: dict[str, Any]) -> None:
+    """The rest of a big house: a real room behind a real door, seen from the courtyard. Its person comes with the room."""
+    kind = INNER_ROOMS.get(record["place_kind"])
+    if kind is None or inner_room_of(world, record["id"]) is not None:
+        return
+    room = create_local_place(world, record["id"], kind, name=f"{record['name']} {PLACE_KINDS[kind]['suffix']}")
+    if room is None:
+        return
+    room["inner_of"] = record["id"]
+    room["exit_location_id"] = record["id"]
+    low, high = RECEIVES_AFTER_DAYS
+    days = low + int.from_bytes(hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{record['id']}\x00receives".encode(
+        "utf-8")).digest()[:4], "big") % (high - low + 1)
+    now = int((world.get("campaign_time") or {}).get("elapsed_seconds", 0) or 0)
+    world.setdefault("doors", []).append({
+        "id": f"venue-door:{room['id']}", "name": f"{record['name']} İç Kapısı", "location": record["id"],
+        "description": "Ağır, kapalı bir iç kapı.", "open": False, "locked": True, "broken": False,
+        "house_door": True, "opens_at": now + days * 86400,
+    })
+
+
 def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create_feature):
     """Ensure the place's one person and one detail exist. Reuses saved ones."""
     spec = PLACE_KINDS[record["place_kind"]]
     place_id = record["id"]
+    _add_inner_room(world, record)
     npc = resident_of(world, place_id)
     assigned = any(isinstance(n,dict) and n.get("place_role_of")==place_id for n in world.get("npcs",[]))
     if npc is None and not assigned:
@@ -480,6 +539,8 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
         hour = f":{clock['day_index']}:{clock['time_of_day']}" if clock and not first_visit else ""
         activity = _pick(world, record["id"], spec["activities"], f"activity{hour}")[0]
         parts.append(f"{who} burada. {activity}")
+    if first_visit and inner_room_of(world, record["id"]) is not None:
+        parts.append("Daha içeri açılan ağır bir kapı var; önünden kimse habersiz geçmiyor.")
     if first_visit and record.get("local_issue"):
         parts.append(str(record["local_issue"]))
     parts.extend(marks)
