@@ -940,13 +940,28 @@ def _reads_as_question(player_input):
     ))
 
 
+def _people_speak_for_themselves(world_state):
+    """A town with its own people and work: what they know is in their notes, so they can answer anything."""
+    import local_places
+    if _npc_speech_enabled():
+        return True
+    return (local_places.settlement_of(world_state, world_state.get("location")) is not None
+            and bool(living_world._campaign_seed(world_state)))  # only reads: a question must not build a town
+
+
+_ASKS_SOMETHING = re.compile(
+    r"\b(?:mi|mu|misin|musun|misiniz|musunuz|ne|kim|neden|niye|nasil|nerede|nereden|nerden|sence|sizce)\b"
+)
+
+
 def _asked_of_the_one_at_hand(player_input, npc):
-    """A question in the middle of a talk goes to that person, name or mark or neither."""
-    active = _active_interlocutor()
-    return bool(active is not None and isinstance(npc, dict) and active.get("id") == npc.get("id") and (
-        "?" in str(player_input)
-        or re.search(r"\b(?:mi|mu|misin|musun|misiniz|musunuz)\b", _normalize_turkish_typos(str(player_input)))
-    ))
+    """A question that calls someone by name goes to them, with or without a question mark."""
+    if (not isinstance(npc, dict) or _has_explicit_attack_verb(player_input)
+            or not _people_speak_for_themselves(_session().world_state)):
+        return False
+    text = _normalize_turkish_typos(str(player_input))
+    return bool(_entity_reference_in_text(npc.get("name", ""), text)
+                and ("?" in str(player_input) or _ASKS_SOMETHING.search(text)))
 
 
 def is_npc_dialogue_input(player_input):
@@ -11910,10 +11925,13 @@ def _shown_stage_direction(stage, world_state):
     return _stage_within_the_street(stage.strip(), world_state)
 
 
+_ASKS_DISTANCE = re.compile(r"\b(?:mesafe|uzaklik|kac mil|kac kilometre|ne kadar uzak)\b")
+
+
 def _unverified_lore_response(player_input, npc_target=None):
     text = local_dialogue.normalize_text(player_input)
     speaking_npc = npc_target if isinstance(npc_target, dict) else None
-    if re.search(r"\b(?:mesafe|uzaklik|kac mil|kac kilometre|ne kadar uzak)\b", text):
+    if _ASKS_DISTANCE.search(text):
         if speaking_npc:
             return interaction_adventure.immersive_unknown(speaking_npc, player_input)
         return _UNVERIFIED_DISTANCE_RESPONSE
@@ -17392,6 +17410,7 @@ def _run_player_turn(
         # A test die without getstate cannot be snapshotted; the API restores its own.
         runtime_snapshot = None
     turn_index_before = _session().world_state.get("flags", {}).get("turn_index", 0)
+    place_before = _session().world_state.get("location")
     try:
         result = _dispatch_player_turn(
             player_input,
@@ -17406,6 +17425,7 @@ def _run_player_turn(
         )
         import bold_acts
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            _sleep_after_walk(result, player_input, place_before)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
     except IntentInfrastructureError as error:
@@ -17790,13 +17810,9 @@ def _dispatch_player_turn(
                     _session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
                 )
             if grounded is not None:
-                if _sleeps_after_walking(grounded, player_input):
-                    return _sleep_after_walk(grounded, player_input, action_id, session_id)
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
         local_place = _local_place_turn(player_input)
         if local_place is not None:
-            if _sleeps_after_walking(local_place, player_input):
-                return _sleep_after_walk(local_place, player_input, action_id, session_id)
             return local_place
         everyday = _everyday_action_turn(player_input)
         if everyday is not None:
@@ -17871,12 +17887,6 @@ def _dispatch_player_turn(
                     target_id=target_id, phase="fallback",
                 )
             if grounded is not None:
-                if _sleeps_after_walking(grounded, player_input):
-                    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-                        slept = timed_gameplay.resolve_input(_session(), player_input)
-                    if slept is not None:
-                        grounded["narration"] = f"{grounded['narration']} {slept['direct_response']}"
-                    return grounded
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
     combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
@@ -17901,19 +17911,16 @@ def _dispatch_player_turn(
             )
 
 
-def _sleeps_after_walking(grounded, player_input):
+def _sleep_after_walk(walked, player_input, place_before):
     """"Hana gidip uyuyorum": the walk is only the first half of what was said."""
-    result = grounded.get("action_result") or {}
-    return (result.get("status") in {"completed", "partial", "resolved"}
-            and bool(timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))))
-
-
-def _sleep_after_walk(walked, player_input, action_id, session_id):
-    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-        slept = timed_gameplay.resolve_input(_session(), player_input)
+    world_state = _session().world_state
+    if (not isinstance(walked, dict) or world_state.get("location") == place_before
+            or world_state.get("combat", {}).get("active")
+            or not timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input))):
+        return
+    slept = timed_gameplay.resolve_input(_session(), player_input)
     if slept is not None:
-        walked["narration"] = f"{walked['narration']} {slept['direct_response']}"
-    return walked
+        walked["narration"] = f"{walked.get('narration') or ''} {slept['direct_response']}".strip()
 
 
 def _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id):
@@ -19689,7 +19696,10 @@ def _run_player_turn_internal(
             )
         )
         # A reading the classifier got wrong is no reason for a person to stop being one: they answer the line.
-        answer_in_person = conversation_rejected and _npc_speech_enabled() and isinstance(npc_target, dict)
+        # A promise or a condition is different: those must never stand on a reading that failed.
+        answer_in_person = (conversation_rejected and isinstance(npc_target, dict)
+                            and interaction_hint in {"information", "generate"}
+                            and _people_speak_for_themselves(world_state))
         if conversation_rejected and not answer_in_person:
             return finish_conversation_rejection(npc_target)
         action_result = (
@@ -20200,7 +20210,9 @@ def _run_player_turn_internal(
             lore_safety_input, lore_context, world_state
         )
     )
-    if lore_gate and interaction_mode != "ask_dm" and _npc_speech_enabled() and not combat["active"]:
+    if (lore_gate and interaction_mode != "ask_dm" and not combat["active"]
+            and _people_speak_for_themselves(world_state)
+            and not _ASKS_DISTANCE.search(local_dialogue.normalize_text(player_input))):
         # Asked aloud with someone standing there, the town's talk is theirs to answer, not the street's.
         npc_target = npc_target or most_plausible_addressee(_conversation_npcs(), player_input)
         if isinstance(npc_target, dict):

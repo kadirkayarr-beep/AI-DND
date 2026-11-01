@@ -11,7 +11,6 @@ from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 class OwnWordsAndConfessions(ThreePlaysTests):
     async def scene(self, *people):
         await self.begin(FIGHTER)
-        self.session._experimental_npc_dialogue_enabled = True  # as api.local_play runs it
         self.world["npcs"].clear()
         return [self.add_person(name, role) for name, role in people]
 
@@ -94,7 +93,6 @@ class WaitingPassesTime(ThreePlaysTests):
 class OneTownScene(ThreePlaysTests):
     async def town(self):
         await self.begin(FIGHTER)
-        self.session._experimental_npc_dialogue_enabled = True
         self.world["npcs"].clear()
         self.city = self.world["location"]
         self.world["locations"]["shop"] = {
@@ -478,3 +476,24 @@ class FoundInRealPlay(OneTownScene):
         out = await self.say(f"{inn['name']} içine gidip uyuyorum sabaha kadar", PlayClient())
         self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 3600, out["narration"])
         self.assertEqual(self.world["location"], inn["id"], out["narration"])
+
+
+class FoundInRealPlayAgain(OneTownScene):
+    async def test_a_name_and_a_question_word_reach_that_person_without_a_mark(self):
+        await self.town()
+        self.add_person("Finnan", "Kent sakini")
+        out = await self.say("finnan bu duman nerden geliyor sence", PlayClient(spoken="Bana sorma, ben de baktım."))
+        self.assertIn("Bana sorma, ben de", out["narration"], out["turn_outcome"])
+
+    async def test_asking_what_someone_knows_admits_nothing(self):
+        await self.town()
+        person = self.add_person("Finnan", "Kent sakini")
+        await self.say("finnan dün kimi öldürdüm biliyor musun", PlayClient(spoken="Hayır."))
+        self.assertNotIn("kendi ağzıyla", self.note(person))
+
+    async def test_a_second_long_walk_to_bed_does_not_stop_at_the_door(self):
+        await self.town()
+        import local_places
+        inn = local_places.create_local_place(self.world, self.city, "temple")
+        out = await self.say(f"{inn['name']} içine gidip uyuyorum", PlayClient())
+        self.assertGreaterEqual(self.world["campaign_time"]["elapsed_seconds"], 8 * 3600, out["narration"])

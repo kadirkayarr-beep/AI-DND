@@ -266,6 +266,9 @@ _OWN_DEEDS = (
 )
 
 
+_ASKING = re.compile(r"\b(?:kimi|neyi|neden|niye|mi|mu|misin|musun)\b")  # "kimi öldürdüm biliyor musun" admits nothing
+
+
 def _deed_meant(session, text: str, kinds: tuple[str, ...]) -> dict[str, Any] | None:
     """The real deed the words mean: the one naming its victim, else the latest, unless they name someone else."""
     world = session.world_state
@@ -289,7 +292,7 @@ def hear_confession(session, text: Any) -> bool:
     hearers = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)]
     folded = fold(session, text)
     said = [kinds for kinds, pattern in _OWN_DEEDS if pattern.search(folded)]
-    if not hearers or not said:
+    if not hearers or not said or _ASKING.search(folded):
         return False
     for kinds in said:
         deed = _deed_meant(session, text, kinds) or remember(session, "claim", f"“{text[:120]}”", seen=False)
