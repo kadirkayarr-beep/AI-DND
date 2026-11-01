@@ -3,7 +3,6 @@
 Every line here is the kind of thing typed in play. No real model is called.
 """
 import unittest
-from unittest.mock import patch
 
 import campaign_time
 import living_world
@@ -19,7 +18,6 @@ from adventure import dialogue_jobs
 
 from api.tests import test_play_consequences as consequences
 from api.tests import test_story_links as links
-from api.tests import test_thread_gate as gate_tests
 from api.tests.test_world_threads import DAY
 
 
