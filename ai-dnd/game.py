@@ -18564,17 +18564,18 @@ def _dispatch_player_turn(
         parcel_read = dialogue_jobs.read_parcel(_session(), player_input)
         if parcel_read is not None:
             return parcel_read
-        import bound_text
-        if (read or {}).get("kind") != "speak_to":
-            looked_at = (getattr(_session(), "_front_found", None) or ("", ""))[1] if (read or {}).get("kind") == "look" else ""
-            paper_read = bound_text.read_turn(_session(), player_input, looked_at)
-            if paper_read is not None:
-                return paper_read
         import town_knowledge
         # A line the reading gave to a person is said to them, whatever board it mentions.
         board = None if (read or {}).get("kind") == "speak_to" else town_knowledge.board_turn(_session(), player_input)
         if board is not None:
             return board
+        import bound_text
+        if (read or {}).get("kind") != "take":  # 'alıp okuyorum': the taking owns it and reads on
+            looked_at = (getattr(_session(), "_front_found", None) or ("", ""))[1] if (read or {}).get("kind") == "look" else ""
+            paper_read = bound_text.read_turn(_session(), player_input, looked_at,
+                                              to_someone=(read or {}).get("kind") == "speak_to")
+            if paper_read is not None:
+                return paper_read
         import pocket
         pocketed = pocket.resolve(_session(), player_input)
         if pocketed is not None:

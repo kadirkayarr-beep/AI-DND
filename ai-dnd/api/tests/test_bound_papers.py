@@ -69,6 +69,38 @@ class Papers(FrontTable):
         reply = await self.line("yerdeki notu okuyom")
         self.assertIn("Kâğıtta şunlar yazıyor", reply["narration"])
 
+    async def test_a_slip_the_screen_just_told_of_has_words_and_stays_out_of_the_bag(self):
+        await self.quiet_town()
+        self.session.messages.append({"role": "assistant", "content": "Yığının çoğu sararmış teslim fişleri."})
+        self.client.front = {"kind": "look", "thing_word": "fiş"}
+        first = await self.line("teslim fislerinden birini okuyom")
+        self.assertTrue(any(row in first["narration"] for row in self.texts("makbuz")), first["narration"])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        self.assertEqual((await self.line("fisi bi daha okuyom"))["narration"], first["narration"])
+        self.assertFalse(any("fiş" in str(item.get("name", "")).casefold() for item in self.world["inventory"]
+                             if isinstance(item, dict)))
+
+    async def test_a_whisper_is_no_paper(self):
+        await self.quiet_town()
+        self.session.messages.append({"role": "assistant", "content": "Köşeden bir fısıltı geliyor."})
+        self.client.front = {"kind": "look"}
+        reply = await self.line("fisiltiyi okuyom")
+        self.assertNotIn("Kâğıtta şunlar yazıyor", reply["narration"])
+
+    async def test_the_board_stays_the_board_when_the_screen_spoke_of_it(self):
+        await self.begin()
+        self.thread["place_id"] = self.a_place()
+        self.session.messages.append({"role": "assistant", "content": "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş."})
+        reply = await self.line("ilan panosunda ne yaziyo bi bakiyim")
+        self.assertIn("Panoya çivili", reply["narration"])
+
+    async def test_asking_someone_what_a_paper_says_is_for_them_to_answer(self):
+        await self.quiet_town()
+        self.paper()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        reply = await self.line("usta bu parsomende ne yaziyo?")
+        self.assertNotIn("Kâğıtta şunlar yazıyor", reply["narration"])
+
     async def test_reading_moves_no_coin_no_clock_no_bag_and_no_quest(self):
         await self.quiet_town()
         self.paper("Buruşuk makbuz")

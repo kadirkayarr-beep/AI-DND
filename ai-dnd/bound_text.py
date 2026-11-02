@@ -168,7 +168,7 @@ def choose_paper(world: dict[str, Any], key: str, kinds: list[str], *, public: b
 
 def _paper_kinds(name: Any) -> list[str]:
     table = rules().get("paper_kinds", {})
-    words = living_world.normalize_text(name).split()
+    words = [word for word in living_world.normalize_text(name).split() if not word.startswith(tuple(rules().get("not_paper", ())))]
     return next((kinds for stem, kinds in table.items() if any(word.startswith(stem) for word in words)), [])
 
 
@@ -178,8 +178,10 @@ def _means(name: str, words: list[str]) -> bool:
     return any(word.startswith(stem) for word in words for stem in stems)
 
 
-def _paper_meant(world: dict[str, Any], words: list[str]) -> tuple[str, list[str]] | None:
-    """A paper in the bag or lying right here that these words name. Reading one takes really reaching it."""
+def _paper_meant(session: Any, words: list[str]) -> tuple[str, list[str]] | None:
+    """A paper in the bag, lying right here, or just told on the screen, that these words name."""
+    import pocket
+    world = session.world_state
     held = set((world.get("equipment") or {}).values())
     for item in world.get("inventory", []):
         name = item.get("name") if isinstance(item, dict) else None
@@ -191,20 +193,31 @@ def _paper_meant(world: dict[str, Any], words: list[str]) -> tuple[str, list[str
         if (isinstance(feature, dict) and feature.get("location") == world.get("location") and not feature.get("hidden")
                 and not feature.get("text") and _paper_kinds(feature.get("name")) and _means(str(feature.get("name")), words)):
             return f"feature:{feature.get('id')}", _paper_kinds(feature.get("name"))
+    prefix = f"shown:{world.get('location')}:"
+    state = _state(world)
+    for key in state["things"] if state else ():  # told a while ago and read already: that same paper
+        if key.startswith(prefix) and _means(key.removeprefix(prefix), words):
+            return key, []
+    for raw in pocket._shown(session):
+        if _paper_kinds(raw) and _means(raw, words):
+            stem = next(stem for stem in rules()["paper_kinds"] if living_world.normalize_text(raw).startswith(stem))
+            return f"{prefix}{stem}", _paper_kinds(raw)
     return None
 
 
-def paper_words(world: dict[str, Any], text: Any, looked_at: str = "") -> str | None:
+def paper_words(session: Any, text: Any, looked_at: str = "", *, to_someone: bool = False) -> str | None:
     """The screen line for the paper this line reads, or None. looked_at is the thing a look was read as being on."""
     import world_threads
     from adventure import dialogue_jobs
+    world = session.world_state
     if not isinstance(text, str) or world.get("combat", {}).get("active"):
         return None
     folded = living_world.normalize_text(text)
-    reads = ("?" not in text and dialogue_jobs._READING.search(folded)) or dialogue_jobs._ASKS_WHAT_IT_SAYS.search(folded)
-    if not reads and not looked_at:
+    reads = "?" not in text and dialogue_jobs._READING.search(folded)
+    asks = dialogue_jobs._ASKS_WHAT_IT_SAYS.search(folded) and not to_someone  # asked of a person, it is theirs to answer
+    if not reads and not asks and not looked_at:
         return None
-    paper = _paper_meant(world, folded.split() if reads else living_world.normalize_text(looked_at).split())
+    paper = _paper_meant(session, folded.split() if reads or asks else living_world.normalize_text(looked_at).split())
     if paper is None:
         return None
     kept = seen(world, paper[0])
@@ -217,9 +230,9 @@ def paper_words(world: dict[str, Any], text: Any, looked_at: str = "") -> str | 
     return PAPER_LINE.format(words=kept["text"])
 
 
-def read_turn(session: Any, text: Any, looked_at: str = "") -> dict[str, Any] | None:
+def read_turn(session: Any, text: Any, looked_at: str = "", *, to_someone: bool = False) -> dict[str, Any] | None:
     """Reading a paper is its own turn: Python's words, and nothing else about the world moves."""
-    shown = paper_words(session.world_state, text, looked_at)
+    shown = paper_words(session, text, looked_at, to_someone=to_someone)
     if shown is None:
         return None
     flags = session.world_state.setdefault("flags", {})

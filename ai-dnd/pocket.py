@@ -235,7 +235,7 @@ def bag_names(world: dict[str, Any]) -> list[str]:
 
 def _receipt(session, text: str, line: str) -> dict[str, Any]:
     import bound_text
-    read_out = bound_text.paper_words(session.world_state, text)  # 'alıp okuyorum': the taking made it readable
+    read_out = bound_text.paper_words(session, text)  # 'alıp okuyorum': the taking made it readable
     line = f"{line} {read_out}" if read_out else line
     flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
