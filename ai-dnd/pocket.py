@@ -48,7 +48,8 @@ def _shown(session) -> list[str]:
     """The words of the last few things the screen said, in order."""
     said = [item.get("content") for item in reversed(session.messages)
             if isinstance(item, dict) and item.get("role") == "assistant" and isinstance(item.get("content"), str)]
-    return _THING_WORD.findall(told_as_there("\n".join(reversed(said[:_SHOWN_TURNS]))))
+    told = [text for text in getattr(session, "recent_dm_narrations", ()) if isinstance(text, str)]  # the narrator's turns live here
+    return _THING_WORD.findall(told_as_there("\n".join([*told[-_SHOWN_TURNS:], *reversed(said[:_SHOWN_TURNS])])))
 
 
 def _fixed_here(world: dict[str, Any]) -> tuple[str, ...]:

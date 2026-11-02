@@ -80,6 +80,15 @@ class Papers(FrontTable):
         self.assertFalse(any("fiş" in str(item.get("name", "")).casefold() for item in self.world["inventory"]
                              if isinstance(item, dict)))
 
+    async def test_a_paper_the_narrator_told_of_a_turn_ago_is_read(self):
+        await self.quiet_town()
+        self.world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=-1)
+        self.npc["location"] = "elsewhere"
+        self.session.recent_dm_narrations.append("sokağın kenarında sararmış bir yığın eski kâğıt görünüyor.")
+        self.client.front = {"kind": "look", "thing_word": "kağıt"}
+        reply = await self.line("yerdeki eski bir kagidi okuyom")
+        self.assertIn("Kâğıtta şunlar yazıyor", reply["narration"])
+
     async def test_a_whisper_is_no_paper(self):
         await self.quiet_town()
         self.session.messages.append({"role": "assistant", "content": "Köşeden bir fısıltı geliyor."})
