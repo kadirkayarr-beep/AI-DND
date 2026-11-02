@@ -260,14 +260,24 @@ def found_in(reply: Any, line: str) -> tuple[str, str]:
 
 
 def rest_in(reply: Any, line: str) -> str:
-    """The second part of a two-part line, only if the player really said it: Python never hands on the model's words."""
+    """The second part of a two-part line, in the player's own words: the model only points at where it starts."""
     import living_world
     front = reply.get("front") if isinstance(reply, dict) else None
     rest = front.get("also_says") if isinstance(front, dict) else None
-    rest = rest.strip() if isinstance(rest, str) else ""
-    said = living_world.normalize_text(line)
-    words = living_world.normalize_text(rest).split()
-    return rest if words and sum(part[:4] in said for part in words) * 10 >= len(words) * 7 else ""
+    wanted = living_world.normalize_text(rest if isinstance(rest, str) else "").split()
+    raw = str(line).split()
+    folded = [living_world.normalize_text(word) for word in raw]
+
+    def same(word: str, other: str) -> bool:
+        return bool(word and other) and (word.startswith(other[:4]) or other.startswith(word[:4]))
+
+    for start, word in enumerate(folded):
+        if not wanted or not same(word, wanted[0]):
+            continue
+        found = sum(any(same(part, mine) for mine in folded[start:]) for part in wanted)
+        if found * 10 >= len(wanted) * 7:
+            return " ".join(raw[start:]).strip()
+    return ""
 
 
 def person_word_in(reply: Any) -> str:

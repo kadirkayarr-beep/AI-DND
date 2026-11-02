@@ -17901,24 +17901,28 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
         return result
     session._front_rest = ""
     session._thread_gate_done = True
+    flags = session.world_state.setdefault("flags", {})
+    turn = flags.get("turn_index", 0)
     try:
         said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
     finally:
         session._thread_gate_done = False
+    if flags.get("turn_index", 0) > turn:
+        flags["turn_index"] = turn  # one line is one turn: the second part stands under the first part's index
     line = said.get("narration") or ""
     if _is_stock(line):
         line = _person_fallback(session.world_state, hearer, rest)
     result["narration"] = f"{result.get('narration') or ''} {line}".strip()
-    # The words took a turn index of their own: what the first part proved is handed on under the turn that commits.
+    # Both parts are one turn: what each proved is handed on together, under that one turn's index.
     first, last = result.get("_engine_event_evidence"), said.get("_engine_event_evidence")
     if first and last:
         last["quest_outcomes"] = [*first["quest_outcomes"], *last["quest_outcomes"]]
         last["procedural_entity_ids"] = sorted({*first["procedural_entity_ids"], *last["procedural_entity_ids"]})
     if last:
         result["_engine_event_evidence"] = last
-    elif first:
-        turn = session.world_state.get("flags", {}).get("turn_index")
-        first.update(turn_index=turn, action_id=f"turn:{turn}")
+    kept = result.get("_engine_event_evidence")
+    if kept:
+        kept.update(turn_index=turn, action_id=f"turn:{turn}")
     return result
 
 

@@ -491,6 +491,24 @@ class ALineWithTwoPartsDoesBoth(FrontTable):
         self.assertEqual(reply["turn_outcome"]["action"], "purchase")
         self.assertLessEqual(self.client.chat_calls, 2)
 
+    async def test_the_person_hears_the_players_own_words_and_the_line_is_one_turn(self):
+        await self.tavern()
+        turn = self.world["flags"].get("turn_index", 0)
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"],
+                             "also_says": "soylulardan biri adam arıyor mu, duydun mu?"}
+        reply = await self.line(self.LINE, "Ben duymadım.")
+        self.assertIn("Ben duymadım.", reply["narration"])
+        self.assertIn(self.REST, str(self.client.message_batches[-1]))
+        self.assertNotIn("arıyor mu, duydun mu?", str(self.client.message_batches[-1]))
+        self.assertEqual(self.world["flags"]["turn_index"], turn + 1)
+
+    async def test_a_second_part_made_of_words_the_player_never_said_is_dropped(self):
+        await self.tavern()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"],
+                             "also_says": "soylu onu öldürdüm biliyor"}
+        await self.line("ver bi bira, soylular hakkında bir şey biliyor musun", "Bilmem.")
+        self.assertNotIn("öldürdüm", str(self.client.message_batches))
+
     async def test_a_rest_the_line_never_said_is_not_said(self):
         await self.tavern()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"],
