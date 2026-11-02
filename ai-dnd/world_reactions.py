@@ -55,7 +55,8 @@ _ARRESTS = (
     "{who} elini omzuna koyuyor. “Tanıklar seni tarif etti: {text}. Silahını bırak, karakola yürüyoruz.”",
     "{who} önüne geçip yolunu kapatıyor. “{Text}, seni gören var. Karakola geliyorsun; zorluk çıkarma.”",
 )
-_RESISTED = "{who} silahını çekiyor. “Yeter. Sözle gelmiyorsan zorla götürürüm.”"
+_LET_GO = "{who} bir süre yüzüne bakıyor, sonra başını sallıyor. “Peki. Şimdilik yoluna bak; ama gözüm üstünde.”"
+_RESISTED ="{who} silahını çekiyor. “Yeter. Sözle gelmiyorsan zorla götürürüm.”"
 _GOT_AWAY = "Arkandan bağırışlar yükseliyor ama {who} izini kaybediyor; şimdilik sıyrıldın."
 _CAUGHT_UP = "{who} arkandan yetişip yolunu kesiyor, silahı elinde. “Kaçamazsın!”"
 _TOOK_THE_BRIBE = "{who} parayı avucunda tartıp cebine atıyor. “Seni görmedim.” Arkasını dönüp gidiyor; {amount} bakır kesenden çıktı."
@@ -539,8 +540,20 @@ def _flight(session, guard: dict[str, Any], deed: dict[str, Any]) -> list[str]:
     return _force(session, guard, deed, _CAUGHT_UP)
 
 
-def _press(session) -> list[str]:
-    """What follows the question: a hand on the shoulder, and then the player's choice has its answer."""
+def _answered(session, guard: dict[str, Any], result: Any) -> bool:
+    """The player spoke to the guard who asked, this turn."""
+    action = result.get("action_result") if isinstance(result, dict) else None
+    return isinstance(action, dict) and action.get("npc_id") == guard.get("id") and action.get("action") == "dialogue"
+
+
+def _talking_skill(session) -> str:
+    return "Deception" if "Deception" in (session.character.get("proficient_skills") or ()) else "Persuasion"
+
+
+def _press(session, result: Any = None) -> list[str]:
+    """What follows the question: the answer is weighed, then a hand on the shoulder, then the player's choice."""
+    import bold_acts
+    import game
     world = session.world_state
     turn = _turn(world)
     for deed in _deeds(world):
@@ -556,6 +569,10 @@ def _press(session) -> list[str]:
         if world.get("location") != hold["place"]:
             return _flight(session, guard, deed)
         if not hold.get("arrest"):
+            if _answered(session, guard, result) and bold_acts._check(
+                    session, _talking_skill(session), game.DIFFICULTY_DC["medium"])["result"] == "BAŞARILI":
+                deed.pop("hold")  # the answer held: this guard has asked and lets it go
+                return [_LET_GO.format(who=_who(guard))]
             hold.update(arrest=True, turn=turn)
             session._set_scene_active_npc(guard, turn)
             text = str(deed.get("text") or "").rstrip(".")
@@ -699,7 +716,7 @@ def answer(session, result: Any) -> None:
     lines += _watch_comes(session, now)
     lines += _search(session, now)
     lines += _overheard(session)
-    law = _settle_the_law(session) or _press(session) or _challenge(session)
+    law = _settle_the_law(session) or _press(session, result) or _challenge(session)
     if world.get("combat", {}).get("active"):
         lines = []  # the fight is what the turn is about now
     lines = [*lines, *law][-MAX_LINES_PER_TURN:] or _board_hint(world, result)

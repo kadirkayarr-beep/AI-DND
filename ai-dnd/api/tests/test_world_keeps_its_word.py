@@ -338,10 +338,30 @@ class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
 
     async def held(self):
         guard = await self.stopped()
-        out = await self.say("ben dun tapinakta calistim, rahibe sor", PlayClient(spoken="Dinliyorum."))
+        with patch.object(bold_acts, "_check", return_value={"result": "BAŞARISIZ"}):  # the answer did not convince
+            out = await self.say("ben dun tapinakta calistim, rahibe sor", PlayClient(spoken="Dinliyorum."))
         self.assertIn("karakola", out["narration"].casefold())
         self.assertFalse(self.world["combat"]["active"])
         return guard
+
+    async def test_an_answer_that_convinces_the_guard_ends_the_stop(self):
+        guard = await self.stopped()
+        with patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}) as check:
+            out = await self.say("ben dun tapinakta calistim, rahibe sor", PlayClient(spoken="Dinliyorum."))
+        check.assert_called()
+        self.assertNotIn("karakola", out["narration"].casefold())
+        self.assertNotIn("hold", self.deed())
+        out = await self.say("iyi aksamlar o zaman", PlayClient(spoken="Hm."))
+        self.assertFalse(self.world["combat"]["active"], out["narration"])
+        self.assertIsNone(world_reactions.arrester(self.world))
+        self.assertTrue(guard)
+
+    async def test_saying_nothing_to_the_guard_is_an_arrest(self):
+        await self.stopped()
+        with patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}) as check:
+            out = await self.wait("iki saat bekliyorum")
+        check.assert_not_called()
+        self.assertIn("karakola", out["narration"].casefold())
 
     async def test_the_question_is_followed_by_an_arrest_not_a_shrug(self):
         guard = await self.held()
