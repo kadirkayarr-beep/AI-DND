@@ -63,6 +63,39 @@ class OnlyALineAboutLeavingLeavesTown(FrontScene):
         return grounded_action.way_out_label(self.session) or ""
 
 
+class TheRoadOnIsNoWall(FrontScene):
+    OUT = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
+
+    async def test_told_why_not_once_the_player_can_still_walk_on_to_a_real_place(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("şehirden çıkıyorum, kuzey yoluna")
+        stop = self.world["location"]
+        first = await self.line("duraktan geçip kuzey yoluna devam ediyorum, şehirden uzaklaşıyorum")
+        self.assertEqual(self.world["location"], stop, first["narration"])
+        self.assertIn("“", first["narration"])
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        second = await self.line("günlerce gitmicem ki usta, yarım gün yürüyüp dönücem. yürüyorum ben")
+        here = self.world["locations"][self.world["location"]]
+        self.assertNotEqual(self.world["location"], stop, second["narration"])
+        self.assertTrue(local_places.PLACE_KINDS[here["place_kind"]].get("outdoors"), here)
+        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], clock)
+        self.assertNotEqual(self.routes()[-1]["status"], "not_now")
+        self.assertTrue([npc for npc in self.world["npcs"] if npc.get("location") == here["id"]])
+        self.assertEqual(local_places.settlement_of(self.world, here["id"]), here["parent_location_id"])
+
+    async def test_from_the_end_of_the_road_town_is_a_walk_back(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("şehirden çıkıyorum, kuzey yoluna")
+        await self.line("kuzey yoluna devam ediyorum")
+        await self.line("yürüyorum ben, yola devam")
+        town = self.world["locations"][self.world["location"]]["parent_location_id"]
+        self.client.front = {"kind": "go_to", "place_id": town}
+        out = await self.line("şehre geri dönüyorum")
+        self.assertEqual(self.world["location"], town, out["narration"])
+
+
 class OneCoinOneTruth(FrontScene):
     async def at_the_bar(self):
         await self.begin()

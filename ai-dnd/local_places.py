@@ -186,6 +186,23 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
                     "Yolda bir teker kırdık; sefer bu yüzden gecikti."),
                    ("Yolun kenarında boş bırakılmış bir araba duruyor.",
                     "Arabacılarımdan biri arabayı bırakıp gitti; yerine güvenilir biri lazım.")),
+        "road_on": "grove",  # walked on past the stop, the road reaches this, an hour out
+    },
+    # The end of the short road out: fields and a grove an hour past the caravan stop, still this town's.
+    "grove": {
+        "stems": ("korulu",), "suffix": "Koruluğu", "noun": "koruluk", "role": "Oduncu",
+        "outdoors": True, "walk_seconds": 3600,
+        "first_line": "Kervan durağı geride kalıyor; bir saatlik yol seni tarlaların arasından {name} kıyısına getiriyor.",
+        "descriptions": ("Kuzey yolunun kıyısında, tarlaların bittiği yerde seyrek bir koruluk.",
+                         "Yolun tarlalardan ayrılıp ağaçların arasına girdiği, gölgeli bir koruluk."),
+        "feature": ("Kesilmiş kütükler", "Yol kenarına istiflenmiş, kabuğu soyulmamış kütükler.",
+                    ["kutuk", "kutukler", "odun"]),
+        "activities": (("Kütükleri baltayla yarıyor.", "Odun kırıyorum."),
+                       ("Kesilecek ağaçları işaretliyor.", "Kesilecek ağaçları seçiyorum.")),
+        "issues": (("Kütüklerden biri yola devrilmiş; arabalar kenarından dolanıyor.",
+                    "Yolun ortasına bir kütük devrildi; tek başıma kaldıramıyorum."),
+                   ("Ağaçların arasında yeni sönmüş bir ateşin külleri duruyor.",
+                    "Geceleri birileri koruda ateş yakıyor; kim olduklarını bilmiyorum.")),
     },
     "stable": {
         "stems": ("ahir",), "suffix": "Ahırı", "noun": "ahır", "role": "Seyis",
@@ -548,7 +565,8 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
     marks = bold_acts.place_marks(world, record["id"])
     burning = bold_acts.is_burnt_or_burning(world, record["id"])
     if first_visit and spec.get("outdoors"):
-        parts.append(f"Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {record['name']}.")
+        parts.append(spec.get("first_line", "Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {name}.")
+                     .format(name=record["name"]))
         parts.append(str(record.get("description") or ""))
     elif first_visit:
         parts.append(f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")

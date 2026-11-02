@@ -2899,13 +2899,15 @@ def _walk_to_offer(session, player_input: str):
 
 
 _ROAD_ON = (
-    "{who} başını sallıyor. “Buradan öte günlerce yol var; kervan dolmadan kimse çıkmaz, yaya hiç gidilmez.”",
-    "{who} yola bakıp omuz silkiyor. “Bugün o yöne giden yok. Sefer yazılınca buradan kalkar, o zaman gel.”",
-    "{who} elini kaldırıyor. “Erzaksız, yol arkadaşısız o yola çıkan dönmez. Kervan kalkınca konuşuruz.”",
+    "{who} başını sallıyor. “Buradan öte günlerce yol var; kervansız yürüyen pek dönmez. Gideceksen sen bilirsin.”",
+    "{who} yola bakıp omuz silkiyor. “Bugün o yöne giden yok. Yine de yürüyeceksen yol açık, ben karışmam.”",
+    "{who} elini kaldırıyor. “Erzaksız, yol arkadaşısız o yolun sonu yok. Biraz yürüyüp dönersin, o kadar.”",
 )
 _ROAD_VERBS = frozenset({"go", "approach", "wander", "enter"})
 _BACK_TO_TOWN = ("sehr", "sehir", "kent", "geri")
-_ROAD_ON_ALONE = "Yol ufka doğru uzuyor; ne kalkacak bir kervan var ne yol arkadaşı. Buradan ötesi bugünün işi değil."
+_ROAD_END_SECONDS = 2 * 3600
+_ROAD_ON_ALONE = ("İki saat daha yürüyorsun. Yol tarlaların ve seyrek ağaçların arasından ufka uzanıyor; "
+                  "yakında ne bir yerleşim var ne bir han. Hâlâ yoldasın.")
 
 
 def _town_of(session) -> str | None:
@@ -2941,26 +2943,31 @@ def leaves_town(session, player_input: Any) -> bool:
 
 
 def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
-    """Standing where the town ends, the road on is someone's word on why not now: nothing moves and no journey is told."""
+    """Standing where the town ends, someone says once why not; asked again the player goes. None: an ordinary walk on."""
     import local_places
     world = session.world_state
     here = world.get("location")
     record = (world.get("locations") or {}).get(here) or {}
-    if not local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
+    spec = local_places.PLACE_KINDS.get(record.get("place_kind"), {})
+    if not spec.get("outdoors"):
         return None
     if _no_step_is_taken(session, player_input):
         return None
     person = local_places.resident_of(world, here)
-    if person is not None and person.get("combat_status") != "dead":
-        line = _pick(world, _ROAD_ON, here, world.get("flags", {}).get("turn_index", 0))
-        text = line.format(who=living_world.public_npc_name(person))
-    else:
-        text = _ROAD_ON_ALONE
     flags = world.setdefault("flags", {})
+    if not record.get("road_warned") and person is not None and person.get("combat_status") != "dead":
+        record["road_warned"] = True  # said once; the choice to go on stays the player's
+        line = _pick(world, _ROAD_ON, here, flags.get("turn_index", 0))
+        text, status, changes = line.format(who=living_world.public_npc_name(person)), "not_now", ["locations"]
+    elif spec.get("road_on"):
+        return None  # the walk on to the next real place on the road
+    else:  # the end of the short road: the hours are really walked, and nothing is found that is not there
+        _Run(session, player_input).spend(_ROAD_END_SECONDS)
+        text, status, changes = _ROAD_ON_ALONE, "walked", ["campaign_time"]
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     return {"messages": session.messages, "narration": text, "model_calls": 1,
-            "action_result": {"action": "travel", "status": "not_now", "success": False, "state_changes": [],
-                              "direct_response": text}}
+            "action_result": {"action": "travel", "status": status, "success": status == "walked",
+                              "state_changes": changes, "direct_response": text}}
 
 
 def _no_step_is_taken(session, player_input: Any) -> bool:
@@ -2995,11 +3002,14 @@ def _decide_way_out(session, player_input: str):
     if _no_step_is_taken(session, player_input):
         return "defer", None
     town = _town_of(session)
-    record = local_places.create_local_place(session.world_state, town, "waystation") if town else None
+    world = session.world_state
+    here = (world.get("locations") or {}).get(world.get("location")) or {}
+    kind = local_places.PLACE_KINDS.get(here.get("place_kind"), {}).get("road_on") or "waystation"
+    record = local_places.create_local_place(world, town, kind) if town else None
     if record is None:
         return "defer", None
     target = {"id": record["id"], "kind": "place", "names": [], "nouns": [], "label": record.get("name"), "record": record,
-              "place_kind": "waystation", "door_id": None, "door_locked": False}
+              "place_kind": kind, "door_id": None, "door_locked": False}
     step = {"verb": "go", "target": target, "negated": False}
     run = _Run(session, player_input)
     run.model_calls = 1  # the front reading chose this walk
