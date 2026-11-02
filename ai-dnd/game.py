@@ -18283,6 +18283,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     elif (route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory"
           and (_model_query_type_is_plausible(player_input) or equipment_economy._natural_inventory_query(player_input))):
         route = {"kind": "bag"}  # the label alone also fits moving a thing, and those lines have owners of their own
+    if route["kind"] == "go_to" and route.get("id") == front_proposal.WAY_OUT and not grounded_action.leaves_town(
+            session, player_input):
+        route = {"kind": "attempt"}  # a tavern, a courtyard, a house's gate, the hills: a walk in town the list did not hold
     if (route["kind"] in {"attempt", "unclear", "look", "go_to", "talk_around"} and route.get("id") != front_proposal.WAY_OUT
             and grounded_action.heads_on_past_the_town(session, player_input)):
         route = {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}  # a small model takes this for a stroll

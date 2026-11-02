@@ -2923,7 +2923,21 @@ def way_out_label(session) -> str | None:
     record = (world.get("locations") or {}).get(world.get("location")) or {}
     if local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
         return "Yolun ötesi: uzak şehirler, günlerce sürecek yol"
-    return "Şehrin dışı: kapı, surların ötesi, yollar, başka şehirler"
+    return "Şehrin dışı: surların ötesi, şehirden çıkan yollar, başka şehirler"
+
+
+# The words that name the town's edge: the town itself, its walls, a road. A house's gate or a street is still town.
+_TOWN_EDGE = re.compile(r"^(?:" + "|".join(_BACK_TO_TOWN[:3]) + r"|sur(?:$|un$|la)|yol(?!l))")
+
+
+def leaves_town(session, player_input: Any) -> bool:
+    """Leaving town takes a line about leaving it; from the road's own end the road's rules hold."""
+    import local_places
+    world = session.world_state
+    record = (world.get("locations") or {}).get(world.get("location")) or {}
+    if local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
+        return True
+    return any(_TOWN_EDGE.match(word) for word in fold(player_input).split())
 
 
 def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:

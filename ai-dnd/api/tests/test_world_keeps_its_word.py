@@ -515,7 +515,8 @@ class LeavingTown(FrontScene):
         await self.goes_out("sehrin disina cikiyorum, kuzey yoluna")
 
     async def test_out_for_another_city(self):
-        await self.goes_out("luskan'a gidiyorum")
+        # A bare name Python has no record of could be a person or a house of this town; the road out has to be said.
+        await self.goes_out("luskan'a gidiyorum, sehirden cikip kuzey yolundan")
 
     async def test_out_past_the_walls(self):
         await self.goes_out("surlarin disina gidiyorum")

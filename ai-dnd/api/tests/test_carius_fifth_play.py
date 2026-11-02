@@ -19,6 +19,50 @@ from api.tests.test_story_links import resident
 from api.tests.test_world_keeps_its_word import FrontScene
 
 
+class OnlyALineAboutLeavingLeavesTown(FrontScene):
+    OUT = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
+
+    def gate_road(self):
+        return [record for record in self.world["locations"].values()
+                if isinstance(record, dict) and local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors")]
+
+    async def stays_in_town(self, line):
+        await self.begin()
+        self.client.front = self.OUT
+        out = await self.line(line)
+        self.assertEqual(self.gate_road(), [], out["narration"])
+        self.assertNotIn("surların dışı", out["narration"])
+
+    async def test_hills_someone_pointed_at_are_in_town(self):
+        await self.stays_in_town("tamam sağol, gösterdiği tepelere doğru yürüyorum")
+
+    async def test_a_tavern_is_in_town(self):
+        await self.stays_in_town("meyhaneye gidiyorum")
+
+    async def test_a_houses_outer_gate_is_in_town(self):
+        await self.stays_in_town("hala salondayım galiba. salondan çıkıp avluya, dış kapıya gidiyorum")
+
+    async def test_walking_someone_out_to_the_street_is_in_town(self):
+        await self.stays_in_town(
+            "yamalıya sakin ama sert: dışarı. kapıyı gösterip arkasından yürüyorum, sokağa çıkana kadar peşindeyim")
+
+    async def test_a_line_that_leaves_town_still_leaves_it(self):
+        await self.begin()
+        self.client.front = self.OUT
+        out = await self.line("ben şimdi şehirden çıkıp yola düşüyorum, civarı bi kolaçan edicem, ana yoldan kuzeye doğru")
+        self.assertEqual([record["id"] for record in self.gate_road()], [self.world["location"]], out["narration"])
+
+    async def test_the_list_does_not_call_a_door_the_way_out(self):
+        await self.begin()
+        self.client.front = {"kind": "look"}
+        await self.line("etrafa bakıyorum")
+        self.assertNotIn("kapı", self.world_label())
+
+    def world_label(self):
+        import grounded_action
+        return grounded_action.way_out_label(self.session) or ""
+
+
 class OneCoinOneTruth(FrontScene):
     async def at_the_bar(self):
         await self.begin()
