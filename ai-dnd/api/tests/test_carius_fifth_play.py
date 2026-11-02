@@ -52,6 +52,20 @@ class OnlyALineAboutLeavingLeavesTown(FrontScene):
         out = await self.line("ben şimdi şehirden çıkıp yola düşüyorum, civarı bi kolaçan edicem, ana yoldan kuzeye doğru")
         self.assertEqual([record["id"] for record in self.gate_road()], [self.world["location"]], out["narration"])
 
+    async def test_other_words_for_the_town_its_roads_and_walls_leave_it_too(self):
+        for line in ("kasabadan çıkıp yollara düşüyorum", "köyden çıkıp gidiyorum"):
+            with self.subTest(line=line):
+                await self.begin()
+                self.client.front = self.OUT
+                out = await self.line(line)
+                self.assertEqual([record["id"] for record in self.gate_road()], [self.world["location"]], out["narration"])
+
+    async def test_sending_a_letter_is_no_road(self):
+        await self.stays_in_town("kardeşime bi mektup yolluyorum")
+
+    async def test_over_there_is_no_wall(self):
+        await self.stays_in_town("şurdan meyhaneye gidiyorum")
+
     async def test_the_list_does_not_call_a_door_the_way_out(self):
         await self.begin()
         self.client.front = {"kind": "look"}

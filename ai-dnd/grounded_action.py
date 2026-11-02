@@ -2932,7 +2932,10 @@ def way_out_label(session) -> str | None:
 
 
 # The words that name the town's edge: the town itself, its walls, a road. A house's gate or a street is still town.
-_TOWN_EDGE = re.compile(r"^(?:" + "|".join(_BACK_TO_TOWN[:3]) + r"|sur(?:$|un$|la)|yol(?!l))")
+# 'köy' takes only a noun's endings, since 'koyuyorum' is putting something down; 'yollar' is roads, 'yolluyorum'
+# sending. 'sur' keeps its few endings: folded, 'şurda' and 'şurdan' read 'surda', 'surdan'.
+_TOWN_EDGE = re.compile(r"^(?:" + "|".join(_BACK_TO_TOWN[:3]) + r"|kasaba|koy(?:$|e$|de$|den$|ler)"
+                        r"|sur(?:$|un$|la)|yol(?!l)|yollar(?!im$))")
 
 
 def leaves_town(session, player_input: Any) -> bool:
