@@ -402,12 +402,13 @@ def link_note(world: dict[str, Any], npc: Any) -> str:
     for link in links(state):
         if link.get("caller_id") == npc.get("id"):
             notes.append(world_threads._fill(lines.get(f"caller_{link['tone']}", ""), owner=_link_owner(world, link),
-                                             what=_link_matter(world, link)))
+                                             what=_link_matter(world, link, spoken=True)))
             if npc.get("message"):
                 notes.append(world_threads._fill(lines.get("caller_message", ""), message=npc["message"]))
-            if local_places.inner_room_of(world, link["place_id"]) is not None:
+            room = _summoning_room(world, link)
+            if room is not None:
                 notes.append(world_threads._fill(lines.get("summons", ""), owner=_link_owner(world, link),
-                                                 place=world.get("locations", {}).get(link["place_id"], {}).get("name", "")))
+                                                 place=room.get("name", "")))
         elif link.get("owner_npc_id") == npc.get("id") and link.get("fires_at") is not None:
             notes.append(world_threads._fill(lines.get(f"coming_{link['tone']}", ""), when=_spoken_time(world, link["fires_at"]),
                                              what=_link_matter(world, link)))
@@ -423,9 +424,24 @@ def _speaks_for(world: dict[str, Any], link: dict[str, Any], npc: dict[str, Any]
     return link.get("owner_npc_id") == npc.get("id") or bool(room and npc.get("place_role_of") == room["id"])
 
 
+def _of_the_house(world: dict[str, Any], link: dict[str, Any]) -> bool:
+    """Whoever sent the caller speaks for the house it came from: its keeper, its master, or nobody named."""
+    npc = world_threads._npc(world, link.get("owner_npc_id"))
+    room = local_places.inner_room_of(world, link["place_id"])
+    return npc is None or npc.get("place_role_of") in {link["place_id"], (room or {}).get("id")}
+
+
+def _summoning_room(world: dict[str, Any], link: dict[str, Any]) -> dict[str, Any] | None:
+    """The room behind the house's door the player is sent to; none when already in it or when the house sent nobody."""
+    room = local_places.inner_room_of(world, link["place_id"])
+    if room is None or world.get("location") == room["id"] or not _of_the_house(world, link):
+        return None
+    return room
+
+
 def _link_owner(world: dict[str, Any], link: dict[str, Any]) -> str:
     import vouching
-    title = vouching.head_title(world, link["place_id"])
+    title = vouching.head_title(world, link["place_id"]) if _of_the_house(world, link) else None
     if title:
         return title
     npc = world_threads._npc(world, link.get("owner_npc_id"))
@@ -433,9 +449,11 @@ def _link_owner(world: dict[str, Any], link: dict[str, Any]) -> str:
         world_threads.job_lines("link", "someone") or "")
 
 
-def _link_matter(world: dict[str, Any], link: dict[str, Any]) -> str:
+def _link_matter(world: dict[str, Any], link: dict[str, Any], *, spoken: bool = False) -> str:
+    """What the link is about. Said aloud, a job's posting is no matter: the thing itself, or what was said."""
     about = world_threads.by_id(world, link.get("about_thread_id")) or {}
-    return (about.get("item_noun") or about.get("public_line") or world_threads.job_lines("link", "no_matter") or "").rstrip(" .")
+    posting = None if spoken else about.get("public_line")
+    return (about.get("item_noun") or posting or world_threads.job_lines("link", "no_matter") or "").rstrip(" .")
 
 
 def _settle_up(world: dict[str, Any], link: dict[str, Any]) -> None:
@@ -467,8 +485,9 @@ def _why_sent(world: dict[str, Any], link: dict[str, Any], words: dict[str, Any]
         return why.get("assault", "")
     if kind in {"theft", "theft_unseen"}:
         return why.get("theft", "")
-    if link.get("about_thread_id"):
-        return world_threads._fill(why.get("about", ""), what=_link_matter(world, link))
+    about = world_threads.by_id(world, link.get("about_thread_id")) or {}
+    if about.get("item_noun"):  # a job's posting is no matter to hold against anyone: then it is what was said
+        return world_threads._fill(why.get("about", ""), what=_link_matter(world, link, spoken=True))
     return why.get("said", "")
 
 
@@ -482,10 +501,10 @@ def _message(world: dict[str, Any], link: dict[str, Any], words: dict[str, Any])
     """What they were sent to say, made of the ledger entry that sent them."""
     seed = world_threads.living_world._campaign_seed(world)
     line = _nth(link, (words.get("messages") or {}).get(link["tone"]), seed)
-    text = world_threads._fill(line, why=_why_sent(world, link, words), what=_link_matter(world, link))
-    if local_places.inner_room_of(world, link["place_id"]) is not None:
-        place = world.get("locations", {}).get(link["place_id"], {}).get("name", "")
-        text = f"{text} {world_threads._fill(words.get('summons', ''), place=place)}"
+    text = world_threads._fill(line, why=_why_sent(world, link, words), what=_link_matter(world, link, spoken=True))
+    room = _summoning_room(world, link)
+    if room is not None:
+        text = f"{text} {world_threads._fill(words.get('summons', ''), place=room.get('name', ''))}"
     return text.strip()
 
 
@@ -536,7 +555,8 @@ def caller_comes(session: Any, now: int) -> list[str]:
         if not isinstance(npc, dict):
             continue
         link.update(caller_id=npc["id"], status="arrived")
-        vouching.summoned(world, link)
+        if _of_the_house(world, link):
+            vouching.summoned(world, link)
         message = _message(world, link, words)
         npc.update(caller_of=link["thread_id"], came_from=link["place_id"], back_at=now + CALLER_STAYS_SECONDS,
                    leaves_turn=int(world.get("flags", {}).get("turn_index", 0) or 0) + CALLER_TALK_TURNS, message=message)
@@ -544,7 +564,7 @@ def caller_comes(session: Any, now: int) -> list[str]:
         if isinstance(profile, dict):  # who they are is why they came, not a trade drawn for a stranger
             profile.update(occupation=world_threads._fill(words.get("occupation", ""), owner=_link_owner(world, link)),
                            current_activity=words.get("activity", ""),
-                           immediate_goal=world_threads._fill(words.get("goal", ""), what=_link_matter(world, link)),
+                           immediate_goal=world_threads._fill(words.get("goal", ""), what=_link_matter(world, link, spoken=True)),
                            reason_for_being_here=world_threads._fill(words.get("reason", ""), owner=_link_owner(world, link)))
         row = _row_of(state, link)
         if row:

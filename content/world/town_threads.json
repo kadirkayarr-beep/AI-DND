@@ -680,7 +680,7 @@
         "sent": "Karşındakine adamını sen gönderdin ve onu buldu; mesele: {what}. Bu kişiyi tanıyorsun, inkâr etme, ondan ne istediğini kendi ağzınla söyle. {letter}",
         "sent_letter": "Mektupta şu yazıyordu: {words}",
         "summons": "{owner} onu {place} içinde görmek istiyor; bunu söyle.",
-        "caller_message": "Getirdiğin söz aynen şu: {message} Sorulursa bunu söyle, \"bilmem\" deme; söyledikten sonra işin bitti.",
+        "caller_message": "Getirdiğin söz şuydu: {message} Haberi soran olursa bunu söyle. Başka bir şey sorulursa, kimin gönderdiğini ve meselenin ne olduğunu bildiğin kadarıyla kendi sözünle cevapla, sorulana cevap ver; bilmediğini bilmediğini söyleyerek geç, aynı sözü tekrar etme.",
         "caller_warned": "Seni {owner} gönderdi. Mesele: {what}. Bunu biliyorsun; kimin adına geldiğini saklamıyorsun, para teklif etme, kendi tavrınla konuş.",
         "caller_opened": "Seni {owner} gönderdi. Mesele: {what}; mührü kırıldı ve bunu karşındakinin yaptığını biliyorsun. Bedelini hatırlat, para teklif etme, mektupta ne yazdığını bilmiyorsun.",
         "caller_kept": "Seni {owner} gönderdi. Mesele: {what} geri dönmedi, karşındakinde kaldı; geri almaya geldin. Para teklif etme.",

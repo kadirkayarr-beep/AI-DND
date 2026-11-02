@@ -52,6 +52,54 @@ class OneCoinOneTruth(FrontScene):
         self.assertIn("100", out["narration"])
 
 
+class MessengersSayWhatHappened(unittest.TestCase):
+    def house_link(self, owner=None, about=None):
+        world, state, record, steward, room = a_house()
+        link = world_happenings.tie(world, world_happenings.CALLER, "warned", owner or steward, record["id"], about=about)
+        link.pop("fires_at")
+        words = world_threads.job_lines("link", "caller")
+        return world, state, record, steward, room, link, words
+
+    def test_a_job_posting_is_not_spoken_as_the_matter(self):
+        world, state, record, steward, room = a_house()
+        thread = state["threads"][0]
+        thread.pop("item_noun", None)
+        thread["public_line"] = "Ulivem gece bekçisi arıyor, Mazduşa Konağı için."
+        link = world_happenings.tie(world, world_happenings.CALLER, "warned", steward, record["id"],
+                                    about=thread["thread_id"])
+        link.pop("fires_at")
+        message = world_happenings._message(world, link, world_threads.job_lines("link", "caller"))
+        self.assertNotIn(thread["public_line"].rstrip(" ."), message)
+        self.assertNotIn("meselesini unutmadı", message)
+
+    def test_standing_in_the_house_the_messenger_points_to_the_room_not_the_house(self):
+        world, state, record, steward, room, link, words = self.house_link()
+        world["location"] = record["id"]
+        message = world_happenings._message(world, link, words)
+        self.assertNotIn(f"Seni {record['name']} içinde", message)
+        self.assertIn(room["name"], message)
+        world["location"] = room["id"]
+        self.assertNotIn("görmek istiyor", world_happenings._message(world, link, words))
+
+    def test_someone_who_is_not_the_house_sends_in_their_own_name(self):
+        world, state, record, steward, room = a_house()
+        struck = resident(world, record["id"], "yamali")
+        struck.pop("place_role_of", None)
+        link = world_happenings.tie(world, world_happenings.CALLER, "warned", struck, record["id"])
+        self.assertNotIn("sahibi", world_happenings._link_owner(world, link))
+        words = world_threads.job_lines("link", "caller")
+        self.assertNotIn("görmek istiyor", world_happenings._message(world, link, words))
+
+    def test_a_messenger_asked_something_answers_it_rather_than_repeat(self):
+        world, state, record, steward, room, link, words = self.house_link()
+        caller = resident(world, record["id"], "ulak")
+        caller.update(caller_of=link["thread_id"], message="Bir dahakine lafla gelmem, dedi.")
+        link["caller_id"] = caller["id"]
+        note = world_happenings.link_note(world, caller)
+        self.assertNotIn("aynen", note)
+        self.assertIn("sorulan", note)
+
+
 class Fists(FrontScene):
     assert_attacked = voice.AnyBlowIsAnAttack.assert_attacked
 
