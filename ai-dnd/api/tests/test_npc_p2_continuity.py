@@ -695,7 +695,8 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         for scene_line in scene_lines:
             with self.subTest(scene_line=scene_line[:30]):
                 client = ScriptedNpcSpeechClient(narration=FIRST_REPLY)
-                with patch.object(game, "finalize_narration", return_value=scene_line):
+                # Marked where it is written, as every Python scene line is: the door knows it by that mark.
+                with patch.object(game, "finalize_narration", side_effect=lambda *a, line=scene_line, **k: game._stock(line)):
                     reply = await self.say(turn_url, client, npc, "Yardım edeyim mi?")
                 text = reply["narration"]
                 self.assertTrue(text.startswith("Marek"), text)
