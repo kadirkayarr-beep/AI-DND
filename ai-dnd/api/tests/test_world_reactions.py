@@ -272,7 +272,8 @@ class GuardsActOnWhatTheyKnow(ReactionScene):
         with patch.object(world_reactions, "_d20", return_value=20):
             await self.wait("iki saat bekliyorum")
         self.walk_to(self.city)
-        with patch.object(world_reactions, "_d20", return_value=1):
+        with patch.object(world_reactions, "_d20", return_value=1), patch.object(
+                bold_acts, "_check", return_value={"result": "BAŞARILI"}):  # walking off on him is flight, and this one got away
             await self.wait("yarım saat bekliyorum")
         self.assertEqual(guard["location"], "post")
 

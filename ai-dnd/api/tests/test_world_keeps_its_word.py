@@ -2,6 +2,8 @@
 
 Every line is the kind of thing the owner types. No real model is called.
 """
+import json
+import os
 import unittest
 from unittest.mock import patch
 
@@ -9,10 +11,12 @@ import bold_acts
 import campaign_time
 import interaction_adventure
 import world_happenings
+import world_reactions
 import world_threads
 from api.tests.test_front_proposal import FrontTable
 from api.tests.test_lasting_consequences import OneTownScene
 from api.tests.test_three_plays import PlayClient
+from api.tests.test_world_reactions import GuardsActOnWhatTheyKnow
 
 
 class Stealing(OneTownScene):
@@ -228,3 +232,124 @@ class Messengers(FrontLines):
         callers = [npc for npc in self.world["npcs"] if npc.get("caller_of")]
         self.assertEqual(len(callers), 1, callers)
         self.assertTrue(link)
+
+
+class ReadingClient(PlayClient):
+    """A reading on top of the scripted person."""
+
+    def __init__(self, front, **kwargs):
+        super().__init__(**kwargs)
+        self.front = front
+
+    def chat(self, *args, **kwargs):
+        properties = (kwargs.get("format") or {}).get("properties", {})
+        if "front" not in properties:
+            return super().chat(*args, **kwargs)
+        filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
+                  "inside": False, **self.front}
+        return {"message": {"content": json.dumps({"intent": "narrative", "action": "narrative", "target": {
+            "type": "none", "reference": "", "npc_id": "", "evidence_quote": ""}, "completion": "unclear",
+            "confidence": 1.0, "front": filled}, ensure_ascii=False)}}
+
+
+class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp, asyncTearDown = OneTownScene.asyncSetUp, OneTownScene.asyncTearDown
+    post_scene_turn, begin, say = OneTownScene.post_scene_turn, OneTownScene.begin, OneTownScene.say
+    add_person, town, killed_earlier, wait = (OneTownScene.add_person, OneTownScene.town,
+                                              OneTownScene.killed_earlier, OneTownScene.wait)
+    guard_told_by_witness = GuardsActOnWhatTheyKnow.guard_told_by_witness
+    deed = GuardsActOnWhatTheyKnow.deed
+
+    async def stopped(self):
+        """A witness told a guard, the guard has walked up and asked: the player has the next word."""
+        guard = await self.guard_told_by_witness()
+        with patch.object(world_reactions, "_d20", return_value=20):
+            out = await self.wait("iki saat bekliyorum")
+        self.assertIn("Dur bakalım", out["narration"])
+        return guard
+
+    async def held(self):
+        guard = await self.stopped()
+        out = await self.say("ben dun tapinakta calistim, rahibe sor", PlayClient(spoken="Dinliyorum."))
+        self.assertIn("karakola", out["narration"].casefold())
+        self.assertFalse(self.world["combat"]["active"])
+        return guard
+
+    async def test_the_question_is_followed_by_an_arrest_not_a_shrug(self):
+        guard = await self.held()
+        self.assertIn("tutukluyorsun", bold_acts.speech_note(self.world, guard))
+
+    async def test_talking_on_ends_in_a_fight(self):
+        guard = await self.held()
+        await self.say("yanlis adam bu", PlayClient(spoken="Yürü."))
+        out = await self.say("dur bir konusalim", PlayClient(spoken="Yeter."))
+        self.assertTrue(self.world["combat"]["active"], out["narration"])
+        self.assertTrue(guard["hostile"])
+
+    async def test_a_blow_is_a_fight_through_the_normal_door(self):
+        guard = await self.held()
+        guard.update(current_hp=80, max_hp=80)
+        out = await self.say(f"{guard['name'].lower()}a saldiriyorum", PlayClient())
+        self.assertTrue(self.world["combat"]["active"], out["narration"])
+
+    async def test_walking_off_is_flight_and_a_good_roll_gets_away(self):
+        guard = await self.held()
+        with patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            out = await self.say("tuz hanindan cikiyorum, sokaga", PlayClient())
+        self.assertNotEqual(self.world["location"], "inn", out["narration"])
+        self.assertFalse(self.world["combat"]["active"], out["narration"])
+        self.assertNotIn("hold", self.deed())
+        self.assertIn("izini", out["narration"])
+        self.assertTrue(world_reactions._lost_sight(self.world, guard))
+
+    async def test_a_bad_roll_and_the_guard_has_caught_up(self):
+        guard = await self.held()
+        with patch.object(bold_acts, "_check", return_value={"result": "BAŞARISIZ"}):
+            out = await self.say("tuz hanindan cikiyorum, sokaga", PlayClient())
+        self.assertEqual(guard["location"], self.world["location"], out["narration"])
+        self.assertTrue(self.world["combat"]["active"], out["narration"])
+
+    async def test_a_bribe_that_lands_costs_the_coin_and_ends_the_arrest(self):
+        guard = await self.held()
+        self.world.setdefault("currency", {})["player"] = 1000
+        client = ReadingClient({"kind": "speak_to", "person_id": guard["id"], "coin_cp": 500}, spoken="Hm.")
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}), patch.object(
+                bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            out = await self.say("avucuna bes altin birakiyorum, beni gormedin", client)
+        self.assertEqual(self.world["currency"][guard["id"]], 500, out["narration"])
+        self.assertIn("500 bakır", out["narration"])
+        self.assertNotIn("hold", self.deed())
+        self.assertFalse(self.world["combat"]["active"])
+
+    async def test_a_bribe_that_fails_stays_in_the_purse_and_the_arrest_stands(self):
+        guard = await self.held()
+        self.world.setdefault("currency", {})["player"] = 1000
+        client = ReadingClient({"kind": "speak_to", "person_id": guard["id"], "coin_cp": 10}, spoken="Hm.")
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}), patch.object(
+                bold_acts, "_check", return_value={"result": "BAŞARISIZ"}):
+            out = await self.say("al sana bir gumus, unut gitsin", client)
+        self.assertNotIn(guard["id"], self.world["currency"], out["narration"])
+        self.assertIn("hold", self.deed())
+
+    async def test_giving_up_is_a_night_held_and_a_fine_and_it_is_over(self):
+        guard = await self.held()
+        self.world.setdefault("currency", {})["player"] = 1000
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        client = ReadingClient({"kind": "attempt", "deed": "yield"})
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            out = await self.say("tamam tamam kilici birakiyorum, teslim oluyorum", client)
+        self.assertIn("500 bakır", out["narration"])
+        self.assertGreaterEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 8 * 3600)
+        self.assertEqual(self.world["location"], "post", out["narration"])
+        self.assertTrue(self.deed().get("settled"))
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertEqual(guard["location"], "post")
+
+    async def test_a_killing_of_someone_who_came_at_the_player_brings_no_arrest(self):
+        await self.town()
+        self.add_person("Kalila", "Haydut", location="shop", combat_status="dead", current_hp=0, hostile=True)
+        self.world["flags"]["deeds"] = [{"kind": "killing", "text": "Kalila öldürüldü", "location": "shop",
+                                         "victim_id": "npc_kalila", "witnesses": [], "turn": 3, "at": 0,
+                                         "heard": [], "told": []}]
+        await self.wait("iki saat bekliyorum")
+        self.assertNotIn("hold", self.deed())

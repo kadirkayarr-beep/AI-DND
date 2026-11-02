@@ -50,6 +50,19 @@ _CHALLENGES = (
     "{who} yolunu kesip seni baştan aşağı süzüyor. “Dur bakalım. Anlatılan kişiye benziyorsun; konuşmamız lazım.”",
     "{who} eli kabzasında yanına geliyor. “Dur bakalım. Birkaç sorum olacak, nerede olduğunu anlat.”",
 )
+_ARRESTS = (
+    "{who} elini omzuna koyuyor. “Tanıklar seni tarif etti, {text} meselesi kapanmadı. Silahını bırak, karakola yürüyoruz.”",
+    "{who} önüne geçip yolunu kapatıyor. “{Text}, seni gören var. Karakola geliyorsun; zorluk çıkarma.”",
+)
+_RESISTED = "{who} silahını çekiyor. “Yeter. Sözle gelmiyorsan zorla götürürüm.”"
+_GOT_AWAY = "Arkandan bağırışlar yükseliyor ama {who} izini kaybediyor; şimdilik sıyrıldın."
+_CAUGHT_UP = "{who} arkandan yetişip yolunu kesiyor, silahı elinde. “Kaçamazsın!”"
+_TOOK_THE_BRIBE = "{who} parayı avucunda tartıp cebine atıyor. “Seni görmedim.” Arkasını dönüp gidiyor; {amount} bakır kesenden çıktı."
+_REFUSED_THE_BRIBE = "{who} elini itiyor. “Beni satın alamazsın. Karakola, dedim.”"
+_TAKEN_IN = "{who} seni karakola götürüyor. Geceyi demir parmaklıklar ardında geçiriyorsun; sabah {fine} bakır ceza kesilip salıveriliyorsun."
+FINE_CP = 500
+HELD_SECONDS = 8 * HOUR
+ARREST_PATIENCE = 2  # the turns of talk an arrest will stand before it turns to force
 _FINDER_LINE = "{who} içeri adım atıyor, cesedi görüp donup kalıyor; sonra sana bakıp geri geri çıkıyor."
 _TAKEN_LINE = "Birkaç kişi gelip cesedi bir örtüye sarıyor ve sessizce götürüyor."
 _STAIN_LINE = "Yerde ovulmuş ama tam çıkmamış koyu bir kan lekesi var."
@@ -324,6 +337,10 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     if any(npc_id in deed.get("described", []) for deed in _deeds(world)):
         note += (" Sana bir tarif verildi ve karşındaki kişi ona benziyor. Emin değilsin; "
                  "soru sor, nerede olduğunu öğrenmeye çalış.")
+    if any((deed.get("hold") or {}).get("guard") == npc_id and (deed.get("hold") or {}).get("arrest")
+           for deed in _deeds(world)):
+        note += (" Karşındakini tutukluyorsun: karakola götüreceksin. Bundan vazgeçme, işin başından aşkın deme, "
+                 "serbest bırakacağını söyleme; teslim olmasını iste.")
     return note
 
 
@@ -462,6 +479,8 @@ def _search(session, now: int) -> list[str]:
         return []
     for deed in _deeds(world):
         tried = deed.get("searches", 0)
+        if deed.get("settled"):
+            continue
         guards = [npc for npc in _alive(world) if npc["id"] in deed.get("described", [])
                   and _settlement(world, npc.get("location")) == town and not _lost_sight(world, npc)]
         if (not guards or tried >= MAX_SEARCHES or any(npc.get("location") == here for npc in guards)
@@ -477,13 +496,122 @@ def _search(session, now: int) -> list[str]:
     return []
 
 
+def _turn(world: dict[str, Any]) -> int:
+    return int(world.get("flags", {}).get("turn_index", 0) or 0)
+
+
+def holding(world: dict[str, Any], npc: Any) -> dict[str, Any] | None:
+    """The deed this guard is arresting the player for, if they are."""
+    npc_id = npc.get("id") if isinstance(npc, dict) else None
+    return next((deed for deed in _deeds(world) if (deed.get("hold") or {}).get("guard") == npc_id
+                 and deed["hold"].get("arrest")), None)
+
+
+def arrester(world: dict[str, Any]) -> dict[str, Any] | None:
+    return next((_npc(world, deed["hold"]["guard"]) for deed in _deeds(world)
+                 if (deed.get("hold") or {}).get("arrest")), None)
+
+
+def _force(session, guard: dict[str, Any], deed: dict[str, Any], line: str) -> list[str]:
+    deed.pop("hold", None)
+    guard["hostile"] = True
+    session.start_combat(guard)
+    return [line.format(who=_who(guard))]
+
+
+def _flight(session, guard: dict[str, Any], deed: dict[str, Any]) -> list[str]:
+    """The player walked out on a guard who had them. The legs decide."""
+    import bold_acts
+    world = session.world_state
+    deed.pop("hold", None)
+    if bold_acts._check(session, "Athletics", 15)["result"] == "BAŞARILI":
+        guard["lost_sight_turn"] = _turn(world)
+        return [_GOT_AWAY.format(who=_who(guard))]
+    guard.setdefault("came_from", guard.get("location"))
+    guard["location"] = world.get("location")
+    deed["hold"] = {"guard": guard["id"], "place": world.get("location"), "turn": _turn(world)}
+    return _force(session, guard, deed, _CAUGHT_UP)
+
+
+def _press(session) -> list[str]:
+    """What follows the question: a hand on the shoulder, and then the player's choice has its answer."""
+    world = session.world_state
+    turn = _turn(world)
+    for deed in _deeds(world):
+        hold = deed.get("hold")
+        if not hold or deed.get("settled"):
+            continue
+        guard = _npc(world, hold.get("guard"))
+        if guard is None or guard.get("combat_status") == "dead":
+            deed.pop("hold")
+            continue
+        if turn <= hold["turn"]:
+            continue
+        if world.get("location") != hold["place"]:
+            return _flight(session, guard, deed)
+        if not hold.get("arrest"):
+            hold.update(arrest=True, turn=turn)
+            session._set_scene_active_npc(guard, turn)
+            text = str(deed.get("text") or "").rstrip(".")
+            line = _ARRESTS[_digest(world, "arrest", guard["id"], deed["at"]) % len(_ARRESTS)]
+            return [line.format(who=_who(guard), text=_mid_sentence(text), Text=text)]
+        if turn - hold["turn"] >= ARREST_PATIENCE:
+            return _force(session, guard, deed, _RESISTED)
+    return []
+
+
+def bribe(session, amount: int) -> list[str]:
+    """Coin held out to the guard making the arrest. It changes hands only if they take it, and more coin is an easier word."""
+    import bold_acts
+    import game
+    world = session.world_state
+    guard = arrester(world)
+    deed = holding(world, guard)
+    if guard is None or deed is None:
+        return []
+    difficulty = "easy" if amount >= 1000 else "medium" if amount >= 100 else "hard"
+    if (bold_acts._check(session, "Persuasion", game.DIFFICULTY_DC[difficulty])["result"] == "BAŞARILI"
+            and bold_acts.give_coin(session, amount, guard)):
+        deed.pop("hold")
+        return [_TOOK_THE_BRIBE.format(who=_who(guard), amount=amount)]
+    return [_REFUSED_THE_BRIBE.format(who=_who(guard))]
+
+
+def give_up(session) -> list[str]:
+    """The player lets themselves be taken: a night held and a fine, and for this deed it is over."""
+    import bold_acts
+    import game
+    import timed_gameplay
+    world = session.world_state
+    guard = arrester(world)
+    deed = holding(world, guard)
+    if guard is None or deed is None:
+        return []
+    deed.pop("hold")
+    deed["settled"] = True
+    post = guard.get("came_from") or guard.get("place_role_of") or guard.get("location")
+    if post in world.get("locations", {}) and post != world.get("location") and game.commit_location_change(post):
+        guard["location"] = post
+        guard.pop("came_from", None)
+        guard.pop("back_at", None)
+    bold_acts.settle_coin_labels(world)
+    wallets = world.setdefault("currency", {})
+    fine = min(FINE_CP, wallets.get("player", 0))
+    wallets["player"] = wallets.get("player", 0) - fine
+    timed_gameplay._advance(session, HELD_SECONDS, "explicit_wait")
+    return [_TAKEN_IN.format(who=_who(guard), fine=fine)]
+
+
 def _challenge(session) -> list[str]:
-    """A guard with a description stops the player and asks. Only what is said next can make it a fight."""
+    """A guard with a description stops the player and asks. What comes next is `_press`."""
     world = session.world_state
     for deed in _deeds(world):
+        if deed.get("settled"):
+            continue
         for npc in session.active_npcs():
             if npc.get("id") in deed.get("described", []) and npc["id"] not in deed.get("challenged", []):
                 deed.setdefault("challenged", []).append(npc["id"])
+                deed["hold"] = {"guard": npc["id"], "place": world.get("location"), "turn": _turn(world)}
                 session._set_scene_active_npc(npc, world.get("flags", {}).get("turn_index", 0))
                 line = _CHALLENGES[_digest(world, "challenge", npc["id"], deed["at"]) % len(_CHALLENGES)]
                 return [line.format(who=_who(npc))]
@@ -529,6 +657,17 @@ def _board_hint(world: dict[str, Any], result: dict[str, Any]) -> list[str]:
     return [hint] if hint else []
 
 
+def _settle_the_law(session) -> list[str]:
+    """Coin held out or hands held up to a guard making an arrest, as the turn's reading saw them."""
+    if arrester(session.world_state) is None:
+        return []
+    amount = getattr(session, "_bribe_held_out", 0)
+    session._bribe_held_out = 0
+    if amount:
+        return bribe(session, amount)
+    return give_up(session) if getattr(session, "_front_deed", None) == "yield" else []
+
+
 def answer(session, result: Any) -> None:
     """The end of a turn: what the player can perceive of all this joins the narration, a line or two at most."""
     world = session.world_state
@@ -546,8 +685,10 @@ def answer(session, result: Any) -> None:
     _tell_successors(world)
     lines += _watch_comes(session, now)
     lines += _search(session, now)
-    lines += _challenge(session)
     lines += _overheard(session)
-    lines = lines[-MAX_LINES_PER_TURN:] or _board_hint(world, result)
+    law = _settle_the_law(session) or _press(session) or _challenge(session)
+    if world.get("combat", {}).get("active"):
+        lines = []  # the fight is what the turn is about now
+    lines = [*lines, *law][-MAX_LINES_PER_TURN:] or _board_hint(world, result)
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()

@@ -18202,6 +18202,10 @@ def _hand_over_coin(route, listed):
     amount = getattr(session, "_front_coin", 0)
     if not amount or route["kind"] == "strike":
         return
+    import world_reactions
+    if world_reactions.arrester(session.world_state) is not None:
+        session._bribe_held_out = amount  # whether this coin moves is the guard's to decide
+        return
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
