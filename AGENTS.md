@@ -1,5 +1,16 @@
 # Agent guide
 
+## Current work (2026-11-03): read this first, it overrides the older sections below
+
+- Active folder: `C:\Users\Kadir\Desktop\AI-DND-c-merge`, branch `task/c-series-merge`. Do not use `C:\Users\Kadir\Desktop\AI - DND` or `dev/ai-dnd` for current work. Never push or merge to `main` or `dev/ai-dnd`.
+- Plan and decisions: `C:\Users\Kadir\Desktop\AI-DND-b01-isolated\YOL_HARITASI_ONERI_20261031.md` (top section) and `HANDOFF.md` (top section). The owner, Kadir, approves plan, scope and spending changes.
+- Agent contract and test commands: `C:\Users\Kadir\Desktop\AI-DND-TOOLS\NIGHT_BRIEF.md`.
+- Python product tests run only through the guarded WSL launcher, using `bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh <slot> AI-DND-c-merge test|par|node|codegen ...` from Git Bash. Never run product tests with plain Windows Python or `dev.ps1`, and never modify `linux_guarded_launcher.py` or the guard.
+- Models: a chain of Gemini, then Claude Haiku, then local Gemma, on only in local play (`.\start_local.ps1 -LocalPlay`). Keys live outside the repo and must never be printed or committed.
+- One writer at a time in this folder. If another agent is writing here, work in your own worktree and branch.
+
+The sections below are historical (Cursor and Replit era) and are kept for reference only.
+
 ## Canonical copy
 
 - Primary Windows development workspace: `C:\Users\Kadir\Desktop\AI - DND`
