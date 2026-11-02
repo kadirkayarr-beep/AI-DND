@@ -102,6 +102,13 @@ class Passed(FrontTable):
         self.assertIn(first["text"], again["text"])
         self.assertEqual(len(self.world["features"]), count)
 
+    async def test_the_line_names_the_thing_when_the_reader_named_a_crack_in_it(self):
+        await self.begin()
+        found = self.roll("yerdeki zemini inceliyom catlak var mi", word="çatlak")
+        self.assertIs(found["found"], True)
+        self.assertIn(found["text"], self.plain_rows("zemin", "sokak"))
+        self.assertEqual(next(row for row in self.world["features"] if row["id"] == found["target_id"])["name"], "Zemin")
+
     async def test_a_saved_finding_of_the_reader_stands_on_a_second_look_too(self):
         await self.begin()
         first = self.roll("cesmeye yakindan bakiyom", word="çeşme", found="Çeşmenin taşında ince bir çatlak duruyor.")
