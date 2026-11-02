@@ -380,6 +380,44 @@ class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(guard["location"], "post")
 
+    async def test_a_neutral_line_the_reading_took_for_giving_up_gives_up_nothing(self):
+        guard = await self.held()
+        self.world.setdefault("currency", {})["player"] = 1000
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        client = ReadingClient({"kind": "attempt", "deed": "yield"})
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            out = await self.say("kilicimi siki tutup ona bakiyorum", client)
+        self.assertEqual(self.world["currency"]["player"], 1000, out["narration"])
+        self.assertEqual(self.world["location"], "inn")
+        self.assertFalse(self.deed().get("settled"))
+        self.assertLess(self.world["campaign_time"]["elapsed_seconds"], clock + 8 * 3600)
+        self.assertTrue(guard)
+
+    async def test_refusing_to_give_up_is_no_giving_up_however_it_was_read(self):
+        await self.held()
+        client = ReadingClient({"kind": "attempt", "deed": "yield"})
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            await self.say("teslim olmuyorum, kilicimi da birakmiyorum", client)
+        self.assertFalse(self.deed().get("settled"))
+
+    async def test_going_along_in_plain_words_is_giving_up(self):
+        for line in ("peki karakola geliyorum", "ellerimi kaldiriyorum", "tamam, silahimi yere birakiyorum"):
+            with self.subTest(line=line):
+                await self.held()
+                client = ReadingClient({"kind": "attempt", "deed": "yield"})
+                with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+                    await self.say(line, client)
+                self.assertTrue(self.deed().get("settled"), line)
+
+    async def test_coin_held_out_on_a_turn_that_never_settled_is_not_carried_on(self):
+        await self.held()
+        self.world.setdefault("currency", {})["player"] = 1000
+        self.session._bribe_held_out = 500
+        client = ReadingClient({"kind": "look"}, spoken="Hm.")
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            await self.say("etrafa bakiyorum", client)
+        self.assertEqual(self.world["currency"]["player"], 1000)
+
     async def test_a_killing_of_someone_who_came_at_the_player_brings_no_arrest(self):
         await self.town()
         self.add_person("Kalila", "Haydut", location="shop", combat_status="dead", current_hp=0, hostile=True)

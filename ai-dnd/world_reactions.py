@@ -10,6 +10,7 @@ standing where it can be seen or heard.
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any
 
 import living_world
@@ -61,6 +62,11 @@ _TOOK_THE_BRIBE = "{who} parayı avucunda tartıp cebine atıyor. “Seni görme
 _REFUSED_THE_BRIBE = "{who} elini itiyor. “Beni satın alamazsın. Karakola, dedim.”"
 _TAKEN_IN = "{who} seni karakola götürüyor. Geceyi demir parmaklıklar ardında geçiriyorsun; sabah {fine} bakır ceza kesilip salıveriliyorsun."
 FINE_CP = 500
+# The arrest said what it wants: hands up, weapon down, walk along. A reading of giving up stands on these words.
+_GIVES_IN = re.compile(
+    r"\b(?:teslim\w*|tutukl\w*|ellerimi|karakola|tamam|peki|kabul\w*)\b|\b\w+\s+(?:yere\s+)?(?:birak|indir|uzat)\w*"
+)
+_WONT = re.compile(r"\b\w+m[iu]yor\w*|\b\w+(?:mayacag|meyeceg)\w*|\b(?!tamam\b)\w+m[ae]m\b")
 HELD_SECONDS = 8 * HOUR
 ARREST_PATIENCE = 2  # the turns of talk an arrest will stand before it turns to force
 _FINDER_LINE = "{who} içeri adım atıyor, cesedi görüp donup kalıyor; sonra sana bakıp geri geri çıkıyor."
@@ -657,6 +663,13 @@ def _board_hint(world: dict[str, Any], result: dict[str, Any]) -> list[str]:
     return [hint] if hint else []
 
 
+def _gives_in(session) -> bool:
+    """The reading says it is surrender; the fine, the night and the walk to the post need the player to have said so."""
+    said = str(getattr(session, "_adventure_player_text", ""))
+    line = living_world.normalize_text(said)
+    return "?" not in said and bool(_GIVES_IN.search(line)) and not _WONT.search(line)
+
+
 def _settle_the_law(session) -> list[str]:
     """Coin held out or hands held up to a guard making an arrest, as the turn's reading saw them."""
     if arrester(session.world_state) is None:
@@ -665,7 +678,7 @@ def _settle_the_law(session) -> list[str]:
     session._bribe_held_out = 0
     if amount:
         return bribe(session, amount)
-    return give_up(session) if getattr(session, "_front_deed", None) == "yield" else []
+    return give_up(session) if getattr(session, "_front_deed", None) == "yield" and _gives_in(session) else []
 
 
 def answer(session, result: Any) -> None:
