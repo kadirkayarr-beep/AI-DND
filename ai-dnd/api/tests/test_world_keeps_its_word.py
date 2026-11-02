@@ -12,6 +12,7 @@ import campaign_time
 import front_proposal
 import interaction_adventure
 import local_places
+import pocket
 import world_happenings
 import world_reactions
 import world_threads
@@ -445,3 +446,63 @@ class LeavingTown(FrontScene):
         await self.line("sehrin disina cikiyorum")
         self.assertEqual(local_places.settlement_of(self.world, self.world["location"]),
                          self.outer()["parent_location_id"])
+
+
+class WhatTheScreenShows(FrontScene):
+    DRAWER = ("Sağlam bir hamleyle çektiğinde sıkışan ahşap çekmece gıcırtıyla açılıyor ve içinde katlanmış "
+              "eski bir parşömen parçası ile paslı demir bir anahtar ortaya çıkıyor.")
+
+    def shown(self, text):
+        self.session.messages.append({"role": "assistant", "content": text})
+
+    def bag(self):
+        return " ".join(str(item.get("name") if isinstance(item, dict) else item) for item in self.world["inventory"])
+
+    async def test_two_things_in_one_line_both_reach_the_bag_and_the_screen_says_so(self):
+        await self.begin()
+        self.shown(self.DRAWER)
+        self.client.front = {"kind": "take", "thing_word": "parşömen"}
+        out = await self.line("parşömenle anahtarı alıyorum")
+        self.assertIn("arşömen", self.bag())
+        self.assertIn("nahtar", self.bag())
+        self.assertIn("arşömen", out["narration"])
+        self.assertIn("nahtar", out["narration"])
+        self.assertNotIn("eline geçen", out["narration"])
+
+    async def test_a_key_the_screen_showed_can_be_taken(self):
+        await self.begin()
+        self.shown(self.DRAWER)
+        self.client.front = {"kind": "take", "thing_word": "anahtar"}
+        out = await self.line("anahtari aliyorum")
+        self.assertIn("nahtar", self.bag(), out["narration"])
+
+    async def test_a_coin_the_screen_showed_still_comes_by_python_only(self):
+        await self.begin()
+        self.shown("Çekmecede üç altın duruyor.")
+        before = self.bag()
+        self.client.front = {"kind": "take", "thing_word": "altın"}
+        await self.line("altinlari aliyorum")
+        self.assertEqual(self.bag(), before)
+
+    async def test_what_is_in_the_bag_is_not_cut_from_the_narration(self):
+        await self.begin()
+        self.world["inventory"].append("Eski parşömen")
+        told = "Parşömeni alıyorsun."
+        kept = pocket.without_the_taking(told, pocket.not_in_bag(self.world, ("parsomen", "yumurta")))
+        self.assertEqual(kept, told)
+        self.assertEqual(pocket.not_in_bag(self.world, ("parsomen", "yumurta")), ("yumurta",))
+
+    async def test_a_key_stays_out_of_what_a_finding_may_say(self):
+        await self.begin()
+        self.session._front_found = ("Masanın altında paslı bir anahtar duruyor.", "masa")
+        self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"))
+
+    async def test_someone_on_the_screen_called_by_another_word_is_real(self):
+        await self.begin()
+        self.world["flags"].pop("active_npc_id", None)
+        self.shown("Yaşlı adam uzatılan gümüşe bakıyor, kaşları çatık bir halde parmağını kırık çömlekten çekiyor.")
+        self.client.front = {"kind": "speak_to", "person_word": "yaşlı adam"}
+        out = await self.line("tamam dede de bakalim burda koruma arayan bi soylu var mi", "Vardır elbet.")
+        self.assertIn("Vardır elbet.", out["narration"])
+        made = next(npc for npc in self.world["npcs"] if npc.get("id") == self.world["flags"]["active_npc_id"])
+        self.assertEqual(made["location"], self.world["location"])

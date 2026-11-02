@@ -18,7 +18,9 @@ _TOSSES = re.compile(r"(?:firlat|yirt|yak|at)(?:iyorum|ip|tim|ayim)")
 _PHRASE_NOUNS = frozenset({"goz", "adim", "imza", "tur", "bakis", "kahkaha", "laf", "nara", "tekme"})  # 'göz atmak' throws nothing
 _LIT_NOT_BURNT = ("mesale", "fener", "mum", "lamba", "kandil")
 _ON_THE_WAY_TO_THE_VERB = ("a", "e", "ip", "up")  # 'denize', 'buruşturup'
-_WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese", "anahtar")  # a key opens what only Python opens
+_WORTH = ("altin", "gumus", "bakir", "para", "sikke", "mucevher", "elmas", "yakut", "zumrut", "hazine", "kese")
+_NOT_FOUND = (*_WORTH, "anahtar")  # a key the screen showed can be picked up, but a finding does not invent one
+_AS_OBJECT = ("i", "u", "yi", "yu", "ni", "nu", "le", "la", "yle", "yla")  # 'parşömeni', 'parşömenle': a thing the line acts on
 _NOT_THINGS = frozenset({
     "alip", "aliyorum", "atiyorum", "koyuyorum", "sokuyorum", "topluyorum", "toplayip", "iyilerini", "icinde", "icine",
     "birkac", "biraz", "tane", "hepsini", "ondan", "bunlari", "sunlari", "onlari", "yarar", "neyse", "varsa",
@@ -32,7 +34,7 @@ _THING_WORD = re.compile(r"[^\W\d_]{4,}")
 
 
 def names_worth(text: Any) -> bool:
-    return any(word.startswith(_WORTH) and not _UNDER.fullmatch(word) for word in living_world.normalize_text(text).split())
+    return any(word.startswith(_NOT_FOUND) and not _UNDER.fullmatch(word) for word in living_world.normalize_text(text).split())
 
 
 def told_as_there(text: str) -> str:
@@ -96,6 +98,21 @@ def _bare(word: str) -> str:
     return word[:-1] if len(folded) >= 6 and folded[-1] in "iu" and folded[-2] not in "aeiou" else word
 
 
+def _also_taken(session, words: list[str], stem: str) -> list[str]:
+    """Whatever else this line takes that the screen showed: 'parşömenle anahtarı alıyorum' is two things."""
+    world = session.world_state
+    fixed = _fixed_here(world)
+    names = []
+    for shown in dict.fromkeys(_shown(session)):
+        other = world_threads._stem(living_world.normalize_text(shown))
+        if (len(other) < 4 or other == stem or other.startswith(_WORTH) or other.startswith(fixed) or other in _NOT_THINGS
+                or shown in names or _named_in_bag(world, other)):
+            continue
+        if any(w.startswith(other) and w not in _NOT_THINGS and w.removeprefix(other) in _AS_OBJECT for w in words):
+            names.append(shown)
+    return names
+
+
 def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     """The front reading says the line takes this. It is real if the line names it and the screen showed it."""
     world = session.world_state
@@ -110,7 +127,12 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     name = word[:1].upper() + word[1:].casefold()
     if _named_in_bag(world, stem) or not equipment_economy.grant_plain(world, name):
         return None
-    return _receipt(session, text, f"{name} çantana giriyor.")
+    taken = [name]
+    for other in _also_taken(session, words, stem):
+        other = other[:1].upper() + other[1:].casefold()
+        if equipment_economy.grant_plain(world, other):
+            taken.append(other)
+    return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
 
 
 def asked_for(text: str, word: str) -> tuple[str, ...]:
@@ -118,6 +140,13 @@ def asked_for(text: str, word: str) -> tuple[str, ...]:
     if word:
         return (_stem(_bare(word)),)
     return tuple(w for w in living_world.normalize_text(text).split() if len(w) >= 4 and w not in _NOT_THINGS)
+
+
+def not_in_bag(world: dict[str, Any], stems: Any) -> tuple[str, ...]:
+    """A thing some other channel did put in the bag was taken: the line may say so."""
+    return tuple(stem for stem in stems or () if not any(
+        living_world.normalize_text(item.get("name") if isinstance(item, dict) else item).find(stem) >= 0
+        for item in world.get("inventory", [])))
 
 
 def without_the_taking(narration: Any, stems: tuple[str, ...]) -> Any:
@@ -162,7 +191,7 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
                     and dialogue_jobs.hand_over(session, thread, person, own_turn=False))
     if _named_in_bag(world, stem):
         return True
-    if (len(stem) < 2 or stem.startswith(_WORTH) or not _says_it(text, stem)
+    if (len(stem) < 2 or stem.startswith(_NOT_FOUND) or not _says_it(text, stem)
             or (line is not None and not _says_it(line, stem))):
         return False
     return equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())

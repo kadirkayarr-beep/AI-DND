@@ -375,13 +375,13 @@ class SomeoneTheNarrationDescribed(FrontTable):
         self.assertEqual(len(self.world["npcs"]), count)
         self.assertEqual(self.world["flags"]["active_npc_id"], self.npc["id"])
 
-    async def test_a_word_the_line_never_said_makes_nobody(self):
+    async def test_a_person_the_screen_showed_is_reached_by_any_word_for_them(self):
         await self.begin()
         count = len(self.world["npcs"])
         self.narrated("Kapının yanında uyuklayan bir nöbetçi mızrağına yaslanmış duruyor.")
         self.client.front = {"kind": "speak_to", "person_word": "nöbetçi"}
         await self.line("oradaki adama soruyorum dun gece ne oldu")
-        self.assertEqual(len(self.world["npcs"]), count)
+        self.assertEqual(len(self.world["npcs"]), count + 1)
 
     async def test_a_thing_of_the_scene_is_nobody(self):
         await self.begin()

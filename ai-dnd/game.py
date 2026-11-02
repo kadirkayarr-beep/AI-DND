@@ -14386,7 +14386,7 @@ def finalize_narration(
         import pocket
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
-        narration = pocket.without_the_taking(narration, getattr(session, "_nothing_taken", None) or ())
+        narration = pocket.without_the_taking(narration, pocket.not_in_bag(session.world_state, getattr(session, "_nothing_taken", None)))
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -18236,8 +18236,7 @@ def _narrated_person(word, player_input, listed):
     same = next((npc for npc in here if stem in living_world.normalize_text(npc.get("role"))), None)
     told = living_world.normalize_text(pocket.told_as_there(_recent_player_visible_narration(limit=4000)))
     scene = living_world.normalize_text(" ".join(str(row["name"]) for row in [*listed["things"], *listed["places"]]))
-    if (same is not None or stem not in told or stem in scene
-            or stem not in living_world.normalize_text(player_input)):
+    if same is not None or stem not in told or stem in scene:  # the screen itself vouches for them, whatever word the player uses
         return same
     label = word.strip().capitalize()
     return create_npc_from_ai({"name": label, "role": label, "appearance": f"Az önce gözüne çarpan {word.strip()}",
