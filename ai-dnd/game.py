@@ -17770,6 +17770,7 @@ def _tell_the_coin(result):
     import bold_acts
     paid = getattr(_session(), "_coin_paid", None)
     _session()._coin_paid = None
+    _session()._counter_held = None
     action = result.get("action_result") if isinstance(result, dict) else None
     if not paid or not isinstance(action, dict):
         return
@@ -18305,6 +18306,7 @@ def _hand_over_coin(route, listed):
     """Coin the reading saw leave the hand: the purse pays now, so the one who takes it answers knowing it."""
     import bold_acts
     session = _session()
+    session._counter_held = None
     amount = getattr(session, "_front_coin", 0)
     if not amount or route["kind"] in {"strike", "blow_asked"}:
         return
@@ -18315,6 +18317,9 @@ def _hand_over_coin(route, listed):
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
+    if bold_acts.offer_still_open(session.world_state, person) is not None:
+        session._counter_held = person  # coin for the open offer is no gift: the counter trade alone takes it
+        return
     if bold_acts.can_pay(session, amount):
         session._coin_paid = (amount, person)  # paid when the turn is over, unless a purchase in the line took it first
         session._handed_note = f"{amount} bakır"
@@ -18385,6 +18390,7 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     import front_proposal
     session = _session()
     session._front_ahead = False
+    session._counter_held = None  # only this turn's reading may hold coin back for an open offer
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
             or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
@@ -18680,6 +18686,14 @@ def _dispatch_player_turn(
         player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "blow_asked":
         return _ask_about_the_blow(front["id"])
+    held_for = getattr(_session(), "_counter_held", None)
+    _session()._counter_held = None
+    if held_for is not None:
+        import bold_acts
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            standing = bold_acts.standing_offer(_session(), held_for)
+        if standing is not None:
+            return standing
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None

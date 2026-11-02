@@ -145,6 +145,29 @@ class OneCoinOneTruth(FrontScene):
         self.assertEqual(self.purse(), 2435, out["narration"])
         self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 0)
 
+    async def test_a_gold_handed_on_the_line_after_the_order_stays_in_the_purse(self):
+        # The owner's T13 line: the beer was ordered a line before, so the gold is for the open offer, not a gift.
+        await self.at_the_bar()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        first = await self.line("bir bira alayım", "Buyur.")
+        self.assertEqual(first["turn_outcome"]["action"], "shop_offer", first["narration"])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        out = await self.line("bakırım yok, al şu bir altını, üstünü geri ver ama", "Al üstünü.")
+        self.assertEqual(self.purse(), 2435, out["narration"])
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 0)
+        self.assertNotIn("kesenden çıkıyor", out["narration"])
+        self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])
+        self.assertIn("4 bakır", out["narration"])
+
+    async def test_a_tip_after_the_beer_was_bought_still_pays(self):
+        await self.at_the_bar()
+        bought = await self.line(f"/item shop_buy {self.npc['id']} bira 1 0 4")
+        self.assertEqual(self.purse(), 2431, bought["narration"])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 10}
+        out = await self.line("al şu gümüşü de, üstü kalsın", "Sağ ol.")
+        self.assertEqual(self.purse(), 2435 - 4 - 10, out["narration"])
+        self.assertEqual(self.world["currency"][self.npc["id"]], 14)
+
     async def test_change_asked_back_is_not_left_on_the_counter(self):
         for line, coin in (("bi altın uzatıyorum, bir bira ver, üstünü geri ver", 100),
                            ("bi gümüş veriyorum, bi bira ver", 10)):

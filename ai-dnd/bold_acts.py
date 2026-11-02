@@ -725,10 +725,40 @@ def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict
     if world_reactions.refuses(world, server):
         return _reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
                       npc_id=server.get("id"))
-    key, label, _ = wanted
+    return _open_offer(session, server, wanted[0])
+
+
+def offer_still_open(world: dict[str, Any], npc: Any) -> dict[str, Any] | None:
+    """The offer this person opened a line or two ago, while no counter trade has settled since."""
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if not isinstance(opened, dict) or not isinstance(npc, dict) or opened.get("npc_id") != npc.get("id"):
+        return None
+    turn, number = opened.get("turn"), opened.get("seq")
+    if type(turn) is not int or number != shop_trade.seq(world):
+        return None
+    return opened if 0 <= world.get("flags", {}).get("turn_index", 0) - turn <= 2 else None
+
+
+def standing_offer(session, server: Any) -> dict[str, Any] | None:
+    """Coin held out for an open offer pays nothing: the offer stands, read fresh, and only the counter trade takes it."""
+    import world_reactions
+    opened = offer_still_open(session.world_state, server)
+    if (opened is None or not shop_trade.is_vendor(session.world_state, server)
+            or world_reactions.refuses(session.world_state, server)):
+        return None
+    session._coin_paid = None
+    session._handed_note = None
+    return _open_offer(session, server, opened["key"])
+
+
+def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
+    world = session.world_state
     offer = shop_trade.quote(world, server["id"], key, 1)
     session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
     world["flags"]["served_turn"] = world["flags"].get("turn_index", 0)  # 'duydun mu birşey' next is for them
+    world["flags"]["counter_offer_v1"] = {"npc_id": server["id"], "key": key, "seq": offer["seq"],
+                                          "turn": world["flags"]["served_turn"]}
+    label = offer["label"]
     who = living_world.public_npc_name(server)
     line = f"{who} tezgâha dayanıyor. “{label[:1].upper()}{label[1:]} {offer['unit_cp']} bakır. Kaç tane?”"
     return _reply(session, line, "shop_offer", "offer_open", None, [], offer=offer, npc_id=server["id"])
