@@ -254,6 +254,24 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         self.assertNotIn(stock, reply["narration"])
         self.assertEqual(modes[1:], ["say"])
 
+    async def test_a_threat_the_reading_found_outlives_the_stock_line_door(self):
+        import world_happenings
+        import world_threads
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "threat_to": self.npc["id"]}
+        real = game._dispatch_player_turn
+        calls = []
+
+        def owner(*args, **kwargs):
+            calls.append(1)
+            return self.stock_owner(game._GENERIC_NO_CHANGE_RESPONSE)() if len(calls) == 1 else real(*args, **kwargs)
+
+        with patch("game._dispatch_player_turn", owner):
+            await self.line("dukkanini yakarim dikkat et", "Tehdit mi bu?")
+        self.assertEqual(len(calls), 2)
+        links = world_happenings.links(world_threads.view(self.world))
+        self.assertTrue(any(row.get("kind") == world_happenings.GUARDED for row in links), links)
+
     async def test_a_stock_line_with_no_call_left_is_the_person_too(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
