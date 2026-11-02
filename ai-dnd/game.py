@@ -15317,10 +15317,14 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
-        if not combat_lifecycle.is_attack_decision(_session(), player_input):
+        if combat_lifecycle.is_attack_decision(_session(), player_input):
+            intent_type = "attack"
+            intent = {**intent, "intent": "attack"}
+        elif combat_lifecycle.walks_off(_session(), player_input):
             raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
-        intent_type = "attack"
-        intent = {**intent, "intent": "attack"}
+        else:  # "çık git konaktan" is said to the other one: the player stays, and the line is words in the fight
+            intent_type = "narrative"
+            intent = {**intent, "intent": "narrative"}
     if (intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input)
             and not combat_lifecycle.is_attack_decision(_session(), player_input)
             and not combat_lifecycle.quoted_or_conditional_not_attack(_session(), player_input)):

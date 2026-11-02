@@ -261,7 +261,7 @@ def stand_down(session, action_id=None, session_id=None):
         for npc in others:
             relationships.note(world, npc["id"], -1, f"stood_down:{turn}")
         who = living_world.public_npc_name(others[0])
-        narration = (f"Kılıcını indiriyorsun. {who} soluk soluğa bir adım geri çekiliyor, ellerini indirmiyor ama "
+        narration = (f"{who} soluk soluğa bir adım geri çekiliyor, ellerini indirmiyor ama "
                      "üstüne de gelmiyor. Kavga bitti; bu iş unutulmuş değil.")
         return {"messages": session.messages, "narration": narration, "model_calls": 0,
                 "action_result": {"action": "stand_down", "status": "resolved", "success": True,
@@ -324,6 +324,14 @@ def unbound_attack_reply(session, message, target_id=None):
     return f"Kime saldırıyorsun? Yakında {living_world.public_scene_people(people[:4])} var."
 
 
+def walks_off(session, message):
+    """The player's own words say they walk away now; telling someone else to go is no walk."""
+    text = session._normalize_turkish_typos(str(message))
+    return bool(re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text)
+                or re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?", text)
+                or living_world.classify_scene_action(message) == "exit")
+
+
 def validate_request(session, message, target_id=None, *, combat_id=None,
                      combat_round=None, combat_turn_index=None):
     """Client context is an optimistic precondition, never combat authority."""
@@ -379,7 +387,5 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
             return
         if is_attack_decision(session, message):
             return
-        if (re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text)
-                or re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?", text)
-                or living_world.classify_scene_action(message) == "exit"):
+        if walks_off(session, message):
             raise CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)

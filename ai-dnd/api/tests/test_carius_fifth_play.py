@@ -46,3 +46,27 @@ class APunchIsAPunch(Fists):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "strike_to": self.npc["id"]}
         reply = await self.line("ona bi tane çaksam ne olur?", "Denemeni tavsiye etmem.", mode="do")
         self.assertNotEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+
+
+class TheFightLeavesThePlayerTheirOwnHands(Fists):
+    async def in_a_fight(self):
+        await self.begin()
+        self.npc.update(current_hp=200, max_hp=200)
+        self.session.character.update(max_hp=300, current_hp=300)
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], "thing_word": "yumruk"}
+        await self.line("düşündüm. yumrukla vuruyorum")
+        self.assertTrue(self.world["combat"]["active"])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+
+    async def test_stepping_back_and_telling_them_to_go_is_no_walk_off(self):
+        await self.in_a_fight()
+        out = await self.line("geri çekilip ellerimi indiriyorum. yeter, kan dökmeyelim. al pılını pırtını çık git konaktan",
+                              "Peki.")
+        self.assertNotEqual(out["turn_outcome"]["status"], "fight_refused", out["narration"])
+        self.assertNotIn("yürüyüp gidemezsin", out["narration"])
+
+    async def test_ending_the_fight_says_nothing_the_player_did_not_do(self):
+        await self.in_a_fight()
+        with patch.object(self.session, "perform_skill_check", return_value={"result": "BAŞARILI", "total": 20}):
+            out = await self.line("ona bağırıyorum: bırak o silahı, teslim ol, seni kahyaya teslim edicem")
+        self.assertNotIn("Kılıcını", out["narration"])
