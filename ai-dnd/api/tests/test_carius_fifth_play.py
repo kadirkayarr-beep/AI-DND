@@ -129,6 +129,17 @@ class OneCoinOneTruth(FrontScene):
         self.assertEqual(self.purse(), 2335, out["narration"])
         self.assertIn("100", out["narration"])
 
+    async def test_change_asked_back_is_not_left_on_the_counter(self):
+        price = dict((stem, cp) for stem, _, cp in bold_acts._PRICES)["bira"]
+        for line, coin in (("bi altın uzatıyorum, bir bira ver, üstünü geri ver", 100),
+                           ("bi gümüş veriyorum, bi bira ver", 10)):
+            with self.subTest(line=line):
+                await self.at_the_bar()
+                self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": coin}
+                out = await self.line(line, "Al bakalım.")
+                self.assertEqual(self.purse(), 2435 - price, out["narration"])
+                self.assertNotIn("tezgâhta kalıyor", out["narration"])
+
 
 class MessengersSayWhatHappened(unittest.TestCase):
     def house_link(self, owner=None, about=None):

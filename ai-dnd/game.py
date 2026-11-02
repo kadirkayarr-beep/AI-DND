@@ -17764,6 +17764,9 @@ def run_player_turn(
     return result
 
 
+_KEEP_THE_CHANGE = re.compile(r"\b(?:ustu|gerisi|kalani) (?:kalsin|senin|sende)\b|\bustunu (?:istemem|birak)\w*")
+
+
 def _tell_the_coin(result):
     """The screen says what left the purse, so what the person said and the purse agree."""
     import bold_acts
@@ -17774,10 +17777,14 @@ def _tell_the_coin(result):
         return
     amount, person = paid
     if "currency" in (action.get("state_changes") or ()):
-        # A purchase already took its price: coin put down past it ('üstü kalsın') goes to the same hand, once.
+        # A purchase already took its price: coin put down past it goes to the same hand, once, only when the
+        # player said the change stays ('üstü kalsın'); otherwise the change comes back and the purse paid the price.
         price = action.get("price_cp")
         rest = amount - price if type(price) is int and action.get("action") == "purchase" else 0
-        if rest > 0 and bold_acts.give_coin(_session(), rest, person):
+        said = living_world.normalize_text(getattr(_session(), "_adventure_player_text", ""))
+        if rest > 0 and not _KEEP_THE_CHANGE.search(said):
+            result["narration"] = f"{result.get('narration') or ''} Üstü, {rest} bakır, sana geri dönüyor.".strip()
+        elif rest > 0 and bold_acts.give_coin(_session(), rest, person):
             result["narration"] = (f"{result.get('narration') or ''} Koyduğun paranın kalanı, {rest} bakır, de "
                                    f"tezgâhta kalıyor; toplam {amount} bakır.").strip()
         return  # otherwise a purchase or a job already moved the coin this line was about
