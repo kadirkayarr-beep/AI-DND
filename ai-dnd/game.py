@@ -18313,8 +18313,10 @@ def _blow_stands(player_input):
     import bold_acts
     import grounded_action
     spoken = living_world._text_outside_quotes(str(player_input))
-    text = _normalize_turkish_typos(spoken)
-    return not ("?" in spoken or bold_acts._ASKS.search(text) or _ENDS_IN_SPEECH.search(text)
+    # 'itemez miyim? ... yumruğumu çakıyorum': a question asked before the blow is no question about the blow
+    told = " ".join(part for part in re.split(r"(?<=[?.!])\s+", spoken) if not part.rstrip().endswith("?"))
+    text = _normalize_turkish_typos(told)
+    return bool(text.strip()) and not ("?" in told or bold_acts._ASKS.search(text) or _ENDS_IN_SPEECH.search(text)
                 or _NO_BLOW_NOW.search(text) or any(grounded_action._CONDITION_WORD.match(t) for t in text.split()))
 
 
