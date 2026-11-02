@@ -35,11 +35,21 @@ def _words(entry: tuple[str, str, int]) -> set[str]:
     return {key, *(word for word in living_world.normalize_text(label).split() if len(word) >= 4)}
 
 
+_SOFTENED = {"p": "b", "k": "g", "t": "d"}  # Turkish voices a final stop before a vowel: şarap -> şarabı
+
+
+def _named(word: str) -> str:
+    """The word as said, with its last stop softened before a suffix vowel: 'yemek' also hears 'yemeği'."""
+    soft = _SOFTENED.get(word[-1])
+    tail = f"(?:{re.escape(word[-1])}|{soft}(?=[aeiou]))" if soft else re.escape(word[-1])
+    return rf"\b{re.escape(word[:-1])}{tail}(?![zd])"
+
+
 def priced_in(text: Any) -> tuple[str, str, int] | None:
     """The thing on the list the words name, by its key or a word of the label the speaker says: 'biraz' is no beer."""
     folded = living_world.normalize_text(text)
     return next((entry for entry in PRICES
-                 if any(re.search(rf"\b{re.escape(word)}(?![zd])", folded) for word in _words(entry))), None)
+                 if any(re.search(_named(word), folded) for word in _words(entry))), None)
 
 
 def is_priced(text: Any) -> bool:

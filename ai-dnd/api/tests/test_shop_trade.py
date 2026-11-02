@@ -151,6 +151,14 @@ class WordsOpenTheCounter(CounterTrade):
     def test_the_plate_the_speaker_names_opens_the_plate(self):
         self.offered(self.turn("ver bi tabak o zaman"), "yemek", 30)
 
+    def test_a_good_named_with_its_softened_ending_opens_its_offer(self):
+        for line, key, total in (("şarabı ver usta", "sarap", 20), ("yemeği getir", "yemek", 30),
+                                 ("bi tabağı ver", "yemek", 30)):
+            with self.subTest(line=line):
+                self.setUp()
+                self.offered(self.turn(line, interaction_mode="say", target_id="barman"), key, total)
+        self.assertIsNone(shop_trade.priced_in("biraz bekle"))
+
     def test_a_market_shop_does_not_swallow_the_counter(self):
         self.w["shops"] = [{"id": "shop", "location": self.w["location"], "shopkeeper_id": "barman"}]
         self.offered(self.turn("bi bira satın alayım"), "bira", 4)
