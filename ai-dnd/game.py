@@ -17776,6 +17776,8 @@ def _tell_the_coin(result):
     if not paid or not isinstance(action, dict):
         return
     amount, person = paid
+    if action.get("action") == "shop_offer":
+        return  # an open counter offer takes no coin: only the counter trade does
     if "currency" in (action.get("state_changes") or ()):
         return  # a room or a job already moved the coin this line was about
     if bold_acts.give_coin(_session(), amount, person):

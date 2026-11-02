@@ -136,23 +136,25 @@ class OneCoinOneTruth(FrontScene):
         self.assertEqual(self.world["currency"][self.npc["id"]], 100)
         self.assertNotEqual(out["turn_outcome"]["action"], "purchase", out["narration"])
 
-    async def test_a_beer_paid_with_a_gold_takes_the_gold_once(self):
+    async def test_a_gold_put_down_with_a_beer_order_only_opens_the_counter(self):
+        # The owner's call: coin and goods move only through the one counter trade, never with the words.
         await self.at_the_bar()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
         out = await self.line("bi bira ver, al şu bi altını, üstü kalsın", "Sağ ol.")
-        self.assertEqual(self.purse(), 2335, out["narration"])
-        self.assertIn("100", out["narration"])
+        self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])
+        self.assertEqual(self.purse(), 2435, out["narration"])
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 0)
 
     async def test_change_asked_back_is_not_left_on_the_counter(self):
-        price = dict((stem, cp) for stem, _, cp in bold_acts._PRICES)["bira"]
         for line, coin in (("bi altın uzatıyorum, bir bira ver, üstünü geri ver", 100),
                            ("bi gümüş veriyorum, bi bira ver", 10)):
             with self.subTest(line=line):
                 await self.at_the_bar()
                 self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": coin}
                 out = await self.line(line, "Al bakalım.")
-                self.assertEqual(self.purse(), 2435 - price, out["narration"])
+                self.assertEqual(self.purse(), 2435, out["narration"])
                 self.assertNotIn("tezgâhta kalıyor", out["narration"])
+                self.assertNotIn("kesenden çıkıyor", out["narration"])
 
     async def test_a_coin_in_a_question_moves_no_coin(self):
         for line in ("bi altın versem, bira verir misin?", "bende bi altın var, nereye harcasam?"):

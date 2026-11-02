@@ -718,6 +718,9 @@ def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict
     if wanted is None or server is None or walking or "?" in text or not _BUY.search(folded):
         return None
     world = session.world_state
+    # Coin put down with the order is no payment: it stays in the purse, and nobody is told it changed hands.
+    session._coin_paid = None
+    session._handed_note = None
     import world_reactions
     if world_reactions.refuses(world, server):
         return _reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],

@@ -117,13 +117,15 @@ class AnInnHasRooms(OneTownScene):
         self.assertEqual(bold_acts.room_note(barman, "en ucuz neyin var"), "")
         self.assertNotIn("5 gümüş", self.note(barman))
 
-    async def test_coin_named_in_a_purchase_is_paid_once(self):
+    async def test_coin_named_with_an_order_is_not_paid_by_the_words(self):
+        # The counter trade (shop_trade.commit) takes the price once; the order line only opens the offer.
         await self.inn()
         before = self.purse_after_labels()
         client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "coin_cp": 4})
         with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
             out = await self.say("al sana 4 bakır, bi bira ver", client)
-        self.assertEqual(self.world["currency"]["player"], before - 4, out["narration"])
+        self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])
+        self.assertEqual(self.world["currency"]["player"], before, out["narration"])
 
     def purse_after_labels(self):
         bold_acts.settle_coin_labels(self.world)
