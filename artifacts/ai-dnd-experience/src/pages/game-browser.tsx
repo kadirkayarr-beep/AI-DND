@@ -8,6 +8,7 @@ import { PaladinStatus } from '@/components/paladin-controls';
 import { RogueStatus } from '@/components/rogue-controls';
 import { MonkStatus } from '@/components/monk-controls';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
+import { ShopControls, shopProbeKey } from '@/components/shop-panel';
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
@@ -2295,6 +2296,9 @@ export default function GameBrowser() {
             <>
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
+      {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
+        disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
+        probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}
       <StoryColumn
                 decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])}
                 state={state}
