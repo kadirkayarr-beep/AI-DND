@@ -8603,6 +8603,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     import bold_acts
     import pocket
     lines.append(bold_acts.room_note(npc, player_input))
+    lines.append(bold_acts.price_note(npc, player_input))
     lines.append(_bag_note(pocket.bag_names(world)))
     if getattr(_session(), "_empty_handed", False):
         lines.append("Oyuncu bir şey uzatıyor gibi konuşuyor ama elinde öyle bir şey yok; ondan bir şey almış gibi yazma.")
@@ -17769,9 +17770,17 @@ def _tell_the_coin(result):
     paid = getattr(_session(), "_coin_paid", None)
     _session()._coin_paid = None
     action = result.get("action_result") if isinstance(result, dict) else None
-    if not paid or not isinstance(action, dict) or "currency" in (action.get("state_changes") or ()):
-        return  # a purchase or a job already moved the coin this line was about
+    if not paid or not isinstance(action, dict):
+        return
     amount, person = paid
+    if "currency" in (action.get("state_changes") or ()):
+        # A purchase already took its price: coin put down past it ('üstü kalsın') goes to the same hand, once.
+        price = action.get("price_cp")
+        rest = amount - price if type(price) is int and action.get("action") == "purchase" else 0
+        if rest > 0 and bold_acts.give_coin(_session(), rest, person):
+            result["narration"] = (f"{result.get('narration') or ''} Koyduğun paranın kalanı, {rest} bakır, de "
+                                   f"tezgâhta kalıyor; toplam {amount} bakır.").strip()
+        return  # otherwise a purchase or a job already moved the coin this line was about
     if bold_acts.give_coin(_session(), amount, person):
         result["narration"] = f"{result.get('narration') or ''} {amount} bakır kesenden çıkıyor.".strip()
         action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]

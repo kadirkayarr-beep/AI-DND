@@ -624,6 +624,21 @@ def room_note(npc: dict[str, Any], text: Any) -> str:
     if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not _ROOM.search(living_world.normalize_text(text)):
         return ""
     return f"Burada kalacak oda verilir, gecelik {_ROOM_PRICE // 10} gümüş; oda yok deme."
+
+
+def _priced_in(folded: str) -> tuple[str, str, int] | None:
+    """The thing on the list the words name, as a word of its own: 'biraz' and 'birader' are no beer."""
+    return next((item for item in _PRICES if re.search(rf"\b{item[0]}(?![zd])", folded)), None)
+
+
+def price_note(npc: dict[str, Any], text: Any) -> str:
+    """What whoever serves says a thing costs is what the purse will pay for it: one list, said and charged."""
+    folded = living_world.normalize_text(text)
+    if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not (
+            _priced_in(folded) or _PRICE_ASKED.search(folded)):
+        return ""
+    prices = ", ".join(f"{label} {price} bakır" for _, label, price in _PRICES)
+    return f"Burada fiyatlar şöyle: {prices}. Fiyat sorulursa bunları söyle, başka fiyat söyleme."
 _ROOM_DAY = 24 * 3600
 
 
@@ -689,7 +704,7 @@ def _buy(session, text: str) -> dict[str, Any] | None:
         if room is not None:
             return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
                           ["currency"] if room["paid"] else [], price_cp=room["paid"])
-    wanted = next((item for item in _PRICES if item[0] in folded), None)
+    wanted = _priced_in(folded)
     server = next((npc for npc in session.active_npcs()
                    if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
     walking = _WALKS.search(folded)  # the order follows the walk

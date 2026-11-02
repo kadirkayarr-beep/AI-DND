@@ -13,6 +13,7 @@ import datetime
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping
 
@@ -235,12 +236,19 @@ def coin_in(reply: Any, line: str) -> int:
     import world_threads
     front = reply.get("front") if isinstance(reply, dict) else None
     amount = front.get("coin_cp") if isinstance(front, dict) else None
-    folded = game._normalize_turkish_typos(line)
-    words = living_world.normalize_text(line).split()
-    if (type(amount) is not int or amount <= 0 or "?" in line or world_threads.says_later(line)
-            or game._NO_BLOW_NOW.search(folded)):  # 'veririm', 'vermiyorum': said, not done
+    if type(amount) is not int or amount <= 0:
         return 0
-    if not any(word.startswith(_COIN_WORDS) for word in words):
+    # Each clause that names coin speaks for itself: 'bi altın atıyorum, ... laf isterim' pays, 'veririm' alone does not.
+    pieces = re.split(r"([,.;!?])", str(line))
+    clauses = [(pieces[i], pieces[i + 1] if i + 1 < len(pieces) else "") for i in range(0, len(pieces), 2)]
+    words = []
+    for clause, end in clauses:
+        clause_words = living_world.normalize_text(clause).split()
+        if (any(word.startswith(_COIN_WORDS) for word in clause_words) and end != "?"
+                and not world_threads.says_later(clause)
+                and not game._NO_BLOW_NOW.search(game._normalize_turkish_typos(clause))):  # 'vermiyorum': said, not done
+            words.extend(clause_words)
+    if not words:
         return 0
     said = _coin_said(words)
     return said if said is not None else min(amount, UNNAMED_COIN_CP)

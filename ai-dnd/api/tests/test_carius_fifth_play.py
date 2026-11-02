@@ -19,6 +19,39 @@ from api.tests.test_story_links import resident
 from api.tests.test_world_keeps_its_word import FrontScene
 
 
+class OneCoinOneTruth(FrontScene):
+    async def at_the_bar(self):
+        await self.begin()
+        self.npc["role"] = "Barmen"
+        self.world.setdefault("currency", {})["player"] = 2435
+
+    def purse(self):
+        return self.world["currency"]["player"]
+
+    async def test_the_price_the_barman_says_is_the_price_the_purse_pays(self):
+        await self.at_the_bar()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("barmene bi bira söylüyorum, kaç para?", "Bira dört bakır.")
+        price = dict((stem, cp) for stem, _, cp in bold_acts._PRICES)["bira"]
+        self.assertIn(f"bira {price} bakır", str(self.client.message_batches[-1]))
+
+    async def test_a_gold_thrown_with_keep_the_change_pays_that_gold_and_buys_no_beer(self):
+        await self.at_the_bar()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        out = await self.line("bi altın atıyorum tezgaha, üstü kalsın, karşılığında biraz laf isterim. "
+                              "mazduşa konağının sahibi kim biliyon mu", "Bilmem.")
+        self.assertEqual(self.purse(), 2335, out["narration"])
+        self.assertEqual(self.world["currency"][self.npc["id"]], 100)
+        self.assertNotEqual(out["turn_outcome"]["action"], "purchase", out["narration"])
+
+    async def test_a_beer_paid_with_a_gold_takes_the_gold_once(self):
+        await self.at_the_bar()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        out = await self.line("bi bira ver, al şu bi altını, üstü kalsın", "Sağ ol.")
+        self.assertEqual(self.purse(), 2335, out["narration"])
+        self.assertIn("100", out["narration"])
+
+
 class Fists(FrontScene):
     assert_attacked = voice.AnyBlowIsAnAttack.assert_attacked
 
