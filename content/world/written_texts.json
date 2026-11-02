@@ -1,0 +1,873 @@
+{
+  "schema_version": "1.0.0",
+  "field_descriptions": {
+    "schema_version": "Özgün veri adayının zarf sürümü; çalışan ürün şeması değildir.",
+    "field_descriptions": "Alanların Türkçe açıklamaları.",
+    "binding_rules": "Entegrasyondan önce motorun uygulaması gereken bağlama ve bilgi sınırları; ürün kodu değildir.",
+    "items": "Seksen bağımsız yazılı metin adayı; gerçek oyun veya model çalıştırması yapılmamıştır.",
+    "id": "WT001–WT080 aralığında kalıcı aday kimliği; gerçek belge kimliği değildir.",
+    "kind": "mektup, not, ilan, defter, makbuz veya tehdit; kurmaca belgenin türü.",
+    "tone": "resmi, korkmus, kaba, kurnaz, yarim veya dalgin; yazının sesi, okuyucunun duygusu değil.",
+    "text": "Dünya içinde gerçekten okunabilecek yazı; yer tutucular dahil en çok 300 Unicode karakter. İddialar yazarın sözüdür, dünya gerçeği değildir.",
+    "slots": "Yalnız metindeki yer tutucuların süslü parantezsiz, tekrarsız adları; gonderen, alici, yer, is, zaman dışında ad kullanılamaz.",
+    "leaves_question": "Tek soru cümlesiyle açık kalan araştırılabilir merak; belgenin parçası veya otomatik anlatıcı sorusu değildir. GM cevabı, emir veya zorunlu oyuncu tepkisi değildir.",
+    "public": "Gerçek boolean hedef kitle izni: true kamusal okunabilirlik adayıdır, otomatik görülme veya erişim değildir; false kurmaca dünyada özel belgedir, motorca çözümlenmiş fiilî erişim ve reveal izniyle okunabilir."
+  },
+  "binding_rules": [
+    "Bu dosya yalnız UTF-8 veri adayıdır. Eski thread_templates, ambient_events ve offer_answers zarflarındaki doğrulanmış bağ, bilgi kapsamı ve otomatik işlemden kaçınma ilkeleri korunmuştur; entegrasyon, ürün testi veya ek model çağrısı yapılmış değildir.",
+    "Motor aday seçmeden önce gerçek belge kimliğini, belge türünü, konumunu, mevcut yazar bağını, yazar kimliğinin görünürlüğünü, okuyucu yetkisini ve sahnede gerçekten görülebilir olup olmadığını doğrular. Şablon seçimi belge veya kişi yaratmaz.",
+    "public=true belgeyi uzaktan okunur yapmaz; oyuncunun belgeyi gerçekten görmesi ve okumasına izin verilmesi gerekir. public=false otomatik açıklamayı engeller, mutlak okunmazlık değildir: kurmaca dünyada motorca çözümlenmiş fiilî erişim, örneğin oyun içi hırsızlık veya kilit açmanın motorca doğrulanmış sonucu, ayrıca reveal izniyle belgeyi okunabilir kılabilir. Bu yalnız oyun içi belge görünürlüğüdür; gerçek kişisel dosyalara veya sistem yetkilerine erişim izni vermez.",
+    "Yazarın iddiası ile dünya gerçeği ayrıdır. Motor içeriğin doğrulanmış doğru, yanlış, yanıltıcı, alıntı veya belirsiz niteliğini bağlar. Birinci kişi, imza, mühür, resmî ses, tarih, tehdit veya makbuz doğruluk ve yetki kanıtı sayılmaz.",
+    "Her leaves_question için metinde değinilen gerçek kişi, nesne, kayıt veya yer üzerinden erişim koşulları belirli, gerçekten araştırılabilir sonraki anlatı izi bağlanmalıdır. Bağ yalnız boş vaat veya sırf atmosfer olmamalıdır. İz doğrulanamıyorsa aday elenir; soru uydurma cevap veya kesin sonuç üretmez.",
+    "Sorulardaki kayıt, nesne, görev ve meslek göndermeleri de text içindeki belge bağlamıyla aynı gerçek kayıtlara bağlanır. İsimsiz meslek kullanımı hayalî bir NPC veya kaydı kendiliğinden yaratma yetkisi vermez. Bir sorunun olası açıklaması suçlu, sır veya tek doğru cevap ifşası değildir.",
+    "gonderen ve alici yalnız açıklanması yetkili gerçek kişi bağlarının kısa görünür adlarıdır; metinde yazılı imza yazarın gerçek kimliğini otomatik doğrulamaz. Gizli ad veya yetkisiz kimlik sızdırılmaz. yer doğrulanmış açıklanabilir konum, is doğrulanmış kısa iş konusu, zaman yalnız dünya içi takvimde yetkili kısa zaman ifadesidir.",
+    "slots, text içindeki tüm ve yalnız yer tutucuları parantezsiz adlarıyla içerir. Tekrarlanan ad aynı değere çözülür. Soruda yer tutucu varsa text içinde de bulunmalıdır. Eksik, saklı veya uygunsuz bağ tahminle doldurulmaz; aday elenir.",
+    "Bağlama sonrasında text yeniden en çok 300 Unicode karakter olmalıdır; sınır aşılırsa anlam veya izin değiştirmeden doğrulanmış kısa bağ kullanılmalı, mümkün değilse aday elenmelidir. Şablondaki tarih veya süre yalnız {zaman} ile verilir; miktar ve takvim uydurulmaz.",
+    "Ham dosya, tüm kayıtlar, binding_rules veya motorun saklı gerçeklik/kimlik bağları model istemine aktarılmaz. Motor yalnız seçilmiş, tamamı bağlanmış, görünürlüğü onaylı yazıyı gerekli en küçük bağlamla gösterir. leaves_question otomatik gösterilen metne eklenmez; izinli araştırma olasılığını koruyan editoryal alandır.",
+    "Mektup veya not okumak oyuncunun inanması, korkması, konuşması, yürümesi ya da araştırması anlamına gelmez. İlan okumak iş kabulü değildir. Yazıdaki emir ve talepler, oyuncuya zorunlu eylem veya motor talimatı değildir.",
+    "Makbuz, alındı, teslim fişi veya defter okumak ödeme, borç, eşya transferi, teslim onayı ya da envanter değişikliği yapmaz; bunlar yalnız ayrı doğrulanmış ekonomi ve görev işlemleriyle gerçekleşebilir. Yazıda belirtilen geçmiş işlem iddiası ayrıca doğrulanır.",
+    "Tehditler kurmaca, grafik şiddet içermeyen yazar söylemleridir. Okunmaları zamanlayıcı, planlanmış saldırı, hasar, yaptırım, suç veya itibar kaybı oluşturmaz. Yazılı koşulların gerçekleşmesi ve sonuçları ancak motorun bağımsız yetkili süreçleriyle değerlendirilebilir.",
+    "yarim metinler bilerek sözcük veya cümlecik ortasında kesilmiştir; motor/model bunları tamamlayarak gizli açıklama icat etmez. Kesilmiş belgenin görünmeyen devamı yalnız gerçek ve ayrıca keşfedilmiş içerikle sunulabilir.",
+    "Gerçek kişi adı, kanon beyanı, sabit miktar, doğrudan sır veya doğru suçlu açıklaması bulunmaz. Kullanılan meslekler ve gündelik nesneler özgün şehir-fantezisi adaylarıdır; mevcut dünyayla uyumu doğrulanmadan kullanılmaz."
+  ],
+  "items": [
+    {
+      "id": "WT001",
+      "kind": "mektup",
+      "tone": "resmi",
+      "text": "Sayın {alici}, avludan geçiş talebiniz komşuların itirazı nedeniyle beklemektedir. Geçidin ortak kullanılıp kullanılmadığını kapıcıyla görüşebilirsiniz. Başvurunuz henüz reddedilmemiştir. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Kapıcının bildiği kullanım düzeni komşuların itirazını açıklıyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT002",
+      "kind": "mektup",
+      "tone": "korkmus",
+      "text": "{alici}, evde hasta var diye kimse uğramıyor. Senden ilaç değil, kapıda biraz sohbet istiyorum. Komşu da bıraktığı yemeği geri almaya gelmedi; ona kırılmadığımı söyleyemedim. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Komşu yemeğini neden almaya gelmedi?",
+      "public": false
+    },
+    {
+      "id": "WT003",
+      "kind": "mektup",
+      "tone": "kaba",
+      "text": "{alici}, aynı odada yaşayıp bana yabancı gibi davranmandan bıktım. Kira konuşulunca susuyorsun, avluda başka eve bakıyorsun. Ev sahibiyle konuştuysan yüzüme söyle. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Ev sahibiyle bir görüşme yapıldıysa taşınma niyetini aydınlatabilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT004",
+      "kind": "mektup",
+      "tone": "kurnaz",
+      "text": "Sevgili {alici}, mirastan pay istemediğimi söylemedim; yalnızca evi satmak istemiyorum. Teyzemin sakladığı mektupta bahçenin kullanımı ayrıca anılmış. Onu görmeden anlaşmayalım. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Teyzenin mektubu bahçenin kullanımını nasıl ele alıyor?",
+      "public": false
+    },
+    {
+      "id": "WT005",
+      "kind": "mektup",
+      "tone": "yarim",
+      "text": "{alici}, yol ayrımındaki taşı buldum. Kervancı burada beklememi söyledi; dönüş yolu sandığım patika suya iniyor. Ona hangi yolu kastettiğini soracaktım, fakat kervan...",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Kervancının tarif ettiği yol ayrımındaki hangi yoldu?",
+      "public": false
+    },
+    {
+      "id": "WT006",
+      "kind": "mektup",
+      "tone": "dalgin",
+      "text": "{alici}, davetini yanıtladım sanıyordum; mektup hâlâ cebimdeymiş. Gelmek isterim. Yalnız seninle küs olan dostumuz da çağrılmış; davetleri aynı zarfa koymuşsun. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Aynı davete çağrılan küs dostlar konuşmaya hazır mı?",
+      "public": false
+    },
+    {
+      "id": "WT007",
+      "kind": "mektup",
+      "tone": "resmi",
+      "text": "{alici} dikkatine: {yer} iskelesine ayrılan yükün başka rıhtımda beklediği bildirilmiştir. Kayıkçı taşıma işini üstlenmemiştir. Yük sahibinin yönlendirmesi beklenmektedir. {gonderen}.",
+      "slots": [
+        "alici",
+        "yer",
+        "gonderen"
+      ],
+      "leaves_question": "Yük sahibi farklı rıhtıma gönderilme konusunda ne biliyor?",
+      "public": false
+    },
+    {
+      "id": "WT008",
+      "kind": "mektup",
+      "tone": "korkmus",
+      "text": "{alici}, bahçenin sınırı için komşuyla konuşmaya korkuyorum. Çiti oynattığımı sanıyor; ben yalnızca devrilen direği kaldırdım. Ortak kiracımız olay sırasında avludaydı. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Ortak kiracının gördükleri sınır anlaşmazlığını daraltabilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT009",
+      "kind": "mektup",
+      "tone": "kaba",
+      "text": "{alici}, misafir diye geldiğin evde dolabımı kendi sandığın gibi kullanma. Kayıp örtüyü de bana sorma; ev sahibine paket verdin diye duydum. Açık açık konuşalım. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Ev sahibine bırakılan paketin bu anlaşmazlıkla ilgisi var mı?",
+      "public": false
+    },
+    {
+      "id": "WT010",
+      "kind": "mektup",
+      "tone": "kurnaz",
+      "text": "{alici}, {is} için beni önerebilirsin, ama adımı pazarlığın başında verme. İşverenin yardım mı ortak mı aradığı belli değil; konuşurken ikisini birbirine karıştırıyor. {gonderen}.",
+      "slots": [
+        "alici",
+        "is",
+        "gonderen"
+      ],
+      "leaves_question": "İşverenin aradığı ilişki ücretli yardım mı ortaklık mı?",
+      "public": false
+    },
+    {
+      "id": "WT011",
+      "kind": "mektup",
+      "tone": "yarim",
+      "text": "Sevgili {alici}, ayrılığımızı bütün mahalleye anlatmanı istemiyorum. Sana kızgın olmam eşyalarını sakladığım anlamına gelmez. Han sahibine bıraktığım zarfın içinde...",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Han sahibindeki zarf ayrılıktan kalan hangi meseleyi açıklığa kavuşturabilir?",
+      "public": false
+    },
+    {
+      "id": "WT012",
+      "kind": "mektup",
+      "tone": "dalgin",
+      "text": "{alici}, sana teşekkür için yazıyordum, neden teşekkür edeceğimi unuttum. Sonra kapıda duran boş sandalyeyi gördüm; taşınmamda yardım edecektin. Taşıyıcı uğramış, seni sorup gitmiş. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Taşıyıcı neden yardım edecek dostu arıyordu?",
+      "public": false
+    },
+    {
+      "id": "WT013",
+      "kind": "mektup",
+      "tone": "resmi",
+      "text": "Sayın {alici}, {zaman} tarihli dilekçeniz hakkında komşuların görüşü alınacaktır. Şikâyet, avludaki gürültüden çok kapının açık bırakılmasına ilişkindir. Ev yöneticisi görüşmeye hazırdır. {gonderen}.",
+      "slots": [
+        "alici",
+        "zaman",
+        "gonderen"
+      ],
+      "leaves_question": "Ev yöneticisi kapının açık kalmasıyla ilgili hangi olayı aktarabilir?",
+      "public": false
+    },
+    {
+      "id": "WT014",
+      "kind": "mektup",
+      "tone": "korkmus",
+      "text": "{alici}, dostumuz buluşmaya gelmedi. Beni görmek istemediğini düşünmekten korkuyorum; handaki görevli de kendisini beklediğini söyledi. Sana haber bıraktıysa bilmek isterim. {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Dostun yokluğu hakkında handaki görevlinin son bildiği ne?",
+      "public": false
+    },
+    {
+      "id": "WT015",
+      "kind": "not",
+      "tone": "kaba",
+      "text": "Çorbayı merdivene bırakmayın artık. Komşumuz kapıyı zor açıyor; yardım edecekseniz kapıcıya teslim edin. Kapıcı da neden ziyaretçi istemediğini anlatmıyor.",
+      "slots": [],
+      "leaves_question": "Kapıcı ziyaret isteğini komşuya iletebilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT016",
+      "kind": "not",
+      "tone": "kurnaz",
+      "text": "{yer} için izin istemeden önce geçidin sahibiyle konuşalım. Kalabalıkta itiraz etmek zorunda kalırsa işi yokuşa sürer. Bekçi sahibin nerede bulunacağını biliyormuş.",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Geçit sahibi kullanım biçimine mi, izin istenmemesine mi itiraz edebilir?",
+      "public": false
+    },
+    {
+      "id": "WT017",
+      "kind": "not",
+      "tone": "yarim",
+      "text": "Ekmek bohçası kapıcıda. Üzerindeki işaret kime ayrıldığını anlatıyor. Yardım dağıtan görevli, sıraya alınmayan komşumuz için...",
+      "slots": [],
+      "leaves_question": "Yardım görevlisi komşunun sıraya alınmamasını nasıl açıklıyor?",
+      "public": false
+    },
+    {
+      "id": "WT018",
+      "kind": "not",
+      "tone": "dalgin",
+      "text": "Odanın boş olduğunu söylemiştim; içindeki yolcuya sormayı unutmuşum. Yolcu eşyalarını toplamış, han sahibini bekliyor. Anahtarı bana değil ona sorun.",
+      "slots": [],
+      "leaves_question": "Yolcu ayrılmak için han sahibinden ne bekliyor?",
+      "public": false
+    },
+    {
+      "id": "WT019",
+      "kind": "not",
+      "tone": "resmi",
+      "text": "{is} için başvuranların bekleme yeri avludur. Giriş izni kabul anlamına gelmez. Görevli, kapıdan geri çevrilen başvurunun gerekçesini açıklamak üzere yazıhanededir.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Geri çevrilen başvuru hangi şartı karşılamadı?",
+      "public": false
+    },
+    {
+      "id": "WT020",
+      "kind": "not",
+      "tone": "korkmus",
+      "text": "Nöbetçi beni tanımayınca kapıdan döndüm. Yanlış bir şey yapmışım gibi konuşmasından korktum. Nöbet değişimini bilen çavuşa haber bıraktım; cevap hâlâ kapıcıda olabilir.",
+      "slots": [],
+      "leaves_question": "Çavuş kapıda yaşanan yanlış tanınmayı açıklayabilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT021",
+      "kind": "not",
+      "tone": "kaba",
+      "text": "Çocuk oyuncağı değil o kapı kolu; çekip durmayın. İçeride toplantı var. Mahalle sözcüsü, kapıda bekleyen komşunun neden içeri alınmadığını açıklasın da kavga bitsin.",
+      "slots": [],
+      "leaves_question": "Mahalle sözcüsü toplantıya katılım için hangi sınırı koydu?",
+      "public": false
+    },
+    {
+      "id": "WT022",
+      "kind": "not",
+      "tone": "kurnaz",
+      "text": "Yemeğe davet ettiğimi söyle, borç konuşacağımı değil. Borcu inkâr etmiyorum; yalnız pazarda tartışmak istemiyorum. Ortak dostumuz masaya oturursa konuşma sakin kalabilir.",
+      "slots": [],
+      "leaves_question": "Ortak dost bu görüşmeye aracı olmayı kabul ediyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT023",
+      "kind": "not",
+      "tone": "yarim",
+      "text": "{alici}, avlu anahtarını komşuya bıraktım. Kendisi kiracının dönmesini beklediğini söyledi; kiracıya iletilecek sözün asıl...",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Komşunun kiracıya iletmek istediği söz ne hakkında?",
+      "public": false
+    },
+    {
+      "id": "WT024",
+      "kind": "not",
+      "tone": "dalgin",
+      "text": "Yol tarifini zarfın arkasına yazdım, zarfı da yolcuya verdim. Nerede buluşacağımızı kendimde tutmamışım. Yolcu hanın kapıcısına uğrayacağını söylemişti.",
+      "slots": [],
+      "leaves_question": "Kapıcı yolcunun buluşma yeri için bıraktığı haberi aldı mı?",
+      "public": false
+    },
+    {
+      "id": "WT025",
+      "kind": "not",
+      "tone": "resmi",
+      "text": "{yer} avlusundaki ortak ocağın kullanımı komşuların görüşmesine bırakılmıştır. Anahtar ev yöneticisindedir. Görüş ayrılığı yakacak paylaşımına ilişkindir; ocak henüz kimseye tahsis edilmemiştir.",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Komşular yakacak paylaşımında hangi düzeni tartışıyor?",
+      "public": false
+    },
+    {
+      "id": "WT026",
+      "kind": "not",
+      "tone": "korkmus",
+      "text": "Dostumun ziyaretini saklamıyorum. Ev sahibi sert konuşunca adını söylemeye korktum. Dostum hâlâ avludaki bankta; konuşmak isterse kendi anlatabilir.",
+      "slots": [],
+      "leaves_question": "Avluda bekleyen dost ev sahibinin itirazını biliyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT027",
+      "kind": "not",
+      "tone": "kaba",
+      "text": "Şenlik için kurduğunuz masayı kapımdan çekin. Gönüllü olmak başka, evi kapatmak başka. Düzeni kuran görevli meydanda; beni yine başkasına yollamasın.",
+      "slots": [],
+      "leaves_question": "Şenlik görevlisinin masa için düşündüğü başka yer var mı?",
+      "public": false
+    },
+    {
+      "id": "WT028",
+      "kind": "not",
+      "tone": "kurnaz",
+      "text": "{is} için gönüllü arandığını duydum. İşin sonu ücretli nöbete çıkacaksa bunu baştan konuşalım. Çağrıyı yapan kişi, han masasında ayrıntıları anlatacakmış.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Çağrıyı yapan kişi gönüllülükle ücretli işi nasıl ayırıyor?",
+      "public": false
+    },
+    {
+      "id": "WT029",
+      "kind": "ilan",
+      "tone": "yarim",
+      "text": "{yer} meydanındaki şenlik için avlu sahiplerinin görüşü alınacaktır. Ortak sofraya yer açılması konusunda başvuracakların önce...",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Şenlik düzenleyicileri avlu sahiplerinden hangi izni bekliyor?",
+      "public": true
+    },
+    {
+      "id": "WT030",
+      "kind": "ilan",
+      "tone": "dalgin",
+      "text": "Handa boş oda var diye asmıştım; yataklar boş, oda henüz değil. Konuk sandığını almaya gelecek. Han sahibi beklemenin sebebini biliyor; bana anlatmıştı, aklımdan çıktı.",
+      "slots": [],
+      "leaves_question": "Konuk sandığını almak için neyi bekliyor?",
+      "public": true
+    },
+    {
+      "id": "WT031",
+      "kind": "ilan",
+      "tone": "resmi",
+      "text": "{is} için başvurular {yer} yazıhanesinde alınır. İşin yolculuk gerektirip gerektirmediği sorumlu tarafından açıklanacaktır. Koşullar öğrenilmeden başvuru taahhüt sayılmaz.",
+      "slots": [
+        "is",
+        "yer"
+      ],
+      "leaves_question": "Sorumlunun tarif ettiği iş yerel mi yoksa yolculuk gerektiren bir iş mi?",
+      "public": true
+    },
+    {
+      "id": "WT032",
+      "kind": "ilan",
+      "tone": "korkmus",
+      "text": "Tapınak mutfağına yardım etmek istiyorum, kalabalığa girmeye çekiniyorum. Dışarıdan katkı kabul edilip edilmediğini görevliye sordum. Cevabı bu duyurunun yanına asmasını rica ettim.",
+      "slots": [],
+      "leaves_question": "Mutfak görevlisi kalabalığa katılmadan yardıma hangi yolu açıyor?",
+      "public": true
+    },
+    {
+      "id": "WT033",
+      "kind": "ilan",
+      "tone": "kaba",
+      "text": "Pazar tezgâhlarını geçidin ağzına yığmayın! Yer kavgası edenler pazar sorumlusuyla konuşsun. Boş görünen yerin neden ayrıldığı sorulmadan üstüne oturulmaz.",
+      "slots": [],
+      "leaves_question": "Pazar sorumlusu boş alanı hangi kullanım için ayırdı?",
+      "public": true
+    },
+    {
+      "id": "WT034",
+      "kind": "ilan",
+      "tone": "kurnaz",
+      "text": "Yol arkadaşlığı aranıyor. Yük taşımayı dostluk sayıp bedavaya yaptıracak olan gelmesin. Kervan sorumlusu uğrakları handa anlatacak; dönüş yolu konusunda anlaşmak şart.",
+      "slots": [],
+      "leaves_question": "Kervan sorumlusunun dönüş için düşündüğü güzergâh ne?",
+      "public": true
+    },
+    {
+      "id": "WT035",
+      "kind": "ilan",
+      "tone": "yarim",
+      "text": "{yer} ev sahiplerine duyuru: Ortak kuyunun kullanımı avlu toplantısında konuşulacaktır. Kiracıların görüşünü iletecek kişinin...",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Avlu toplantısında kiracıları kimin temsil edeceği belli mi?",
+      "public": true
+    },
+    {
+      "id": "WT036",
+      "kind": "ilan",
+      "tone": "dalgin",
+      "text": "Kaybolan yolcu heybesi kapıcıda. Kaybolan kapıcı değil, heybe; duyuruyu acele yazmışım. İçindeki mektup kapalı duruyor, kapıcı üzerindeki teslim yerini anlamamış.",
+      "slots": [],
+      "leaves_question": "Heybenin mektubundaki teslim yeri kapıcıyla birlikte çözülebilir mi?",
+      "public": true
+    },
+    {
+      "id": "WT037",
+      "kind": "ilan",
+      "tone": "resmi",
+      "text": "{yer} geçiş izni için itirazlar kapı görevlisine iletilebilir. İzin sahibi olmak kapalı avlulara giriş hakkı vermez. Görevli, ortak geçit sayılan bölümün sınırını gösterecektir.",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Ortak geçit ile özel avlu arasındaki sınır nereden geçiyor?",
+      "public": true
+    },
+    {
+      "id": "WT038",
+      "kind": "ilan",
+      "tone": "korkmus",
+      "text": "Beni arayan yol arkadaşım varsa hana haber bıraksın. Meydandaki kalabalıkta ayrıldık; ters yola gittiğinden korkuyorum. Han sahibi birlikte seçtiğimiz uğrağı biliyor.",
+      "slots": [],
+      "leaves_question": "Yol arkadaşı hana ya da kararlaştırılan uğrağa haber bıraktı mı?",
+      "public": true
+    },
+    {
+      "id": "WT039",
+      "kind": "ilan",
+      "tone": "kaba",
+      "text": "Yardım sırasını itişerek değiştirmeyin. Mutfak görevlisi bazı haneleri neden ayrı çağırdığını açıklasın; kapıda birbirimize bağırmanın faydası yok.",
+      "slots": [],
+      "leaves_question": "Mutfak görevlisinin ayrı çağırdığı haneler için hangi düzen uygulanıyor?",
+      "public": true
+    },
+    {
+      "id": "WT040",
+      "kind": "ilan",
+      "tone": "kurnaz",
+      "text": "{is} için ortak arıyorum, yalnız seyirci değil. Paylaşılacak sorumlulukları hanın ortak masasında konuşabiliriz. İşyerinin kullanımı hakkında ev sahibinin şartı var; onu saklamayacağım.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Ev sahibinin şartı ortaklığın çalışma biçimini nasıl etkiliyor?",
+      "public": true
+    },
+    {
+      "id": "WT041",
+      "kind": "ilan",
+      "tone": "yarim",
+      "text": "{yer} mahallesi sakinlerine: Yol kapatılmasına itiraz edenler meydandaki görevliye görüş bildirebilir. Geçici geçiş için ayrılması düşünülen...",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Meydandaki görevli geçişin hangi yoldan sağlanmasını düşünüyor?",
+      "public": true
+    },
+    {
+      "id": "WT042",
+      "kind": "defter",
+      "tone": "dalgin",
+      "text": "Kime davet yolladığımı buraya yazacaktım. Misafirlerin sevdiği yemekleri yazmışım. Küs komşular aynı sofraya çağrıldı; ev sahibi yerlerini konuşmak için beni arıyor.",
+      "slots": [],
+      "leaves_question": "Ev sahibi küs komşuları aynı sofrada ağırlamak için ne düşünüyor?",
+      "public": false
+    },
+    {
+      "id": "WT043",
+      "kind": "defter",
+      "tone": "resmi",
+      "text": "{is} başvurularının değerlendirmesi sürüyor. Sorumlu, konaklama isteyen adaylarla ayrı görüşecektir. İşin kapsamı değişmemiştir; barınma şartı henüz kesinleşmemiştir.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Sorumlu barınma talebi olan adaylara hangi seçenekleri sunuyor?",
+      "public": false
+    },
+    {
+      "id": "WT044",
+      "kind": "defter",
+      "tone": "korkmus",
+      "text": "Sınır taşının yerini yazıyorum; komşu yine taşındığını söylüyor. Tartışmada sesim çıkmıyor. Ortak bahçeyi kullanan kiracıyla konuşursam gördüğünü anlatabilir.",
+      "slots": [],
+      "leaves_question": "Ortak kiracı sınır taşının yeri hakkında ne hatırlıyor?",
+      "public": false
+    },
+    {
+      "id": "WT045",
+      "kind": "defter",
+      "tone": "kaba",
+      "text": "Ev sahibi tamir sözü verip duruyor. Boş odanın tavanı akarken kiracıya kusur bulması kolay. Kapıcının elinde gönderdiğim dilekçe var; bu mesele öylece unutulmayacak.",
+      "slots": [],
+      "leaves_question": "Kapıcı dilekçeyi ev sahibine ulaştırdı mı?",
+      "public": false
+    },
+    {
+      "id": "WT046",
+      "kind": "defter",
+      "tone": "kurnaz",
+      "text": "{is} için görüşmede hemen evet demedim. Sorumlu görevin kolaylığını övüyor, nerede kalacağımızı geçiştiriyor. Han sahibiyle konuşmadan bu pazarlık tamam sayılmaz.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Han sahibinin sunduğu konaklama şartı pazarlığı değiştirir mi?",
+      "public": false
+    },
+    {
+      "id": "WT047",
+      "kind": "defter",
+      "tone": "yarim",
+      "text": "Yardım mutfağına katılanlar: yemek taşıyanlar avluda, dağıtımı bekleyenler kapıda. Görevli ayrı duran aileyi içeri çağırdı. Onlara ayrılan yerin...",
+      "slots": [],
+      "leaves_question": "Görevlinin ayrı aile için belirlediği yerin amacı ne?",
+      "public": false
+    },
+    {
+      "id": "WT048",
+      "kind": "defter",
+      "tone": "dalgin",
+      "text": "Yol ayrımını çizmek yerine hanın avlusunu çizmişim. Kervancıya yol sordum; dönüşte kullanılmayan köprüden söz etti. Köprünün neden tercih edilmediğini soramadım.",
+      "slots": [],
+      "leaves_question": "Kervancı dönüşte köprüden neden kaçınıyor?",
+      "public": false
+    },
+    {
+      "id": "WT049",
+      "kind": "defter",
+      "tone": "resmi",
+      "text": "{yer} nöbet devri kaydı: kapı teslimi görüşülmüştür. Devralan görevli, izinli ziyaretçilerin nasıl tanınacağını çavuştan açıklamasını istemiştir. Açıklama beklenmektedir.",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Çavuş izinli ziyaretçilerin tanınması için hangi yolu tarif ediyor?",
+      "public": false
+    },
+    {
+      "id": "WT050",
+      "kind": "defter",
+      "tone": "korkmus",
+      "text": "Dostumuzun sandalyesini kaldırmaya elim varmıyor. Yolculuğa mı çıktı, bize mi kırıldı bilmiyorum. Han sahibine emanet bıraktığı söyleniyor; sormaya korkuyorum.",
+      "slots": [],
+      "leaves_question": "Han sahibi emaneti alırken dostun ayrılış amacı hakkında bir şey öğrendi mi?",
+      "public": false
+    },
+    {
+      "id": "WT051",
+      "kind": "defter",
+      "tone": "kaba",
+      "text": "Miras konuşulurken herkes bahçeye sahip çıkıyor, bakımını sorunca susuyor. Aile sözcüsü evde buluşmayı istedi. Kullanım hakkıyla mülkiyeti aynı şey saymalarından bıktım.",
+      "slots": [],
+      "leaves_question": "Aile sözcüsü bahçe kullanımını mülkiyetten nasıl ayırmayı öneriyor?",
+      "public": false
+    },
+    {
+      "id": "WT052",
+      "kind": "defter",
+      "tone": "kurnaz",
+      "text": "Şenlik masamı kalabalığın yürüdüğü yere kurmak isterim. Meydan sorumlusu geçidi kapatmamamı söyledi. Önerdiği köşe sessiz görünüyor; karşılığında ne kolaylık sağlayacağını soracağım.",
+      "slots": [],
+      "leaves_question": "Meydan sorumlusu sessiz köşeyi kabul edenlere ne sunuyor?",
+      "public": false
+    },
+    {
+      "id": "WT053",
+      "kind": "defter",
+      "tone": "yarim",
+      "text": "Kiracıyla ortak mutfak hakkında konuştum. Sofrayı paylaşmak istiyor, dolabı değil. Kapıcıya bırakılan anahtarın kimde kalacağına gelince...",
+      "slots": [],
+      "leaves_question": "Ortak mutfak anahtarının kimde tutulması düşünülüyor?",
+      "public": false
+    },
+    {
+      "id": "WT054",
+      "kind": "defter",
+      "tone": "dalgin",
+      "text": "Hastayken kapıya gelen dostları yazacaktım; getirdikleri yemekleri yazmışım. Komşu uğramadı ama kapıcı ondan selam getirdi. Selamın yanında söylediğini unuttuğum bir şey vardı.",
+      "slots": [],
+      "leaves_question": "Kapıcı komşunun selamla birlikte ilettiği sözü hatırlıyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT055",
+      "kind": "makbuz",
+      "tone": "resmi",
+      "text": "{alici} adına geçiş başvurusu teslim alınmıştır. Bu alındı geçiş izni değildir. Avlu sakininin itirazı başvuruya eklenmiştir; gerekçesi kapı görevlisinden öğrenilebilir.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Avlu sakini geçiş talebinin hangi yönüne itiraz ediyor?",
+      "public": false
+    },
+    {
+      "id": "WT056",
+      "kind": "makbuz",
+      "tone": "korkmus",
+      "text": "Emanet alındı: yolcu heybesi. Sahibi dönmez diye korkuyorum; bekleme yerini söylemeden çıktı. Han sahibine gideceğinden söz etmişti. Emaneti alan: {alici}.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Han sahibi yolcunun bekleme yerini biliyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT057",
+      "kind": "makbuz",
+      "tone": "kaba",
+      "text": "{is} başvurusu alındı. İşe alındım diye ortalıkta dolaşmayın; karar vermek benim işim değil. Sorumlu görüşmeyi neden ertelediğini kendisi açıklasın. Kabul eden görevli: {gonderen}.",
+      "slots": [
+        "is",
+        "gonderen"
+      ],
+      "leaves_question": "Sorumlu başvuru görüşmesini hangi nedenle erteledi?",
+      "public": false
+    },
+    {
+      "id": "WT058",
+      "kind": "makbuz",
+      "tone": "kurnaz",
+      "text": "Anahtar emanet alındı, evin kullanımı devralınmadı. Bu ayrımı özellikle yazıyorum; kiracıyla ev sahibinin anlaşmazlığı bana kalmasın. Anahtarın geri verileceği kişiyi kendileri açıklayacak.",
+      "slots": [],
+      "leaves_question": "Kiracıyla ev sahibi anahtarın kime dönmesi konusunda uzlaşabilecek mi?",
+      "public": false
+    },
+    {
+      "id": "WT059",
+      "kind": "makbuz",
+      "tone": "yarim",
+      "text": "Teslim alan: {alici}. Konu: {is}. Yük belirtilen iskele yerine yan rıhtıma indirildi. Kayıkçının farklı yere yanaşma gerekçesi...",
+      "slots": [
+        "alici",
+        "is"
+      ],
+      "leaves_question": "Kayıkçı neden farklı rıhtıma yanaştı?",
+      "public": false
+    },
+    {
+      "id": "WT060",
+      "kind": "makbuz",
+      "tone": "dalgin",
+      "text": "Yardım bohçası teslim alındı. Hangi haneye ayrıldığını kapıcıya söyledim sanıyordum; kendime yazmışım. Mutfak görevlisi sırada bekleyen haneyi tanıyor. Taşıyan: {gonderen}.",
+      "slots": [
+        "gonderen"
+      ],
+      "leaves_question": "Mutfak görevlisi bohçayı bekleyen haneye nasıl haber veriyor?",
+      "public": false
+    },
+    {
+      "id": "WT061",
+      "kind": "makbuz",
+      "tone": "resmi",
+      "text": "{zaman} — {is} için dilekçe alındısı. Bahçe sınırına ilişkin itiraz görüşülmek üzere mahalle sözcüsüne iletilmiştir. Bu belge sınırı değiştirmez. Düzenleyen: {gonderen}.",
+      "slots": [
+        "zaman",
+        "is",
+        "gonderen"
+      ],
+      "leaves_question": "Mahalle sözcüsü sınır itirazını kimlerle görüşmeyi düşünüyor?",
+      "public": false
+    },
+    {
+      "id": "WT062",
+      "kind": "makbuz",
+      "tone": "korkmus",
+      "text": "Mühürlü aile mektubu emanet alınmıştır. Açmayı reddettim; miras kavgasının ortasında kalmaktan korkuyorum. Aile sözcüsü mektubun kime verileceğini bildirecek. Alan: {alici}.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Aile sözcüsü mektubun muhatabı konusunda hangi açıklamayı yapacak?",
+      "public": false
+    },
+    {
+      "id": "WT063",
+      "kind": "makbuz",
+      "tone": "kaba",
+      "text": "İade fişi. Yırtık torba kabul edildi; yırtığı bana mal etmeyin. Torbacının çıkış kâğıdındaki leke de burada duruyor. Alan: {alici}; bırakan: {gonderen}.",
+      "slots": [
+        "alici",
+        "gonderen"
+      ],
+      "leaves_question": "Çıkış kâğıdındaki lekeyle torbadaki leke nasıl karşılaştırılabilir?",
+      "public": false
+    },
+    {
+      "id": "WT064",
+      "kind": "makbuz",
+      "tone": "kurnaz",
+      "text": "Örnek teslimi: parlatılmış taş. Sargıyı da kayda ekledim; taşın nereden çıktığını tartışırken işe yarar. Taşçının eşleme levhasındaki oyukla karşılaştırılacak. Teslim alan: {alici}.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Eşleme levhasının oyuğu taşın hangi yüzüne karşılık geliyor?",
+      "public": false
+    },
+    {
+      "id": "WT065",
+      "kind": "makbuz",
+      "tone": "yarim",
+      "text": "{is} için başvuru alındısı. Konaklama talebi han sahibine iletilmiş olup boş sanılan odanın kullanımına ilişkin...",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Han sahibi boş sanılan odanın kullanımı hakkında ne biliyor?",
+      "public": false
+    },
+    {
+      "id": "WT066",
+      "kind": "makbuz",
+      "tone": "dalgin",
+      "text": "Teslim fişi: hasır örtü. İmza yerini çizimin altına açmışım. Hasırcının düğüm örneği de kâğıda yapıştı; bizim örtünün kenarında aynı düğümü göremiyorum. Bırakan: {gonderen}.",
+      "slots": [
+        "gonderen"
+      ],
+      "leaves_question": "Yapışmış düğüm örneği hasırcının hangi işine ait olabilir?",
+      "public": false
+    },
+    {
+      "id": "WT067",
+      "kind": "makbuz",
+      "tone": "resmi",
+      "text": "{yer} yazıhanesi — Şenlik alanı başvurusu alınmıştır. Alan tahsisi yapılmamıştır. Ortak geçidi açık tutma şartının kapsamı meydan görevlisiyle görüşülecektir.",
+      "slots": [
+        "yer"
+      ],
+      "leaves_question": "Meydan görevlisi ortak geçit için hangi sınırı gösterecek?",
+      "public": false
+    },
+    {
+      "id": "WT068",
+      "kind": "tehdit",
+      "tone": "korkmus",
+      "text": "{alici}, kapımda bağırmayı bırak. Komşuların önüne çıkmaya korkuyorum. Borç konusunda aracı olan dostumuzla konuşmazsan şikâyetimi ev yöneticisine götüreceğim.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Aracı dost borç konuşmasının neden kavgaya döndüğünü biliyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT069",
+      "kind": "tehdit",
+      "tone": "kaba",
+      "text": "Ortak ocağı kendi malın sanma. Komşuların yakacağını kullanmayı açıklamazsan benim odunuma el süremezsin. Kapıcı neyin ortak ayrıldığını biliyor; onun önünde konuşalım.",
+      "slots": [],
+      "leaves_question": "Kapıcının bildiği paylaşım düzeni odunların kullanımını nasıl ayırıyor?",
+      "public": false
+    },
+    {
+      "id": "WT070",
+      "kind": "tehdit",
+      "tone": "kurnaz",
+      "text": "{is} için ismimi destekçi diye yazmışsın. Koşulları anlatmadığın sürece adımı çıkarırım. İşverene söylediklerini handaki görüşmede kendin açıklarsan pazarlık şansını koruyabilirsin.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Handaki görüşmede işverene vaat edilen sorumluluklar açıklığa kavuşabilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT071",
+      "kind": "tehdit",
+      "tone": "yarim",
+      "text": "{alici}, beni miras görüşmesinden dışlarsanız evin bakımını üstlenmem. Aile sözcüsü bahçeyi kimin kullanacağını açıklamadan yapılacak anlaşmanın...",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Aile sözcüsü bahçe kullanımı için nasıl bir düzen öneriyor?",
+      "public": false
+    },
+    {
+      "id": "WT072",
+      "kind": "tehdit",
+      "tone": "dalgin",
+      "text": "Şenlik için verdiğim sözü hangi kâğıda yazdığımı unuttum, sözümden dönmedim. Fakat kapımı kapatan masayı kaldırmazsanız sofraya yardım etmem. Meydan görevlisine itirazımı bıraktım.",
+      "slots": [],
+      "leaves_question": "Meydan görevlisi masayı taşımak için hangi çözümü düşünüyor?",
+      "public": false
+    },
+    {
+      "id": "WT073",
+      "kind": "tehdit",
+      "tone": "resmi",
+      "text": "{alici} dikkatine: {is} kapsamında konaklama şartı açıklanmazsa başvurumuzu geri çekeceğiz. Han sahibinin görüşmeye katılması talebimiz sürmektedir. Bu yazı işin kabulü değildir.",
+      "slots": [
+        "alici",
+        "is"
+      ],
+      "leaves_question": "Han sahibinin açıklaması konaklama şartını netleştirmeye yeter mi?",
+      "public": false
+    },
+    {
+      "id": "WT074",
+      "kind": "tehdit",
+      "tone": "korkmus",
+      "text": "Sınır taşını oynattığımı söylemeyi bırak. Komşularla karşılaşmaya korkar oldum. Ortak kiracıyla görüşmeyi reddedersen itirazımı mahalle sözcüsüne ileteceğim; ne gördüğünü kiracı anlatsın.",
+      "slots": [],
+      "leaves_question": "Ortak kiracının gördükleri suçlamanın hangi kısmını sınayabilir?",
+      "public": false
+    },
+    {
+      "id": "WT075",
+      "kind": "tehdit",
+      "tone": "kaba",
+      "text": "{alici}, misafirimi kapıda sorguya çekme. Ev sahibi böyle emir vermediyse şikâyet ederim. Kapıcı, ziyaret düzenini konuşmak için ev sahibinin avluda olduğunu söyledi.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Ev sahibinin koyduğu ziyaret düzeni bu sorgulamaya dayanak sağlıyor mu?",
+      "public": false
+    },
+    {
+      "id": "WT076",
+      "kind": "tehdit",
+      "tone": "kurnaz",
+      "text": "Yolculukta yükünü taşımayı kabul ettim, bütün kararları sana bırakmayı değil. Kervan sorumlusu güzergâhı açıklamazsa yola katılmam. Beni kaybetmek istemiyorsan birlikte konuşalım.",
+      "slots": [],
+      "leaves_question": "Kervan sorumlusu ortakların güzergâha itirazını değerlendirecek mi?",
+      "public": false
+    },
+    {
+      "id": "WT077",
+      "kind": "tehdit",
+      "tone": "yarim",
+      "text": "{is} için beni gönüllü yazmayı bırak. Yardım sorumlusu görevimi açıklamazsa adımı listeden çektiririm; başvurumda belirttiğim sınırı da...",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Yardım sorumlusu gönüllünün belirttiği sınırı nasıl yorumlamış?",
+      "public": false
+    },
+    {
+      "id": "WT078",
+      "kind": "tehdit",
+      "tone": "dalgin",
+      "text": "Evden ayrılacağımı yazmıştım, mektubu sana mı kendime mi verdim unuttum. Ortak dolabımı boşaltmayı sürdürürsen gerçekten giderim. Ev sahibi eşyaların hangi odaya taşındığını biliyor.",
+      "slots": [],
+      "leaves_question": "Ev sahibi ortak dolaptaki eşyaların yerini açıklayabilir mi?",
+      "public": false
+    },
+    {
+      "id": "WT079",
+      "kind": "tehdit",
+      "tone": "resmi",
+      "text": "{is} için ayrılan ortak alan kapatılırsa desteğimizi geri çekeceğiz. Geçiş hakkının kapsamı mahalle sözcüsüyle görüşülmelidir. İtirazımızı kendisine ilettik; yanıt bekliyoruz.",
+      "slots": [
+        "is"
+      ],
+      "leaves_question": "Mahalle sözcüsü ortak alandaki geçiş hakkını nasıl tanımlıyor?",
+      "public": false
+    },
+    {
+      "id": "WT080",
+      "kind": "tehdit",
+      "tone": "korkmus",
+      "text": "{alici}, dostumuzun yokluğunu bana yükleme. Sana cevap verirken bile korkuyorum. Han sahibindeki mesajı birlikte sormayı reddedersen suçlamana karşı ev yöneticisine başvuracağım.",
+      "slots": [
+        "alici"
+      ],
+      "leaves_question": "Han sahibine bırakılan mesaj dostun yokluğunu açıklıyor mu?",
+      "public": false
+    }
+  ]
+}

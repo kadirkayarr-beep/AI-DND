@@ -1,0 +1,2157 @@
+{
+  "schema_version": "1.0.0",
+  "field_descriptions": {
+    "schema_version": "Aday veri zarfının sürümü; çalışan ürün motoruyla uyumluluk veya doğrulama iddiası değildir.",
+    "field_descriptions": "Alanların Türkçe açıklamaları.",
+    "binding_rules": "Seçim, bağlama, algılama, keşif ve gösterim için zorunlu içerik sınırları; ürün kodu değildir.",
+    "items": "On yer türünde on beşer olmak üzere 150 bağımsız, özgün sahne ayrıntısı adayı.",
+    "id": "SD001–SD150 aralığında kalıcı aday kimliği; gerçek nesne veya keşif kimliği değildir.",
+    "place_tags": "Adayın uyumlu olduğu tek birincil yer türü; gerçek konum kaydı yerine geçmez.",
+    "object_tags": "Gözlemin gerektiği mevcut veya önceden izinli oluşturulmuş nesne türü; varlık yaratmaz.",
+    "text": "Türkçe ikinci tekil kişi şimdiki zamanlı, dışarıdan algılanabilir ayrıntı. Ham ve bağlanmış hali en çok 160 Unicode karakterdir.",
+    "slots": "Metindeki yer tutucuların süslü parantezsiz ve tekrarsız adları; yer tutucu yoksa boş dizi.",
+    "reveals": "hic: ipucu bağı yok; kisi_izi: kişiyle ilgili iz; yer_izi: yerle ilgili iz; is_ipucu: işle ilgili ipucu. Kategori otomatik bağlantı veya bilgi kesinliği değildir.",
+    "severity": "gundelik: olağan ayrıntı; merak: incelemeye uygun ayrım; tehlike_isareti: gözlenebilir risk belirtisi. Otomatik olay, hasar veya tepki değildir."
+  },
+  "binding_rules": [
+    "Bu dosya özgün ve henüz motorla bütünleştirilmemiş veri adayıdır. Model çalıştırması, ürün testi veya gerçek kampanya doğrulaması iddiası taşımaz.",
+    "Aday tek başına gerçek olay, eşya, ödül, suçlu, görev, erişim veya bilgi yaratmaz. Motor bağlamadan hiçbir aday bilgisi kesinleşmez.",
+    "Seçim için gerçek yer türü ile place_tags, gerçek nesne türü ile object_tags uyuşmalıdır. Nesnenin durumu, yazısı, açıklığı, malzemesi ve çevre koşulları metindeki her gözlemi desteklemelidir.",
+    "Gösterimden önce görüş açısı, mesafe, ışık, duyu erişimi, oyuncunun ilgili inceleme kapsamı ve gerekiyorsa algı veya inceleme kontrolünün sonucu doğrulanır. Kapalı nesne otomatik açılmaz; yeni eylem veya oyuncu kararı varsayılmaz.",
+    "Metnin gözlenebilir ayrıntıları mevcut kalıcı kayıtlara dayanır. İzinli yeni yerel ayrıntı gerekiyorsa motor önce yetkiyi ve tutarlılığı doğrular, ayrıntıyı kalıcı kayda işler, sonra metni bağlar. Katalog seçimi kayıt oluşturma yetkisi değildir.",
+    "reveals değeri hic olmayan aday için gösterimden önce gerçek, erişilebilir, ilgili ve yararlı bir ipucu kaydı bulunmalı; nesne, keşif, ipucu ve hedef kişi/yer/iş kimlikleri motor tarafından açıkça eşlenmelidir. Kategori kendi başına bağlantı değildir.",
+    "Kişi veya yön adı içeren bir etiket tek başına ipucu sayılmaz. hic dışı aday, gerçek ipucunun araştırılabilir bağlantısına veya doğrulanabilir bir sonraki bilgi adımına katkı vermelidir; sahte bağlantı ve içeriksiz çıkmaz üretilmez.",
+    "hic adayında ipucu, gizli görev veya otomatik gizem ima edilmez. Gündelik nesne durumu yalnız gözlenebilen haliyle aktarılır.",
+    "Aynı nesne durumu ve eşlenmiş ipucu için kalıcı keşif kimliği yeniden kullanılır. Tekrar inceleme aynı ayrıntıyı hatırlatır; yeni ipucu, ödül, deneyim, mal veya sınırsız keşif üretmez. Durum değişikliği motor kaydı gerektirir.",
+    "İz, isim, imza, kayıt benzerliği veya yer bağlantısı suçluluk kanıtı değildir; yazarın doğruluğu, fail, niyet, sahiplik veya nedensellik metinden otomatik çıkarılmaz. Yazılı bilgi yalnız kayıt üzerinde görülen bilgi olarak aktarılır.",
+    "yer, kisi ve is yer tutucuları yalnız aynı sahnede açıklanabilir gerçek yer, kişi ve iş kayıtlarının doğrulanmış kamusal adlarına bağlanır. Kayıtlı işin varlığı kabul edildiği veya ödül kazandırdığı anlamına gelmez.",
+    "Karşılaştırma içeren metinlerde karşılaştırılan iki kaynak da oyuncuya açık, önceden keşfedilmiş veya mevcut algı kapsamıyla erişilebilir olmalıdır. Benzerlik kesin kimlik tespiti değildir; belirsiz sonuçta bu kesin gözlem adayı kullanılmaz.",
+    "Oyun yöneticisi sırları, gizli nedenler, açıklanmamış kişisel bilgiler ve erişilemeyen kayıtlar yer tutuculara ya da modele verilen metne konulmaz. Özel kayıtların açıkmış gibi sunulması yasaktır.",
+    "slots dizisi yalnız text içindeki yer tutucuların adlarını içerir. Bütün tekrarlar aynı gerçek bağa çözülür. Adlara sabit çekim eki eklenmez; Türkçe doğal okunuş ayrıca denetlenir.",
+    "Ham text ve bağlandıktan sonraki oyuncu metni en çok 160 Unicode karakter olmalıdır. Uzun bağlarda yalnız doğrulanmış kısa ad veya anlamı koruyan doğrulanmış yeniden ifade kullanılır; metin kesilmez.",
+    "Eksik, yetkisiz, uyumsuz ya da belirsiz bağ varsa aday atlanır veya yalnız doğrulanmış gözlemlerle yeniden ifade edilir. Tahminle boşluk doldurulmaz; yeniden ifade uzunluk, erişim ve ipucu kurallarından tekrar geçer.",
+    "severity yalnız sunum sınıfıdır. tehlike_isareti otomatik zarar, tuzak tetikleme, düşman doğurma veya oyuncunun korktuğunu söyleme yetkisi vermez.",
+    "Metin bir gözlem sunar; oyuncunun duygusunu, kararını, isteğini, sonraki eylemini veya inceleme dışında bir girişimini belirlemez.",
+    "Kişinin çizmesi veya tabanı ile iz karşılaştırması ancak oyuncunun o gerçek örneği daha önce algıladığı ve görünür özelliklerinin kaydedildiği doğrulanırsa kullanılabilir. Oyuncuya yapay anı, geçmiş karşılaşma veya yeni örnek atfedilmez; benzer iz kimlik veya suçluluk ispatlamaz."
+  ],
+  "items": [
+    {
+      "id": "SD001",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapının tamamında değil, yalnız alt kenarında kurumuş çamur görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD002",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvarda bir sokak adı değil, {yer} yönünü gösteren taşçı işareti görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD003",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zeminin ortasında değil, oluk kıyısında açık bir çatlak görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD004",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Ayak izleri boyunca, {kisi} çizmesinden tanıdığın çift çentikli topuk izini sokağın köşesine kadar izliyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD005",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvar boyunca uzanan su çizgisini {yer} ağzına kadar izleyebiliyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD006",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemin boyunca birbirine bağlanan olukları yağmur ızgarasına kadar izliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD007",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapının alt aralığından içerideki taş basamağın dışarıdan daha yüksek olduğunu seçiyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD008",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Dolabın açık kanatları arasından {is} başlıklı sıra çizelgesini seçiyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD009",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun yarık köşesinden dışarı uzanan paslı çiviyi seçiyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD010",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki yön yazısını “{yer} geçidi” diye okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD011",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapıya bağlı levhadaki adı “{kisi}” diye okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD012",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın dış etiketini “{is} için ayrılmıştır” diye okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD013",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşe ile kapı tahtası arasında yerinden çıkmış bir vida buluyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD014",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "İki kaldırım taşı arasında suyun geçebildiği dar bir kanal buluyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD015",
+      "place_tags": [
+        "sokak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Eski sıva ile yeni sıva arasında {yer} levhasının açıkta kalan ucunu buluyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD016",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masaya yandan baktığında bir ayağın altındaki taş takoz belirginleşiyor; eğimin nerede düzeltildiğini görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD017",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapıya yandan baktığında sürgü yatağındaki yarık belirginleşiyor; yarığın iki vida deliğini birleştirdiğini görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD018",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvara yandan baktığında silik ok belirginleşiyor; ucundaki {yer} yazısını görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD019",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Dolabın gözlerini yukarıdan aşağı sayarken üçüncü gözde {kisi} adını okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD020",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun bölmelerini soldan sağa sayarken son bölmede {is} etiketini okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD021",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masanın kenarındaki çentikleri sayarken her beşincisinin daha uzun bırakıldığını okuyabiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD022",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "kiler"
+      ],
+      "text": "Kilerin açık girişindeki küf kokusuyla eşikte görünen yeşil tabakayı birlikte algılıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD023",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masanın yanındaki sirke kokusuyla yüzeyde görünen ıslak silme izlerini birlikte algılıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD024",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Açık kutunun yanındaki sabun kokusuyla iç kenarda görünen köpük kalıntısını birlikte algılıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD025",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki ıslak çizginin nerede kesildiğini aramadan görebiliyorsun: {yer} eşiğinde.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD026",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Topuk izindeki eksik parçanın yerini açıkça görebiliyorsun: daha önce gördüğün {kisi} çizmesindeki gibi sol dış kenarda.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD027",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşenin nereden ayrıldığını açıkça görebiliyorsun: üst çivinin çevresindeki çürük tahtadan.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD028",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Bir başlık, altında üç boş satır: duvardaki açık çizelgede {is} için ayrılmış bu düzeni görüyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD029",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Bir kalın ip, altında iki ince ip: sandığın dışındaki bağların bu sırayla üst üste geldiğini görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD030",
+      "place_tags": [
+        "han"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Bir ok, altında {yer} adı: kapı levhasındaki yön bilgisini bu iki işaretten okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD031",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki dairelerin çapları eşitken aralıklarının değiştiğini fark ediyorsun; en geniş boşluk sağ uçta kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD032",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki taşların boyları eşitken yüksekliklerinin değiştiğini fark ediyorsun; ortadaki taş dışarı taşıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD033",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandıktaki mühürlerin biçimleri eşitken tarihlerin değiştiğini fark ediyorsun; en yeni etiket {is} başlığını taşıyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD034",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutuyu örten değil, kutuya bağlanmış açık etiket dikkat alanına giriyor; üzerinde {kisi} adını okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD035",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvarı kaplayan değil, sıva boşluğunda kalan yazı görüşüne giriyor; orada {yer} adını okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD036",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Dolabın içi değil, açık kanadının dış çizelgesi görüşüne giriyor; başlığında {is} adını okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD037",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Gördüğün dökülmüş taneler oluğa yaklaştıkça seyrekleşiyor, oluğun içinde ise hiç görünmüyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD038",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Gördüğün topuk izleri tezgahtan uzaklaştıkça derinleşiyor; {kisi} çizmesinden tanıdığın çapraz taban yarığı izlerde de var.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD039",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Gördüğün duvar çatlağı yukarı çıktıkça genişliyor, en üstte harç parçaları dışarı taşıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD040",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Yukarıyı değil, basamakların dibini gösteren oku kapıdaki “{yer}” yazısının altında okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD041",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Ücreti değil, eksik kasa sayısını gösteren haneyi masadaki {is} çizelgesinin son sütununda okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD042",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Ağırlığı değil, yüksekliği gösteren ölçeği sandığın yan yüzünde okuyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD043",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Tek bir menteşe sağlam kalmış; kapının diğer köşesindeki boş çivi deliklerini de seçebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD044",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Tek bir bölme kuru kalmış; kutunun öteki gözlerindeki koyu su lekelerini de seçebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD045",
+      "place_tags": [
+        "pazar"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Tek bir imza silinmeden kalmış; duvardaki açık teslim listesinde {kisi} adını da seçebiliyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD046",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın iki yüzünü birlikte görebildiğin açıdan, {yer} damgasının köşeyi dönerek tekrarlandığını anlıyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD047",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "İskele aralığını görebildiğin açıdan, zeminin altındaki destek ucunun havada kaldığını anlıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD048",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun açık etiketlerini birlikte görebildiğin açıdan, {is} satırının iki listede de çizildiğini anlıyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD049",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvarın kuru kesimiyle ıslak kesimini ayıran çizgiyi gözünle takip ediyorsun; çizgi basamakların üçüncüsüyle aynı hizada.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD050",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki açık haritada kesikli rotayı gözünle takip ediyorsun; rota {is} başlıklı kutucukta bitiyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD051",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Çamurdaki kesintisiz iz dizisini gözünle takip ediyorsun; dizi {yer} girişine ulaşıyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD052",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşeden gelen metal sesinin yanında, rüzgârla oynayan pimin başını da görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD053",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapıdan gelen takırtının yanında, kanada çarpan serbest kanca ucunu da görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD054",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutudan gelen damlama sesinin yanında, alt dikişten zemine süzülen koyu yağı da görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD055",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın üstündeki açık teslim belgesi okunaklı; teslim alan sütununda {kisi} yazdığını görüyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD056",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki rıhtım planı okunaklı; sığ kesimin yanında {yer} yazdığını görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD057",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki yük cetveli okunaklı; bekleyen yük sütununda {is} yazdığını görüyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD058",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Basabileceğin yüzeyin bir tahta genişliğine indiği yeri seçiyorsun; geri kalan zemin açık bir boşluk.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD059",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapının açılabileceği yayın taş çıkıntıyla sınırlandığı yeri seçiyorsun; yerdeki aşınma çizgisi de bu noktada bitiyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD060",
+      "place_tags": [
+        "liman"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvar levhasında {yer} yolunun ikiye ayrıldığı yeri seçiyorsun; sağ kolun üstünde merdiven simgesi var.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD061",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Mezar taşını okurken {kisi} adının ölüm tarihi altında değil, taşı yaptıranlar satırında yer aldığını ayırt ediyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD062",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki listeyi okurken {is} başlığının tamamlananlar altında değil, bekleyenler sütununda yer aldığını ayırt ediyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD063",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvar planını okurken {yer} adının üst katta değil, avlu hizasında yer aldığını ayırt ediyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD064",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Işığın zemine eğik düştüğü kesimde, cilalı taşın ortasındaki çöküntüyü derinliğiyle birlikte seçebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD065",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Işığın taşa eğik düştüğü kesimde, eski harflerin üstüne çekilmiş düzeltme çizgisini seçebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD066",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Işığın kapıya eğik düştüğü kesimde, tahtadan dışarı kalkmış uzun kıymığı seçebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD067",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Kısa bezlerin üstte, uzunların altta durduğunu görüyorsun; orta boylar aralarında, renklerse bütün sıralarda karışık.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD068",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Halkadan ipe, ipten etikete bakışını kaydırırken {is} adını okuyorsun; bağ, kutunun kapağı yerine gövdesinde kalıyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD069",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Bağış listesinde {kisi} için yazılı iki arşın kumaşı okuyorsun; aynı satırdaki boş para hanesi, ölçüyü tutardan ayırıyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD070",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Harflerin aralarını dolduran yosuna rağmen mezar taşındaki iki ayrı tarihi okuyabiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD071",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Levhanın üstünü örten sarmaşığa rağmen duvardaki {yer} okunun ucunu görebiliyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD072",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Kenarına dökülmüş muma rağmen masadaki {is} listesinin “taşıma arabası bekleniyor” notunu okuyabiliyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD073",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Göz hizanın altında kalan mozaikte, üç taşın renkleriyle değil, ters çevrilmiş yüzleriyle ayrıldığını fark ediyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD074",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Göz hizanın üstünde kalan menteşede, pimin başıyla değil, yalnız ince ucuyla yuvaya tutunduğunu fark ediyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD075",
+      "place_tags": [
+        "tapinak"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Göz hizandaki açık dolap çizelgesinde, {kisi} adının anahtar alanlar değil, teslim edenler tarafında olduğunu fark ediyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD076",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Önündeki masanın açık ziyaret defterinden tek satırı okuyabiliyorsun: {kisi} adının karşısında “bekleme odası” yazıyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD077",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Önündeki kapının levhasından iki yönü okuyabiliyorsun: {yer} için sol, çıkış için sağ ok çizilmiş.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD078",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Önündeki kutunun etiketinden bir ayrımı okuyabiliyorsun: {is} için alınan ve iade edilen parçalar ayrı satırlarda.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD079",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvar panosunun kenarıyla zemindeki çizgiyi karşılaştırıyorsun; ikisi de aynı noktada içeri kıvrılıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD080",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Görünen topuk iziyle önceden gördüğün {kisi} çizmesinin tabanını karşılaştırıyorsun; ikisinde de iki çivi arası yarım parmak.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD081",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın numarasıyla açık {is} listesini karşılaştırıyorsun; aynı numara ayrılan mal sütununda bulunuyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD082",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Kırık halkanın içinde kalan pimi görüyorsun, fakat pimin alt ucu artık kapı kanadına değmiyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD083",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Halı kenarından çıkan taş oluğu görüyorsun, fakat oluk kapıya varmadan kör bir cepte bitiyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD084",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki {yer} yön okunu görüyorsun, fakat ok düz koridora değil, aşağı inen merdivene dönük.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD085",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Açık dolabın her gözü numaralı; {kisi} adını, gözlerden birinde değil, dıştaki sorumlu levhasında okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD086",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki her iş satırı tarihli; {is} başlığını, bitenlerde değil, ertelenenler bölümünde okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD087",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Koridordaki her kapı işaretli; {yer} adını, kanatta değil, üstteki yön şeridinde okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD088",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun iç kaplamasında bir leke değil, çıkarılmış bölücünün düz yuva izi olduğunu saptıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD089",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki parlak kesimde su değil, taş derzine kadar yayılmış kaygan yağ tabakası olduğunu saptıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD090",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki gölgede bir oyuk değil, sıvadan dışarı taşan eski askı tabanı olduğunu saptıyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD091",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masada açık duran {is} çizelgesini taradığında, boş bırakılan tek hanenin teslim saati olduğunu görüyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD092",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Dolap kapağındaki açık nöbet listesini taradığında, {kisi} adının karşısında giriş masası yazdığını görüyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD093",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki devriye planını taradığında, {yer} yolunun dönüş oku taşımadığını görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD094",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Sürgünün taş yuvaya girişini çok sığ görüyorsun, çünkü demir ucun yalnız bir parmaklık kısmı yuvanın içinde kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD095",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın iç bölmesini dış ölçekten daha dar görüyorsun, çünkü sabit ayırıcı tahta dış ölçünün iki parmak içinde kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD096",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki yarığı masa genişliğinden uzun görüyorsun, çünkü çatlak iki ayağın altından da geçip duvara kadar uzanıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD097",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutu etiketinde {kisi} adını, hemen üstünde “kayıtçı” başlığını okuyorsun; isim buluntu sahibini belirtmiyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD098",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvarda {is} satırını, hemen yanında “ikinci sayfaya bakınız” notunu okuyorsun; açık çizelgenin devamı yan levhada duruyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD099",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapıda {yer} adını, hemen altında “yan koridor” notunu okuyorsun; ok kapı kanadına değil koridora dönük.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD100",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Birbirine binen iki ayak izini ayırabiliyorsun; derindeki düz taban çizgisi, üstteki tırtıklı iz tarafından kesiliyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "merak"
+    },
+    {
+      "id": "SD101",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Üst üste gelen iki boya katını ayırabiliyorsun; alttaki mavi şerit, yeni beyaz çerçevenin dışına taşıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD102",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Açık listedeki iki {is} kaydını ayırabiliyorsun; biri alınan malı, diğeri geri verilen malı sayıyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD103",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşenin altındaki demir tozunu seçiyorsun; hemen üstünde, pimin yan yüzü yassılaşmış duruyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD104",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki dar kül şeridini seçiyorsun; hemen yanında, süpürge kıllarının paralel çizgileri kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD105",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın dışındaki {kisi} imzasını seçiyorsun; hemen üstünde, “teslimi kaydeden” başlığı duruyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD106",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki ölçü cetveli {is} başlığıyla eşleşiyor; üç arşının iki arşına çevrildiğini, eski rakam da görünürken okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD107",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Dolabın açık araç listesi {kisi} adına ayrılmış; iade satırındaki tek boşluğu, diğerleri işaretliyken okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD108",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki kanal planı {yer} bağlantısını gösteriyor; çıkışın kuzeye baktığını, güneydeki giriş oku da görünürken okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD109",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşeye takılı iki vidanın yalnız birinin başı var; başsız vidanın çevresindeki gevşek halkayı fark ediyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD110",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun iki gözünden yalnız biri astarlı; çıplak gözde tabana oyulmuş ölçü çizgilerini fark ediyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD111",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zemindeki iki ızgaradan yalnız biri sabit; ötekinin kenarındaki açık bağlantı yuvasını fark ediyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD112",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Üstten alta, {is} başlığını, on iki parça sayısını ve eksik iki kısa çıta notunu bu sırayla sandık listesinden okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD113",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Soldan sağa, ocak simgesini, su kanalını ve {yer} çıkışını bu sırayla duvar şemasından okuyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD114",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Yukarıdan aşağı, {kisi} adını, yedi numaralı rendeyi ve boş iade hanesini bu sırayla açık dolap çizelgesinden okuyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD115",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masanın ucunda iki deliğe odaklanan görüşün, aralarındaki kazınmış ölçüyü de kapsıyor; aralığı bir karış olarak okuyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD116",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapının dibindeki koyu çizgiye odaklanan görüşün, çizgiden sızan ince dumanı da kapsıyor; dumanın kesilmediğini görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD117",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutunun etiketindeki boş haneye odaklanan görüşün, {is} başlığını da kapsıyor; hane üstünde “parça ölçüsü” okuyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD118",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zeminin kuru göründüğü yerde bile ince talaşın yağa yapıştığını görebiliyorsun; parlak çizgi tezgâha kadar sürüyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD119",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşenin boyalı olduğu yerde bile yağ deliğinin açık bırakıldığını görebiliyorsun; delik pimin tam ortasına denk geliyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD120",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvarın yenilendiği yerde bile {yer} yön levhasının korunduğunu görebiliyorsun; ok yan merdivene bakıyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD121",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapı kanadıyla eşik arasındaki boşluk üstten değil, alttan genişliyor; eğik duran kanadın alt köşesini seçiyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD122",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki güzergâh yukarıdan değil, aşağıdaki geçitten başlıyor; ilk okun yanında {yer} adını seçiyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD123",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın sıra numarası kapağında değil, sabit ayağında yazıyor; açık {is} listesindeki aynı numarayı seçiyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD124",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki açık giriş kaydından okuyabildiğin kadarıyla {kisi} satırında saat var, çıkış hanesi boş.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD125",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvardaki yol levhasından okuyabildiğin kadarıyla {yer} için taş köprü ve sığ geçit ayrı ayrı işaretli.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD126",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Kutudaki açık sevk fişinden okuyabildiğin kadarıyla {is} için parça sayısı yazılı, toplam ağırlık hanesi boş.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD127",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Gördüğün çizgi bir taşın kenarında bitmiyor; komşu taşları da keserek kapı desteğinin altına uzanıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD128",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Gördüğün iz dizisi nöbet kulübesinde bitmiyor; yanından geçerek {yer} yoluna bağlanıyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD129",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Gördüğün ölçü çizgisi sıvanın kenarında bitmiyor; açık taş yüzüne geçerek bir arşın işaretine ulaşıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD130",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "mentese"
+      ],
+      "text": "Menteşe yuvasındaki oval aşınmayı, yanındaki sağlam yuvanın yuvarlak ağzından ayırt edebiliyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD131",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "masa"
+      ],
+      "text": "Masadaki {is} satırının iptal çizgisini, yanındaki satırlarda kullanılan onay çentiğinden ayırt edebiliyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD132",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "dolap"
+      ],
+      "text": "Açık dolap çizelgesinde {kisi} adının yanındaki teslim işaretini, ödünç sütunundaki boş halkadan ayırt edebiliyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD133",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Kapı levhasında iki ayrı yol gösteriliyor: {yer} adıyla birlikte dar kemer simgesini sol oka bağlı görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD134",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zeminde iki ayrı yüzey beliriyor: suyla birlikte yosun tabakasını yalnız eğimli taşlara yayılmış görüyorsun.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD135",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Duvar çizelgesinde iki ayrı kuyruk gösteriliyor: {is} adıyla birlikte yük simgesini sağ sıra işaretine bağlı görüyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD136",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Mezar taşının açık yüzünü okuyorsun ve {kisi} adının, gömülen kişi başlığından ayrı bir bakım satırında kaldığını görüyorsun.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD137",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Yıkık duvardaki yol şemasını okuyorsun ve {yer} okunun, kuru dere yatağını izleyen çizgiye bağlı olduğunu görüyorsun.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD138",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın dışındaki {is} fişini okuyorsun ve sağlam parça sayısının, kırık parça sayısından ayrı tutulduğunu görüyorsun.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD139",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "İzlerin derinliğine bakarak aynı sırada bir fark seçiyorsun: yumuşak çamurda bile sağ topuk soldan daha sığ kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "merak"
+    },
+    {
+      "id": "SD140",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Zeminin kenarına bakarak otların altında bir boşluk seçiyorsun: toprak, dışarı uzanan köklerin altından çekilmiş duruyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD141",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Taşın kaidesine bakarak yüzeyde bir ek seçiyorsun: eski tabanla yeni kama arasında ince bir harç şeridi kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "gundelik"
+    },
+    {
+      "id": "SD142",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "kapi"
+      ],
+      "text": "Görüşündeki kapı levhasında {yer} adını ters okuyorsun; yön oku ise yolun karşısındaki basamaklara bakıyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD143",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "kutu"
+      ],
+      "text": "Görüşündeki kutu fişinde {is} satırını çerçeve içinde okuyorsun; yanında iki kısa çıtanın birer karış olduğu yazıyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD144",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Görüşündeki sınır bakım levhasında {kisi} adını alt satırda okuyorsun; üstündeki başlık yalnız bakım sorumlusunu belirtiyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD145",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "zemin"
+      ],
+      "text": "Çimlerin arasından seçebildiğin taş yol, dere kıyısına yaklaşırken kesiliyor; son taşın önünde toprak kaymış durumda.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD146",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "duvar"
+      ],
+      "text": "Çalıların arasından seçebildiğin duvar oku, {yer} adıyla aynı levhada duruyor; ok kuru su kanalını gösteriyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD147",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "mezar_tasi"
+      ],
+      "text": "Otların arasından seçebildiğin {kisi} adı, mezar taşının alt kenarında duruyor; önünde “taşı işleyen” yazıyor.",
+      "slots": [
+        "kisi"
+      ],
+      "reveals": "kisi_izi",
+      "severity": "merak"
+    },
+    {
+      "id": "SD148",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "kiler"
+      ],
+      "text": "Mahzen kilerinin eşiğinde hem su birikintisini hem tavandan düşen kireç parçalarını görüyorsun; kırıklar suyun üstünde kalıyor.",
+      "slots": [],
+      "reveals": "hic",
+      "severity": "tehlike_isareti"
+    },
+    {
+      "id": "SD149",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "sandik"
+      ],
+      "text": "Sandığın dışında hem {is} başlığını hem “boş olarak iade” kaydını okuyorsun; iki satır da aynı sevk numarasını taşıyor.",
+      "slots": [
+        "is"
+      ],
+      "reveals": "is_ipucu",
+      "severity": "merak"
+    },
+    {
+      "id": "SD150",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "object_tags": [
+        "ayak_izi"
+      ],
+      "text": "Çamurda hem teker oluğunu hem yaya izlerini görüyorsun; yalnız yaya izleri {yer} patikasına dönüyor.",
+      "slots": [
+        "yer"
+      ],
+      "reveals": "yer_izi",
+      "severity": "merak"
+    }
+  ]
+}

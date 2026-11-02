@@ -1,0 +1,574 @@
+{
+  "schema_version": "1.0.0",
+  "field_descriptions": {
+    "schema_version": "Özgün veri adayı zarfının sürümü; çalışan ürün şeması olduğu iddia edilmez.",
+    "field_descriptions": "Bu katalogdaki alanların Türkçe açıklamaları.",
+    "binding_rules": "Yalnız motorun uygulayacağı seçim ve gösterim sınırları; oyuncuya okunmaz.",
+    "items": "Seçilmiş işe verilen, gözlenebilir çalışma ilerleyişi anlatan 60 kısa aday satır.",
+    "id": "WL001–WL060 aralığında benzersiz ve kalıcı katalog kimliği.",
+    "work_kind": "Önceden kabul edilmiş geçerli işin türü: tasima, sayim, onarim, nobet, ulak, temizlik veya kayit.",
+    "place_tags": "Satırın fiziksel olarak uygun olabileceği konum türleri; somut konumun ve çalışma alanının doğrulanması yine gerekir.",
+    "text": "İkinci tekil şahısta, şimdiki zamanda gözlenebilir iş ilerleyişi; en çok 180 Unicode karakter, yer tutucusuz Türkçe metin.",
+    "time_phrase": "kisa, yarim_gun veya tam_gun anlatım ölçeği etiketi. Sabit saat sayısı, çalışma emri, tamamlanma ya da zaman atlama talimatı değildir."
+  },
+  "binding_rules": [
+    "Bu dosya yalnız özgün, entegrasyonu doğrulanmamış veri adayıdır; ürün kodu, model çağrısı veya çalışan oyun testi içermez.",
+    "Satırlar oyuncu işi zaten seçmiş ve çalışmayı istemişken kullanılır; örneğin akşama kadar çalışıyorum niyetine gerçek çalışma ilerleyişiyle karşılık verir. Teklif kabulünü veya işe başlamayı kendiliğinden oluşturmaz.",
+    "Motor seçmeden önce etkin kabul edilmiş işi, work_kind eşleşmesini, mevcut fiziksel konumu, izinli erişimi, görev kapsamını, gerekli araçları, kaynakları, yazılı veya sözlü kayıtları, güzergâhı ve satırdaki her somut ayrıntıyı doğrular. Uygun ayrıntı yoksa satır elenir; katalog eşya, kişi, kayıt, yol veya yetki yaratmaz.",
+    "place_tags için izinli değerler: sokak, han, pazar, liman, tapinak, soylu_konagi, muhafiz_karakolu, lonca_atolyesi, sehir_kapisi, sehir_cevresi. Etiket tek başına mekâna veya iş alanına erişim sağlamaz.",
+    "Motor gerçek çalışma aralığını ve zaman ilerlemesini seçimden önce doğrular. time_phrase yalnız bu doğrulanmış aralığı anlatma ölçeğidir; yarim_gun ve tam_gun sabit saat karşılığı taşımaz, gün sonunu veya aralıksız çalışma gerçekleştiğini ilan etmez. Uzun aralıkta seçilen satır yalnız doğrulanmış işten bir kesiti anlatır.",
+    "Adaylar aynı etkin işin doğrulanmış somut ilerleyişini anlatır; işi tamamen bitirme, başarı, teslim alındı onayı, ücret veya ödül, envanter aktarımı, hasar, beceri kazanımı ya da yeni görev üretmez. Küçük fiziksel iş adımları dahi motorun doğruladığı gözlenebilir olayla örtüşmelidir.",
+    "Kesinti, iptal, ölüm, konum veya görev değişikliği motorca gerçek oluştuğu anda ele alınır; satır kesintinin ötesinde çalışıldığını ileri süremez. İptal edilmiş iş veya ölüm sonrasında çalışma anlatımı seçilemez.",
+    "Satırda özel ad, gizli düşünce, duygu varsayımı, sabit ücret, nicel ödül veya yer tutucu yoktur. Bağlama için metne yeni ad ya da olay eklenmez; uyumsuz satır yerine başka doğrulanmış aday seçilir.",
+    "Motor yalnız uygun adaylar arasından seçim yapar ve mevcut anlatım yoluna yalnız seçilmiş text alanını verir. Ham katalog, field_descriptions, binding_rules ve zaman ölçeği etiketi oyuncu anlatısına dökülmez."
+  ],
+  "items": [
+    {
+      "id": "WL001",
+      "work_kind": "tasima",
+      "place_tags": [
+        "liman",
+        "pazar"
+      ],
+      "text": "Sandığın altından kavrayıp yükü taşıma yoluna doğru kaldırıyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL002",
+      "work_kind": "tasima",
+      "place_tags": [
+        "han",
+        "soylu_konagi"
+      ],
+      "text": "Yük kollarındayken eşikten yan dönerek geçiyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL003",
+      "work_kind": "tasima",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Tahtaların duvara sürtünmemesi için demeti ortasından tutuyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL004",
+      "work_kind": "tasima",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Halatı çekiyorsun; yük, yerdeki kızakla birlikte ilerliyor.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL005",
+      "work_kind": "tasima",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Taşıdığın çuvalla geçidin dar bölümüne gelince adımlarını küçültüyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL006",
+      "work_kind": "tasima",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Sehpa ellerindeyken kapı aralığını kısa adımlarla geçiyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL007",
+      "work_kind": "tasima",
+      "place_tags": [
+        "lonca_atolyesi",
+        "liman"
+      ],
+      "text": "Taşıma sırasında kayan örtüyü dirseğinle bastırıp yükün altındaki tutuşunu koruyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL008",
+      "work_kind": "tasima",
+      "place_tags": [
+        "soylu_konagi",
+        "tapinak"
+      ],
+      "text": "Sepeti göğsüne yakın tutarak koridor boyunca taşıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL009",
+      "work_kind": "tasima",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "text": "El arabasını çukurun kenarından geçiriyorsun; ellerin hâlâ saplarında.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL010",
+      "work_kind": "sayim",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Çuvalların ağız bağlarına bakıp sayımı sıranın ucundan sürdürüyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL011",
+      "work_kind": "sayim",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Parmağın listedeki satırdayken karşındaki sandıkların işaretlerini karşılaştırıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL012",
+      "work_kind": "sayim",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Aynı kabı yeniden saymamak için gözünü raf boyunca soldan sağa gezdiriyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL013",
+      "work_kind": "sayim",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Aletleri sayıyorsun; bakışın tezgâhın ön kenarından arka köşesine ilerliyor.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL014",
+      "work_kind": "sayim",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Rafın gölgede kalan bölümüne gelince eğilip kapların arasına bakıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL015",
+      "work_kind": "sayim",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "text": "Listedeki işaretin karşılığı olan eşya kümesini parmağınla izleyerek sayıyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL016",
+      "work_kind": "sayim",
+      "place_tags": [
+        "tapinak"
+      ],
+      "text": "Saydığın mumların sırasını parmağınla göstererek raftaki boşluğa kadar ilerliyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL017",
+      "work_kind": "sayim",
+      "place_tags": [
+        "pazar",
+        "liman"
+      ],
+      "text": "Sayımın bu bölümünde bakışın mal sırası ile liste arasında gidip geliyor; dudakların kıpırdıyor.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL018",
+      "work_kind": "sayim",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Küçük parçalarla dolu gözün başında duruyorsun. Sayarken başını rafın kenarına doğru eğiyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL019",
+      "work_kind": "onarim",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Gevşek parçayı mengenede tutturup birleşme yerini eğeyle işliyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL020",
+      "work_kind": "onarim",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Menteşeyi elinle desteklerken pimin ucuna hafifçe vuruyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL021",
+      "work_kind": "onarim",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Lifleri ayırmadan çalışmak için halatın yıpranmış bölümünü avucunda sabitliyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL022",
+      "work_kind": "onarim",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Fırçayı çatlak boyunca gezdiriyorsun; tutkal, aralığın ağzında ince bir iz bırakıyor.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL023",
+      "work_kind": "onarim",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Eğenin takıldığı çıkıntıya gelince elinin açısını değiştiriyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL024",
+      "work_kind": "onarim",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Önündeki açık dikiş boyunca iğnenin ardından ipliği çekerek çalışıyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL025",
+      "work_kind": "onarim",
+      "place_tags": [
+        "sehir_kapisi",
+        "muhafiz_karakolu"
+      ],
+      "text": "Gevşek bağlantıya bastırdığın elini çekmeden çivinin çevresini yokluyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL026",
+      "work_kind": "onarim",
+      "place_tags": [
+        "tapinak"
+      ],
+      "text": "Çatlağın kenarı boyunca çalışıyorsun. Kazıyıcının ucunda eski dolgu kırıntıları birikiyor.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL027",
+      "work_kind": "onarim",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Tezgâha doğru eğilmişsin; zımparayı onarılan parçanın pürüzlü kenarında ileri geri yürütüyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL028",
+      "work_kind": "nobet",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "text": "Geçidi tarayan bakışınla nöbet yerinde ayakta duruyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL029",
+      "work_kind": "nobet",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "text": "Başını kapıdan avluya çevirirken yerinden ayrılmıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL030",
+      "work_kind": "nobet",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Nöbet hattında iskele aralarını gözden geçire geçire yürüyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL031",
+      "work_kind": "nobet",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Bakışını girişe çeviriyorsun. Ardından başını koridorun öteki ucuna döndürüyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL032",
+      "work_kind": "nobet",
+      "place_tags": [
+        "tapinak"
+      ],
+      "text": "Kapı eşiğinin yanından avlunun açık bölümünü gözetlemeyi sürdürüyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL033",
+      "work_kind": "nobet",
+      "place_tags": [
+        "sehir_cevresi"
+      ],
+      "text": "Devriye yolunun kıvrımında, durduğun yerden yol kenarındaki açıklıkları tarıyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL034",
+      "work_kind": "nobet",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Tezgâhların arasındaki geçide dönüksün; nöbet boyunca bakışını girişler arasında gezdiriyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL035",
+      "work_kind": "nobet",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Merdivenin dibinde beklerken hem sahanlığa hem kapıya bakıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL036",
+      "work_kind": "nobet",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Gözetlediğin kapıya sırtını dönmeden duvar boyunca adımlıyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL037",
+      "work_kind": "ulak",
+      "place_tags": [
+        "sokak"
+      ],
+      "text": "Haberi götürdüğün yolun kalabalık bölümünde yürüyüşünü yavaşlatıyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL038",
+      "work_kind": "ulak",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Mesajı taşırken tezgâhların arasındaki açık geçitten ilerliyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL039",
+      "work_kind": "ulak",
+      "place_tags": [
+        "sehir_kapisi"
+      ],
+      "text": "Görev güzergâhındaki kapı geçidine yöneliyorsun. Adımların yolun kenarını izliyor.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL040",
+      "work_kind": "ulak",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Ulaklık için geçtiğin koridorda, yol ayrımındaki yön levhasına bakıyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL041",
+      "work_kind": "ulak",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Haber götürürken iskele yolunda ilerliyor, yüklerin daralttığı yerde yan dönüyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL042",
+      "work_kind": "ulak",
+      "place_tags": [
+        "sokak",
+        "sehir_cevresi"
+      ],
+      "text": "Mesajın gideceği yere doğru yokuşu tırmanmayı sürdürüyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL043",
+      "work_kind": "ulak",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "text": "İletiyi götürdüğün kapının önünde duruyorsun. İçeri seslenip yanıt bekliyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL044",
+      "work_kind": "ulak",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Sözlü haberi görevli kişiye aktarmaya başlıyorsun; cümlelerini aralar vererek söylüyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL045",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Süpürgenin ucuyla masanın altındaki kırıntıları kendine doğru çekiyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL046",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "tapinak"
+      ],
+      "text": "Taş zeminde çömelmişsin; fırçayı derzlerin üzerinde ileri geri sürüyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL047",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "sokak"
+      ],
+      "text": "Oluk boyunca biriken yaprakları süpürürken ızgaranın önünde çalışıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL048",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Bez avucunun altında ilerliyor; sen de silerken pencere pervazının kıvrımını izliyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL049",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Tezgâh ayağının çevresini siliyor, bezi dar aralığa parmaklarınla itiyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL050",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Korkuluğa yapışmış çamurun üzerinde çalışıyorsun. Fırçanın kılları ıslak yüzeye yayılıyor.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL051",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Tezgâhtaki talaşı fırçanın önünde toplayarak çalışma yüzeyi boyunca ilerliyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL052",
+      "work_kind": "temizlik",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "text": "Temizlediğin sıranın arkasına geçiyorsun. Eğilip alt kenarı bezle ovuyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL053",
+      "work_kind": "kayit",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Örnek kayıt önünde açık duruyor; harfleri defterin sayfasına geçiriyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL054",
+      "work_kind": "kayit",
+      "place_tags": [
+        "soylu_konagi"
+      ],
+      "text": "Kalemin satır üzerinde ilerlerken öteki elin kaynak kâğıdı yerinde tutuyor.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL055",
+      "work_kind": "kayit",
+      "place_tags": [
+        "liman"
+      ],
+      "text": "Kaynak listedeki başlığa bakıyorsun. Ardından defterdeki ilgili satırı yazmayı sürdürüyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL056",
+      "work_kind": "kayit",
+      "place_tags": [
+        "tapinak"
+      ],
+      "text": "Açık kaydın başında oturuyorsun; yazdığın bölümü kaynaktaki satırla karşılaştırıyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL057",
+      "work_kind": "kayit",
+      "place_tags": [
+        "pazar"
+      ],
+      "text": "Söylenenleri kayda geçirirken kalemini satırın sol kenarına döndürüyorsun.",
+      "time_phrase": "tam_gun"
+    },
+    {
+      "id": "WL058",
+      "work_kind": "kayit",
+      "place_tags": [
+        "muhafiz_karakolu"
+      ],
+      "text": "Defterin kenarına dayadığın elini kaldırmadan boş satıra yazıyorsun.",
+      "time_phrase": "kisa"
+    },
+    {
+      "id": "WL059",
+      "work_kind": "kayit",
+      "place_tags": [
+        "han"
+      ],
+      "text": "Kaynağın soluk bölümüne doğru eğiliyorsun. Başını kâğıda yaklaştırarak yazıyı inceliyorsun.",
+      "time_phrase": "yarim_gun"
+    },
+    {
+      "id": "WL060",
+      "work_kind": "kayit",
+      "place_tags": [
+        "lonca_atolyesi"
+      ],
+      "text": "Kayıt işinde sayfa boyunca ilerliyor, kalemini aralarda kaldırıp kaynak metne bakıyorsun.",
+      "time_phrase": "tam_gun"
+    }
+  ]
+}

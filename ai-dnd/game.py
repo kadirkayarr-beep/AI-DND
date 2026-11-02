@@ -13803,9 +13803,40 @@ def _finding_says_too_much(text):
             or _has_unregistered_person_name(text))
 
 
+def _bound_on_a_named_word(word):
+    """A pass on something no record holds yet: the engine saves the thing, and only then are the words bound to it."""
+    import bound_text
+    import world_threads
+    world_state = _session().world_state
+    here = world_state.get("location")
+    tag = bound_text.object_tag(word)
+    if tag is None:
+        return None
+    key = f"word:{here}:{tag}"
+    kept = bound_text.seen(world_state, key)
+    if kept is None:
+        world_threads.ensure(world_state)
+        choice = bound_text.choose_detail(world_state, key, bound_text.place_tags(world_state, here), tag)
+        name = _clean_world_text(word, 60)
+        feature = choice and create_local_feature({"location": here, "description": choice["text"], "kind": "detail",
+                                                   "name": f"{name[:1].upper()}{name[1:]}", "aliases": [name]})
+        if not isinstance(feature, dict):
+            return None
+        bound_text.keep(world_state, key, choice, feature_id=feature.get("id"))
+        bound_text.keep(world_state, f"feature:{feature.get('id')}", choice)
+        kept = bound_text.seen(world_state, key)
+    feature = next((row for row in world_state.get("features", [])
+                    if isinstance(row, dict) and row.get("id") == kept.get("feature_id")), None)
+    return {"target_kind": "feature", "target_id": kept.get("feature_id"),
+            "target_name": feature.get("name") if feature else None, "found": True, "text": kept["text"]}
+
+
 def _found_on_a_pass():
     """A pass with no saved fact to show: the reading proposed what is there, and Python keeps it as a real detail."""
     text, word = getattr(_session(), "_front_found", None) or ("", "")
+    bound = _bound_on_a_named_word(word)
+    if bound is not None:
+        return bound
     text = _clean_world_text(text, 120)
     if not text or _finding_says_too_much(text):
         return None
@@ -13829,6 +13860,7 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
     to this attempt ("bu bakışla"), never as proof that nothing is there.
     rolled=False is a look with no check: what the reading proposed takes a pass.
     """
+    import bound_text
     world_state = _session().world_state
     # Words inside quotes are only words, never the thing being looked at.
     text = _normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
@@ -13858,6 +13890,8 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
             detail = "Kilit açık duruyor."
         line = (f"{door.get('name', 'Kapı')} {state}. {detail}" if success
                 else f"{door.get('name', 'Kapı')} {state}; bu bakışla kilidin ayrıntısını seçemiyorsun.")
+        bound = bound_text.detail_of(world_state, f"door:{door.get('id')}", "mentese" if "mentese" in text else "kapi", proposed)
+        line = f"{line} {bound}" if bound else line
         return {"target_kind": "door", "target_id": door.get("id"),
                 "target_name": door.get("name"), "found": success, "state": state, "text": line}
     here = world_state.get("location")
@@ -13885,6 +13919,13 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
                 if stem in recorded or word in recorded:
                     continue
                 named_absence.append(word)
+            bound = bound_text.detail_of(world_state, f"feature:{feature.get('id')}", bound_text.object_tag(*labels), proposed)
+            if bound is not None:
+                shown = bound if bound == feature.get("description") else f"{feature.get('description') or ''} {bound}".strip()
+                return {"target_kind": "feature", "target_id": feature.get("id"),
+                        "target_name": feature.get("name"), "found": True, "text": f"{feature['name']}: {shown}"}
+            if feature.get("kind") == "detail":
+                named_absence = []  # already found once: a second look sees that, not one more thing
             found_now = _found_on_a_pass() if proposed and named_absence else None
             if found_now is not None:
                 return found_now
@@ -13895,6 +13936,9 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
             return {"target_kind": "feature", "target_id": feature.get("id"),
                     "target_name": feature.get("name"), "found": found, "text": line}
     if _TRACK_WORDS.search(text):
+        bound = bound_text.detail_of(world_state, f"tracks:{here}", "ayak_izi", proposed)
+        if bound is not None:
+            return {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": True, "text": bound}
         found = _found_on_a_pass() if proposed else None
         if found is not None:
             return found

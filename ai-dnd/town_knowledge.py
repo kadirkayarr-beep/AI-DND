@@ -109,17 +109,21 @@ def posted_work(world: dict[str, Any]) -> list[dict[str, Any]]:
     return sorted(jobs, key=lambda thread: thread.get("heard_turn") is not None)
 
 
+def hear_of(world: dict[str, Any], thread: dict[str, Any]) -> None:
+    """The player now knows this public matter and where it is, however the words reached them."""
+    world_threads.mark_heard(thread, int((world.get("flags") or {}).get("turn_index", 0) or 0))
+    world_threads.note_heard_names(world, thread["public_line"])
+    place = world.get("locations", {}).get(thread["place_id"]) or {}
+    npc_statements.overheard_place(world, thread["place_id"], place.get("name", ""))
+
+
 def read_board(world: dict[str, Any]) -> str | None:
     """A town's notices are its real open work, in the street's own words, and reading them is hearing them."""
     jobs = posted_work(world)[:BOARD_LINES]
     if not jobs:
         return None
-    turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
-    for thread in jobs:
-        world_threads.mark_heard(thread, turn)
-        world_threads.note_heard_names(world, thread["public_line"])
-    place = world.get("locations", {}).get(jobs[0]["place_id"]) or {}
-    npc_statements.overheard_place(world, jobs[0]["place_id"], place.get("name", ""))
+    for thread in reversed(jobs):  # the first of them is the newest thing heard, so 'oraya' means it
+        hear_of(world, thread)
     return world_threads._fill(world_threads.job_lines("text", "board") or "{lines}",
                                lines=" / ".join(thread["public_line"] for thread in jobs))
 

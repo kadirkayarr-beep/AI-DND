@@ -468,7 +468,7 @@ class APassedCheckFindsSomething(FrontTable):
 
     async def test_a_pass_on_a_thing_no_list_held_says_it_too(self):
         await self.begin()
-        found = self.roll("kirik muhurlu kutuyu acip icine bakiyorum", word="kutu")
+        found = self.roll("kirik muhurlu kutuyu acip icine bakiyorum", word="mühür")
         self.assertEqual(found["text"], self.FOUND)
 
     async def test_a_failed_roll_finds_nothing_and_saves_nothing(self):
@@ -485,7 +485,7 @@ class APassedCheckFindsSomething(FrontTable):
     async def test_the_same_sentence_again_is_no_new_finding(self):
         await self.begin()
         self.roll("yerdeki izleri inceliyorum", word="izler")
-        self.assertIsNone(self.roll("kirik muhurlu kutuya bakiyorum", word="kutu"))
+        self.assertIsNone(self.roll("kirik muhurlu kutuya bakiyorum", word="mühür"))
         self.assertEqual(len(self.saved()), 1)
 
     async def test_a_proposal_that_only_says_the_line_back_is_no_finding(self):

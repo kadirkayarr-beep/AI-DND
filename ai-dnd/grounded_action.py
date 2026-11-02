@@ -1888,6 +1888,7 @@ def _do_inspect(run: _Run, step) -> dict[str, Any]:
 
 
 def _inspect_door(run: _Run, step, door_target) -> dict[str, Any]:
+    import bound_text
     if door_target is None:
         return _receipt("inspect", "blocked", None, reason="no_door", text="Yakınında incelenecek bir kapı yok.")
     door = door_target["record"]
@@ -1897,11 +1898,14 @@ def _inspect_door(run: _Run, step, door_target) -> dict[str, Any]:
     key = f"{door['id']}|{part}|{signature}"
     observations = run.memory["observations"]
     careful = any(t.startswith(("incel", "dikkat", "kontrol", "muayene")) for t in step.get("tokens", []))
+    bound_key, bound_tag = f"door:{door['id']}", "mentese" if part == "hinge" else "kapi"
     known = observations.get(key)
     policy = _lock_policy(door)
     if known and (not careful or known.get("careful")):
         # The saved fact is the outcome; the words are rebuilt from the current record.
         text = _door_part_text(door, part, policy) + (_lock_finding(policy, known["found"]) if known.get("careful") else "")
+        bound = bound_text.detail_of(run.world, bound_key, bound_tag, False)
+        text = f"{text} {bound}" if bound else text
         run.inspections.append({"target_name": door.get("name"), "target_kind": "door", "found": known.get("found")})
         return _receipt("inspect", "completed", door_target, repeated_observation=True,
                         text=text + " Daha önce gördüğünden fazlasını seçemiyorsun.")
@@ -1912,6 +1916,8 @@ def _inspect_door(run: _Run, step, door_target) -> dict[str, Any]:
         check = _check(run, "Investigation", 12)
         found = check["success"]
         text = base + _lock_finding(policy, found)
+        bound = bound_text.detail_of(run.world, bound_key, bound_tag, found)
+        text = f"{text} {bound}" if bound else text
         observations[key] = {"found": found, "careful": True, "check": _check_public(check)}
         run.inspections.append({"target_name": door.get("name"), "target_kind": "door", "found": found})
         return _receipt("inspect", "completed", door_target, check=_check_public(check), text=text, found=found)
