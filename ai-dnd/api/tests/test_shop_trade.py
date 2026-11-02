@@ -161,6 +161,27 @@ class WordsOpenTheCounter(CounterTrade):
         self.assertEqual(self.w["currency"]["player"], 500 - bold_acts._ROOM_PRICE)
 
 
+class WhatIsShownIsNotFree(CounterTrade):
+    def shown(self):
+        self.s.messages.append({"role": "assistant", "content": "Tezgâhın üstünde köpüklü bir bira duruyor, yanında bir anahtar."})
+
+    def test_a_beer_on_the_counter_is_not_taken_for_nothing(self):
+        import pocket
+        self.shown()
+        before = copy.deepcopy(self.w)
+        self.assertIsNone(pocket.take_named(self.s, "tezgahtaki birayı alıyorum", "bira"))
+        self.assertIsNone(pocket.take_named(self.s, "birayı kapıp alıyorum", ""))
+        self.assertEqual(self.w["inventory"], before["inventory"])
+        self.assertEqual(self.w["currency"], before["currency"])
+
+    def test_a_plain_thing_on_the_counter_is_still_taken(self):
+        import pocket
+        self.shown()
+        taken = pocket.take_named(self.s, "anahtarı alıyorum", "anahtar")
+        self.assertIsNotNone(taken)
+        self.assertIn("Anahtar", [item if isinstance(item, str) else item.get("name") for item in self.w["inventory"]])
+
+
 class TypedLane(CounterTrade):
     def test_a_typed_line_never_reaches_the_word_matcher(self):
         before = copy.deepcopy(self.w)

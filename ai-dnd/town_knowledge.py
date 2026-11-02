@@ -625,7 +625,9 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             note = world_threads.paid_line(moved, finished)
     elif kind == "give" and proposal["amount_cp"]:
         wallets = world.get("currency") or {}
-        if (not moved and world_threads.speaks_of_pay(player_text)
+        import shop_trade
+        sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.is_priced(player_text))
+        if (not moved and not sale and world_threads.speaks_of_pay(player_text)
                 and wallets.get(npc.get("id"), 0) >= proposal["amount_cp"]):
             import equipment_economy
             equipment_economy.pay(world, npc["id"], "player", proposal["amount_cp"])

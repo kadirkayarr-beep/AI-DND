@@ -10,6 +10,7 @@ from typing import Any
 
 import equipment_economy
 import living_world
+import shop_trade
 import world_threads
 
 _INTO_THE_BAG = re.compile(r"\b(?:cebe|cebime|cebine|cantama|cantaya|cantamiza|heybeme|heybeye|torbama|torbaya)\b")
@@ -81,12 +82,12 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     if thing is None:
         return None  # nothing here to put away: whoever else this line is for still reads it
     name = thing[:1].upper() + thing[1:].casefold()
-    if not equipment_economy.grant_plain(world, name):
+    if not _pick_up(session, name):
         return None
     taken = [name]
     for other in _also_taken(session, words):
         other = other[:1].upper() + other[1:].casefold()
-        if equipment_economy.grant_plain(world, other):
+        if _pick_up(session, other):
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
 
@@ -147,7 +148,7 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     taken = [name for name in (_take_one(session, words, part) for part in _SEVERAL.split(word)) if name]
     for other in _also_taken(session, words):
         other = other[:1].upper() + other[1:].casefold()
-        if equipment_economy.grant_plain(world, other):
+        if _pick_up(session, other):
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.") if taken else None
 
@@ -161,7 +162,15 @@ def _take_one(session, words: list[str], word: str) -> str | None:
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
     name = word[:1].upper() + word[1:].casefold()
-    return name if not _named_in_bag(world, stem) and equipment_economy.grant_plain(world, name) else None
+    return name if not _named_in_bag(world, stem) and _pick_up(session, name) else None
+
+
+def _pick_up(session, name: str) -> bool:
+    """A plain thing taken off the screen; what whoever serves here sells is bought at the counter, not picked up."""
+    world = session.world_state
+    if shop_trade.is_priced(name) and any(shop_trade.is_vendor(world, npc) for npc in session.active_npcs()):
+        return False
+    return equipment_economy.grant_plain(world, name)
 
 
 def asked_for(text: str, word: str) -> tuple[str, ...]:
@@ -226,6 +235,13 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
     return equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())
 
 
+def _a_sale(world: dict[str, Any], person: Any, claim: dict[str, Any], item: str, stem: str) -> bool:
+    """Goods on the list, or goods with a price, from whoever serves: a sale, which only the counter trade makes.
+    What the counter already sold is in the bag, and saying so is true."""
+    return (not item.startswith("parcel:") and not _named_in_bag(world, stem) and shop_trade.is_vendor(world, person)
+            and (shop_trade.is_priced(item) or bool(claim.get("amount_cp"))))
+
+
 def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: Any = None) -> tuple[Any, str]:
     """What a reply says changed hands: (the line, what was taken off it). Python commits it or it goes.
 
@@ -240,6 +256,10 @@ def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: An
     named = next((entry.get("name") for entry in world.get("inventory", [])
                   if isinstance(entry, dict) and entry.get("item_id") == item), None)
     stem = _stem(thread.get("item_noun") if thread else named or item)
+    if claim.get("to") != "person" and _a_sale(world, person, claim, item, stem):
+        # Nothing changes hands; the words stay, since a price said is true ('bira dört bakır'), and the
+        # stem goes back so the stage direction's handing over leaves.
+        return text, stem
     if claim.get("to") != "person" and _committed(session, item, stem, text, person, line):
         return text, ""
     return without_said(text, stem), stem
