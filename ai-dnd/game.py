@@ -17684,6 +17684,17 @@ def run_player_turn(
     return result
 
 
+def _tell_the_coin(result):
+    """The screen says what left the purse, so what the person said and the purse agree."""
+    amount = getattr(_session(), "_coin_paid", 0)
+    _session()._coin_paid = 0
+    if amount and isinstance(result, dict):
+        result["narration"] = f"{result.get('narration') or ''} {amount} bakır kesenden çıkıyor.".strip()
+        action = result.get("action_result")
+        if isinstance(action, dict):
+            action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]
+
+
 def _run_player_turn(
     player_input,
     messages=None,
@@ -17726,6 +17737,7 @@ def _run_player_turn(
             result = _person_answers_stock(result, player_input, messages, target_id, interaction_mode,
                                            action_id, session_id, runtime_snapshot)
             result = _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
+            _tell_the_coin(result)
             bold_acts.answer_to_killing(_session(), result)
             bold_acts.answer_to_known_doer(_session(), result)
             import world_reactions
@@ -18129,6 +18141,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     threatened = front_proposal.threat_in(reply, listed)
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
+    session._front_coin = front_proposal.coin_in(reply, player_input)
     route = front_proposal.validate(reply, listed)
     if fighting and (route is None or route["kind"] != "strike"):
         return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
@@ -18171,6 +18184,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
           and (_model_query_type_is_plausible(player_input) or equipment_economy._natural_inventory_query(player_input))):
         route = {"kind": "bag"}  # the label alone also fits moving a thing, and those lines have owners of their own
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
+    _hand_over_coin(route, listed)
     if route["kind"] == "look":
         held["intent"] = "observe"
     session._front_thing = route.get("thing")
@@ -18178,8 +18192,23 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike"}
-_NO_BLOW_NOW = re.compile(r"\b\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
+_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike", "wait"}
+
+
+def _hand_over_coin(route, listed):
+    """Coin the reading saw leave the hand: the purse pays now, so the one who takes it answers knowing it."""
+    import bold_acts
+    session = _session()
+    amount = getattr(session, "_front_coin", 0)
+    if not amount or route["kind"] == "strike":
+        return
+    taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
+    taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
+    person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
+    if bold_acts.give_coin(session, amount, person):
+        session._coin_paid = amount
+        session._handed_note = f"{amount} bakır"
+_NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
 
 def _blow_stands(player_input):
@@ -18280,7 +18309,7 @@ def _front_hand_over(route, player_input):
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
     if item_id is None or "?" in player_input or world_threads.says_later(player_input):
-        session._empty_handed = item_id is None
+        session._empty_handed = item_id is None and not getattr(session, "_coin_paid", 0)
         return _thread_gate(player_input, person["id"], "say") or heard  # nothing named: the old reader, then their answer
     try:
         session.require_player_can_act()
@@ -18539,6 +18568,13 @@ def _dispatch_player_turn(
             taken = _front_take(front, player_input)
         if taken is not None:
             return taken
+    if front is not None and front["kind"] == "wait" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        passed = timed_gameplay.pass_time(_session(), player_input)
+        if passed is not None:
+            flags = _session().world_state.setdefault("flags", {})
+            flags["turn_index"] = flags.get("turn_index", 0) + 1
+            return {"messages": _session().messages, "narration": passed["direct_response"], "model_calls": 0,
+                    "action_result": passed}
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action

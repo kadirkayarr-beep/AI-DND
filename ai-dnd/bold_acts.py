@@ -279,6 +279,8 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
         note += " Kentte şu konuşuluyor: " + heard[-1] + ". Kimin yaptığını bilmiyorsun."
         if _is_armed(npc):
             note += " Kan izi taşıyan ya da bunu söyleyen biri görürsen üstüne gidersin."
+    if _SERVER.search(living_world.normalize_text(npc.get("role"))):
+        note += f" Burada kalacak oda verilir, gecelik {_ROOM_PRICE // 10} gümüş; oda yok deme."
     import world_reactions
     return note + _loss_note(world, npc, ledger) + _fire_note(world, npc) + world_reactions.speech_note(world, npc)
 
@@ -562,6 +564,19 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
 
 
+def give_coin(session, amount: int, person: dict[str, Any] | None) -> bool:
+    """Coin the player really hands over or leaves: out of the purse, to that person if there is one."""
+    world = session.world_state
+    settle_coin_labels(world)
+    wallets = world.setdefault("currency", {})
+    if wallets.get("player", 0) < amount:
+        return False
+    wallets["player"] -= amount
+    if isinstance(person, dict) and isinstance(person.get("id"), str):
+        wallets[person["id"]] = wallets.get(person["id"], 0) + amount
+    return True
+
+
 def settle_coin_labels(world: dict[str, Any]) -> None:
     """"8 Altın" written in the pack becomes real money the first time money is spent."""
     kept = []
@@ -577,17 +592,27 @@ def settle_coin_labels(world: dict[str, Any]) -> None:
 
 
 _ROOM = re.compile(r"\boda(?:y[ai])?\b")
+_WALKS = re.compile(r"\b(?!gece)(?:gid|git|gir|gec|yuru|yaklas)\w*")
 _ROOM_ASK = re.compile(r"\b(?:tut\w*|kirala\w*|ver\w*|alayim|alirim|aliyorum|istiyorum|isterim)\b")
+_PRICE_ASKED = re.compile(r"\b(?:ne kadar|kac\w*|fiyat\w*|var mi|var midir)\b")
 _ROOM_PRICE = 50  # a modest inn stay, 5 silver a night
 _ROOM_DAY = 24 * 3600
+
+
+def _server_here(session) -> dict[str, Any] | None:
+    return next((npc for npc in session.active_npcs() if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
+
+
+def _wants_the_bed(folded: str) -> bool:
+    import timed_gameplay
+    return bool(_ROOM_ASK.search(folded) or timed_gameplay._SLEEPING.search(folded))
 
 
 def take_room(session, text: str) -> dict[str, Any] | None:
     """A night's room is paid to whoever serves here; a refusal leaves the player on their feet."""
     folded = fold(session, text)
-    server = next((npc for npc in session.active_npcs()
-                   if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
-    if server is None or not (_ROOM.search(folded) and _ROOM_ASK.search(folded)):
+    server = _server_here(session)
+    if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
         return None
     world = session.world_state
     who = living_world.public_npc_name(server)
@@ -609,9 +634,29 @@ def take_room(session, text: str) -> dict[str, Any] | None:
             "paid": _ROOM_PRICE, "room": True}
 
 
+def _room_asked(session, text: str) -> dict[str, Any] | None:
+    """'Oda ne kadar?' is answered with what a room really costs, by whoever serves; a bed asked for in the same line is taken."""
+    folded = fold(session, text)
+    server = _server_here(session)
+    if server is None or not _ROOM.search(folded) or _WALKS.search(folded):  # 'odaya giriyorum' is a walk
+        return None
+    if _wants_the_bed(folded):
+        room = take_room(session, text)
+        return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
+                      ["currency"] if room["paid"] else [], price_cp=room["paid"])
+    if "?" not in text and not _PRICE_ASKED.search(folded):
+        return None
+    import world_reactions
+    if world_reactions.refuses(session.world_state, server):
+        return _reply(session, world_reactions.refusal_line(server), "lodging", "refused", None, [])
+    who = living_world.public_npc_name(server)
+    return _reply(session, f"{who} başıyla merdivenleri gösteriyor. “Gecelik {_ROOM_PRICE // 10} gümüş; yukarıda boş oda var.”",
+                  "lodging", "quoted", None, [], npc_id=server.get("id"))
+
+
 def _buy(session, text: str) -> dict[str, Any] | None:
     folded = fold(session, text)
-    if not re.search(r"\b(?:gid|git|gir|gec|yuru|yaklas)\w*", folded):
+    if not _WALKS.search(folded):
         room = take_room(session, text)
         if room is not None:
             return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
@@ -619,7 +664,7 @@ def _buy(session, text: str) -> dict[str, Any] | None:
     wanted = next((item for item in _PRICES if item[0] in folded), None)
     server = next((npc for npc in session.active_npcs()
                    if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
-    walking = re.search(r"\b(?:gid|git|gir|gec|yuru|yaklas)\w*", folded)  # the order follows the walk
+    walking = _WALKS.search(folded)  # the order follows the walk
     if wanted is None or server is None or walking or not _BUY.search(folded):
         return None
     world = session.world_state
@@ -647,8 +692,9 @@ def _can_be_done(session, text: Any) -> bool:
 
 def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide."""
-    if isinstance(text, str) and "?" not in text:
-        settled = _search_body(session, text) or _buy(session, text)
+    if isinstance(text, str):
+        settled = _room_asked(session, text) or ((_search_body(session, text) or _buy(session, text))
+                                                 if "?" not in text else None)
         if settled is not None:
             return settled
     if is_theft(session, text) if deed is None else deed == "steal" and _can_be_done(session, text) and (

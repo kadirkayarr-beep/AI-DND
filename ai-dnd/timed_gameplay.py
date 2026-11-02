@@ -824,6 +824,24 @@ def is_timed_wait(text):
     )
 
 
+_A_WHILE = 1800
+
+
+def pass_time(session, text):
+    """The reading says the player is letting time go by: the clock moves by what they said, or a while."""
+    normalized = clock.normalize(text)
+    if "?" in str(text) or _SLEEPING.search(normalized):
+        return None  # a question moves nothing, and sleep has its own owner
+    try:
+        duration = clock.until_named_hour(session.world_state, normalized) or clock.requested_duration(text) or _A_WHILE
+    except ValueError:
+        return None
+    advancement = _advance(session, duration, "explicit_wait")
+    import bold_acts
+    seen = bold_acts.fire_line(session.world_state)
+    return _result("wait", f"{_time_passed_line(advancement)} {seen}".strip(), advancement)
+
+
 def _take_rest(session, kind, duration):
     """Rest for what the player said. A Long Rest needs 16 hours since the last one, and honest time still passes."""
     lead_in = ""
