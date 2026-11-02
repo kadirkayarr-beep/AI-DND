@@ -51,7 +51,7 @@ PLACE_NOUNS: tuple[tuple[str, str], ...] = (
     ("pazar", "market"), ("carsi", "market"), ("kutuphane", "library"),
     ("firin", "bakery"), ("atolye", "workshop"), ("marangoz", "workshop"),
     ("kisla", "barracks"), ("karakol", "barracks"), ("mezarlik", "graveyard"),
-    ("ahir", "stable"), ("dukkan", "generic"), ("meydan", "generic"),
+    ("ahir", "stable"), ("kervan", "waystation"), ("dukkan", "generic"), ("meydan", "generic"),
     ("konak", "estate"), ("konag", "estate"), ("malikane", "estate"), ("kosk", "estate"),
     ("kule", "generic"), ("depo", "generic"), ("ambar", "generic"),
 )

@@ -21,6 +21,7 @@ KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "w
          "grab", "wait", "unclear")
 DEEDS = ("steal", "burn", "yield")
 NONE = "none"
+WAY_OUT = "way_out"  # the list's one word for leaving town: Python decides where that really leads
 MAX_PEOPLE = 12
 MAX_PLACES = 20
 MAX_THINGS = 12
@@ -79,13 +80,15 @@ def listing(session) -> dict[str, Any]:
                 offers.append({"id": thread["thread_id"], "person_id": person["id"], "item": thread.get("item_noun"),
                                "said": str(thread.get("offer_line") or "")[:200]})
     wants = [{"id": key, "name": row.get("label", key)} for key, row in world_threads.want_table().items()]
+    way_out = grounded_action.way_out_label(session)
     sheet = str(session.character.get("backstory") or "").strip()[:MAX_SHEET]
     early = int((world.get("flags") or {}).get("turn_index", 0) or 0) < SHEET_TURNS
     return {
         "wants": wants,
         **({"sheet": sheet} if sheet and early and not world_threads.wants_of(world) else {}),
         "people": [{"id": c["id"], "name": c["label"]} for c in people],
-        "places": [{"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _PLACE_KINDS][:MAX_PLACES],
+        "places": [*({"id": WAY_OUT, "name": way_out} for _ in (way_out,) if way_out),
+                   *({"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _PLACE_KINDS)][:MAX_PLACES],
         "things": [{"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _THING_KINDS][:MAX_THINGS],
         "offers": offers,
         "bag": _bag(world),
@@ -148,7 +151,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
     return (
         "\nfront alanında cümlenin anlamını da söyle; kimlikleri yalnız aşağıdaki listelerden seç, yoksa none yaz. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
-        "inside=true); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
+        f"inside=true; şehrin dışına, kapıdan ya da surlardan öteye, bir yola, başka bir şehre gidiyorsa place_id {WAY_OUT}); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
         "bakıyor, ne olup bittiğini görmek istiyor; bag = cümlede kendi çantası, kesesi, cebi ya da parası geçiyor ve orada ne olduğunu "
         "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; wait = uyumadan vakit geçiriyor: bekliyor, oyalanıyor, takılıyor, zamanın geçmesini istiyor; grab = listedeki birine vurmadan el koyuyor: yakasına yapışıyor, itiyor, sıkıştırıyor, bir yere bastırıyor (person_id kim; bastırdığı masa ya da tezgâh thing_id değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "

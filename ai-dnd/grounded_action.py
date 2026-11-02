@@ -1369,9 +1369,15 @@ def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, 
     return ""
 
 
+def _walk_seconds(run: _Run, place: dict[str, Any]) -> int:
+    """The road out is longer than a street, whichever end the player starts from."""
+    here = run.location(run.here) or {}
+    return max(LOCAL_WALK_SECONDS, int(place["record"].get("walk_seconds") or 0), int(here.get("walk_seconds") or 0))
+
+
 def _walked(run: _Run, place: dict[str, Any], verb: str) -> dict[str, Any] | None:
     """Crossing town takes the time it takes; a receipt only when something stopped the walk."""
-    if run.here == place["id"] or not run.spend(LOCAL_WALK_SECONDS).get("interrupted"):
+    if run.here == place["id"] or not run.spend(_walk_seconds(run, place)).get("interrupted"):
         return None
     return _receipt(verb, "blocked", place, reason="interrupted", text="Yolda bir şey seni durduruyor.")
 
@@ -2141,6 +2147,8 @@ def _do_leave(run: _Run, step) -> dict[str, Any]:
         return _receipt("leave", "completed", None, text="Zaten dışarıdasın.")
     left = record.get("name")
     companions = [npc_statements._npc(run.world, i) for i in run.escorts]
+    if record.get("walk_seconds"):
+        run.spend(record["walk_seconds"])
     if not run.game.commit_location_change(parent):
         return _receipt("leave", "blocked", None, reason="exit_refused", text="Dışarı çıkamıyorsun.")
     for npc in companions:
@@ -2884,9 +2892,87 @@ def _walk_to_offer(session, player_input: str):
     return "execute", (_Run(session, player_input), [step], {"steps": [step]})
 
 
+_ROAD_ON = (
+    "{who} başını sallıyor. “Buradan öte günlerce yol var; kervan dolmadan kimse çıkmaz, yaya hiç gidilmez.”",
+    "{who} yola bakıp omuz silkiyor. “Bugün o yöne giden yok. Sefer yazılınca buradan kalkar, o zaman gel.”",
+    "{who} elini kaldırıyor. “Erzaksız, yol arkadaşısız o yola çıkan dönmez. Kervan kalkınca konuşuruz.”",
+)
+_ROAD_ON_ALONE = "Yol ufka doğru uzuyor; ne kalkacak bir kervan var ne yol arkadaşı. Buradan ötesi bugünün işi değil."
+
+
+def _town_of(session) -> str | None:
+    import local_places
+    world = session.world_state
+    return local_places.settlement_of(world, world.get("location"))
+
+
+def way_out_label(session) -> str | None:
+    """How the list calls leaving town, from wherever the player stands; no town, no such word."""
+    import local_places
+    world = session.world_state
+    if not _town_of(session):
+        return None
+    record = (world.get("locations") or {}).get(world.get("location")) or {}
+    if local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
+        return "Yolun ötesi: uzak şehirler, günlerce sürecek yol"
+    return "Şehrin dışı: kapı, surların ötesi, yollar, başka şehirler"
+
+
+def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
+    """Standing where the town ends, the road on is someone's word on why not now: nothing moves and no journey is told."""
+    import local_places
+    world = session.world_state
+    here = world.get("location")
+    record = (world.get("locations") or {}).get(here) or {}
+    if not local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
+        return None
+    if _no_step_is_taken(session, player_input):
+        return None
+    person = local_places.resident_of(world, here)
+    if person is not None and person.get("combat_status") != "dead":
+        line = _pick(world, _ROAD_ON, here, world.get("flags", {}).get("turn_index", 0))
+        text = line.format(who=living_world.public_npc_name(person))
+    else:
+        text = _ROAD_ON_ALONE
+    flags = world.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    return {"messages": session.messages, "narration": text, "model_calls": 1,
+            "action_result": {"action": "travel", "status": "not_now", "success": False, "state_changes": [],
+                              "direct_response": text}}
+
+
+def _no_step_is_taken(session, player_input: Any) -> bool:
+    """Only asked, denied or put off: a clause that really goes, anywhere in the line, is a walk."""
+    p = plan(session, player_input)
+    steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
+    if not steps:
+        return "?" in str(player_input)
+    return all(s.get("question") or s.get("negated") or s.get("condition") for s in steps)
+
+
+def _decide_way_out(session, player_input: str):
+    """Out of town, as the reading said: the place at the gate is made once, and the walk is an ordinary walk."""
+    import local_places
+    if _no_step_is_taken(session, player_input):
+        return "defer", None
+    town = _town_of(session)
+    record = local_places.create_local_place(session.world_state, town, "waystation") if town else None
+    if record is None:
+        return "defer", None
+    target = {"id": record["id"], "kind": "place", "names": [], "nouns": [], "label": record.get("name"), "record": record,
+              "place_kind": "waystation", "door_id": None, "door_locked": False}
+    step = {"verb": "go", "target": target, "negated": False}
+    run = _Run(session, player_input)
+    run.model_calls = 1  # the front reading chose this walk
+    return "execute", (run, [step], {"steps": [step]})
+
+
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
+    import front_proposal
     defer = ("defer", None)
+    if place_id == front_proposal.WAY_OUT:
+        return _decide_way_out(session, player_input)
     offered = _walk_to_offer(session, player_input)
     if offered is not None:
         offered[1][0].model_calls = 1  # the front reading was spent on this line

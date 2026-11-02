@@ -170,6 +170,23 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
         "issues": (("Haritanın bir köşesine kırmızıyla çarpı atılmış.",
                     "Doğu sokaklarında adamım eksik; güvenilir birine ihtiyacım var."),),
     },
+    # Outside the walls but still this town's: the gates' side of the roads. Beyond it nobody walks off the map.
+    "waystation": {
+        "stems": ("kervan",), "suffix": "Kervan Durağı", "noun": "kervan durağı", "role": "Kervancı",
+        "outdoors": True, "walk_seconds": 1800,
+        "also": {"role": "Arabacı", "appearance": "Yanık yüzlü, kolları tozlu, dizgin nasırlı biri.",
+                 "personality": "Laf arasında yolu ve havayı tartar."},
+        "descriptions": ("Surların dışında, yolun kıyısında yük arabalarının sıralandığı tozlu bir alan.",
+                         "Kuzey kapısının ötesinde, öküzlerin ve yük arabalarının beklediği çiğnenmiş bir meydanlık."),
+        "feature": ("Yük arabaları", "Sırayla dizilmiş, brandaları sıkı bağlanmış yük arabaları.",
+                    ["araba", "arabalar", "branda", "yuk"]),
+        "activities": (("Yüklerin iplerini tek tek yokluyor.", "Yükleri yokluyorum."),
+                       ("Bir deftere gelen arabaları işliyor.", "Gelen arabaları yazıyorum.")),
+        "issues": (("Arabalardan birinin tekeri yeni değiştirilmiş; eskisi kenarda kırık duruyor.",
+                    "Yolda bir teker kırdık; sefer bu yüzden gecikti."),
+                   ("Yolun kenarında boş bırakılmış bir araba duruyor.",
+                    "Arabacılarımdan biri arabayı bırakıp gitti; yerine güvenilir biri lazım.")),
+    },
     "stable": {
         "stems": ("ahir",), "suffix": "Ahırı", "noun": "ahır", "role": "Seyis",
         "descriptions": ("Saman ve at kokusunun yoğun olduğu, loş bir ahır.",),
@@ -361,10 +378,11 @@ def create_local_place(
     local = [
         r for r in locations.values()
         if isinstance(r, dict) and r.get("parent_location_id") == settlement_id and r.get("place_kind")
+        and not PLACE_KINDS.get(r["place_kind"], {}).get("outdoors")
     ]
-    if len(local) >= MAX_LOCAL_PLACES_PER_SETTLEMENT or len(locations) >= 80:
-        return None
     spec = PLACE_KINDS[kind]
+    if (len(local) >= MAX_LOCAL_PLACES_PER_SETTLEMENT and not spec.get("outdoors")) or len(locations) >= 80:
+        return None
     number = max(1, int(world.get("next_location_number", 1)))
     while f"location_{number:03d}" in locations:
         number += 1
@@ -386,6 +404,8 @@ def create_local_place(
         "local_issue": _pick(world, location_id, spec["issues"], "issue")[0],
         "tags": ["campaign_local", "lr00_p3_pilot"],
     }
+    if spec.get("walk_seconds"):
+        record["walk_seconds"] = spec["walk_seconds"]
     locations[location_id] = record
     return record
 
@@ -487,6 +507,12 @@ def furnish(world: dict[str, Any], record: dict[str, Any], *, create_npc, create
                 profile["current_activity"] = activity[1]
                 profile["immediate_goal"] = issue[1]
                 profile["reason_for_being_here"] = "Burası benim işim; günüm burada geçer."
+    also = spec.get("also")
+    if also and not record.get("also_placed"):
+        second = create_npc({"name": living_world.stable_local_name(world, f"{place_id}:also", also["role"]),
+                             "role": also["role"], "location": place_id, "appearance": also["appearance"],
+                             "personality": also["personality"], "relationship": "neutral"})
+        record["also_placed"] = isinstance(second, dict)
     name, description, aliases = spec["feature"]
     feature = feature_of(world, place_id, name) or create_feature({
         "location": place_id,
@@ -521,9 +547,14 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
     clock = campaign_time.public_time(world) if world.get("campaign_time") else None
     marks = bold_acts.place_marks(world, record["id"])
     burning = bold_acts.is_burnt_or_burning(world, record["id"])
-    if first_visit:
+    if first_visit and spec.get("outdoors"):
+        parts.append(f"Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {record['name']}.")
+        parts.append(str(record.get("description") or ""))
+    elif first_visit:
         parts.append(f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
         parts.append(str(record.get("description") or ""))
+    elif spec.get("outdoors"):
+        parts.append(f"Yeniden surların dışındasın: {record['name']}.")
     elif burning:
         parts.append(f"Yeniden {record['name']} içindesin. {record.get('description') or ''}")
     elif away < AWAY_SECONDS and not marks:

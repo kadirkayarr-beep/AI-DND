@@ -9,7 +9,9 @@ from unittest.mock import patch
 
 import bold_acts
 import campaign_time
+import front_proposal
 import interaction_adventure
+import local_places
 import world_happenings
 import world_reactions
 import world_threads
@@ -97,11 +99,13 @@ class AnInnHasRooms(OneTownScene):
         self.assertIn("5 gümüş", self.note(barman))
 
 
-class FrontLines(unittest.IsolatedAsyncioTestCase):
+class FrontScene(unittest.IsolatedAsyncioTestCase):
     asyncSetUp, asyncTearDown = FrontTable.asyncSetUp, FrontTable.asyncTearDown
     campaign_with_npc, open_job, line = FrontTable.campaign_with_npc, FrontTable.open_job, FrontTable.line
     begin, routes, front_calls = FrontTable.begin, FrontTable.routes, FrontTable.front_calls
 
+
+class FrontLines(FrontScene):
     def purse(self):
         return self.world.setdefault("currency", {}).get("player", 0)
 
@@ -155,7 +159,7 @@ class FrontLines(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.purse(), 3)
 
 
-class Messengers(FrontLines):
+class Messengers(FrontScene):
     def links(self):
         return world_happenings.links(world_threads.view(self.world))
 
@@ -353,3 +357,91 @@ class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
                                          "heard": [], "told": []}]
         await self.wait("iki saat bekliyorum")
         self.assertNotIn("hold", self.deed())
+
+
+class LeavingTown(FrontScene):
+    OUT = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
+
+    def outer(self):
+        return next((record for record in self.world["locations"].values()
+                     if isinstance(record, dict) and record.get("place_kind") == "waystation"), None)
+
+    def clock(self):
+        return self.world["campaign_time"]["elapsed_seconds"]
+
+    async def test_the_way_out_of_town_is_on_the_list(self):
+        await self.begin()
+        await self.line("etrafa bakiyorum")
+        kinds = self.front_calls()[0]["properties"]["front"]["properties"]
+        self.assertIn(front_proposal.WAY_OUT, kinds["place_id"]["enum"])
+
+    async def goes_out(self, line):
+        await self.begin()
+        self.client.front = self.OUT
+        clock = self.clock()
+        out = await self.line(line)
+        place = self.outer()
+        self.assertIsNotNone(place, out["narration"])
+        self.assertEqual(self.world["location"], place["id"], out["narration"])
+        self.assertGreaterEqual(self.clock(), clock + 1800)
+        self.assertNotIn("içeri", out["narration"])
+        people = [npc for npc in self.world["npcs"] if npc.get("location") == place["id"]]
+        self.assertGreaterEqual(len(people), 2, people)
+        self.assertEqual(self.routes()[-1]["owner"], "grounded_action")
+
+    async def test_out_by_the_north_road(self):
+        await self.goes_out("sehrin disina cikiyorum, kuzey yoluna")
+
+    async def test_out_for_another_city(self):
+        await self.goes_out("luskan'a gidiyorum")
+
+    async def test_out_past_the_walls(self):
+        await self.goes_out("surlarin disina gidiyorum")
+
+    async def test_out_of_a_house_with_a_long_line(self):
+        await self.goes_out("konaktan cikiyorum. kahyaya goz kirpip sokaga, sehrin kuzey kapisina dogru yuruyorum, surlarin disinda is var mi bakicam")
+
+    async def test_the_road_on_is_a_person_saying_why_not_now_and_nothing_moves(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        here, clock = self.world["location"], self.clock()
+        out = await self.line("yola devam, bi gun yuruyorum kuzeye")
+        self.assertEqual((self.world["location"], self.clock()), (here, clock), out["narration"])
+        self.assertTrue(any(sign in out["narration"] for sign in ("“",)), out["narration"])
+        self.assertEqual(self.routes()[-1]["owner"], "travel")
+        self.assertEqual(self.routes()[-1]["status"], "not_now")
+
+    async def test_those_out_there_answer_and_the_house_left_behind_does_not(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        person = local_places.resident_of(self.world, self.world["location"])
+        self.client.front = {"kind": "speak_to", "person_id": person["id"]}
+        out = await self.line("yolda kervan muhafizi arayan biri var mi, kervancilara soruyorum", "Burada iş az.")
+        self.assertIn("Burada iş az.", out["narration"])
+
+    async def test_a_question_about_the_gate_walks_nobody(self):
+        await self.begin()
+        where = self.world["location"]
+        self.client.front = self.OUT
+        out = await self.line("sehirden nasil cikilir?")
+        self.assertEqual(self.world["location"], where, out["narration"])
+
+    async def test_coming_back_takes_the_walk_too(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        clock = self.clock()
+        city = self.outer()["parent_location_id"]
+        self.client.front = {"kind": "go_to", "place_id": city}
+        out = await self.line("sehre geri donuyorum")
+        self.assertEqual(self.world["location"], city, out["narration"])
+        self.assertGreaterEqual(self.clock(), clock + 1800)
+
+    async def test_news_and_callers_still_reach_the_gate_road(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        self.assertEqual(local_places.settlement_of(self.world, self.world["location"]),
+                         self.outer()["parent_location_id"])
