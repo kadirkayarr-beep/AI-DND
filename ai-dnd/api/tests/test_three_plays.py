@@ -244,7 +244,7 @@ class StealingTests(ThreePlaysTests):
                 self.assertNotIn("Gizlenme", out["narration"])
                 result = self.world["flags"].get("deeds")
                 changed = (list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0)) != before
-                self.assertTrue(changed or result or "duraksıyorsun" in out["narration"], out["narration"])
+                self.assertTrue(changed or result, out["narration"])
 
     async def test_a_caught_thief_is_remembered_and_the_person_is_told(self):
         await self.begin(BARBARIAN)

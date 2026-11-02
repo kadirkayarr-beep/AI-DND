@@ -23,7 +23,7 @@ _NOT_STOLEN = re.compile(
     r"\b(?:(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz)\w*|can[ia]?)\b.*\bcal(?:iyorum|ip)"
 )
 _ASKS = re.compile(r"\b(?:mi|mu|ne olur)\W*$")  # the owner leaves the question mark out
-_DISTRACTED = re.compile(r"\w+(?:ken|arken|erken)\b")
+_DISTRACTED = re.compile(r"\w+(?:ken|[iu]nc[ae])\b")  # 'bakarken', 'dönünce': the eye is elsewhere
 _ARSON = re.compile(r"\b(?:ates\w*\s+ver\w*|ates\w*\s+yak\w*|tutustur\w*|alev\w*\s+ver\w*|\w+\s+yakiyorum|\w+\s+yakacagim)")
 _THINGS = (
     ("elma", "Elma"), ("ekmek", "Ekmek"), ("kalkan", "Kalkan"), ("defter", "Defter"),
@@ -34,6 +34,11 @@ _CAUGHT = (
     "{n} bileğini yakalıyor. “Elini çek! Bir daha görürsem bu kadar nazik olmam.”",
     "{n} bir anda dönüp sana bakıyor. “Ne yaptığını sanıyorsun sen?”",
     "{n} elini tokatlıyor. “Hırsız mısın, deli mi? Defol!”",
+)
+_NOTHING_THERE = (
+    "Karıştırıp bakıyorsun; alınacak değerde bir şey çıkmıyor.",
+    "Elini attığın yerden işe yarar bir şey çıkmıyor; elin boş dönüyor.",
+    "Yokluyorsun ama para eden bir şey bulamıyorsun.",
 )
 
 
@@ -443,46 +448,61 @@ def _reply(session, narration: str, action: str, status: str, check: dict[str, A
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     result = {"action": action, "status": status, "state_changes": changes, "direct_response": narration, **extra}
     if check is not None:
-        result.update(success=check["result"] == "BAŞARILI", skill=check.get("skill"), dc=check.get("dc"),
+        import game
+        result = {**check, **result}  # the whole roll, so the player sees the dice like any other check
+        result.update(outcome=game._skill_result_category(check["result"]),
+                      success=check["result"] == "BAŞARILI", skill=check.get("skill"), dc=check.get("dc"),
                       roll=check.get("roll"), total=check.get("total"), check_result=check["result"])
     else:
         result["success"] = True
     return {"messages": session.messages, "narration": narration, "model_calls": 0, "action_result": result}
 
 
+def _steal_dc(session, folded: str, watcher: dict[str, Any] | None) -> int:
+    """No one there or a turned back is the easy roll, a face looking at you the middling one; a guard is one step more."""
+    import game
+    easy, medium, hard = (game.DIFFICULTY_DC[name] for name in ("easy", "medium", "hard"))
+    if watcher is None:
+        return easy
+    armed = game._ARMED_ROLE.search(fold(session, str(watcher.get("role", ""))))
+    if _DISTRACTED.search(folded):
+        return medium if armed else easy
+    return hard if armed else medium
+
+
 def _steal(session, text: str) -> dict[str, Any]:
     folded = fold(session, text)
     victim = _hand_to_whom(session, text)
-    import game
-    armed = victim is not None and game._ARMED_ROLE.search(fold(session, str(victim.get("role", ""))))
-    dc = (10 if _DISTRACTED.search(folded) or victim is None else 13) + (2 if armed else 0)
-    check = _check(session, "Sleight of Hand", dc)
+    present = session.active_npcs()
+    watcher = victim or (present[0] if present else None)  # with several in the room, somebody sees the hand
+    check = _check(session, "Sleight of Hand", _steal_dc(session, folded, watcher))
     world = session.world_state
     thing = _thing_named(folded)
     if check["result"] != "BAŞARILI":
-        if victim is None:
-            return _reply(session, "Elin tam uzanacakken duraksıyorsun; bu sefer fırsat geçip gidiyor.",
-                          "theft", "failed", check, [])
-        relationships.note(world, victim["id"], -3, f"caught_stealing:{world.get('flags', {}).get('turn_index', 0)}")
-        remember(session, "theft", "seni soymaya kalktı", victim_id=victim["id"])["rumour"] = (
-            f"{living_world.public_npc_name(victim)} soyulmak istenmiş")
-        return _reply(session, _pick_line(session, victim), "theft", "caught", check,
-                      ["relationships"], npc_id=victim["id"])
-    if thing is None and victim is not None:
+        if watcher is None:
+            return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "failed", check, [])
+        relationships.note(world, watcher["id"], -3, f"caught_stealing:{world.get('flags', {}).get('turn_index', 0)}")
+        remember(session, "theft", "seni soymaya kalktı", victim_id=watcher["id"])["rumour"] = (
+            f"{living_world.public_npc_name(watcher)} soyulmak istenmiş")
+        return _reply(session, _pick_line(session, watcher), "theft", "caught", check,
+                      ["relationships"], npc_id=watcher["id"])
+    if thing is None:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
         wallets["player"] = wallets.get("player", 0) + coins
-        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} soyuldu",
-                 victim_id=victim["id"], seen=False)
+        if victim is not None:
+            remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} soyuldu",
+                     victim_id=victim["id"], seen=False)
+        else:
+            remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} içinden para eksildi", seen=False)
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
-    label = thing or "Küçük bir ganimet"
-    world.setdefault("inventory", []).append(label)
+    world.setdefault("inventory", []).append(thing)
     if victim is not None:
-        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {label.lower()} eksildi",
-                 victim_id=victim["id"], seen=False)["item"] = label
-    narration = f"Elin hızlı: {label.lower()} artık sende, kimse bakmıyor."
-    return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=label)
+        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
+                 victim_id=victim["id"], seen=False)["item"] = thing
+    narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
+    return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
 
 def _burn(session) -> dict[str, Any]:

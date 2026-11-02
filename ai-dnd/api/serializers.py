@@ -450,7 +450,11 @@ def serialize_skill_check_result(
     check_evidence: list[Any] | None = None,
 ) -> dict[str, Any] | None:
     """Expose only a validated projection of a Python-owned skill check."""
-    if not isinstance(action_result, Mapping) or action_result.get("action") != "skill_check":
+    # A deed that rolled carries the same dice as a plain check, so the player sees it the same way.
+    rolled = isinstance(action_result, Mapping) and (
+        action_result.get("action") == "skill_check"
+        or (action_result.get("action") in {"theft", "arson"} and "dice" in action_result))
+    if not rolled:
         if check_evidence is not None:
             raise SkillCheckResultSerializationError("Feature evidence requires a completed check.")
         return None
