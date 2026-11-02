@@ -51,7 +51,7 @@ _CHALLENGES = (
     "{who} eli kabzasında yanına geliyor. “Dur bakalım. Birkaç sorum olacak, nerede olduğunu anlat.”",
 )
 _ARRESTS = (
-    "{who} elini omzuna koyuyor. “Tanıklar seni tarif etti, {text} meselesi kapanmadı. Silahını bırak, karakola yürüyoruz.”",
+    "{who} elini omzuna koyuyor. “Tanıklar seni tarif etti: {text}. Silahını bırak, karakola yürüyoruz.”",
     "{who} önüne geçip yolunu kapatıyor. “{Text}, seni gören var. Karakola geliyorsun; zorluk çıkarma.”",
 )
 _RESISTED = "{who} silahını çekiyor. “Yeter. Sözle gelmiyorsan zorla götürürüm.”"

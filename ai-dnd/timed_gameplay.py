@@ -827,6 +827,17 @@ def is_timed_wait(text):
 _A_WHILE = 1800
 
 
+def names_a_stretch(world, text):
+    """The line names how long it lasts, and it is no sleep, task or question: time is what it spends."""
+    normalized = clock.normalize(text)
+    if "?" in str(text) or _SLEEPING.search(normalized) or input_route_markers(world, normalized)[2]:
+        return False
+    try:
+        return clock.mentions_named_hour(normalized) or clock.requested_duration(text) is not None
+    except ValueError:
+        return False
+
+
 def pass_time(session, text):
     """The reading says the player is letting time go by: the clock moves by what they said, or a while."""
     normalized = clock.normalize(text)

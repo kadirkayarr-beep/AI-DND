@@ -31,6 +31,7 @@ _DENIED = re.compile(r"\b(?:yok|degil)\b|m[iu]yor")  # 'yok', 'değil', 'görün
 _TOLD_TO_YOU = ("sun", "sin", "din", "dun")  # 'alıyorsun', 'aldın': the sentence says the player did it
 EMPTY_HANDED = "Uzanıyorsun ama eline geçen bir şey yok."
 _THING_WORD = re.compile(r"[^\W\d_]{4,}")
+_SEVERAL = re.compile(r"\s*,\s*|\s+(?:ve|ile)\s+")  # a reading can name two things in its one word
 
 
 def names_worth(text: Any) -> bool:
@@ -81,7 +82,12 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     name = thing[:1].upper() + thing[1:].casefold()
     if not equipment_economy.grant_plain(world, name):
         return None
-    return _receipt(session, text, f"{name} çantana giriyor.")
+    taken = [name]
+    for other in _also_taken(session, words):
+        other = other[:1].upper() + other[1:].casefold()
+        if equipment_economy.grant_plain(world, other):
+            taken.append(other)
+    return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
 
 
 def _stem(word: Any) -> str:
@@ -98,14 +104,14 @@ def _bare(word: str) -> str:
     return word[:-1] if len(folded) >= 6 and folded[-1] in "iu" and folded[-2] not in "aeiou" else word
 
 
-def _also_taken(session, words: list[str], stem: str) -> list[str]:
+def _also_taken(session, words: list[str]) -> list[str]:
     """Whatever else this line takes that the screen showed: 'parşömenle anahtarı alıyorum' is two things."""
     world = session.world_state
     fixed = _fixed_here(world)
     names = []
     for shown in dict.fromkeys(_shown(session)):
-        other = world_threads._stem(living_world.normalize_text(shown))
-        if (len(other) < 4 or other == stem or other.startswith(_WORTH) or other.startswith(fixed) or other in _NOT_THINGS
+        other = living_world.normalize_text(shown)
+        if (len(other) < 4 or other.startswith(_WORTH) or other.startswith(fixed) or other in _NOT_THINGS
                 or shown in names or _named_in_bag(world, other)):
             continue
         if any(w.startswith(other) and w not in _NOT_THINGS and w.removeprefix(other) in _AS_OBJECT for w in words):
@@ -119,20 +125,24 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     words = living_world.normalize_text(text).split()
     if not word:
         return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)
+    taken = [name for name in (_take_one(session, words, part) for part in _SEVERAL.split(word)) if name]
+    for other in _also_taken(session, words):
+        other = other[:1].upper() + other[1:].casefold()
+        if equipment_economy.grant_plain(world, other):
+            taken.append(other)
+    return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.") if taken else None
+
+
+def _take_one(session, words: list[str], word: str) -> str | None:
+    """One thing the reading named: in the line and on the screen, or it stays where it is."""
+    world = session.world_state
     word = _bare(word)
     stem = _stem(word)
     if (len(stem) < 3 or stem.startswith(_WORTH) or not any(w.startswith(stem) for w in words)
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
     name = word[:1].upper() + word[1:].casefold()
-    if _named_in_bag(world, stem) or not equipment_economy.grant_plain(world, name):
-        return None
-    taken = [name]
-    for other in _also_taken(session, words, stem):
-        other = other[:1].upper() + other[1:].casefold()
-        if equipment_economy.grant_plain(world, other):
-            taken.append(other)
-    return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
+    return name if not _named_in_bag(world, stem) and equipment_economy.grant_plain(world, name) else None
 
 
 def asked_for(text: str, word: str) -> tuple[str, ...]:

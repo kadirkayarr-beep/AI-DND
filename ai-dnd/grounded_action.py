@@ -2897,6 +2897,8 @@ _ROAD_ON = (
     "{who} yola bakıp omuz silkiyor. “Bugün o yöne giden yok. Sefer yazılınca buradan kalkar, o zaman gel.”",
     "{who} elini kaldırıyor. “Erzaksız, yol arkadaşısız o yola çıkan dönmez. Kervan kalkınca konuşuruz.”",
 )
+_ROAD_VERBS = frozenset({"go", "approach", "wander", "enter"})
+_BACK_TO_TOWN = ("sehr", "sehir", "kent", "geri")
 _ROAD_ON_ALONE = "Yol ufka doğru uzuyor; ne kalkacak bir kervan var ne yol arkadaşı. Buradan ötesi bugünün işi değil."
 
 
@@ -2948,6 +2950,23 @@ def _no_step_is_taken(session, player_input: Any) -> bool:
     if not steps:
         return "?" in str(player_input)
     return all(s.get("question") or s.get("negated") or s.get("condition") for s in steps)
+
+
+def heads_on_past_the_town(session, player_input: Any) -> bool:
+    """Standing where the town ends, a walk with no place of the town at its end is the road on, however it was read."""
+    import local_places
+    world = session.world_state
+    record = (world.get("locations") or {}).get(world.get("location")) or {}
+    if not local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"):
+        return False
+    tokens = fold(player_input).split()
+    town = fold((world.get("locations") or {}).get(record.get("parent_location_id"), {}).get("name", ""))
+    if any(word.startswith(_BACK_TO_TOWN) or (town and word.startswith(town)) or word.startswith(_OUTSIDE_NOUNS) for word in tokens):
+        return False
+    p = plan(session, player_input)
+    return not p["speech"] and any(
+        s["verb"] in _ROAD_VERBS and not s.get("target") and not s.get("outside") and not s.get("place_noun")
+        and not (s.get("question") or s.get("negated") or s.get("condition")) for s in p["steps"])
 
 
 def _decide_way_out(session, player_input: str):

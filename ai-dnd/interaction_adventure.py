@@ -1019,7 +1019,7 @@ def immersive_unknown(npc=None, seed=""):
     The same person does not say the same line twice while they have another.
     """
     if npc:
-        if isinstance(npc, dict) and npc.get("message") and _asks(seed):  # sent to say it, so they say it
+        if isinstance(npc, dict) and npc.get("message"):  # sent to say it, so that is what they have to say
             return f"{living_world.public_npc_name(npc)} sabırsızca yineliyor. “{npc['message']}”"
         key = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{seed}"
         table = _UNKNOWN_LINES if _asks(seed) else _HEARD_LINES

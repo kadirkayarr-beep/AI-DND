@@ -8571,7 +8571,9 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if handed:
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
+    import bold_acts
     import pocket
+    lines.append(bold_acts.room_note(npc, player_input))
     lines.append(_bag_note(pocket.bag_names(world)))
     if getattr(_session(), "_empty_handed", False):
         lines.append("Oyuncu bir şey uzatıyor gibi konuşuyor ama elinde öyle bir şey yok; ondan bir şey almış gibi yazma.")
@@ -17686,13 +17688,16 @@ def run_player_turn(
 
 def _tell_the_coin(result):
     """The screen says what left the purse, so what the person said and the purse agree."""
-    amount = getattr(_session(), "_coin_paid", 0)
-    _session()._coin_paid = 0
-    if amount and isinstance(result, dict):
+    import bold_acts
+    paid = getattr(_session(), "_coin_paid", None)
+    _session()._coin_paid = None
+    action = result.get("action_result") if isinstance(result, dict) else None
+    if not paid or not isinstance(action, dict) or "currency" in (action.get("state_changes") or ()):
+        return  # a purchase or a job already moved the coin this line was about
+    amount, person = paid
+    if bold_acts.give_coin(_session(), amount, person):
         result["narration"] = f"{result.get('narration') or ''} {amount} bakır kesenden çıkıyor.".strip()
-        action = result.get("action_result")
-        if isinstance(action, dict):
-            action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]
+        action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]
 
 
 def _run_player_turn(
@@ -17821,7 +17826,7 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     from api import ollama_adapter
     if (not rest or not isinstance(action_result, dict) or session.world_state.get("combat", {}).get("active")
             or session.world_state.get("location") != place_before  # the one who was asked is left behind
-            or action_result.get("action") in {"dialogue", "query"}
+            or action_result.get("action") in {"dialogue", "query", "lodging"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
             or not ollama_adapter.model_calls_left()):
         return result
@@ -18183,6 +18188,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     elif (route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory"
           and (_model_query_type_is_plausible(player_input) or equipment_economy._natural_inventory_query(player_input))):
         route = {"kind": "bag"}  # the label alone also fits moving a thing, and those lines have owners of their own
+    if (route["kind"] in {"attempt", "unclear", "look", "go_to", "talk_around"} and route.get("id") != front_proposal.WAY_OUT
+            and grounded_action.heads_on_past_the_town(session, player_input)):
+        route = {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}  # a small model takes this for a stroll
+    if route["kind"] in {"sit", "attempt", "look", "unclear"} and timed_gameplay.names_a_stretch(world, player_input):
+        route = {"kind": "wait"}  # 'akşama kadar', 'iki saat': whatever else the line does, it lets that time go by
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
     _hand_over_coin(route, listed)
     if route["kind"] == "look":
@@ -18209,8 +18219,8 @@ def _hand_over_coin(route, listed):
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
-    if bold_acts.give_coin(session, amount, person):
-        session._coin_paid = amount
+    if bold_acts.can_pay(session, amount):
+        session._coin_paid = (amount, person)  # paid when the turn is over, unless a purchase in the line took it first
         session._handed_note = f"{amount} bakır"
 _NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
@@ -18312,7 +18322,7 @@ def _front_hand_over(route, player_input):
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
     if item_id is None or "?" in player_input or world_threads.says_later(player_input):
-        session._empty_handed = item_id is None and not getattr(session, "_coin_paid", 0)
+        session._empty_handed = item_id is None and not getattr(session, "_coin_paid", None)
         return _thread_gate(player_input, person["id"], "say") or heard  # nothing named: the old reader, then their answer
     try:
         session.require_player_can_act()

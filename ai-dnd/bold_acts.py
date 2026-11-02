@@ -279,8 +279,6 @@ def speech_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
         note += " Kentte şu konuşuluyor: " + heard[-1] + ". Kimin yaptığını bilmiyorsun."
         if _is_armed(npc):
             note += " Kan izi taşıyan ya da bunu söyleyen biri görürsen üstüne gidersin."
-    if _SERVER.search(living_world.normalize_text(npc.get("role"))):
-        note += f" Burada kalacak oda verilir, gecelik {_ROOM_PRICE // 10} gümüş; oda yok deme."
     import world_reactions
     return note + _loss_note(world, npc, ledger) + _fire_note(world, npc) + world_reactions.speech_note(world, npc)
 
@@ -564,6 +562,11 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
 
 
+def can_pay(session, amount: int) -> bool:
+    settle_coin_labels(session.world_state)
+    return session.world_state.setdefault("currency", {}).get("player", 0) >= amount
+
+
 def give_coin(session, amount: int, person: dict[str, Any] | None) -> bool:
     """Coin the player really hands over or leaves: out of the purse, to that person if there is one."""
     world = session.world_state
@@ -596,6 +599,13 @@ _WALKS = re.compile(r"\b(?!gece)(?:gid|git|gir|gec|yuru|yaklas)\w*")
 _ROOM_ASK = re.compile(r"\b(?:tut\w*|kirala\w*|ver\w*|alayim|alirim|aliyorum|istiyorum|isterim)\b")
 _PRICE_ASKED = re.compile(r"\b(?:ne kadar|kac\w*|fiyat\w*|var mi|var midir)\b")
 _ROOM_PRICE = 50  # a modest inn stay, 5 silver a night
+
+
+def room_note(npc: dict[str, Any], text: Any) -> str:
+    """Only when rooms are what is being talked of: otherwise whoever serves would sell a bed in every reply."""
+    if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not _ROOM.search(living_world.normalize_text(text)):
+        return ""
+    return f"Burada kalacak oda verilir, gecelik {_ROOM_PRICE // 10} gümüş; oda yok deme."
 _ROOM_DAY = 24 * 3600
 
 

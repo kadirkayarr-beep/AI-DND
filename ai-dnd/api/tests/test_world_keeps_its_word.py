@@ -95,9 +95,31 @@ class AnInnHasRooms(OneTownScene):
         self.assertTrue(self.world["flags"].get("inn_room"))
         self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], clock)
 
-    async def test_whoever_serves_knows_the_house_has_rooms(self):
+    async def test_whoever_serves_knows_the_house_has_rooms_when_rooms_are_the_talk(self):
         barman = await self.inn()
-        self.assertIn("5 gümüş", self.note(barman))
+        self.assertIn("5 gümüş", bold_acts.room_note(barman, "oda kiralamak gerek yarin"))
+        self.assertEqual(bold_acts.room_note(barman, "en ucuz neyin var"), "")
+        self.assertNotIn("5 gümüş", self.note(barman))
+
+    async def test_coin_named_in_a_purchase_is_paid_once(self):
+        await self.inn()
+        before = self.purse_after_labels()
+        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "coin_cp": 4})
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            out = await self.say("al sana 4 bakır, bi bira ver", client)
+        self.assertEqual(self.world["currency"]["player"], before - 4, out["narration"])
+
+    def purse_after_labels(self):
+        bold_acts.settle_coin_labels(self.world)
+        return self.world["currency"]["player"]
+
+    async def test_a_room_taken_is_not_haggled_over_afterwards(self):
+        await self.inn()
+        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "also_says": "kimse uyandirmasin"},
+                               spoken="Gecelik beş gümüş, bırak tezgâha.")
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
+            out = await self.say("bi gecelik oda ne kadar? yaticam, sabaha kadar kimse uyandirmasin", client)
+        self.assertNotIn("bırak tezgâha", out["narration"])
 
 
 class FrontScene(unittest.IsolatedAsyncioTestCase):
@@ -118,6 +140,14 @@ class FrontLines(FrontScene):
         self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], clock + 1800, out["narration"])
         self.assertEqual(self.routes()[-1]["route"], "front:wait")
         self.assertEqual(self.routes()[-1]["owner"], "wait")
+
+    async def test_a_length_in_the_line_is_time_spent_however_it_was_read(self):
+        await self.begin()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        self.client.front = {"kind": "sit"}
+        await self.line("köşedeki masaya geçip iki saat takılıyorum")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 7200)
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
 
     async def test_hanging_about_with_no_length_is_a_while(self):
         await self.begin()
@@ -413,6 +443,26 @@ class LeavingTown(FrontScene):
         self.assertEqual(self.routes()[-1]["owner"], "travel")
         self.assertEqual(self.routes()[-1]["status"], "not_now")
 
+    async def test_the_road_on_read_as_an_attempt_is_still_no_journey(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        here, clock = self.world["location"], self.clock()
+        self.client.front = {"kind": "attempt"}
+        out = await self.line("yola devam, bi gun yuruyorum kuzeye. luskan yonune")
+        self.assertEqual((self.world["location"], self.clock()), (here, clock), out["narration"])
+        self.assertEqual(self.routes()[-1]["status"], "not_now")
+
+    async def test_a_far_city_read_as_the_street_stays_on_the_road(self):
+        await self.begin()
+        self.client.front = self.OUT
+        await self.line("sehrin disina cikiyorum")
+        here = self.world["location"]
+        self.client.front = {"kind": "go_to", "place_id": self.outer()["parent_location_id"]}
+        out = await self.line("luskan'a gidiyorum")
+        self.assertEqual(self.world["location"], here, out["narration"])
+        self.assertEqual(self.routes()[-1]["status"], "not_now")
+
     async def test_those_out_there_answer_and_the_house_left_behind_does_not(self):
         await self.begin()
         self.client.front = self.OUT
@@ -468,6 +518,14 @@ class WhatTheScreenShows(FrontScene):
         self.assertIn("arşömen", out["narration"])
         self.assertIn("nahtar", out["narration"])
         self.assertNotIn("eline geçen", out["narration"])
+
+    async def test_a_reading_that_names_two_things_in_its_one_word_takes_both(self):
+        await self.begin()
+        self.shown("Çekmecenin dibinden küçük bir çivi ile katlanmış bir mendil çıkıyor.")
+        self.client.front = {"kind": "take", "thing_word": "çivi ve mendil"}
+        out = await self.line("çiviyi alıyorum, mendili de cebe atıyorum")
+        self.assertIn("Çivi", self.bag(), out["narration"])
+        self.assertIn("Mendil", self.bag())
 
     async def test_a_key_the_screen_showed_can_be_taken(self):
         await self.begin()

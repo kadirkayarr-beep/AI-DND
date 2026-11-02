@@ -308,6 +308,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reply = None
     session._front_deed = None
     session._front_coin = 0
+    session._coin_paid = None
     session._front_found = None
     session._front_thing = None
     session._front_strike = None
