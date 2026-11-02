@@ -78,6 +78,7 @@ class TheRoadOnIsNoWall(FrontScene):
         second = await self.line("günlerce gitmicem ki usta, yarım gün yürüyüp dönücem. yürüyorum ben")
         here = self.world["locations"][self.world["location"]]
         self.assertNotEqual(self.world["location"], stop, second["narration"])
+        self.assertNotIn("sokaklarına", second["narration"])  # down the road, not back through the streets
         self.assertTrue(local_places.PLACE_KINDS[here["place_kind"]].get("outdoors"), here)
         self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], clock)
         self.assertNotEqual(self.routes()[-1]["status"], "not_now")

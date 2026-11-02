@@ -1393,9 +1393,12 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
     if run.here != record.get("parent_location_id"):
         parent = record.get("parent_location_id")
         if parent and run.location(parent) and run.here != parent:
+            outdoors = [local_places.PLACE_KINDS.get(r.get("place_kind"), {}).get("outdoors")
+                        for r in (run.location(run.here) or {}, record)]
             if not run.game.commit_location_change(parent):
                 return _receipt(verb, "blocked", place, reason="cannot_leave", text="Bulunduğun yerden çıkamıyorsun.")
-            prefix += f"Dışarı, {run.location(parent).get('name')} sokaklarına çıkıyorsun. "
+            if not all(outdoors):  # from the caravan stop on down the road, nobody walks back through the streets
+                prefix += f"Dışarı, {run.location(parent).get('name')} sokaklarına çıkıyorsun. "
     if door is not None:
         run.near(door["id"])
         text = f"{prefix}{record.get('name')} önüne geliyorsun.{with_text} {_door_state_text(door)}"
