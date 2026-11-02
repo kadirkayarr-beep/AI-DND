@@ -15321,7 +15321,8 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         if combat_lifecycle.is_attack_decision(_session(), player_input):
             intent_type = "attack"
             intent = {**intent, "intent": "attack"}
-        elif combat_lifecycle.walks_off(_session(), player_input):
+        elif (combat_lifecycle.walks_off(_session(), player_input)
+              or combat_lifecycle.walks_on_own_feet(_session(), player_input)):
             raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
         else:  # "çık git konaktan" is said to the other one: the player stays, and the line is words in the fight
             intent_type = "narrative"

@@ -166,6 +166,22 @@ class CombatLifecycleTests(unittest.TestCase):
         self.assertEqual(session.world_state, before)
         self.assertFalse(game.timed_gameplay.start_travel(session, "forest")["success"])
 
+    def test_the_players_own_walk_away_is_still_refused_in_a_fight(self):
+        for line in ("arkamı dönüp sokağa yürüyorum", "sokağa çıkıyorum"):
+            with self.subTest(line=line):
+                session, _ = ready()
+                before = copy.deepcopy(session.world_state)
+                with self.assertRaises(combat_lifecycle.CombatRequestError) as raised:
+                    session.execute_intent({"intent": "travel"}, line)
+                self.assertEqual(raised.exception.code, "combat_travel")
+                self.assertEqual(session.world_state["location"], before["location"])
+                self.assertTrue(session.world_state["combat"]["active"])
+
+    def test_telling_the_other_one_to_go_is_words_in_the_fight(self):
+        session, _ = ready()
+        result = session.execute_intent({"intent": "travel"}, "al pılını pırtını çık git konaktan")
+        self.assertEqual(result["action"], "narrative")
+
 
 class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):

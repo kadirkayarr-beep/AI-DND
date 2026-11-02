@@ -332,6 +332,18 @@ def walks_off(session, message):
                 or living_world.classify_scene_action(message) == "exit")
 
 
+def walks_on_own_feet(session, message):
+    """A travel reading where the player's own '-yorum' moves them ('sokağa yürüyorum', 'çıkıyorum'): a walk, not words."""
+    import grounded_action
+    text = session._normalize_turkish_typos(living_world._text_outside_quotes(str(message)))
+    for word in re.findall(r"\w+", text):
+        verb = grounded_action._verb_of(word)
+        if (verb and verb[0] in {"go", "enter", "leave", "wander", "climb"} and not verb[1]
+                and grounded_action._FIRST_PERSON_ACT.fullmatch(word)):
+            return True
+    return False
+
+
 def validate_request(session, message, target_id=None, *, combat_id=None,
                      combat_round=None, combat_turn_index=None):
     """Client context is an optimistic precondition, never combat authority."""
