@@ -201,6 +201,7 @@ _COIN_UNITS = {"altin": 100, "gumus": 10, "bakir": 1}
 _NUMBER_WORDS = {"bir": 1, "bi": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9,
                  "on": 10, "yirmi": 20, "otuz": 30, "kirk": 40, "elli": 50, "altmis": 60, "yetmis": 70, "seksen": 80,
                  "doksan": 90, "yarim": 0.5}
+_HANDED_NOW = re.compile(r"\w+[iu]yo(?:r|m)\w*|\w+[dt][iu]m")
 UNNAMED_COIN_CP = 10  # 'biraz para': the hand holds a little; the line gave no figure to hold the reading to
 
 
@@ -242,10 +243,14 @@ def coin_in(reply: Any, line: str) -> int:
     # Each clause that names coin speaks for itself: 'bi altın atıyorum, ... laf isterim' pays, 'veririm' alone does not.
     pieces = re.split(r"([,.;!?])", str(line))
     clauses = [(pieces[i], pieces[i + 1] if i + 1 < len(pieces) else "") for i in range(0, len(pieces), 2)]
+    # A line that asks something hands coin only in a clause that says the hand moves now ('atıyorum', 'verdim'):
+    # 'bi altın versem, bira verir misin?' and 'bende bi altın var, nereye harcasam?' hand nothing.
+    asked = "?" in str(line)
     words = []
     for clause, end in clauses:
         clause_words = living_world.normalize_text(clause).split()
         if (any(word.startswith(_COIN_WORDS) for word in clause_words) and end != "?"
+                and (not asked or any(_HANDED_NOW.fullmatch(word) for word in clause_words))
                 and not world_threads.says_later(clause)
                 and not game._NO_BLOW_NOW.search(game._normalize_turkish_typos(clause))):  # 'vermiyorum': said, not done
             words.extend(clause_words)

@@ -140,6 +140,20 @@ class OneCoinOneTruth(FrontScene):
                 self.assertEqual(self.purse(), 2435 - price, out["narration"])
                 self.assertNotIn("tezgâhta kalıyor", out["narration"])
 
+    async def test_a_coin_in_a_question_moves_no_coin(self):
+        for line in ("bi altın versem, bira verir misin?", "bende bi altın var, nereye harcasam?"):
+            with self.subTest(line=line):
+                await self.at_the_bar()
+                self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+                out = await self.line(line, "Bakarız.")
+                self.assertEqual(self.purse(), 2435, out["narration"])
+
+    async def test_a_coin_handed_before_a_question_still_pays(self):
+        await self.at_the_bar()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        out = await self.line("bi altın atıyorum tezgaha, mazduşa konağının sahibi kim biliyon mu?", "Bilmem.")
+        self.assertEqual(self.purse(), 2335, out["narration"])
+
 
 class MessengersSayWhatHappened(unittest.TestCase):
     def house_link(self, owner=None, about=None):
