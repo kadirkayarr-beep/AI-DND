@@ -2,6 +2,7 @@
 import unittest
 
 import game
+import bound_text
 import town_knowledge
 import world_happenings
 import world_threads
@@ -103,10 +104,12 @@ class TheBoard(unittest.TestCase):
         for thread in troubles:
             self.assertNotIn(thread["public_line"], text)
 
-    def test_a_town_with_nothing_posted_has_no_board_text(self):
+    def test_a_town_with_no_work_posted_still_has_its_notice_on_the_board(self):
         world, state, jobs = seeded_with_two_jobs()
         state["threads"] = [t for t in state["threads"] if t["type"] == "trouble"]
-        self.assertIsNone(town_knowledge.read_board(world))
+        text = town_knowledge.read_board(world)
+        self.assertTrue(any(row["public"] and row["text"].split("{")[-1][:20] in text for row in bound_text.items("written_texts")))
+        self.assertEqual(town_knowledge.read_board(world), text)
 
     def test_new_paper_catches_the_eye_in_the_street_once_a_day(self):
         world, state, jobs = seeded_with_two_jobs()

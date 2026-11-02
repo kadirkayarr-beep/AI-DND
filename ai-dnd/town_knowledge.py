@@ -119,13 +119,13 @@ def hear_of(world: dict[str, Any], thread: dict[str, Any]) -> None:
 
 def read_board(world: dict[str, Any]) -> str | None:
     """A town's notices are its real open work, in the street's own words, and reading them is hearing them."""
+    import bound_text
     jobs = posted_work(world)[:BOARD_LINES]
-    if not jobs:
-        return None
     for thread in reversed(jobs):  # the first of them is the newest thing heard, so 'oraya' means it
         hear_of(world, thread)
-    return world_threads._fill(world_threads.job_lines("text", "board") or "{lines}",
-                               lines=" / ".join(thread["public_line"] for thread in jobs))
+    notice = bound_text.notice_of(world, _settlement(world))
+    lines = [*(thread["public_line"] for thread in jobs), *([notice] if notice else [])]
+    return world_threads._fill(world_threads.job_lines("text", "board") or "{lines}", lines=" / ".join(lines)) if lines else None
 
 
 _LOOKS_AT = re.compile(r"\b(?:bak|oku|incele|goz at|ne yaz)")

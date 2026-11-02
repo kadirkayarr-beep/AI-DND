@@ -22,6 +22,9 @@ KEY = "bound_text_v1"
 SCHEMA_VERSION = 1
 _DIR = Path(__file__).resolve().parents[1] / "content" / "world"
 DETAIL_LIMIT = 160
+PAPER_LIMIT = 300
+PAPER_LINE = "Kâğıtta şunlar yazıyor: “{words}”"
+_PAPER_SLOTS = frozenset({"is", "yer"})  # a name on a paper needs a real tie between two people, and none is saved
 _LOG = logging.getLogger(__name__)
 _tables: dict[str, list[dict[str, Any]]] = {}
 _rules_cache: dict[str, Any] | None = None
@@ -154,6 +157,89 @@ def detail_of(world: dict[str, Any], key: str, tag: str | None, passed: bool) ->
         return None
     keep(world, key, choice)
     return choice["text"]
+
+
+def choose_paper(world: dict[str, Any], key: str, kinds: list[str], *, public: bool = False) -> dict[str, Any] | None:
+    """What a real paper of these kinds says. Writes nothing."""
+    return _first_fit(world, key, (row for row in items("written_texts")
+                                   if row["kind"] in kinds and set(row["slots"]) <= _PAPER_SLOTS
+                                   and (row["public"] or not public)), PAPER_LIMIT)
+
+
+def _paper_kinds(name: Any) -> list[str]:
+    table = rules().get("paper_kinds", {})
+    words = living_world.normalize_text(name).split()
+    return next((kinds for stem, kinds in table.items() if any(word.startswith(stem) for word in words)), [])
+
+
+def _means(name: str, words: list[str]) -> bool:
+    """The line names this paper: any word of its name, whatever ending the line gave it."""
+    stems = {word[:4] for word in living_world.normalize_text(name).split() if len(word) >= 3}
+    return any(word.startswith(stem) for word in words for stem in stems)
+
+
+def _paper_meant(world: dict[str, Any], words: list[str]) -> tuple[str, list[str]] | None:
+    """A paper in the bag or lying right here that these words name. Reading one takes really reaching it."""
+    held = set((world.get("equipment") or {}).values())
+    for item in world.get("inventory", []):
+        name = item.get("name") if isinstance(item, dict) else None
+        item_id = str(item.get("item_id") or "") if isinstance(item, dict) else ""
+        if (isinstance(name, str) and item_id and item_id not in held and not item_id.startswith("parcel:")
+                and _paper_kinds(name) and _means(name, words)):
+            return f"item:{item_id}", _paper_kinds(name)
+    for feature in world.get("features", []):
+        if (isinstance(feature, dict) and feature.get("location") == world.get("location") and not feature.get("hidden")
+                and not feature.get("text") and _paper_kinds(feature.get("name")) and _means(str(feature.get("name")), words)):
+            return f"feature:{feature.get('id')}", _paper_kinds(feature.get("name"))
+    return None
+
+
+def paper_words(world: dict[str, Any], text: Any, looked_at: str = "") -> str | None:
+    """The screen line for the paper this line reads, or None. looked_at is the thing a look was read as being on."""
+    import world_threads
+    from adventure import dialogue_jobs
+    if not isinstance(text, str) or world.get("combat", {}).get("active"):
+        return None
+    folded = living_world.normalize_text(text)
+    reads = ("?" not in text and dialogue_jobs._READING.search(folded)) or dialogue_jobs._ASKS_WHAT_IT_SAYS.search(folded)
+    if not reads and not looked_at:
+        return None
+    paper = _paper_meant(world, folded.split() if reads else living_world.normalize_text(looked_at).split())
+    if paper is None:
+        return None
+    kept = seen(world, paper[0])
+    if kept is None:
+        world_threads.ensure(world)
+        kept = choose_paper(world, paper[0], paper[1])
+        if kept is None:
+            return None
+        keep(world, paper[0], kept)
+    return PAPER_LINE.format(words=kept["text"])
+
+
+def read_turn(session: Any, text: Any, looked_at: str = "") -> dict[str, Any] | None:
+    """Reading a paper is its own turn: Python's words, and nothing else about the world moves."""
+    shown = paper_words(session.world_state, text, looked_at)
+    if shown is None:
+        return None
+    flags = session.world_state.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    return {"messages": session.messages, "narration": shown, "model_calls": 0,
+            "action_result": {"action": "read_paper", "status": "resolved", "success": True,
+                              "state_changes": [], "direct_response": shown}}
+
+
+def notice_of(world: dict[str, Any], settlement_id: Any) -> str | None:
+    """The public notice on this town's board, chosen once."""
+    key = f"board:{settlement_id}"
+    kept = seen(world, key)
+    if kept is None:
+        kept = choose_paper(world, key, ["ilan"], public=True)
+        if kept is None:
+            return None
+        keep(world, key, kept)
+    return kept["text"]
 
 
 def keep(world: dict[str, Any], key: str, choice: dict[str, Any], **extra: Any) -> None:

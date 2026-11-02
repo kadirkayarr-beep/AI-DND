@@ -298,7 +298,7 @@ class TakingThings(ErrandBase):
         self.client.front = {"kind": "unclear"}
         text = (await self.line("defteri okuyorum"))["narration"]
         self.assertNotIn("kitap yok", text)
-        self.assertIn("Defter", text)
+        self.assertIn("Kâğıtta şunlar yazıyor", text)
 
     async def test_the_job_parcel_in_the_owner_hands_is_listed_and_taken(self):
         await self.errand()
