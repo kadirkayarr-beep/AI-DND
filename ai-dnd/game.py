@@ -3,6 +3,7 @@ import random
 import json
 import re
 import unicodedata
+import collections
 import copy
 import equipment_economy
 from pathlib import Path
@@ -1622,7 +1623,7 @@ def resolve_python_world_action(player_input):
     if re.search(r"\bben\s+(?:aslında\s+)?(?:kral(?:ım)?|kraliçe(?:yim)?|komutan(?:ım)?|imparator(?:um)?|lord(?:um)?|lady(?:im)?)\b", text):
         return "Sözlerin havada kalıyor; çevrendekiler sana öyle biriymişsin gibi davranmıyor."
     if re.search(r"\b(?:tavernadayım|meyhanedeyim|ormandayım|kalede(?:yim)?|buradayım)\b", text):
-        return "Etrafına bakıyorsun: hâlâ aynı yerdesin. Bir yere gitmek istersen nereye gittiğini söyle."
+        return _stock("Etrafına bakıyorsun: hâlâ aynı yerdesin. Bir yere gitmek istersen nereye gittiğini söyle.")
     if re.search(r"\b(?:çantamda|envanterimde)\b.{0,40}\b(?:altın|kılıç|eşya|potion)\b", text):
         return "Çantanı yokluyorsun; içindekiler olduğu gibi duruyor."
     if re.search(r"\bburada kimse yok\b", text):
@@ -1649,7 +1650,7 @@ def resolve_python_world_action(player_input):
         for container in world_state["containers"]:
             tracked_items.update(item.casefold() for item in container.get("contents", []))
         if item_name not in tracked_items:
-            return f"Çevrede {item_name} diye bir şey göremiyorsun."
+            return _stock(f"Çevrede {item_name} diye bir şey göremiyorsun.")
 
     if door and re.search(r"\bkapıyı\s+(?:kapatıyorum|kapat)\b", text):
         if door["open"]:
@@ -7026,15 +7027,20 @@ _SPEECH_REPEAT_LINES = (
 )
 
 
-# Sentences written for the narrator or the engine, never for a person's mouth.
-_SCENE_LEVEL_FALLBACK_RE = re.compile(
-    r"sahnedeki hareketlilik|çevrende bu düşünceyi destekleyen|"
-    r"çevrede şimdilik belirgin bir değişiklik olmuyor|"
-    r"etrafına bakıyorsun: hâlâ aynı yerdesin|çevrede [^.,;:]{1,40} diye bir şey göremiyorsun|"
-    r"belirttiğin eylem dışında|girişimin (?:başarıya ulaşır|ters gider)|"
-    r"karşındaki kişi sözünü dinliyor, ancak",
-    re.IGNORECASE,
-)
+# Sentences written for the narrator or the engine, never for a person's mouth. Each one is marked where it is
+# written, so the door at the turn's end knows it by where it came from, not by a list of its words.
+_STOCK_SAID = collections.deque(maxlen=256)
+
+
+def _stock(text):
+    if isinstance(text, str) and text.strip():
+        _STOCK_SAID.append(text.strip())
+    return text
+
+
+def _is_stock(text):
+    """A line Python wrote for the scene is in this text: the same words, from the producer that marked them."""
+    return isinstance(text, str) and any(line in text for line in _STOCK_SAID)
 
 
 def _lines_already_said(npc, world_state):
@@ -9879,16 +9885,16 @@ def _fallback_narration(player_input, npc_target=None):
         return "Kapı açılmadı; mevcut durum korunuyor."
 
     if outcome in ("critical_success", "success"):
-        return "Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir."
+        return _stock("Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir.")
     if outcome in ("critical_failure", "failure"):
-        return "Girişimin ters gider ve amaçladığın sonuç gerçekleşmez."
+        return _stock("Girişimin ters gider ve amaçladığın sonuç gerçekleşmez.")
     return _generic_no_change_response()
 
 
 _GENERIC_NO_CHANGE_RESPONSE = (
     "Çevrede şimdilik belirgin bir değişiklik olmuyor."
 )
-# Every variant keeps the prefix _SCENE_LEVEL_FALLBACK_RE recognizes.
+# Every variant is marked as a scene line where it is returned.
 _GENERIC_NO_CHANGE_RESPONSES = (
     _GENERIC_NO_CHANGE_RESPONSE,
     "Çevrede şimdilik belirgin bir değişiklik olmuyor; herkes kendi işine "
@@ -9899,9 +9905,9 @@ _GENERIC_NO_CHANGE_RESPONSES = (
 
 
 def _generic_no_change_response():
-    return _GENERIC_NO_CHANGE_RESPONSES[
+    return _stock(_GENERIC_NO_CHANGE_RESPONSES[
         _variation_index(("no_change",), len(_GENERIC_NO_CHANGE_RESPONSES))
-    ]
+    ])
 
 _INTERNAL_PLAYER_FACING_RE = re.compile(
     r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
@@ -9925,8 +9931,8 @@ def _natural_unresolved_action_response(player_input, action_result=None):
     if result.get("action") == "rest":
         return "Dinlenmek istediğini anladım; nerede dinleneceğini belirtir misin?"
     if result.get("action") in {"dialogue", "query"}:
-        return "Karşındaki kişi sözünü dinliyor, ancak buna ekleyeceği bir şey bulamıyor."
-    return "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin."
+        return _stock("Karşındaki kişi sözünü dinliyor, ancak buna ekleyeceği bir şey bulamıyor.")
+    return _stock("Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin.")
 
 
 def _narration_scene_type(action_result):
@@ -13958,7 +13964,7 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
             "target_id": None,
             "target_name": None,
             "found": False,
-            "text": "Bu bakışla adlandırdığın ayrıntı seçilmiyor.",
+            "text": _stock("Bu bakışla adlandırdığın ayrıntı seçilmiyor."),
         }
     return _found_on_a_pass(text) if proposed else None
 
@@ -17887,7 +17893,7 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     finally:
         session._thread_gate_done = False
     line = said.get("narration") or ""
-    if _SCENE_LEVEL_FALLBACK_RE.search(line):
+    if _is_stock(line):
         line = _person_fallback(session.world_state, hearer, rest)
     result["narration"] = f"{result.get('narration') or ''} {line}".strip()
     # The words took a turn index of their own: what the first part proved is handed on under the turn that commits.
@@ -17934,7 +17940,7 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     """
     session = _session()
     text = result.get("narration") if isinstance(result, dict) else None
-    if (not isinstance(text, str) or not _SCENE_LEVEL_FALLBACK_RE.search(text)
+    if (not isinstance(text, str) or not _is_stock(text)
             or session.world_state.get("combat", {}).get("active")):
         return result
     hearer = _stock_hearer(result, player_input, target_id)
@@ -17952,7 +17958,7 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
         finally:
             session._thread_gate_done = False
         text = result.get("narration")
-        if not _SCENE_LEVEL_FALLBACK_RE.search(text):
+        if not _is_stock(text):
             return result
         hearer = next((npc for npc in _conversation_npcs() if npc.get("id") == person), hearer)
     line = _person_fallback(session.world_state, hearer, player_input)
@@ -21591,7 +21597,7 @@ def _run_player_turn_internal(
                 and final_safety_handling == "python_fallback"
             ):
                 narration_source = "deterministic_fallback"
-            if experimental_npc_dialogue and _SCENE_LEVEL_FALLBACK_RE.search(text):
+            if experimental_npc_dialogue and _is_stock(text):
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
             if experimental_npc_dialogue:

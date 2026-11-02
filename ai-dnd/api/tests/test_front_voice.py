@@ -175,7 +175,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
 
     def assert_a_person_spoke(self, reply):
         text = reply["narration"]
-        self.assertIsNone(game._SCENE_LEVEL_FALLBACK_RE.search(text), text)
+        self.assertFalse(game._is_stock(text), text)
         self.assertIn(living_world.public_npc_name(self.npc), text)
 
     def stock_owner(self, stock):
@@ -240,7 +240,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_stock_line_from_any_owner_is_turned_into_the_person_at_the_door(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        stock = game._GENERIC_NO_CHANGE_RESPONSE
+        stock = game._stock(game._GENERIC_NO_CHANGE_RESPONSE)
         real = game._dispatch_player_turn
         modes = []
 
@@ -253,6 +253,28 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         self.assertIn("Benden uzak dur, derim.", reply["narration"])
         self.assertNotIn(stock, reply["narration"])
         self.assertEqual(modes[1:], ["say"])
+
+    async def test_any_line_python_wrote_for_the_scene_goes_to_the_person_whatever_its_words(self):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        real = game._dispatch_player_turn
+        calls = []
+
+        def owner(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 1:
+                return self.stock_owner(game._stock("Bu bakışla adlandırdığın ayrıntı seçilmiyor."))()
+            return real(*args, **kwargs)
+
+        with patch("game._dispatch_player_turn", owner):
+            reply = await self.line("marek su rafta bi sey var mi bak", "Raf boş, ne olacak.")
+        self.assertIn("Raf boş, ne olacak.", reply["narration"])
+        self.assertNotIn("seçilmiyor", reply["narration"])
+
+    def test_a_scene_line_is_known_by_where_it_came_from(self):
+        line = game._stock("Çevrede şimdilik belirgin bir değişiklik olmuyor; sıra sende.")
+        self.assertTrue(game._is_stock(f"Sen: “selam”\n\n{line}"))
+        self.assertFalse(game._is_stock("Marek omuz silkiyor. “Bilmem.”"))
 
     async def test_a_threat_the_reading_found_outlives_the_stock_line_door(self):
         import world_happenings
@@ -275,7 +297,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_stock_line_with_no_call_left_is_the_person_too(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        stock = "Marek, “Çevrede şimdilik belirgin bir değişiklik olmuyor.”"
+        stock = game._stock("Marek, “Çevrede şimdilik belirgin bir değişiklik olmuyor.”")
         with patch("game._dispatch_player_turn", self.stock_owner(stock)), \
                 patch("api.ollama_adapter.model_calls_left", return_value=0):
             reply = await self.line("sakin ol ya, şaka yaptım")
@@ -285,7 +307,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_look_at_the_scene_keeps_the_scene_voice(self):
         await self.begin()
         self.client.front = {"kind": "look"}
-        stock = game._GENERIC_NO_CHANGE_RESPONSE
+        stock = game._stock(game._GENERIC_NO_CHANGE_RESPONSE)
         with patch("game._dispatch_player_turn", self.stock_owner(stock)):
             reply = await self.line("etrafa bakıyorum")
         self.assertEqual(reply["narration"], stock)
