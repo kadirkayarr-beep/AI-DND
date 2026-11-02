@@ -182,6 +182,23 @@ class FrontLines(FrontScene):
         await self.line("sus artik bak")
         self.assertEqual(self.purse(), 100)
 
+    async def test_the_figure_in_the_line_beats_the_figure_in_the_reading(self):
+        for line, read, paid in (("barmene bir bakir birakiyorum", 100, 1), ("masaya 3 gumus birakiyorum", 5, 30),
+                                 ("adama on bes bakir uzatiyorum", 500, 15), ("bi altin firlatiyorum masaya", 7, 100)):
+            with self.subTest(line=line):
+                await self.begin()
+                self.world.setdefault("currency", {})["player"] = 320
+                self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": read}
+                await self.line(line)
+                self.assertEqual(self.purse(), 320 - paid, line)
+
+    async def test_coin_with_no_figure_is_a_small_hand_not_the_readings_number(self):
+        await self.begin()
+        self.world.setdefault("currency", {})["player"] = 320
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 300}
+        await self.line("eline biraz para sikistiriyorum")
+        self.assertEqual(self.purse(), 310)
+
     async def test_more_than_the_purse_holds_stays_in_the_purse(self):
         await self.begin()
         self.world.setdefault("currency", {})["player"] = 3

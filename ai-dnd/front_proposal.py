@@ -195,10 +195,41 @@ def deed_in(reply: Any) -> str:
 
 
 _COIN_WORDS = ("altin", "gumus", "bakir", "para", "sikke")
+_COIN_UNITS = {"altin": 100, "gumus": 10, "bakir": 1}
+_NUMBER_WORDS = {"bir": 1, "bi": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9,
+                 "on": 10, "yirmi": 20, "otuz": 30, "kirk": 40, "elli": 50, "altmis": 60, "yetmis": 70, "seksen": 80,
+                 "doksan": 90, "yarim": 0.5}
+UNNAMED_COIN_CP = 10  # 'biraz para': the hand holds a little; the line gave no figure to hold the reading to
+
+
+def _number_before(words: list[str], at: int) -> float | None:
+    """The number standing right before this word: digits or words, 'on beş', 'iki yüz', 'bin', 'yarım'."""
+    start = at
+    while start and (words[start - 1].isdigit() or words[start - 1] in _NUMBER_WORDS
+                     or words[start - 1] in {"yuz", "bin"}):
+        start -= 1
+    total, current = 0.0, 0.0
+    for word in words[start:at]:
+        if word in {"yuz", "bin"}:
+            scale = 100 if word == "yuz" else 1000
+            current = (current or 1) * scale
+            if word == "bin":
+                total, current = total + current, 0.0
+        else:
+            current += int(word) if word.isdigit() else _NUMBER_WORDS[word]
+    return total + current if start < at else None
+
+
+def _coin_said(words: list[str]) -> int | None:
+    """The sum the player's own words name in copper, or None when they name no figure."""
+    amounts = [(_number_before(words, at), unit) for at, word in enumerate(words)
+               for stem, unit in _COIN_UNITS.items() if word.startswith(stem)]
+    named = [count * unit for count, unit in amounts if count]
+    return int(sum(named)) if named else None
 
 
 def coin_in(reply: Any, line: str) -> int:
-    """Coin leaving the hand now: the reading's figure, for a line that names money and asks nothing."""
+    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much."""
     import game
     import living_world
     import world_threads
@@ -209,7 +240,10 @@ def coin_in(reply: Any, line: str) -> int:
     if (type(amount) is not int or amount <= 0 or "?" in line or world_threads.says_later(line)
             or game._NO_BLOW_NOW.search(folded)):  # 'veririm', 'vermiyorum': said, not done
         return 0
-    return amount if any(word.startswith(_COIN_WORDS) for word in words) else 0
+    if not any(word.startswith(_COIN_WORDS) for word in words):
+        return 0
+    said = _coin_said(words)
+    return said if said is not None else min(amount, UNNAMED_COIN_CP)
 
 
 def found_in(reply: Any, line: str) -> tuple[str, str]:
