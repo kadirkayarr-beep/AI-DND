@@ -770,6 +770,9 @@ def _apply(world, operation, args):
                 fail("fractional_price_unsupported")
             pay(world, npc["id"], "player", cost // 2)
         move(world, item, source, destination, npc["id"] if operation == "buy" else "player")
+    elif operation == "shop_buy":
+        import shop_trade
+        return shop_trade.commit_typed(world, args)
     elif operation == "reward" and len(args) == 1:
         identity = args[0]
         quests = world.get("quests", [])
@@ -825,7 +828,7 @@ def execute(session, text, *, advance_turn=True):
     if not natural_list and not text.strip().startswith("/item"):
         return None
     before = copy.deepcopy(session.world_state)
-    success, reason = False, None
+    success, reason, fresh_offer = False, None, None
     try:
         tokens = ["/item", "list"] if natural_list else shlex.split(text)
         if len(tokens) < 2 or tokens[0] != "/item":
@@ -857,6 +860,7 @@ def execute(session, text, *, advance_turn=True):
         success = True
     except (EquipmentError, ValueError, TypeError, KeyError) as exc:
         reason = str(exc) if isinstance(exc, EquipmentError) else "invalid_economic_state"
+        fresh_offer = getattr(exc, "quote", None)  # a refused counter trade shows the offer as it stands now
         narration = ("Kavganın ortasında çantanı karıştıracak vaktin yok." if natural_list
                      else f"Eşya işlemi reddedildi: {reason}. Dünya durumu değişmedi.")
     return {
@@ -878,6 +882,7 @@ def execute(session, text, *, advance_turn=True):
             "state_changes": ["player.inventory", "equipment", "economy"] if success and before != session.world_state else [],
             **({"item_transfers": item_transfers(before, session.world_state)}
                if success else {}),
+            **({"offer": fresh_offer} if isinstance(fresh_offer, dict) else {}),
         },
     }
 

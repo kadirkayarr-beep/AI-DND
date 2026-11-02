@@ -1,0 +1,128 @@
+"""One counter trade: price, purse, goods and stock change together or not at all; no model call."""
+import copy
+import unittest
+from unittest.mock import patch
+
+import bold_acts
+import equipment_economy
+import game
+import shop_trade
+
+
+class CounterTrade(unittest.TestCase):
+    def setUp(self):
+        self.s = game.create_session()
+        self.w = self.s.world_state
+        self.w["npcs"] = [{"id": "barman", "name": "Marek", "role": "Barmen", "location": self.w["location"],
+                           "current_hp": 10}]
+        self.w["currency"] = {"player": 500}
+
+    def buy(self, key="bira", count=1, seq=0, total=4):
+        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+            result = self.s.run_player_turn(f"/item shop_buy barman {key} {count} {seq} {total}")
+        self.assertEqual(result["model_calls"], 0)
+        return result
+
+    def unchanged(self, reason, **kwargs):
+        before = copy.deepcopy(self.w)
+        result = self.buy(**kwargs)
+        self.assertFalse(result["action_result"]["success"], result["narration"])
+        self.assertEqual(result["action_result"]["reason"], reason)
+        self.assertEqual(self.w, before)
+        return result
+
+    def goods(self, name):
+        return [item for item in self.w["inventory"] if isinstance(item, dict) and item.get("name") == name]
+
+    def test_the_price_list_is_the_one_the_speaker_is_told(self):
+        listed = {line["key"]: line["unit_cp"] for line in shop_trade.goods(self.w, self.w["npcs"][0])}
+        self.assertEqual(listed, {key: price for key, _, price in shop_trade.PRICES})
+        told = bold_acts.price_note(self.w["npcs"][0], "bira ne kadar")
+        for key, label, price in shop_trade.PRICES:
+            self.assertIn(f"{label} {price} bakır", told)
+
+    def test_a_quote_reads_and_writes_nothing(self):
+        before = copy.deepcopy(self.w)
+        quote = shop_trade.quote(self.w, "barman", "bira", 2)
+        self.assertEqual((quote["unit_cp"], quote["total_cp"], quote["purse_cp"], quote["seq"], quote["can_pay"]),
+                         (4, 8, 500, 0, True))
+        self.assertEqual(self.w, before)
+
+    def test_coin_and_goods_change_together(self):
+        result = self.buy(count=2, total=8)
+        self.assertTrue(result["action_result"]["success"], result["narration"])
+        self.assertEqual(self.w["currency"], {"player": 492, "barman": 8})
+        beers = self.goods("Bira")
+        self.assertEqual(len(beers), 2)
+        self.assertEqual(len({beer["item_id"] for beer in beers}), 2)
+        self.assertEqual(self.w["npcs"][0]["wares_v1"]["bira"]["stock"], shop_trade.DEFAULT_STOCK - 2)
+        self.assertEqual(self.w["shop_trades_v1"]["seq"], 1)
+        self.assertEqual(self.w["shop_trades_v1"]["ledger"][-1]["total_cp"], 8)
+        self.assertIn("8 bakır", result["narration"])
+        self.assertIn("2 bira", result["narration"])
+
+    def test_the_whole_price_is_paid_with_no_change_made(self):
+        self.w["currency"]["player"] = 30
+        self.assertTrue(self.buy(key="yemek", total=30)["action_result"]["success"])
+        self.assertEqual(self.w["currency"], {"player": 0, "barman": 30})
+        self.assertEqual(len(self.goods("Tabak yemek")), 1)
+
+    def test_gold_written_in_the_pack_pays(self):
+        self.w["currency"] = {}
+        self.w["inventory"].append("1 Altın")
+        self.assertTrue(self.buy()["action_result"]["success"])
+        self.assertEqual(self.w["currency"], {"player": 96, "barman": 4})
+
+    def test_not_enough_coin_changes_nothing(self):
+        self.w["currency"]["player"] = 3
+        self.assertFalse(shop_trade.quote(self.w, "barman", "bira", 1)["can_pay"])
+        self.unchanged("insufficient_funds")
+
+    def test_a_stale_offer_changes_nothing(self):
+        self.assertTrue(self.buy()["action_result"]["success"])
+        self.unchanged("offer_stale")
+
+    def test_a_changed_price_changes_nothing_and_gives_the_fresh_quote(self):
+        self.w["npcs"][0]["price_cut_cp_v1"] = {"bira": 1}
+        result = self.unchanged("price_changed", total=4)
+        self.assertEqual(result["action_result"]["offer"]["total_cp"], 3)
+        self.assertTrue(self.buy(total=3)["action_result"]["success"])
+        self.assertEqual(self.w["currency"]["player"], 497)
+
+    def test_bad_count_and_short_stock_change_nothing(self):
+        self.unchanged("invalid_count", count=0, total=0)
+        self.w["npcs"][0]["wares_v1"] = {"bira": {"stock": 1}}
+        self.unchanged("out_of_stock", count=2, total=8)
+
+    def test_an_absent_or_unknown_vendor_changes_nothing(self):
+        self.w["npcs"][0]["location"] = "elsewhere"
+        self.unchanged("npc_unavailable")
+        self.w["npcs"][0]["location"] = self.w["location"]
+        self.w["npcs"][0]["role"] = "Muhafız"
+        self.unchanged("not_a_vendor")
+        self.w["npcs"][0]["role"] = "Barmen"
+        self.unchanged("goods_unknown", key="kilic")
+
+    def test_a_failed_grant_after_payment_leaves_purse_and_stock(self):
+        before = copy.deepcopy(self.w)
+        with patch.object(equipment_economy, "grant_named_item", side_effect=equipment_economy.EquipmentError("boom")):
+            result = self.buy()
+        self.assertFalse(result["action_result"]["success"])
+        self.assertEqual(self.w, before)
+
+    def test_the_trade_ledger_stays_small(self):
+        self.w["currency"]["player"] = 10_000
+        self.w["npcs"][0]["wares_v1"] = {"bira": {"stock": 100}}
+        for seq in range(shop_trade.LEDGER_CAP + 5):
+            self.assertTrue(self.buy(seq=seq)["action_result"]["success"])
+        self.assertEqual(len(self.w["shop_trades_v1"]["ledger"]), shop_trade.LEDGER_CAP)
+
+    def test_a_vendor_is_one_who_serves(self):
+        self.assertTrue(shop_trade.is_vendor(self.w, self.w["npcs"][0]))
+        self.assertFalse(shop_trade.is_vendor(self.w, {"id": "x", "role": "Muhafız"}))
+        self.assertTrue(shop_trade.is_priced("bira"))
+        self.assertFalse(shop_trade.is_priced("kılıç"))
+
+
+if __name__ == "__main__":
+    unittest.main()

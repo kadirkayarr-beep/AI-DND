@@ -12,6 +12,7 @@ from typing import Any
 
 import living_world
 import relationships
+import shop_trade
 
 MAX_DEEDS = 24
 _STEAL = re.compile(
@@ -546,9 +547,9 @@ def _burn(session) -> dict[str, Any]:
 _POCKETS = re.compile(r"\b(?:ustunu|uzerini|cebini|ceplerini|kesesini)\b.*\b(?:ar\w*|al\w*|bak\w*|yokl\w*)|\bsoyuyorum\b")
 _CORPSE = re.compile(r"\b(?:ceset\w*|cesed\w*|olunun|oluyu|oluye)\b")
 _CORPSE_VERB = re.compile(r"\b(?:ar[ai]\w*|al\w*|bak\w*|yokl\w*|incele\w*|soy\w*|karistir\w*)")
-_PRICES = (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30))
+_PRICES = shop_trade.PRICES  # one list, said and charged
 _BUY = re.compile(r"\b(?:alayim|alirim|aliyorum|ver|versene|getir|getirsene|istiyorum|isterim)\b")
-_SERVER = re.compile(r"\b(?:barmen|hanci|meyhaneci|garson|satici|asci)")
+_SERVER = shop_trade.SERVER  # one rule for who serves
 
 
 def _search_body(session, text: str) -> dict[str, Any] | None:
@@ -637,7 +638,7 @@ def price_note(npc: dict[str, Any], text: Any) -> str:
     if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not (
             _priced_in(folded) or _PRICE_ASKED.search(folded)):
         return ""
-    prices = ", ".join(f"{label} {price} bakır" for _, label, price in _PRICES)
+    prices = ", ".join(f"{line['label']} {line['unit_cp']} bakır" for line in shop_trade.goods(None, npc))
     return f"Burada fiyatlar şöyle: {prices}. Fiyat sorulursa bunları söyle, başka fiyat söyleme."
 _ROOM_DAY = 24 * 3600
 
