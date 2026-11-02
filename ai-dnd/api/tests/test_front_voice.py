@@ -60,6 +60,24 @@ class AnyBlowIsAnAttack(FrontTable):
         self.assert_attacked(reply)
         self.assertNotEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
 
+    async def test_a_swing_in_a_fight_is_a_blow_too(self):
+        reply = await self.blow("yumruk atıyorum", thing_word="yumruk")
+        self.npc.update(current_hp=200, max_hp=200)
+        self.session.character.update(max_hp=300, current_hp=300)
+        if self.world["combat"]["active"]:
+            self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+            reply = await self.line("savuruyorum, omzuna")
+            self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+
+    async def test_words_in_a_fight_stay_words(self):
+        await self.blow("yumruk atıyorum", thing_word="yumruk")
+        self.npc.update(current_hp=200, max_hp=200)
+        self.session.character.update(max_hp=300, current_hp=300)
+        if self.world["combat"]["active"]:
+            self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+            reply = await self.line("sen kimsin ya", "Sana ne!")
+            self.assertNotEqual(reply["turn_outcome"]["action"], "attack")
+
     async def test_a_look_in_the_bag_in_a_fight_is_told_in_the_fight(self):
         await self.blow("ona bi yumruk çakıyorum", thing_word="yumruk")
         if self.world["combat"]["active"]:

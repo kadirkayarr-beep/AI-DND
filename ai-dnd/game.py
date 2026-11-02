@@ -18079,8 +18079,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if (not front_proposal.enabled() or getattr(session, "_front_reply", None) is not None
             or getattr(session, "_thread_gate_done", False)):
         return None
-    if world.get("combat", {}).get("active"):
-        return None
+    fighting = world.get("combat", {}).get("active")
+    if fighting and (combat_action is not None or combat_lifecycle.is_attack_decision(session, player_input)
+                     or combat_lifecycle.is_flight(session, player_input)
+                     or combat_lifecycle.is_standing_down(session, player_input)):
+        return None  # a fight's own words need no reading
     if (combat_action is not None or check_feature is not None or target_id is not None
             or interaction_mode in {"say", "ask_dm"}):
         front_proposal.note(session, "skipped:typed")
@@ -18127,6 +18130,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     route = front_proposal.validate(reply, listed)
+    if fighting and (route is None or route["kind"] != "strike"):
+        return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
     word = front_proposal.person_word_in(reply)
     if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
         described = _narrated_person(word, player_input, listed)
