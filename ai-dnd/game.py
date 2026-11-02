@@ -18203,6 +18203,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         return None
+    import grounded_action
+    import npc_speech_boundary
     if route["kind"] == "strike":
         if _blow_stands(player_input):
             # Hurting the wrong person cannot be taken back: the words pick who, and with no name the one at hand.
@@ -18212,11 +18214,14 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                 route["id"] = route["id"] if route["id"] in named else named[0]
             elif at_hand:
                 route["id"] = at_hand
-            session._front_strike = route
+            if _blow_in_the_words(player_input, route["id"]):
+                session._front_strike = route
+            elif npc_speech_boundary.player_supplied_quote(player_input):
+                route = {"kind": "speak_to", "id": route["id"]}  # the blow is only in what they said
+            else:  # the reading alone cannot start a fight: the player says whether this is one
+                route = {"kind": "blow_asked", "id": route["id"]}
         else:  # a threat or a question about a blow: words, and they are for that person
             route = {"kind": "speak_to", "id": route["id"]}
-    import grounded_action
-    import npc_speech_boundary
     hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     if route["kind"] in {"attempt", "unclear", "look"} and hearer and not combat_lifecycle.is_attack_decision(
             session, player_input) and (
@@ -18246,7 +18251,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike", "wait"}
+_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
+                      "blow_asked", "wait"}
 
 
 def _hand_over_coin(route, listed):
@@ -18254,7 +18260,7 @@ def _hand_over_coin(route, listed):
     import bold_acts
     session = _session()
     amount = getattr(session, "_front_coin", 0)
-    if not amount or route["kind"] == "strike":
+    if not amount or route["kind"] in {"strike", "blow_asked"}:
         return
     import world_reactions
     if world_reactions.arrester(session.world_state) is not None:
@@ -18277,6 +18283,34 @@ def _blow_stands(player_input):
     text = _normalize_turkish_typos(spoken)
     return not ("?" in spoken or bold_acts._ASKS.search(text) or _ENDS_IN_SPEECH.search(text)
                 or _NO_BLOW_NOW.search(text) or any(grounded_action._CONDITION_WORD.match(t) for t in text.split()))
+
+
+# Hands, things swung and things thrown: what a blow is made of, whatever else the sentence says.
+_BLOW_WORDS = re.compile(
+    r"\b(?:yumru[kg]|tekme|tokat|samar|dirsek)\w*"
+    r"|\b(?:cak|gecir|firlat|savur|indir|patlat|yapistir|sall)(?:[iuae]|ip|up)\w*"
+    r"|\b(?:surat|kafa|yuz)\w*\s+(?:\w+\s+)?at(?:iyorum|ip)\b"
+)
+
+
+def _blow_in_the_words(player_input, target_id):
+    """A reading picks who; whether it starts a fight needs the player's own words, or a fight already there."""
+    spoken = living_world._text_outside_quotes(str(player_input))
+    target = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
+    return bool((isinstance(target, dict) and target.get("hostile")) or _has_explicit_attack_verb(spoken)
+                or _BLOW_WORDS.search(_normalize_turkish_typos(spoken)))
+
+
+def _ask_about_the_blow(person_id):
+    """Asked in the world, for this sitting only; the next line is the answer."""
+    session = _session()
+    who = next((npc for npc in active_npcs() if npc.get("id") == person_id), None)
+    session._attack_asked = True
+    session._blow_asked = person_id
+    line = f"{living_world.public_npc_name(who)} ile kavga mı başlatıyorsun?"
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                              "outcome": "unconfirmed_blow", "state_changes": [], "direct_response": line}}
 
 
 def _narrated_person(word, player_input, listed):
@@ -18509,7 +18543,7 @@ def _dispatch_player_turn(
         }
     read = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
     if getattr(_session(), "_front_strike", None):
-        target_id = _session()._front_strike["id"]
+        target_id, interaction_mode = _session()._front_strike["id"], "do"
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
@@ -18586,6 +18620,8 @@ def _dispatch_player_turn(
                 return listed
     front = read if getattr(_session(), "_front_ahead", False) else _front_step(
         player_input, target_id, interaction_mode, combat_action, check_feature)
+    if front is not None and front["kind"] == "blow_asked":
+        return _ask_about_the_blow(front["id"])
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
@@ -18594,7 +18630,8 @@ def _dispatch_player_turn(
         if hearer is not None:
             interaction_mode, target_id = "say", hearer["id"]
     gate = None
-    if combat_action is None and not getattr(_session(), "_thread_gate_done", False):
+    if (combat_action is None and not getattr(_session(), "_thread_gate_done", False)
+            and not getattr(_session(), "_front_strike", None)):  # a blow stood behind is no answer to an offer
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"

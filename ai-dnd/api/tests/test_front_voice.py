@@ -120,6 +120,33 @@ class AnyBlowIsAnAttack(FrontTable):
     async def test_a_blow_only_quoted_strikes_nobody(self):
         self.assert_no_blow(await self.blow('"sana bi yumruk atıyorum" diyorum gülerek'))
 
+    async def test_a_wink_read_as_a_blow_rolls_nothing_and_asks(self):
+        reply = await self.blow("ona bi göz kırpıp gülümsüyorum")
+        self.assert_no_blow(reply)
+        self.assertEqual(self.npc["current_hp"], 12)
+        self.assertIn("kavga", reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:blow_asked")
+        self.assertFalse(self.world["flags"].get("deeds"))
+
+    async def test_a_blow_in_words_no_list_holds_is_asked_about_and_a_yes_lands_it(self):
+        self.assert_no_blow(await self.blow("üstüne atlayıp gırtlağına sarılıyorum"))
+        reply = await self.line("evet")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(reply["turn_outcome"]["target_name"], self.npc["name"])
+
+    async def test_a_no_to_that_question_leaves_everyone_standing(self):
+        await self.blow("ona bi göz kırpıp gülümsüyorum")
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        reply = await self.line("yok ya şaka yapıyorum", "Pek komik.")
+        self.assert_no_blow(reply)
+        self.assertIn("Pek komik.", reply["narration"])
+
+    async def test_someone_already_coming_at_you_needs_no_question(self):
+        await self.begin()
+        self.npc["hostile"] = True
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        self.assert_attacked(await self.line("üstüne atlayıp gırtlağına sarılıyorum"))
+
     async def test_a_person_nobody_listed_is_struck_by_nobody(self):
         await self.begin()
         self.client.front = {"kind": "attempt", "strike_to": "npc_nobody"}

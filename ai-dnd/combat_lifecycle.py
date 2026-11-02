@@ -272,10 +272,21 @@ def stand_down(session, action_id=None, session_id=None):
     return result
 
 
+def _says_yes(session, message):
+    import game
+    text = session._normalize_turkish_typos(str(message))
+    return (len(text.split()) <= 4 and game._CLAIM_ACCEPTANCE_RE.search(text) is not None
+            and game._CLAIM_REJECTION_RE.search(text) is None)
+
+
 def answered_attack_question(session, message):
     """"Kime saldırıyorsun?" - "çelimsiz biri": the answer finishes the sentence."""
     asked = getattr(session, "_attack_asked", False)
     session._attack_asked = False
+    blow, session._blow_asked = getattr(session, "_blow_asked", None), None
+    if blow and _says_yes(session, message) and any(npc.get("id") == blow for npc in session.active_npcs()):
+        session._front_strike = {"kind": "strike", "id": blow, "with": ""}  # "kavga mı başlatıyorsun?" - "evet"
+        return message
     if not asked or len(str(message).split()) > 4:
         return message
     return f"{message} saldırıyorum" if pointed_targets(session, message) else message
