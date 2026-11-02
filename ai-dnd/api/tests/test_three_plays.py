@@ -296,7 +296,10 @@ class WorldAnswersTests(ThreePlaysTests):
         self.add_person("Dorn", "Barmen")
         before = self.world.get("currency", {}).get("player", 0)
         out = await self.say("bira ver bana barmen, en sertinden olsun", PlayClient())
-        self.assertIn("bira", out["narration"])
+        self.assertIn("bira", out["narration"].casefold())
+        self.assertEqual(out["turn_outcome"]["action"], "shop_offer")  # the order opens the counter, words pay nothing
+        self.assertEqual(self.world.get("currency", {}).get("player", 0), before)
+        await self.say("/item shop_buy npc_dorn bira 1 0 4", PlayClient())
         self.assertEqual(self.world["currency"]["player"], before + 1600 - 4)  # the pack's 16 gold is counted in
 
     async def test_paying_from_a_pack_full_of_coin_labels(self):
@@ -304,6 +307,7 @@ class WorldAnswersTests(ThreePlaysTests):
         self.world["npcs"].clear()
         self.add_person("Dorn", "Barmen")
         await self.say("bir bira alayım", PlayClient())
+        await self.say("/item shop_buy npc_dorn bira 1 0 4", PlayClient())  # the counter trade pays, once
         self.assertEqual(self.world["currency"]["player"], 2396)
         self.assertFalse([item for item in self.world["inventory"] if "Altın" in str(item)])
 

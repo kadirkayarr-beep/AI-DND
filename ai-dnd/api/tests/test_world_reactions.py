@@ -308,14 +308,14 @@ class PeopleChangeOnlyIfTheyKnow(ReactionScene):
         self.killed_earlier()
         self.deed()["heard"] = [barman["id"]]
         out = await self.say("bir bira istiyorum", PlayClient(spoken="Ne istiyorsun?"))
-        self.assertIn("kesenden tezgâha", out["narration"])
+        self.assertEqual((out["turn_outcome"]["action"], out["turn_outcome"]["status"]), ("shop_offer", "offer_open"))
 
     async def test_who_knows_nothing_serves(self):
         await self.town()
         self.seller()
         self.killed_earlier()
         out = await self.say("bir bira istiyorum", PlayClient(spoken="Ne istiyorsun?"))
-        self.assertIn("kesenden tezgâha", out["narration"])
+        self.assertEqual((out["turn_outcome"]["action"], out["turn_outcome"]["status"]), ("shop_offer", "offer_open"))
 
     async def test_no_room_from_who_saw_it(self):
         await self.town()
