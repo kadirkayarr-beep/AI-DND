@@ -728,6 +728,7 @@ def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict
     key, label, _ = wanted
     offer = shop_trade.quote(world, server["id"], key, 1)
     session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
+    world["flags"]["served_turn"] = world["flags"].get("turn_index", 0)  # 'duydun mu birşey' next is for them
     who = living_world.public_npc_name(server)
     line = f"{who} tezgâha dayanıyor. “{label[:1].upper()}{label[1:]} {offer['unit_cp']} bakır. Kaç tane?”"
     return _reply(session, line, "shop_offer", "offer_open", None, [], offer=offer, npc_id=server["id"])

@@ -17765,8 +17765,6 @@ def run_player_turn(
     return result
 
 
-
-
 def _tell_the_coin(result):
     """The screen says what left the purse, so what the person said and the purse agree."""
     import bold_acts
