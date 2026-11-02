@@ -17765,7 +17765,6 @@ def run_player_turn(
     return result
 
 
-_KEEP_THE_CHANGE = re.compile(r"\b(?:ustu|gerisi|kalani) (?:kalsin|senin|sende)\b|\bustunu (?:istemem|birak)\w*")
 
 
 def _tell_the_coin(result):
@@ -17778,17 +17777,7 @@ def _tell_the_coin(result):
         return
     amount, person = paid
     if "currency" in (action.get("state_changes") or ()):
-        # A purchase already took its price: coin put down past it goes to the same hand, once, only when the
-        # player said the change stays ('üstü kalsın'); otherwise the change comes back and the purse paid the price.
-        price = action.get("price_cp")
-        rest = amount - price if type(price) is int and action.get("action") == "purchase" else 0
-        said = living_world.normalize_text(getattr(_session(), "_adventure_player_text", ""))
-        if rest > 0 and not _KEEP_THE_CHANGE.search(said):
-            result["narration"] = f"{result.get('narration') or ''} Üstü, {rest} bakır, sana geri dönüyor.".strip()
-        elif rest > 0 and bold_acts.give_coin(_session(), rest, person):
-            result["narration"] = (f"{result.get('narration') or ''} Koyduğun paranın kalanı, {rest} bakır, de "
-                                   f"tezgâhta kalıyor; toplam {amount} bakır.").strip()
-        return  # otherwise a purchase or a job already moved the coin this line was about
+        return  # a room or a job already moved the coin this line was about
     if bold_acts.give_coin(_session(), amount, person):
         result["narration"] = f"{result.get('narration') or ''} {amount} bakır kesenden çıkıyor.".strip()
         action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]
@@ -18625,6 +18614,16 @@ def _dispatch_player_turn(
             bold = bold_acts.resolve(_session(), player_input, getattr(_session(), "_front_deed", None))
         if bold is not None:
             return bold
+    elif (combat_action is None and interaction_mode == "say" and isinstance(player_input, str)
+          and not player_input.lstrip().startswith("/") and not _session().world_state.get("combat", {}).get("active")):
+        # Said straight to whoever serves, a want on the list opens the same counter offer: speech never sells.
+        import bold_acts
+        import shop_trade
+        hearer = next((npc for npc in active_npcs() if npc.get("id") == target_id), None) if target_id else None
+        if target_id is None or shop_trade.is_vendor(_session().world_state, hearer):
+            offered = bold_acts.shop_offer(_session(), player_input, hearer)
+            if offered is not None:
+                return offered
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         struck = combat_lifecycle.strike_the_fallen(_session(), player_input, target_id)
         if struck:

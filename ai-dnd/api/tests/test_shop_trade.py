@@ -124,6 +124,43 @@ class CounterTrade(unittest.TestCase):
         self.assertFalse(shop_trade.is_priced("kılıç"))
 
 
+class WordsOpenTheCounter(CounterTrade):
+    def turn(self, line, **kwargs):
+        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+            return self.s.run_player_turn(line, **kwargs)
+
+    def offered(self, result, key, total):
+        outcome = result["action_result"]
+        self.assertEqual((outcome["action"], outcome["status"]), ("shop_offer", "offer_open"), result["narration"])
+        self.assertEqual(outcome["state_changes"], [])
+        self.assertEqual((outcome["offer"]["key"], outcome["offer"]["total_cp"], outcome["offer"]["seq"]), (key, total, 0))
+        self.assertEqual(result["model_calls"], 0)
+
+    def test_asking_for_a_beer_opens_the_offer_and_moves_nothing(self):
+        for mode in (None, "do", "say"):
+            with self.subTest(mode=mode):
+                self.setUp()
+                before = copy.deepcopy(self.w)
+                result = self.turn("bi bira alayım usta", interaction_mode=mode,
+                                   **({"target_id": "barman"} if mode == "say" else {}))
+                self.offered(result, "bira", 4)
+                self.assertEqual(self.w["currency"], before["currency"])
+                self.assertEqual(self.w["inventory"], before["inventory"])
+                self.assertNotIn(shop_trade.KEY, self.w)
+
+    def test_the_plate_the_speaker_names_opens_the_plate(self):
+        self.offered(self.turn("ver bi tabak o zaman"), "yemek", 30)
+
+    def test_a_market_shop_does_not_swallow_the_counter(self):
+        self.w["shops"] = [{"id": "shop", "location": self.w["location"], "shopkeeper_id": "barman"}]
+        self.offered(self.turn("bi bira satın alayım"), "bira", 4)
+
+    def test_a_room_is_still_rented_with_its_own_price(self):
+        result = self.turn("bi oda tutayım usta")
+        self.assertEqual(result["action_result"]["action"], "lodging", result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500 - bold_acts._ROOM_PRICE)
+
+
 class TypedLane(CounterTrade):
     def test_a_typed_line_never_reaches_the_word_matcher(self):
         before = copy.deepcopy(self.w)

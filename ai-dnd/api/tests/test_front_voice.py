@@ -484,13 +484,14 @@ class ALineWithTwoPartsDoesBoth(FrontTable):
         self.npc["place_role_of"] = self.world["location"]
         self.world["locations"][self.world["location"]]["scene_kind"] = "tavern"
 
-    async def test_the_beer_comes_and_the_question_is_answered(self):
+    async def test_the_beer_is_offered_and_the_question_is_answered(self):
+        # The counter offers the beer; the one counter trade sells it (shop_trade), never the line's words.
         await self.tavern()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "also_says": self.REST}
         reply = await self.line(self.LINE, "Ben duymadım, soylular bana uğramaz.")
-        self.assertIn("bira", reply["narration"])
+        self.assertIn("bira", reply["narration"].casefold())
         self.assertIn("Ben duymadım, soylular bana uğramaz.", reply["narration"])
-        self.assertEqual(reply["turn_outcome"]["action"], "purchase")
+        self.assertEqual(reply["turn_outcome"]["action"], "shop_offer")
         self.assertLessEqual(self.client.chat_calls, 2)
 
     async def test_the_person_hears_the_players_own_words_and_the_line_is_one_turn(self):
@@ -523,7 +524,7 @@ class ALineWithTwoPartsDoesBoth(FrontTable):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "also_says": self.REST}
         with patch("api.ollama_adapter.model_calls_left", return_value=0):
             reply = await self.line(self.LINE, "Ben duymadım.")
-        self.assertIn("bira", reply["narration"])
+        self.assertIn("bira", reply["narration"].casefold())
         self.assertNotIn("Ben duymadım.", reply["narration"])
 
     async def test_a_line_all_said_to_the_person_is_answered_once_and_names_the_rest(self):

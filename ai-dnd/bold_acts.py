@@ -629,7 +629,7 @@ def room_note(npc: dict[str, Any], text: Any) -> str:
 
 def _priced_in(folded: str) -> tuple[str, str, int] | None:
     """The thing on the list the words name, as a word of its own: 'biraz' and 'birader' are no beer."""
-    return next((item for item in _PRICES if re.search(rf"\b{item[0]}(?![zd])", folded)), None)
+    return shop_trade.priced_in(folded)
 
 
 def price_note(npc: dict[str, Any], text: Any) -> str:
@@ -705,28 +705,29 @@ def _buy(session, text: str) -> dict[str, Any] | None:
         if room is not None:
             return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
                           ["currency"] if room["paid"] else [], price_cp=room["paid"])
-    wanted = _priced_in(folded)
-    server = next((npc for npc in session.active_npcs()
-                   if _SERVER.search(fold(session, str(npc.get("role", ""))))), None)
+    return shop_offer(session, text)
+
+
+def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """A line that wants something on the list opens the counter's offer. Words move no coin and no goods:
+    only the one counter trade (shop_trade.commit) does, at the price this offer shows."""
+    folded = fold(session, text)
+    wanted = shop_trade.priced_in(folded)
+    server = server if server is not None else _server_here(session)
     walking = _WALKS.search(folded)  # the order follows the walk
-    if wanted is None or server is None or walking or not _BUY.search(folded):
+    if wanted is None or server is None or walking or "?" in text or not _BUY.search(folded):
         return None
     world = session.world_state
     import world_reactions
     if world_reactions.refuses(world, server):
-        return _reply(session, world_reactions.refusal_line(server), "purchase", "refused", None, [])
-    settle_coin_labels(world)
-    wallets = world.setdefault("currency", {})
-    _, label, price = wanted
-    who = living_world.public_npc_name(server)
-    if wallets.get("player", 0) < price:
-        return _reply(session, f"{who} kesene bakıp başını sallıyor. “Parası yoksa {label} da yok.”",
-                      "purchase", "no_money", None, [])
-    wallets["player"] -= price
+        return _reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
+                      npc_id=server.get("id"))
+    key, label, _ = wanted
+    offer = shop_trade.quote(world, server["id"], key, 1)
     session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
-    world["flags"]["served_turn"] = world["flags"].get("turn_index", 0)
-    return _reply(session, f"{who} önüne bir {label} bırakıyor; {price} bakır kesenden tezgâha geçiyor.",
-                  "purchase", "bought", None, ["currency"], price_cp=price)
+    who = living_world.public_npc_name(server)
+    line = f"{who} tezgâha dayanıyor. “{label[:1].upper()}{label[1:]} {offer['unit_cp']} bakır. Kaç tane?”"
+    return _reply(session, line, "shop_offer", "offer_open", None, [], offer=offer, npc_id=server["id"])
 
 
 def _can_be_done(session, text: Any) -> bool:
