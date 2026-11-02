@@ -242,6 +242,20 @@ def notice_of(world: dict[str, Any], settlement_id: Any) -> str | None:
     return kept["text"]
 
 
+def work_line(world: dict[str, Any], thread: dict[str, Any], seconds: int, day: int) -> str | None:
+    """A moment of the work really done, in the place it was done. It tells nothing of pay, the end or the hours."""
+    if not seconds or thread.get("status") not in {"accepted", "done"}:
+        return None
+    kind = rules().get("work_kinds", {}).get(thread.get("template_id"))
+    tags = set(place_tags(world, thread.get("place_id")))
+    rows = [row for row in items("work_lines") if row["work_kind"] == kind and tags & set(row["place_tags"])]
+    scale = "kisa" if seconds < 4 * 3600 else "yarim_gun" if seconds < 8 * 3600 else "tam_gun"
+    rows = [row for row in rows if row["time_phrase"] == scale] or rows
+    if not rows:
+        return None
+    return rows[(_rank(world, thread.get("thread_id"), "shift") + day) % len(rows)]["text"]
+
+
 def keep(world: dict[str, Any], key: str, choice: dict[str, Any], **extra: Any) -> None:
     """The one writer: this thing now shows these words, and a thread they name has been heard of."""
     import town_knowledge

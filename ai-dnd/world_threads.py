@@ -1598,12 +1598,14 @@ def spoken_recipient(world: dict[str, Any], thread: dict[str, Any]) -> str:
     return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("recipient_name") or ""))
 
 
-def _shift_text(world, thread, *parts, short=False):
+def _shift_text(world, thread, *parts, short=False, worked=0):
+    import bound_text
     lines = ([job_lines("text", "shift_some")] if short else job_lines("shift")) or []
     day = thread.get("days_worked", 0)
     seed = living_world._campaign_seed(world)
     place = world.get("locations", {}).get(thread.get("place_id")) or {}
-    first = lines[_rank(seed, thread["thread_id"], "shift", day) % len(lines)] if lines else ""
+    first = bound_text.work_line(world, thread, worked, day) or (
+        lines[_rank(seed, thread["thread_id"], "shift", day) % len(lines)] if lines else "")
     return " ".join(p for p in (sentence(_fill(first, owner=spoken_owner(world, thread), place=place.get("name", ""))), *parts) if p)
 
 
@@ -1660,7 +1662,7 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     hours = job_lines("shift_hours") or 8
     spans, short, whole_days = _shift_plan(world, thread, text, hours)
     before = copy.deepcopy(world)
-    passed, paid, days_paid, finished, unpaid = 0, 0, 0, False, ""
+    passed, paid, days_paid, finished, unpaid, worked = 0, 0, 0, False, "", 0
     for index, span in enumerate(spans):
         if index:  # the rest of the night between two days of it
             passed += game.advance_campaign_time(DAY - spans[index - 1], "work_shift")["elapsed_seconds"]
@@ -1683,7 +1685,8 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     if finished and paid:
         parts.append(_fill(words.get("shift_done", ""), owner=spoken_owner(world, thread)))
     validate(world[KEY])
-    shown = _shift_text(world, thread, *parts, short=short)
+    alive = session.character.get("current_hp", 0) > 0
+    shown = _shift_text(world, thread, *parts, short=short, worked=worked if alive else 0)
     flags = world.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     action = {"action": "work", "status": "resolved", "success": True, "state_changes": ["campaign_time", "currency"],
