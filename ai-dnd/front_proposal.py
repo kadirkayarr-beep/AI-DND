@@ -13,6 +13,7 @@ import datetime
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any, Mapping, MutableMapping
 
 FLAG = "AI_DND_FRONT_PROPOSAL"
@@ -41,6 +42,8 @@ def enabled(environ: Mapping[str, str] | None = None) -> bool:
 def default_on_for_local_play(environ: MutableMapping[str, str]) -> None:
     """Called only by api.local_play, after it proved a loopback bind. A set value stays."""
     environ.setdefault(FLAG, "1")
+    folder = Path(environ.get("LOCALAPPDATA") or Path.home()) / "AI-DND"
+    environ.setdefault(ROUTE_LOG, str(folder / "route-log.jsonl"))
 
 
 def _bag(world: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -305,6 +308,8 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
 
 def begin(session, *, typed: bool = False) -> None:
     """A new turn: no classifier reply held yet, and nothing has reached the step."""
+    from api import ollama_adapter
+    ollama_adapter.begin_turn_usage()
     session._front_reply = None
     session._front_deed = None
     session._front_coin = 0
@@ -350,10 +355,16 @@ def log_turn(session, result: Any) -> None:
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:
         return
+    from api import ollama_adapter
     try:
-        stamped = {"at": datetime.datetime.now(datetime.timezone.utc).isoformat(), **entry}
-        with open(path, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(stamped, ensure_ascii=False) + "\n")
+        at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        where = Path(path)
+        where.parent.mkdir(parents=True, exist_ok=True)
+        with open(where, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"at": at, **entry}, ensure_ascii=False) + "\n")
+        with open(where.with_name(f"{where.stem}.usage{where.suffix}"), "a", encoding="utf-8") as handle:
+            usage = {"at": at, "turn": entry["turn"], "route": entry["route"], **ollama_adapter.usage_summary()}
+            handle.write(json.dumps(usage, ensure_ascii=False) + "\n")
     except OSError:
         _logger.warning("The route log could not be written.")
 

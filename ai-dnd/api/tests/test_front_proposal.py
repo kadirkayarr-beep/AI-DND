@@ -284,7 +284,7 @@ class FlagIsLocalPlayOnly(unittest.TestCase):
     def test_local_play_turns_it_on_and_the_owner_can_turn_it_off(self):
         environ = {}
         front_proposal.default_on_for_local_play(environ)
-        self.assertEqual(environ, {"AI_DND_FRONT_PROPOSAL": "1"})
+        self.assertEqual(environ["AI_DND_FRONT_PROPOSAL"], "1")
         environ = {"AI_DND_FRONT_PROPOSAL": "0"}
         front_proposal.default_on_for_local_play(environ)
         self.assertFalse(front_proposal.enabled(environ))

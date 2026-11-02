@@ -38,6 +38,9 @@ _MODEL_FAILURES: ContextVar[list[str] | None] = ContextVar(
 _MODEL_CALLS: ContextVar[list[str] | None] = ContextVar(
     "ai_dnd_api_model_calls", default=None
 )
+_TURN_USAGE: ContextVar[list[dict[str, Any]] | None] = ContextVar(
+    "ai_dnd_api_turn_usage", default=None
+)
 _WORLD_METADATA_PROVIDER: ContextVar[
     Callable[[], Mapping[str, str]] | None
 ] = ContextVar("ai_dnd_api_world_metadata_provider", default=None)
@@ -110,6 +113,38 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
     result = dict(kwargs)
     result["messages"] = prepared
     return result
+
+
+def begin_turn_usage() -> None:
+    """A new turn's count. The list is shared, so the planner's reading and the turn proper add to one count."""
+    _TURN_USAGE.set([])
+
+
+def _spent(response: Any, name: str) -> int:
+    value = response.get(name) if isinstance(response, dict) else getattr(response, name, None)
+    return value if isinstance(value, int) else 0
+
+
+def note_usage(provider: str, response: Any = None, *, failed: bool = False) -> None:
+    usage = _TURN_USAGE.get()
+    if usage is not None:
+        usage.append({"provider": provider, "failed": failed,
+                      "input_tokens": _spent(response, "prompt_eval_count"),
+                      "output_tokens": _spent(response, "eval_count")})
+
+
+def usage_summary() -> dict[str, Any]:
+    """This turn's calls and tokens, whole and by provider. Counts and provider names only."""
+    rows = _TURN_USAGE.get() or []
+    answered = [row for row in rows if not row["failed"]]
+    providers = [{"provider": name, "calls": len(mine),
+                  "input_tokens": sum(row["input_tokens"] for row in mine),
+                  "output_tokens": sum(row["output_tokens"] for row in mine)}
+                 for name in dict.fromkeys(row["provider"] for row in answered)
+                 for mine in ([row for row in answered if row["provider"] == name],)]
+    return {"calls": len(answered), "failed": len(rows) - len(answered),
+            "input_tokens": sum(row["input_tokens"] for row in answered),
+            "output_tokens": sum(row["output_tokens"] for row in answered), "providers": providers}
 
 
 def model_calls_left() -> int | None:
@@ -244,12 +279,16 @@ class AuthenticatedOllamaAdapter:
             options = prepared.get("options")
             prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
             if self._chain is None:
-                return self._client.chat(*args, **prepared)
+                response = self._client.chat(*args, **prepared)
+                note_usage(self.model_name, response)
+                return response
             response, provider = self._chain.chat(prepared, lambda: self._client.chat(*args, **prepared))
             if provider is not None and calls is not None:
                 calls[-1] = provider
+            note_usage(provider or self.model_name, response)
             return response
         except Exception as error:
+            note_usage(self.model_name, failed=True)
             failures = _MODEL_FAILURES.get()
             if in_front_call() or (self._chain is not None and in_classifier_call()):
                 # The owner's rule: the chain never fails a turn. The engine carries on with unknown intent.
