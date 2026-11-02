@@ -89,6 +89,15 @@ class Papers(FrontTable):
         reply = await self.line("yerdeki eski bir kagidi okuyom")
         self.assertIn("Kâğıtta şunlar yazıyor", reply["narration"])
 
+    async def test_a_paper_with_its_own_saved_words_keeps_them(self):
+        await self.quiet_town()
+        self.session.create_local_feature({"location": self.world["location"], "name": "Yıpranmış Defter",
+                                           "description": "Açık bir defter.", "text": "Kapı kilitsiz.", "aliases": ["defter"]})
+        self.session.recent_dm_narrations.append("köşede yıpranmış bir defter duruyor.")
+        reply = await self.line("yipranmis defteri okuyorum")
+        self.assertIsNone(self.world.get(bound_text.KEY))
+        self.assertIn("Kapı kilitsiz.", reply["narration"])
+
     async def test_a_whisper_is_no_paper(self):
         await self.quiet_town()
         self.session.messages.append({"role": "assistant", "content": "Köşeden bir fısıltı geliyor."})

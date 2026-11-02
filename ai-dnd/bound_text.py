@@ -191,7 +191,9 @@ def _paper_meant(session: Any, words: list[str]) -> tuple[str, list[str]] | None
             return f"item:{item_id}", _paper_kinds(name)
     for feature in world.get("features", []):
         if (isinstance(feature, dict) and feature.get("location") == world.get("location") and not feature.get("hidden")
-                and not feature.get("text") and _paper_kinds(feature.get("name")) and _means(str(feature.get("name")), words)):
+                and _paper_kinds(feature.get("name")) and _means(str(feature.get("name")), words)):
+            if feature.get("text"):
+                return None  # it has its own saved words, and the scene's owner reads them
             return f"feature:{feature.get('id')}", _paper_kinds(feature.get("name"))
     prefix = f"shown:{world.get('location')}:"
     state = _state(world)

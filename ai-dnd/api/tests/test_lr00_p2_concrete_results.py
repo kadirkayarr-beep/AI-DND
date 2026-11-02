@@ -298,7 +298,7 @@ class ConcreteResultTests(unittest.IsolatedAsyncioTestCase):
              "description": "PRIVATE_MARK", "kind": "detail", "hidden": True},
         ])
         self.assertIsNone(game._inspection_findings(
-            'Duvara bakıyorum; "işaret" sadece bir kelime.', "success", session=self.session))
+            'Çeşmeye bakıyorum; "işaret" sadece bir kelime.', "success", session=self.session))
         self.assertIsNone(game._inspection_findings("İşarete bakıyorum.", "success", session=self.session))
 
     async def test_untargeted_look_describes_the_scene_on_success(self):
