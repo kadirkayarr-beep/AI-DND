@@ -470,6 +470,21 @@ def _steal_dc(session, folded: str, watcher: dict[str, Any] | None) -> int:
     return hard if armed else medium
 
 
+TILL_REFILLS_SECONDS = 24 * 3600
+
+
+def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
+    """Coin is someone's: a person at hand, or the till of a place with a door, once a day. Open ground holds none."""
+    if person is not None:
+        return True
+    import local_places
+    here, now = world.get("location"), _now(world)
+    indoors = _way_out(world, here) is not None and local_places.settlement_of(world, here) != here
+    return indoors and not any(
+        deed.get("till") and deed.get("location") == here and now - deed.get("at", now) < TILL_REFILLS_SECONDS
+        for deed in deeds(world))
+
+
 def _steal(session, text: str) -> dict[str, Any]:
     folded = fold(session, text)
     victim = _hand_to_whom(session, text)
@@ -486,6 +501,8 @@ def _steal(session, text: str) -> dict[str, Any]:
             f"{living_world.public_npc_name(watcher)} soyulmak istenmiş")
         return _reply(session, _pick_line(session, watcher), "theft", "caught", check,
                       ["relationships"], npc_id=watcher["id"])
+    if thing is None and not _coin_to_take(world, victim or watcher):
+        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
     if thing is None:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
@@ -494,7 +511,8 @@ def _steal(session, text: str) -> dict[str, Any]:
             remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} soyuldu",
                      victim_id=victim["id"], seen=False)
         else:
-            remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} içinden para eksildi", seen=False)
+            remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} içinden para eksildi",
+                     seen=False)["till"] = True
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
     world.setdefault("inventory", []).append(thing)

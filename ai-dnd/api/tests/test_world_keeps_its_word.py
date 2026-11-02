@@ -42,6 +42,22 @@ class Stealing(OneTownScene):
         self.assertEqual(out["skill_check_result"]["dc"], 10)
         self.assertEqual(out["skill_check_result"]["d20"], 15)
 
+    async def test_an_empty_street_has_no_till_and_the_roll_is_still_shown(self):
+        await self.room()
+        self.world["location"] = self.city
+        before = self.world.get("currency", {}).get("player", 0)
+        with patch.object(self.session, "active_npcs", return_value=[]):  # nobody passing in the street
+            out = await self.steal("etrafta kimse yok, yerleri karistirip para caliyorum", 15)
+        self.assertEqual(self.world.get("currency", {}).get("player", 0), before, out["narration"])
+        self.assertEqual(out["skill_check_result"]["skill"], "Sleight of Hand")
+
+    async def test_a_till_robbed_once_is_empty_the_same_day(self):
+        await self.room()
+        await self.steal("kimse yok. cekmeceden parayi yurutuyorum", 15)
+        after_first = self.world["currency"]["player"]
+        out = await self.steal("bi daha cekmeceden parayi yurutuyorum", 15)
+        self.assertEqual(self.world["currency"]["player"], after_first, out["narration"])
+
     async def test_a_miss_in_an_empty_room_is_a_result_and_never_the_character_stopping(self):
         await self.room()
         before = self.world.get("currency", {}).get("player", 0)
