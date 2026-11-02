@@ -275,6 +275,8 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         line = game._stock("Çevrede şimdilik belirgin bir değişiklik olmuyor; sıra sende.")
         self.assertTrue(game._is_stock(f"Sen: “selam”\n\n{line}"))
         self.assertFalse(game._is_stock("Marek omuz silkiyor. “Bilmem.”"))
+        self.assertTrue(game._only_stock(f"Sen: “selam”\n\n{line}"))
+        self.assertFalse(game._only_stock(f"Rafları diziyorsun; akşama 10 bakır kazandın. {line}"))
 
     async def test_a_threat_the_reading_found_outlives_the_stock_line_door(self):
         import world_happenings

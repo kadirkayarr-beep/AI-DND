@@ -7056,6 +7056,16 @@ def _is_stock(text):
     return isinstance(text, str) and any(line in text for line in _stock_said())
 
 
+def _only_stock(text):
+    """The whole reply is Python's scene lines, beside at most the player's own words shown back: nothing else was said."""
+    if not _is_stock(text):
+        return False
+    rest = text
+    for line in sorted(_stock_said(), key=len, reverse=True):
+        rest = rest.replace(line, " ")
+    return re.search(r"\w", re.sub(r"Sen: “[^”]*”", " ", rest)) is None
+
+
 def _lines_already_said(npc, world_state):
     log = (world_state.get("npc_speech_log") or {}).get(npc.get("id"), [])
     return [entry["npc"] for entry in log if isinstance(entry, dict) and isinstance(entry.get("npc"), str)]
@@ -17957,7 +17967,7 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     """
     session = _session()
     text = result.get("narration") if isinstance(result, dict) else None
-    if (not isinstance(text, str) or not _is_stock(text)
+    if (not isinstance(text, str) or not _only_stock(text)
             or session.world_state.get("combat", {}).get("active")):
         return result
     hearer = _stock_hearer(result, player_input, target_id)
