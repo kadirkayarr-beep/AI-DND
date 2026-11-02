@@ -180,7 +180,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
 
     def stock_owner(self, stock):
         def owner(*args, **kwargs):
-            return {"messages": self.session.messages, "narration": stock, "model_calls": 0,
+            return {"messages": self.session.messages, "narration": game._stock(stock), "model_calls": 0,
                     "action_result": {"action": "narrative", "status": "resolved", "success": True,
                                       "state_changes": [], "direct_response": stock}}
         return owner
@@ -240,7 +240,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_stock_line_from_any_owner_is_turned_into_the_person_at_the_door(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        stock = game._stock(game._GENERIC_NO_CHANGE_RESPONSE)
+        stock = game._GENERIC_NO_CHANGE_RESPONSE
         real = game._dispatch_player_turn
         modes = []
 
@@ -263,7 +263,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         def owner(*args, **kwargs):
             calls.append(1)
             if len(calls) == 1:
-                return self.stock_owner(game._stock("Bu bakışla adlandırdığın ayrıntı seçilmiyor."))()
+                return self.stock_owner("Bu bakışla adlandırdığın ayrıntı seçilmiyor.")()
             return real(*args, **kwargs)
 
         with patch("game._dispatch_player_turn", owner):
@@ -297,7 +297,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_stock_line_with_no_call_left_is_the_person_too(self):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
-        stock = game._stock("Marek, “Çevrede şimdilik belirgin bir değişiklik olmuyor.”")
+        stock = "Marek, “Çevrede şimdilik belirgin bir değişiklik olmuyor.”"
         with patch("game._dispatch_player_turn", self.stock_owner(stock)), \
                 patch("api.ollama_adapter.model_calls_left", return_value=0):
             reply = await self.line("sakin ol ya, şaka yaptım")
@@ -307,7 +307,7 @@ class StockLinesNeverAnswerAPerson(FrontTable):
     async def test_a_look_at_the_scene_keeps_the_scene_voice(self):
         await self.begin()
         self.client.front = {"kind": "look"}
-        stock = game._stock(game._GENERIC_NO_CHANGE_RESPONSE)
+        stock = game._GENERIC_NO_CHANGE_RESPONSE
         with patch("game._dispatch_player_turn", self.stock_owner(stock)):
             reply = await self.line("etrafa bakıyorum")
         self.assertEqual(reply["narration"], stock)

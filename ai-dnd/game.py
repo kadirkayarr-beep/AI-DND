@@ -7029,18 +7029,31 @@ _SPEECH_REPEAT_LINES = (
 
 # Sentences written for the narrator or the engine, never for a person's mouth. Each one is marked where it is
 # written, so the door at the turn's end knows it by where it came from, not by a list of its words.
-_STOCK_SAID = collections.deque(maxlen=256)
+_STOCK_SAID = collections.deque(maxlen=256)  # only for a call with no session; a session keeps its own
+
+
+def _stock_said():
+    try:
+        session = _session()
+    except Exception:
+        session = None
+    if session is None:
+        return _STOCK_SAID
+    said = getattr(session, "_stock_lines", None)
+    if said is None:
+        said = session._stock_lines = collections.deque(maxlen=256)
+    return said
 
 
 def _stock(text):
     if isinstance(text, str) and text.strip():
-        _STOCK_SAID.append(text.strip())
+        _stock_said().append(text.strip())
     return text
 
 
 def _is_stock(text):
     """A line Python wrote for the scene is in this text: the same words, from the producer that marked them."""
-    return isinstance(text, str) and any(line in text for line in _STOCK_SAID)
+    return isinstance(text, str) and any(line in text for line in _stock_said())
 
 
 def _lines_already_said(npc, world_state):
