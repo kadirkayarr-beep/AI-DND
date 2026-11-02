@@ -736,6 +736,8 @@ def _can_be_done(session, text: Any) -> bool:
 
 def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide."""
+    if isinstance(text, str) and text.lstrip().startswith("/"):
+        return None  # a typed command has its own owner; the word lists never read it
     if isinstance(text, str):
         settled = _room_asked(session, text) or ((_search_body(session, text) or _buy(session, text))
                                                  if "?" not in text else None)

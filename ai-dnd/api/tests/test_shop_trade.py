@@ -124,5 +124,22 @@ class CounterTrade(unittest.TestCase):
         self.assertFalse(shop_trade.is_priced("kılıç"))
 
 
+class TypedLane(CounterTrade):
+    def test_a_typed_line_never_reaches_the_word_matcher(self):
+        before = copy.deepcopy(self.w)
+        for line in ("/item ver bira barman", "/item bira getir 1 0 4", "/oda tutuyorum"):
+            with self.subTest(line=line):
+                self.assertIsNone(bold_acts.resolve(self.s, line))
+                self.assertIsNone(bold_acts.resolve(self.s, line, ""))
+                self.assertEqual(self.w, before)
+
+    def test_a_typed_buy_takes_the_typed_lane_with_no_reading(self):
+        with patch.object(bold_acts, "resolve", wraps=bold_acts.resolve) as heard:
+            result = self.buy(count=2, total=8)
+        self.assertTrue(result["action_result"]["success"], result["narration"])
+        self.assertTrue(all(call.args[1].startswith("/") for call in heard.call_args_list))
+        self.assertEqual(self.w["currency"]["player"], 492)
+
+
 if __name__ == "__main__":
     unittest.main()
