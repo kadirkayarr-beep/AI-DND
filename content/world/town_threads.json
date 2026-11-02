@@ -662,10 +662,14 @@
         "activity": "Aradığım kişiyi buldum, söyleyeceğimi söylüyorum.",
         "goal": "{what} meselesini bu kişiye bildirmek.",
         "reason": "Beni {owner} gönderdi.",
-        "warned": ["{who} yanına gelip duruyor, seni baştan aşağı süzüyor. “{Owner} adına geldim. Söylenen söz unutulmadı.”", "{who} yolunu kesiyor. “Sen olmalısın. {Owner} gönderdi beni.”"],
-        "opened": ["{who} yanına gelip duruyor, gözünü senden ayırmıyor. “{Owner} adına geldim. Kırılan mührü konuşacağız.”", "{who} yolunu kesiyor. “Mührü kıran sensin. {Owner} gönderdi beni.”"],
-        "kept": ["{who} yanına gelip duruyor, elini uzatıyor. “{Owner} adına geldim. {what} sende kaldı, geri istiyor.”", "{who} yolunu kesiyor. “{Owner} gönderdi beni: {what} nerede?”"],
-        "delivered": ["{who} yanına gelip duruyor, başıyla selam veriyor. “{Owner} adına geldim. Mühür bozulmadan varmış, bunu bilsin dedi.”", "{who} yolunu kesiyor, yüzü yumuşak. “Sen olmalısın. {Owner} selam yolladı; {what} sağlam varmış.”"]
+        "warned": ["{who} yanına gelip duruyor, seni baştan aşağı süzüyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor. “Sen olmalısın. {Owner} gönderdi beni. {message}”", "{who} omzuna dokunup seni kenara çekiyor. “{Owner} selam söyledi. {message}”"],
+        "opened": ["{who} yanına gelip duruyor, gözünü senden ayırmıyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor. “Mührü kıran sensin. {Owner} gönderdi beni. {message}”", "{who} önüne dikiliyor. “{Owner} seni arıyor. {message}”"],
+        "kept": ["{who} yanına gelip duruyor, elini uzatıyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor. “{Owner} gönderdi beni. {message}”", "{who} önünü kesip avucunu açıyor. “Beni {owner} yolladı. {message}”"],
+        "delivered": ["{who} yanına gelip duruyor, başıyla selam veriyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor, yüzü yumuşak. “Sen olmalısın. {Owner} selam yolladı. {message}”", "{who} yanına sokulup gülümsüyor. “{Owner} gönderdi beni. {message}”"],
+        "messages": {"warned": ["{why} Bir daha karşısına çıkma, dedi.", "{why} Hesabı kapatmak istiyorsan kendin git, dedi; istemiyorsan uzak dur.", "{why} Bir dahakine lafla gelmem, dedi."], "opened": ["Mührü kırdığını biliyor; {what} için kendi ağzından hesap istiyor.", "{what} açılmış; kimin okuduğunu biliyor. Gidip yüzüne söyleyeceksin, dedi.", "Kırılan mühür yanına kalmaz, dedi; {what} için gidip konuşacaksın."], "kept": ["{what} sende kaldı; geri istiyor, hem de bugün.", "{what} nerede? Geri getir, dedi; yoksa kapısından içeri alınmazsın.", "{what} yerine varmadı. Getirirsen mesele kapanır, dedi."], "delivered": ["{what} mührü bozulmadan varmış; bunu bilmeni istedi.", "{what} sağlam varmış; teşekkür etti, kapısı sana açık dedi.", "{what} elden ele sağlam gitmiş; adını unutmayacak."]},
+        "why": {"assault": "Üzerine yürüdüğünü unutmadı.", "theft": "Eline uzandığını unutmadı.", "said": "Söylediklerini unutmadı.", "about": "{what} meselesini unutmadı."},
+        "summons": "Seni {place} içinde görmek istiyor.",
+        "leaves": ["{who} söyleyeceğini söyledi; başını sallayıp çıkıyor.", "{who} daha fazla durmuyor; sırtını dönüp gidiyor.", "{who} işini bitirmiş; omuz silkip yoluna gidiyor."]
       },
       "notes": {
         "coming_warned": "Seni bekleyen: {what}; {when}. Bu senin tehdidin; birinin geleceğini biliyorsun, inkâr etme, gün ya da saat söyleme.",
@@ -676,6 +680,7 @@
         "sent": "Karşındakine adamını sen gönderdin ve onu buldu; mesele: {what}. Bu kişiyi tanıyorsun, inkâr etme, ondan ne istediğini kendi ağzınla söyle. {letter}",
         "sent_letter": "Mektupta şu yazıyordu: {words}",
         "summons": "{owner} onu {place} içinde görmek istiyor; bunu söyle.",
+        "caller_message": "Getirdiğin söz aynen şu: {message} Sorulursa bunu söyle, \"bilmem\" deme; söyledikten sonra işin bitti.",
         "caller_warned": "Seni {owner} gönderdi. Mesele: {what}. Bunu biliyorsun; kimin adına geldiğini saklamıyorsun, para teklif etme, kendi tavrınla konuş.",
         "caller_opened": "Seni {owner} gönderdi. Mesele: {what}; mührü kırıldı ve bunu karşındakinin yaptığını biliyorsun. Bedelini hatırlat, para teklif etme, mektupta ne yazdığını bilmiyorsun.",
         "caller_kept": "Seni {owner} gönderdi. Mesele: {what} geri dönmedi, karşındakinde kaldı; geri almaya geldin. Para teklif etme.",

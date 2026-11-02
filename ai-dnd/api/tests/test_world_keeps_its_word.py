@@ -6,6 +6,10 @@ import unittest
 from unittest.mock import patch
 
 import bold_acts
+import campaign_time
+import interaction_adventure
+import world_happenings
+import world_threads
 from api.tests.test_front_proposal import FrontTable
 from api.tests.test_lasting_consequences import OneTownScene
 from api.tests.test_three_plays import PlayClient
@@ -145,3 +149,82 @@ class FrontLines(unittest.IsolatedAsyncioTestCase):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 50}
         await self.line("al sana bes gumus veriyorum")
         self.assertEqual(self.purse(), 3)
+
+
+class Messengers(FrontLines):
+    def links(self):
+        return world_happenings.links(world_threads.view(self.world))
+
+    async def sent(self, tone="warned", assault=False):
+        """Someone the player wronged has sent a person; the clock has just reached them."""
+        await self.begin()
+        self.world["flags"].pop("active_npc_id", None)
+        if assault:
+            bold_acts.remember(self.session, "assault", "biri üzerine yürüdü", victim_id=self.npc["id"])
+        link = world_happenings.tie(self.world, world_happenings.CALLER, tone, self.npc, self.world["location"])
+        campaign_time.advance(self.world, link["fires_at"] - world_threads._now(self.world) + 1, "rest", "test")
+        self.client.front = {"kind": "look"}
+        return link
+
+    def caller(self, link):
+        return next((npc for npc in self.world["npcs"] if npc.get("caller_of") == link["thread_id"]), None)
+
+    async def test_a_messenger_says_who_sent_them_why_and_what_is_wanted(self):
+        link = await self.sent(assault=True)
+        out = await self.line("etrafa bi bakiyim")
+        self.assertIn(world_threads.spoken_owner(self.world, {"owner_npc_id": self.npc["id"]}), out["narration"])
+        self.assertIn("Üzerine yürüdüğünü", out["narration"])
+        self.assertNotIn("Söylenen söz", out["narration"])
+        self.assertIn(self.caller(link)["message"], out["narration"])
+
+    async def test_asked_what_the_news_is_they_say_it_again_from_python_too(self):
+        link = await self.sent(assault=True)
+        await self.line("etrafa bi bakiyim")
+        visitor = self.caller(link)
+        said = interaction_adventure.immersive_unknown(visitor, "haber ne, lafi dolandirma?")
+        self.assertIn(visitor["message"], said)
+
+    async def test_they_say_it_and_go_and_are_not_in_the_room_hours_later(self):
+        link = await self.sent()
+        await self.line("etrafa bi bakiyim")
+        visitor = self.caller(link)
+        here = self.world["location"]
+        self.assertEqual(visitor["location"], here)
+        self.client.front = {"kind": "speak_to", "person_id": visitor["id"]}
+        await self.line("ne istiyosun")
+        self.assertEqual(visitor["location"], here)
+        out = await self.line("sen kimsin ya")
+        self.assertEqual(visitor["location"], link["place_id"] if link["place_id"] != here else here, out["narration"])
+        self.assertIsNot(self.world["flags"].get("active_npc_id"), visitor["id"])
+
+    async def test_walked_away_from_they_are_gone_when_the_player_comes_back(self):
+        link = await self.sent()
+        await self.line("etrafa bi bakiyim")
+        visitor = self.caller(link)
+        visitor["came_from"] = "elsewhere"
+        self.world["location"], here = "other", self.world["location"]
+        campaign_time.advance(self.world, 3600, "rest", "test")
+        await self.line("etrafa bi bakiyim")
+        self.assertEqual(visitor["location"], "elsewhere")
+
+    async def test_the_same_visitor_line_does_not_come_twice_running(self):
+        link = await self.sent()
+        await self.line("etrafa bi bakiyim")
+        first = self.caller(link)["message"], self.world["flags"].get("turn_index")
+        words = world_threads.job_lines("link", "caller")
+        self.assertGreaterEqual(len(words["warned"]), 3)
+        self.assertGreaterEqual(len(words["messages"]["warned"]), 3)
+        lines = {world_happenings._caller_line(self.world, {"thread_id": f"link_{n:03d}", "tone": "warned"}, words)
+                 for n in range(1, 4)}
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(first)
+
+    async def test_a_second_caller_waits_until_the_first_has_gone(self):
+        link = await self.sent()
+        other = world_happenings.tie(self.world, world_happenings.CALLER, "opened", {"id": "npc_other"},
+                                     self.world["location"])
+        campaign_time.advance(self.world, other["fires_at"] - world_threads._now(self.world) + 1, "rest", "test")
+        await self.line("etrafa bi bakiyim")
+        callers = [npc for npc in self.world["npcs"] if npc.get("caller_of")]
+        self.assertEqual(len(callers), 1, callers)
+        self.assertTrue(link)

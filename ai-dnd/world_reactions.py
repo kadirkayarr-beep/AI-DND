@@ -540,6 +540,7 @@ def answer(session, result: Any) -> None:
     now = _now(world)
     _send_guards_home(world, now)
     lines = _due_lines(world) + _fill_post_here(session)
+    lines += world_happenings.callers_leave(session, now)
     lines += world_happenings.caller_comes(session, now)
     lines += vouching.open_doors(world)
     _tell_successors(world)

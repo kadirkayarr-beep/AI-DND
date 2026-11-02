@@ -34,15 +34,8 @@ CALLER = "caller"  # someone comes to the player
 GUARDED = "guarded"  # someone the player threatened gets ready
 LINK_KINDS = (CALLER, GUARDED)
 LINK_ROW = {CALLER: "visit", GUARDED: "closed"}
-CALLER_STAYS_SECONDS = world_threads.DAY
-LINKS = "links"  # words said aloud that come due: kept beside the threads, closed by the same clock
-MAX_LINKS = 4
-LINK_HOURS = (6, 20)
-CALLER = "caller"  # someone comes to the player
-GUARDED = "guarded"  # someone the player threatened gets ready
-LINK_KINDS = (CALLER, GUARDED)
-LINK_ROW = {CALLER: "visit", GUARDED: "closed"}
-CALLER_STAYS_SECONDS = world_threads.DAY
+CALLER_STAYS_SECONDS = 1800  # said their piece and on the way back; nobody waits about a room for hours
+CALLER_TALK_TURNS = 2  # they will take a reply or two, then they go
 LET_GO = ("abandoned", "expired", "failed")
 HAPPENED = "happened"  # in the clock's list of effects: the ledger gained a row for this thread
 
@@ -97,121 +90,6 @@ def _line_for(world: dict[str, Any], seed: str, thread: dict[str, Any], lines: A
         if fits(filled):
             return filled
     return world_threads.job_lines("trouble", "fired_short") or ""
-
-
-def links(state: dict[str, Any]) -> list[dict[str, Any]]:
-    """Reading writes nothing: an old save gains the list with its first link."""
-    return state.get(LINKS) or []
-
-
-def _validate_links(rows: Any) -> None:
-    if rows is None:
-        return
-    if not isinstance(rows, list) or len(rows) > MAX_LINKS:
-        raise ValueError("World thread state is invalid.")
-    for row in rows:
-        if (
-            not isinstance(row, dict) or row.get("kind") not in LINK_KINDS or row.get("type") != "trouble"
-            or not isinstance(row.get("thread_id"), str) or not isinstance(row.get("place_id"), str)
-            or type(row.get("opened_at")) is not int
-            or not (row.get("fires_at") is None or type(row["fires_at"]) is int)
-        ):
-            raise ValueError("World thread record is invalid.")
-
-
-def _make_room(state: dict[str, Any]) -> bool:
-    """The oldest link already played out goes; a town full of live ones takes no more."""
-    rows = links(state)
-    if len(rows) < MAX_LINKS:
-        return True
-    spent = next((row for row in rows if row.get("fires_at") is None and row.get("caller_id")), None) or next(
-        (row for row in rows if row.get("fires_at") is None and row["kind"] == GUARDED), None)
-    if spent is None:
-        return False
-    rows.remove(spent)
-    return True
-
-
-def tie(world: dict[str, Any], kind: str, tone: str, owner: Any, place_id: Any, *, about: Any = None) -> dict[str, Any] | None:
-    """A moment for something said. The hours are the seed's: nobody's words can set them."""
-    state = world_threads.view(world)
-    settlement = local_places.settlement_of(world, place_id)
-    if state is None or not settlement or place_id not in world.get("locations", {}):
-        return None
-    owner_id = owner.get("id") if isinstance(owner, dict) else None
-    if any(row["kind"] == kind and row.get("owner_npc_id") == owner_id and row.get("about_thread_id") == about
-           and (row.get("fires_at") is not None or not row.get("caller_id")) for row in links(state)):
-        return None
-    if not _make_room(state):
-        return None
-    number = state.get("next_link", 1)
-    state["next_link"] = number + 1
-    now = world_threads._now(world)
-    seed = world_threads.living_world._campaign_seed(world)
-    thread_id = f"link_{number:03d}"
-    hours = world_threads._between(seed, LINK_HOURS, thread_id, kind, "hours")
-    link = {"thread_id": thread_id, "type": "trouble", "kind": kind, "tone": tone, "status": "coming",
-            "place_id": place_id, "settlement_id": settlement, "owner_npc_id": owner_id,
-            "about_thread_id": about, "opened_at": now, "fires_at": now + hours * world_threads.HOUR}
-    state.setdefault(LINKS, []).append(link)
-    return link
-
-
-def who_can_be_named(world: dict[str, Any], npc: Any) -> dict[str, list[dict[str, Any]]]:
-    """What a threat from this person can be about, and who it can come from: real records only."""
-    place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
-    own = [t for t in world_threads.owned(world) if place_id and t.get("place_id") == place_id]
-    carried = [t for t in world_threads.owned(world) if t.get("status") == "accepted" and t not in own]
-    jobs = [{"id": t["thread_id"], "name": t.get("item_noun") or t["public_line"][:48]}
-            for t in (*own, *carried, *world_threads.recent_closed(world, npc))]
-    here = [other for other in world.get("npcs", []) if isinstance(other, dict) and isinstance(npc, dict)
-            and other.get("id") and other.get("combat_status") != "dead" and other.get("location") == npc.get("location")]
-    people = [{"id": other["id"], "name": world_threads.living_world.public_npc_name(other)} for other in here]
-    return {"jobs": jobs[:6], "people": people[:6]}
-
-
-PLAYER_THREATENED = "warned"
-OWN_THREAT = "warn"
-
-
-def threat_said(world: dict[str, Any], npc: dict[str, Any], said: Any) -> dict[str, Any] | None:
-    """The reply's threat field: what the speaker named from their list, or that the player threatened them. Nothing else counts."""
-    said = said.split()[0] if isinstance(said, str) and said.strip() else None  # 'npc_001 (Bir kâhya)': the id is what counts
-    if said == PLAYER_THREATENED:
-        return threatened(world, npc)
-    listed = who_can_be_named(world, npc)
-    about = world_threads.by_id(world, said) if said in [row["id"] for row in listed["jobs"]] else None
-    sender = world_threads._npc(world, said) if said in [row["id"] for row in listed["people"]] else None
-    if about is None and sender is None and said != OWN_THREAT:
-        return None
-    owner = sender or (world_threads.owner_of(world, about) if about else None) or npc
-    place = (about or {}).get("place_id") or owner.get("place_role_of") or owner.get("location")
-    return tie(world, CALLER, "warned", owner, place, about=about["thread_id"] if about else None)
-
-
-def threatened(world: dict[str, Any], npc: dict[str, Any]) -> dict[str, Any] | None:
-    """The player threatened this person: they think less of the player now, and get ready by the clock."""
-    import relationships
-    link = tie(world, GUARDED, "guarded", npc, npc.get("place_role_of") or npc.get("location"))
-    if link is not None:
-        relationships.note(world, npc["id"], -1, f"threat:{link['thread_id']}"[:160])
-    return link
-
-
-def _fire_links(world: dict[str, Any], state: dict[str, Any], now: int, seed: str) -> list[tuple[str, str]]:
-    effects = []
-    due = sorted((row for row in links(state) if type(row.get("fires_at")) is int and row["fires_at"] <= now),
-                 key=lambda row: row["fires_at"])
-    for link in due:
-        at = link.pop("fires_at")
-        link["status"] = "due"
-        kind = LINK_ROW[link["kind"]]
-        lines = world_threads.job_lines("link", "lines", link["tone"])
-        known = link["kind"] == GUARDED and world.get("location") == link["place_id"]
-        row = write(state, link, kind, at, _line_for(world, seed, link, lines), known=known)
-        row["next_thread_id"] = _follow_on(world, state, seed, link, kind, now)
-        effects.append((link["thread_id"], HAPPENED))
-    return effects
 
 
 def links(state: dict[str, Any]) -> list[dict[str, Any]]:
@@ -525,6 +403,8 @@ def link_note(world: dict[str, Any], npc: Any) -> str:
         if link.get("caller_id") == npc.get("id"):
             notes.append(world_threads._fill(lines.get(f"caller_{link['tone']}", ""), owner=_link_owner(world, link),
                                              what=_link_matter(world, link)))
+            if npc.get("message"):
+                notes.append(world_threads._fill(lines.get("caller_message", ""), message=npc["message"]))
             if local_places.inner_room_of(world, link["place_id"]) is not None:
                 notes.append(world_threads._fill(lines.get("summons", ""), owner=_link_owner(world, link),
                                                  place=world.get("locations", {}).get(link["place_id"], {}).get("name", "")))
@@ -572,13 +452,77 @@ def about_of(world: dict[str, Any], npc: Any) -> Any:
     return (link or {}).get("about_thread_id")
 
 
+def _callers_here(world: dict[str, Any]) -> list[dict[str, Any]]:
+    return [npc for npc in world.get("npcs", []) if isinstance(npc, dict) and npc.get("caller_of")
+            and npc.get("location") == world.get("location") and npc.get("combat_status") != "dead"]
+
+
+def _why_sent(world: dict[str, Any], link: dict[str, Any], words: dict[str, Any]) -> str:
+    """What the ledger says the player did to the one who sent them; failing that, the matter named; failing that, the words."""
+    why = words.get("why") or {}
+    done = [deed for deed in world.get("flags", {}).get("deeds", [])
+            if isinstance(deed, dict) and deed.get("victim_id") == link.get("owner_npc_id")]
+    kind = done[-1].get("kind") if done else None
+    if kind == "assault":
+        return why.get("assault", "")
+    if kind in {"theft", "theft_unseen"}:
+        return why.get("theft", "")
+    if link.get("about_thread_id"):
+        return world_threads._fill(why.get("about", ""), what=_link_matter(world, link))
+    return why.get("said", "")
+
+
+def _nth(link: dict[str, Any], lines: Any, seed: str) -> str:
+    """Links are numbered, so one stock line never follows itself while the pool has another."""
+    number = int(str(link["thread_id"]).rsplit("_", 1)[-1])
+    return lines[(world_threads._rank(seed, "caller", "line") + number) % len(lines)] if lines else ""
+
+
+def _message(world: dict[str, Any], link: dict[str, Any], words: dict[str, Any]) -> str:
+    """What they were sent to say, made of the ledger entry that sent them."""
+    seed = world_threads.living_world._campaign_seed(world)
+    line = _nth(link, (words.get("messages") or {}).get(link["tone"]), seed)
+    text = world_threads._fill(line, why=_why_sent(world, link, words), what=_link_matter(world, link))
+    if local_places.inner_room_of(world, link["place_id"]) is not None:
+        place = world.get("locations", {}).get(link["place_id"], {}).get("name", "")
+        text = f"{text} {world_threads._fill(words.get('summons', ''), place=place)}"
+    return text.strip()
+
+
+def _caller_line(world: dict[str, Any], link: dict[str, Any], words: dict[str, Any]) -> str:
+    return _nth(link, words.get(link["tone"]), world_threads.living_world._campaign_seed(world))
+
+
+def callers_leave(session: Any, now: int) -> list[str]:
+    """A messenger says what they came to say and goes back where they came from."""
+    world = session.world_state
+    flags = world.setdefault("flags", {})
+    turn = int(flags.get("turn_index", 0) or 0)
+    lines = []
+    for npc in _callers_here(world):
+        if npc.get("hostile") or "came_from" not in npc or (
+                turn < npc.get("leaves_turn", turn) and now < npc.get("back_at", now)):
+            continue
+        npc["location"] = npc.pop("came_from")
+        npc.pop("back_at", None)
+        if flags.get("active_npc_id") == npc.get("id"):
+            flags.pop("active_npc_id", None)
+        words = world_threads.job_lines("link", "caller") or {}
+        leaving = words.get("leaves") or ()
+        who = world_threads.living_world.turkish_initial_upper(world_threads.living_world.public_npc_name(npc))
+        if leaving:
+            seed = world_threads.living_world._campaign_seed(world)
+            lines.append(world_threads._fill(leaving[world_threads._rank(seed, npc["id"], "leaves") % len(leaving)], who=who))
+    return lines
+
+
 def caller_comes(session: Any, now: int) -> list[str]:
     """Someone sent has reached the player, wherever in that town they are. They are a real person from here on."""
     import vouching
     world = session.world_state
     state = world_threads.view(world)
     town = local_places.settlement_of(world, world.get("location"))
-    if state is None or not town:
+    if state is None or not town or _callers_here(world):  # one at a time: the next waits until this one has gone
         return []
     for link in links(state):
         if link["kind"] != CALLER or link.get("fires_at") is not None or link.get("caller_id") or link.get("settlement_id") != town:
@@ -593,7 +537,9 @@ def caller_comes(session: Any, now: int) -> list[str]:
             continue
         link.update(caller_id=npc["id"], status="arrived")
         vouching.summoned(world, link)
-        npc.update(caller_of=link["thread_id"], came_from=link["place_id"], back_at=now + CALLER_STAYS_SECONDS)
+        message = _message(world, link, words)
+        npc.update(caller_of=link["thread_id"], came_from=link["place_id"], back_at=now + CALLER_STAYS_SECONDS,
+                   leaves_turn=int(world.get("flags", {}).get("turn_index", 0) or 0) + CALLER_TALK_TURNS, message=message)
         profile = npc.get("personal_profile")
         if isinstance(profile, dict):  # who they are is why they came, not a trade drawn for a stranger
             profile.update(occupation=world_threads._fill(words.get("occupation", ""), owner=_link_owner(world, link)),
@@ -605,112 +551,10 @@ def caller_comes(session: Any, now: int) -> list[str]:
             row["known_to_player"] = True
         session._set_scene_active_npc(npc, world.get("flags", {}).get("turn_index", 0))
         _settle_up(world, link)
-        lines = words.get(link["tone"]) or ()
-        seed = world_threads.living_world._campaign_seed(world)
-        line = lines[world_threads._rank(seed, link["thread_id"], "arrives") % len(lines)] if lines else ""
         who = world_threads.living_world.turkish_initial_upper(world_threads.living_world.public_npc_name(npc))
         owner = _link_owner(world, link)
-        return [world_threads._fill(line, who=who, Owner=world_threads.sentence(owner), owner=owner, what=_link_matter(world, link))]
-    return []
-
-
-def link_note(world: dict[str, Any], npc: Any) -> str:
-    """What this person said or heard, while it is still on the clock, and who they are if they came about it."""
-    state = world_threads.view(world)
-    if state is None or not isinstance(npc, dict):
-        return ""
-    lines = world_threads.job_lines("link", "notes") or {}
-    notes = []
-    for link in links(state):
-        if link.get("caller_id") == npc.get("id"):
-            notes.append(world_threads._fill(lines.get(f"caller_{link['tone']}", ""), owner=_link_owner(world, link),
-                                             what=_link_matter(world, link)))
-            if local_places.inner_room_of(world, link["place_id"]) is not None:
-                notes.append(world_threads._fill(lines.get("summons", ""), owner=_link_owner(world, link),
-                                                 place=world.get("locations", {}).get(link["place_id"], {}).get("name", "")))
-        elif link.get("owner_npc_id") == npc.get("id") and link.get("fires_at") is not None:
-            notes.append(world_threads._fill(lines.get(f"coming_{link['tone']}", ""), when=_spoken_time(world, link["fires_at"]),
-                                             what=_link_matter(world, link)))
-        elif _speaks_for(world, link, npc) and link["kind"] == CALLER:
-            letter = (world_threads.by_id(world, link.get("about_thread_id")) or {}).get("letter_line")
-            notes.append(world_threads._fill(lines.get("sent", ""), what=_link_matter(world, link),
-                                             letter=world_threads._fill(lines.get("sent_letter", ""), words=letter) if letter else ""))
-    return "".join(f" {note}" for note in notes if note)
-
-
-def _speaks_for(world: dict[str, Any], link: dict[str, Any], npc: dict[str, Any]) -> bool:
-    room = local_places.inner_room_of(world, link["place_id"])
-    return link.get("owner_npc_id") == npc.get("id") or bool(room and npc.get("place_role_of") == room["id"])
-
-
-def _link_owner(world: dict[str, Any], link: dict[str, Any]) -> str:
-    import vouching
-    title = vouching.head_title(world, link["place_id"])
-    if title:
-        return title
-    npc = world_threads._npc(world, link.get("owner_npc_id"))
-    return world_threads._mid_sentence(world_threads.living_world.public_npc_name(npc)) if npc else (
-        world_threads.job_lines("link", "someone") or "")
-
-
-def _link_matter(world: dict[str, Any], link: dict[str, Any]) -> str:
-    about = world_threads.by_id(world, link.get("about_thread_id")) or {}
-    return (about.get("item_noun") or about.get("public_line") or world_threads.job_lines("link", "no_matter") or "").rstrip(" .")
-
-
-def _settle_up(world: dict[str, Any], link: dict[str, Any]) -> None:
-    """What the visit says about where the player stands with the one who sent it."""
-    import relationships
-    change = {"opened": -1, "kept": -1, "delivered": 1}.get(link["tone"])
-    if change and link.get("owner_npc_id"):
-        relationships.note(world, link["owner_npc_id"], change, f"sent:{link['thread_id']}:{link['tone']}"[:160])
-
-
-def about_of(world: dict[str, Any], npc: Any) -> Any:
-    """The thread this visitor came about, if they came about one."""
-    link = world_threads.by_id(world, npc.get("caller_of")) if isinstance(npc, dict) and npc.get("caller_of") else None
-    return (link or {}).get("about_thread_id")
-
-
-def caller_comes(session: Any, now: int) -> list[str]:
-    """Someone sent has reached the player, wherever in that town they are. They are a real person from here on."""
-    import vouching
-    world = session.world_state
-    state = world_threads.view(world)
-    town = local_places.settlement_of(world, world.get("location"))
-    if state is None or not town:
-        return []
-    for link in links(state):
-        if link["kind"] != CALLER or link.get("fires_at") is not None or link.get("caller_id") or link.get("settlement_id") != town:
-            continue
-        words = world_threads.job_lines("link", "caller") or {}
-        npc = session.create_npc_from_ai({
-            "name": world_threads.living_world.stable_local_name(world, link["thread_id"], words.get("role", "Ulak")),
-            "role": words.get("role", "Ulak"), "location": world["location"], "relationship": "neutral",
-            "appearance": words.get("appearance", ""), "personality": words.get("personality", ""),
-        }, allow_other_location=True)
-        if not isinstance(npc, dict):
-            continue
-        link.update(caller_id=npc["id"], status="arrived")
-        vouching.summoned(world, link)
-        npc.update(caller_of=link["thread_id"], came_from=link["place_id"], back_at=now + CALLER_STAYS_SECONDS)
-        profile = npc.get("personal_profile")
-        if isinstance(profile, dict):  # who they are is why they came, not a trade drawn for a stranger
-            profile.update(occupation=world_threads._fill(words.get("occupation", ""), owner=_link_owner(world, link)),
-                           current_activity=words.get("activity", ""),
-                           immediate_goal=world_threads._fill(words.get("goal", ""), what=_link_matter(world, link)),
-                           reason_for_being_here=world_threads._fill(words.get("reason", ""), owner=_link_owner(world, link)))
-        row = _row_of(state, link)
-        if row:
-            row["known_to_player"] = True
-        session._set_scene_active_npc(npc, world.get("flags", {}).get("turn_index", 0))
-        _settle_up(world, link)
-        lines = words.get(link["tone"]) or ()
-        seed = world_threads.living_world._campaign_seed(world)
-        line = lines[world_threads._rank(seed, link["thread_id"], "arrives") % len(lines)] if lines else ""
-        who = world_threads.living_world.turkish_initial_upper(world_threads.living_world.public_npc_name(npc))
-        owner = _link_owner(world, link)
-        return [world_threads._fill(line, who=who, Owner=world_threads.sentence(owner), owner=owner, what=_link_matter(world, link))]
+        return [world_threads._fill(_caller_line(world, link, words), who=who, Owner=world_threads.sentence(owner),
+                                    owner=owner, message=message)]
     return []
 
 
