@@ -115,9 +115,27 @@ def _also_taken(session, words: list[str]) -> list[str]:
         if (len(other) < 4 or other.startswith(_WORTH) or other.startswith(fixed) or other in _NOT_THINGS
                 or shown in names or _named_in_bag(world, other)):
             continue
-        if any(w.startswith(other) and w not in _NOT_THINGS and w.removeprefix(other) in _AS_OBJECT for w in words):
+        if other.startswith(_people_here(session)):
+            continue
+        if any(w.startswith(other) and w not in _NOT_THINGS and w.removeprefix(other) in _AS_OBJECT
+               and _taken_by_its_verb(words, at) for at, w in enumerate(words)):
             names.append(shown)
     return names
+
+
+_A_VERB = re.compile(r"\w+(?:yor(?:um|uz)|[iu]p|d[iu]m|t[iu]m|[ae]y[iı]m)")
+
+
+def _taken_by_its_verb(words: list[str], at: int) -> bool:
+    """The next verb after the thing is a taking one: 'anahtarı alıyorum', never 'kapıyı kapatıyorum'."""
+    verb = next((word for word in words[at + 1:] if _A_VERB.fullmatch(word)), None)
+    return verb is not None and _PUTS_IT_THERE.fullmatch(verb) is not None
+
+
+def _people_here(session) -> tuple[str, ...]:
+    """A person the screen named is no thing to put in a bag."""
+    names = [living_world.normalize_text(npc.get("name")) for npc in session.active_npcs() if isinstance(npc, dict)]
+    return tuple(word for name in names for word in name.split() if len(word) >= 3) or ("\x00",)
 
 
 def take_named(session, text: str, word: str) -> dict[str, Any] | None:

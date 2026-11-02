@@ -590,6 +590,25 @@ class WhatTheScreenShows(FrontScene):
         self.assertIn("nahtar", out["narration"])
         self.assertNotIn("eline geçen", out["narration"])
 
+    async def take_and(self, tail):
+        await self.begin()
+        name = self.npc["name"]
+        self.shown(f"Masanın üstünde bir parşömen var; {name} kapının yanında duruyor.")
+        self.client.front = {"kind": "take", "thing_word": "parşömen"}
+        out = await self.line("parşömeni alıp " + tail.format(name=name))
+        self.assertIn("arşömen", self.bag(), out["narration"])
+        self.assertNotIn("Kapı", self.bag(), out["narration"])
+        self.assertNotIn(name, self.bag(), out["narration"])
+
+    async def test_a_door_closed_in_the_same_line_stays_out_of_the_bag(self):
+        await self.take_and("kapıyı kapatıyorum")
+
+    async def test_a_person_called_in_the_same_line_stays_out_of_the_bag(self):
+        await self.take_and("{name}'i çağırıyorum")
+
+    async def test_a_person_called_over_in_the_same_line_stays_out_of_the_bag(self):
+        await self.take_and("{name}i yanıma çağırıyorum")
+
     async def test_a_reading_that_names_two_things_in_its_one_word_takes_both(self):
         await self.begin()
         self.shown("Çekmecenin dibinden küçük bir çivi ile katlanmış bir mendil çıkıyor.")
