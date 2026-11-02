@@ -223,6 +223,38 @@ paths:
           $ref: '#/components/responses/ApiError'
         '503':
           $ref: '#/components/responses/ApiError'
+  /game/sessions/{session_id}/shop:
+    get:
+      summary: Read the counter offer here
+      description: What whoever serves here offers now, the purse in copper with
+        a gold/silver/copper display split, and the offer number a trade must name.
+        Reading writes nothing and makes no receipt. The trade itself is one typed
+        turn, /item shop_buy <npc_id> <key> <count> <seq> <total_cp>.
+      operationId: getGameSessionShop
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Session Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopCounterResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+      tags:
+      - game
   /game/sessions/{session_id}/actions/unresolved:
     parameters:
     - in: path
@@ -1814,6 +1846,127 @@ components:
       - constitution
       title: LevelUpConIncrease
       type: object
+    ShopCounterVendor:
+      type: object
+      properties:
+        npc_id:
+          type: string
+          title: Npc Id
+        name:
+          type: string
+          title: Name
+      required:
+      - npc_id
+      - name
+      title: ShopCounterVendor
+    ShopCounterLine:
+      type: object
+      properties:
+        key:
+          type: string
+          title: Key
+        label:
+          type: string
+          title: Label
+        unit_cp:
+          type: integer
+          minimum: 0
+          title: Unit Cp
+        stock:
+          type: integer
+          minimum: 0
+          title: Stock
+        discount_cp:
+          type: integer
+          minimum: 0
+          title: Discount Cp
+      required:
+      - key
+      - label
+      - unit_cp
+      - stock
+      - discount_cp
+      title: ShopCounterLine
+    ShopCounterPurse:
+      type: object
+      properties:
+        total_cp:
+          type: integer
+          minimum: 0
+          title: Total Cp
+        gp:
+          type: integer
+          minimum: 0
+          title: Gp
+        sp:
+          type: integer
+          minimum: 0
+          title: Sp
+        cp:
+          type: integer
+          minimum: 0
+          title: Cp
+      required:
+      - total_cp
+      - gp
+      - sp
+      - cp
+      title: ShopCounterPurse
+    ShopCounterResponse:
+      type: object
+      description: What the counter here offers now; reading it writes nothing
+        and makes no receipt.
+      properties:
+        session_id:
+          type: string
+          title: Session Id
+        campaign_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Campaign Id
+        revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Revision
+        status:
+          type: string
+          enum:
+          - ready
+          - unavailable
+          title: Status
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        vendor:
+          anyOf:
+          - $ref: '#/components/schemas/ShopCounterVendor'
+          - type: 'null'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShopCounterLine'
+          title: Lines
+        purse:
+          $ref: '#/components/schemas/ShopCounterPurse'
+        seq:
+          type: integer
+          minimum: 0
+          title: Seq
+      required:
+      - session_id
+      - campaign_id
+      - revision
+      - status
+      - reason
+      - vendor
+      - lines
+      - purse
+      - seq
+      title: ShopCounterResponse
     LevelUpPreviewResponse:
       properties:
         primal_knowledge_skill_options:
@@ -2483,6 +2636,13 @@ components:
         place_created:
           anyOf:
           - type: boolean
+          - type: 'null'
+        reason:
+          description: Engine reason code of a counter trade or offer only (offer_stale,
+            price_changed, insufficient_funds, ...); null for every other action.
+          anyOf:
+          - type: string
+            maxLength: 48
           - type: 'null'
     GameTurnUndoInput:
       type: object

@@ -13,4 +13,6 @@ export interface TurnOutcome {
   target_name?: string | null;
   found?: boolean | null;
   place_created?: boolean | null;
+  /** Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action. */
+  reason?: string | null;
 }

@@ -125,7 +125,7 @@ from api.serializers import (
     serialize_skill_check_result,
     serialize_session_state,
 )
-from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult
+from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult, ShopCounterResponse
 from api.session_manager import SessionManager, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
@@ -240,6 +240,8 @@ def _turn_outcome(action_result: Any) -> TurnOutcome | None:
         target_name=short(inspection.get("target_name") or action_result.get("target_name"), 120),
         found=inspection.get("found") if isinstance(inspection.get("found"), bool) else None,
         place_created=place.get("created") if isinstance(place.get("created"), bool) else None,
+        reason=short(action_result.get("reason"), 48)
+        if action_result.get("action") in {"equipment_transaction", "shop_offer"} else None,
     )
 
 
@@ -2441,6 +2443,24 @@ def create_app(
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
             require_current(record)
             return level_up_projection(record, session_id)
+
+    @application.get("/api/game/sessions/{session_id}/shop", response_model=ShopCounterResponse,
+                     operation_id="getGameSessionShop")
+    def read_shop_counter(session_id: str) -> dict[str, Any]:
+        """The counter's quote, read under the turn lock so it is never half a turn; it writes nothing."""
+        import shop_trade
+        record = get_record(session_id)
+        with record.turn_lock:
+            record = get_record(session_id)
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            require_current(record)
+            token = getattr(record.game_session, "_campaign_persistence_version", None)
+            counter = shop_trade.counter(copy.deepcopy(record.game_session.world_state))
+            return ShopCounterResponse.model_validate(dict(
+                session_id=session_id, campaign_id=record.campaign_id,
+                revision=token[1] if isinstance(token, tuple) and len(token) == 2 else None, **counter,
+            )).model_dump(mode="json")
 
     @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
                       operation_id="applyGameSessionLevelUp")

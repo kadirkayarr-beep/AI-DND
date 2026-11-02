@@ -35,3 +35,26 @@ test('generated API includes the canonical state and combat contract', async () 
   assert.match(turn, /^\s+interaction_mode\?:/m);
   assert.match(operations, /export const useDeleteCampaign\s*=/);
 });
+
+test('generated API carries the read-only counter quote and the trade refusal reason', async () => {
+  const [contract, schemas, operations] = await Promise.all([
+    readFile(contractPath, 'utf8'),
+    readFile(schemasPath, 'utf8'),
+    readFile(operationsPath, 'utf8'),
+  ]);
+  assert.match(contract, /^\s+operationId: getGameSessionShop$/m);
+  const counter = interfaceBlock(schemas, 'ShopCounterResponse');
+  for (const field of ['vendor', 'lines', 'purse', 'seq', 'status', 'reason']) {
+    assert.match(counter, new RegExp(`^\\s+${field}(?:\\?)?:`, 'm'));
+  }
+  for (const field of ['key', 'label', 'unit_cp', 'stock', 'discount_cp']) {
+    assert.match(interfaceBlock(schemas, 'ShopCounterLine'), new RegExp(`^\\s+${field}:`, 'm'));
+  }
+  for (const field of ['total_cp', 'gp', 'sp', 'cp']) {
+    assert.match(interfaceBlock(schemas, 'ShopCounterPurse'), new RegExp(`^\\s+${field}:`, 'm'));
+  }
+  assert.match(interfaceBlock(schemas, 'TurnOutcome'), /^\s+reason\?:/m);
+  assert.match(operations, /export const getGameSessionShop\s*=/);
+  // A quote is a read: no generated mutation may exist for it.
+  assert.doesNotMatch(operations, /useApplyGameSessionShop|postGameSessionShop/);
+});

@@ -73,7 +73,8 @@ def _stock(npc: dict[str, Any], key: str) -> int:
 def goods(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     if not is_vendor(world, npc):
         return []
-    return [{"key": key, "label": label, "unit_cp": max(0, price - _cut(npc, key)), "stock": _stock(npc, key)}
+    return [{"key": key, "label": label, "unit_cp": max(0, price - _cut(npc, key)), "stock": _stock(npc, key),
+             "discount_cp": min(price, _cut(npc, key))}
             for key, label, price in PRICES]
 
 
@@ -89,6 +90,36 @@ def purse_cp(world: dict[str, Any]) -> int:
 
 def _npc(world: dict[str, Any], npc_id: str) -> dict[str, Any] | None:
     return next((npc for npc in world.get("npcs", []) if isinstance(npc, dict) and npc.get("id") == npc_id), None)
+
+
+def counter(world: dict[str, Any]) -> dict[str, Any]:
+    """What the counter here shows the panel: whoever serves, the list, the purse and the offer number.
+
+    Reading it writes nothing. The gold, silver and copper split is for the eye only; the trade counts copper.
+    """
+    import scheduled_events
+    import world_reactions
+    total = purse_cp(world)
+    result: dict[str, Any] = {"status": "unavailable", "reason": None, "vendor": None, "lines": [],
+                              "purse": {"total_cp": total, "gp": total // 100, "sp": total % 100 // 10, "cp": total % 10},
+                              "seq": seq(world)}
+    here = world.get("location")
+    npc = next((npc for npc in scheduled_events.visible_npcs(world)
+                if npc.get("location") == here and is_vendor(world, npc)), None)
+    death = world.get("death_state") or {}
+    if npc is None:
+        result["reason"] = "no_vendor"
+    elif (world.get("combat") or {}).get("active") or death.get("dead") or death.get("terminal"):
+        result["reason"] = "not_now"
+    elif not equipment_economy.npc_can_act(npc):
+        result["reason"] = "vendor_unavailable"
+    elif world_reactions.refuses(world, npc):
+        result["reason"] = "vendor_refuses"
+    else:
+        result.update(status="ready", lines=goods(world, npc))
+    if npc is not None:
+        result["vendor"] = {"npc_id": str(npc.get("id")), "name": living_world.public_npc_name(npc)}
+    return result
 
 
 def quote(world: dict[str, Any], npc_id: str, key: str, count: int) -> dict[str, Any] | None:

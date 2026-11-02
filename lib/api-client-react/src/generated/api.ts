@@ -48,6 +48,7 @@ import type {
   LevelUpPreviewResponse,
   QuestCommandResult,
   RequestValidationErrorResponse,
+  ShopCounterResponse,
   SpeciesTraitActionInput,
   SpeciesTraitCommandResult,
   UnresolvedGameAction
@@ -741,6 +742,84 @@ export const usePlayGameTurn = <TError = ErrorType<AuthenticationRequiredRespons
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
     }
+
+export const getGetGameSessionShopUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/shop`
+}
+
+/**
+ * What whoever serves here offers now, the purse in copper with a gold/silver/copper display split, and the offer number a trade must name. Reading writes nothing and makes no receipt. The trade itself is one typed turn, /item shop_buy <npc_id> <key> <count> <seq> <total_cp>.
+ * @summary Read the counter offer here
+ */
+export const getGameSessionShop = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<ShopCounterResponse> => {
+
+  return customFetch<ShopCounterResponse>(getGetGameSessionShopUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGameSessionShopQueryKey = (sessionId: string,) => {
+    return [
+    `/api/game/sessions/${sessionId}/shop`
+    ] as const;
+    }
+
+
+export const getGetGameSessionShopQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionShop>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionShop>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGameSessionShopQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGameSessionShop>>> = ({ signal }) => getGameSessionShop(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGameSessionShop>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGameSessionShopQueryResult = NonNullable<Awaited<ReturnType<typeof getGameSessionShop>>>
+export type GetGameSessionShopQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+
+
+/**
+ * @summary Read the counter offer here
+ */
+
+export function useGetGameSessionShop<TData = Awaited<ReturnType<typeof getGameSessionShop>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionShop>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGameSessionShopQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetUnresolvedGameActionUrl = (sessionId: string,) => {
 

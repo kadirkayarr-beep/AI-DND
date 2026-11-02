@@ -557,6 +557,9 @@ class TurnOutcome(BaseModel):
     target_name: str | None = Field(default=None, max_length=120)
     found: bool | None = None
     place_created: bool | None = None
+    # Only a counter trade or offer names its engine reason (offer_stale, price_changed, ...), so the panel can ask again.
+    # Left out when absent, so a receipt stored before this field replays byte for byte.
+    reason: str | None = Field(default=None, max_length=48, exclude_if=lambda value: value is None)
 
 
 class TurnResponse(BaseModel):
@@ -1480,6 +1483,39 @@ class LevelUpPreviewResponse(BaseModel):
     supported_asi_choices: list[LevelUpAsiChoice] = Field(default_factory=list)
     capacity: dict[str, Any] | None = None
     effects_pending: list[str] = Field(default_factory=list)
+
+
+class ShopCounterVendor(BaseModel):
+    npc_id: str
+    name: str
+
+
+class ShopCounterLine(BaseModel):
+    key: str
+    label: str
+    unit_cp: int = Field(ge=0)
+    stock: int = Field(ge=0)
+    discount_cp: int = Field(ge=0)
+
+
+class ShopCounterPurse(BaseModel):
+    total_cp: int = Field(ge=0)
+    gp: int = Field(ge=0)
+    sp: int = Field(ge=0)
+    cp: int = Field(ge=0)
+
+
+class ShopCounterResponse(BaseModel):
+    """What the counter here offers now; reading it writes nothing and makes no receipt."""
+    session_id: str
+    campaign_id: str | None
+    revision: int | None
+    status: Literal["ready", "unavailable"]
+    reason: str | None
+    vendor: ShopCounterVendor | None
+    lines: list[ShopCounterLine]
+    purse: ShopCounterPurse
+    seq: int = Field(ge=0)
 
 
 class LevelUpAppliedResult(BaseModel):

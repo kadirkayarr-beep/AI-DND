@@ -419,6 +419,57 @@ export interface LevelUpCommandResult {
   result: LevelUpAppliedResult;
 }
 
+export interface ShopCounterVendor {
+  npc_id: string;
+  name: string;
+}
+
+export interface ShopCounterLine {
+  key: string;
+  label: string;
+  /** @minimum 0 */
+  unit_cp: number;
+  /** @minimum 0 */
+  stock: number;
+  /** @minimum 0 */
+  discount_cp: number;
+}
+
+export interface ShopCounterPurse {
+  /** @minimum 0 */
+  total_cp: number;
+  /** @minimum 0 */
+  gp: number;
+  /** @minimum 0 */
+  sp: number;
+  /** @minimum 0 */
+  cp: number;
+}
+
+export type ShopCounterResponseStatus = typeof ShopCounterResponseStatus[keyof typeof ShopCounterResponseStatus];
+
+
+export const ShopCounterResponseStatus = {
+  ready: 'ready',
+  unavailable: 'unavailable',
+} as const;
+
+/**
+ * What the counter here offers now; reading it writes nothing and makes no receipt.
+ */
+export interface ShopCounterResponse {
+  session_id: string;
+  campaign_id: string | null;
+  revision: number | null;
+  status: ShopCounterResponseStatus;
+  reason: string | null;
+  vendor: ShopCounterVendor | null;
+  lines: ShopCounterLine[];
+  purse: ShopCounterPurse;
+  /** @minimum 0 */
+  seq: number;
+}
+
 export type LevelUpPreviewResponseStatus = typeof LevelUpPreviewResponseStatus[keyof typeof LevelUpPreviewResponseStatus];
 
 
@@ -2893,6 +2944,8 @@ export interface TurnOutcome {
   target_name?: string | null;
   found?: boolean | null;
   place_created?: boolean | null;
+  /** Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action. */
+  reason?: string | null;
 }
 
 export interface GameTurnResult {

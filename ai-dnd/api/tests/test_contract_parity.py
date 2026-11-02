@@ -867,8 +867,9 @@ class ContractParityTests(unittest.TestCase):
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
         # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon)
-        # + GET and POST level-up in both alias families.
-        self.assertEqual(len(documented_routes), 49)
+        # + GET and POST level-up in both alias families
+        # + the canonical-only read of the counter offer (GET shop).
+        self.assertEqual(len(documented_routes), 50)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -910,6 +911,7 @@ class ContractParityTests(unittest.TestCase):
                 "200", "401", "404", "409", "422", "500", "503"
             },
             ("/game/campaigns/{campaign_id}", "delete"): {"200", "401", "503"},
+            ("/game/sessions/{session_id}/shop", "get"): {"200", "401", "404", "409", "422"},
             ("/campaigns/{campaign_id}", "delete"): {"200", "401", "503"},
         }
         for (path, method), expected in status_expectations.items():

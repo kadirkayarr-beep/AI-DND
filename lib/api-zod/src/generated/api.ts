@@ -5122,6 +5122,8 @@ export const playGameTurnResponseTurnOutcomeOneKindOneMax = 48;
 
 export const playGameTurnResponseTurnOutcomeOneTargetNameOneMax = 120;
 
+export const playGameTurnResponseTurnOutcomeOneReasonOneMax = 48;
+
 
 
 export const PlayGameTurnResponse = zod.object({
@@ -6263,9 +6265,63 @@ export const PlayGameTurnResponse = zod.object({
   "kind": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneKindOneMax),zod.null()]).optional(),
   "target_name": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
-  "place_created": zod.union([zod.boolean(),zod.null()]).optional()
+  "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
+  "reason": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
 })
+
+
+/**
+ * What whoever serves here offers now, the purse in copper with a gold/silver/copper display split, and the offer number a trade must name. Reading writes nothing and makes no receipt. The trade itself is one typed turn, /item shop_buy <npc_id> <key> <count> <seq> <total_cp>.
+ * @summary Read the counter offer here
+ */
+export const GetGameSessionShopParams = zod.object({
+  "session_id": zod.coerce.string()
+})
+
+export const getGameSessionShopResponseLinesItemUnitCpMin = 0;
+
+export const getGameSessionShopResponseLinesItemStockMin = 0;
+
+export const getGameSessionShopResponseLinesItemDiscountCpMin = 0;
+
+export const getGameSessionShopResponsePurseTotalCpMin = 0;
+
+export const getGameSessionShopResponsePurseGpMin = 0;
+
+export const getGameSessionShopResponsePurseSpMin = 0;
+
+export const getGameSessionShopResponsePurseCpMin = 0;
+
+export const getGameSessionShopResponseSeqMin = 0;
+
+
+
+export const GetGameSessionShopResponse = zod.object({
+  "session_id": zod.string(),
+  "campaign_id": zod.union([zod.string(),zod.null()]),
+  "revision": zod.union([zod.number().int(),zod.null()]),
+  "status": zod.enum(['ready', 'unavailable']),
+  "reason": zod.union([zod.string(),zod.null()]),
+  "vendor": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
+  "lines": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "unit_cp": zod.number().int().min(getGameSessionShopResponseLinesItemUnitCpMin),
+  "stock": zod.number().int().min(getGameSessionShopResponseLinesItemStockMin),
+  "discount_cp": zod.number().int().min(getGameSessionShopResponseLinesItemDiscountCpMin)
+})),
+  "purse": zod.object({
+  "total_cp": zod.number().int().min(getGameSessionShopResponsePurseTotalCpMin),
+  "gp": zod.number().int().min(getGameSessionShopResponsePurseGpMin),
+  "sp": zod.number().int().min(getGameSessionShopResponsePurseSpMin),
+  "cp": zod.number().int().min(getGameSessionShopResponsePurseCpMin)
+}),
+  "seq": zod.number().int().min(getGameSessionShopResponseSeqMin)
+}).describe('What the counter here offers now; reading it writes nothing and makes no receipt.')
 
 
 /**
@@ -6695,6 +6751,8 @@ export const getGameActionStatusResponseResponseTwoTurnOutcomeOneStatusOneMax = 
 export const getGameActionStatusResponseResponseTwoTurnOutcomeOneKindOneMax = 48;
 
 export const getGameActionStatusResponseResponseTwoTurnOutcomeOneTargetNameOneMax = 120;
+
+export const getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax = 48;
 
 
 
@@ -7840,7 +7898,8 @@ export const GetGameActionStatusResponse = zod.object({
   "kind": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneKindOneMax),zod.null()]).optional(),
   "target_name": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
-  "place_created": zod.union([zod.boolean(),zod.null()]).optional()
+  "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
+  "reason": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
@@ -8259,6 +8318,8 @@ export const abandonGameActionResponseResponseTwoTurnOutcomeOneStatusOneMax = 48
 export const abandonGameActionResponseResponseTwoTurnOutcomeOneKindOneMax = 48;
 
 export const abandonGameActionResponseResponseTwoTurnOutcomeOneTargetNameOneMax = 120;
+
+export const abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax = 48;
 
 
 
@@ -9404,7 +9465,8 @@ export const AbandonGameActionResponse = zod.object({
   "kind": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneKindOneMax),zod.null()]).optional(),
   "target_name": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
-  "place_created": zod.union([zod.boolean(),zod.null()]).optional()
+  "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
+  "reason": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
@@ -26094,6 +26156,8 @@ export const playLegacyTurnResponseTurnOutcomeOneKindOneMax = 48;
 
 export const playLegacyTurnResponseTurnOutcomeOneTargetNameOneMax = 120;
 
+export const playLegacyTurnResponseTurnOutcomeOneReasonOneMax = 48;
+
 
 
 export const PlayLegacyTurnResponse = zod.object({
@@ -27235,7 +27299,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "kind": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneKindOneMax),zod.null()]).optional(),
   "target_name": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
-  "place_created": zod.union([zod.boolean(),zod.null()]).optional()
+  "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
+  "reason": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
 })
 
