@@ -177,10 +177,31 @@ def _pick_up(session, name: str) -> str | None:
         return None
     found = item_transfers.real_thing_here(world, _stem(name))
     if found is None:
-        return None
+        return _pick_up_told(session, name)
     source, item = found
     moved = item_transfers.transfer_now(world, item_id=item["item_id"], source_id=source, recipient_id="player")
     return str(item["name"]) if moved.status == "applied" else None
+
+
+def _told_here(session, name: str) -> bool:
+    """This place's own narration names the thing, every word of it: the narrator's lines since the player came
+    here (a move clears them), with no quoted words and no sentence that denies it."""
+    told = [text for text in getattr(session, "recent_dm_narrations", ()) if isinstance(text, str)]
+    said = [living_world.normalize_text(word) for word in _THING_WORD.findall(told_as_there("\n".join(told)))]
+    parts = [world_threads._stem(part) for part in living_world.normalize_text(name).split()]
+    return bool(parts) and all(len(part) >= 3 and any(word.startswith(part) for word in said) for part in parts)
+
+
+def _pick_up_told(session, name: str) -> str | None:
+    """No real thing lies here: a worthless one this scene's narration showed is made once and taken (Kadir,
+    2026-11-03). A person, a part of the place, coin, a key or anything of worth stays words."""
+    import item_transfers
+    world = session.world_state
+    stem = _stem(name)
+    if (len(stem) < 3 or stem.startswith(_NOT_FOUND) or names_worth(name) or stem.startswith(_fixed_here(world))
+            or stem.startswith(_people_here(session)) or not _told_here(session, name)):
+        return None
+    return item_transfers.pick_up_told(world, name, stem=stem)
 
 
 def asked_for(text: str, word: str) -> tuple[str, ...]:
@@ -255,7 +276,10 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
     else:
         found = item_transfers.real_thing_here(world, stem)
         if found is None:
-            return False
+            # Only the player's own taking line, never the narrator's say-so alone, picks up a thing told here.
+            words = living_world.normalize_text(line).split() if isinstance(line, str) else []
+            taken = any(word.startswith(stem) and _taken_by_its_verb(words, at) for at, word in enumerate(words))
+            return taken and _pick_up_told(session, _bare(item)[:1].upper() + _bare(item)[1:].casefold()) is not None
         source, held = found
     moved = item_transfers.transfer_now(world, item_id=held["item_id"], source_id=source, recipient_id="player")
     return moved.status == "applied"

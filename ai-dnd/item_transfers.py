@@ -3,7 +3,8 @@
 A transfer never makes an item: it moves one existing instance from its real owner (the player, an NPC, the
 ground here or a surface here) to another, on a copy first and then the same steps on the live world. A held item
 leaves the hand through `equipment_economy.clear_equipment`; armor and a shield never move this way. The one
-transfer is recorded in the economic ledger under its operation id. No network, model or database call is made.
+transfer is recorded in the economic ledger under its operation id. The one maker is `pick_up_told`: a worthless
+thing this scene's narration showed, made once and taken by such a transfer. No network, model or database call is made.
 """
 
 from __future__ import annotations
@@ -177,6 +178,75 @@ def transfer_now(world: dict[str, Any], *, item_id: str, source_id: str, recipie
         world.setdefault("flags", {}).setdefault("economic_ledger", {})["operation_seq"] = (
             peek["flags"]["economic_ledger"]["operation_seq"])
     return result
+
+
+NARRATED_PICKUPS = "narrated_pickups"  # flags: 'place:stem' of each told thing already made, so a mention makes one
+_NARRATED_KEPT = 64
+
+
+def pick_up_told(world: dict[str, Any], name: str, *, stem: str) -> str | None:
+    """A worthless thing the narrator showed here and nobody holds: made once on the ground here, then moved to
+    the player by one item transfer. The caller has read that this scene's narration names it and the line takes it.
+
+    Coin, a coin label, armor, a weapon, a priced or magic thing, one already held or lying anywhere, a second take
+    of the same mention, or a take in a fight makes nothing (Kadir, 2026-11-03).
+    """
+    import living_world
+    place = world.get("location")
+    if (not isinstance(place, str) or not place or (world.get("combat") or {}).get("active")
+            or not isinstance(name, str) or not name.strip() or len(name.strip()) > 200 or not stem):
+        return None
+    name = name.strip()
+    if is_coin_label(name) or equipment_economy.is_armor_or_shield(name) or item_needs_card(world, name):
+        return None
+    mention = f"{place}:{stem}"
+    if mention in (((world.get("flags") or {}).get(NARRATED_PICKUPS)) or []):
+        return None
+    candidate = copy.deepcopy(world)
+    try:
+        equipment_economy.materialize(candidate)
+    except equipment_economy.EquipmentError:
+        return None
+    if any(any(word.startswith(stem) for word in living_world.normalize_text(equipment_economy.label(item)).split())
+           for _, items in equipment_economy.containers(candidate) for item in items or []):
+        return None
+    if _make_and_take(candidate, name, place, mention) is None:
+        return None
+    return _make_and_take(world, name, place, mention)
+
+
+def _make_and_take(world: dict[str, Any], name: str, place: str, mention: str) -> str | None:
+    """The one told thing laid where the player stands and moved to the bag by `transfer_now`, or nothing at all."""
+    equipment_economy.materialize(world)
+    reserved = {item.get("item_id") for _, items in equipment_economy.containers(world)
+                for item in items if isinstance(item, dict)}
+    before = world.get("item_sequence", 0)
+    sequence = before if type(before) is int and before >= 0 else 0
+    while True:
+        sequence += 1
+        item_id = f"item_{sequence:06d}"
+        if item_id not in reserved:
+            break
+    grounds = world.setdefault("ground_items_by_location", {})
+    had_ground = place in grounds
+    ground = grounds.setdefault(place, [])
+    record = {"item_id": item_id, "name": name, "source": "narrated_scene", "source_place_id": place}
+    ground.append(record)
+    world["item_sequence"] = sequence
+    moved = transfer_now(world, item_id=item_id, source_id=f"ground:{place}", recipient_id="player")
+    if moved.status != "applied":
+        if record in ground:
+            ground.remove(record)
+        world["item_sequence"] = before
+        if not had_ground and not ground:
+            del grounds[place]
+        return None
+    if not had_ground and not ground:
+        del grounds[place]
+    made = world.setdefault("flags", {}).setdefault(NARRATED_PICKUPS, [])
+    made.append(mention)
+    del made[:-_NARRATED_KEPT]
+    return name
 
 
 def real_thing_here(world: dict[str, Any], stem: str) -> tuple[str, dict[str, Any]] | None:
