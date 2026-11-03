@@ -1294,14 +1294,21 @@ def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicRe
     if held is None or held < amount_cp:
         return dataclasses.replace(_refused(blank, "npc_purse_short"), public_summary="")
     mine = facts.balances.get("player", 0)
+    # The id is drawn from a copy of the counter; the live counter moves only once the gift is applied, so a
+    # refused or failed write leaves the live world exactly as it was.
+    peek = {"flags": {"economic_ledger": {"operation_seq": _ledger(world).get("operation_seq", 0)}}}
     resolution = dataclasses.replace(
-        blank, operation_id=operation_id_for(world, "npc_gift"), status="applied",
+        blank, operation_id=operation_id_for(peek, "npc_gift"), status="applied",
         asset_deltas=[AssetDelta(owner_id="player", asset_kind="currency", asset_id="cp", before=mine,
                                  after=mine + amount_cp),
                       AssetDelta(owner_id=str(npc_id), asset_kind="currency", asset_id="cp", before=held,
                                  after=held - amount_cp)],
         net_debit_cp=amount_cp, public_summary=f"{amount_cp} bakır sana geçti.")
-    return apply_resolution(state, resolution, confirmed_offer=None)
+    applied = apply_resolution(state, resolution, confirmed_offer=None)
+    if applied.status == "applied":
+        world.setdefault("flags", {}).setdefault("economic_ledger", {})["operation_seq"] = (
+            peek["flags"]["economic_ledger"]["operation_seq"])
+    return applied
 
 
 def counter_purchase_offer(world: dict[str, Any], *, npc_id: str, key: str, count: int, unit_cp: int,

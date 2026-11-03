@@ -115,6 +115,14 @@ class HandedCoin(Talk):
         self.assertNotIn("artık sende", note)
         self.assertIn("henüz sende değil", note)
         self.assertIn("5 bakır", note)
+        # Coin held out to nobody the line could name opens no card naming anyone: whoever answers is not told of it.
+        self.s._coin_paid = (5, None, self.here)
+        note = game._experimental_speech_note(self.w, guest, None, "al şunu", session=self.s)
+        self.assertNotIn("bakır uzatıyor", note)
+        # Coin held out to someone else is not this person's either.
+        self.s._coin_paid = (5, self.npc("barman"), self.here)
+        note = game._experimental_speech_note(self.w, guest, None, "al şunu", session=self.s)
+        self.assertNotIn("bakır uzatıyor", note)
         # A room line takes the coin as its tender (or ignores it with a note): nobody is told it changed hands.
         self.s._coin_paid = (100, self.npc("barman"), self.here)
         self.s.run_player_turn("hancıya 1 altın verip oda tutuyorum")
@@ -155,6 +163,17 @@ class NpcGifts(Talk):
         self.assertEqual(settled["moved"], 0)
         self.assertEqual(self.money(), before)
         self.assertNotIn("guest", self.w["currency"])
+
+    def test_failed_npc_gift_write_leaves_the_operation_counter(self):
+        before = copy.deepcopy(self.w)
+        with patch("economic_actions.validate_economic_resolution",
+                   side_effect=ea.EconomicReceiptError("receipt_mismatch")):
+            with self.assertRaises(ea.EconomicReceiptError):
+                ea.npc_gift(ea.EconomicState(world=self.w, character=None), npc_id="guest", amount_cp=5)
+        self.assertEqual(self.w, before)
+        self.assertNotIn("operation_seq", self.ledger())
+        self.settle("guest", 5)
+        self.assertEqual(list(self.ledger()["operations"]), ["unscoped:economic:npc_gift:1"])
 
     def test_npc_gift_without_scope_pays_once(self):
         self.settle("guest", 5)

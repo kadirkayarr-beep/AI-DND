@@ -8605,8 +8605,9 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
     held_out = getattr(_session(), "_coin_paid", None)
-    if held_out and (not isinstance(held_out[1], dict) or held_out[1].get("id") == npc.get("id")):
-        # Coin waits for the card: the person must not be told it is already theirs (decisions 3 and 11).
+    if held_out and isinstance(held_out[1], dict) and held_out[1].get("id") == npc.get("id"):
+        # Coin waits for the card: the person must not be told it is already theirs (decisions 3 and 11). Only the
+        # person it was held out to hears of it; coin held to nobody named opens no card that names anyone.
         lines.append(f"Oyuncu sana {held_out[0]} bakır uzatıyor; para henüz sende değil, "
                      "oyuncu kartı onaylarsa geçer.")
     import bold_acts

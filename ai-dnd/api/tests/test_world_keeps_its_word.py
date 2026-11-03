@@ -173,6 +173,17 @@ class FrontLines(FrontScene):
                 for data in self.world.get("flags", {}).get("economic_offers", {}).values()
                 if data["status"] == "prepared" and data["proposal"]["purpose"] == "gift"]
 
+    async def confirm_card(self, out):
+        """Confirms the card the line opened, over HTTP, with a fresh action; returns the response."""
+        card = out["state"]["economic_offer"]
+        confirmed = await self.http.post(self.turn_url, json={
+            "message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+            "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                "confirmation_digest": card["confirmation_digest"]}})
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
+        self.assertEqual(confirmed.json()["economic_resolution"]["status"], "applied", confirmed.text)
+        return confirmed
+
     async def test_hanging_about_moves_the_clock(self):
         await self.begin()
         clock = self.world["campaign_time"]["elapsed_seconds"]
@@ -240,17 +251,23 @@ class FrontLines(FrontScene):
                 await self.begin()
                 self.world.setdefault("currency", {})["player"] = 320
                 self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": read}
-                await self.line(line)
+                out = await self.line(line)
                 self.assertEqual(self.purse(), 320, line)  # A4: held out, not paid, until the card is confirmed
                 self.assertEqual(self.held_out(), [(self.npc["id"], paid)], line)
+                await self.confirm_card(out)
+                self.assertEqual(self.purse(), 320 - paid, line)  # the line's figure is what really moves
+                self.assertEqual(self.world["currency"].get(self.npc["id"], 0), paid, line)
 
     async def test_coin_with_no_figure_is_a_small_hand_not_the_readings_number(self):
         await self.begin()
         self.world.setdefault("currency", {})["player"] = 320
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 300}
-        await self.line("eline biraz para sikistiriyorum")
+        out = await self.line("eline biraz para sikistiriyorum")
         self.assertEqual(self.purse(), 320)  # A4: held out, not paid, until the card is confirmed
         self.assertEqual(self.held_out(), [(self.npc["id"], 10)])
+        await self.confirm_card(out)
+        self.assertEqual(self.purse(), 310)  # a small hand really moves, never the reading's number
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 10)
 
     async def test_more_than_the_purse_holds_stays_in_the_purse(self):
         await self.begin()
