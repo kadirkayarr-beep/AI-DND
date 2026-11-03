@@ -509,6 +509,49 @@ class TheChain(unittest.TestCase):
         self.assertIn("provider=haiku", text)
 
 
+class TheObserver(unittest.TestCase):
+    def observed_chain(self, cloud, observer):
+        clock = Clock()
+        spend = model_chain.HaikuSpend(spend_file(), clock)
+        providers = [model_chain.gemini(KEY), model_chain.haiku(KEY, spend)]
+        return model_chain.ModelChain(
+            providers, transport=httpx.MockTransport(cloud), now=clock, observer=observer,
+        )
+
+    def test_observer_sees_skip_then_answer(self):
+        seen = []
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        self.observed_chain(cloud, seen.append).chat(CALL, LocalModel())
+        skipped, answered = seen
+        self.assertEqual((skipped.provider, skipped.outcome, skipped.reason), ("gemini", "skipped", "http_500"))
+        self.assertEqual((skipped.input_tokens, skipped.output_tokens, skipped.thought_tokens), (0, 0, 0))
+        self.assertEqual((answered.provider, answered.outcome, answered.reason), ("haiku", "answered", None))
+        self.assertEqual((answered.input_tokens, answered.output_tokens, answered.thought_tokens), (1000, 200, 0))
+        for attempt in seen:
+            self.assertIsInstance(attempt, model_chain.ChainAttempt)
+            self.assertGreaterEqual(attempt.seconds, 0.0)
+
+    def test_observer_does_not_change_the_return_value(self):
+        def run(observer):
+            cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+            response, provider = self.observed_chain(cloud, observer).chat(CALL, LocalModel())
+            return response.message.content, provider
+
+        self.assertEqual(run(None), run(lambda attempt: None))
+        self.assertEqual(run(None), ('{"narration": "Sokak sessiz."}', "haiku"))
+
+    def test_observer_exception_never_reaches_the_caller(self):
+        def broken(attempt):
+            raise RuntimeError("observer bug")
+
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            response, provider = self.observed_chain(cloud, broken).chat(CALL, LocalModel())
+        self.assertEqual(provider, "haiku")
+        self.assertEqual(response.message.content, '{"narration": "Sokak sessiz."}')
+        self.assertTrue(any("observer" in line for line in logs.output))
+
+
 class TheReplyShape(unittest.TestCase):
     """A cloud reply leaves shaped as Gemma's grammar would have shaped it, or the next provider is asked."""
 

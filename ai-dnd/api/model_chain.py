@@ -21,7 +21,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 import ollama
@@ -55,6 +55,19 @@ _GEMINI_UNSUPPORTED = frozenset({"$defs", "additionalProperties", "const", "defa
 _FENCE = re.compile(r"^\s*```(?:json)?\s*(.*?)\s*```\s*$", re.DOTALL)
 _KINDS = {"object": dict, "array": list, "string": str, "integer": int, "number": (int, float), "boolean": bool}
 _logger = logging.getLogger("ai_dnd.api.ollama")
+
+
+@dataclass(frozen=True)
+class ChainAttempt:
+    """One provider try inside a chat call, for an optional observer. Tokens are zero when the try was skipped."""
+
+    provider: str
+    outcome: Literal["answered", "skipped"]
+    reason: str | None
+    seconds: float
+    input_tokens: int
+    output_tokens: int
+    thought_tokens: int
 
 
 @dataclass(frozen=True)
@@ -396,9 +409,11 @@ class ModelChain:
         *,
         transport: httpx.BaseTransport | None = None,
         now: Callable[[], datetime] = lambda: datetime.now().astimezone(),
+        observer: Callable[[ChainAttempt], None] | None = None,
     ):
         self._providers = providers
         self._now = now
+        self._observer = observer
         self._resting_until: dict[str, datetime] = {}
         # No redirects and no proxy or netrc from the environment: a key goes to its own host only.
         self._http = httpx.Client(transport=transport, trust_env=False)
@@ -429,6 +444,15 @@ class ModelChain:
             return
         seconds = _retry_after_seconds(retry_after, moment)
         self._resting_until[provider.name] = moment + timedelta(seconds=seconds)
+
+    def _notify(self, attempt: ChainAttempt) -> None:
+        """Tell the observer; whatever it does wrong never reaches the game call."""
+        if self._observer is None:
+            return
+        try:
+            self._observer(attempt)
+        except Exception as error:
+            _logger.warning("Model chain observer failed (error=%s)", type(error).__name__)
 
     def _post(self, provider: Provider, call: Mapping[str, Any], deadline: datetime) -> tuple[int, str, str | None]:
         """One request inside the time left. The deadline also stops a reply that trickles in."""
@@ -478,11 +502,18 @@ class ModelChain:
                     # A dead route would cost this wait again on every call. A 5xx answers at once, so it rests nobody.
                     self._resting_until[provider.name] = self._now() + timedelta(seconds=DEFAULT_COOLDOWN_SECONDS)
                 reason = error.reason if isinstance(error, _Skipped) else type(error).__name__
+                seconds = time.monotonic() - started
                 _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
-                             provider.name, reason, time.monotonic() - started)
+                             provider.name, reason, seconds)
+                self._notify(ChainAttempt(provider.name, "skipped", reason, seconds, 0, 0, 0))
                 continue
+            seconds = time.monotonic() - started
             _logger.info("Model chain answered (provider=%s, seconds=%.2f, thought_tokens=%d)",
-                         provider.name, time.monotonic() - started, reply.thought_tokens)
+                         provider.name, seconds, reply.thought_tokens)
+            self._notify(ChainAttempt(
+                provider.name, "answered", None, seconds,
+                reply.input_tokens, reply.output_tokens, reply.thought_tokens,
+            ))
             return ollama.ChatResponse(
                 model=provider.model, done=True, done_reason=reply.done_reason,
                 message=ollama.Message(role="assistant", content=reply.text),
