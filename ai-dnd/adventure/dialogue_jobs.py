@@ -228,7 +228,10 @@ def _move_parcel(session,thread,npc,to_player,text='',own_turn=True):
             elsewhere['location']=None
             adventure.apply_dynamic_evidence(world,elsewhere,{'action':'travel','status':'resolved'})
     before=copy.deepcopy(world)
-    equipment_economy.move(world,item,source,destination,npc['id'] if to_player else 'player')
+    import item_transfers
+    moved=item_transfers.transfer_now(world,item_id=item_id,source_id=npc['id'] if to_player else 'player',
+                                      recipient_id='player' if to_player else npc['id'])
+    if moved.status!='applied': equipment_economy.fail(moved.reason_code or 'item_transfer_refused')
     equipment_economy.validate_world(world)
     flags=world.setdefault('flags',{})
     if own_turn:
@@ -313,13 +316,20 @@ def deliver_late(session,thread,person,text):
 
 
 def give_plain(world,item_id,person):
-    """Something of the bag that no job names goes to this person, and their hands hold it from now on."""
+    """Something of the bag that no job names goes to this person, and their hands hold it from now on.
+
+    Only a plain thing goes this way; a valued or held one waits for `/item give` and its card (K5, O3).
+    """
+    import item_transfers
     item=next((i for i in world.get('inventory',[]) if isinstance(i,dict) and i.get('item_id')==item_id),None)
-    if item is None: return None
+    if item is None or item_transfers.item_needs_card(world,item): return None
     kept=_keep(world)
     try:
         equipment_economy.materialize(world)
-        equipment_economy.move(world,item,world['inventory'],person.setdefault('inventory',[]),'player')
+        moved=item_transfers.transfer_now(world,item_id=item_id,source_id='player',recipient_id=person['id'])
+        if moved.status!='applied':
+            _restore(world,kept)
+            return None
         equipment_economy.validate_world(world)
         return item
     except Exception:

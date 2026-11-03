@@ -4,7 +4,9 @@ from __future__ import annotations
 import copy
 import re
 import shlex
+from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 from weapon_catalog import lookup
 
@@ -13,6 +15,16 @@ COIN_VALUES = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
 
 class EquipmentError(ValueError):
     pass
+
+
+class _CardNotPrepared(Exception):
+    """The item card was refused or asked about: the turn ends unsuccessful with the card's own words."""
+
+
+@dataclass(frozen=True)
+class ItemCardRequest:
+    """`_apply`'s give asks for a card instead of moving a valued or held item; only `execute` reads it."""
+    proposal: Any  # economic_actions.EconomicProposal, purpose "item_gift"
 
 
 def fail(reason):
@@ -453,6 +465,15 @@ def npc_can_act(npc):
                 or npc.get("combat_status") in {"dead", "unconscious", "defeated"})
 
 
+def is_armor_or_shield(item):
+    """Armor or a shield: its owner is the creation's AC fact, so no item transfer may move it."""
+    from api.dnd_2024_rules import ARMOR_NAME_ALIASES
+    name = str(label(item) or "").casefold()
+    return bool((isinstance(item, dict) and item.get("armor_id"))
+                or any(alias.casefold() == name for alias in ARMOR_NAME_ALIASES)
+                or any(word in name for word in ("armor", "zırh", "zirh", "shield", "kalkan")))
+
+
 def clear_equipment(world, actor, item):
     if actor == "ground":
         return
@@ -464,10 +485,7 @@ def clear_equipment(world, actor, item):
     else:
         owner = world if actor == "player" else npc_at(world, actor)
     # Do not silently invalidate creation-owned armor AC/shield benefits.
-    from api.dnd_2024_rules import ARMOR_NAME_ALIASES
-    name = item["name"].casefold()
-    if (item.get("armor_id") or any(alias.casefold() == name for alias in ARMOR_NAME_ALIASES)
-            or any(word in name for word in ("armor", "zırh", "zirh", "shield", "kalkan"))):
+    if is_armor_or_shield(item):
         fail("armor_owner_required")
     hands = owner.get("equipment")
     if isinstance(hands, dict):
@@ -510,14 +528,17 @@ def move(world, item, source, destination, source_actor):
     destination.append(item)
 
 
-def consent(npc, item, operation, recipient):
+def has_consent(npc, item, operation, recipient):
+    """The NPC's written consent for exactly this item, operation and recipient; reading it consumes nothing."""
     grants = npc.get("item_consents", {})
     grant = grants.get(item["item_id"]) if isinstance(grants, dict) else None
-    if not isinstance(grant, dict) or grant != {
-        "operation": operation, "recipient": recipient,
-    }:
+    return isinstance(grant, dict) and grant == {"operation": operation, "recipient": recipient}
+
+
+def consent(npc, item, operation, recipient):
+    if not has_consent(npc, item, operation, recipient):
         fail("npc_consent_required")
-    del grants[item["item_id"]]
+    del npc["item_consents"][item["item_id"]]
 
 
 def grant_catalog_item(world, identity):
@@ -743,7 +764,29 @@ def _apply(world, operation, args):
             fail("armor_owner_required")
         canonical_hands(world, "player", world)
         hands[args[0]] = None
-    elif operation in {"give", "receive"} and len(args) == 2:
+    elif operation == "give" and len(args) == 2:
+        import economic_actions
+        import item_transfers
+        npc = npc_at(world, args[1])
+        item = one(inventory, args[0])
+        if is_armor_or_shield(item):
+            fail("armor_owner_required")
+        if item_transfers.is_coin_label(item):
+            fail("coin_is_money")  # written coin is money: it goes with a coin card, never as an item
+        if not has_consent(npc, item, "give", npc["id"]):
+            fail("npc_consent_required")  # read here, consumed only by the transfer itself
+        if item_transfers.item_needs_card(world, item):
+            return ItemCardRequest(proposal=economic_actions.EconomicProposal(
+                purpose="item_gift", recipient_id=npc["id"], source_id="player", item_id=item["item_id"], count=1,
+                amount_cp=None, tip_cp=0, tender_cp=None, dependency="base_required", source_action_id="",
+                text_span=None))
+        consent(npc, item, "give", npc["id"])
+        moved = item_transfers.transfer_existing_item(
+            economic_actions.EconomicState(world=world, character=None), item_id=item["item_id"], source_id="player",
+            recipient_id=npc["id"], count=1, operation_id=economic_actions.operation_id_for(world, "item_transfer"))
+        if moved.status != "applied":
+            fail(moved.reason_code or "item_transfer_refused")
+    elif operation == "receive" and len(args) == 2:
         npc = npc_at(world, args[1])
         npc_items = npc.setdefault("inventory", [])
         source, destination = (inventory, npc_items) if operation == "give" else (npc_items, inventory)
@@ -828,7 +871,7 @@ def execute(session, text, *, advance_turn=True):
     if not natural_list and not text.strip().startswith("/item"):
         return None
     before = copy.deepcopy(session.world_state)
-    success, reason, fresh_offer = False, None, None
+    success, reason, fresh_offer, offered = False, None, None, False
     try:
         tokens = ["/item", "list"] if natural_list else shlex.split(text)
         if len(tokens) < 2 or tokens[0] != "/item":
@@ -843,6 +886,7 @@ def execute(session, text, *, advance_turn=True):
         # observe transient debits or consumed consent on a rejected transaction.
         candidate = copy.deepcopy(world)
         narration = _apply(candidate, tokens[1], tokens[2:])
+        card_request = narration if isinstance(narration, ItemCardRequest) else None
         validate_world(candidate)
         if natural_list:
             item_names = labels(candidate["inventory"])
@@ -855,9 +899,21 @@ def execute(session, text, *, advance_turn=True):
                 narration += f" Kesende {wallet // 100} altın {wallet % 100} bakır var."
         world.clear()
         world.update(candidate)
+        if card_request is not None:
+            # The valued or held item stays put: the card is prepared on the live world, and only a prepared card
+            # counts as this turn. A refusal or a question leaves the turn where it was.
+            import economic_actions
+            prepared = economic_actions.prepare_from_turn(session, card_request.proposal)
+            narration = prepared.public_message
+            if prepared.status != "prepared":
+                reason = prepared.reason_code
+                raise _CardNotPrepared(reason)
+            offered = True
         if advance_turn and tokens[1] != "list":
             world["flags"]["turn_index"] = world["flags"].get("turn_index", 0) + 1
         success = True
+    except _CardNotPrepared:
+        success = False
     except (EquipmentError, ValueError, TypeError, KeyError) as exc:
         reason = str(exc) if isinstance(exc, EquipmentError) else "invalid_economic_state"
         fresh_offer = getattr(exc, "quote", None)  # a refused counter trade shows the offer as it stands now
@@ -877,7 +933,7 @@ def execute(session, text, *, advance_turn=True):
                 else tokens[2] if success and tokens[1] == "work"
                 else None
             ),
-            "status": "resolved" if success else "rejected",
+            "status": "offered" if offered else "resolved" if success else "rejected",
             "success": success, "reason": reason,
             "state_changes": ["player.inventory", "equipment", "economy"] if success and before != session.world_state else [],
             **({"item_transfers": item_transfers(before, session.world_state)}

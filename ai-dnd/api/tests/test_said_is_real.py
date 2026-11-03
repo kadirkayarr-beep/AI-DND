@@ -289,8 +289,14 @@ class TakingThings(ErrandBase):
         await self.errand()
         self.session.messages.append({"role": "assistant", "content": words})
 
+    def lying_here(self, name, item_id):
+        """A5 (C9): only a real thing lying where the player stands can be taken; the words alone make none."""
+        ground = self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], [])
+        ground.append({"item_id": item_id, "name": name})
+
     async def test_something_the_screen_showed_comes_into_the_bag_for_real(self):
         await self.shown()
+        self.lying_here("Defter", "item_defter")
         self.client.front = {"kind": "take", "thing_word": "defter"}
         reply = await self.line("defteri aliyorum elinden")
         self.assertIn("Defter", self.bag())
@@ -348,12 +354,14 @@ class TakingThings(ErrandBase):
 
     async def test_the_sentence_beside_a_denial_still_shows(self):
         await self.shown("Ortada kimse yok. Tezgâhta kırık bir halka duruyor.")
+        self.lying_here("Halka", "item_halka")
         self.client.front = {"kind": "take", "thing_word": "halka"}
         await self.line("halkayi aliyorum")
         self.assertIn("Halka", self.bag())
 
     async def test_taking_it_twice_makes_no_second_one(self):
         await self.shown()
+        self.lying_here("Defter", "item_defter")
         self.client.front = {"kind": "take", "thing_word": "defter"}
         await self.line("defteri aliyorum elinden")
         await self.line("defteri aliyorum elinden")
@@ -372,6 +380,7 @@ class TheChannel(ErrandBase):
 
     async def test_a_person_handing_over_a_plain_thing_really_hands_it(self):
         await self.errand()
+        self.owner.setdefault("inventory", []).append({"item_id": "item_elma", "name": "Elma"})  # A5: their own
         self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
         self.client.speech_extra = {"commitment": {"kind": "give", "item": "elma"}}
         reply = await self.line("acim usta bi sey var mi", "Al şu elmayı, ye.")
@@ -419,6 +428,8 @@ class TheChannel(ErrandBase):
     async def test_the_narrator_can_put_a_thing_in_the_bag_through_the_channel(self):
         await self.errand()
         self.alone()
+        self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], []).append(
+            {"item_id": "item_ip", "name": "Ip"})  # A5 (C9): the rope really lies here
         self.client.front = {"kind": "attempt"}
         self.client.narration = "Tezgâhın altından çıkan ipi eline alıyorsun."
         self.client.narrator_extra = {"item_claims": [{"item": "ip", "to": "player"}]}
@@ -581,6 +592,8 @@ class SmallModelSlips(ErrandBase):
     async def test_a_word_copied_with_its_ending_is_still_the_thing(self):
         await self.errand()
         self.session.messages.append({"role": "assistant", "content": "Marek bakır defterine yazıyor."})
+        self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], []).append(
+            {"item_id": "item_defter", "name": "Defter"})  # A5 (C9): a real thing to take
         self.client.front = {"kind": "take", "thing_word": "defteri"}
         await self.line("defteri aliyorum elinden")
         self.assertIn("Defter", self.bag())

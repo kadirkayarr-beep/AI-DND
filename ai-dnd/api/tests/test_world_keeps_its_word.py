@@ -662,12 +662,18 @@ class WhatTheScreenShows(FrontScene):
     def shown(self, text):
         self.session.messages.append({"role": "assistant", "content": text})
 
+    def lying_here(self, *names):
+        """A5 (C9): what the screen shows is taken only when it really lies here; the words alone make nothing."""
+        ground = self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], [])
+        ground.extend({"item_id": f"item_here_{index}", "name": name} for index, name in enumerate(names))
+
     def bag(self):
         return " ".join(str(item.get("name") if isinstance(item, dict) else item) for item in self.world["inventory"])
 
     async def test_two_things_in_one_line_both_reach_the_bag_and_the_screen_says_so(self):
         await self.begin()
         self.shown(self.DRAWER)
+        self.lying_here("Parşömen", "Anahtar")
         self.client.front = {"kind": "take", "thing_word": "parşömen"}
         out = await self.line("parşömenle anahtarı alıyorum")
         self.assertIn("arşömen", self.bag())
@@ -680,6 +686,7 @@ class WhatTheScreenShows(FrontScene):
         await self.begin()
         name = self.npc["name"]
         self.shown(f"Masanın üstünde bir parşömen var; {name} kapının yanında duruyor.")
+        self.lying_here("Parşömen")
         self.client.front = {"kind": "take", "thing_word": "parşömen"}
         out = await self.line("parşömeni alıp " + tail.format(name=name))
         self.assertIn("arşömen", self.bag(), out["narration"])
@@ -698,6 +705,7 @@ class WhatTheScreenShows(FrontScene):
     async def test_a_reading_that_names_two_things_in_its_one_word_takes_both(self):
         await self.begin()
         self.shown("Çekmecenin dibinden küçük bir çivi ile katlanmış bir mendil çıkıyor.")
+        self.lying_here("Çivi", "Mendil")
         self.client.front = {"kind": "take", "thing_word": "çivi ve mendil"}
         out = await self.line("çiviyi alıyorum, mendili de cebe atıyorum")
         self.assertIn("Çivi", self.bag(), out["narration"])
@@ -706,6 +714,7 @@ class WhatTheScreenShows(FrontScene):
     async def test_a_key_the_screen_showed_can_be_taken(self):
         await self.begin()
         self.shown(self.DRAWER)
+        self.lying_here("Anahtar")
         self.client.front = {"kind": "take", "thing_word": "anahtar"}
         out = await self.line("anahtari aliyorum")
         self.assertIn("nahtar", self.bag(), out["narration"])

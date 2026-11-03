@@ -238,6 +238,8 @@ class Pocket(ThreePlaysTests):
 
     async def test_what_was_just_shown_goes_into_the_bag(self):
         await self.shown("Kapağı kaldırıyorsun; içinde birkaç demir parça ve kalın bezler görünüyor.")
+        self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], []).append(
+            {"item_id": "item_demir", "name": "Demir parça"})  # A5 (C9): only a real thing comes into the bag
         out = await self.say("demir parçalardan iyilerini alıp çantaya atıyorum", PlayClient())
         self.assertIn("Demir parça", self.names())
         self.assertIn("emir parça", out["narration"])

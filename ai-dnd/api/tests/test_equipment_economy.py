@@ -141,8 +141,20 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.unchanged_rejection(f"/item give {sword} vendor", "npc_consent_required")
         self.w["npcs"][0]["item_consents"] = {
             sword: {"operation": "give", "recipient": "vendor"}}
-        self.assertTrue(self.run_item(f"/item give {sword} vendor")["success"])
+        # A5 (K5): a priced sword is handed over only through its card; the command opens it, the confirm moves it.
+        offered = self.run_item(f"/item give {sword} vendor")
+        self.assertTrue(offered["success"])
+        self.assertEqual(offered["status"], "offered")
+        self.assertFalse(any(i["item_id"] == sword for i in self.w["npcs"][0].get("inventory", [])))
+        import economic_actions
+        [card] = [data for data in self.w["flags"]["economic_offers"].values() if data["status"] == "prepared"]
+        confirmed = economic_actions.confirm_offer(
+            economic_actions.EconomicState(world=self.w, character=None), offer_id=card["offer_id"],
+            confirmation_digest=card["confirmation_digest"], operation_id="offer:give-sword",
+            check=lambda skill, dc: "BAŞARILI")
+        self.assertEqual(confirmed.status, "applied")
         self.assertTrue(any(i["item_id"] == sword for i in self.w["npcs"][0]["inventory"]))
+        self.assertFalse(any(i["item_id"] == sword for i in self.w["inventory"]))
 
     def test_remote_npc_cannot_transfer(self):
         _, dagger = self.prepare()

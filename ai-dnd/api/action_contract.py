@@ -59,16 +59,18 @@ def roll_ids_of(response: Mapping[str, Any]) -> tuple[str, ...]:
 
 
 def committed_facts(public_state: Mapping[str, Any]) -> dict[str, Any]:
-    """What the public projection shows a player losing or gaining: HP, items, clock, death and the turn counter.
+    """What the public projection shows a player losing or gaining: HP, items, purse, clock, death and the turn.
 
-    Money is world_state['currency'] and is not part of the public projection, so a receipt cannot contradict it;
-    its all-or-nothing commit is the single transaction that also writes the payload (see the R04 integration test).
+    The purse is the public `wallet` projection, read from the committed state like the rest, so a receipt whose
+    state shows another purse contradicts the commit. NPC purses and the inner economic deltas stay in the state
+    package itself (world_state), whose all-or-nothing commit also writes the payload (see the R04 test).
     """
     character = public_state.get("character") if isinstance(public_state.get("character"), Mapping) else {}
     death = public_state.get("death_state") if isinstance(public_state.get("death_state"), Mapping) else {}
     return {
         "hp": (character.get("current_hp"), character.get("max_hp")),
         "inventory": public_state.get("inventory"),
+        "wallet": public_state.get("wallet"),
         "time": public_state.get("campaign_time"),
         "death": (death.get("status"), death.get("dead"), death.get("successes"), death.get("failures")),
         "turn_index": public_state.get("turn_index"),

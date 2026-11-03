@@ -81,13 +81,13 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     thing = None if any(word.startswith(_WORTH) for word in words) else _thing_in(words, shown, _fixed_here(world))
     if thing is None:
         return None  # nothing here to put away: whoever else this line is for still reads it
-    name = thing[:1].upper() + thing[1:].casefold()
-    if not _pick_up(session, name):
+    got = _pick_up(session, thing[:1].upper() + thing[1:].casefold())
+    if not got:
         return None
-    taken = [name]
+    taken = [got]
     for other in _also_taken(session, words):
-        other = other[:1].upper() + other[1:].casefold()
-        if _pick_up(session, other):
+        other = _pick_up(session, other[:1].upper() + other[1:].casefold())
+        if other:
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
 
@@ -147,8 +147,8 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
         return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)
     taken = [name for name in (_take_one(session, words, part) for part in _SEVERAL.split(word)) if name]
     for other in _also_taken(session, words):
-        other = other[:1].upper() + other[1:].casefold()
-        if _pick_up(session, other):
+        other = _pick_up(session, other[:1].upper() + other[1:].casefold())
+        if other:
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.") if taken else None
 
@@ -162,15 +162,25 @@ def _take_one(session, words: list[str], word: str) -> str | None:
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
     name = word[:1].upper() + word[1:].casefold()
-    return name if not _named_in_bag(world, stem) and _pick_up(session, name) else None
+    return None if _named_in_bag(world, stem) else _pick_up(session, name)
 
 
-def _pick_up(session, name: str) -> bool:
-    """A plain thing taken off the screen; what whoever serves here sells is bought at the counter, not picked up."""
+def _pick_up(session, name: str) -> str | None:
+    """A real thing lying here that the screen showed, moved into the bag: the name of what was taken, or None.
+
+    The words alone make nothing (C9): only an existing item on the ground or a surface where the player stands
+    moves. What whoever serves here sells is bought at the counter, not picked up.
+    """
+    import item_transfers
     world = session.world_state
     if shop_trade.is_priced(name) and any(shop_trade.is_vendor(world, npc) for npc in session.active_npcs()):
-        return False
-    return equipment_economy.grant_plain(world, name)
+        return None
+    found = item_transfers.real_thing_here(world, _stem(name))
+    if found is None:
+        return None
+    source, item = found
+    moved = item_transfers.transfer_now(world, item_id=item["item_id"], source_id=source, recipient_id="player")
+    return str(item["name"]) if moved.status == "applied" else None
 
 
 def asked_for(text: str, word: str) -> tuple[str, ...]:
@@ -216,10 +226,12 @@ def _named_in_bag(world: dict[str, Any], stem: str) -> bool:
 
 
 def _committed(session, item: str, stem: str, text: str, person: Any, line: Any) -> bool:
-    """The claim comes true or stays false: the job's parcel from its owner, or a plain thing with no worth.
+    """The claim comes true or stays false: the job's parcel from its owner, or a real plain thing with no worth.
 
-    Someone's own hand may give a plain thing unasked; the narrator has no hand, so it only tells what the line did.
+    Someone's own hand may give a plain thing unasked, but only one that hand really holds; the narrator has no
+    hand, so it only tells what the line did, with a real thing lying here. The words alone make nothing (C9).
     """
+    import item_transfers
     from adventure import dialogue_jobs
     world = session.world_state
     if item.startswith("parcel:"):
@@ -232,7 +244,21 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
     if (len(stem) < 2 or stem.startswith(_NOT_FOUND) or not _says_it(text, stem)
             or (line is not None and not _says_it(line, stem))):
         return False
-    return equipment_economy.grant_plain(world, item[:1].upper() + item[1:].casefold())
+    if isinstance(person, dict):
+        held = next((entry for entry in person.get("inventory") or []
+                     if isinstance(entry, dict) and isinstance(entry.get("item_id"), str)
+                     and any(word.startswith(stem) for word in living_world.normalize_text(entry.get("name")).split())),
+                    None)
+        if held is None or item_transfers.item_needs_card(world, held):
+            return False  # a thing of worth changes hands only by its own owner's way, never by a reply
+        source = str(person.get("id"))
+    else:
+        found = item_transfers.real_thing_here(world, stem)
+        if found is None:
+            return False
+        source, held = found
+    moved = item_transfers.transfer_now(world, item_id=held["item_id"], source_id=source, recipient_id="player")
+    return moved.status == "applied"
 
 
 def _a_sale(world: dict[str, Any], person: Any, claim: dict[str, Any], item: str, stem: str) -> bool:

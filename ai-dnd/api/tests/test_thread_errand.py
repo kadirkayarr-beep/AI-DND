@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import patch
 
 import equipment_economy
+import item_transfers
 import living_world
 import local_places
 import world_threads
@@ -376,10 +377,11 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         await self.job()
         await self.line("olur", "Tamam.")
         self.owner_still_holds_it()
-        await self.assert_untouched_after((equipment_economy, "move"), "mektubu alıyorum")
+        # A5: the parcel moves by the one sourced transfer, so the failure is injected there.
+        await self.assert_untouched_after((item_transfers, "transfer_existing_item"), "mektubu alıyorum")
 
     async def test_a_failure_at_delivery_leaves_nothing(self):
-        for target in ((equipment_economy, "move"), (world_threads, "sync_from_quests")):
+        for target in ((item_transfers, "transfer_existing_item"), (world_threads, "sync_from_quests")):
             await self.play_to_the_door()
             await self.assert_untouched_after(target, "mektubu getirdim")
 

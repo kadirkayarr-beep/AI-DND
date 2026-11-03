@@ -52,6 +52,7 @@ _CLARIFY = {
     "room_already_held": "Burada tuttuğun oda zaten duruyor.",
     "bribe_in_turn_only": "Rüşveti muhafıza sözle teklif et.",
     "purpose_not_offered_here": "Bu işlem buradan hazırlanmaz.",
+    "item_not_owned": "Bu eşya şu an sende değil.",
 }
 
 
@@ -272,7 +273,24 @@ def _well_formed(proposal: EconomicProposal) -> str | None:
             return "amount_required"
     if proposal.purpose == "room" and proposal.count != 1:
         return "invalid_proposal"  # one night; a count is not quietly turned into another meaning
+    if proposal.purpose == "item_gift":
+        # One existing instance from the player's own pack: no coin, tip, tender or count rides along.
+        if (not isinstance(proposal.item_id, str) or not proposal.item_id or proposal.count != 1 or proposal.tip_cp
+                or proposal.amount_cp or proposal.tender_cp is not None or proposal.source_id not in (None, "player")):
+            return "invalid_proposal"
     return None
+
+
+def _held_item(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
+    """The one instance with this id in the player's pack, if it is really there."""
+    found = [item for item in world.get("inventory", []) if isinstance(item, dict) and item.get("item_id") == item_id]
+    return found[0] if len(found) == 1 else None
+
+
+def _item_name(world: dict[str, Any], item_id: Any) -> str | None:
+    import equipment_economy
+    return next((str(item.get("name")) for _, items in equipment_economy.containers(world) for item in items
+                 if isinstance(item, dict) and item.get("item_id") == item_id), None)
 
 
 def _lines(world: dict[str, Any], proposal: EconomicProposal, npc: dict[str, Any]) -> list[OfferLine] | str:
@@ -288,6 +306,12 @@ def _lines(world: dict[str, Any], proposal: EconomicProposal, npc: dict[str, Any
         base = OfferLine(line_id="goods:0", kind="goods", source_id=npc_id, item_id=line["key"], recipient_id=npc_id,
                          count=proposal.count, unit_cp=line["unit_cp"], total_cp=line["unit_cp"] * proposal.count,
                          optional=False)
+    elif proposal.purpose == "item_gift":
+        item = _held_item(world, proposal.item_id)
+        if item is None:
+            return "item_not_owned"
+        base = OfferLine(line_id="item:0", kind="item", source_id="player", item_id=str(item["item_id"]),
+                         recipient_id=npc_id, count=1, unit_cp=0, total_cp=0, optional=False)
     elif proposal.purpose == "room":
         price = bold_acts._ROOM_PRICE
         base = OfferLine(line_id="room:0", kind="room", source_id=npc_id, item_id=None,
@@ -334,6 +358,13 @@ def context_digest(state: EconomicState, proposal: EconomicProposal, lines: list
         if line.kind == "goods" and npc is not None:
             entry["stock"] = next((good["stock"] for good in shop_trade.goods(world, npc)
                                    if good["key"] == line.item_id), None)
+        if line.kind == "item":
+            item = _held_item(world, line.item_id)
+            hands = world.get("equipment") if isinstance(world.get("equipment"), dict) else {}
+            grants = (npc or {}).get("item_consents")
+            entry["item"] = {"in_pack": item is not None, "name": (item or {}).get("name"),
+                             "held": line.item_id in hands.values(),
+                             "consent": grants.get(line.item_id) if isinstance(grants, dict) else None}
         priced.append(entry)
     facts = {"npc": person, "place": world.get("location"), "combat_active": _combat(world), "lines": priced}
     if proposal.purpose == "room":
@@ -387,13 +418,21 @@ def _line_label(line: OfferLine) -> str:
     return {"room": "Oda (bir gece)", "gift": "Hediye", "tip": "Bahşiş"}.get(line.kind, "Eşya")
 
 
+def _public_label(world: dict[str, Any], line: OfferLine) -> str:
+    """The card's words for a line; an item line names the player's own item."""
+    if line.kind == "item":
+        return _item_name(world, line.item_id) or _line_label(line)
+    return _line_label(line)
+
+
 def public_offer(state: EconomicState, offer: EconomicOffer) -> PublicEconomicOffer:
     import living_world
     npc = _npc(state.world, offer.proposal.recipient_id)
     return PublicEconomicOffer(
         offer_id=offer.offer_id, confirmation_digest=offer.confirmation_digest,
         counterparty_label=living_world.public_npc_name(npc),
-        lines=[PublicOfferLine(line_id=line.line_id, label=_line_label(line), count=line.count, unit_cp=line.unit_cp,
+        lines=[PublicOfferLine(line_id=line.line_id, label=_public_label(state.world, line), count=line.count,
+                               unit_cp=line.unit_cp,
                                total_cp=line.total_cp, optional=line.optional) for line in offer.lines],
         dependency=offer.proposal.dependency, max_total_cp=sum(line.total_cp for line in offer.lines),
         tender_cp=offer.proposal.tender_cp, may_refuse=offer.acceptance.check is not None)
@@ -408,8 +447,6 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
     problem = _well_formed(proposal)
     if problem:
         return _clarify(problem)
-    if proposal.purpose == "item_gift":
-        return _clarify("purpose_not_offered_here")  # the valued-item card comes with A5
     world = _settled(state.world)
     if _combat(world):
         return _clarify("combat_active")
@@ -429,6 +466,18 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
             return _clarify("room_already_held")
     elif not equipment_economy.npc_can_act(npc):
         return _clarify("npc_not_here")
+    if proposal.purpose == "item_gift":
+        # The same rules as the transfer itself, read before any card: armor never moves, and the NPC's written
+        # consent for this item is needed (read here, consumed only when the confirmed card moves the item).
+        item = _held_item(world, proposal.item_id)
+        if item is None:
+            return _clarify("item_not_owned")
+        if equipment_economy.is_armor_or_shield(item):
+            return PrepareResult(status="refused", offer=None, reason_code="armor_owner_required",
+                                 public_message="Zırh ve kalkan bu yoldan el değiştirmez.")
+        if not equipment_economy.has_consent(npc, item, "give", str(npc["id"])):
+            return PrepareResult(status="refused", offer=None, reason_code="npc_consent_required",
+                                 public_message="Bunu almayı kabul ettiğine dair bir söz yok.")
     lines = _lines(world, proposal, npc)
     if isinstance(lines, str):
         return _clarify(lines)
@@ -447,6 +496,10 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
     offer = dataclasses.replace(offer, confirmation_digest=confirmation_digest(offer))
     who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
     total = sum(line.total_cp for line in lines)
+    if proposal.purpose == "item_gift":
+        return PrepareResult(status="prepared", offer=offer, reason_code=None,
+                             public_message=f"{who} için eşya teklifi hazır: {_item_name(world, proposal.item_id)}. "
+                                            "Onaylarsan verilir.")
     return PrepareResult(status="prepared", offer=offer, reason_code=None,
                          public_message=f"{who} için teklif hazır: en çok {total} bakır. Onaylarsan işlem denenir.")
 
@@ -528,6 +581,7 @@ class EconomicFacts:
     items: dict[str, dict[str, int]]
     services: list[ServiceRight]
     sink_totals: dict[str, int]
+    item_index: dict[str, list[str]] = dataclasses.field(default_factory=dict)  # item id -> [owner, name]
 
 
 @dataclass(frozen=True)
@@ -576,14 +630,18 @@ def economic_facts(state: EconomicState) -> EconomicFacts:
             for good in shop_trade.goods(world, npc):
                 stock[f"{npc.get('id')}:{good['key']}"] = good["stock"]
     items: dict[str, dict[str, int]] = {}
+    index: dict[str, list[str]] = {}
     for owner, listed in equipment_economy.containers(world):
         counts = items.setdefault(str(owner), {})
         for item in listed if isinstance(listed, list) else []:
             name = str(item.get("name") if isinstance(item, dict) else item)
             counts[name] = counts.get(name, 0) + 1
+            if isinstance(item, dict) and isinstance(item.get("item_id"), str):
+                index[item["item_id"]] = [str(owner), name]
     sinks = _ledger(world).get("sink_totals") or {}
     return EconomicFacts(balances=balances, stock=stock, items=items, services=_room_services(world),
-                         sink_totals={str(key): value for key, value in sinks.items() if type(value) is int})
+                         sink_totals={str(key): value for key, value in sinks.items() if type(value) is int},
+                         item_index=index)
 
 
 def _fingerprint(settled_world: dict[str, Any]) -> str:
@@ -597,9 +655,12 @@ def _payer(purpose: str, lines: list[OfferLine]) -> str | None:
     return lines[0].source_id if lines else None
 
 
-def _summary(status: str, reason: str | None, net: int, change: int, refusals: list[LineRefusal]) -> str:
+def _summary(status: str, reason: str | None, net: int, change: int, refusals: list[LineRefusal],
+             item_name: str | None = None) -> str:
     if status != "applied":
         return _REFUSED_SUMMARY.get(str(reason), "İşlem gerçekleşmedi; hiçbir şey ödenmedi.")
+    if item_name is not None:
+        return f"{item_name} verildi."
     text = f"{net} bakır ödendi."
     if change:
         text += f" Para üstü {change} bakır."
@@ -694,7 +755,18 @@ def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: s
         held = facts.sink_totals.get(sink_id, 0)
         deltas.append(AssetDelta(owner_id=sink_id, asset_kind="sink", asset_id=sink_id, before=held,
                                  after=held + amount))
+    item_name = None
     for line in accepted:
+        if line.kind == "item":
+            # The very instance the card names, still in the player's pack; it goes to the recipient, one of it.
+            entry = facts.item_index.get(str(line.item_id))
+            if entry is None or entry[0] != line.source_id:
+                return _refused(blank, "item_not_owned")
+            item_name = entry[1]
+            for owner, step in ((str(line.source_id), -line.count), (line.recipient_id, line.count)):
+                held = facts.items.get(owner, {}).get(item_name, 0)
+                deltas.append(AssetDelta(owner_id=owner, asset_kind="item", asset_id=item_name, before=held,
+                                         after=held + step))
         if line.kind == "goods":
             label = _line_label(line)
             held = facts.items.get("player", {}).get(label, 0)
@@ -710,7 +782,7 @@ def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: s
     return dataclasses.replace(
         blank, status="applied", asset_deltas=[delta for delta in deltas if delta.before != delta.after],
         service_rights=rights, world_effects=list(offer.on_accept), refusals=refusals, change_cp=change,
-        net_debit_cp=net, public_summary=_summary("applied", None, net, change, refusals))
+        net_debit_cp=net, public_summary=_summary("applied", None, net, change, refusals, item_name))
 
 
 def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
@@ -725,6 +797,7 @@ def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
     import bold_acts
     import equipment_economy
     import equipment_native
+    import item_transfers
     import world_reactions
     world = state.world
     if resolution.operation_id in (_ledger(world).get("operations") or {}):
@@ -736,6 +809,9 @@ def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
         raise EconomicReceiptError("payer_unknown")
     pooled = resolution.purpose == "entitlement" and payer.startswith(_POOL_PREFIX)
     money = [delta for delta in resolution.asset_deltas if delta.asset_kind in ("currency", "sink")]
+    # An item gift moves its item here too, by the one sourced transfer; a purchase's goods stay the counter's own.
+    item_lines = [line for line in resolution.lines if line.kind == "item"] if resolution.purpose == "item_gift" else []
+    claimed_items = [delta for delta in resolution.asset_deltas if delta.asset_kind == "item"] if item_lines else []
     written = dataclasses.replace(resolution, asset_deltas=money)
     candidate = copy.deepcopy(world)
     before: EconomicFacts | None = None
@@ -777,6 +853,27 @@ def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
                 deed.pop("hold")
             for right in resolution.service_rights:
                 flags["inn_room"] = {"place": right.place_id, "until": right.valid_until}
+            if resolution.status == "applied" and item_lines:
+                moved_items: list[AssetDelta] = []
+                for index, line in enumerate(item_lines):
+                    npc = _npc(target, line.recipient_id)
+                    item = _held_item(target, line.item_id)
+                    if npc is None:
+                        raise EconomicReceiptError("item_recipient_unknown")
+                    if item is None:
+                        equipment_economy.fail("item_not_owned")
+                    equipment_economy.consent(npc, item, "give", line.recipient_id)  # consumed once, here
+                    moved = item_transfers.transfer_existing_item(
+                        EconomicState(world=target, character=None), item_id=str(line.item_id),
+                        source_id=str(line.source_id), recipient_id=line.recipient_id, count=line.count,
+                        operation_id=f"{resolution.operation_id}:item:{index}")
+                    if moved.status != "applied":
+                        equipment_economy.fail(moved.reason_code or "item_transfer_refused")
+                    moved_items.extend(moved.asset_deltas)
+                if not live:
+                    if sorted(map(canonical_json, moved_items)) != sorted(map(canonical_json, claimed_items)):
+                        raise EconomicReceiptError("item_delta_mismatch")
+                    written = dataclasses.replace(resolution, asset_deltas=money + moved_items)
             operations = ledger.setdefault("operations", {})
             operations[resolution.operation_id] = {
                 "offer_id": resolution.offer_id, "purpose": resolution.purpose,
@@ -945,10 +1042,18 @@ def validate_economic_resolution(before: EconomicFacts, after: EconomicFacts, re
     claimed_stock = {f"{owner}:{asset}": moved for (kind, owner, asset), moved in claimed.items() if kind == "stock"}
     if _item_changes(before.items, after.items) != claimed_items or _changes(before.stock, after.stock) != claimed_stock:
         _reject("goods_mismatch")
-    if claimed_items or claimed_stock:
+    if claimed_items or claimed_stock or any(line.kind == "item" for line in accepted):
         want_items: dict[tuple[str, str], int] = {}
         want_stock: dict[str, int] = {}
         for line in accepted:
+            if line.kind == "item":
+                # The named instance itself left its source for the recipient: not just any item of its name.
+                was, now = before.item_index.get(str(line.item_id)), after.item_index.get(str(line.item_id))
+                if was is None or now is None or was != [str(line.source_id), was[1]] \
+                        or now != [line.recipient_id, was[1]]:
+                    _reject("item_mismatch")
+                for owner, step in ((str(line.source_id), -line.count), (line.recipient_id, line.count)):
+                    want_items[(owner, was[1])] = want_items.get((owner, was[1]), 0) + step
             if line.kind == "goods":
                 label = _line_label(line)
                 want_items[("player", label)] = want_items.get(("player", label), 0) + line.count

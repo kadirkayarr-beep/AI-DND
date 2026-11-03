@@ -18531,6 +18531,8 @@ def _line_gives(item_id, player_input):
     import front_proposal
     import pocket
     world = _session().world_state
+    if _NO_BLOW_NOW.search(_normalize_turkish_typos(player_input)):
+        return False  # 'vermiyorum': said, not done; the same reading the handed coin already uses
     bag = front_proposal._bag(world)
     stem = pocket._stem(next((row["name"] for row in bag if row["id"] == item_id), ""))
     return len(bag) == 1 or bool(stem and pocket._says_it(player_input, stem))

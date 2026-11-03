@@ -203,6 +203,8 @@ class ReadsBeforeTheOldOwners(FrontTable):
     async def test_putting_a_thing_away_labelled_inventory_really_puts_it_away(self):
         await self.begin()
         self.session.messages.append({"role": "assistant", "content": "Yolun kenarında yuvarlak bir çakıl duruyor."})
+        self.world.setdefault("ground_items_by_location", {}).setdefault(self.world["location"], []).append(
+            {"item_id": "item_cakil", "name": "Çakıl"})  # A5 (C9): the pebble really lies here
         self.client.front = {"kind": "attempt"}
         self.client.intent = "inventory"
         reply = await self.line("bu cakili cantama koyuyorum")

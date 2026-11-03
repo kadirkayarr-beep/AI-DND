@@ -197,6 +197,8 @@ class WhatIsShownIsNotFree(CounterTrade):
     def test_a_plain_thing_on_the_counter_is_still_taken(self):
         import pocket
         self.shown()
+        self.w.setdefault("ground_items_by_location", {}).setdefault(self.w["location"], []).append(
+            {"item_id": "item_key", "name": "Anahtar"})  # A5 (C9): the key really lies here
         taken = pocket.take_named(self.s, "anahtarı alıyorum", "anahtar")
         self.assertIsNotNone(taken)
         self.assertIn("Anahtar", [item if isinstance(item, str) else item.get("name") for item in self.w["inventory"]])
