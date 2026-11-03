@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -14,7 +15,7 @@ import httpx
 
 import game
 import interaction_adventure
-from api import identity_suggestion, model_chain, ollama_adapter
+from api import identity_suggestion, model_chain, ollama_adapter, usage_ledger
 from api.auth import FixedAuthenticator
 from api.local_model_config import SUPPORTED_LOCAL_MODELS
 from api.main import create_app
@@ -763,6 +764,31 @@ class TheSetting(unittest.TestCase):
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
         self.assertEqual(model_chain.from_environment().provider_names(), ["gemini", "haiku"])
 
+    def test_from_environment_records_to_the_usage_path(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        expected = self.home / "appdata" / "AI-DND" / "model-usage.jsonl"
+        self.assertEqual(model_chain._usage_path(), expected)
+        chain = model_chain.from_environment()
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        chain._http = httpx.Client(transport=httpx.MockTransport(cloud), trust_env=False)
+        _, provider = chain.chat(CALL, LocalModel())
+        self.assertEqual(provider, "haiku")
+        text = expected.read_text(encoding="utf-8")
+        rows = [json.loads(line) for line in text.splitlines()]
+        self.assertEqual([(row["provider"], row["outcome"]) for row in rows],
+                         [("gemini", "skipped"), ("haiku", "answered")])
+        self.assertEqual((rows[1]["input"], rows[1]["output"]), (1000, 200))
+        self.assertNotIn("file-key", text)
+
+    def test_the_local_play_adapter_gets_a_ledger_on_the_same_path_and_a_plain_one_does_not(self):
+        self.keys()
+        os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku,gemma", OLLAMA_HOST="http://127.0.0.1:11434",
+                          OLLAMA_PROXY_TOKEN="loopback")
+        with_cloud = AuthenticatedOllamaAdapter.from_environment(use_cloud=True)
+        self.assertEqual(with_cloud.usage_ledger._path, self.home / "appdata" / "AI-DND" / "model-usage.jsonl")
+        self.assertIsNone(AuthenticatedOllamaAdapter.from_environment().usage_ledger)
+
     def test_the_status_line_names_providers_and_no_secret(self):
         self.keys()
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
@@ -951,6 +977,116 @@ class TheAdapter(unittest.TestCase):
         self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
         adapter._chain = None
         self.assertIsNone(adapter.model_chain)
+
+
+class LocalEngine:
+    """A local client that takes a moment and reports token counts, like Ollama does."""
+
+    def chat(self, *args, **kwargs):
+        time.sleep(0.03)
+        return {"message": {"role": "assistant", "content": '{"narration": "yerel"}'},
+                "done_reason": "stop", "prompt_eval_count": 11, "eval_count": 7}
+
+    def list(self):
+        return {"models": [{"model": "gemma4:e4b"}]}
+
+
+class RaisingLedger:
+    def record(self, *args, **kwargs):
+        raise RuntimeError("ledger bug")
+
+    def warning(self):
+        raise RuntimeError("ledger bug")
+
+
+class TheUsageLedgerWiring(unittest.TestCase):
+    def setUp(self):
+        self.path = Path(tempfile.mkdtemp(dir=_TEMP.name)) / "model-usage.jsonl"
+        self.ledger = usage_ledger.UsageLedger(self.path)
+
+    def rows(self):
+        return [json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines()]
+
+    def adapter(self, cloud, client=None):
+        clock = Clock()
+        providers = [model_chain.gemini(KEY), model_chain.haiku(KEY, model_chain.HaikuSpend(spend_file(), clock))]
+        chain = model_chain.ModelChain(providers, transport=httpx.MockTransport(cloud), now=clock,
+                                       observer=model_chain.ledger_observer(self.ledger))
+        adapter = AuthenticatedOllamaAdapter(client or LocalEngine(), model_name="gemma4:e4b", chain=chain)
+        adapter.usage_ledger = self.ledger
+        return adapter
+
+    def engine_call(self, adapter):
+        return adapter.chat(model=ollama_adapter.MODEL_NAME, messages=list(CALL["messages"]), format=SCHEMA,
+                            think=False, options={"temperature": 0.3, "num_predict": 400})
+
+    def test_cloud_attempts_are_recorded_with_seconds_and_tokens(self):
+        adapter = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply())))
+        self.engine_call(adapter)
+        skipped, answered = self.rows()
+        self.assertEqual((skipped["provider"], skipped["outcome"]), ("gemini", "skipped"))
+        self.assertEqual((skipped["input"], skipped["output"], skipped["thought"]), (0, 0, 0))
+        self.assertEqual((answered["provider"], answered["outcome"]), ("haiku", "answered"))
+        self.assertEqual((answered["input"], answered["output"]), (1000, 200))
+        for row in (skipped, answered):
+            self.assertIsInstance(row["seconds"], float)
+            self.assertGreaterEqual(row["seconds"], 0.0)
+        self.assertEqual(self.ledger.today()["haiku"]["calls"], 1)
+
+    def test_a_cloud_answer_gets_no_second_line_from_the_adapter(self):
+        self.engine_call(self.adapter(FakeCloud(gemini=ok(gemini_reply()))))
+        self.assertEqual([row["provider"] for row in self.rows()], ["gemini"])
+
+    def test_gemma_answer_is_timed_by_the_adapter(self):
+        self.engine_call(self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))))
+        self.assertEqual([(row["provider"], row["outcome"]) for row in self.rows()],
+                         [("gemini", "skipped"), ("haiku", "skipped"), ("gemma", "answered")])
+        gemma = self.rows()[-1]
+        self.assertGreater(gemma["seconds"], 0.0)
+        self.assertEqual((gemma["input"], gemma["output"], gemma["thought"]), (11, 7, 0))
+
+    def test_gemma_alone_without_a_chain_is_still_timed(self):
+        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4:e4b")
+        adapter.usage_ledger = self.ledger
+        self.engine_call(adapter)
+        (gemma,) = self.rows()
+        self.assertEqual((gemma["provider"], gemma["outcome"], gemma["input"], gemma["output"]),
+                         ("gemma", "answered", 11, 7))
+        self.assertGreater(gemma["seconds"], 0.0)
+
+    def test_a_failed_local_call_writes_nothing_and_stays_the_adapters_error(self):
+        engine = LocalEngine()
+        engine.chat = lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("down"))
+        adapter = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)), engine)
+        with self.assertRaisesRegex(RuntimeError, "Ollama request failed"):
+            self.engine_call(adapter)
+        self.assertEqual([row["provider"] for row in self.rows()], ["gemini", "haiku"])
+
+    def test_ledger_failure_does_not_fail_the_turn(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))
+        expected = game.ollama_response_content(self.engine_call(self.adapter(cloud)))
+        broken = self.adapter(cloud)
+        broken.usage_ledger = RaisingLedger()
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            answer = game.ollama_response_content(self.engine_call(broken))
+        self.assertEqual(answer, expected)
+        self.assertTrue(any("ledger" in line.lower() for line in logs.output))
+        # A ledger that cannot write at all (its folder is a file) also leaves the answer alone.
+        blocked = self.adapter(cloud)
+        blocked.usage_ledger = usage_ledger.UsageLedger(self.path / "nope" / "model-usage.jsonl")
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
+            self.assertEqual(game.ollama_response_content(self.engine_call(blocked)), expected)
+
+    def test_spend_warning_reads_the_ledger_and_is_none_without_one(self):
+        adapter = self.adapter(FakeCloud())
+        self.assertIsNone(adapter.spend_warning())
+        self.ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
+        self.assertIn("3.00 USD", adapter.spend_warning())
+        adapter.usage_ledger = None
+        self.assertIsNone(adapter.spend_warning())
+        adapter.usage_ledger = RaisingLedger()
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
+            self.assertIsNone(adapter.spend_warning())
 
 
 class TheHttpSurface(unittest.IsolatedAsyncioTestCase):

@@ -26,6 +26,8 @@ from typing import Any, Literal
 import httpx
 import ollama
 
+from api import usage_ledger
+
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"
 CHAIN_SETTING = "AI_DND_MODEL_CHAIN"
@@ -537,6 +539,22 @@ def _spend_path() -> Path:
     return Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "AI-DND" / SPEND_FILE_NAME
 
 
+def _usage_path() -> Path:
+    """The usage log sits beside the spend file: one per user, shared by every save folder and process."""
+    return _spend_path().with_name(usage_ledger.USAGE_FILE_NAME)
+
+
+def ledger_observer(ledger: usage_ledger.UsageLedger) -> Callable[[ChainAttempt], None]:
+    """An observer that writes every provider attempt to the usage ledger (which never raises)."""
+    def observe(attempt: ChainAttempt) -> None:
+        ledger.record(
+            attempt.provider,
+            input_tokens=attempt.input_tokens, output_tokens=attempt.output_tokens,
+            thought_tokens=attempt.thought_tokens, seconds=attempt.seconds, outcome=attempt.outcome,
+        )
+    return observe
+
+
 def from_environment() -> ModelChain | None:
     """The configured chain, or None for today's local-only game. Reads keys only when asked to."""
     names = [name.strip().lower() for name in os.environ.get(CHAIN_SETTING, "").split(",") if name.strip()]
@@ -550,6 +568,8 @@ def from_environment() -> ModelChain | None:
             providers.append(gemini(key))
         elif name == "haiku" and (key := _read_key(_ANTHROPIC_KEY_FILE)):
             providers.append(haiku(key, HaikuSpend(_spend_path(), lambda: datetime.now().astimezone())))
-    chain = ModelChain(providers) if providers else None
+    chain = None
+    if providers:
+        chain = ModelChain(providers, observer=ledger_observer(usage_ledger.UsageLedger(_usage_path())))
     _logger.info("Model chain providers on: %s", ",".join([*(chain.provider_names() if chain else ()), "local"]))
     return chain

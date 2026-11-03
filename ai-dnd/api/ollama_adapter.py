@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -11,6 +12,7 @@ from typing import Any, Iterator
 
 import game
 from api import model_chain
+from api.usage_ledger import UsageLedger
 from api.model_phase import ModelFailure, in_classifier_call, in_front_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
@@ -166,6 +168,8 @@ class AuthenticatedOllamaAdapter:
         self._model_name = validate_local_model(model_name)
         self._client = client
         self._chain = chain
+        # Measures the local model's calls (the chain's observer writes the cloud ones); None writes nothing.
+        self.usage_ledger: UsageLedger | None = None
 
     @property
     def model_name(self) -> LocalModelName:
@@ -204,7 +208,33 @@ class AuthenticatedOllamaAdapter:
                 type(error).__name__,
             )
             return None
-        return cls(client, model_name=model_name, chain=model_chain.from_environment() if use_cloud else None)
+        chain = model_chain.from_environment() if use_cloud else None
+        adapter = cls(client, model_name=model_name, chain=chain)
+        if chain is not None:
+            adapter.usage_ledger = UsageLedger(model_chain._usage_path())
+        return adapter
+
+    def spend_warning(self) -> str | None:
+        """The ledger's warning line once today's known cost is high, else None. It never raises."""
+        if self.usage_ledger is None:
+            return None
+        try:
+            return self.usage_ledger.warning()
+        except Exception as error:  # noqa: BLE001 - a measuring aid must not break the caller
+            _logger.warning("Usage ledger warning could not be read (%s).", type(error).__name__)
+            return None
+
+    def _note_local_call(self, response: Any, seconds: float) -> None:
+        """Write the local model's call to the ledger; a ledger fault never reaches the turn."""
+        if self.usage_ledger is None:
+            return
+        try:
+            self.usage_ledger.record(
+                "gemma", input_tokens=_spent(response, "prompt_eval_count"),
+                output_tokens=_spent(response, "eval_count"), seconds=seconds, outcome="answered",
+            )
+        except Exception as error:  # noqa: BLE001
+            _logger.warning("Usage ledger could not record a local call (%s).", type(error).__name__)
 
     def install_for_engine(self) -> None:
         # The engine calls the ollama module directly. Bind its calls once at API
@@ -278,11 +308,22 @@ class AuthenticatedOllamaAdapter:
             prepared = {"think": False, **prepared, "model": self.model_name}
             options = prepared.get("options")
             prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
+            local_seconds: list[float] = []
+
+            def ask_local() -> Any:
+                started = time.monotonic()
+                local_response = self._client.chat(*args, **prepared)
+                local_seconds.append(time.monotonic() - started)
+                return local_response
+
             if self._chain is None:
-                response = self._client.chat(*args, **prepared)
+                response = ask_local()
+                self._note_local_call(response, local_seconds[0])
                 note_usage(self.model_name, response)
                 return response
-            response, provider = self._chain.chat(prepared, lambda: self._client.chat(*args, **prepared))
+            response, provider = self._chain.chat(prepared, ask_local)
+            if provider is None and local_seconds:
+                self._note_local_call(response, local_seconds[0])
             if provider is not None and calls is not None:
                 calls[-1] = provider
             note_usage(provider or self.model_name, response)
