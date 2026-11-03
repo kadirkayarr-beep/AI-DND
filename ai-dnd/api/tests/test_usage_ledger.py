@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import threading
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -132,10 +133,13 @@ class TheLedger(unittest.TestCase):
         blocker.write_text("x", encoding="utf-8")
         for path in (as_directory, blocker / "play" / "model-usage.jsonl"):
             ledger = UsageLedger(path, now=noon())
-            ledger.record("haiku", input_tokens=1, output_tokens=1)
-            self.assertEqual(ledger.today(), {})
-            self.assertEqual(ledger.known_usd_today(), 0.0)
-            self.assertIsNone(ledger.warning())
+            # The deliberate failures warn; capture the warnings so the run output stays clean.
+            with self.assertLogs("ai_dnd.api.ollama", level="WARNING") as captured:
+                ledger.record("haiku", input_tokens=1, output_tokens=1)
+                self.assertEqual(ledger.today(), {})
+                self.assertEqual(ledger.known_usd_today(), 0.0)
+                self.assertIsNone(ledger.warning())
+            self.assertIn("could not record a call", captured.output[0])
         # A file that does not exist yet reads as an empty day.
         self.assertEqual(UsageLedger(base / "nothing-yet.jsonl", now=noon()).today(), {})
 
@@ -183,6 +187,34 @@ class TheLedger(unittest.TestCase):
             self.assertEqual(today["haiku"]["calls"], 2)
             self.assertEqual(today["haiku"]["input"], 30)
             self.assertEqual(today["gemini"]["thought"], 9)
+
+    def test_many_ledgers_appending_at_once_lose_nothing(self):
+        # Each ledger has its own lock and its own file handle, like separate processes would.
+        path = ledger_file()
+        workers, per_worker = 8, 100
+        ledgers = [UsageLedger(path, now=noon()) for _ in range(workers)]
+        barrier = threading.Barrier(workers)
+
+        def work(index: int) -> None:
+            barrier.wait()
+            for count in range(per_worker):
+                ledgers[index].record(f"p{index}", input_tokens=count, output_tokens=1)
+
+        threads = [threading.Thread(target=work, args=(index,)) for index in range(workers)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        lines = path.read_text(encoding="utf-8").split("\n")
+        self.assertEqual(lines.pop(), "")
+        self.assertEqual(len(lines), workers * per_worker)
+        seen: dict[str, list[int]] = {}
+        for line in lines:
+            entry = json.loads(line)
+            seen.setdefault(entry["provider"], []).append(entry["input"])
+        self.assertEqual(len(seen), workers)
+        for inputs in seen.values():
+            self.assertEqual(sorted(inputs), list(range(per_worker)))
 
     def test_nothing_but_counts_and_names_reach_the_file(self):
         path = ledger_file()

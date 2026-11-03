@@ -2,7 +2,8 @@
 
 It only measures. It never gates a call (HaikuSpend stays the gate), a write that fails
 only warns, and a line it cannot read is skipped. The file is append-only with one write per
-line, so the played API and a separate run command can share it without losing a line.
+line, so the played API and a separate run command can share it without losing a line (on Windows a
+side lock file makes the writers take turns).
 Nothing but names and counts is written: no prompt, no reply, no key.
 """
 
@@ -10,10 +11,18 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 import threading
-from collections.abc import Callable, Mapping
+import time
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+
+if sys.platform == "win32":
+    import msvcrt
+else:  # POSIX appends one whole write at the end atomically (O_APPEND); no extra lock is needed.
+    msvcrt = None
 
 USAGE_FILE_NAME = "model-usage.jsonl"
 _logger = logging.getLogger("ai_dnd.api.ollama")
@@ -28,6 +37,7 @@ PRICES_USD_PER_MILLION: Mapping[str, tuple[float, float] | None] = {
 }
 
 _COUNT_FIELDS = ("input", "output", "thought")
+_LOCK_WAIT_SECONDS = 2.0
 
 
 def _local_now() -> datetime:
@@ -49,6 +59,35 @@ class UsageLedger:
         self._prices = prices
         self._warn_usd = warn_usd
         self._lock = threading.Lock()
+
+    @contextmanager
+    def _appending(self) -> Iterator[None]:
+        """Hold the one-writer-at-a-time lock around an append.
+
+        Windows does not append atomically: each writer seeks to the end and then writes, so two
+        processes (or two ledgers) can write over each other. A byte lock on a small side file makes
+        them take turns. The wait is bounded; past it the append fails and only warns.
+        """
+        if msvcrt is None:
+            yield
+            return
+        side_file = self._path.with_name(self._path.name + ".lock")
+        with open(side_file, "a+b") as handle:
+            deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+            while True:
+                handle.seek(0)
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.002)
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
     def _day(self) -> str:
         return self._now().strftime("%Y-%m-%d")
@@ -73,8 +112,8 @@ class UsageLedger:
             ) + "\n"
             with self._lock:
                 self._path.parent.mkdir(parents=True, exist_ok=True)
-                # One open and one write of one whole line: a second process appends whole lines too.
-                with open(self._path, "a", encoding="utf-8", newline="\n") as handle:
+                # One open and one write of one whole line, one writer at a time across processes.
+                with self._appending(), open(self._path, "a", encoding="utf-8", newline="\n") as handle:
                     handle.write(line)
         except Exception as error:  # noqa: BLE001 - fail-open by design; only the error type is logged
             _logger.warning("Usage ledger could not record a call (%s).", type(error).__name__)
