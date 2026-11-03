@@ -176,6 +176,9 @@ class InnRoomTests(ThreePlaysTests):
     def coin(self):
         return self.world["currency"]["player"]
 
+    def elapsed(self):
+        return self.world["campaign_time"]["elapsed_seconds"]
+
     async def test_neyse_is_not_a_condition(self):
         for line in ("neyse ben hana dönüp oda tutayım, yarın sabaha kadar uyuyorum",
                      "neyse hana gidiyorum"):
@@ -216,25 +219,35 @@ class InnRoomTests(ThreePlaysTests):
         self.assertEqual(out["state"]["economic_offer"]["offer_id"], card["offer_id"])
         self.assertEqual(self.room_operations(), [])
 
+    def lodging_sink(self):
+        sinks = self.world["flags"].get("economic_ledger", {}).get("sink_totals") or {}
+        return sinks.get(f"sink:lodging:{self.place['id']}", 0)
+
     async def assert_confirm_pays_the_room_once(self, out):
+        self.assertEqual(self.lodging_sink(), 0)
+        clock = self.elapsed()
         paid = await self.confirm(out)
         self.assertEqual((paid["status"], paid["net_debit_cp"]), ("applied", 50))
         self.assertEqual(self.coin(), 2350)
+        self.assertEqual(self.lodging_sink(), 50)  # what left the purse is held by the inn's sink
         self.assertTrue(self.world["flags"].get("inn_room"))
         self.assertEqual(self.session.character["current_hp"], 5)  # the confirm does not sleep; a new line does
+        self.assertEqual(self.elapsed(), clock)
         again = await self.confirm(out)
         self.assertEqual((again["status"], again["reason_code"], again["net_debit_cp"]),
                          ("refused", "offer_not_prepared", 0))
         self.assertEqual(self.coin(), 2350)
+        self.assertEqual(self.lodging_sink(), 50)
+        self.assertEqual(self.elapsed(), clock)
         self.assertEqual(len(self.room_operations()), 1)
 
     async def test_asking_for_a_room_opens_its_card_and_the_night_passes_once_paid(self):
         # Was test_asking_for_a_room_pays_and_the_night_passes: the line no longer pays or sleeps by itself.
         await self.inn()
-        before = self.world["campaign_time"]["elapsed_seconds"]
+        before = self.elapsed()
         out = await self.say("usta bana bi oda ver, sabaha kadar yatıcam")
         self.assert_one_room_card_and_nothing_paid(out)
-        self.assertLess(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, out["narration"])
+        self.assertEqual(self.elapsed(), before, out["narration"])  # take_room does not move the clock
         await self.assert_confirm_pays_the_room_once(out)
         slept = await self.say("sabaha kadar uyuyorum")
         self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, slept["narration"])
@@ -253,6 +266,8 @@ class InnRoomTests(ThreePlaysTests):
         slept = await self.say("sabaha kadar uyuyorum")
         self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], slept["narration"])
         self.assertEqual(self.coin(), 2350, slept["narration"])
+        self.assertEqual(self.prepared(), [])
+        self.assertEqual(len(self.room_operations()), 1)
 
     async def test_a_room_with_no_money_is_a_no_from_the_barman(self):
         await self.inn()

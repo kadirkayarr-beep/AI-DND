@@ -1,0 +1,49 @@
+A4 Step 10 / D6 - model-free real-browser check of the panel economic cards
+Date: 2026-11-03 12:28-12:36 (+0300). Branch task/step0-money, worktree HEAD 14ef89d3 (+ A4F review test edits).
+
+Launch (plan "UI kanit yontemi ve modelsiz tarayici baslatma"):
+- API: pythoncore-3.14 -I run_api.py (scratchpad d6b). Before any import it sets, for this process only:
+  AI_DND_AUTH_MODE=local, AI_DND_CAMPAIGN_DB=<scratchpad>\d6b\d6b.sqlite3 (new, empty), AI_DND_MODEL_CHAIN=gemma,
+  OLLAMA_HOST=http://127.0.0.1:9, AI_DND_ROUTE_LOG=<scratchpad>\d6b\route-log.jsonl,
+  LOCALAPPDATA=<scratchpad>\d6b\localappdata, and pops OLLAMA_PROXY_TOKEN (never read or printed).
+  Then api.local_play.main(["--host","127.0.0.1","--port","8008"]).
+  Server-side test fixtures in the same process: price.txt sets bold_acts._ROOM_PRICE (reprice);
+  seed.txt puts the player in a tavern ("Gol Sofrasi Hani", location_001) with barman npc_dorn and 1000 cp;
+  dump.txt prints purse/offers/ledger under the session turn lock.
+- UI: corepack pnpm --filter @workspace/ai-dnd-experience run dev, worktree root, VITE_AI_DND_LOCAL_PLAY=1,
+  AI_DND_API_ORIGIN=http://127.0.0.1:8008, PORT=22785, BASE_PATH=/ai-dnd-experience/.
+- Gate: GET /api/game/health -> {"status":"ok","engine":"AI-DND","model":"qwen3:8b"}; no model_chain field. PASS.
+  Route log: not created. The only two chat turns (etrafa bakiyorum, sabaha kadar uyuyorum) returned 503 (dead
+  model port, "Dunya su an sessiz"), and economic card turns do not reach front_proposal's route logger
+  (front_proposal.py:414 writes only after a completed routed turn). AI_DND_ROUTE_LOG was pinned to the scratchpad
+  before import and default_on_for_local_play uses setdefault (front_proposal.py:47), so no write could target
+  %LOCALAPPDATA%\AI-DND. scratch localappdata stayed empty. The real save folder was not opened.
+
+Flows (browser = Claude in-app browser, real clicks on EconomicPrepareControls / card buttons).
+Campaign A = b3918760 (Garrick), seeded purse player 1000.
+1. Gift 5 to Dorn: "Karti hazirla" -> card "Hediye - 5 bakir / Toplam: en cok 5 bakir".
+   Before confirm: player 1000, offer 58521fc3 prepared gift [npc_dorn 5], ledger empty.
+   DOUBLE CLICK on "Onayla": exactly one confirm POST /turn (200), screen "5 bakir odendi."
+   After: player 995, npc_dorn 5, offer consumed, ledger 1 op (gift, net_debit 5).
+2. Tip 7 to Dorn: card "Bahsis - 7 bakir"; "Iptal" -> "Teklif iptal edildi; hicbir sey odenmedi."
+   After: player 995 (unchanged), offer 31cfaac3 cancelled, ledger still 1 op.
+3. Room, server-side reprice: card "Oda (bir gece) - 50 bakir" (offer b2bfbe3f, line sink:lodging:location_001 50).
+   price.txt 50 -> 60 on the server. "Onayla" -> "Teklif degisti; yeni kart gerekir. Hicbir sey odenmedi."
+   and card area "Teklif degisti; yeni kart gerekir." After: player 995, offer cancelled, inn_room null, ledger 1 op.
+4. Refresh: new room card at 60 (offer 33df8d87). Page reloaded (navigate), campaign reopened: the same
+   "Oda (bir gece) - 60 bakir" card is shown from server state. "Onayla" -> "60 bakir odendi."
+   After: player 935, inn_room {place location_001, until 86400}, offer consumed, ledger 2 ops (room 60).
+5. Campaign switch: gift 3 card (offer c17c9595) prepared in A. Main screen -> new campaign B (2145a05b, Freya):
+   no card, no Dorn. Main screen -> continue A: the gift 3 card is shown again. "Onayla" -> "3 bakir odendi."
+   After: A player 932, npc_dorn 8; B untouched (no currency, no offers, no ledger).
+
+Final persisted DB (read-only sqlite, mode=ro):
+  A: currency {player 932, npc_dorn 8}, sink_totals {sink:lodging:location_001: 60},
+     offers gift5 consumed, tip7 cancelled, room50 cancelled, room60 consumed, gift3 consumed,
+     ledger ops gift 5, room 60, gift 3.
+  B: revision 0, no currency, no offers, no ops.
+  Conservation: 932 + 8 + 60 = 1000 (seeded). No double charge, no charge on cancel or stale confirm.
+  API log: 11 POST /turn (10 x 200, 1 x 503 before the seed; the second 503 chat turn was sent after the dump).
+
+Shutdown: both process trees stopped (taskkill /T); ports 8008 and 22785 no longer listening.
+Raw evidence (scratchpad d6b): api.log with [dump] lines, final_db.txt, shots\01..14 *.jpg screenshots.
