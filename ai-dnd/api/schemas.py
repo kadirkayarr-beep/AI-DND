@@ -189,6 +189,8 @@ class EconomicProposalIn(BaseModel):
 
 
 class PublicOfferLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     line_id: str
     label: str
     count: int
@@ -199,6 +201,8 @@ class PublicOfferLine(BaseModel):
 
 class PublicEconomicOffer(BaseModel):
     """The card the player sees: no inner acceptance, check difficulty or refusal reason."""
+    model_config = ConfigDict(extra="forbid")
+
     offer_id: str
     confirmation_digest: str
     counterparty_label: str
