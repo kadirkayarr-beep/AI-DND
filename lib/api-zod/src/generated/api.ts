@@ -1693,10 +1693,10 @@ export const CreateGameSessionResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -2700,10 +2700,10 @@ export const GetGameSessionStateResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -3724,10 +3724,10 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -4755,10 +4755,10 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -4909,7 +4909,7 @@ export const PlayGameTurnBody = zod.object({
 }).strict().describe('Confirm exactly the card the player saw, named by its id and confirmation digest.'),zod.object({
   "kind": zod.enum(['cancel']),
   "offer_id": zod.string().regex(playGameTurnBodyEconomicActionOneThreeOfferIdRegExp)
-}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs.')
+}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card), run on its own path with no free-text turn and no model call. A dead or unconscious player cannot prepare or confirm one (409 player_cannot_act, nothing applied).')
 }).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playGameTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -6049,10 +6049,10 @@ export const PlayGameTurnResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -7739,10 +7739,10 @@ export const GetGameActionStatusResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -9363,10 +9363,10 @@ export const AbandonGameActionResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -10836,10 +10836,10 @@ export const UndoGameTurnResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -11876,10 +11876,10 @@ export const AcceptGameQuestResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -12938,10 +12938,10 @@ export const CancelGameQuestResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -13989,10 +13989,10 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -15038,10 +15038,10 @@ export const AcceptLegacyQuestResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -16101,10 +16101,10 @@ export const CancelLegacyQuestResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -17153,10 +17153,10 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -20398,10 +20398,10 @@ export const CreateCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -21726,10 +21726,10 @@ export const GetCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -23031,10 +23031,10 @@ export const ResumeCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -25431,10 +25431,10 @@ export const CreateLegacySessionResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -26439,10 +26439,10 @@ export const GetLegacySessionStateResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -26588,7 +26588,7 @@ export const PlayLegacyTurnBody = zod.object({
 }).strict().describe('Confirm exactly the card the player saw, named by its id and confirmation digest.'),zod.object({
   "kind": zod.enum(['cancel']),
   "offer_id": zod.string().regex(playLegacyTurnBodyEconomicActionOneThreeOfferIdRegExp)
-}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs.')
+}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card), run on its own path with no free-text turn and no model call. A dead or unconscious player cannot prepare or confirm one (409 player_cannot_act, nothing applied).')
 }).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playLegacyTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -27728,10 +27728,10 @@ export const PlayLegacyTurnResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -29198,10 +29198,10 @@ export const UndoLegacyTurnResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -31983,10 +31983,10 @@ export const CreateLegacyCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -33313,10 +33313,10 @@ export const GetLegacyCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),
@@ -34619,10 +34619,10 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "max_total_cp": zod.number().int(),
   "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
   "may_refuse": zod.boolean()
-}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
   "bounded_encounter": zod.object({
   "scenario_id": zod.string(),
   "location_id": zod.string(),

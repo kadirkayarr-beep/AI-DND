@@ -74,8 +74,8 @@ export interface GameState {
   /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
   scene_incidents?: SceneIncident[];
   /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
-  economic_offer?: PublicEconomicOffer | null;
-  wallet?: PublicWallet;
+  economic_offer: PublicEconomicOffer | null;
+  wallet: PublicWallet;
   /** The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null. */
   bounded_encounter?: BoundedEncounterProjection;
 }

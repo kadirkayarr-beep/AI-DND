@@ -352,9 +352,10 @@ def abandon_thread_job(session,thread,owner):
     kept=_keep(world)
     try:
         if holds_parcel(world,thread):
-            item=next(i for i in world.get('inventory',[]) if isinstance(i,dict) and i.get('item_id')==f"parcel:{thread['quest_id']}")
-            equipment_economy.materialize(world)
-            equipment_economy.move(world,item,world['inventory'],owner.setdefault('inventory',[]),'player')
+            # The one sourced transfer, so the parcel's way back is written in the ledger like every other move.
+            import item_transfers
+            moved=item_transfers.transfer_now(world,item_id=f"parcel:{thread['quest_id']}",source_id='player',recipient_id=owner['id'])
+            if moved.status!='applied': equipment_economy.fail(moved.reason_code or 'item_transfer_refused')
             equipment_economy.validate_world(world)
         play.abandon(session,thread['quest_id'])
         world_threads.sync_from_quests(world)
@@ -485,10 +486,12 @@ def resolve(session,text,mode):
         return {'messages':session.messages,'narration':shown,'model_calls':0,'action_result':{'action':'item_transfer','status':'blocked','success':False,'state_changes':[],'direct_response':shown}}
     before=copy.deepcopy(w)
     source=npc.get('inventory',[]) if take else w.get('inventory',[])
-    destination=w.setdefault('inventory',[]) if take else npc.setdefault('inventory',[])
     item=next((i for i in source if isinstance(i,dict) and i.get('item_id')=='parcel:'+q['quest_id']),None)
     if item is None: return None
-    equipment_economy.move(w,item,source,destination,npc_id if take else 'player')
+    import item_transfers  # the one sourced transfer: every parcel move writes its ledger operation
+    moved=item_transfers.transfer_now(w,item_id=item['item_id'],source_id=npc_id if take else 'player',
+                                      recipient_id='player' if take else npc_id)
+    if moved.status!='applied': equipment_economy.fail(moved.reason_code or 'item_transfer_refused')
     equipment_economy.validate_world(w)
     flags=w.setdefault('flags',{});flags['turn_index']=flags.get('turn_index',0)+1
     shown='Teslimat paketini alıyorsun.' if take else f"Paketi {living_world.public_recipient_phrase(npc)} teslim ediyorsun."

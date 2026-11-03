@@ -2332,8 +2332,8 @@ export interface GameState {
   /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
   scene_incidents?: SceneIncident[];
   /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
-  economic_offer?: PublicEconomicOffer | null;
-  wallet?: PublicWallet;
+  economic_offer: PublicEconomicOffer | null;
+  wallet: PublicWallet;
   /** The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null. */
   bounded_encounter?: BoundedEncounterProjection;
 }
@@ -2757,7 +2757,7 @@ export interface GameTurnInput {
      * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
      */
   action_id?: string | null;
-  /** One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs. */
+  /** One economic step (prepare, confirm or cancel a card), run on its own path with no free-text turn and no model call. A dead or unconscious player cannot prepare or confirm one (409 player_cannot_act, nothing applied). */
   economic_action?: EconomicAction | null;
 }
 

@@ -1068,6 +1068,17 @@ def create_app(
         def put_back() -> None:
             _rollback_session(record, session, snapshot)
 
+        if action.kind in {"prepare", "confirm"}:
+            # The same guard the free-text turn uses: a dead or unconscious player opens and pays nothing.
+            try:
+                session.require_player_can_act()
+            except game.PlayerCannotAct as error:
+                put_back()
+                raise refuse_before_commit(409, "player_cannot_act", str(error)) from None
+            except Exception as error:
+                put_back()
+                _logger.error("Economic action could not check the player (error_type=%s)", type(error).__name__)
+                raise refuse_before_commit(500, "engine_error", "The economic action could not be completed.") from None
         try:
             if action.kind == "prepare":
                 fields = action.proposal

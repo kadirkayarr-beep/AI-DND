@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import equipment_economy
-from economic_actions import LEDGER_OPERATIONS_CAP, AssetDelta, EconomicState
+import economic_actions
+from economic_actions import AssetDelta, EconomicState
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,8 @@ def is_coin_label(item: Any) -> bool:
 def item_needs_card(world: dict[str, Any], item: dict[str, Any] | str) -> bool:
     """A priced, magic, counter-priced or held item goes only with a card; a plain thing with no worth does not.
 
-    Read on a materialized copy; a price that cannot be read is not taken to mean the thing is free.
+    Read on a materialized copy. A catalog price that cannot be read (other than an out-of-scope magic item, which
+    always needs a card) counts as no catalog price: the counter's price list and the hands then decide.
     """
     import shop_trade
     import weapon_catalog
@@ -124,8 +126,7 @@ def _move(world: dict[str, Any], *, item_id: str, source_id: str, recipient_id: 
     operations[operation_id] = {"purpose": "item_transfer", "item_id": item_id, "source_id": source_id,
                                 "recipient_id": recipient_id, "net_debit_cp": 0,
                                 "turn_index": flags.get("turn_index", 0)}
-    while len(operations) > LEDGER_OPERATIONS_CAP:
-        operations.pop(next(iter(operations)))
+    economic_actions.trim_operations(operations)
     return [AssetDelta(owner_id=source_id, asset_kind="item", asset_id=name, before=source_before,
                        after=source_before - 1),
             AssetDelta(owner_id=recipient_id, asset_kind="item", asset_id=name, before=recipient_before,

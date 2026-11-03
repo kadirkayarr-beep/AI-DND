@@ -583,7 +583,7 @@ def _close_due(world, state, now):
     seed = living_world._campaign_seed(world)
     closing = sorted(
         ((found, thread) for thread in state["threads"]
-         if (found := _time_outcome(world, thread, now, seed)) is not None),
+         if not parked(thread) and (found := _time_outcome(world, thread, now, seed)) is not None),
         key=lambda pair: pair[0][1],
     )
     effects = []
@@ -627,7 +627,7 @@ def sync_from_quests(world: dict[str, Any], state: dict[str, Any] | None = None)
     quests = {q.get("quest_id"): q for q in world.get("quests", []) if isinstance(q, dict)}
     for thread in state["threads"]:
         status = _QUEST_OUTCOME.get((quests.get(thread.get("quest_id")) or {}).get("status"))
-        if thread.get("status") == "accepted" and status and transition(thread, status):
+        if thread.get("status") == "accepted" and status and not parked(thread) and transition(thread, status):
             thread["closed_at"] = _now(world)
             effects.append((thread["thread_id"], status))
     if effects:
@@ -657,11 +657,8 @@ def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary
 
 
 def _apply_effects(world, effects):
-    """What a close means beyond the thread. Runs only after the state itself is valid."""
-    import relationships
-    import world_reactions
-    from adventure import director
-    from adventure.transitions import TransitionError
+    """What a close means beyond the thread. Runs only after the state itself is valid.
+    A failing close is raised as that thread's own failure so the tick can hold back just it."""
     import world_happenings
     for thread_id, status in effects:
         thread = by_id(world, thread_id)
@@ -670,23 +667,36 @@ def _apply_effects(world, effects):
         if status == world_happenings.HAPPENED:
             world_happenings.show(world, thread)
             continue
-        world_happenings.on_close(world, thread, status)
-        owner = owner_of(world, thread)
-        if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
-            relationships.note(world, owner["id"], _RELATION[status], f"thread:{thread_id}:{status}"[:160])
-        world_reactions.promise_broken(world, thread, owner, status)
-        if thread.get("offered_at") is not None:
-            note_event(world, thread, status, _CLOSE_SUMMARY.get(status, status), npc=owner,
-                       player_known=status in {"done", "abandoned"})
-            if status in {"done", "abandoned"}:
-                thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
-        quest_id = thread.get("quest_id")
-        quest = next((q for q in world.get("quests", []) if isinstance(q, dict) and q.get("quest_id") == quest_id), None)
-        if status == "expired" and quest is not None and quest.get("status") in {"DISCOVERED", "ACTIVE", "BLOCKED"}:
-            try:
-                director.abandon_dynamic(world, quest_id)
-            except (TransitionError, ValueError):
-                _LOG.warning("A job's journal row could not be closed.")
+        try:
+            _close_effects(world, thread_id, thread, status)
+        except Exception as exc:
+            raise _CloseFailed(thread_id, exc) from exc
+
+
+def _close_effects(world, thread_id, thread, status):
+    import relationships
+    import world_reactions
+    from adventure import director
+    from adventure.transitions import TransitionError
+    import world_happenings
+    thread.pop(CLOSE_FAILED, None)  # it closed: an earlier failed try no longer matters
+    world_happenings.on_close(world, thread, status)
+    owner = owner_of(world, thread)
+    if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
+        relationships.note(world, owner["id"], _RELATION[status], f"thread:{thread_id}:{status}"[:160])
+    world_reactions.promise_broken(world, thread, owner, status)
+    if thread.get("offered_at") is not None:
+        note_event(world, thread, status, _CLOSE_SUMMARY.get(status, status), npc=owner,
+                   player_known=status in {"done", "abandoned"})
+        if status in {"done", "abandoned"}:
+            thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
+    quest_id = thread.get("quest_id")
+    quest = next((q for q in world.get("quests", []) if isinstance(q, dict) and q.get("quest_id") == quest_id), None)
+    if status == "expired" and quest is not None and quest.get("status") in {"DISCOVERED", "ACTIVE", "BLOCKED"}:
+        try:
+            director.abandon_dynamic(world, quest_id)
+        except (TransitionError, ValueError):
+            _LOG.warning("A job's journal row could not be closed.")
 
 
 # Answering an offer. Word lists only, read clause by clause: a word counts when the
@@ -1777,6 +1787,53 @@ def _replenish(world, state, now):
                 last_type = template["type"]
 
 
+CLOSE_FAILED = "close_failed"
+CLOSE_FAILURES_BEFORE_PARKING = 3
+
+
+class _CloseFailed(Exception):
+    """One thread's close effects could not land; carries which thread so only it is held back."""
+
+    def __init__(self, thread_id: str, error: BaseException) -> None:
+        super().__init__(thread_id)
+        self.thread_id = thread_id
+        self.error = error
+
+
+def parked(thread: Any) -> bool:
+    """A close that failed every time it was tried: the thread waits as it is and holds no one else up."""
+    marker = thread.get(CLOSE_FAILED) if isinstance(thread, dict) else None
+    return isinstance(marker, dict) and marker.get("parked") is True
+
+
+def _note_close_failure(state, failure):
+    """Count a failed close on the thread itself (the rolled-back record); the third in a row parks it."""
+    thread = next((t for t in state["threads"] if t.get("thread_id") == failure.thread_id), None)
+    if thread is None:
+        return False
+    marker = thread.get(CLOSE_FAILED) if isinstance(thread.get(CLOSE_FAILED), dict) else {}
+    count = (marker.get("count") if type(marker.get("count")) is int else 0) + 1
+    marker = {"count": count, "error": type(failure.error).__name__}
+    if count >= CLOSE_FAILURES_BEFORE_PARKING:
+        marker["parked"] = True
+        _LOG.warning("A job's close failed %s times (%s); it is held back so the town can move on: %s",
+                     count, marker["error"], failure.thread_id)
+    thread[CLOSE_FAILED] = marker
+    return marker.get("parked") is True
+
+
+def _attempt_tick(world, state, now):
+    work = copy.deepcopy(state)
+    world[KEY] = work
+    effects = _close_due(world, work, now)
+    _replenish(world, work, now)
+    work["last_tick"] = now
+    validate(work)
+    sync_from_quests(world, work)
+    _apply_effects(world, effects)
+    validate(work)
+
+
 def tick(world: dict[str, Any], now: int) -> None:
     """Move the town along when campaign time passes. No model; the same moment twice does nothing."""
     state = view(world)
@@ -1784,21 +1841,19 @@ def tick(world: dict[str, Any], now: int) -> None:
         return
     # Kept only whole: a close and everything it means land together, or the town is as it was
     # and the next tick tries again. Saved places stay the same objects: callers hold them across a clock step.
-    before = copy.deepcopy({key: value for key, value in world.items() if key != KEY})
-    try:
-        work = copy.deepcopy(state)
-        world[KEY] = work
-        effects = _close_due(world, work, now)
-        _replenish(world, work, now)
-        work["last_tick"] = now
-        validate(work)
-        sync_from_quests(world, work)
-        _apply_effects(world, effects)
-        validate(work)
-    except Exception:
-        _LOG.exception("World threads could not move on.")
-        _put_back(world, before, keep=(KEY,))
-        world[KEY] = state
+    # A close that fails three times running is parked (its record keeps its status and says why), and the
+    # step is tried once more without it, so one broken close never freezes every other thread.
+    for _try in range(2):
+        before = copy.deepcopy({key: value for key, value in world.items() if key != KEY})
+        try:
+            _attempt_tick(world, state, now)
+            return
+        except Exception as exc:
+            _LOG.exception("World threads could not move on.")
+            _put_back(world, before, keep=(KEY,))
+            world[KEY] = state
+            if not isinstance(exc, _CloseFailed) or not _note_close_failure(state, exc):
+                return
 
 
 _MISSING = object()

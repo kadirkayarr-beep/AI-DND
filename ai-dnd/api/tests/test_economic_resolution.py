@@ -163,6 +163,58 @@ class WagesAreEntitlements(ResolutionFixture):
                          (first.operation_id, [], 0, True))
         self.assertEqual(self.w["currency"]["player"], 180)
 
+    def test_entitlements_are_bounded_and_keep_the_undo_window(self):
+        self.w["flags"]["turn_index"] = 10
+        ledger = self.w["flags"].setdefault("economic_ledger", {})
+        operations = ledger.setdefault("operations", {})
+        entitlements = ledger.setdefault("entitlements", {})
+        recent = [f"wage:recent:{index}" for index in range(10)]
+        for event_id in recent:  # the oldest entries, yet paid in the turn undo can take back
+            entitlements[event_id] = f"entitlement:{event_id}"
+            operations[f"entitlement:{event_id}"] = {"offer_id": None, "purpose": "entitlement",
+                                                     "net_debit_cp": 0, "turn_index": 9}
+        old = [f"wage:old:{index}" for index in range(ea.LEDGER_ENTITLEMENTS_CAP - 5)]
+        for event_id in old:
+            entitlements[event_id] = f"entitlement:{event_id}"
+        purse = self.w["currency"]["player"]
+        new = ea.settle_entitlement(self.state(), event_id="wage:new:1", payer_id="thread-pool:new:1",
+                                    recipient_id="player", amount_cp=40)
+        self.assertEqual((new.status, new.replayed), ("applied", False))
+        self.assertEqual(self.w["currency"]["player"], purse + 40)
+        entitlements = self.w["flags"]["economic_ledger"]["entitlements"]
+        self.assertEqual(len(entitlements), ea.LEDGER_ENTITLEMENTS_CAP)
+        self.assertTrue(all(event_id in entitlements for event_id in recent))
+        self.assertIn("wage:new:1", entitlements)
+        self.assertEqual([event_id for event_id in old if event_id not in entitlements], old[:6])
+        again = ea.settle_entitlement(self.state(), event_id=recent[0], payer_id="thread-pool:recent:0",
+                                      recipient_id="player", amount_cp=40)
+        self.assertEqual((again.replayed, again.net_debit_cp), (True, 0))
+        self.assertEqual(self.w["currency"]["player"], purse + 40)
+
+    def test_item_moves_never_push_money_operations_out(self):
+        self.settle(self.offer(proposal(purpose="tip", recipient_id="farmer", amount_cp=5)), "op-tip")
+        operations = self.w["flags"]["economic_ledger"]["operations"]
+        for index in range(ea.LEDGER_ITEM_OPERATIONS_CAP + 50):
+            operations[f"unscoped:economic:item_transfer:{index}"] = {
+                "purpose": "item_transfer", "item_id": "i", "source_id": "player", "recipient_id": "farmer",
+                "net_debit_cp": 0, "turn_index": 0}
+        ea.settle_entitlement(self.state(), event_id="wage:job-1:9", payer_id="thread-pool:job-1:9",
+                              recipient_id="player", amount_cp=1)
+        operations = self.w["flags"]["economic_ledger"]["operations"]
+        items = [key for key, entry in operations.items() if entry["purpose"] == "item_transfer"]
+        self.assertEqual(len(items), ea.LEDGER_ITEM_OPERATIONS_CAP)
+        self.assertEqual(items[0], "unscoped:economic:item_transfer:50")
+        self.assertIn("op-tip", operations)
+        self.assertIn("entitlement:wage:job-1:9", operations)
+        for index in range(ea.LEDGER_OPERATIONS_CAP + 1):
+            operations[f"filler-{index}"] = {"offer_id": None, "purpose": "tip", "net_debit_cp": 0, "turn_index": 0}
+        ea.trim_operations(operations)
+        self.assertEqual(len([key for key, entry in operations.items() if entry["purpose"] == "item_transfer"]),
+                         ea.LEDGER_ITEM_OPERATIONS_CAP)
+        self.assertEqual(len([key for key, entry in operations.items() if entry["purpose"] != "item_transfer"]),
+                         ea.LEDGER_OPERATIONS_CAP)
+        self.assertNotIn("op-tip", operations)
+
 
 class TenderAndChange(ResolutionFixture):
     def test_tender_change_is_accounting_not_gift(self):

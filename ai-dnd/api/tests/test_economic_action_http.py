@@ -300,6 +300,38 @@ class WhenTheWorldMoved(EconomicHttpFixture):
         await self.assert_stale_and_nothing_moved(card)
         self.assertNotIn("inn_room", self.world["flags"])
 
+    async def test_confirm_after_the_player_died_out_of_combat_changes_nothing(self):
+        card = await self.card(**ROOM)
+        import game
+        death = game._death_state_defaults()
+        death.update(dead=True, terminal=True)
+        self.world["death_state"] = death
+        self.record.game_session.character["current_hp"] = 0  # a dead player has no hit points left
+        self.assertFalse(self.world.get("combat", {}).get("active"))
+        before, checkpoint, revision = self.money(), self.checkpoint(), self.revision()
+        world_before = copy.deepcopy(self.world)
+        response, _ = await self.act({"kind": "confirm", "offer_id": card["offer_id"],
+                                      "confirmation_digest": card["confirmation_digest"]}, "Teklifi onayla")
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "player_cannot_act")
+        self.assertEqual(self.money(), before)
+        self.assertEqual(self.world, world_before)
+        self.assertEqual(self.offers()[card["offer_id"]]["status"], "prepared")
+        self.assertNotIn("inn_room", self.world["flags"])
+        self.assertEqual(self.checkpoint(), checkpoint)
+        self.assertEqual(self.revision(), revision)
+
+    async def test_prepare_while_unconscious_opens_no_card(self):
+        self.record.game_session.character["current_hp"] = 0
+        before, checkpoint = self.money(), self.checkpoint()
+        offers = copy.deepcopy(self.offers())
+        response, _ = await self.act({"kind": "prepare", "proposal": ROOM}, "Teklif hazırla")
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "player_cannot_act")
+        self.assertEqual(self.offers(), offers)
+        self.assertEqual(self.money(), before)
+        self.assertEqual(self.checkpoint(), checkpoint)
+
     async def test_confirm_during_combat_changes_nothing(self):
         card = await self.card(**TIP)
         with patch("economic_actions._combat", return_value=True):

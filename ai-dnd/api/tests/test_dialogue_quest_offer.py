@@ -47,6 +47,20 @@ class DialogueJobTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(self.world['currency']['player'],gold+q['reward_plan']['success']['gold'])
   after=copy.deepcopy(self.session.serialize_game_state());again=await self.send('Paketi Lia adlı arşivciye teslim ediyorum',mode='do',action_id=aid)
   self.assertEqual(hand.json(),again.json());self.assertEqual(after,self.session.serialize_game_state())
+ async def test_typed_parcel_take_and_give_write_ledger_operations(self):
+  await self.setup_job();q=await self.offer();qid=q['quest_id'];self.reply.raw=None
+  accept=await self.http.post(f'/api/game/sessions/{self.session_id}/quests/{qid}/accept');self.assertEqual(accept.status_code,200,accept.text)
+  def moves():
+   ops=(self.world.get('flags',{}).get('economic_ledger') or {}).get('operations') or {}
+   return [(e['item_id'],e['source_id'],e['recipient_id']) for e in ops.values() if e.get('purpose')=='item_transfer' and e.get('item_id')=='parcel:'+qid]
+  self.assertEqual(moves(),[])
+  take=await self.send('Paketi alıyorum',mode='do');self.assertEqual(take.status_code,200,take.text)
+  self.assertEqual(moves(),[('parcel:'+qid,q['bindings']['source_npc_id'],'player')])
+  await self.send('Kent Arşivine gidiyorum',mode='do')
+  hand=await self.send('Paketi Lia adlı arşivciye teslim ediyorum',mode='do');self.assertEqual(hand.status_code,200,hand.text)
+  self.assertEqual(q['status'],'COMPLETED')
+  self.assertEqual(moves(),[('parcel:'+qid,q['bindings']['source_npc_id'],'player'),('parcel:'+qid,'player',q['bindings']['target_npc_id'])])
+  self.assertEqual(self.world['flags']['economic_ledger']['operation_seq']>=2,True)
  async def test_declining_offer_does_not_accept_it(self):
   await self.setup_job();q=await self.offer();self.reply.raw=None
   r=await self.send('Bu işi kabul etmiyorum.');self.assertEqual(r.status_code,200,r.text);self.assertEqual(q['status'],'DISCOVERED')

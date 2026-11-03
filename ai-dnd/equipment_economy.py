@@ -897,6 +897,7 @@ def execute(session, text, *, advance_turn=True):
             wallet = candidate.get("currency", {}).get("player")
             if wallet:
                 narration += f" Kesende {wallet // 100} altın {wallet % 100} bakır var."
+        original = dict(world)  # the untouched saved values: _apply only ever wrote to the candidate copy
         world.clear()
         world.update(candidate)
         if card_request is not None:
@@ -907,6 +908,9 @@ def execute(session, text, *, advance_turn=True):
             narration = prepared.public_message
             if prepared.status != "prepared":
                 reason = prepared.reason_code
+                # Nothing of the refused card may stay: no materialized stack, no spent item sequence.
+                world.clear()
+                world.update(original)
                 raise _CardNotPrepared(reason)
             offered = True
         if advance_turn and tokens[1] != "list":

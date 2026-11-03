@@ -508,7 +508,37 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
 # A2: resolution, the one applier and the money receipt.
 # ---------------------------------------------------------------------------------------------------------------
 
-LEDGER_OPERATIONS_CAP = 200
+LEDGER_OPERATIONS_CAP = 200  # money operations (every purpose but item_transfer)
+LEDGER_ITEM_OPERATIONS_CAP = 200  # item_transfer operations, counted apart so they never push money out
+LEDGER_ENTITLEMENTS_CAP = 400
+UNDO_WINDOW_TURNS = 1  # the one turn undo can take back; an entitlement paid in it is never forgotten
+
+
+def trim_operations(operations: dict[str, Any]) -> None:
+    """Oldest first, each kind under its own cap: item moves and money operations never evict each other."""
+    for items, cap in ((True, LEDGER_ITEM_OPERATIONS_CAP), (False, LEDGER_OPERATIONS_CAP)):
+        keys = [key for key, record in operations.items()
+                if (isinstance(record, dict) and record.get("purpose") == "item_transfer") is items]
+        for key in keys[:max(0, len(keys) - cap)]:
+            operations.pop(key)
+
+
+def _trim_entitlements(ledger: dict[str, Any], turn: int) -> None:
+    """Keep the newest LEDGER_ENTITLEMENTS_CAP paid events; one paid within the undo window always stays."""
+    entitlements = ledger.get("entitlements")
+    if not isinstance(entitlements, dict):
+        return
+    operations = ledger.get("operations") if isinstance(ledger.get("operations"), dict) else {}
+    excess = len(entitlements) - LEDGER_ENTITLEMENTS_CAP
+    for event_id, operation_id in list(entitlements.items()):
+        if excess <= 0:
+            break
+        record = operations.get(operation_id)
+        paid_turn = record.get("turn_index") if isinstance(record, dict) else None
+        if type(paid_turn) is int and paid_turn >= turn - UNDO_WINDOW_TURNS:
+            continue
+        del entitlements[event_id]
+        excess -= 1
 _OFFER_PURPOSES = ("purchase", "room", "gift", "tip", "item_gift")
 _ENGINE_PURPOSES = ("npc_gift", "entitlement")
 _POOL_PREFIX = "thread-pool:"
@@ -878,11 +908,11 @@ def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
             operations[resolution.operation_id] = {
                 "offer_id": resolution.offer_id, "purpose": resolution.purpose,
                 "net_debit_cp": resolution.net_debit_cp, "turn_index": flags.get("turn_index", 0)}
-            while len(operations) > LEDGER_OPERATIONS_CAP:
-                operations.pop(next(iter(operations)))
             if resolution.purpose == "entitlement":
                 event_id = resolution.operation_id.removeprefix("entitlement:")
                 ledger.setdefault("entitlements", {})[event_id] = resolution.operation_id
+                _trim_entitlements(ledger, flags.get("turn_index", 0))
+            trim_operations(operations)
             if not live:
                 equipment_economy.validate_world(target)
                 validate_economic_resolution(before, economic_facts(EconomicState(world=target, character=None)),
@@ -1271,8 +1301,7 @@ def confirm_offer(state: EconomicState, *, offer_id: str, confirmation_digest: s
         operations[operation_id] = {"offer_id": offer_id, "purpose": offer.proposal.purpose, "net_debit_cp": 0,
                                     "turn_index": world["flags"].get("turn_index", 0),
                                     "reason_code": resolution.reason_code}
-        while len(operations) > LEDGER_OPERATIONS_CAP:
-            operations.pop(next(iter(operations)))
+        trim_operations(operations)
     data.update(status="consumed", operation_id=operation_id)
     return resolution
 

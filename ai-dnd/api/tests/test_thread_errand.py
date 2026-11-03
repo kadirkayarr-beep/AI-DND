@@ -304,6 +304,23 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.parcel_owner(), [self.owner["id"]])
         self.assertEqual(self.world["relationships"][self.owner["id"]]["score"], -1)
 
+    async def test_the_parcel_going_back_on_quitting_is_written_in_the_ledger(self):
+        await self.job()
+        await self.line("mektubu alıyorum", "Al.")
+        item_id = f"parcel:{world_threads.by_id(self.world, self.tid)['quest_id']}"
+        ledger = self.world["flags"].get("economic_ledger") or {}
+        seen = set((ledger.get("operations") or {}))
+        seq = ledger.get("operation_seq", 0)
+        await self.line("vazgeçtim", "Sen bilirsin.")
+        self.assertEqual(self.status(), "abandoned")
+        self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+        ledger = self.world["flags"]["economic_ledger"]
+        new = {key: entry for key, entry in ledger["operations"].items() if key not in seen}
+        back = [entry for entry in new.values() if entry.get("purpose") == "item_transfer"]
+        self.assertEqual([(entry["item_id"], entry["source_id"], entry["recipient_id"]) for entry in back],
+                         [(item_id, "player", self.owner["id"])])
+        self.assertEqual(ledger["operation_seq"], seq + 1)
+
     async def test_quitting_and_walking_off_does_not_hand_over_the_parcel(self):
         for line in ("vazgeçtim, gidiyorum", "vazgeçtim gidiyorum"):
             await self.job()

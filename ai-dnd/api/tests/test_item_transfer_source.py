@@ -216,6 +216,21 @@ class ArmorAndHands(Bag):
         self.assertEqual(self.turn(), turn)
         self.assertEqual(holdings(self.w), before)
 
+    def test_refused_item_card_leaves_the_saved_game_exactly_as_it_was(self):
+        self.allow("item_sword")
+        self.w["inventory"].append("Halat")  # not yet materialized: a refused card must not give it an id
+        sequence = copy.deepcopy(self.w.get("item_sequence"))
+        fingerprint = json.dumps(self.s.serialize_game_state(), sort_keys=True, ensure_ascii=False)
+        world_before = copy.deepcopy(self.w)
+        with patch.object(world_reactions, "refuses", side_effect=lambda world, npc: npc.get("id") == "guest"):
+            result = self.give("item_sword")
+        self.assertEqual((result["action_result"]["status"], result["action_result"]["reason"]),
+                         ("rejected", "npc_refuses"))
+        self.assertIn("Halat", self.w["inventory"])
+        self.assertEqual(self.w.get("item_sequence"), sequence)
+        self.assertEqual(self.w, world_before)
+        self.assertEqual(json.dumps(self.s.serialize_game_state(), sort_keys=True, ensure_ascii=False), fingerprint)
+
     def test_plain_item_give_records_item_transfer_operation(self):
         self.allow("item_ring")
         seq = self.w["flags"].get("economic_ledger", {}).get("operation_seq", 0)
