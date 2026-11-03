@@ -192,28 +192,56 @@ def is_flight(session, message):
             and bool(_FLIGHT.search(session._normalize_turkish_typos(message))))
 
 
+def _flight_refused(session, reason_code, narration):
+    """No flight happened: the fight and the place stay as they were, and nothing claims a move."""
+    return {"messages": session.messages, "narration": narration, "model_calls": 0,
+            "action_result": {"action": "flee", "status": "rejected", "success": False,
+                              "reason_code": reason_code, "state_changes": [], "direct_response": narration}}
+
+
+def _flight_cut_off(session, action_id, session_id, reason_code, lead):
+    """The attempt was made but led nowhere: the turn is lost in the fight, and no move is claimed."""
+    import action_economy
+    result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
+    result["narration"] = f"{lead} {result.get('narration', '')}".strip()
+    result["action_result"].update(reason_code=reason_code, state_changes=["combat"])
+    return result
+
+
 def flee(session, action_id=None, session_id=None):
-    """A real attempt: away and out of the place, or the turn is lost and the blows land."""
+    """A real attempt: away and out of the place, or the turn is lost and the blows land.
+
+    Speed and the way out are checked before the roll; the fight ends only with a committed change of place.
+    """
+    import action_economy
     world = session.world_state
     combat = world["combat"]
     if combat.get("current_actor_id") != "player" or session.character.get("current_hp", 0) <= 0:
         return None
+    if action_economy.speed(session, "player") <= 0:
+        return _flight_refused(session, "speed_zero", "Kıpırdayamıyorsun; kaçmak şu an elinde değil.")
+    here_id = world.get("location")
+    locations = world.get("locations", {})
+    here = locations.get(here_id, {}) if isinstance(locations, dict) else {}
+    way_out = (here.get("exit_location_id") or here.get("parent_location_id")) if isinstance(here, dict) else None
+    if not isinstance(way_out, str) or way_out == here_id or way_out not in locations:
+        return _flight_cut_off(session, action_id, session_id, "no_exit",
+                               "Buradan sıyrılabileceğin bir çıkış göremiyorsun; kavga seni bırakmıyor.")
     character = session.character
     check = session.perform_skill_check(
         "Acrobatics", 12, character["modifiers"], character.get("proficient_skills") or [],
         character.get("proficiency_bonus") or 2, expertise_skills=character.get("expertise_skills") or (),
     )
     if check["result"] == "BAŞARILI":
-        here = world.get("locations", {}).get(world.get("location"), {})
-        way_out = here.get("exit_location_id") or here.get("parent_location_id") if isinstance(here, dict) else None
-        session.end_combat("player_fled")
-        if isinstance(way_out, str) and way_out in world.get("locations", {}):
-            session.commit_location_change(way_out)
+        if not session.commit_location_change(way_out):
+            return _flight_cut_off(session, action_id, session_id, "exit_blocked",
+                                   "Boşluğu buluyorsun ama çıkış yolun kapalı; kavga sürüyor.")
+        session.end_combat("player_fled")  # commit already closed it on leaving; this keeps the fight's own reason
+        world["combat"]["end_reason"] = "player_fled"
         narration = "Bir boşluk yakalayıp sıyrılıyorsun; ardından gelen bağırışlar geride kalıyor."
         return {"messages": session.messages, "narration": narration, "model_calls": 0,
                 "action_result": {"action": "flee", "status": "resolved", "success": True,
                                   "state_changes": ["combat", "location"], "direct_response": narration}}
-    import action_economy
     result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
     result["narration"] = f"Kaçacak bir açık bulamıyorsun; yolun kesiliyor. {result.get('narration', '')}".strip()
     return result
