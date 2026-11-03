@@ -10,11 +10,14 @@ import copy
 import dataclasses
 import json
 import unittest
+from unittest.mock import patch
+from uuid import uuid4
 
 import economic_actions as ea
 import equipment_economy
 from api.schemas import PublicEconomicResolution as PublicEconomicResolutionSchema
 from api.tests.test_economic_offer import proposal, room
+from api.tests.test_economic_action_http import TIP, EconomicHttpFixture
 from api.tests.test_economic_resolution import ResolutionFixture
 
 
@@ -115,6 +118,48 @@ class TheReceiptIsIndependent(ResolutionFixture):
             self.assertNotIn(hidden, text)
         self.assertEqual((public.net_debit_cp, public.change_cp, public.tender_cp), (55, 45, 100))
         self.assertEqual([(line.line_id, line.total_cp) for line in public.lines], [("room:0", 50), ("tip:1", 5)])
+
+
+class TheReceiptOverHttp(EconomicHttpFixture):
+    """A3: the confirm's answer is part of the commit; losing the answer never pays twice, failing it pays nothing."""
+
+    async def test_economic_response_ack_loss_after_commit_does_not_pay_twice(self):
+        card = await self.card(**TIP)
+        real_save = self.manager.autosave_turn
+
+        def saved_then_lost(*args, **kwargs):
+            real_save(*args, **kwargs)
+            raise RuntimeError("fixture: the commit landed but its answer was lost")
+
+        body = {"message": "Teklifi onayla", "action_id": str(uuid4()),
+                "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                    "confirmation_digest": card["confirmation_digest"]}}
+        with patch.object(self.manager, "autosave_turn", side_effect=saved_then_lost):
+            lost = await self.post(body)
+        self.assertNotEqual(lost.status_code, 200, lost.text)
+        self.assertEqual(lost.json()["detail"].get("commit_status"), "committed_unconfirmed")
+        self.assertEqual((self.purse(), self.world["currency"]["barman"]), (96, 4))
+        replay = await self.post(body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json()["economic_resolution"]["net_debit_cp"], 4)
+        again, _ = await self.confirm(card)
+        self.assertEqual(again["economic_resolution"]["reason_code"], "offer_not_prepared")
+        self.assertEqual((self.purse(), self.world["currency"]["barman"]), (96, 4))
+        stored = self.store.get_campaign(self.record.campaign_id).payload
+        self.assertEqual(stored["engine_save"]["world_state"]["currency"]["player"], 96)
+
+    async def test_economic_response_serialization_failure_before_commit(self):
+        card = await self.card(**TIP)
+        before = (self.money(), copy.deepcopy(self.offers()), self.revision())
+        body = {"message": "Teklifi onayla", "action_id": str(uuid4()),
+                "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                    "confirmation_digest": card["confirmation_digest"]}}
+        with patch("api.main.serialize_session_state", side_effect=RuntimeError("fixture serializer failure")):
+            failed = await self.post(body)
+        self.assertEqual(failed.status_code, 500, failed.text)
+        self.assertEqual((self.money(), self.offers(), self.revision()), before)
+        self.assertEqual(self.offers()[card["offer_id"]]["status"], "prepared")
+        self.assertIsNone(self.manager.get_turn_action(self.record, body["action_id"]))
 
 
 if __name__ == "__main__":

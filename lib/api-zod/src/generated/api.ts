@@ -1673,7 +1673,27 @@ export const CreateGameSessionResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -2645,7 +2665,27 @@ export const GetGameSessionStateResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -3634,7 +3674,27 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -4630,7 +4690,27 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -5889,7 +5969,27 @@ export const PlayGameTurnResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -7544,7 +7644,27 @@ export const GetGameActionStatusResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -9133,7 +9253,27 @@ export const AbandonGameActionResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -10571,7 +10711,27 @@ export const UndoGameTurnResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -11576,7 +11736,27 @@ export const AcceptGameQuestResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -12603,7 +12783,27 @@ export const CancelGameQuestResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -13619,7 +13819,27 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
@@ -14633,7 +14853,27 @@ export const AcceptLegacyQuestResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptLegacyQuestResponseQuestQuestIdMax),
@@ -15661,7 +15901,27 @@ export const CancelLegacyQuestResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelLegacyQuestResponseQuestQuestIdMax),
@@ -16678,7 +16938,27 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionCompatResponseResultEventInstanceIdMax),
@@ -19888,7 +20168,27 @@ export const CreateCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -21181,7 +21481,27 @@ export const GetCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -22451,7 +22771,27 @@ export const ResumeCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -24816,7 +25156,27 @@ export const CreateLegacySessionResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -25789,7 +26149,27 @@ export const GetLegacySessionStateResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -27043,7 +27423,27 @@ export const PlayLegacyTurnResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -28478,7 +28878,27 @@ export const UndoLegacyTurnResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -31228,7 +31648,27 @@ export const CreateLegacyCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -32523,7 +32963,27 @@ export const GetLegacyCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -33794,7 +34254,27 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "props": zod.array(zod.string()),
   "place": zod.union([zod.string(),zod.null()]),
   "affordances": zod.array(zod.string())
-})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({

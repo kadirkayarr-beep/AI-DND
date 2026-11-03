@@ -2199,6 +2199,44 @@ export interface SceneIncident {
   affordances: string[];
 }
 
+export interface PublicOfferLine {
+  line_id: string;
+  label: string;
+  count: number;
+  unit_cp: number;
+  total_cp: number;
+  optional: boolean;
+}
+
+export type PublicEconomicOfferDependency = typeof PublicEconomicOfferDependency[keyof typeof PublicEconomicOfferDependency];
+
+
+export const PublicEconomicOfferDependency = {
+  base_required: 'base_required',
+  all_or_none: 'all_or_none',
+} as const;
+
+/**
+ * The card the player sees; no inner acceptance, check difficulty or refusal reason.
+ */
+export interface PublicEconomicOffer {
+  offer_id: string;
+  confirmation_digest: string;
+  counterparty_label: string;
+  lines: PublicOfferLine[];
+  dependency: PublicEconomicOfferDependency;
+  max_total_cp: number;
+  tender_cp?: number | null;
+  may_refuse: boolean;
+}
+
+/**
+ * The player's own purse in copper; NPC balances are never public.
+ */
+export interface PublicWallet {
+  total_cp: number;
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -2238,6 +2276,9 @@ export interface GameState {
   known_factions: KnownFactionStanding[];
   /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
   scene_incidents?: SceneIncident[];
+  /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
+  economic_offer?: PublicEconomicOffer | null;
+  wallet?: PublicWallet;
 }
 
 export interface GameSession {
@@ -2663,37 +2704,6 @@ export interface GameTurnInput {
   economic_action?: EconomicAction | null;
 }
 
-export interface PublicOfferLine {
-  line_id: string;
-  label: string;
-  count: number;
-  unit_cp: number;
-  total_cp: number;
-  optional: boolean;
-}
-
-export type PublicEconomicOfferDependency = typeof PublicEconomicOfferDependency[keyof typeof PublicEconomicOfferDependency];
-
-
-export const PublicEconomicOfferDependency = {
-  base_required: 'base_required',
-  all_or_none: 'all_or_none',
-} as const;
-
-/**
- * The card the player sees; no inner acceptance, check difficulty or refusal reason.
- */
-export interface PublicEconomicOffer {
-  offer_id: string;
-  confirmation_digest: string;
-  counterparty_label: string;
-  lines: PublicOfferLine[];
-  dependency: PublicEconomicOfferDependency;
-  max_total_cp: number;
-  tender_cp?: number | null;
-  may_refuse: boolean;
-}
-
 export interface PublicLineRefusal {
   line_id: string;
   reason_code: string;
@@ -2721,13 +2731,6 @@ export interface PublicEconomicResolution {
   change_cp: number;
   net_debit_cp: number;
   public_summary: string;
-}
-
-/**
- * The player's own purse in copper; NPC balances are never public.
- */
-export interface PublicWallet {
-  total_cp: number;
 }
 
 export type UnresolvedGameActionUnresolvedState = typeof UnresolvedGameActionUnresolvedState[keyof typeof UnresolvedGameActionUnresolvedState];

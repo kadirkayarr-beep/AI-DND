@@ -10,6 +10,9 @@ A confirmed offer is resolved (`resolve_offer`, read only) and written by the on
 a settled copy first, the money receipt (`validate_economic_resolution`) on it, then the same steps on the live
 dicts in place. Earned pay goes through `settle_entitlement`, once per event. No turn reaches these yet (A4).
 
+The API (A3) stores the card (`prepare_from_panel`), confirms it once (`confirm_offer`), cancels it, and after an
+undo reopens only the card the undone action consumed (`reconcile_offers_after_undo`); closed cards are pruned.
+
 No network, model or database call is made here.
 """
 
@@ -962,6 +965,234 @@ def validate_economic_resolution(before: EconomicFacts, after: EconomicFacts, re
     expected_effects = list(confirmed_offer.on_accept) if confirmed_offer is not None and accepted else []
     if list(resolution.world_effects) != expected_effects:
         _reject("effect_mismatch")
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# A3: the stored card, its confirmation, cancellation, undo and pruning.
+# ---------------------------------------------------------------------------------------------------------------
+
+OFFER_RECORDS_KEEP = 20
+_PANEL_PURPOSES = ("gift", "tip", "room")  # a purchase is the counter's own; a valued item comes with /item give
+_digest_of = confirmation_digest
+
+
+def wallet_total_cp(world: dict[str, Any]) -> int:
+    """The player's purse with written coin labels counted, from a copy: the live world is not normalised."""
+    import bold_acts
+    candidate = {"currency": copy.deepcopy(world.get("currency") or {}),
+                 "inventory": copy.deepcopy(world.get("inventory") or [])}
+    bold_acts.settle_coin_labels(candidate)
+    total = candidate["currency"].get("player", 0)
+    return total if type(total) is int else 0
+
+
+def offer_records(world: dict[str, Any]) -> dict[str, Any]:
+    """The stored cards, read only: an empty dict when there are none."""
+    records = (world.get("flags") or {}).get("economic_offers")
+    return records if isinstance(records, dict) else {}
+
+
+def _writable_records(world: dict[str, Any]) -> dict[str, Any]:
+    flags = world.setdefault("flags", {})
+    if not isinstance(flags.get("economic_offers"), dict):
+        flags["economic_offers"] = {}
+    return flags["economic_offers"]
+
+
+def offer_from_record(data: Any) -> EconomicOffer | None:
+    """The stored dict back as an offer; anything malformed is no offer at all."""
+    try:
+        proposal = dict(data["proposal"])
+        span = proposal.get("text_span")
+        proposal["text_span"] = TextSpan(**span) if isinstance(span, dict) else None
+        acceptance = dict(data["acceptance"])
+        check = acceptance.get("check")
+        acceptance["check"] = CheckSpec(**check) if isinstance(check, dict) else None
+        acceptance["line_decisions"] = [LineDecision(**item) for item in acceptance["line_decisions"]]
+        return EconomicOffer(**{
+            **data, "proposal": EconomicProposal(**proposal), "lines": [OfferLine(**line) for line in data["lines"]],
+            "acceptance": AcceptanceRecord(**acceptance),
+            "on_accept": [WorldEffect(**effect) for effect in data["on_accept"]]})
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def prepared_offer(world: dict[str, Any], *, actor_id: str = "player") -> EconomicOffer | None:
+    """The one open card of this actor (C12), the latest when an old save holds more."""
+    found = [offer for data in offer_records(world).values()
+             if (offer := offer_from_record(data)) is not None and offer.status == "prepared"
+             and offer.actor_id == actor_id]
+    return found[-1] if found else None
+
+
+def cancel_offer(world: dict[str, Any], *, offer_id: str) -> bool:
+    """Close one prepared card. Cancelling moves no coin, goods or time."""
+    data = offer_records(world).get(offer_id)
+    if not isinstance(data, dict) or data.get("status") != "prepared":
+        return False
+    data["status"] = "cancelled"
+    return True
+
+
+def cancel_prepared(world: dict[str, Any], *, actor_id: str, except_offer_id: str | None = None,
+                    except_source_action_id: str | None = None,
+                    predicate: Callable[[EconomicOffer], bool] | None = None) -> list[str]:
+    """Cancel this actor's prepared cards, except the named one and those the named action prepared."""
+    cancelled = []
+    for offer_id, data in offer_records(world).items():
+        offer = offer_from_record(data)
+        if offer is None or offer.status != "prepared" or offer.actor_id != actor_id or offer_id == except_offer_id:
+            continue
+        if except_source_action_id is not None and offer.proposal.source_action_id == except_source_action_id:
+            continue
+        if predicate is not None and not predicate(offer):
+            continue
+        data["status"] = "cancelled"
+        cancelled.append(offer_id)
+    return cancelled
+
+
+def prune_offer_records(world: dict[str, Any], *, keep: int = OFFER_RECORDS_KEEP,
+                        protect_action_id: str | None = None) -> None:
+    """Keep at most the last `keep` closed cards; a prepared one and the one the live checkpoint consumed stay."""
+    records = offer_records(world)
+    closed = [offer_id for offer_id, data in records.items()
+              if isinstance(data, dict) and data.get("status") in ("consumed", "cancelled")
+              and not (protect_action_id is not None and data.get("consumed_action_id") == protect_action_id)]
+    for offer_id in closed[:max(len(closed) - keep, 0)]:
+        records.pop(offer_id)
+
+
+def prepare_from_panel(state: EconomicState, proposal: EconomicProposal, *, campaign_id: str, actor_id: str,
+                       turn_index: int, protect_action_id: str | None = None) -> PrepareResult:
+    """The API's prepare: the purpose and bribe gates, then `prepare_offer`, then the card is stored (C12).
+
+    A refusal or a question stores nothing and closes no other card.
+    """
+    import world_reactions
+    world = state.world
+    if proposal.purpose not in _PANEL_PURPOSES:
+        return _clarify("purpose_not_offered_here")  # O3: no second way to buy or hand over a valued item
+    guard = world_reactions.arrester(world)
+    if guard is not None and guard.get("id") == proposal.recipient_id and world_reactions.holding(world, guard):
+        return _clarify("bribe_in_turn_only")  # O1: the bribe card opens only from the spoken turn
+    records = offer_records(world)
+    offer_id = new_offer_id()
+    while offer_id in records:
+        offer_id = new_offer_id()
+    result = prepare_offer(state, proposal, offer_id=offer_id, campaign_id=campaign_id, actor_id=actor_id,
+                           turn_index=turn_index)
+    if result.status == "prepared" and result.offer is not None:
+        cancel_prepared(world, actor_id=actor_id, except_offer_id=offer_id)
+        _writable_records(world)[offer_id] = dataclasses.asdict(result.offer)
+        prune_offer_records(world, protect_action_id=protect_action_id)
+    return result
+
+
+def _still_holds(state: EconomicState, offer: EconomicOffer) -> bool:
+    """C3: the counterparty, the place, combat, the price and the stock read again; the purse is not (R5)."""
+    import equipment_economy
+    import shop_trade
+    world = _settled(state.world)
+    proposal = offer.proposal
+    if _combat(world) or world.get("location") != offer.place_id:
+        return False
+    npc = _npc(world, proposal.recipient_id)
+    if npc is None or not _is_here(world, npc):
+        return False
+    if proposal.purpose in ("purchase", "room"):
+        counter = shop_trade.counter(world)
+        vendor = counter.get("vendor") or {}
+        if vendor.get("npc_id") != str(npc.get("id")) \
+                or counter["reason"] in ("no_vendor", "vendor_unavailable", "not_now"):
+            return False
+    elif not equipment_economy.npc_can_act(npc):
+        return False
+    lines = _lines(world, proposal, npc)
+    if isinstance(lines, str) or lines != list(offer.lines):
+        return False
+    return context_digest(state, proposal, lines) == offer.context_digest
+
+
+def _unmoved(operation_id: str, offer_id: str, reason: str, offer: EconomicOffer | None) -> EconomicResolution:
+    lines = list(offer.lines) if offer is not None else []
+    summary = {"offer_not_prepared": "Bu teklif artık açık değil; hiçbir şey ödenmedi.",
+               "digest_mismatch": "Onaylanan teklif bu kartla uyuşmuyor; hiçbir şey ödenmedi.",
+               "stale": "Teklif değişti; yeni kart gerekir. Hiçbir şey ödenmedi."}[reason]
+    return EconomicResolution(
+        operation_id=operation_id, offer_id=offer_id, purpose=offer.proposal.purpose if offer is not None else "gift",
+        base_fingerprint="", status="refused", reason_code=reason, lines=lines, asset_deltas=[], service_rights=[],
+        world_effects=[], refusals=[LineRefusal(line_id=line.line_id, reason_code=reason) for line in lines],
+        public_summary=summary, tender_cp=offer.proposal.tender_cp if offer is not None else None, change_cp=0,
+        net_debit_cp=0)
+
+
+def confirm_offer(state: EconomicState, *, offer_id: str, confirmation_digest: str, operation_id: str,
+                  check: Callable[[str, int], str]) -> EconomicResolution:
+    """Confirm exactly the stored card. Only a result that consumes it writes anything but the card's own status.
+
+    A card that is not prepared, a digest that does not match, or a world that changed since (stale) moves nothing
+    and settles no purse label; a stale card is cancelled. Any other result consumes the card: an applied one goes
+    through `apply_resolution`, a refused one (no money, a failed check, a bad tender) settles the purse labels and
+    is entered in the ledger so the same card cannot be tried again by a new action.
+    """
+    import bold_acts
+    world = state.world
+    data = offer_records(world).get(offer_id)
+    offer = offer_from_record(data) if isinstance(data, dict) else None
+    if offer is None or offer.status != "prepared" or offer.offer_id != offer_id:
+        return _unmoved(operation_id, offer_id, "offer_not_prepared", None)
+    if not (isinstance(confirmation_digest, str) and secrets.compare_digest(confirmation_digest,
+                                                                         offer.confirmation_digest)
+            and _digest_of(offer) == offer.confirmation_digest):
+        return _unmoved(operation_id, offer_id, "digest_mismatch", offer)
+    if not _still_holds(state, offer):
+        data["status"] = "cancelled"
+        return _unmoved(operation_id, offer_id, "stale", offer)
+    resolution = resolve_offer(state, offer, operation_id=operation_id, check=check)
+    if resolution.status == "applied":
+        resolution = apply_resolution(state, resolution, confirmed_offer=offer)
+        if resolution.status != "applied" and resolution.reason_code == "stale":
+            data["status"] = "cancelled"  # the copy found the world moved; nothing was written to the live one
+            return _unmoved(operation_id, offer_id, "stale", offer)
+    if resolution.status != "applied":
+        operations = world.setdefault("flags", {}).setdefault("economic_ledger", {}).setdefault("operations", {})
+        if operation_id in operations:
+            raise EconomicReceiptError("operation_id_reused")
+        bold_acts.settle_coin_labels(world)  # C10: the consuming confirm keeps the settled purse
+        operations[operation_id] = {"offer_id": offer_id, "purpose": offer.proposal.purpose, "net_debit_cp": 0,
+                                    "turn_index": world["flags"].get("turn_index", 0),
+                                    "reason_code": resolution.reason_code}
+        while len(operations) > LEDGER_OPERATIONS_CAP:
+            operations.pop(next(iter(operations)))
+    data.update(status="consumed", operation_id=operation_id)
+    return resolution
+
+
+def reconcile_offers_after_undo(restored_world: dict[str, Any], current_offers: dict[str, dict], *,
+                                undone_action_id: str) -> None:
+    """After undo put the world back (C11, D2): only the card the undone action consumed is open again.
+
+    A cancelled card stays cancelled, a card prepared after the target turn comes back cancelled, and a card the
+    restored world holds open but the current one no longer has (cancelled, then pruned) is cancelled.
+    """
+    current = current_offers if isinstance(current_offers, dict) else {}
+    if not current and not offer_records(restored_world):
+        return  # no card on either side: the restored save stays byte for byte as it was
+    restored = _writable_records(restored_world)
+    for offer_id, data in current.items():
+        if not isinstance(data, dict):
+            continue
+        entry = copy.deepcopy(data)
+        if entry.get("status") == "consumed" and entry.get("consumed_action_id") == undone_action_id:
+            entry.update(status="prepared", operation_id=None, consumed_action_id=None)
+        elif offer_id not in restored and entry.get("status") == "prepared":
+            entry["status"] = "cancelled"
+        restored[offer_id] = entry
+    for offer_id, data in restored.items():
+        if offer_id not in current and isinstance(data, dict) and data.get("status") == "prepared":
+            data["status"] = "cancelled"
+    prune_offer_records(restored_world, protect_action_id=None)
 
 
 def public_resolution(state: EconomicState, resolution: EconomicResolution) -> PublicEconomicResolution:

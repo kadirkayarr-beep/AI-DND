@@ -29,6 +29,8 @@ import type { KnownFactionStanding } from './knownFactionStanding';
 import type { KnownLoreFact } from './knownLoreFact';
 import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { PendingEventDecision } from './pendingEventDecision';
+import type { PublicEconomicOffer } from './publicEconomicOffer';
+import type { PublicWallet } from './publicWallet';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
 import type { SceneIncident } from './sceneIncident';
@@ -70,4 +72,7 @@ export interface GameState {
   known_factions: KnownFactionStanding[];
   /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
   scene_incidents?: SceneIncident[];
+  /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
+  economic_offer?: PublicEconomicOffer | null;
+  wallet?: PublicWallet;
 }

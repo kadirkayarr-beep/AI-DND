@@ -853,7 +853,24 @@ def serialize_session_state(
         "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
         "scene_incidents": incident_projection.scene_annotation(world),
+        **_economic_projection(world),
     }
+
+
+def _economic_projection(world: Any) -> dict[str, Any]:
+    """The one open card (C12) and the player's own purse; NPC balances and the inner acceptance stay private.
+
+    Read from the save copy, so the live world is never normalised; neither field is part of the save itself.
+    """
+    import dataclasses
+    import economic_actions
+    world = world if isinstance(world, dict) else {}
+    offer = economic_actions.prepared_offer(world)
+    card = None
+    if offer is not None:
+        state = economic_actions.EconomicState(world=world, character=None)
+        card = dataclasses.asdict(economic_actions.public_offer(state, offer))
+    return {"economic_offer": card, "wallet": {"total_cp": economic_actions.wallet_total_cp(world)}}
 
 
 def _known_projection(session: Any, world: Any, lore_state: Any = None) -> dict[str, Any]:

@@ -4398,6 +4398,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SceneIncident'
+        economic_offer:
+          description: The player's one open economic card, or null. Preparing
+            it moved no coin, goods or time.
+          anyOf:
+          - $ref: '#/components/schemas/PublicEconomicOffer'
+          - type: 'null'
+        wallet:
+          $ref: '#/components/schemas/PublicWallet'
       required:
       - campaign_time
       - known_scheduled_events
