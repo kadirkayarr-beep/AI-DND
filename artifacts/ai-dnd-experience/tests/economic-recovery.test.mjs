@@ -2,6 +2,8 @@
 // helpers are selected from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport
 // are replaced. Timers are node:test fake timers, so no test waits on a real clock and nothing touches the network.
 // Each test has a real-time cap, so a regression fails instead of hanging. A recovery never re-sends the payment: the only POST a test may see is the one it made itself.
+// Every path that could re-send a move (the play transport, submitTurn, the level-up transport, retry) is a counting stub, so a
+// re-send through any of them is counted, not hidden behind a ReferenceError.
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -70,6 +72,8 @@ function render({ status, abandon, unresolved, campaign, lifetime = createAction
   const notices = [];
   const entries = [];
   const lastTurns = [];
+  const panelEpochs = [];
+  const sends = [];
   const api = {
     status: (sid, actionId, options) => { calls.push({ kind: 'status', sid, actionId, signal: options?.signal }); return status ? status(actionId, options) : never(); },
     abandon: (sid, actionId, options) => { calls.push({ kind: 'abandon', sid, actionId, signal: options?.signal }); return abandon ? abandon(actionId, options) : never(); },
@@ -78,6 +82,13 @@ function render({ status, abandon, unresolved, campaign, lifetime = createAction
   const env = {
     sessionId, campaignId, serverRecoveryRef: { current: null },
     RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer,
+    RecoveryTimeoutError: recovery.RecoveryTimeoutError,
+    playGameTurn: (...args) => { sends.push({ kind: 'playGameTurn', args }); return never(); },
+    applyGameSessionLevelUp: (...args) => { sends.push({ kind: 'applyGameSessionLevelUp', args }); return never(); },
+    submitTurn: (...args) => { sends.push({ kind: 'submitTurn', args }); },
+    submitTurnRef: { current: (...args) => { sends.push({ kind: 'submitTurnRef', args }); } },
+    submitLevelUpRef: { current: (...args) => { sends.push({ kind: 'submitLevelUpRef', args }); } },
+    setPanelEpoch: (v) => { panelEpochs.push(typeof v === 'function' ? v(panelEpochs.at(-1) ?? 0) : v); },
     readPending: pending.readPending, speciesActionUnresolved: pending.speciesActionUnresolved, currentAccountOwner: () => OWNER, LOCAL_OWNER: 'local',
     PENDING_TURN_NOTICE: { tone: 'warning', title: 'Önceki hamle doğrulanmadı', detail: 'pending' }, pendingAmbientActionRef: { current: null },
     inFlightSessionsRef: { current: new Set() }, setInFlightSessions() {}, turnLifetime: lifetime,
@@ -90,12 +101,14 @@ function render({ status, abandon, unresolved, campaign, lifetime = createAction
     friendlyError: (e, fallback) => fallback ?? e?.message ?? 'error', messageRef: { current: '' }, setMessage() {},
     window: globalThis.window,
   };
+  // GameBrowser's `notice` state: blockingMutation reads the notice currently on screen.
+  Object.defineProperty(env, 'notice', { get: () => notices.at(-1) ?? null, enumerable: true });
   vm.runInNewContext(code, env);
-  return { env, api, calls, notices, entries, lastTurns, client, lifetime };
+  return { env, api, calls, notices, entries, lastTurns, client, lifetime, panelEpochs, sends };
 }
 
 const statusCalls = (view) => view.calls.filter((c) => c.kind === 'status').length;
-const postCount = (view, posts) => posts.length + view.calls.filter((c) => c.kind === 'abandon' || c.kind === 'retry').length;
+const postCount = (view, posts) => posts.length + view.sends.length + view.calls.filter((c) => c.kind === 'abandon' || c.kind === 'retry').length;
 
 test('test_never_settling_status_exits_loading', { timeout: 30_000 }, async () => {
   mock.timers.enable({ apis: ['setTimeout'] });
@@ -131,6 +144,7 @@ test('test_never_settling_status_exits_loading', { timeout: 30_000 }, async () =
   mock.timers.tick(recovery.RECOVERY_CALL_TIMEOUT_MS * 5);
   await flush();
   assert.equal(statusCalls(view), recovery.RECOVERY_AUTO_ATTEMPTS, 'no hidden polling after unknown');
+  assert.deepEqual(view.panelEpochs, [], 'an unknown outcome does not reset the panel as if it had settled');
   assert.equal(postCount(view, posts), 1, 'paymentPostCount stays 1');
 });
 
@@ -167,6 +181,14 @@ test('test_unknown_keeps_mutations_blocked', { timeout: 30_000 }, async () => {
   assert.equal(second.notices.at(-1).recovery.mutationAllowed, false);
   assert.ok(second.notices.at(-1).recover, 'check and abandon stay offered');
   assert.equal(second.calls.filter((c) => c.kind === 'abandon').length, 0);
+  assert.equal(pending.readPending(OWNER, CAMPAIGN), null, 'only the server holds the open action');
+  assert.ok(second.env.blockingMutation(), 'the client guard locks the composer, card and panels on the server-only unknown');
+  assert.equal(second.env.blockingMutation(), second.notices.at(-1), 'the refusal keeps the unknown notice and its re-check on screen');
+  assert.equal(postCount(second, []), 0, 'nothing is re-sent for the server-only action');
+  // The lock is bound to its campaign: another campaign is not blocked by it.
+  const elsewhere = render({ campaignId: 'campaign-b', sessionId: 'session-b' });
+  elsewhere.notices.push(second.notices.at(-1));
+  assert.equal(elsewhere.env.blockingMutation(), null, 'a lock for campaign A never blocks campaign B');
 });
 
 test('test_applied_reconciles_last_turn_wallet_and_card', { timeout: 30_000 }, async () => {
@@ -188,6 +210,8 @@ test('test_applied_reconciles_last_turn_wallet_and_card', { timeout: 30_000 }, a
   assert.equal(recoveryState.loading, false);
   assert.equal(recoveryState.mutationAllowed, true);
   assert.equal(view.env.blockingMutation(), null);
+  assert.deepEqual(view.panelEpochs, [1], 'the counter panel is reset from the same settled read (no stale waiting gate or old quote)');
+  assert.match(source, /<ShopControls key=\{`[^`]*\$\{panelEpoch\}`\}/, 'the counter panel is keyed by the recovery epoch');
   assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');
 });
 
@@ -210,6 +234,7 @@ test('test_undone_replay_does_not_restore_old_success', { timeout: 30_000 }, asy
   assert.match(notice.detail, /güncel durum/);
   assert.match(notice.detail, /yeniden gönderilmedi/);
   assert.deepEqual(view.calls.filter((c) => c.kind !== 'getCampaign').map((c) => c.kind), ['status'], 'nothing is re-sent');
+  assert.deepEqual(view.panelEpochs, [1], 'the counter panel is reset to the undone present');
   assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');
 });
 
@@ -240,4 +265,44 @@ test('test_campaign_switch_drops_stale_promise', { timeout: 30_000 }, async () =
   assert.equal(view.calls.some((c) => c.kind === 'getCampaign'), false);
   assert.equal(pending.readPending(OWNER, CAMPAIGN)?.key.actionId, key.actionId, 'the identity is kept for the next visit');
   assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');
+});
+
+test('test_open_action_lookup_timeout_offers_recheck', { timeout: 30_000 }, async () => {
+  mock.timers.enable({ apis: ['setTimeout'] });
+  let answer = never;
+  const view = render({ unresolved: () => answer() });
+  const run = view.env.showServerOpenAction(SESSION, CAMPAIGN, () => true);
+  for (let i = 0; i < recovery.RECOVERY_AUTO_ATTEMPTS; i++) { await flush(); mock.timers.tick(recovery.RECOVERY_CALL_TIMEOUT_MS); }
+  await flush();
+  await run;
+  assert.equal(view.calls.filter((c) => c.kind === 'unresolved').length, recovery.RECOVERY_AUTO_ATTEMPTS, 'bounded: one automatic re-ask, no more');
+  const notice = view.notices.at(-1);
+  assert.equal(notice.recovery.status, 'unknown', 'a lookup that ran out of time is unknown, not "nothing is open"');
+  assert.equal(notice.recovery.loading, false);
+  assert.equal(notice.recovery.mutationAllowed, false);
+  assert.equal(typeof notice.recheck, 'function', 'the manual re-check is offered');
+  assert.ok(view.env.blockingMutation(), 'mutations stay locked while the lookup is unknown');
+  assert.equal(pending.readPending(OWNER, CAMPAIGN), null, 'no browser record is fabricated');
+  mock.timers.tick(recovery.RECOVERY_CALL_TIMEOUT_MS * 5);
+  await flush();
+  assert.equal(view.calls.filter((c) => c.kind === 'unresolved').length, recovery.RECOVERY_AUTO_ATTEMPTS, 'no hidden polling');
+
+  // The server is back and nothing is open: the re-check runs the same lookup and clears the unknown lock.
+  answer = async () => ({ unresolved: null });
+  notice.recheck();
+  await flush();
+  assert.equal(view.calls.filter((c) => c.kind === 'unresolved').length, recovery.RECOVERY_AUTO_ATTEMPTS + 1);
+  assert.equal(view.notices.at(-1), null, 'the unknown notice is cleared');
+  assert.equal(view.env.blockingMutation(), null, 'the lock lifts only after a real answer');
+  assert.equal(view.calls.filter((c) => c.kind === 'abandon').length, 0);
+  assert.equal(postCount(view, []), 0, 'nothing is re-sent');
+
+  // A lookup the screen abandoned (campaign switch) ends without any notice.
+  const switched = render();
+  const owner = new AbortController();
+  const gone = switched.env.showServerOpenAction(SESSION, CAMPAIGN, () => true, owner.signal);
+  await flush();
+  owner.abort();
+  await gone;
+  assert.equal(switched.notices.length, 0, 'an aborted lookup shows nothing');
 });

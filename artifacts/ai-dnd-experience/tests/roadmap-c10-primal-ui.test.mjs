@@ -47,7 +47,7 @@ function harness({ sessionStorage = storage(), transport, refresh } = {}) {
     ...gateInjection(), reconcileState, ReconciliationError, RETRY_MESSAGE, closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, askServer, settlePending, unresolvedActionFrom, transcriptFollowsBottom, getTurnInteractionMetadata,
     ...controls, primalKnowledgeIntent: intent, redrawPrimalKnowledge() {}, tacticalMindIntent: controls.createPrimalKnowledgeIntent(), tacticalMindAvailable: () => false,
     currentAccountOwner: () => 'owner', LOCAL_OWNER: 'local', campaignId: 'campaign', sessionId: 'session', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: structuredClone(state),
-    pendingAmbientActionRef: { current: null }, turnLifetime: createActionLifetime(), undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() }, inFlightSessionsRef: { current: new Set() }, activeSessionRef: { current: 'session' },
+    pendingAmbientActionRef: { current: null }, notice: null, setPanelEpoch() {}, turnLifetime: createActionLifetime(), undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() }, inFlightSessionsRef: { current: new Set() }, activeSessionRef: { current: 'session' },
     messageRef: { current: 'Takla atıyorum' }, entries: [], wasAtBottom: { current: true }, currentAuthEpoch: () => 1,
     pendingTurnNotice: () => ({ title: 'pending' }), recoveryHandlers: () => ({}), retryPendingTurn() {},
     RECOVERY_API: { status: async (_s,id) => ({ action_id:id, state:'unknown' }), abandon: async (_s,id) => ({action_id:id,state:'not_applied',detail:{not_applied:true,code:'abandoned'}}) },

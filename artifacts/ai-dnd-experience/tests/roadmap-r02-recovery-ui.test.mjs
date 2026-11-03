@@ -75,7 +75,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
   };
   const env = {
     sessionId, campaignId, serverRecoveryRef: sharedRef ?? { current: null },
-    RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer,
+    RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer, RecoveryTimeoutError: recovery.RecoveryTimeoutError,
     readPending: pending.readPending, currentAccountOwner: () => OWNER, LOCAL_OWNER: 'local',
     inFlightSessionsRef: { current: new Set() }, setInFlightSessions() {}, turnLifetime: createActionLifetime(),
     getGetGameSessionStateQueryKey: (id) => ['state', id], ...gateInjection(), reconcileState, ReconciliationError, RETRY_MESSAGE,
@@ -87,7 +87,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
     getGameSessionState: async () => state, queryClient: client, setEntries: (v) => entries.push(v),
     writeAdvisoryCache() {}, TRANSCRIPT_KEY: 't-', setCombatEntries() {}, mergeCombatHistory: (v) => v,
     getGetCampaignsQueryKey: () => ['campaigns'], setNotice: (v) => { notices.push(typeof v === 'function' ? v(notices.at(-1) ?? null) : v); },
-    retryPendingTurn() {}, setLastTurn() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
+    retryPendingTurn() {}, setLastTurn() {}, setPanelEpoch() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
     window: globalThis.window,
   };
   vm.runInNewContext(code, env);

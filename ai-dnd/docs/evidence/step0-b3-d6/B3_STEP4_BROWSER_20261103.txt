@@ -1,0 +1,57 @@
+B3 Step 4 / D6 - model-free real-browser check of bounded recovery during a card confirm
+Date: 2026-11-03 14:02-14:11 (+0300). Branch task/step0-money, worktree HEAD 6eebab93 + "Address review for B3" edits.
+D6 card/panel flows (double click, cancel, price change, reload, campaign switch) were done in A4 Step 10
+(docs/evidence/step0-a4-d6/A4_STEP10_BROWSER_20261103.txt); this file covers the B3 API-stop scenario.
+
+Launch (plan "UI kanit yontemi ve modelsiz tarayici baslatma"):
+- API: pythoncore-3.14 -I run_api.py (session scratchpad b3ui). Before any import it sets, for this process only:
+  AI_DND_AUTH_MODE=local, AI_DND_CAMPAIGN_DB=<scratchpad>\b3ui\campaigns.sqlite3 (new, empty), AI_DND_MODEL_CHAIN=gemma,
+  OLLAMA_HOST=http://127.0.0.1:9, AI_DND_ROUTE_LOG=<scratchpad>\b3ui\route-log.jsonl,
+  LOCALAPPDATA=<scratchpad>\b3ui\localappdata, and pops OLLAMA_PROXY_TOKEN (never read or printed).
+  Then api.local_play.main(["--host","127.0.0.1","--port","8008"]).
+  Test hooks in the same process (files in the scratchpad): seed.txt puts barman npc_b3 ("Marek") at the player's
+  location and sets currency.player = 1000; dump.txt prints currency/offers/ledger under the session turn lock;
+  hold_turn.flag lets POST .../turn run fully (applied and saved) but never sends its reply (lost reply);
+  hold_all.flag holds every /api request before it reaches the app (a silent server).
+- UI: corepack pnpm --filter @workspace/ai-dnd-experience run dev, worktree root, VITE_AI_DND_LOCAL_PLAY=1,
+  AI_DND_API_ORIGIN=http://127.0.0.1:8008, PORT=22785, BASE_PATH=/ai-dnd-experience/.
+- Gate: GET /api/game/health -> {"status":"ok","engine":"AI-DND","model":"qwen3:8b"}; no model_chain field. PASS
+  (checked after every API start). Route log: not created (the only chat turn returned 503 "Dunya su an sessiz";
+  card turns do not reach the route logger). Scratch localappdata stayed empty. The real save folder was not opened.
+
+Campaign 7d3b3afe (Darius, random character), Neverwinter. Browser = Claude in-app browser, real clicks.
+Purse note: the server purse is currency.player plus coin items in the pack (economic_actions.wallet_total_cp).
+The character starts with a 2000 cp coin item; the seed set currency.player = 1000, so the purse before the
+confirm was 3000 cp. The raw dump below shows only currency.player (the coin item is folded in by the first trade).
+
+1. Prepare: panel "Teklif hazirla" -> Marek, Hediye, 5 -> "Karti hazirla" -> card "Hediye - 5 bakir /
+   Toplam: en cok 5 bakir". Before confirm (dump): currency {player 1000, npc_b3 0}, offer 8f3cc94b prepared
+   (gift:0 npc_b3 5), ledger none, turn_index 0.
+2. Confirm with the API stopped mid-request: hold_turn.flag on, "Onayla" clicked. Server log:
+   "[hook] turn applied, reply held back: .../turn status=200". The API process was then killed at 14:08:03
+   while the reply was still held. Screen at 14:08:16 (loading ended on its own): notice "Bir aksaklik oldu"
+   with "Ayni hamleyi yeniden dene / Durumu sunucudan kontrol et / Bu hamleden vazgec"; Onayla, Iptal,
+   Tezgahtan satin al, both panel fieldsets and Gonder disabled (lock visible). Browser record kept
+   (ai-dnd-pending-turns:action:["local-owner","7d3b3afe-..."]).
+3. Check with the API down: "Durumu sunucudan kontrol et" -> notice "Sunucudan yanit alinamadi" with
+   "TEKRAR KONTROL ET" (unknown), lock still on, record kept, nothing re-sent.
+4. Bounded wait against a silent server: API restarted with hold_all.flag. "Tekrar kontrol et" clicked at
+   14:09:04 -> "Hamlen isleniyor" -> at 14:09:31 (26 s after the click; two 10 s attempts) notice "Sonuc belirsiz -
+   Sunucu belirlenen surede yanit vermedi ... odeme yeniden gonderilmedi ... yeni hamleler kilitli" with
+   "Tekrar kontrol et"; card, panels and Gonder still disabled. Server log: exactly two held status GETs for
+   action b927a380 (RECOVERY_AUTO_ATTEMPTS = 2), no POST.
+5. Restart and re-check: API killed and restarted without hooks (14:09:48). "Tekrar kontrol et" on the old screen
+   -> 404 for the old in-memory session id -> notice "Sunucudan yanit alinamadi / Bu macera bulunamadi", lock on,
+   record kept (safe: no verdict from a 404). Page reloaded, campaign reopened (resume -> session 7e9b1801):
+   notice "Onceki hamle henuz dogrulanamadi", lock on (reload grants no permission), the card is gone from the
+   server state. "Durumu sunucudan kontrol et" -> GET .../actions/b927a380 200 -> notice "Hamle sonucu sunucudan
+   alindi ... hamle yeniden gonderilmedi. Ekran sunucudaki guncel durumu gosteriyor"; lock released (panels and
+   Tezgah enabled), browser record closed, story rebuilt from the server ("5 bakir odendi.").
+
+After (dump and GET state on session 7e9b1801): currency {player 2995, npc_b3 5}, wallet.total_cp 2995, no coin
+item left in the pack, economic_offer null, ledger 1 op offer:b927a380 (gift, net_debit_cp 5, turn 0),
+turn_index 1. Conservation: 2995 + 5 = 3000 (seeded 1000 + starting 2000 cp coin item). One confirm POST in all
+API logs (the held one); no second charge, no auto-abandon, no record deleted.
+
+Shutdown: both process trees stopped (taskkill /T); 8008 and 22785 no longer answer.
+Raw evidence (session scratchpad b3ui): run_api.py, api3.log .. api5.log (+ .err.log), ui.log.

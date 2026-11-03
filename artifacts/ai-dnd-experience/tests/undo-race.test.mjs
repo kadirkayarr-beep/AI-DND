@@ -101,7 +101,7 @@ function harness() {
     // Stubs for the pending-action owner: this suite only needs a fixed action id and no stored pending turn.
     readPending: () => null,
     speciesActionUnresolved: () => false,
-    pendingAmbientActionRef: { current: null },
+    pendingAmbientActionRef: { current: null }, notice: null,
     createIntentKey: (ownerId, campaignId) => ({ ownerId, campaignId, actionId: 'new-action' }),
     resumePending: (key) => ({ key }),
     closePending() {},

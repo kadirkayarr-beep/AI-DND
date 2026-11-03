@@ -24,7 +24,7 @@ const tick=()=>new Promise(r=>setImmediate(r));
 function render({owner='a',campaignId='c',sessionId='s',apply,canonical}={}){
  const calls=[],notices=[],client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}}),life=createActionLifetime();
  const env={...pending,...recovery,...gateInjection(), ...primalKnowledgeInjection(),currentAuthEpoch,rotateAuthEpoch,sessionId,campaignId,currentAccountOwner:()=>owner,LOCAL_OWNER:'local',accountWriteAllowed:()=>true,
- submitLevelUpRef:{current:null},submitTurnRef:{current:()=>calls.push('play')},serverRecoveryRef:{current:null},pendingAmbientActionRef:{current:null},PENDING_TURN_NOTICE:{title:'pending'},
+ submitLevelUpRef:{current:null},submitTurnRef:{current:()=>calls.push('play')},serverRecoveryRef:{current:null},pendingAmbientActionRef:{current:null},notice:null,setPanelEpoch(){},PENDING_TURN_NOTICE:{title:'pending'},
  inFlightSessionsRef:{current:new Set()},undoPendingRef:{current:new Set()},undoRequestsRef:{current:new Map()},setInFlightSessions(){},turnLifetime:life,
  startDeadline,withActionDeadline,ActionDeadlineError,reconcileState,ReconciliationError,RETRY_MESSAGE,queryClient:client,
  getGetGameSessionStateQueryKey:id=>['state',id],getGetCampaignsQueryKey:()=>['campaigns'],

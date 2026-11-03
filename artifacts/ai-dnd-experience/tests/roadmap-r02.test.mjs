@@ -203,7 +203,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
   const env = {
     reconcileState, RETRY_MESSAGE, ReconciliationError, turnLifetime: life,
     closePending: pending.closePending, createIntentKey: pending.createIntentKey, readPending: pending.readPending, resumePending: pending.resumePending,
-    speciesActionUnresolved: pending.speciesActionUnresolved, pendingAmbientActionRef: { current: null },
+    speciesActionUnresolved: pending.speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null,
     currentAccountOwner: account.currentAccountOwner, LOCAL_OWNER: 'local',
     PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
     pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),

@@ -34,7 +34,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const life = createActionLifetime();
  const env = {
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
-  closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, pendingAmbientActionRef: { current: null }, currentAccountOwner: () => 'user-a', LOCAL_OWNER: 'local',
+  closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null, currentAccountOwner: () => 'user-a', LOCAL_OWNER: 'local',
   PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
   pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
   recoveryHandlers: () => ({ check() {}, abandon() {} }), unresolvedActionFrom,

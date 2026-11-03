@@ -12,7 +12,7 @@ import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopCont
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
-import { askServer, findUnresolvedOnServer, modelRefusalLine, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
+import { askServer, findUnresolvedOnServer, modelRefusalLine, RecoveryTimeoutError, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
@@ -128,10 +128,12 @@ const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 // `recover` is the server-proven way out of an unresolved action: ask the server what it recorded, or close the id for good.
 // `recovery` is what the last server check left: `unknown` keeps every new change locked and offers a manual re-check.
-type RecoveryState = { status: 'applied' | 'not_applied' | 'unresolved' | 'unknown'; loading: boolean; mutationAllowed: boolean };
+// `scope` is the campaign (or session) the check was about; blockingMutation honours the lock only for that scope.
+type RecoveryState = { status: 'applied' | 'not_applied' | 'unresolved' | 'unknown'; loading: boolean; mutationAllowed: boolean; scope: string };
+// `recheck` re-runs a lookup that timed out before any action id was known (nothing to abandon yet).
 type Notice = {
   tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void;
-  recover?: { check: () => void; abandon: () => void }; checkLabel?: string; recovery?: RecoveryState;
+  recover?: { check: () => void; abandon: () => void }; checkLabel?: string; recovery?: RecoveryState; recheck?: () => void;
 };
 const RECOVERY_API: RecoveryApi = {
   status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction,
@@ -210,6 +212,7 @@ function NoticeBanner({ notice }: { notice: Notice }) {
       {notice.retry && <button type="button" className="dnd-button" data-testid="button-retry-turn" onClick={notice.retry}>Aynı hamleyi yeniden dene</button>}
       {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>{notice.checkLabel ?? 'Durumu sunucudan kontrol et'}</button>}
       {notice.recover && <button type="button" className="dnd-button" data-testid="button-abandon-action" onClick={notice.recover.abandon}>Bu hamleden vazgeç (sunucu doğrular)</button>}
+      {notice.recheck && <button type="button" className="dnd-button" data-testid="button-recheck-open-action" onClick={notice.recheck}>Tekrar kontrol et</button>}
     </div>
   );
 }
@@ -1208,6 +1211,8 @@ export default function GameBrowser() {
   const [composerOpen, setComposerOpen] = useState(true);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Bumped when a recovery settles: the counter panel remounts and reads the server again instead of keeping a stale gate.
+  const [panelEpoch, setPanelEpoch] = useState(0);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [expandedRailPanel, setExpandedRailPanel] = useState<RailPanelId | null>(null);
   const [panelOpener, setPanelOpener] = useState<HTMLElement | null>(null);
@@ -1432,6 +1437,9 @@ export default function GameBrowser() {
   const blockingMutation = (ignoreAmbient = false): Notice | null => {
     const scope = campaignId || sessionId;
     if (readPending(currentAccountOwner() ?? LOCAL_OWNER, scope)) return pendingTurnNotice();
+    // B3: a server-only open action (second tab, re-login) has no browser record; an unknown or unresolved server check
+    // still locks this campaign until a later check or an explicit abandon settles it.
+    if (notice?.recovery && !notice.recovery.mutationAllowed && notice.recovery.scope === scope) return notice;
     if (speciesActionUnresolved(scope)) {
       return { tone: 'warning', title: 'Tür yeteneği henüz doğrulanamadı', detail: 'Önce tür yeteneğinin sonucunu doğrula; başka bir işlem göndermeden önce aynı kimlikle yeniden denenmesi gerekiyor.' };
     }
@@ -1443,24 +1451,37 @@ export default function GameBrowser() {
   // The server's open action for this campaign (second tab, re-login, lost browser record) is offered for a server check
   // or a server-proven abandon. A failed lookup is not "nothing is open"; the server still refuses a conflicting move.
   // The lookup is bounded and ends with the screen that asked (`signal`), so a silent server leaves no hanging request.
-  const showServerOpenAction = async (forSession: string, forCampaign: string, stillCurrent: () => boolean, signal?: AbortSignal) => {
+  // A lookup that runs out of time is `unknown`, not "nothing is open": it locks this campaign and offers a manual re-check
+  // that runs the same lookup again (`recheck`); when that re-check finds nothing open, the unknown notice is cleared.
+  const showServerOpenAction = async (forSession: string, forCampaign: string, stillCurrent: () => boolean, signal?: AbortSignal, recheck = false) => {
     try {
       const open = await findUnresolvedOnServer(RECOVERY_API, forSession, { signal });
-      if (!stillCurrent() || !open || readPending(currentAccountOwner() ?? LOCAL_OWNER, forCampaign)) return;
+      if (!stillCurrent() || readPending(currentAccountOwner() ?? LOCAL_OWNER, forCampaign)) return;
+      if (!open) {
+        if (recheck) setNotice((current) => (current?.recheck ? null : current));
+        return;
+      }
       setNotice({
         tone: 'warning',
         title: 'Tamamlanmamış bir hamle var',
         detail: 'Sunucuda bu kampanya için henüz sonuçlanmamış bir hamle kayıtlı (başka bir sekme veya önceki oturum). Yeni hamle göndermeden önce durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.',
         recover: recoveryHandlers(open.actionId),
       });
-    } catch {
-      // Intentionally silent: see above.
+    } catch (error) {
+      // A failed lookup stays silent (see above); only a lookup that ran out of time is shown as unknown.
+      if (!(error instanceof RecoveryTimeoutError) || !stillCurrent() || readPending(currentAccountOwner() ?? LOCAL_OWNER, forCampaign)) return;
+      setNotice({
+        tone: 'warning', title: 'Sonuç belirsiz',
+        detail: 'Sunucu bu kampanyada açık bir hamle olup olmadığını belirlenen sürede söylemedi. Açık bir hamle olabilir; doğrulanana kadar yeni hamleler kilitli.',
+        recheck: () => { void showServerOpenAction(forSession, forCampaign, stillCurrent, signal, true); },
+        recovery: { status: 'unknown', loading: false, mutationAllowed: false, scope: forCampaign },
+      });
     }
   };
   useEffect(() => {
     const unresolved = Boolean(readPending(currentAccountOwner() ?? LOCAL_OWNER, campaignId || sessionId));
     // A retry button from another session or campaign must not outlive the switch.
-    setNotice((current) => (current?.retry || current?.recover ? null : current));
+    setNotice((current) => (current?.retry || current?.recover || current?.recheck ? null : current));
     // After a reload the unresolved move is offered for a retry instead of being forgotten.
     if (unresolved) setNotice(pendingTurnNotice());
     // A second tab or a re-login has no browser record: the server's open action is read again, never assumed absent or closed.
@@ -2189,13 +2210,13 @@ export default function GameBrowser() {
     };
     // B3: a settled verdict unlocks only when no unresolved local record is left; anything else stays locked.
     const settled = (status: 'applied' | 'not_applied'): RecoveryState => ({
-      status, loading: false, mutationAllowed: !readPending(currentAccountOwner() ?? LOCAL_OWNER, scope),
+      status, loading: false, mutationAllowed: !readPending(currentAccountOwner() ?? LOCAL_OWNER, scope), scope,
     });
     const unknownNotice = (detail: string, title = 'Sonuç belirsiz'): Notice => ({
       tone: 'warning', title, detail,
       ...(stored ? { retry: retryPendingTurn } : {}),
       recover: recoveryHandlers(serverActionId), checkLabel: 'Tekrar kontrol et',
-      recovery: { status: 'unknown', loading: false, mutationAllowed: false },
+      recovery: { status: 'unknown', loading: false, mutationAllowed: false, scope },
     });
     const noticeFor = (verdict: ServerVerdict): Notice => {
       if (verdict.kind === 'applied') {
@@ -2222,7 +2243,7 @@ export default function GameBrowser() {
           : 'Sunucu bu hamle için bir sonuç kaydetmedi, ama bu hamlenin hiç uygulanmayacağı anlamına gelmez. Aynı hamleyi yeniden deneyebilir ya da bilinçli olarak vazgeçebilirsin.',
         ...(stored ? { retry: retryPendingTurn } : {}),
         recover: recoveryHandlers(serverActionId),
-        recovery: { status: verdict.state === 'unknown' ? 'unknown' : 'unresolved', loading: false, mutationAllowed: false },
+        recovery: { status: verdict.state === 'unknown' ? 'unknown' : 'unresolved', loading: false, mutationAllowed: false, scope },
       };
     };
     try {
@@ -2234,6 +2255,8 @@ export default function GameBrowser() {
       // State, story and the last-turn slot come from the same server read: an earlier turn's outcome or undo target is
       // dropped, and a historical answer (an undone move) is never put back as the last turn.
       if (verdict.kind === 'applied') setLastTurn(null);
+      // A settled verdict also resets the counter panel (its waiting gate and old quote/seq) from the same server read.
+      if (verdict.kind === 'applied' || verdict.kind === 'not_applied') setPanelEpoch((epoch) => epoch + 1);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
         setMessage(stored.request.message);
       }
@@ -2245,7 +2268,7 @@ export default function GameBrowser() {
         detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Sunucu bu hamle hakkında bir şey söylemedi. Bu bir iptal kanıtı değildir; hamlenin kimliği korunuyor.'),
         ...(stored ? { retry: retryPendingTurn } : {}),
         recover: recoveryHandlers(serverActionId), checkLabel: 'Tekrar kontrol et',
-        recovery: { status: 'unknown', loading: false, mutationAllowed: false },
+        recovery: { status: 'unknown', loading: false, mutationAllowed: false, scope },
       });
     } finally {
       inFlightSessionsRef.current.delete(sessionId);
@@ -2342,7 +2365,7 @@ export default function GameBrowser() {
         counterparties={(state.npcs ?? []).filter(npc => npc.location === state.location).map(npc => ({ id: npc.id, label: npc.name }))}
         disabled={Boolean(state.economic_offer) || turnSending || undoBusy || Boolean(blockingMutation())}
         onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />}
-      {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
+      {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
         probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}
       <StoryColumn
