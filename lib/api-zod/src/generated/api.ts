@@ -964,6 +964,8 @@ export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequired
 export const createGameSessionResponseStateKnownFactionsItemStandingMin = -5;
 export const createGameSessionResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createGameSessionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const CreateGameSessionResponse = zod.object({
@@ -1099,7 +1101,8 @@ export const CreateGameSessionResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -1198,8 +1201,8 @@ export const CreateGameSessionResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -1693,7 +1696,19 @@ export const CreateGameSessionResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(createGameSessionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -1958,6 +1973,8 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCou
 export const getGameSessionStateResponseKnownFactionsItemStandingMin = -5;
 export const getGameSessionStateResponseKnownFactionsItemStandingMax = 5;
 
+export const getGameSessionStateResponseBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const GetGameSessionStateResponse = zod.object({
@@ -2091,7 +2108,8 @@ export const GetGameSessionStateResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -2190,8 +2208,8 @@ export const GetGameSessionStateResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -2685,7 +2703,19 @@ export const GetGameSessionStateResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(getGameSessionStateResponseBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -2962,6 +2992,8 @@ export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItem
 export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin = -5;
 export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resolveSpeciesTraitActionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resolveSpeciesTraitActionResponseResultMessageMax = 500;
 
 
@@ -3100,7 +3132,8 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -3199,8 +3232,8 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -3694,7 +3727,19 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -3978,6 +4023,8 @@ export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectiv
 export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin = -5;
 export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resolveSpeciesTraitActionCompatResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseResultMessageMax = 500;
 
 
@@ -4116,7 +4163,8 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -4215,8 +4263,8 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -4710,7 +4758,19 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -5105,6 +5165,8 @@ export const playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCount
 export const playGameTurnResponseStateKnownFactionsItemStandingMin = -5;
 export const playGameTurnResponseStateKnownFactionsItemStandingMax = 5;
 
+export const playGameTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const playGameTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneHpDamageMin = 0;
@@ -5395,7 +5457,8 @@ export const PlayGameTurnResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -5494,8 +5557,8 @@ export const PlayGameTurnResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -5989,7 +6052,19 @@ export const PlayGameTurnResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(playGameTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -6777,6 +6852,8 @@ export const getGameActionStatusResponseResponseTwoStateQuestOffersItemObjective
 export const getGameActionStatusResponseResponseTwoStateKnownFactionsItemStandingMin = -5;
 export const getGameActionStatusResponseResponseTwoStateKnownFactionsItemStandingMax = 5;
 
+export const getGameActionStatusResponseResponseTwoStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const getGameActionStatusResponseResponseTwoCombatResultOneAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneHpDamageMin = 0;
@@ -7070,7 +7147,8 @@ export const GetGameActionStatusResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -7169,8 +7247,8 @@ export const GetGameActionStatusResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -7664,7 +7742,19 @@ export const GetGameActionStatusResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(getGameActionStatusResponseResponseTwoStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -8386,6 +8476,8 @@ export const abandonGameActionResponseResponseTwoStateQuestOffersItemObjectivesI
 export const abandonGameActionResponseResponseTwoStateKnownFactionsItemStandingMin = -5;
 export const abandonGameActionResponseResponseTwoStateKnownFactionsItemStandingMax = 5;
 
+export const abandonGameActionResponseResponseTwoStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const abandonGameActionResponseResponseTwoCombatResultOneAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatResultOneHpDamageMin = 0;
@@ -8679,7 +8771,8 @@ export const AbandonGameActionResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -8778,8 +8871,8 @@ export const AbandonGameActionResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -9273,7 +9366,19 @@ export const AbandonGameActionResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(abandonGameActionResponseResponseTwoStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -9999,6 +10104,8 @@ export const undoGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCount
 export const undoGameTurnResponseStateKnownFactionsItemStandingMin = -5;
 export const undoGameTurnResponseStateKnownFactionsItemStandingMax = 5;
 
+export const undoGameTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const UndoGameTurnResponse = zod.object({
@@ -10137,7 +10244,8 @@ export const UndoGameTurnResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -10236,8 +10344,8 @@ export const UndoGameTurnResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -10731,7 +10839,19 @@ export const UndoGameTurnResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(undoGameTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -11001,6 +11121,8 @@ export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCo
 export const acceptGameQuestResponseStateKnownFactionsItemStandingMin = -5;
 export const acceptGameQuestResponseStateKnownFactionsItemStandingMax = 5;
 
+export const acceptGameQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const acceptGameQuestResponseQuestQuestIdMax = 120;
 
 export const acceptGameQuestResponseQuestTitleMax = 160;
@@ -11162,7 +11284,8 @@ export const AcceptGameQuestResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -11261,8 +11384,8 @@ export const AcceptGameQuestResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -11756,7 +11879,19 @@ export const AcceptGameQuestResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(acceptGameQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -12048,6 +12183,8 @@ export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCo
 export const cancelGameQuestResponseStateKnownFactionsItemStandingMin = -5;
 export const cancelGameQuestResponseStateKnownFactionsItemStandingMax = 5;
 
+export const cancelGameQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const cancelGameQuestResponseQuestQuestIdMax = 120;
 
 export const cancelGameQuestResponseQuestTitleMax = 160;
@@ -12209,7 +12346,8 @@ export const CancelGameQuestResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -12308,8 +12446,8 @@ export const CancelGameQuestResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -12803,7 +12941,19 @@ export const CancelGameQuestResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(cancelGameQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -13103,6 +13253,8 @@ export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItem
 export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin = -5;
 export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resolveAmbientEventActionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resolveAmbientEventActionResponseResultEventInstanceIdMax = 96;
 
 export const resolveAmbientEventActionResponseResultActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
@@ -13245,7 +13397,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -13344,8 +13497,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -13839,7 +13992,19 @@ export const ResolveAmbientEventActionResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resolveAmbientEventActionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
@@ -14118,6 +14283,8 @@ export const acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemRequired
 export const acceptLegacyQuestResponseStateKnownFactionsItemStandingMin = -5;
 export const acceptLegacyQuestResponseStateKnownFactionsItemStandingMax = 5;
 
+export const acceptLegacyQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const acceptLegacyQuestResponseQuestQuestIdMax = 120;
 
 export const acceptLegacyQuestResponseQuestTitleMax = 160;
@@ -14279,7 +14446,8 @@ export const AcceptLegacyQuestResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -14378,8 +14546,8 @@ export const AcceptLegacyQuestResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -14873,7 +15041,19 @@ export const AcceptLegacyQuestResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(acceptLegacyQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptLegacyQuestResponseQuestQuestIdMax),
@@ -15166,6 +15346,8 @@ export const cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemRequired
 export const cancelLegacyQuestResponseStateKnownFactionsItemStandingMin = -5;
 export const cancelLegacyQuestResponseStateKnownFactionsItemStandingMax = 5;
 
+export const cancelLegacyQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const cancelLegacyQuestResponseQuestQuestIdMax = 120;
 
 export const cancelLegacyQuestResponseQuestTitleMax = 160;
@@ -15327,7 +15509,8 @@ export const CancelLegacyQuestResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -15426,8 +15609,8 @@ export const CancelLegacyQuestResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -15921,7 +16104,19 @@ export const CancelLegacyQuestResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(cancelLegacyQuestResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelLegacyQuestResponseQuestQuestIdMax),
@@ -16222,6 +16417,8 @@ export const resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectiv
 export const resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMin = -5;
 export const resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resolveAmbientEventActionCompatResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resolveAmbientEventActionCompatResponseResultEventInstanceIdMax = 96;
 
 export const resolveAmbientEventActionCompatResponseResultActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
@@ -16364,7 +16561,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -16463,8 +16661,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -16958,7 +17156,19 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionCompatResponseResultEventInstanceIdMax),
@@ -19385,6 +19595,8 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const createCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const createCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const createCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -19594,7 +19806,8 @@ export const CreateCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -19693,8 +19906,8 @@ export const CreateCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -20188,7 +20401,19 @@ export const CreateCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(createCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -20688,6 +20913,8 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountM
 export const getCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const getCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const getCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const getCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -20907,7 +21134,8 @@ export const GetCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -21006,8 +21234,8 @@ export const GetCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -21501,7 +21729,19 @@ export const GetCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(getCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -21988,6 +22228,8 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const resumeCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resumeCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resumeCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const resumeCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -22197,7 +22439,8 @@ export const ResumeCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -22296,8 +22539,8 @@ export const ResumeCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -22791,7 +23034,19 @@ export const ResumeCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resumeCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -24447,6 +24702,8 @@ export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequir
 export const createLegacySessionResponseStateKnownFactionsItemStandingMin = -5;
 export const createLegacySessionResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createLegacySessionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const CreateLegacySessionResponse = zod.object({
@@ -24582,7 +24839,8 @@ export const CreateLegacySessionResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -24681,8 +24939,8 @@ export const CreateLegacySessionResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -25176,7 +25434,19 @@ export const CreateLegacySessionResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(createLegacySessionResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -25442,6 +25712,8 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredC
 export const getLegacySessionStateResponseKnownFactionsItemStandingMin = -5;
 export const getLegacySessionStateResponseKnownFactionsItemStandingMax = 5;
 
+export const getLegacySessionStateResponseBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const GetLegacySessionStateResponse = zod.object({
@@ -25575,7 +25847,8 @@ export const GetLegacySessionStateResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -25674,8 +25947,8 @@ export const GetLegacySessionStateResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -26169,7 +26442,19 @@ export const GetLegacySessionStateResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(getLegacySessionStateResponseBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -26559,6 +26844,8 @@ export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const playLegacyTurnResponseStateKnownFactionsItemStandingMin = -5;
 export const playLegacyTurnResponseStateKnownFactionsItemStandingMax = 5;
 
+export const playLegacyTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const playLegacyTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneHpDamageMin = 0;
@@ -26849,7 +27136,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -26948,8 +27236,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -27443,7 +27731,19 @@ export const PlayLegacyTurnResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(playLegacyTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -28166,6 +28466,8 @@ export const undoLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const undoLegacyTurnResponseStateKnownFactionsItemStandingMin = -5;
 export const undoLegacyTurnResponseStateKnownFactionsItemStandingMax = 5;
 
+export const undoLegacyTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 
 
 export const UndoLegacyTurnResponse = zod.object({
@@ -28304,7 +28606,8 @@ export const UndoLegacyTurnResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -28403,8 +28706,8 @@ export const UndoLegacyTurnResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -28898,7 +29201,19 @@ export const UndoLegacyTurnResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(undoLegacyTurnResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -30865,6 +31180,8 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const createLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -31074,7 +31391,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -31173,8 +31491,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -31668,7 +31986,19 @@ export const CreateLegacyCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(createLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -32170,6 +32500,8 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequired
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const getLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const getLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -32389,7 +32721,8 @@ export const GetLegacyCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -32488,8 +32821,8 @@ export const GetLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -32983,7 +33316,19 @@ export const GetLegacyCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(getLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({
@@ -33471,6 +33816,8 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const resumeLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
 export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultTacticalMindRollMax = 10;
 
 export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
@@ -33680,7 +34027,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
-  "target_id": zod.union([zod.string(),zod.null()])
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
 }),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -33779,8 +34127,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "description": zod.string(),
-  "parent_location_id": zod.union([zod.string(),zod.null()]),
-  "exit_location_id": zod.union([zod.string(),zod.null()])
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
 })),
   "character": zod.object({
   "primal_knowledge_check": zod.object({
@@ -34274,7 +34622,19 @@ export const ResumeLegacyCampaignResponse = zod.object({
 }).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).optional().describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
   "wallet": zod.object({
   "total_cp": zod.number().int()
-}).optional().describe('The player\'s own purse in copper; NPC balances are never public.')
+}).optional().describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(resumeLegacyCampaignResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "skill_check_result": zod.object({

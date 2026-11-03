@@ -1677,7 +1677,15 @@ class ContractParityTests(unittest.TestCase):
                 }
 
         public_state = serialize_session_state(SerializableSession())
-        self.assertEqual(set(public_state), _property_names("GameState"))
+        # The courtyard projection exists only for a real session inside the encounter; it is left out, never null.
+        conditional_state_fields = {"bounded_encounter"}
+        self.assertLessEqual(conditional_state_fields, _property_names("GameState"))
+        self.assertEqual(set(public_state), _property_names("GameState") - conditional_state_fields)
+        self.assertNotIn("bounded_encounter", _schema("GameState")["required"])
+        self.assertFalse(_is_nullable(_property("GameState", "bounded_encounter")))
+        self.assertEqual(set(public_state["wallet"]), _property_names("PublicWallet"))
+        self.assertIsNone(public_state["economic_offer"])
+        self.assertTrue(_is_nullable(_property("GameState", "economic_offer")))
         self.assertEqual(public_state["scene"]["id"], "scene:tavern")
         self.assertEqual(public_state["scene"]["location_id"], "tavern")
         self.assertEqual(

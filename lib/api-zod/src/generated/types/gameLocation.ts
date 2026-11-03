@@ -11,6 +11,7 @@ export interface GameLocation {
   name: string;
   type: string;
   description: string;
-  parent_location_id: string | null;
-  exit_location_id: string | null;
+  parent_location_id?: string | null;
+  /** Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id. */
+  exit_location_id?: string | null;
 }

@@ -905,10 +905,24 @@ export interface GameSceneAmbientEvent {
   count: number;
 }
 
+/**
+ * The player's authored node inside a bounded encounter; left out elsewhere.
+ */
+export type GameScenePlayerPositionBoundedNodeId = typeof GameScenePlayerPositionBoundedNodeId[keyof typeof GameScenePlayerPositionBoundedNodeId];
+
+
+export const GameScenePlayerPositionBoundedNodeId = {
+  courtyard_entry: 'courtyard_entry',
+  courtyard_far: 'courtyard_far',
+  courtyard_near: 'courtyard_near',
+} as const;
+
 export interface GameScenePlayerPosition {
   location_id: string;
   kind: string;
   target_id: string | null;
+  /** The player's authored node inside a bounded encounter; left out elsewhere. */
+  bounded_node_id?: GameScenePlayerPositionBoundedNodeId;
 }
 
 export interface GameSceneNpc {
@@ -1240,8 +1254,9 @@ export interface GameLocation {
   name: string;
   type: string;
   description: string;
-  parent_location_id: string | null;
-  exit_location_id: string | null;
+  parent_location_id?: string | null;
+  /** Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id. */
+  exit_location_id?: string | null;
 }
 
 export type PrimalKnowledgeCheckSkillsItem = typeof PrimalKnowledgeCheckSkillsItem[keyof typeof PrimalKnowledgeCheckSkillsItem];
@@ -2237,6 +2252,46 @@ export interface PublicWallet {
   total_cp: number;
 }
 
+export type BoundedEncounterProjectionPlayerNodeId = typeof BoundedEncounterProjectionPlayerNodeId[keyof typeof BoundedEncounterProjectionPlayerNodeId] | null;
+
+
+export const BoundedEncounterProjectionPlayerNodeId = {
+  courtyard_entry: 'courtyard_entry',
+  courtyard_far: 'courtyard_far',
+  courtyard_near: 'courtyard_near',
+} as const;
+
+export type BoundedEncounterOpponentNodeId = typeof BoundedEncounterOpponentNodeId[keyof typeof BoundedEncounterOpponentNodeId];
+
+
+export const BoundedEncounterOpponentNodeId = {
+  courtyard_entry: 'courtyard_entry',
+  courtyard_far: 'courtyard_far',
+  courtyard_near: 'courtyard_near',
+} as const;
+
+/**
+ * The opponent the player can currently see, with its source-backed stat block.
+ */
+export interface BoundedEncounterOpponent {
+  npc_id: string;
+  statblock_id: string;
+  source: string;
+  /** @minimum 0 */
+  distance_ft: number;
+  node_id: BoundedEncounterOpponentNodeId;
+}
+
+/**
+ * Player-observable provenance and position of one authored encounter; no NPC AI state.
+ */
+export interface BoundedEncounterProjection {
+  scenario_id: string;
+  location_id: string;
+  player_node_id: BoundedEncounterProjectionPlayerNodeId;
+  visible_opponent: BoundedEncounterOpponent | null;
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -2279,6 +2334,8 @@ export interface GameState {
   /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
   economic_offer?: PublicEconomicOffer | null;
   wallet?: PublicWallet;
+  /** The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null. */
+  bounded_encounter?: BoundedEncounterProjection;
 }
 
 export interface GameSession {

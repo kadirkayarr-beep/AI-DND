@@ -4406,6 +4406,11 @@ components:
           - type: 'null'
         wallet:
           $ref: '#/components/schemas/PublicWallet'
+        bounded_encounter:
+          description: The authored courtyard encounter as the player can observe it. Present only
+            while the player is inside a materialized encounter; otherwise the field is left out,
+            never null.
+          $ref: '#/components/schemas/BoundedEncounterProjection'
       required:
       - campaign_time
       - known_scheduled_events
@@ -5307,6 +5312,8 @@ components:
           - type: string
           - type: 'null'
         exit_location_id:
+          description: Present only for a location the world placed inside another; left out for
+            a top-level location, like parent_location_id.
           anyOf:
           - type: string
           - type: 'null'
@@ -5315,8 +5322,6 @@ components:
       - name
       - type
       - description
-      - parent_location_id
-      - exit_location_id
     SorceryPoints:
       type: object
       additionalProperties: false
@@ -6145,10 +6150,70 @@ components:
           anyOf:
           - type: string
           - type: 'null'
+        bounded_node_id:
+          description: The player's authored node inside a bounded encounter; left out elsewhere.
+          type: string
+          enum:
+          - courtyard_entry
+          - courtyard_far
+          - courtyard_near
       required:
       - location_id
       - kind
       - target_id
+    BoundedEncounterProjection:
+      type: object
+      description: Player-observable provenance and position of one authored encounter; no NPC AI
+        state.
+      additionalProperties: false
+      properties:
+        scenario_id:
+          type: string
+        location_id:
+          type: string
+        player_node_id:
+          anyOf:
+          - type: string
+            enum:
+            - courtyard_entry
+            - courtyard_far
+            - courtyard_near
+          - type: 'null'
+        visible_opponent:
+          anyOf:
+          - $ref: '#/components/schemas/BoundedEncounterOpponent'
+          - type: 'null'
+      required:
+      - scenario_id
+      - location_id
+      - player_node_id
+      - visible_opponent
+    BoundedEncounterOpponent:
+      type: object
+      description: The opponent the player can currently see, with its source-backed stat block.
+      additionalProperties: false
+      properties:
+        npc_id:
+          type: string
+        statblock_id:
+          type: string
+        source:
+          type: string
+        distance_ft:
+          type: integer
+          minimum: 0
+        node_id:
+          type: string
+          enum:
+          - courtyard_entry
+          - courtyard_far
+          - courtyard_near
+      required:
+      - npc_id
+      - statblock_id
+      - source
+      - distance_ft
+      - node_id
     GameSceneNpc:
       type: object
       additionalProperties: false

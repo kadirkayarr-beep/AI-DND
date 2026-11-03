@@ -5,9 +5,12 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameScenePlayerPositionBoundedNodeId } from './gameScenePlayerPositionBoundedNodeId';
 
 export interface GameScenePlayerPosition {
   location_id: string;
   kind: string;
   target_id: string | null;
+  /** The player's authored node inside a bounded encounter; left out elsewhere. */
+  bounded_node_id?: GameScenePlayerPositionBoundedNodeId;
 }

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdventureProjection } from './adventureProjection';
+import type { BoundedEncounterProjection } from './boundedEncounterProjection';
 import type { CampaignAdventureJournal } from './campaignAdventureJournal';
 import type { CampaignJournal } from './campaignJournal';
 import type { CampaignTime } from './campaignTime';
@@ -75,4 +76,6 @@ export interface GameState {
   /** The player's one open economic card, or null. Preparing it moved no coin, goods or time. */
   economic_offer?: PublicEconomicOffer | null;
   wallet?: PublicWallet;
+  /** The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null. */
+  bounded_encounter?: BoundedEncounterProjection;
 }
