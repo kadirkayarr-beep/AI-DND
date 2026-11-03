@@ -192,6 +192,20 @@ def _told_here(session, name: str) -> bool:
     return bool(parts) and all(len(part) >= 3 and any(word.startswith(part) for word in said) for part in parts)
 
 
+def _told_held(session, stem: str) -> bool:
+    """A sentence of this scene that names the thing also names someone here: 'Oren'in elinde kırık bir halka var'
+    puts it in his hand, so a take line would take it from him unasked. Such a thing stays words."""
+    people = _people_here(session)
+    for text in getattr(session, "recent_dm_narrations", ()):
+        if not isinstance(text, str):
+            continue
+        for sentence in re.split(r"(?<=[.!?…])\s+|\n+", living_world._text_outside_quotes(text)):
+            words = living_world.normalize_text(sentence).split()
+            if any(word.startswith(stem) for word in words) and any(word.startswith(people) for word in words):
+                return True
+    return False
+
+
 def _pick_up_told(session, name: str) -> str | None:
     """No real thing lies here: a worthless one this scene's narration showed is made once and taken (Kadir,
     2026-11-03). A person, a part of the place, coin, a key or anything of worth stays words."""
@@ -199,7 +213,7 @@ def _pick_up_told(session, name: str) -> str | None:
     world = session.world_state
     stem = _stem(name)
     if (len(stem) < 3 or stem.startswith(_NOT_FOUND) or names_worth(name) or stem.startswith(_fixed_here(world))
-            or stem.startswith(_people_here(session)) or not _told_here(session, name)):
+            or stem.startswith(_people_here(session)) or not _told_here(session, name) or _told_held(session, stem)):
         return None
     return item_transfers.pick_up_told(world, name, stem=stem)
 

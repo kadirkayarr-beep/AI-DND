@@ -122,6 +122,62 @@ class Scene(unittest.TestCase):
         self.assertIsNone(item_transfers.pick_up_told(self.w, "Kalkan", stem="kalkan"))
         self.assertEqual((len(every_item(self.w)), len(transfers(self.w))), before)
 
+    def snapshot(self):
+        return len(every_item(self.w)), len(transfers(self.w)), dict(self.w["currency"]), coin(self.w)
+
+    def assert_nothing_made(self, before, *names):
+        self.assertEqual(self.snapshot(), before)
+        for name in names:
+            self.assertNotIn(name, labels(self.w))
+
+    def test_a_weapon_with_an_adjective_is_not_created(self):
+        """'paslı hançer' is still a dagger: any word of the name that the weapon catalog knows keeps it out."""
+        self.told("Tezgâhın üstünde paslı bir hançer, kırık bir kılıç ve eski bir yay duruyor.")
+        before = self.snapshot()
+        self.assertIsNone(pocket.resolve(self.s, "paslı hançeri çantama koyuyorum"))
+        self.assertIsNone(pocket.resolve(self.s, "kırık kılıcı çantama koyuyorum"))
+        self.assertIsNone(pocket.take_named(self.s, "eski yayı alıyorum", "eski yay"))
+        for name, stem in (("Paslı hançer", "hancer"), ("Kırık kılıç", "kilic"), ("Eski yay", "yay")):
+            self.assertIsNone(item_transfers.pick_up_told(self.w, name, stem=stem))
+        self.assert_nothing_made(before, "Paslı hançer", "Kırık kılıç", "Eski yay")
+
+    def test_a_magic_thing_is_not_created(self):
+        """A narrated 'büyülü yüzük' carries no record flag; its own words mark it magic and keep it out."""
+        self.told("Tezgâhın üstünde büyülü bir yüzük ve sihirli bir tılsım duruyor.")
+        before = self.snapshot()
+        self.assertIsNone(pocket.resolve(self.s, "büyülü yüzüğü çantama koyuyorum"))
+        self.assertIsNone(pocket.take_named(self.s, "büyülü yüzüğü alıyorum", "büyülü yüzük"))
+        for name, stem in (("Büyülü yüzük", "yuzuk"), ("Sihirli tılsım", "tilsim"), ("Tılsım", "tilsim"),
+                           ("Magic ring", "ring")):
+            self.assertIsNone(item_transfers.pick_up_told(self.w, name, stem=stem))
+        self.assert_nothing_made(before, "Büyülü yüzük", "Sihirli tılsım", "Tılsım", "Magic ring")
+        self.assertIsNotNone(item_transfers.pick_up_told(self.w, "Büyük kupa", stem="kupa"))  # big is not magic
+
+    def test_a_thing_told_in_someone_s_hand_is_not_made(self):
+        """No record yet, but the narration puts it in Oren's hand: taking it would take it from him unasked."""
+        self.told("Oren'in elinde kırık bir halka var.")
+        before = self.snapshot()
+        self.assertIsNone(self.take())
+        self.assertIsNone(pocket.take_named(self.s, "kırık halkayı alıyorum", "kırık halka"))
+        self.assert_nothing_made(before, "Kırık halka")
+
+    def test_the_once_only_mark_of_this_place_is_never_evicted(self):
+        """Marks of other places are bounded; a mark of the place the player stands in never falls out."""
+        self.told("Tezgâhın üstünde boş bir kupa ve kırık bir halka duruyor.")
+        self.assertIsNotNone(self.take("kupayı çantama koyuyorum"))
+        self.assertIsNotNone(pocket.resolve(self.s, "kupayı denize atıyorum"))
+        self.assertNotIn("Kupa", labels(self.w))
+        marks = self.w["flags"][item_transfers.NARRATED_PICKUPS]
+        marks.extend(f"elsewhere_{n}:sey" for n in range(item_transfers._NARRATED_KEPT + 5))
+        self.assertIsNotNone(self.take())
+        marks = self.w["flags"][item_transfers.NARRATED_PICKUPS]
+        self.assertIn(f"{self.here}:kupa", marks)
+        self.assertEqual(len([mark for mark in marks if mark.startswith("elsewhere_")]), item_transfers._NARRATED_KEPT)
+        before = (len(every_item(self.w)), len(transfers(self.w)))
+        self.assertIsNone(self.take("kupayı çantama koyuyorum"))
+        self.assertNotIn("Kupa", labels(self.w))
+        self.assertEqual((len(every_item(self.w)), len(transfers(self.w))), before)
+
     def test_a_mentioned_thing_after_a_location_change_is_not_taken(self):
         self.told("Tezgâhın üstünde kırık bir halka duruyor.")
         elsewhere = next(place for place in self.w["locations"] if place != self.here)

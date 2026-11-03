@@ -98,6 +98,10 @@ class Bag(unittest.TestCase):
 
 class Source(Bag):
     def test_narrated_item_without_source_is_not_created(self):
+        """No scene narration names the letter: only a chat message does, and this place's narration in scope
+        (recent_dm_narrations) shows something else. Since Kadir's 2026-11-03 decision a worthless thing the scene
+        narration itself names can be picked up once; that path is pinned in test_narrated_pickup."""
+        self.s.recent_dm_narrations.append("tezgâhın üstünde boş bir kupa duruyor.")
         self.shown("Masanın üstünde mühürlü bir mektup duruyor.")
         before, total = holdings(self.w), total_instances(self.w)
         pocket.resolve(self.s, "mektubu çantama koyuyorum")

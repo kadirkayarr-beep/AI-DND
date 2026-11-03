@@ -181,7 +181,19 @@ def transfer_now(world: dict[str, Any], *, item_id: str, source_id: str, recipie
 
 
 NARRATED_PICKUPS = "narrated_pickups"  # flags: 'place:stem' of each told thing already made, so a mention makes one
-_NARRATED_KEPT = 64
+_NARRATED_KEPT = 64  # marks of other places kept; a mark of the place the player stands in is always kept
+_MAGIC_WORDS = ("buyulu", "buyulen", "sihir", "tilsim", "efsun", "magic", "enchant")  # 'büyük' is only big
+
+
+def _told_as_gear_or_magic(name: str) -> bool:
+    """Any word of the name the weapon catalog or the armor list knows, or a word that says magic: 'paslı hançer',
+    'kırık kılıç', 'büyülü yüzük'. The word-by-word rule `equipment_economy.grant_plain` keeps gear out by."""
+    import living_world
+    import weapon_catalog
+    words = (name, *name.split())
+    if any(weapon_catalog.lookup(word) or equipment_economy.is_armor_or_shield(word) for word in words):
+        return True
+    return any(word == "buyu" or word.startswith(_MAGIC_WORDS) for word in living_world.normalize_text(name).split())
 
 
 def pick_up_told(world: dict[str, Any], name: str, *, stem: str) -> str | None:
@@ -197,7 +209,8 @@ def pick_up_told(world: dict[str, Any], name: str, *, stem: str) -> str | None:
             or not isinstance(name, str) or not name.strip() or len(name.strip()) > 200 or not stem):
         return None
     name = name.strip()
-    if is_coin_label(name) or equipment_economy.is_armor_or_shield(name) or item_needs_card(world, name):
+    if (is_coin_label(name) or equipment_economy.is_armor_or_shield(name) or _told_as_gear_or_magic(name)
+            or item_needs_card(world, name)):
         return None
     mention = f"{place}:{stem}"
     if mention in (((world.get("flags") or {}).get(NARRATED_PICKUPS)) or []):
@@ -245,7 +258,9 @@ def _make_and_take(world: dict[str, Any], name: str, place: str, mention: str) -
         del grounds[place]
     made = world.setdefault("flags", {}).setdefault(NARRATED_PICKUPS, [])
     made.append(mention)
-    del made[:-_NARRATED_KEPT]
+    mine = f"{place}:"
+    others = [mark for mark in made if not (isinstance(mark, str) and mark.startswith(mine))][-_NARRATED_KEPT:]
+    made[:] = [mark for mark in made if (isinstance(mark, str) and mark.startswith(mine)) or mark in others]
     return name
 
 
