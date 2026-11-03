@@ -1,0 +1,145 @@
+"""A write-only daily usage log of model calls: one JSON line a call, beside the Haiku count.
+
+It only measures. It never gates a call (HaikuSpend stays the gate), a write that fails
+only warns, and a line it cannot read is skipped. The file is append-only with one write per
+line, so the played API and a separate run command can share it without losing a line.
+Nothing but names and counts is written: no prompt, no reply, no key.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import threading
+from collections.abc import Callable, Mapping
+from datetime import datetime
+from pathlib import Path
+
+USAGE_FILE_NAME = "model-usage.jsonl"
+_logger = logging.getLogger("ai_dnd.api.ollama")
+
+# USD per million tokens as (input, output). Haiku's pair is the old code constant and has NOT
+# been checked against the current price list. Gemini is deliberately unknown (None): it never
+# enters a total. Gemma is local and costs nothing.
+PRICES_USD_PER_MILLION: Mapping[str, tuple[float, float] | None] = {
+    "haiku": (0.10, 0.50),
+    "gemini": None,
+    "gemma": (0.0, 0.0),
+}
+
+_COUNT_FIELDS = ("input", "output", "thought")
+
+
+def _local_now() -> datetime:
+    return datetime.now().astimezone()
+
+
+class UsageLedger:
+    """Today's model usage per provider, read back from a JSONL file. The day is the local date."""
+
+    def __init__(
+        self,
+        path: Path,
+        now: Callable[[], datetime] = _local_now,
+        prices: Mapping[str, tuple[float, float] | None] = PRICES_USD_PER_MILLION,
+        warn_usd: float = 3.0,
+    ):
+        self._path = path
+        self._now = now
+        self._prices = prices
+        self._warn_usd = warn_usd
+        self._lock = threading.Lock()
+
+    def _day(self) -> str:
+        return self._now().strftime("%Y-%m-%d")
+
+    def record(
+        self,
+        provider: str,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        thought_tokens: int = 0,
+        seconds: float | None = None,
+        outcome: str = "answered",
+    ) -> None:
+        """Append one line. Never raises: a call must not wait on, or fail from, its own log."""
+        try:
+            line = json.dumps(
+                {"day": self._day(), "provider": provider, "input": input_tokens,
+                 "output": output_tokens, "thought": thought_tokens, "seconds": seconds,
+                 "outcome": outcome},
+                separators=(",", ":"),
+            ) + "\n"
+            with self._lock:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                # One open and one write of one whole line: a second process appends whole lines too.
+                with open(self._path, "a", encoding="utf-8", newline="\n") as handle:
+                    handle.write(line)
+        except Exception as error:  # noqa: BLE001 - fail-open by design; only the error type is logged
+            _logger.warning("Usage ledger could not record a call (%s).", type(error).__name__)
+
+    def today(self) -> dict[str, dict[str, float]]:
+        """Per provider: calls, input, output, thought, seconds for today. Unreadable lines are skipped."""
+        day = self._day()
+        totals: dict[str, dict[str, float]] = {}
+        try:
+            with self._lock, open(self._path, encoding="utf-8", errors="replace") as handle:
+                for raw in handle:
+                    entry = self._read_line(raw, day)
+                    if entry is None:
+                        continue
+                    provider, counts, seconds = entry
+                    row = totals.setdefault(
+                        provider, {"calls": 0, "input": 0, "output": 0, "thought": 0, "seconds": 0})
+                    row["calls"] += 1
+                    for name, count in zip(_COUNT_FIELDS, counts):
+                        row[name] += count
+                    row["seconds"] += seconds
+        except FileNotFoundError:
+            return {}
+        except Exception as error:  # noqa: BLE001 - an unreadable file reads as an empty day
+            _logger.warning("Usage ledger could not read the day (%s).", type(error).__name__)
+            return {}
+        return totals
+
+    @staticmethod
+    def _read_line(raw: str, day: str) -> tuple[str, tuple[int, int, int], float] | None:
+        try:
+            entry = json.loads(raw)
+        except ValueError:
+            return None
+        if not isinstance(entry, dict) or entry.get("day") != day:
+            return None
+        provider = entry.get("provider")
+        counts = tuple(entry.get(name) for name in _COUNT_FIELDS)
+        seconds = entry.get("seconds")
+        if not isinstance(provider, str) or not provider:
+            return None
+        if not all(type(count) is int and count >= 0 for count in counts):
+            return None
+        if seconds is None:
+            seconds = 0
+        elif type(seconds) not in (int, float) or seconds < 0:
+            return None
+        return provider, counts, seconds
+
+    def known_usd_today(self) -> float:
+        """Today's cost over providers with a known price. An unknown price adds nothing."""
+        total = 0.0
+        for provider, row in self.today().items():
+            price = self._prices.get(provider)
+            if price is None:
+                continue
+            per_input, per_output = price
+            # A thinking token is billed as an output token.
+            total += (row["input"] * per_input + (row["output"] + row["thought"]) * per_output) / 1_000_000
+        return total
+
+    def warning(self) -> str | None:
+        """A line once today's known cost reaches the limit; it never stops anything."""
+        spent = self.known_usd_today()
+        if round(spent, 6) < self._warn_usd:
+            return None
+        return (f"Model usage today has reached {spent:.2f} USD on providers with a known price "
+                f"(warning at {self._warn_usd:.2f}). Providers without a known price are not counted.")
