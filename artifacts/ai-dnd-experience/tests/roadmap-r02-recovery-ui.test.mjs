@@ -87,7 +87,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
     getGameSessionState: async () => state, queryClient: client, setEntries: (v) => entries.push(v),
     writeAdvisoryCache() {}, TRANSCRIPT_KEY: 't-', setCombatEntries() {}, mergeCombatHistory: (v) => v,
     getGetCampaignsQueryKey: () => ['campaigns'], setNotice: (v) => { notices.push(typeof v === 'function' ? v(notices.at(-1) ?? null) : v); },
-    retryPendingTurn() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
+    retryPendingTurn() {}, setLastTurn() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
     window: globalThis.window,
   };
   vm.runInNewContext(code, env);

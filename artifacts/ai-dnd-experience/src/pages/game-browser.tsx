@@ -127,7 +127,12 @@ const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 // `recover` is the server-proven way out of an unresolved action: ask the server what it recorded, or close the id for good.
-type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void; recover?: { check: () => void; abandon: () => void } };
+// `recovery` is what the last server check left: `unknown` keeps every new change locked and offers a manual re-check.
+type RecoveryState = { status: 'applied' | 'not_applied' | 'unresolved' | 'unknown'; loading: boolean; mutationAllowed: boolean };
+type Notice = {
+  tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void;
+  recover?: { check: () => void; abandon: () => void }; checkLabel?: string; recovery?: RecoveryState;
+};
 const RECOVERY_API: RecoveryApi = {
   status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction,
 };
@@ -203,7 +208,7 @@ function NoticeBanner({ notice }: { notice: Notice }) {
       <AlertTriangle size={15} className="shrink-0" />
       <div><strong>{notice.title}</strong><div>{notice.detail}</div></div>
       {notice.retry && <button type="button" className="dnd-button" data-testid="button-retry-turn" onClick={notice.retry}>Aynı hamleyi yeniden dene</button>}
-      {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>Durumu sunucudan kontrol et</button>}
+      {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>{notice.checkLabel ?? 'Durumu sunucudan kontrol et'}</button>}
       {notice.recover && <button type="button" className="dnd-button" data-testid="button-abandon-action" onClick={notice.recover.abandon}>Bu hamleden vazgeç (sunucu doğrular)</button>}
     </div>
   );
@@ -1437,9 +1442,10 @@ export default function GameBrowser() {
   };
   // The server's open action for this campaign (second tab, re-login, lost browser record) is offered for a server check
   // or a server-proven abandon. A failed lookup is not "nothing is open"; the server still refuses a conflicting move.
-  const showServerOpenAction = async (forSession: string, forCampaign: string, stillCurrent: () => boolean) => {
+  // The lookup is bounded and ends with the screen that asked (`signal`), so a silent server leaves no hanging request.
+  const showServerOpenAction = async (forSession: string, forCampaign: string, stillCurrent: () => boolean, signal?: AbortSignal) => {
     try {
-      const open = await findUnresolvedOnServer(RECOVERY_API, forSession);
+      const open = await findUnresolvedOnServer(RECOVERY_API, forSession, { signal });
       if (!stillCurrent() || !open || readPending(currentAccountOwner() ?? LOCAL_OWNER, forCampaign)) return;
       setNotice({
         tone: 'warning',
@@ -1460,8 +1466,9 @@ export default function GameBrowser() {
     // A second tab or a re-login has no browser record: the server's open action is read again, never assumed absent or closed.
     if (!sessionId || !campaignId) return undefined;
     let current = true;
-    void showServerOpenAction(sessionId, campaignId, () => current);
-    return () => { current = false; };
+    const lookup = new AbortController();
+    void showServerOpenAction(sessionId, campaignId, () => current, lookup.signal);
+    return () => { current = false; lookup.abort(); };
   }, [campaignId, sessionId]);
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
@@ -2180,13 +2187,28 @@ export default function GameBrowser() {
       if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
       void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
     };
+    // B3: a settled verdict unlocks only when no unresolved local record is left; anything else stays locked.
+    const settled = (status: 'applied' | 'not_applied'): RecoveryState => ({
+      status, loading: false, mutationAllowed: !readPending(currentAccountOwner() ?? LOCAL_OWNER, scope),
+    });
+    const unknownNotice = (detail: string, title = 'Sonuç belirsiz'): Notice => ({
+      tone: 'warning', title, detail,
+      ...(stored ? { retry: retryPendingTurn } : {}),
+      recover: recoveryHandlers(serverActionId), checkLabel: 'Tekrar kontrol et',
+      recovery: { status: 'unknown', loading: false, mutationAllowed: false },
+    });
     const noticeFor = (verdict: ServerVerdict): Notice => {
       if (verdict.kind === 'applied') {
-        return { tone: 'success', title: 'Hamle sonucu sunucudan alındı', detail: 'Sunucu bu hamlenin uygulandığını doğruladı; hikâye ve durum güncellendi. Yeni bir hamle gönderebilirsin.' };
+        // The stored answer may be historical (the move was undone later): the screen shows the server's present, never the old receipt.
+        return { tone: 'success', title: 'Hamle sonucu sunucudan alındı', recovery: settled('applied'),
+          detail: 'Sunucu bu hamlenin kaydını doğruladı; hamle yeniden gönderilmedi. Ekran sunucudaki güncel durumu gösteriyor: hamle sonradan geri alındıysa geri alınmış hâli görünür. Yeni bir hamle gönderebilirsin.' };
+      }
+      if (verdict.kind === 'unresolved' && verdict.timedOut) {
+        return unknownNotice('Sunucu belirlenen sürede yanıt vermedi. Hamle kaydedilmiş de olabilir, kaydedilmemiş de; ödeme yeniden gönderilmedi. Sonuç doğrulanana kadar yeni hamleler kilitli.');
       }
       if (verdict.kind === 'not_applied') {
         return {
-          tone: 'warning', title: 'Hamle uygulanmadı',
+          tone: 'warning', title: 'Hamle uygulanmadı', recovery: settled('not_applied'),
           detail: stored
             ? 'Sunucu bu hamlenin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Yazdığın metin taslakta duruyor; istersen yeniden gönderebilirsin.'
             : 'Sunucu bu hamlenin hiç uygulanmadığını ve sonradan da uygulanamayacağını doğruladı. Hamle başka bir sekmeden veya önceki oturumdan kalmıştı; istersen yeni bir hamle gönderebilirsin.',
@@ -2200,14 +2222,18 @@ export default function GameBrowser() {
           : 'Sunucu bu hamle için bir sonuç kaydetmedi, ama bu hamlenin hiç uygulanmayacağı anlamına gelmez. Aynı hamleyi yeniden deneyebilir ya da bilinçli olarak vazgeçebilirsin.',
         ...(stored ? { retry: retryPendingTurn } : {}),
         recover: recoveryHandlers(serverActionId),
+        recovery: { status: verdict.state === 'unknown' ? 'unknown' : 'unresolved', loading: false, mutationAllowed: false },
       };
     };
     try {
-      const verdict = await askServer(RECOVERY_API, mode, sessionId, actionId);
+      // Bounded (B3): a silent server ends as `unknown`; the switch to another campaign aborts the wait (operation.signal).
+      const verdict = await askServer(RECOVERY_API, mode, sessionId, actionId, { signal: operation.signal });
       if (!operation.isCurrent()) return;
       if (stored) await settlePending(stored.key, verdict, reconcileFromServer);
       else if (verdict.kind === 'applied') await reconcileFromServer();
-      if (stored?.kind === 'level_up' && verdict.kind === 'applied') setLastTurn(null);
+      // State, story and the last-turn slot come from the same server read: an earlier turn's outcome or undo target is
+      // dropped, and a historical answer (an undone move) is never put back as the last turn.
+      if (verdict.kind === 'applied') setLastTurn(null);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
         setMessage(stored.request.message);
       }
@@ -2218,7 +2244,8 @@ export default function GameBrowser() {
         tone: 'error', title: 'Sunucudan yanıt alınamadı',
         detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Sunucu bu hamle hakkında bir şey söylemedi. Bu bir iptal kanıtı değildir; hamlenin kimliği korunuyor.'),
         ...(stored ? { retry: retryPendingTurn } : {}),
-        recover: recoveryHandlers(serverActionId),
+        recover: recoveryHandlers(serverActionId), checkLabel: 'Tekrar kontrol et',
+        recovery: { status: 'unknown', loading: false, mutationAllowed: false },
       });
     } finally {
       inFlightSessionsRef.current.delete(sessionId);
