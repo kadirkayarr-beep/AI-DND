@@ -161,6 +161,54 @@ class CombatActionInput(BaseModel):
         return self
 
 
+ECONOMIC_MAX_CP = 999_999_999
+
+
+class TextSpan(BaseModel):
+    """Where in the line a proposal was read; traceability only, never authority."""
+    model_config = ConfigDict(extra="forbid")
+
+    start: int = Field(ge=0, le=4000, strict=True)
+    end: int = Field(ge=0, le=4000, strict=True)
+
+
+class EconomicProposalIn(BaseModel):
+    """What the client may propose. The server fills source_action_id and sets goods and room prices itself."""
+    model_config = ConfigDict(extra="forbid")
+
+    purpose: Literal["purchase", "room", "gift", "tip", "item_gift"]
+    recipient_id: str = Field(min_length=1, max_length=128)
+    source_id: str | None = Field(default=None, min_length=1, max_length=128)
+    item_id: str | None = Field(default=None, min_length=1, max_length=128)
+    count: int = Field(default=1, ge=1, le=ECONOMIC_MAX_CP, strict=True)
+    amount_cp: int | None = Field(default=None, ge=0, le=ECONOMIC_MAX_CP, strict=True)
+    tip_cp: int = Field(default=0, ge=0, le=ECONOMIC_MAX_CP, strict=True)
+    tender_cp: int | None = Field(default=None, ge=0, le=ECONOMIC_MAX_CP, strict=True)
+    dependency: Literal["base_required", "all_or_none"] = "base_required"
+    text_span: TextSpan | None = None
+
+
+class PublicOfferLine(BaseModel):
+    line_id: str
+    label: str
+    count: int
+    unit_cp: int
+    total_cp: int
+    optional: bool
+
+
+class PublicEconomicOffer(BaseModel):
+    """The card the player sees: no inner acceptance, check difficulty or refusal reason."""
+    offer_id: str
+    confirmation_digest: str
+    counterparty_label: str
+    lines: list[PublicOfferLine]
+    dependency: Literal["base_required", "all_or_none"]
+    max_total_cp: int
+    tender_cp: int | None = None
+    may_refuse: bool
+
+
 class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
