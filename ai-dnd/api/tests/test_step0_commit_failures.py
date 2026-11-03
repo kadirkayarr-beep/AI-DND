@@ -29,7 +29,7 @@ import world_reactions
 from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
-from api.persistence.campaign_models import CampaignStorageError
+from api.persistence.campaign_models import CampaignStaleError, CampaignStorageError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
@@ -189,6 +189,77 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(resumed.status_code, 200, resumed.text)
                     self.assertEqual([q["status"] for q in resumed.json()["state"]["quests"]], ["accepted"])
 
+    async def test_quest_uncertain_commit_closes_session(self):
+        """The save committed and its answer was lost, and reading storage back cannot settle what landed."""
+        original_transaction = CampaignStore._transaction
+        real_get = CampaignStore.get_campaign
+
+        @contextlib.contextmanager
+        def commit_then_lose_ack(store):
+            with original_transaction(store) as connection:
+                yield connection
+            raise sqlite3.OperationalError("synthetic: committed, acknowledgement lost")
+
+        def unreadable(_store, *_args, **_kwargs):
+            raise CampaignStorageError("synthetic: storage cannot be read back")
+
+        def revision_jumped(store, *args, **kwargs):
+            stored = real_get(store, *args, **kwargs)
+            return dataclasses.replace(stored, metadata={**stored.metadata, "revision": stored.metadata["revision"] + 1})
+
+        def payload_differs(store, *args, **kwargs):
+            stored = real_get(store, *args, **kwargs)
+            return dataclasses.replace(stored, payload={**stored.payload, "journal": {"step0": "not this record"}})
+
+        readbacks = {
+            "storage cannot be read back": unreadable,
+            "stored revision moved two steps": revision_jumped,
+            "stored payload is not this record's": payload_differs,
+        }
+        for seam, readback in readbacks.items():
+            with self.subTest(seam=seam):
+                await self.new_campaign()
+                with patch.object(quest_catalog, "CATALOG", (self.quest_definition(),)):
+                    revision_before = self.durable()["revision"]
+                    with patch.object(CampaignStore, "_transaction", commit_then_lose_ack), \
+                            patch.object(CampaignStore, "get_campaign", readback):
+                        answered = await self.http.post(self.quest_url("accept"))
+                    durable_after = self.durable()
+                    committed_state = durable_after["payload"]["engine_save"]
+                    self.assertEqual(durable_after["revision"], revision_before + 1)
+                    self.assertEqual(self.quest_status(committed_state), "accepted")
+                    self.assertIs(self.record.usable, False, "an outcome that cannot be told closes the session")
+                    self.assertGreaterEqual(answered.status_code, 500, answered.text)
+                    self.assertEqual(answered.json()["detail"]["commit_status"], "outcome_unknown")
+                    # Not put back below what storage holds: the live game still carries the committed quest.
+                    self.assertEqual(runtime_facts(self.session)["save"], committed_state)
+                    # The closed session writes nothing more over the durable record.
+                    later = [
+                        await self.http.post(self.quest_url("cancel")),
+                        await self.http.post(f"/api/game/campaigns/{self.cid}/save"),
+                        await self.turn(),
+                    ]
+                    for refused in later:
+                        self.assertGreaterEqual(refused.status_code, 400, refused.text)
+                    self.assertEqual(self.durable(), durable_after)
+
+    async def test_quest_certain_stale_save_restores_live(self):
+        """A save refused as stale inside its transaction certainly wrote nothing: the live game is put back."""
+        with patch.object(quest_catalog, "CATALOG", (self.quest_definition(),)):
+            trusted_before = runtime_facts(self.session)
+            lore_before = self.record.lore_authority
+            durable_before = self.durable()
+            with patch.object(self.store, "save_campaign", side_effect=CampaignStaleError("synthetic stale save")), \
+                    patch.object(self.manager, "campaign_save_landed",
+                                 side_effect=AssertionError("a certain refusal needs no read-back")):
+                refused = await self.http.post(self.quest_url("accept"))
+
+            self.assertEqual(refused.status_code, 409, refused.text)
+            self.assertEqual(runtime_facts(self.session), trusted_before)
+            self.assertEqual(self.record.lore_authority, lore_before)
+            self.assertEqual(self.durable(), durable_before)
+            self.assertTrue(self.record.usable)
+
     async def test_quest_presave_fault_restores_lore(self):
         with patch.object(quest_catalog, "CATALOG", (self.quest_definition(),)):
             lore_before = self.record.lore_authority
@@ -277,6 +348,8 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failed.status_code, 500, failed.text)
         self.assertEqual({name: getattr(self.session, name, None) for name in _TRANSIENTS if getattr(self.session, name, None)},
                          {}, "nothing from the failed reading is left for the next action")
+        self.assertFalse(getattr(self.session, "_front_ahead", False), "a later turn must not reuse the failed reading")
+        self.assertIsNone(getattr(self.session, "_front_read", None))
 
         seen = {}
 

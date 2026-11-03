@@ -1451,8 +1451,10 @@ def create_app(
             finally:
                 session.lore_authority_context = previous_lore_context
                 if isinstance(session, game.GameSession):
-                    # The reading ahead of the turn may have failed before the turn could clear its own coin fields.
+                    # The reading ahead of the turn may have failed before the turn could clear its own coin fields,
+                    # or before the turn could close the reading itself; a later turn must not pick either up.
                     game._clear_turn_transients(session)
+                    front_proposal.end(session)
 
             engine_evidence = (
                 result.pop("_engine_event_evidence", None)
