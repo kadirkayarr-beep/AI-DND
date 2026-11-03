@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { getGameSessionShop, type ShopCounterResponse, type TurnOutcome } from '@workspace/api-client-react';
+import {
+  getGameSessionShop, type EconomicAction, type EconomicProposalIn, type PublicEconomicOffer,
+  type PublicEconomicResolution, type ShopCounterResponse, type TurnOutcome,
+} from '@workspace/api-client-react';
 import { useActionLifetime } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 
@@ -155,4 +158,153 @@ export function ShopControls({ sessionId, campaignId, disabled, outcome, outcome
         if (gate.current!.fire(text)) { setWaiting(true); setNotice(null); }
       }} />}
   </section>;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// A4: the economic card and the panel that prepares one. The card is bound to the server's offer id and digest;
+// the screen's text, amount or name is never authority. Every request is a turn with a fixed display message.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const ECONOMIC_MESSAGES = { prepare: 'Teklif hazırla', confirm: 'Teklifi onayla', cancel: 'Teklifi iptal et' } as const;
+
+/** The body game-browser sends for one economic step: the fixed message and the action, nothing else. */
+export function economicTurnRequest(action: EconomicAction): { message: string; economic_action: EconomicAction } {
+  return { message: ECONOMIC_MESSAGES[action.kind], economic_action: action };
+}
+
+/** One press until reopened: a second click while the first is on its way sends nothing. */
+export function createOnceGate() {
+  let busy = false;
+  return {
+    run(send: () => unknown) { if (busy) return false; busy = true; void send(); return true; },
+    busy: () => busy,
+    reopen() { busy = false; },
+  };
+}
+
+/** Confirm and cancel of the card on screen, by its own offer id and digest, at most one at a time. */
+export function createOfferCardController(handlers: {
+  onConfirm: (offerId: string, digest: string) => unknown; onCancel: (offerId: string) => unknown;
+}) {
+  const gate = createOnceGate();
+  return {
+    confirm: (offer: PublicEconomicOffer) => gate.run(() => handlers.onConfirm(offer.offer_id, offer.confirmation_digest)),
+    cancel: (offer: PublicEconomicOffer) => gate.run(() => handlers.onCancel(offer.offer_id)),
+    busy: gate.busy,
+    reopen: gate.reopen,
+  };
+}
+
+/** What the engine's receipt says, for the notice under the story; a changed offer asks for a new card. */
+export function economicResolutionNotice(resolution: Pick<PublicEconomicResolution, 'status' | 'reason_code' | 'public_summary'> | null | undefined): string | null {
+  if (!resolution) return null;
+  if (resolution.reason_code === 'stale') return 'Teklif değişti; yeni kart gerekir.';
+  return resolution.public_summary;
+}
+
+/** The purse the screen may show before the fresh state arrives: a refused result leaves it as it was. */
+export function walletAfterResolution(wallet: { total_cp: number }, resolution: Pick<PublicEconomicResolution, 'status' | 'net_debit_cp'> | null | undefined) {
+  if (!resolution || resolution.status !== 'applied') return wallet;
+  return { total_cp: wallet.total_cp - resolution.net_debit_cp };
+}
+
+const DEPENDENCY_TEXT = {
+  base_required: 'Bahşiş reddedilirse temel bedel yine ödenir.',
+  all_or_none: 'Bahşiş reddedilirse hiçbiri olmaz.',
+} as const;
+
+export function EconomicOfferCard({ offer, onConfirm, onCancel, disabled = false }: {
+  offer: PublicEconomicOffer; onConfirm(offerId: string, digest: string): Promise<void>;
+  onCancel(offerId: string): Promise<void>; disabled?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const handlers = useRef({ onConfirm, onCancel });
+  handlers.current = { onConfirm, onCancel };
+  const controller = useRef<ReturnType<typeof createOfferCardController> | null>(null);
+  controller.current ??= createOfferCardController({
+    onConfirm: (offerId, digest) => handlers.current.onConfirm(offerId, digest),
+    onCancel: offerId => handlers.current.onCancel(offerId),
+  });
+  // A new card, or the end of the request that was sent, opens the buttons again.
+  useEffect(() => { if (!disabled) { controller.current!.reopen(); setBusy(false); } }, [offer.offer_id, offer.confirmation_digest, disabled]);
+  const off = disabled || busy;
+  const hasOptional = offer.lines.some(line => line.optional);
+  return <fieldset disabled={off} className="dnd-card p-4" data-testid="economic-offer-card">
+    <legend>{offer.counterparty_label} · teklif</legend>
+    <ul className="space-y-1">
+      {offer.lines.map(line => <li key={line.line_id} data-testid={`economic-line-${line.line_id}`}>
+        {line.label}{line.count > 1 ? ` × ${line.count}` : ''} — {line.total_cp} bakır{line.optional ? ' (reddedilebilir)' : ''}
+      </li>)}
+    </ul>
+    {hasOptional && <p>{DEPENDENCY_TEXT[offer.dependency]}</p>}
+    {offer.tender_cp != null && <p>Uzattığın para: {offer.tender_cp} bakır; artanı para üstü sayılır.</p>}
+    <p>Toplam: en çok {offer.max_total_cp} bakır.</p>
+    {offer.may_refuse && <p role="note">Karşındaki teklifi kabul etmeyebilir; reddederse para kesende kalır.</p>}
+    <button type="button" className="dnd-button" data-testid="button-confirm-offer" disabled={off}
+      onClick={() => { if (!off && controller.current!.confirm(offer)) setBusy(true); }}>Onayla</button>
+    <button type="button" className="dnd-button secondary" data-testid="button-cancel-offer" disabled={off}
+      onClick={() => { if (!off && controller.current!.cancel(offer)) setBusy(true); }}>İptal</button>
+  </fieldset>;
+}
+
+export type PrepareForm = { purpose: 'gift' | 'tip' | 'room'; recipientId: string; amount: string; tip: string; allOrNone: boolean };
+
+// A whole copper amount from 1 to 999 999 999 with no sign, point or leading zero: matches "7", rejects "0" and "2.5".
+// Tester: https://regex101.com/?regex=%5E%5B1-9%5D%5Cd%7B0%2C8%7D%24&testString=7
+const POSITIVE = /^[1-9]\d{0,8}$/;
+
+/** The proposal the panel may send, or null when it is not complete: no price for a room, a positive amount otherwise. */
+export function prepareProposal(form: PrepareForm): EconomicProposalIn | null {
+  const recipient = form.recipientId.trim();
+  if (!recipient) return null;
+  if (form.purpose === 'room') {
+    const tip = form.tip.trim();
+    if (tip && !POSITIVE.test(tip)) return null;
+    return { purpose: 'room', recipient_id: recipient, amount_cp: null, tip_cp: tip ? Number(tip) : 0,
+      dependency: form.allOrNone ? 'all_or_none' : 'base_required' };
+  }
+  const amount = form.amount.trim();
+  if (!POSITIVE.test(amount)) return null;
+  return { purpose: form.purpose, recipient_id: recipient, amount_cp: Number(amount) };
+}
+
+/** Prepare from the panel: one valid proposal per press; an incomplete form sends nothing. */
+export function createPrepareController(onPrepare: (proposal: EconomicProposalIn) => unknown) {
+  return {
+    submit(form: PrepareForm) {
+      const proposal = prepareProposal(form);
+      if (!proposal) return false;
+      void onPrepare(proposal);
+      return true;
+    },
+  };
+}
+
+export function EconomicPrepareControls({ counterparties, onPrepare, disabled = false }: {
+  counterparties: { id: string; label: string }[]; onPrepare(proposal: EconomicProposalIn): Promise<void>; disabled?: boolean;
+}) {
+  const [form, setForm] = useState<PrepareForm>({ purpose: 'gift', recipientId: counterparties[0]?.id ?? '', amount: '', tip: '', allOrNone: false });
+  const send = useRef(onPrepare);
+  send.current = onPrepare;
+  const controls = useRef<ReturnType<typeof createPrepareController> | null>(null);
+  controls.current ??= createPrepareController(proposal => send.current(proposal));
+  const recipient = counterparties.some(person => person.id === form.recipientId) ? form.recipientId : counterparties[0]?.id ?? '';
+  const ready = prepareProposal({ ...form, recipientId: recipient }) !== null;
+  const set = (patch: Partial<PrepareForm>) => setForm(current => ({ ...current, ...patch }));
+  if (!counterparties.length) return null;
+  return <fieldset disabled={disabled} className="dnd-card p-4" data-testid="economic-prepare-controls">
+    <legend>Teklif hazırla</legend>
+    <label>Kime <select data-testid="economic-recipient" value={recipient} onChange={event => set({ recipientId: event.target.value })}>
+      {counterparties.map(person => <option key={person.id} value={person.id}>{person.label}</option>)}
+    </select></label>
+    <label>Ne <select data-testid="economic-purpose" value={form.purpose} onChange={event => set({ purpose: event.target.value as PrepareForm['purpose'] })}>
+      <option value="gift">Hediye</option><option value="tip">Bahşiş</option><option value="room">Oda (bir gece)</option>
+    </select></label>
+    {/* The room's price is the house's own; the amount is only for a gift or a tip. */}
+    <label>Tutar (bakır) <input data-testid="economic-amount" inputMode="numeric" disabled={form.purpose === 'room'} value={form.amount} onChange={event => set({ amount: event.target.value })} /></label>
+    <label>Odayla ayrı bahşiş (bakır, isteğe bağlı) <input data-testid="economic-tip" inputMode="numeric" disabled={form.purpose !== 'room'} value={form.tip} onChange={event => set({ tip: event.target.value })} /></label>
+    <label><input type="checkbox" data-testid="economic-all-or-none" disabled={form.purpose !== 'room'} checked={form.allOrNone} onChange={event => set({ allOrNone: event.target.checked })} /> Bahşiş reddedilirse oda da olmasın</label>
+    <button type="button" className="dnd-button" data-testid="button-prepare-offer" disabled={disabled || !ready}
+      onClick={() => { if (!disabled) controls.current!.submit({ ...form, recipientId: recipient }); }}>Kartı hazırla</button>
+  </fieldset>;
 }

@@ -1,36 +1,34 @@
 """Who may move coin: the full list of coin writers is pinned, and a turn of each open kind moves coin only by its own.
 
 A new function that writes world['currency'], or calls pay() or give_coin(), fails the first test until it is
-named here on purpose. The counter trade (shop_trade.commit) is the only writer for priced goods; the word-match
-purchase, the speech give of a vendor and the coin put down with an order write nothing.
+named here on purpose. Every coin a turn moves (a room, a gift, a tip, a bribe, a wage, an NPC's own give and the
+counter sale) goes through the one owner, economic_actions.apply_resolution; talk only opens a card, and only its
+confirmation pays. The word-match purchase, the speech give of a vendor and the coin put down with an order write
+nothing. Counts come from the ledger and the purses, never from the length of the log.
 """
 from __future__ import annotations
 
 import ast
+import copy
 import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import bold_acts
+import economic_actions as ea
 import game
+from api.core_resolution import resolution_action_scope
 
 ROOT = Path(__file__).resolve().parents[2]
 
 # file:function for every coin writer in the product source; open paths stay open by the owner's scope.
 WRITERS = frozenset({
-    "shop_trade.py:commit",                      # the counter trade: priced goods, the one writer for them
     "equipment_economy.py:pay",                  # the one debit/credit primitive the owners call
     "equipment_economy.py:_apply",               # typed catalog buy, sell and item reward
-    "bold_acts.py:give_coin",                    # coin the player hands over (tip, gift, bribe)
     "bold_acts.py:settle_coin_labels",           # gold written in the pack becomes purse copper
-    "bold_acts.py:take_room",                    # a night's room
     "bold_acts.py:_steal",                       # pickpocketed coin
     "bold_acts.py:_search_body",                 # coin found on a body
-    "game.py:_tell_the_coin",                    # pays the front hand-over at the end of the turn
-    "town_knowledge.py:settle_reply",            # job pay and a non-vendor's spoken give
-    "world_threads.py:_pay_wage",                # a day's wage
-    "world_reactions.py:bribe",                  # coin held out to an arresting guard
     "world_reactions.py:give_up",                # the fine on surrender
     "adventure/rewards.py:apply_plan",           # quest and delivery pay
     "incidents/rewards.py:_wallet_source",       # the incident's source purse
@@ -120,22 +118,87 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
         self.assertEqual((self.w["currency"]["player"], self.w["currency"]["barman"]), (496, 104))
         self.moved_by("equipment_economy.py:pay")
 
+    def offers(self):
+        return self.w.get("flags", {}).get("economic_offers", {})
+
+    def prepared(self):
+        return [data for data in self.offers().values() if data["status"] == "prepared"]
+
+    def operations(self):
+        return self.w.get("flags", {}).get("economic_ledger", {}).get("operations", {})
+
+    def confirm(self, data, action):
+        with resolution_action_scope(action, "session"):
+            return ea.confirm_offer(ea.EconomicState(world=self.w, character=self.s.character),
+                                    offer_id=data["offer_id"], confirmation_digest=data["confirmation_digest"],
+                                    operation_id=f"offer:{action}", check=lambda skill, dc: "BAŞARILI")
+
     def test_an_order_with_coin_put_down_moves_nothing(self):
-        self.s._coin_paid = (100, self.w["npcs"][0])
+        self.s._coin_paid = (100, self.w["npcs"][0], self.w["location"])
         result = self.s.run_player_turn("al şu bi altını, bi bira ver usta")
         self.assertEqual(result["action_result"]["action"], "shop_offer", result["narration"])
+        self.assertEqual(self.w["flags"]["counter_offer_v1"]["tender_cp"], 100)
         self.moved_by()
 
     def test_a_coin_handed_with_no_order_is_a_gift(self):
-        self.s._coin_paid = (5, self.w["npcs"][1])
+        self.s._coin_paid = (5, self.w["npcs"][1], self.w["location"])
         self.s.run_player_turn("/item list")
+        self.moved_by()  # the turn only opens the card
+        [card] = self.prepared()
+        self.assertEqual(self.confirm(card, "a-gift-confirm").status, "applied")
         self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (495, 105))
-        self.moved_by("bold_acts.py:give_coin")
+        self.moved_by("equipment_economy.py:pay")
 
     def test_a_room(self):
         self.s.run_player_turn("bi oda tutayım usta")
+        self.moved_by()  # the line opens the card; nothing is paid before it is confirmed
+        [card] = self.prepared()
+        self.assertEqual(self.confirm(card, "a-room-confirm").status, "applied")
         self.assertEqual(self.w["currency"]["player"], 500 - bold_acts._ROOM_PRICE)
-        self.moved_by("bold_acts.py:take_room")
+        self.moved_by("economic_actions.py:apply_resolution")  # the room is a sink: nobody is paid, the total is kept
+
+    def test_room_walk_has_one_economic_writer(self):
+        self.s._economic_turn_key = "a-walk"
+        walked = {"narration": "Hana giriyorsun.", "action_result": {"action": "move", "status": "completed",
+                                                                     "state_changes": ["location"]}}
+        game._sleep_after_walk(walked, "hana gidip bi oda tutayım", "the-street", None, session=self.s)
+        self.moved_by()
+        [card] = self.prepared()
+        self.confirm(card, "a-walk-confirm")
+        self.assertEqual(len(self.operations()), 1)
+        self.assertEqual(self.w["currency"]["player"], 500 - bold_acts._ROOM_PRICE)
+        self.assertEqual(self.w["currency"]["barman"], 100)
+        self.moved_by("economic_actions.py:apply_resolution")
+
+    def test_room_question_has_zero_writers(self):
+        result = self.s.run_player_turn("bi gecelik oda ne kadar?")
+        self.assertIn("5 gümüş", result["narration"])
+        self.assertEqual(self.offers(), {})
+        self.assertEqual(self.operations(), {})
+        self.moved_by()
+
+    def test_room_and_coin_offer_no_legacy_debit(self):
+        self.s._coin_paid = (100, self.w["npcs"][0], self.w["location"])
+        self.s.run_player_turn("hancıya 1 altın verip oda tutuyorum")
+        self.moved_by()
+        [card] = self.prepared()
+        self.assertEqual((card["proposal"]["purpose"], card["proposal"]["tender_cp"]), ("room", 100))
+        resolution = self.confirm(card, "a-room-coin-confirm")
+        self.assertEqual((resolution.net_debit_cp, resolution.change_cp), (50, 50))
+        self.assertEqual(len(self.operations()), 1)
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["barman"]), (450, 100))
+        self.moved_by("economic_actions.py:apply_resolution")
+
+    def test_unconfirmed_false_proposal_changes_no_relationship_or_clock(self):
+        self.s._coin_paid = (5, self.w["npcs"][1], self.w["location"])
+        before = (dict(self.w["currency"]), copy.deepcopy(self.w.get("relationships")),
+                  copy.deepcopy(self.w.get("campaign_time")))
+        self.s.run_player_turn("/item list")
+        [card] = self.prepared()
+        self.assertTrue(ea.cancel_offer(self.w, offer_id=card["offer_id"]))
+        self.assertEqual((dict(self.w["currency"]), self.w.get("relationships"), self.w.get("campaign_time")), before)
+        self.assertEqual(self.operations(), {})
+        self.moved_by()
 
     def test_a_theft(self):
         with patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI", "skill": "Sleight of Hand",
@@ -151,6 +214,9 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
                                               "Al bakalım.", accept_job=lambda thread: None)
         self.assertEqual(settled["moved"], 5)
         self.moved_by("equipment_economy.py:pay")
+        [(operation_id, entry)] = self.operations().items()
+        self.assertEqual(entry["purpose"], "npc_gift")
+        self.assertTrue(operation_id.startswith("unscoped:economic:npc_gift:"), operation_id)
 
     def test_a_spoken_give_from_whoever_serves_moves_nothing(self):
         import town_knowledge

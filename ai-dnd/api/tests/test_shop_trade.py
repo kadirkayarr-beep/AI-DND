@@ -163,10 +163,22 @@ class WordsOpenTheCounter(CounterTrade):
         self.w["shops"] = [{"id": "shop", "location": self.w["location"], "shopkeeper_id": "barman"}]
         self.offered(self.turn("bi bira satın alayım"), "bira", 4)
 
-    def test_a_room_is_still_rented_with_its_own_price(self):
+    def test_a_room_is_offered_at_its_own_price_and_paid_on_confirm(self):
+        import economic_actions as ea
+        from api.core_resolution import resolution_action_scope
         result = self.turn("bi oda tutayım usta")
         self.assertEqual(result["action_result"]["action"], "lodging", result["narration"])
+        self.assertEqual(result["action_result"]["status"], "offered")
+        self.assertEqual(self.w["currency"]["player"], 500)
+        [card] = [data for data in self.w["flags"]["economic_offers"].values() if data["status"] == "prepared"]
+        with resolution_action_scope("room-confirm", "session"):
+            ea.confirm_offer(ea.EconomicState(world=self.w, character=self.s.character), offer_id=card["offer_id"],
+                             confirmation_digest=card["confirmation_digest"], operation_id="offer:room-confirm",
+                             check=lambda skill, dc: "BAŞARILI")
         self.assertEqual(self.w["currency"]["player"], 500 - bold_acts._ROOM_PRICE)
+        rooms = [entry for entry in self.w["flags"]["economic_ledger"]["operations"].values()
+                 if entry["purpose"] == "room"]
+        self.assertEqual(len(rooms), 1)
 
 
 class WhatIsShownIsNotFree(CounterTrade):

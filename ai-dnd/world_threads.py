@@ -1487,37 +1487,49 @@ def _in_the_night(world) -> bool:
     return hour >= 20 or hour < 6
 
 
-def _day_wage(thread: dict[str, Any]) -> int:
-    """This day's share. A total splits evenly; the last day takes what is left."""
+def _day_wage(thread: dict[str, Any], *, worked: int | None = None) -> int:
+    """This day's share. A total splits evenly; the last day takes what is left.
+
+    worked: the day count including the day being paid; read from the thread when not given.
+    """
     terms = thread["terms"]
     pay, days = terms.get("pay") or 0, terms.get("work_days") or 1
     if pay_basis(thread) == "daily":
         return pay
-    worked = thread.get("days_worked", 0)  # already includes today
+    if worked is None:
+        worked = thread.get("days_worked", 0)  # already includes today
     return pay - (pay // days) * (days - 1) if worked >= days else pay // days
 
 
 def _pay_wage(world, thread, amount, day):
-    """Paid through the wallet; the owner's own purse is never assumed to hold it."""
-    import equipment_economy
-    pool = f"thread-pool:{thread['thread_id']}:{day}"
-    wallets = world.setdefault("currency", {})
-    wallets[pool] = wallets.get(pool, 0) + amount
-    try:
-        equipment_economy.pay(world, pool, "player", amount)
-    finally:
-        wallets.pop(pool, None)
-    thread["paid_cp"] = thread.get("paid_cp", 0) + amount
+    """The day's earned wage, once per day (A4): the one owner pays it from the day's pool, opened only for it.
+
+    The owner's own purse is never assumed to hold it. Returns the resolution; a repeated day is `replayed`.
+    """
+    import economic_actions
+    return economic_actions.settle_entitlement(
+        economic_actions.EconomicState(world=world, character=None), event_id=f"wage:{thread['thread_id']}:{day}",
+        payer_id=f"thread-pool:{thread['thread_id']}:{day}", recipient_id="player", amount_cp=amount)
 
 
 def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tuple[int, bool]:
-    """One day of the work counted and paid, and the job closed if that was the last of it."""
-    thread["days_worked"] = thread.get("days_worked", 0) + 1
+    """One day of the work paid, then counted, and the job closed if that was the last of it.
+
+    The wage is worked out for the day being paid (days worked so far plus this one), paid once through the
+    entitlement ledger, and only a new payment (or a day with no pay) moves the counters: a day already paid is
+    neither counted nor paid again, and does not close the job early.
+    """
+    worked = thread.get("days_worked", 0) + 1
+    amount = _day_wage(thread, worked=worked)
+    if amount:
+        paid = _pay_wage(world, thread, amount, day)
+        if paid.status != "applied" or paid.replayed:
+            return 0, False
+    thread["days_worked"] = worked
     thread["last_paid_day_index"] = day
     thread["shift_seconds"] = 0
-    amount = _day_wage(thread)
     if amount:
-        _pay_wage(world, thread, amount, day)
+        thread["paid_cp"] = thread.get("paid_cp", 0) + amount
         note_event(world, thread, "paid", f"{amount} bakır ödendi", npc=owner_of(world, thread))
     if thread["days_worked"] < (thread["terms"].get("work_days") or 1):
         return amount, False

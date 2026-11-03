@@ -581,24 +581,6 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
 
 
-def can_pay(session, amount: int) -> bool:
-    settle_coin_labels(session.world_state)
-    return session.world_state.setdefault("currency", {}).get("player", 0) >= amount
-
-
-def give_coin(session, amount: int, person: dict[str, Any] | None) -> bool:
-    """Coin the player really hands over or leaves: out of the purse, to that person if there is one."""
-    world = session.world_state
-    settle_coin_labels(world)
-    wallets = world.setdefault("currency", {})
-    if wallets.get("player", 0) < amount:
-        return False
-    wallets["player"] -= amount
-    if isinstance(person, dict) and isinstance(person.get("id"), str):
-        wallets[person["id"]] = wallets.get(person["id"], 0) + amount
-    return True
-
-
 def settle_coin_labels(world: dict[str, Any]) -> None:
     """"8 Altın" written in the pack becomes real money the first time money is spent."""
     kept = []
@@ -652,42 +634,97 @@ def _wants_the_bed(folded: str) -> bool:
     return bool(_ROOM_ASK.search(folded) or timed_gameplay._SLEEPING.search(folded))
 
 
+COIN_NOT_TENDERED = "Uzattığın para hesaba katılmadı; kesende kalıyor."
+
+
+def held_out_coin(session) -> int | None:
+    """Coin held out with this line, taken off the hand so it can never turn into a gift card of its own."""
+    paid = getattr(session, "_coin_paid", None)
+    session._coin_paid = None
+    session._handed_note = None
+    if not paid:
+        return None
+    amount = paid[0]
+    return amount if type(amount) is int and amount > 0 else None
+
+
+def _tender_or_none(world: dict[str, Any], amount: int | None, price: int, purse: int) -> int | None:
+    """C1: the coin held out pays the price when price <= coin <= purse; otherwise it is ignored with a note."""
+    return amount if amount is not None and price <= amount <= purse else None
+
+
 def take_room(session, text: str) -> dict[str, Any] | None:
-    """A night's room is paid to whoever serves here; a refusal leaves the player on their feet."""
+    """A night's room asked for: whoever serves here opens the room card; nothing is paid by the words.
+
+    The price is the house's own (_ROOM_PRICE) and, when the card is confirmed, it goes to nobody: the inn keeps no
+    purse, the sink total is kept in the ledger (D5). A room the player already holds here is just shown; a refusal
+    or a short purse opens no card. Coin held out with the line is the card's tender when it covers the price and
+    the purse holds it, and is ignored with a note otherwise.
+
+    Returns {"line", "paid": 0, "room", "status", "reason_code", "offer_id", "coin_seen"}; "room" is True only for a
+    room already held (status "held").
+    """
+    import economic_actions
+    import world_reactions
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
         return None
     world = session.world_state
     who = living_world.public_npc_name(server)
-    import world_reactions
+    coin = held_out_coin(session)
+    note = f" {COIN_NOT_TENDERED}" if coin is not None else ""
+    answer = {"paid": 0, "room": False, "reason_code": None, "offer_id": None, "coin_seen": coin is not None}
     if world_reactions.refuses(world, server):
-        return {"line": world_reactions.refusal_line(server), "paid": 0, "room": False}
+        return {**answer, "line": world_reactions.refusal_line(server) + note, "status": "refused",
+                "reason_code": "npc_refuses"}
     now = world.get("campaign_time", {}).get("elapsed_seconds", 0)
-    held = world.setdefault("flags", {}).get("inn_room")
+    held = (world.get("flags") or {}).get("inn_room")
     if isinstance(held, dict) and held.get("place") == world.get("location") and now < held.get("until", 0):
-        return {"line": f"{who} başıyla merdivenleri gösteriyor. “Odan yukarıda, duruyor.”", "paid": 0, "room": True}
-    settle_coin_labels(world)
-    wallets = world.setdefault("currency", {})
-    if wallets.get("player", 0) < _ROOM_PRICE:
-        return {"line": f"{who} kesene bakıp başını sallıyor. “Parası yoksa oda da yok.”", "paid": 0, "room": False}
-    wallets["player"] -= _ROOM_PRICE
-    session._set_scene_active_npc(server, world["flags"].get("turn_index", 0))
-    world["flags"]["inn_room"] = {"place": world.get("location"), "until": now + _ROOM_DAY}
-    return {"line": f"{who} başıyla merdivenleri gösteriyor; {_ROOM_PRICE} bakır kesenden tezgâha geçiyor.",
-            "paid": _ROOM_PRICE, "room": True}
+        return {**answer, "line": f"{who} başıyla merdivenleri gösteriyor. “Odan yukarıda, duruyor.”{note}",
+                "room": True, "status": "held"}
+    tender = _tender_or_none(world, coin, _ROOM_PRICE, economic_actions.wallet_total_cp(world))
+    if tender is not None:
+        note = ""
+    prepared = economic_actions.prepare_from_turn(
+        session, economic_actions.turn_proposal("room", str(server.get("id")), tender_cp=tender))
+    if prepared.status == "prepared" and prepared.offer is not None:
+        session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
+        paid_with = f" Uzattığın {tender} bakır bu kartın parası sayılıyor." if tender is not None else ""
+        return {**answer, "status": "offered", "offer_id": prepared.offer.offer_id,
+                "line": (f"{who} başıyla merdivenleri gösteriyor. “Gecelik {_ROOM_PRICE} bakır.” "
+                         f"{prepared.public_message}{paid_with}{note}")}
+    if prepared.reason_code == "purse_below_base":
+        return {**answer, "status": "clarification", "reason_code": prepared.reason_code,
+                "line": f"{who} kesene bakıp başını sallıyor. “Parası yoksa oda da yok.”{note}"}
+    if prepared.status == "refused":
+        return {**answer, "status": "refused", "reason_code": prepared.reason_code,
+                "line": world_reactions.refusal_line(server) + note}
+    return {**answer, "status": "clarification", "reason_code": prepared.reason_code,
+            "line": prepared.public_message + note}
+
+
+_ROOM_RECEIPT = {"held": "rented", "offered": "offered", "refused": "refused"}
+
+
+def _room_reply(session, room: dict[str, Any]) -> dict[str, Any]:
+    """The receipt of a room line: a card asked for, a room held, a no. No coin moved, so none is in the changes."""
+    status = _ROOM_RECEIPT.get(room["status"]) or ("no_money" if room.get("reason_code") == "purse_below_base"
+                                                    else "clarification")
+    reply = _reply(session, room["line"], "lodging", status, None, [], price_cp=0, offer_id=room.get("offer_id"))
+    if room.get("coin_seen"):
+        reply["action_result"]["coin_seen_by"] = "room"
+    return reply
 
 
 def _room_asked(session, text: str) -> dict[str, Any] | None:
-    """'Oda ne kadar?' is answered with what a room really costs, by whoever serves; a bed asked for in the same line is taken."""
+    """'Oda ne kadar?' is answered with what a room really costs, by whoever serves; a bed asked for in the same line opens the room card."""
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not _ROOM.search(folded) or _WALKS.search(folded):  # 'odaya giriyorum' is a walk
         return None
     if _wants_the_bed(folded):
-        room = take_room(session, text)
-        return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
-                      ["currency"] if room["paid"] else [], price_cp=room["paid"])
+        return _room_reply(session, take_room(session, text))
     if "?" not in text and not _PRICE_ASKED.search(folded):
         return None
     import world_reactions
@@ -703,9 +740,28 @@ def _buy(session, text: str) -> dict[str, Any] | None:
     if not _WALKS.search(folded):
         room = take_room(session, text)
         if room is not None:
-            return _reply(session, room["line"], "lodging", "rented" if room["room"] else "no_money", None,
-                          ["currency"] if room["paid"] else [], price_cp=room["paid"])
+            return _room_reply(session, room)
     return shop_offer(session, text)
+
+
+def _coin_seen(reply: dict[str, Any], coin: int | None) -> dict[str, Any]:
+    if coin is not None:
+        reply["action_result"]["coin_seen_by"] = "purchase"
+    return reply
+
+
+def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) -> dict[str, Any]:
+    """Open the counter's offer; coin held out is its tender when price <= coin <= purse, and is ignored otherwise."""
+    world = session.world_state
+    quoted = shop_trade.quote(world, server["id"], key, 1)
+    tender = _tender_or_none(world, coin, quoted["total_cp"], quoted["purse_cp"]) if quoted is not None else None
+    reply = _open_offer(session, server, key)
+    if tender is not None:
+        world["flags"]["counter_offer_v1"]["tender_cp"] = tender
+    elif coin is not None:
+        reply["narration"] = f"{reply['narration']} {COIN_NOT_TENDERED}"
+        reply["action_result"]["direct_response"] = reply["narration"]
+    return _coin_seen(reply, coin)
 
 
 def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -719,13 +775,13 @@ def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict
         return None
     world = session.world_state
     # Coin put down with the order is no payment: it stays in the purse, and nobody is told it changed hands.
-    session._coin_paid = None
-    session._handed_note = None
+    # It is read before it is cleared, as the offer's tender when it covers the price (C1).
+    coin = held_out_coin(session)
     import world_reactions
     if world_reactions.refuses(world, server):
-        return _reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
-                      npc_id=server.get("id"))
-    return _open_offer(session, server, wanted[0])
+        return _coin_seen(_reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
+                                 npc_id=server.get("id")), coin)
+    return _with_tender(session, server, wanted[0], coin)
 
 
 def offer_still_open(world: dict[str, Any], npc: Any) -> dict[str, Any] | None:
@@ -746,9 +802,7 @@ def standing_offer(session, server: Any) -> dict[str, Any] | None:
     if (opened is None or not shop_trade.is_vendor(session.world_state, server)
             or world_reactions.refuses(session.world_state, server)):
         return None
-    session._coin_paid = None
-    session._handed_note = None
-    return _open_offer(session, server, opened["key"])
+    return _with_tender(session, server, opened["key"], held_out_coin(session))
 
 
 def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:

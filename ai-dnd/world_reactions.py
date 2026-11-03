@@ -583,21 +583,27 @@ def _press(session, result: Any = None) -> list[str]:
     return []
 
 
-def bribe(session, amount: int) -> list[str]:
-    """Coin held out to the guard making the arrest. It changes hands only if they take it, and more coin is an easier word."""
-    import bold_acts
-    import game
+_BRIBE_CARD = "{who} avucuna uzattığın {amount} bakıra bakıyor; bir şey demiyor."
+
+
+def bribe(session, amount: int) -> tuple[list[str], Any]:
+    """Coin held out to the guard making the arrest opens a bribe card; nothing changes hands now.
+
+    The card's confirmation rolls the Persuasion word (more coin is an easier word) and only a success moves the
+    coin and ends the hold (economic_actions). Returns the line to show and the PrepareResult, or ([], None) when
+    nobody is holding the player; whether a card opened is read from the result's status alone.
+    """
+    import economic_actions
     world = session.world_state
     guard = arrester(world)
     deed = holding(world, guard)
     if guard is None or deed is None:
-        return []
-    difficulty = "easy" if amount >= 1000 else "medium" if amount >= 100 else "hard"
-    if (bold_acts._check(session, "Persuasion", game.DIFFICULTY_DC[difficulty])["result"] == "BAŞARILI"
-            and bold_acts.give_coin(session, amount, guard)):
-        deed.pop("hold")
-        return [_TOOK_THE_BRIBE.format(who=_who(guard), amount=amount)]
-    return [_REFUSED_THE_BRIBE.format(who=_who(guard))]
+        return [], None
+    prepared = economic_actions.prepare_from_turn(
+        session, economic_actions.turn_proposal("gift", str(guard["id"]), amount_cp=amount))
+    if prepared.status == "prepared":
+        return [f"{_BRIBE_CARD.format(who=_who(guard), amount=amount)} {prepared.public_message}"], prepared
+    return [prepared.public_message], prepared
 
 
 def give_up(session) -> list[str]:
@@ -687,15 +693,39 @@ def _gives_in(session) -> bool:
     return "?" not in said and bool(_GIVES_IN.search(line)) and not _WONT.search(line)
 
 
-def _settle_the_law(session) -> list[str]:
-    """Coin held out or hands held up to a guard making an arrest, as the turn's reading saw them."""
-    if arrester(session.world_state) is None:
-        return []
+def _settle_the_law(session, result: Any = None) -> tuple[list[str], bool]:
+    """Coin held out or hands held up to a guard making an arrest, as the turn's reading saw them.
+
+    Returns (lines, law_done); when law_done is True the turn's escalation (`_press`, `_challenge`) is already
+    settled here. O1: only the FIRST bribe card of a hold pauses that turn; the mark lives in the hold itself. A
+    second bribe in the same hold runs `_press` first: if the guard's patience is spent the fight starts and no
+    card is prepared at all. A refused bribe or a question (a short purse) pauses nothing.
+    """
+    world = session.world_state
+    guard = arrester(world)
+    if guard is None:
+        return [], False
     amount = getattr(session, "_bribe_held_out", 0)
     session._bribe_held_out = 0
     if amount:
-        return bribe(session, amount)
-    return give_up(session) if getattr(session, "_front_deed", None) == "yield" and _gives_in(session) else []
+        deed = holding(world, guard)
+        if deed is not None and deed["hold"].get("bribe_card_opened"):
+            pressed = _press(session, result) or _challenge(session)
+            if world.get("combat", {}).get("active"):
+                return pressed, True
+            lines, _ = bribe(session, amount)
+            return pressed + lines, True
+        lines, prepared = bribe(session, amount)
+        if prepared is not None and prepared.status == "prepared":
+            deed = holding(world, guard)
+            if deed is not None:
+                deed["hold"]["bribe_card_opened"] = True
+            return lines, True
+        return lines, False
+    if getattr(session, "_front_deed", None) == "yield" and _gives_in(session):
+        lines = give_up(session)
+        return lines, bool(lines)
+    return [], False
 
 
 def answer(session, result: Any) -> None:
@@ -716,7 +746,13 @@ def answer(session, result: Any) -> None:
     lines += _watch_comes(session, now)
     lines += _search(session, now)
     lines += _overheard(session)
-    law = _settle_the_law(session) or _press(session, result) or _challenge(session)
+    import economic_actions
+    # A bribe card left open since an earlier turn is not this turn's word: it is closed before the law moves on.
+    economic_actions.cancel_prepared(world, actor_id="player",
+                                     predicate=lambda offer: any(effect.kind == "bribe_accepted"
+                                                                 for effect in offer.on_accept))
+    law_lines, law_done = _settle_the_law(session, result)
+    law = law_lines if law_done else law_lines + (_press(session, result) or _challenge(session))
     if world.get("combat", {}).get("active"):
         lines = []  # the fight is what the turn is about now
     lines = [*lines, *law][-MAX_LINES_PER_TURN:] or _board_hint(world, result)

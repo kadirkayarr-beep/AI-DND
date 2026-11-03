@@ -624,16 +624,18 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             allowed.add(moved)
             note = world_threads.paid_line(moved, finished)
     elif kind == "give" and proposal["amount_cp"]:
-        wallets = world.get("currency") or {}
         import shop_trade
         sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.is_priced(player_text))
-        if (not moved and not sale and world_threads.speaks_of_pay(player_text)
-                and wallets.get(npc.get("id"), 0) >= proposal["amount_cp"]):
-            import equipment_economy
-            equipment_economy.pay(world, npc["id"], "player", proposal["amount_cp"])
-            moved = proposal["amount_cp"]
-            allowed.add(moved)
-            note = world_threads.paid_line(moved, False)
+        if not moved and not sale and world_threads.speaks_of_pay(player_text):
+            # C5: the NPC pays from their own purse, so no card: the one owner moves it once, or nothing moves
+            # (not here, or the purse is short). The note is built only from what was really applied.
+            import economic_actions
+            given = economic_actions.npc_gift(economic_actions.EconomicState(world=world, character=None),
+                                              npc_id=str(npc.get("id")), amount_cp=proposal["amount_cp"])
+            if given.status == "applied":
+                moved = given.net_debit_cp
+                allowed.add(moved)
+                note = world_threads.paid_line(moved, False)
     elif kind in {"give", "escort", "show", "meet", "help"} and not proposal["item"]:
         npc_statements.commit(world, npc, kind, proposal["terms"], spoken, str(player_text or ""))
     return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved}

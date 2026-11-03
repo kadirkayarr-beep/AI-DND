@@ -8,8 +8,10 @@ back cancelled, and an old action replays its historical answer without paying a
 from __future__ import annotations
 
 import unittest
+import uuid
 from unittest.mock import patch
 
+from api.tests import test_thread_hiring as hiring
 from api.tests.test_economic_action_http import ROOM, TIP, EconomicHttpFixture
 
 
@@ -146,6 +148,33 @@ class UndoAndTheCard(EconomicHttpFixture):
         answered, _ = await self.confirm(card)
         self.assertEqual(answered["economic_resolution"]["reason_code"], "offer_not_prepared")
         self.assertEqual(self.purse(), 100)
+
+
+class UndoAndTheWage(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp, asyncTearDown = hiring.HiringTable.asyncSetUp, hiring.HiringTable.asyncTearDown
+    campaign_with_npc, job, line = hiring.HiringTable.campaign_with_npc, hiring.HiringTable.job, hiring.HiringTable.line
+    t, wallet = hiring.HiringTable.t, hiring.HiringTable.wallet
+
+    def entitlements(self):
+        return self.world.get("flags", {}).get("economic_ledger", {}).get("entitlements", {})
+
+    async def test_undo_wage_then_reearn_pays_once_net(self):
+        await self.job(pay=40, days=3)
+        money = self.wallet()
+        before = dict(self.entitlements())
+        worked = await self.line("başlayalım")
+        self.assertEqual(self.wallet() - money, 40)
+        self.assertEqual(len(self.entitlements()), len(before) + 1)
+        undone = await self.http.post(f"/api/game/sessions/{self.session_id}/undo",
+                                      json={"action_id": str(uuid.uuid4()), "target_action_id": worked["action_id"]})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.world = self.session.world_state
+        self.assertEqual(self.wallet(), money)
+        self.assertEqual(self.entitlements(), before)  # the ledger came back with the save
+        await self.line("başlayalım")
+        self.assertEqual(self.wallet() - money, 40)
+        self.assertEqual(self.t()["paid_cp"], 40)
+        self.assertEqual(len(self.entitlements()), len(before) + 1)
 
 
 if __name__ == "__main__":

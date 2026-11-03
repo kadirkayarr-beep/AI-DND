@@ -144,9 +144,9 @@ _logger.propagate = False
 _UNSET = object()
 # What the player reads when a model failed and the turn was rolled back: a lost sentence, not a stuck game.
 MODEL_FAILURE_MESSAGE = "Bunu tam yakalayamadım; bir daha, belki biraz farklı söyler misin?"
-# The economic_action field is in the contract (S1a), but no turn path owns it yet: a request carrying it is refused
-# before any intent, lock or turn, so it never runs as a free-text turn. A4 turns this on.
-ECONOMIC_ACTIONS_ENABLED = False
+# The economic_action field (S1a) is owned by the card path (A3), and every turn coin writer now goes through the one
+# economic owner (A4), so the gate is open. Closed, a request carrying it is refused before any intent, lock or turn.
+ECONOMIC_ACTIONS_ENABLED = True
 
 
 def _capture_session(session: Any) -> dict[str, Any]:

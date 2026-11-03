@@ -47,7 +47,12 @@ class EconomicActionGateTests(unittest.IsolatedAsyncioTestCase):
             self.store.get_campaign(record.campaign_id),
         ))
 
+    def test_the_gate_is_open_in_the_product(self):
+        import api.main
+        self.assertIs(api.main.ECONOMIC_ACTIONS_ENABLED, True)  # A4 routed every turn coin writer through the card
+
     async def test_economic_actions_disabled_changes_nothing(self):
+        self.enterContext(patch("api.main.ECONOMIC_ACTIONS_ENABLED", False))  # the closed gate still holds
         campaign = await self.create_campaign()
         record = self.prepare(campaign)
         before = self.snapshot(record)

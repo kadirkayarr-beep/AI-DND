@@ -2,7 +2,8 @@
 
 Python owns it. What the speaker is told a thing costs comes from the same table this charges. Talk never
 moves coin or goods here: a line that wants something only opens an offer, and the trade is one typed
-'/item shop_buy <npc_id> <key> <count> <seq> <total_cp>' line, committed on a copy and swapped in whole.
+'/item shop_buy <npc_id> <key> <count> <seq> <total_cp>' line, committed on a copy and swapped in whole. The
+coin itself moves only through the one economic owner (economic_actions.apply_resolution).
 """
 
 from __future__ import annotations
@@ -146,9 +147,28 @@ def quote(world: dict[str, Any], npc_id: str, key: str, count: int) -> dict[str,
             "can_pay": type(purse) is int and purse >= total}
 
 
+def _tender(world: dict[str, Any], npc_id: str, key: str, count: int, fresh: dict[str, Any]) -> int | None:
+    """Coin held out with the open offer counts as the sale's tender only when this is that very offer."""
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if not isinstance(opened, dict):
+        return None
+    tender = opened.get("tender_cp")
+    if (opened.get("npc_id") != npc_id or opened.get("key") != key or opened.get("seq") != fresh["seq"]
+            or count != 1 or type(tender) is not int or not fresh["total_cp"] <= tender <= fresh["purse_cp"]):
+        return None
+    return tender
+
+
 def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: int, confirmed_total_cp: int) -> str:
-    """The one writer of a counter sale. Raises TradeRefused (world untouched) or returns the line to show."""
+    """The counter sale: the price, purse, goods and stock checked here; the coin moved by the one economic owner.
+
+    Everything is written on one candidate copy: the coin and the ledger by `economic_actions.apply_resolution`,
+    then the goods, stock, sequence and served turn here, then the whole receipt (coin, goods and stock) is checked
+    against the real before/after of the candidate, and only then is the candidate swapped in. Raises TradeRefused
+    or EconomicReceiptError with the world untouched, or returns the line to show.
+    """
     import bold_acts
+    import economic_actions
     import world_reactions
     candidate = copy.deepcopy(world)
     bold_acts.settle_coin_labels(candidate)
@@ -175,7 +195,18 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
     if not fresh["can_pay"]:
         raise TradeRefused("insufficient_funds", fresh)
     total = fresh["total_cp"]
-    equipment_economy.pay(candidate, "player", npc_id, total)  # the whole price, once; no change is made
+    candidate_before = copy.deepcopy(candidate)
+    offer = economic_actions.counter_purchase_offer(candidate, npc_id=npc_id, key=key, count=count,
+                                                    unit_cp=fresh["unit_cp"],
+                                                    tender_cp=_tender(candidate, npc_id, key, count, fresh))
+    state = economic_actions.EconomicState(world=candidate, character=None)
+    resolution = economic_actions.resolve_offer(
+        state, offer, operation_id=economic_actions.operation_id_for(candidate, "purchase"))
+    if resolution.status == "applied":
+        resolution = economic_actions.apply_resolution(state, resolution, confirmed_offer=offer)
+    if resolution.status != "applied":
+        raise TradeRefused("insufficient_funds" if resolution.reason_code in ("no_money", "tender_invalid")
+                           else "offer_stale", fresh)
     name = fresh["label"][:1].upper() + fresh["label"][1:]
     for _ in range(count):
         equipment_economy.grant_named_item(candidate, name)
@@ -188,11 +219,17 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
               {"seq": record["seq"], "npc_id": npc_id, "key": key, "count": count, "total_cp": total, "turn_index": turn}]
     record["ledger"] = ledger
     flags["served_turn"] = turn
+    # Decision 12: the one receipt checks the coin, the goods and the stock together on the candidate.
+    economic_actions.validate_economic_resolution(
+        economic_actions.economic_facts(economic_actions.EconomicState(world=candidate_before, character=None)),
+        economic_actions.economic_facts(state), resolution, confirmed_offer=offer)
     equipment_economy.validate_world(candidate)
     world.clear()
     world.update(candidate)
     who = living_world.public_npc_name(npc)
-    return f"{who} önüne {count} {fresh['label']} bırakıyor; {total} bakır kesenden tezgâha geçiyor."
+    change = f" Uzattığın {resolution.tender_cp} bakırdan {resolution.change_cp} bakır para üstü sayılıyor." \
+        if resolution.tender_cp is not None and resolution.change_cp else ""
+    return f"{who} önüne {count} {fresh['label']} bırakıyor; {total} bakır kesenden tezgâha geçiyor.{change}"
 
 
 def commit_typed(world: dict[str, Any], args: list[str]) -> str:

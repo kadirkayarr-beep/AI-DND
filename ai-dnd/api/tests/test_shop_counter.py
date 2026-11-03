@@ -145,15 +145,17 @@ class T43APlateIsPaidForOnce(AtTheCounter):
 
     async def test_the_plate_bought_at_the_counter_takes_thirty_once(self):
         await self.at_the_bar(barman_holds=100)
-        paid, handed = [], []
-        real_pay, real_give = equipment_economy.pay, bold_acts.give_coin
-        with patch.object(equipment_economy, "pay", side_effect=lambda *a, **k: (paid.append(a[1:4]), real_pay(*a, **k))[1]), \
-                patch.object(bold_acts, "give_coin", side_effect=lambda *a, **k: (handed.append(a[1:]), real_give(*a, **k))[1]):
-            out = await self.line(f"/item shop_buy {self.npc['id']} yemek 1 0 30")
+        self.assertFalse(hasattr(bold_acts, "give_coin"))  # the old hand-over writer is gone (A4)
+        out = await self.line(f"/item shop_buy {self.npc['id']} yemek 1 0 30")
         self.assertEqual(self.purse(), self.PURSE - 30, out["narration"])
         self.assertEqual(self.barman(), 130)
-        self.assertEqual(paid, [("player", self.npc["id"], 30)])
-        self.assertEqual(handed, [])
+        # Counted from the ledger, not from pay calls: the owner pays on its copy and then on the live world (A2).
+        flags = self.world.get("flags", {})
+        purchases = [entry for entry in flags.get("economic_ledger", {}).get("operations", {}).values()
+                     if entry["purpose"] == "purchase"]
+        self.assertEqual([entry["net_debit_cp"] for entry in purchases], [30])
+        self.assertFalse([data for data in flags.get("economic_offers", {}).values()
+                          if data["proposal"]["purpose"] == "gift"])
         self.assertEqual(self.bag().count("Tabak yemek"), 1, self.bag())
 
 

@@ -8,7 +8,7 @@ import { PaladinStatus } from '@/components/paladin-controls';
 import { RogueStatus } from '@/components/rogue-controls';
 import { MonkStatus } from '@/components/monk-controls';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
-import { ShopControls, shopProbeKey } from '@/components/shop-panel';
+import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
 import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
@@ -92,7 +92,7 @@ import {
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
-import type { TurnOutcome } from '@workspace/api-client-react';
+import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
@@ -1401,7 +1401,7 @@ export default function GameBrowser() {
   };
   // The unresolved turn lives in pending-action storage (owner + campaign). Retry buttons sit in notice
   // state, so they reach the latest submitTurn through this ref instead of a stale render's closure.
-  const submitTurnRef = useRef<(text: string, combatAction?: CombatActionInput, mode?: InteractionMode, retryPending?: boolean) => void>(() => {});
+  const submitTurnRef = useRef<(text: string, combatAction?: CombatActionInput, mode?: InteractionMode, retryPending?: boolean, economicAction?: EconomicAction) => void>(() => {});
   const submitLevelUpRef = useRef<(request?: LevelUpRequest) => void>(() => {});
   const retryPendingTurn = () => {
     const pending = readPending(currentAccountOwner() ?? LOCAL_OWNER, campaignId || sessionId);
@@ -1861,6 +1861,7 @@ export default function GameBrowser() {
     combatAction?: CombatActionInput,
     mode: InteractionMode = interactionMode,
     retryPending = false,
+    economicAction?: EconomicAction,
   ) => {
     const draft = text.trim();
     if (!sessionId || undoPendingRef.current.has(sessionId) || undoRequestsRef.current.has(sessionId) || inFlightSessionsRef.current.has(sessionId)) return;
@@ -1896,7 +1897,9 @@ export default function GameBrowser() {
       available: primalKnowledgeAvailable(state, fresh, combatAction),
     });
     // The original request body is stored with the pending action, so a retry resends exactly that.
-    const request: Record<string, unknown> = stored ? stored.request : {
+    // A card step is its own request: the fixed message and the economic action only, never the composer's draft.
+    const cardStep: Record<string, unknown> | null = economicAction ? { message: draft, economic_action: economicAction } : null;
+    const request: Record<string, unknown> = stored?.request ?? cardStep ?? {
       message: draft,
       interaction_mode: fresh?.interaction_mode,
       ...(combatAction ? { combat_action: combatAction } : {}),
@@ -2022,8 +2025,16 @@ export default function GameBrowser() {
         }
   // A retry resends the stored move; a draft that is still that same text is consumed with it, but text the
   // player changed or typed meanwhile belongs to a later, deliberate move and stays.
-  if (stillVisible && (!stored || messageRef.current.trim() === trimmed)) {
+  // A card step never carried the composer's draft, so it leaves the draft as it is.
+  if (stillVisible && !request.economic_action && (!stored || messageRef.current.trim() === trimmed)) {
     setMessage('');
+  }
+  // The engine's own receipt for a card step (same text as economicResolutionNotice; kept inline in this closure).
+  const receipt = result.economic_resolution;
+  if (stillVisible && receipt) {
+    const changed = receipt.reason_code === 'stale';
+    setNotice({ tone: receipt.status === 'applied' ? 'success' : 'warning', title: 'Teklif',
+      detail: changed ? 'Teklif değişti; yeni kart gerekir.' : receipt.public_summary });
   }
         if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
@@ -2296,6 +2307,14 @@ export default function GameBrowser() {
             <>
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
+      {state.economic_offer && <EconomicOfferCard key={state.economic_offer.offer_id} offer={state.economic_offer}
+        disabled={turnSending || undoBusy || Boolean(blockingMutation())}
+        onConfirm={async (offerId, digest) => { submitTurn(ECONOMIC_MESSAGES.confirm, undefined, 'do', false, { kind: 'confirm', offer_id: offerId, confirmation_digest: digest }); }}
+        onCancel={async (offerId) => { submitTurn(ECONOMIC_MESSAGES.cancel, undefined, 'do', false, { kind: 'cancel', offer_id: offerId }); }} />}
+      {!state.combat.active && <EconomicPrepareControls
+        counterparties={(state.npcs ?? []).filter(npc => npc.location === state.location).map(npc => ({ id: npc.id, label: npc.name }))}
+        disabled={Boolean(state.economic_offer) || turnSending || undoBusy || Boolean(blockingMutation())}
+        onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />}
       {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
         probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}

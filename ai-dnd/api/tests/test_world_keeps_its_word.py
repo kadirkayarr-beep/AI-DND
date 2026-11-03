@@ -5,6 +5,7 @@ Every line is the kind of thing the owner types. No real model is called.
 import json
 import os
 import unittest
+import uuid
 from unittest.mock import patch
 
 import bold_acts
@@ -103,13 +104,29 @@ class AnInnHasRooms(OneTownScene):
                 self.assertEqual(self.world["currency"]["player"], 1000)
                 self.assertIsNone(self.world["flags"].get("inn_room"))
 
-    async def test_a_question_and_going_to_bed_in_one_line_takes_the_room_and_sleeps(self):
+    async def test_a_question_and_going_to_bed_in_one_line_opens_the_room_card_without_sleep(self):
         await self.inn()
         clock = self.world["campaign_time"]["elapsed_seconds"]
         out = await self.say("barmene: bi gecelik oda ne kadar? yatıcam, sabaha kadar kimse uyandırmasın", PlayClient())
         self.assertIn("50 bakır", out["narration"])
+        self.assertIsNone(self.world["flags"].get("inn_room"))
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock)
+        self.assertEqual(self.world["currency"]["player"], 1000)
+        cards = [data for data in self.world["flags"].get("economic_offers", {}).values()
+                 if data["status"] == "prepared"]
+        self.assertEqual([card["proposal"]["purpose"] for card in cards], ["room"])
+        self.assertEqual(sum(line["total_cp"] for line in cards[0]["lines"]), 50)
+        card = out["state"]["economic_offer"]
+        confirm = {"message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+                   "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                       "confirmation_digest": card["confirmation_digest"]}}
+        confirmed = await self.post_scene_turn(self.url, PlayClient(), confirm)
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
+        self.assertEqual(confirmed.json()["economic_resolution"]["status"], "applied")
         self.assertTrue(self.world["flags"].get("inn_room"))
-        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], clock)
+        # The consuming confirm settles the gold written in the pack, then takes the room's 50.
+        self.assertEqual(self.world["currency"]["player"], out["state"]["wallet"]["total_cp"] - 50)
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock)  # sleeping is a new line
 
     async def test_whoever_serves_knows_the_house_has_rooms_when_rooms_are_the_talk(self):
         barman = await self.inn()
@@ -150,6 +167,12 @@ class FrontLines(FrontScene):
     def purse(self):
         return self.world.setdefault("currency", {}).get("player", 0)
 
+    def held_out(self):
+        """(who, copper) of each open gift card: what the line held out, waiting for confirmation."""
+        return [(data["proposal"]["recipient_id"], data["proposal"]["amount_cp"])
+                for data in self.world.get("flags", {}).get("economic_offers", {}).values()
+                if data["status"] == "prepared" and data["proposal"]["purpose"] == "gift"]
+
     async def test_hanging_about_moves_the_clock(self):
         await self.begin()
         clock = self.world["campaign_time"]["elapsed_seconds"]
@@ -180,9 +203,19 @@ class FrontLines(FrontScene):
         self.world.setdefault("currency", {})["player"] = 100
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5}
         out = await self.line("yasliya yarim gumus veriyorum sus diye")
+        # A4: the coin held out opens a gift card for that person; only its confirmation moves it.
+        self.assertEqual(self.purse(), 100, out["narration"])
+        self.assertEqual(self.held_out(), [(self.npc["id"], 5)])
+        self.assertIn("5 bakır", out["narration"])
+        card = out["state"]["economic_offer"]
+        confirmed = await self.http.post(self.turn_url, json={
+            "message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+            "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                "confirmation_digest": card["confirmation_digest"]}})
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
         self.assertEqual(self.purse(), 95)
         self.assertEqual(self.world["currency"][self.npc["id"]], 5)
-        self.assertIn("5 bakır", out["narration"])
+        self.assertIn("5 bakır", confirmed.json()["narration"])
 
     async def test_words_about_coin_move_no_coin(self):
         for line in ("sana yarim gumus veririm ha", "yarim gumus eder mi?", "yarin bir gumus getiririm"):
@@ -208,14 +241,16 @@ class FrontLines(FrontScene):
                 self.world.setdefault("currency", {})["player"] = 320
                 self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": read}
                 await self.line(line)
-                self.assertEqual(self.purse(), 320 - paid, line)
+                self.assertEqual(self.purse(), 320, line)  # A4: held out, not paid, until the card is confirmed
+                self.assertEqual(self.held_out(), [(self.npc["id"], paid)], line)
 
     async def test_coin_with_no_figure_is_a_small_hand_not_the_readings_number(self):
         await self.begin()
         self.world.setdefault("currency", {})["player"] = 320
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 300}
         await self.line("eline biraz para sikistiriyorum")
-        self.assertEqual(self.purse(), 310)
+        self.assertEqual(self.purse(), 320)  # A4: held out, not paid, until the card is confirmed
+        self.assertEqual(self.held_out(), [(self.npc["id"], 10)])
 
     async def test_more_than_the_purse_holds_stays_in_the_purse(self):
         await self.begin()
@@ -406,8 +441,17 @@ class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
         with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}), patch.object(
                 bold_acts, "_check", return_value={"result": "BAŞARILI"}):
             out = await self.say("avucuna bes altin birakiyorum, beni gormedin", client)
-        self.assertEqual(self.world["currency"][guard["id"]], 500, out["narration"])
-        self.assertIn("500 bakır", out["narration"])
+            # A4: the coin held out opens the bribe card; only its confirmation rolls the word and moves the coin.
+            self.assertNotIn(guard["id"], self.world["currency"], out["narration"])
+            self.assertIn("500 bakır", out["narration"])
+            card = out["state"]["economic_offer"]
+            confirmed = await self.post_scene_turn(self.url, PlayClient(), {
+                "message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+                "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                    "confirmation_digest": card["confirmation_digest"]}})
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
+        self.assertEqual(self.world["currency"][guard["id"]], 500, confirmed.text)
+        self.assertIn("500 bakır", confirmed.json()["narration"])
         self.assertNotIn("hold", self.deed())
         self.assertFalse(self.world["combat"]["active"])
 
@@ -472,6 +516,8 @@ class TheLawFindsTheKiller(unittest.IsolatedAsyncioTestCase):
         with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
             await self.say("etrafa bakiyorum", client)
         self.assertEqual(self.world["currency"]["player"], 1000)
+        self.assertFalse([data for data in self.world["flags"].get("economic_offers", {}).values()
+                          if any(effect["kind"] == "bribe_accepted" for effect in data["on_accept"])])
 
     async def test_a_killing_of_someone_who_came_at_the_player_brings_no_arrest(self):
         await self.town()

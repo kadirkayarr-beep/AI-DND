@@ -4,11 +4,14 @@ Python owns it. A proposal (from the panel or a turn) is read against a copy of 
 written coin labels settled, priced from the one server table (`shop_trade` goods, `bold_acts._ROOM_PRICE`),
 and judged by the engine alone: whether the counterparty is here, can act, refuses the player, or is the guard
 holding them (a bribe, decided later by a Persuasion check). Preparing writes nothing: no coin, goods, clock or
-offer record. The API stores the offer in `world.flags.economic_offers` (A3); the turn paths are bound in A4.
+offer record. The API stores the offer in `world.flags.economic_offers` (A3); a turn's line stores it through
+`prepare_from_turn` (A4).
 
 A confirmed offer is resolved (`resolve_offer`, read only) and written by the one owner `apply_resolution`:
 a settled copy first, the money receipt (`validate_economic_resolution`) on it, then the same steps on the live
-dicts in place. Earned pay goes through `settle_entitlement`, once per event. No turn reaches these yet (A4).
+dicts in place. Earned pay goes through `settle_entitlement`, once per event; an NPC's own give (`npc_gift`) and
+the counter sale (`shop_trade.commit`, with `counter_purchase_offer`) are engine payments with no card, each with
+its own `operation_id_for` id. Every coin a turn moves reaches the purses only through `apply_resolution`.
 
 The API (A3) stores the card (`prepare_from_panel`), confirms it once (`confirm_offer`), cancels it, and after an
 undo reopens only the card the undone action consumed (`reconcile_offers_after_undo`); closed cards are pruned.
@@ -1193,6 +1196,136 @@ def reconcile_offers_after_undo(restored_world: dict[str, Any], current_offers: 
         if offer_id not in current and isinstance(data, dict) and data.get("status") == "prepared":
             data["status"] = "cancelled"
     prune_offer_records(restored_world, protect_action_id=None)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# A4: the turn paths. A line prepares a card (`prepare_from_turn`); an engine payment without a card (an NPC's
+# own give, the counter sale) takes a distinct operation id from the ledger's counter (`operation_id_for`).
+# ---------------------------------------------------------------------------------------------------------------
+
+def _active_action_id() -> str | None:
+    from api.core_resolution import _ACTIVE_ACTION
+    scope = _ACTIVE_ACTION.get()
+    return scope.action_id if scope is not None else None
+
+
+def operation_id_for(world: dict[str, Any], kind: str) -> str:
+    """`<action or "unscoped">:economic:<kind>:<seq>`; the counter lives in the ledger and comes back with undo.
+
+    Every call moves the counter, so two real payments of one action (even with the same NPC and amount) never
+    share an id, however many times game.py opens the same action's scope.
+    """
+    ledger = world.setdefault("flags", {}).setdefault("economic_ledger", {})
+    seq = ledger.get("operation_seq", 0)
+    seq = (seq if type(seq) is int and seq >= 0 else 0) + 1
+    ledger["operation_seq"] = seq
+    return f"{_active_action_id() or 'unscoped'}:economic:{kind}:{seq}"
+
+
+def prepared_by_action(world: dict[str, Any], *, source_action_id: str, purpose: str) -> dict[str, Any] | None:
+    """The first card this action prepared for this purpose that is still open."""
+    for data in offer_records(world).values():
+        offer = offer_from_record(data)
+        if (offer is not None and offer.status == "prepared" and offer.proposal.source_action_id == source_action_id
+                and offer.proposal.purpose == purpose):
+            return data
+    return None
+
+
+def turn_proposal(purpose: Purpose, recipient_id: str, *, amount_cp: int | None = None,
+                  tender_cp: int | None = None) -> EconomicProposal:
+    """A proposal read from a line; `prepare_from_turn` fills in the source action."""
+    return EconomicProposal(purpose=purpose, recipient_id=recipient_id, source_id=None, item_id=None, count=1,
+                            amount_cp=amount_cp, tip_cp=0, tender_cp=tender_cp, dependency="base_required",
+                            source_action_id="", text_span=None)
+
+
+def prepare_from_turn(session: Any, proposal: EconomicProposal) -> PrepareResult:
+    """A card from a turn's line. Writes only the card's own record; no coin, goods or time move.
+
+    The source action is the turn's key (`game.turn_source_key`), or a fresh `turn:` key for a call from outside a
+    turn, so the card of this action is found again later in the same run and spared by its own change of place.
+    A new card closes the player's other open cards (C12); a refusal or a question stores nothing.
+    """
+    import game
+    world = session.world_state
+    key = game.turn_source_key(session) or f"turn:{secrets.token_hex(8)}"
+    proposal = dataclasses.replace(proposal, source_action_id=key)
+    records = offer_records(world)
+    offer_id = new_offer_id()
+    while offer_id in records:
+        offer_id = new_offer_id()
+    flags = world.get("flags") or {}
+    turn = flags.get("turn_index", 0)
+    result = prepare_offer(EconomicState(world=world, character=getattr(session, "character", None)), proposal,
+                           offer_id=offer_id, campaign_id=str(world.get("campaign_id") or "turn"), actor_id="player",
+                           turn_index=turn if type(turn) is int else 0)
+    if result.status == "prepared" and result.offer is not None:
+        cancel_prepared(world, actor_id="player", except_offer_id=offer_id)
+        _writable_records(world)[offer_id] = dataclasses.asdict(result.offer)
+        # The newest consuming confirm is the only one the live undo checkpoint can point at: keep it from pruning.
+        consumed = [data.get("consumed_action_id") for data in offer_records(world).values()
+                    if isinstance(data, dict) and data.get("status") == "consumed" and data.get("consumed_action_id")]
+        prune_offer_records(world, protect_action_id=consumed[-1] if consumed else None)
+    return result
+
+
+def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicResolution:
+    """An NPC hands the player coin from their own purse (C5): no card, since the player pays nothing.
+
+    The NPC must be here and hold the amount; otherwise nothing moves. Applied once by the one owner.
+    """
+    world = state.world
+    settled = _settled(world)
+    facts = economic_facts(EconomicState(world=settled, character=None))
+    line = OfferLine(line_id="npc_gift:0", kind="gift", source_id=str(npc_id), item_id=None, recipient_id="player",
+                     count=1, unit_cp=amount_cp if _cp(amount_cp) else 0,
+                     total_cp=amount_cp if _cp(amount_cp) else 0, optional=False)
+    blank = EconomicResolution(
+        operation_id="", offer_id=None, purpose="npc_gift", base_fingerprint=_sha(facts), status="refused",
+        reason_code=None, lines=[line], asset_deltas=[], service_rights=[], world_effects=[], refusals=[],
+        public_summary="", tender_cp=None, change_cp=0, net_debit_cp=0)
+    npc = _npc(settled, npc_id)
+    if not (type(amount_cp) is int and 0 < amount_cp <= MAX_CP):
+        return dataclasses.replace(_refused(blank, "invalid_amount"), public_summary="")
+    if npc is None or not _is_here(settled, npc):
+        return dataclasses.replace(_refused(blank, "npc_not_here"), public_summary="")
+    held = facts.balances.get(str(npc_id))
+    if held is None or held < amount_cp:
+        return dataclasses.replace(_refused(blank, "npc_purse_short"), public_summary="")
+    mine = facts.balances.get("player", 0)
+    resolution = dataclasses.replace(
+        blank, operation_id=operation_id_for(world, "npc_gift"), status="applied",
+        asset_deltas=[AssetDelta(owner_id="player", asset_kind="currency", asset_id="cp", before=mine,
+                                 after=mine + amount_cp),
+                      AssetDelta(owner_id=str(npc_id), asset_kind="currency", asset_id="cp", before=held,
+                                 after=held - amount_cp)],
+        net_debit_cp=amount_cp, public_summary=f"{amount_cp} bakır sana geçti.")
+    return apply_resolution(state, resolution, confirmed_offer=None)
+
+
+def counter_purchase_offer(world: dict[str, Any], *, npc_id: str, key: str, count: int, unit_cp: int,
+                           tender_cp: int | None) -> EconomicOffer:
+    """The counter's own purchase, built in memory only: it is never stored and never confirmed from a card.
+
+    `shop_trade.commit` has already checked the vendor, price, stock, refusal and purse; the engine accepts.
+    """
+    lines =[OfferLine(line_id="goods:0", kind="goods", source_id=npc_id, item_id=key, recipient_id=npc_id,
+                       count=count, unit_cp=unit_cp, total_cp=unit_cp * count, optional=False)]
+    proposal = EconomicProposal(purpose="purchase", recipient_id=npc_id, source_id=npc_id, item_id=key, count=count,
+                                amount_cp=None, tip_cp=0, tender_cp=tender_cp, dependency="base_required",
+                                source_action_id=_active_action_id() or "counter", text_span=None)
+    offer_id = new_offer_id()
+    acceptance = AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=npc_id,
+                                  context_digest="", producer="engine", check=None,
+                                  line_decisions=[LineDecision(line_id="goods:0", status="accepted",
+                                                               reason_code="engine_accepts")])
+    turn = (world.get("flags") or {}).get("turn_index", 0)
+    offer = EconomicOffer(offer_id=offer_id, actor_id="player", campaign_id=str(world.get("campaign_id") or "turn"),
+                          place_id=str(world.get("location")), proposal=proposal, lines=lines, acceptance=acceptance,
+                          on_accept=[], context_digest="", confirmation_digest="", status="prepared",
+                          operation_id=None, prepared_turn=turn if type(turn) is int else 0, consumed_action_id=None)
+    return dataclasses.replace(offer, confirmation_digest=confirmation_digest(offer))
 
 
 def public_resolution(state: EconomicState, resolution: EconomicResolution) -> PublicEconomicResolution:

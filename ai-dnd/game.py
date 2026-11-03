@@ -7677,7 +7677,11 @@ def commit_location_change(location_id, turn_index=None):
         create_feature=create_local_feature,
     )
     if previous_location != location_id:
+        import economic_actions
         import grounded_action
+        # C13: a card prepared before this turn is about the place left behind; this turn's own cards stay.
+        economic_actions.cancel_prepared(world_state, actor_id="player",
+                                         except_source_action_id=turn_source_key(_session()))
         grounded_action.clear_near(world_state)
         # Narrator lines about the street just left are not this place's facts.
         _session().recent_dm_narrations.clear()
@@ -8600,6 +8604,11 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if handed:
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
+    held_out = getattr(_session(), "_coin_paid", None)
+    if held_out and (not isinstance(held_out[1], dict) or held_out[1].get("id") == npc.get("id")):
+        # Coin waits for the card: the person must not be told it is already theirs (decisions 3 and 11).
+        lines.append(f"Oyuncu sana {held_out[0]} bakır uzatıyor; para henüz sende değil, "
+                     "oyuncu kartı onaylarsa geçer.")
     import bold_acts
     import pocket
     lines.append(bold_acts.room_note(npc, player_input))
@@ -17718,12 +17727,25 @@ def _intent_infrastructure_result(error):
 
 
 def _clear_turn_transients(session) -> None:
-    """Coin a turn's reading saw in the hand belongs to that turn alone, whether it ended well or failed (B1)."""
+    """Coin a turn's reading saw in the hand belongs to that turn alone, whether it ended well or failed (B1).
+
+    The turn's economic source key goes with it (A4): a card a later turn finds is never this turn's own.
+    """
     session._handed_note = None
     session._coin_paid = None
     session._front_coin = 0
     session._bribe_held_out = 0
     session._counter_held = None
+    session._economic_turn_key = None
+
+
+def turn_source_key(session):
+    """The key of the turn now running, shared by every card it prepares and by its own change of place.
+
+    It is set once at the start of `_run_player_turn` (the action id, or a fresh `turn:` key) and is the same in and
+    out of the action's resolution scope; outside a turn it is None, and then no card is spared by a move.
+    """
+    return getattr(session, "_economic_turn_key", None)
 
 
 def run_player_turn(
@@ -17786,26 +17808,71 @@ def _run_player_turn_owned(
     return result
 
 
+COIN_LEFT_BEHIND = "Uzattığın para kimseye geçmedi; o kişi geride kaldı, para kesende."
+
+
 def _tell_the_coin(result):
-    """The screen says what left the purse, so what the person said and the purse agree."""
-    import bold_acts
-    paid = getattr(_session(), "_coin_paid", None)
-    _session()._coin_paid = None
-    _session()._counter_held = None
+    """Coin held out in this line with no room or purchase to take it opens a gift card; nothing moves now.
+
+    It writes no coin. A line whose room or purchase already saw the coin (as tender, or ignored with a note)
+    prepares nothing, so a gift card never closes that line's own card. A taker read before a change of place is
+    left behind: no card, a short note.
+    """
+    import economic_actions
+    session = _session()
+    paid = getattr(session, "_coin_paid", None)
+    session._coin_paid = None
+    session._counter_held = None
     action = result.get("action_result") if isinstance(result, dict) else None
     if not paid or not isinstance(action, dict):
         return
-    amount, person = paid
-    if action.get("action") == "shop_offer":
-        return  # an open counter offer takes no coin: only the counter trade does
-    if "currency" in (action.get("state_changes") or ()):
-        return  # a room or a job already moved the coin this line was about
-    if bold_acts.give_coin(_session(), amount, person):
-        result["narration"] = f"{result.get('narration') or ''} {amount} bakır kesenden çıkıyor.".strip()
-        action["state_changes"] = [*(action.get("state_changes") or ()), "currency"]
+    amount, person, place = paid
+    if action.get("coin_seen_by") or action.get("action") == "shop_offer":
+        return  # the room or the counter offer read this coin; only its own card or trade can take it
+    if place != session.world_state.get("location"):
+        result["narration"] = f"{result.get('narration') or ''} {COIN_LEFT_BEHIND}".strip()
+        return
+    recipient = person.get("id") if isinstance(person, dict) else None
+    if not isinstance(recipient, str) or not recipient:
+        result["narration"] = (f"{result.get('narration') or ''} "
+                               f"{economic_actions._CLARIFY['npc_unknown']}").strip()
+        return
+    prepared = economic_actions.prepare_from_turn(
+        session, economic_actions.turn_proposal("gift", recipient, amount_cp=amount))
+    result["narration"] = f"{result.get('narration') or ''} {prepared.public_message}".strip()
 
 
 def _run_player_turn(
+    player_input,
+    messages=None,
+    target_id=None,
+    scene_plan=None,
+    action_id=None,
+    session_id=None,
+    combat_action=None,
+    interaction_mode=None,
+    check_feature=None,
+    check_evidence=None,
+):
+    """One turn under one economic source key (A4): the action id, or a fresh `turn:` key for a turn without one.
+
+    The key is set only when none is set yet, so a nested run uses the outer one, and only the run that set it
+    clears it. Cards prepared anywhere in this run, in or out of the resolution scope, carry it.
+    """
+    import secrets
+    session = _session()
+    owns_key = not getattr(session, "_economic_turn_key", None)
+    if owns_key:
+        session._economic_turn_key = action_id or f"turn:{secrets.token_hex(8)}"
+    try:
+        return _run_player_turn_keyed(player_input, messages, target_id, scene_plan, action_id, session_id,
+                                      combat_action, interaction_mode, check_feature, check_evidence)
+    finally:
+        if owns_key:
+            session._economic_turn_key = None
+
+
+def _run_player_turn_keyed(
     player_input,
     messages=None,
     target_id=None,
@@ -18324,7 +18391,12 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
 
 
 def _hand_over_coin(route, listed):
-    """Coin the reading saw leave the hand: the purse pays now, so the one who takes it answers knowing it."""
+    """Coin the reading saw held out: nothing is paid by it. It waits, with who it was for and where, for a card.
+
+    `_coin_paid` is (amount, person, place_id): the room or purchase of this line may take it as tender, otherwise
+    the end of the turn opens a gift card. During an arrest it is the guard's to weigh only when it was held out to
+    that guard or to nobody the reading could name; coin for someone else (the innkeeper) is no bribe.
+    """
     import bold_acts
     session = _session()
     session._counter_held = None
@@ -18332,18 +18404,19 @@ def _hand_over_coin(route, listed):
     if not amount or route["kind"] in {"strike", "blow_asked"}:
         return
     import world_reactions
-    if world_reactions.arrester(session.world_state) is not None:
-        session._bribe_held_out = amount  # whether this coin moves is the guard's to decide
-        return
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
+    guard = world_reactions.arrester(session.world_state)
+    if guard is not None and (person is None or person.get("id") == guard.get("id")):
+        session._bribe_held_out = amount  # whether this coin moves is the guard's to decide
+        return
+    held_out = (amount, person, session.world_state.get("location"))
     if bold_acts.offer_still_open(session.world_state, person) is not None:
         session._counter_held = person  # coin for the open offer is no gift: the counter trade alone takes it
+        session._coin_paid = held_out  # read by that offer as its tender, and never turned into a gift
         return
-    if bold_acts.can_pay(session, amount):
-        session._coin_paid = (amount, person)  # paid when the turn is over, unless a purchase in the line took it first
-        session._handed_note = f"{amount} bakır"
+    session._coin_paid = held_out  # a card's tender or a gift card; never "now theirs" before it is confirmed
 _NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
 
@@ -18715,6 +18788,7 @@ def _dispatch_player_turn(
             standing = bold_acts.standing_offer(_session(), held_for)
         if standing is not None:
             return standing
+        _session()._coin_paid = None  # coin held out for an open offer is never a gift, even when the offer closed
     if front is not None and front["kind"] == "speak_to":
         interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
@@ -18966,11 +19040,17 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
     receipt = walked.get("action_result") or {}
     if moved:
         import bold_acts
+        import economic_actions
+        key = turn_source_key(_session())
+        if key and economic_actions.prepared_by_action(world_state, source_action_id=key, purpose="room"):
+            return  # this line already opened the room card; no second card, and no sleep before it is confirmed
         room = bold_acts.take_room(_session(), player_input)
         if room is not None:
             walked["narration"] = f"{walked.get('narration') or ''} {room['line']}".strip()
+            if room["coin_seen"]:
+                walked.setdefault("action_result", {})["coin_seen_by"] = "room"
             if not room["room"]:
-                return
+                return  # a card opened (or a no): sleeping waits for a room really held
     elif (receipt.get("action"), receipt.get("status")) != ("lodging", "rented"):
         return
     if not timed_gameplay._SLEEPING.search(_normalize_turkish_typos(player_input)):
