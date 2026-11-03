@@ -225,6 +225,97 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(self.record.usable, False, "an unverified dice restore must close the session")
         self.assertEqual(self.durable(), durable_before)
 
+    # --- Step 2: undo and the turn's passing fields ---------------------------------------------------------------
+
+    async def test_undo_then_old_action_does_not_reapply(self):
+        engine_calls = []
+
+        def engine_turn(message, **_kwargs):
+            engine_calls.append(message)
+            wallets = self.session.world_state.setdefault("currency", {})
+            if message == "Keseme bakıyorum.":
+                wallets["player"] = 100
+            else:
+                wallets["player"] = wallets.get("player", 0) - 4
+            return {"narration": f"Kese: {wallets['player']} bakır.", "action_result": {}}
+
+        self.session.run_player_turn = engine_turn
+        setup = await self.turn("Keseme bakıyorum.")
+        self.assertEqual(setup.status_code, 200, setup.text)
+        paid_id = str(uuid.uuid4())
+        paid = await self.turn("Barmene 4 bakır veriyorum.", paid_id)
+        self.assertEqual(paid.status_code, 200, paid.text)
+        self.assertEqual(self.session.world_state["currency"]["player"], 96)
+        undone = await self.http.post(f"/api/game/sessions/{self.sid}/undo",
+                                      json={"action_id": str(uuid.uuid4()), "target_action_id": paid_id})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(self.session.world_state["currency"]["player"], 100)
+
+        old = await self.turn("Barmene 4 bakır veriyorum.", paid_id)
+        self.assertEqual(old.status_code, 200, old.text)
+        self.assertEqual(old.json(), paid.json(), "the old id answers with its historical receipt")
+        self.assertEqual(len(engine_calls), 2, "the old action is not run again")
+        self.assertEqual(self.session.world_state["currency"]["player"], 100)
+        self.assertEqual(self.durable()["payload"]["engine_save"]["world_state"]["currency"]["player"], 100)
+
+    async def test_failed_front_read_does_not_leak_coin_note(self):
+        barman = {"id": "npc_step0_barman", "name": "Barmen"}
+
+        def failing_front_read(*_args, **_kwargs):
+            # What a reading leaves behind once it has seen coin leave the hand, before it fails.
+            self.session._front_ahead = True
+            self.session._front_coin = 5
+            self.session._coin_paid = (5, barman)
+            self.session._handed_note = "5 bakır"
+            self.session._counter_held = barman
+            self.session._bribe_held_out = 5
+            raise RuntimeError("synthetic front read failure")
+
+        self.session.front_read_ahead = failing_front_read
+        with patch.dict(os.environ, _FRONT_ON):
+            failed = await self.turn("Barmene beş bakır uzatıyorum.")
+        self.assertEqual(failed.status_code, 500, failed.text)
+        self.assertEqual({name: getattr(self.session, name, None) for name in _TRANSIENTS if getattr(self.session, name, None)},
+                         {}, "nothing from the failed reading is left for the next action")
+
+        seen = {}
+
+        def typed_turn(_message, **_kwargs):
+            seen.update({name: getattr(self.session, name, None) for name in _TRANSIENTS})
+            return {"narration": "Çantanda bir şey değişmedi.", "action_result": {}}
+
+        self.session.run_player_turn = typed_turn
+        environment = {key: value for key, value in os.environ.items() if key != front_proposal.FLAG}
+        with patch.dict(os.environ, environment, clear=True):
+            typed = await self.turn("/item list")
+        self.assertEqual(typed.status_code, 200, typed.text)
+        self.assertEqual({name: value for name, value in seen.items() if value}, {})
+
+    async def test_bribe_held_out_does_not_survive_combat_turn(self):
+        session = self.session
+
+        def combat_turn(*_args, **_kwargs):
+            session._bribe_held_out = 40  # the reading saw coin held out to the guard making an arrest
+            world = session.world_state
+            combat_before = copy.deepcopy(world.get("combat"))
+            world["combat"] = {**(combat_before or {}), "active": True}
+            result = {"narration": "Kılıçlar çekiliyor.", "action_result": {}}
+            world_reactions.answer(session, result)  # in a fight it returns at once and settles no law
+            if combat_before is None:
+                world.pop("combat", None)
+            else:
+                world["combat"] = combat_before
+            return result
+
+        with patch.dict(os.environ, _FRONT_ON), patch.object(game, "_run_player_turn", combat_turn):
+            session.run_player_turn("Muhafıza kırk bakır uzatıp kılıcımı çekiyorum.")
+
+        self.assertFalse(getattr(session, "_bribe_held_out", 0), "the held-out coin ended with its turn")
+        with patch.object(world_reactions, "arrester", return_value={"id": "npc_step0_guard"}), \
+                patch.object(world_reactions, "bribe", return_value=["rüşvet"]) as bribe:
+            world_reactions._settle_the_law(session)
+        bribe.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

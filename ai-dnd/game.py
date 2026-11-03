@@ -17717,10 +17717,31 @@ def _intent_infrastructure_result(error):
     }
 
 
+def _clear_turn_transients(session) -> None:
+    """Coin a turn's reading saw in the hand belongs to that turn alone, whether it ended well or failed (B1)."""
+    session._handed_note = None
+    session._coin_paid = None
+    session._front_coin = 0
+    session._bribe_held_out = 0
+    session._counter_held = None
+
+
 def run_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
     check_feature=None, check_evidence=None,
+):
+    session = _session()
+    try:
+        return _run_player_turn_owned(player_input, messages, target_id, scene_plan, action_id, session_id,
+                                      combat_action, interaction_mode, check_feature, check_evidence)
+    finally:
+        _clear_turn_transients(session)
+
+
+def _run_player_turn_owned(
+    player_input, messages, target_id, scene_plan, action_id, session_id, combat_action, interaction_mode,
+    check_feature, check_evidence,
 ):
     if check_feature is None:
         import front_proposal

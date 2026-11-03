@@ -1450,6 +1450,9 @@ def create_app(
                 raise refuse_before_commit(500, "engine_error", "The game turn could not be completed.") from None
             finally:
                 session.lore_authority_context = previous_lore_context
+                if isinstance(session, game.GameSession):
+                    # The reading ahead of the turn may have failed before the turn could clear its own coin fields.
+                    game._clear_turn_transients(session)
 
             engine_evidence = (
                 result.pop("_engine_event_evidence", None)
