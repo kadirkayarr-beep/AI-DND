@@ -29,6 +29,10 @@ def restore_trusted_runtime(record: Any, snapshot: dict[str, Any], restore: Any 
         else:
             restore(session, snapshot)  # the caller's own restore seam (main._restore_session)
         verified = state_digest(session.serialize_game_state()) == state_digest(snapshot["save"])
+        capture = getattr(session, "_capture_runtime_snapshot", None)
+        if verified and callable(capture) and isinstance(snapshot.get("runtime"), dict):
+            # The save omits dice, messages and pending XP; a restore that silently skipped them is not trusted.
+            verified = state_digest(capture()) == state_digest(snapshot["runtime"])
     except Exception:
         verified = False
     record.usable = verified

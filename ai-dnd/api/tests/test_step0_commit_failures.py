@@ -136,6 +136,24 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(durable_after_presave_failure, durable_before)
         self.assertTrue(self.record.usable, "a verified pre-commit restore keeps the session open")
 
+    async def test_silent_rng_restore_error_quarantines(self):
+        durable_before = self.durable()
+
+        def failing_turn(_message, **_kwargs):
+            for _ in range(5):
+                self.session.rng.random()
+            self.session.character["current_hp"] = 1
+            raise RuntimeError("synthetic engine failure after dice were drawn")
+
+        self.session.run_player_turn = failing_turn
+        # The restore "succeeds" but leaves the dice where the failed turn put them.
+        with patch.object(self.session.rng, "setstate", lambda _state: None):
+            failed = await self.turn()
+
+        self.assertGreaterEqual(failed.status_code, 400, failed.text)
+        self.assertIs(self.record.usable, False, "an unverified dice restore must close the session")
+        self.assertEqual(self.durable(), durable_before)
+
 
 if __name__ == "__main__":
     unittest.main()
