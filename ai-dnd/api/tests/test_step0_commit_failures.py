@@ -136,6 +136,77 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(durable_after_presave_failure, durable_before)
         self.assertTrue(self.record.usable, "a verified pre-commit restore keeps the session open")
 
+    async def test_quest_save_ack_loss_does_not_revert_committed_state(self):
+        original_transaction = CampaignStore._transaction
+
+        def commit_then_lose_ack():
+            fired = []
+
+            @contextlib.contextmanager
+            def transaction(store):
+                with original_transaction(store) as connection:
+                    yield connection
+                if not fired:
+                    fired.append(True)
+                    raise sqlite3.OperationalError("synthetic: committed, acknowledgement lost")
+
+            return patch.object(CampaignStore, "_transaction", transaction)
+
+        def save_returns_then_fails():
+            real_save = self.manager.save_campaign_locked
+
+            def save(record, *args, **kwargs):
+                real_save(record, *args, **kwargs)
+                raise CampaignStorageError("synthetic: saved, then the answer was lost")
+
+            return patch.object(self.manager, "save_campaign_locked", side_effect=save)
+
+        seams = {
+            "after SQL commit, before the revision token moves": commit_then_lose_ack,
+            "after the save returned": save_returns_then_fails,
+        }
+        for seam, fault in seams.items():
+            with self.subTest(seam=seam):
+                await self.new_campaign()
+                with patch.object(quest_catalog, "CATALOG", (self.quest_definition(),)):
+                    revision_before = self.durable()["revision"]
+                    with fault():
+                        answered = await self.http.post(self.quest_url("accept"))
+                    durable_after_lost_ack = self.durable()
+                    committed_state = durable_after_lost_ack["payload"]["engine_save"]
+                    self.assertEqual(durable_after_lost_ack["revision"], revision_before + 1)
+                    self.assertEqual(self.quest_status(committed_state), "accepted")
+                    # The database holds the accepted quest, so the live game may not be blindly put back before it.
+                    self.assertEqual(runtime_facts(self.session)["save"], committed_state, answered.text)
+                    self.assertTrue(self.record.usable)
+                    self.assertEqual(answered.status_code, 200, answered.text)
+                    self.assertEqual(answered.json()["quest"]["status"], "accepted")
+                    # A later save and a resume keep the committed quest; nothing older is written back over it.
+                    saved = await self.http.post(f"/api/game/campaigns/{self.cid}/save")
+                    self.assertEqual(saved.status_code, 200, saved.text)
+                    self.assertEqual(self.quest_status(self.durable()["payload"]["engine_save"]), "accepted")
+                    resumed = await self.http.post(f"/api/game/campaigns/{self.cid}/resume")
+                    self.assertEqual(resumed.status_code, 200, resumed.text)
+                    self.assertEqual([q["status"] for q in resumed.json()["state"]["quests"]], ["accepted"])
+
+    async def test_quest_presave_fault_restores_lore(self):
+        with patch.object(quest_catalog, "CATALOG", (self.quest_definition(),)):
+            lore_before = self.record.lore_authority
+            # The engine's own copy of the lore can differ from the record's; the command adopts it for its view.
+            self.session.campaign_lore_state = dataclasses.replace(
+                lore_before, lore_discoveries=(*lore_before.lore_discoveries, "step0-synthetic-discovery"),
+            )
+            trusted_before = runtime_facts(self.session)
+            durable_before = self.durable()
+            with patch.object(self.store, "save_campaign", side_effect=CampaignStorageError("synthetic presave fault")):
+                failed = await self.http.post(self.quest_url("accept"))
+
+            self.assertEqual(failed.status_code, 503, failed.text)
+            self.assertEqual(runtime_facts(self.session), trusted_before)
+            self.assertEqual(self.durable(), durable_before)
+            self.assertEqual(self.record.lore_authority, lore_before, "a refused save must not leave the adopted lore")
+            self.assertTrue(self.record.usable)
+
     async def test_silent_rng_restore_error_quarantines(self):
         durable_before = self.durable()
 

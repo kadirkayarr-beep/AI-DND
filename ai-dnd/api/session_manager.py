@@ -44,6 +44,7 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
+from api.persistence.campaign_validation import serialize_campaign_payload
 from api.persistence.campaign_store import (
     MAX_COMBAT_HISTORY_ENTRIES,
     CampaignStore,
@@ -613,6 +614,38 @@ class SessionManager:
             turn_action_receipt=turn_action_receipt,
             principal=self._sealed_principal(record),
         )
+
+    def campaign_save_landed(self, record: ManagedSession, token_before: Any) -> bool | None:
+        """After a campaign save raised: did it commit exactly what the live record holds? Caller holds the turn lock.
+
+        False: storage is still on the revision the save started from, so nothing landed and a rollback is safe.
+        True: the revision moved one step and holds this record's own payload; the session's revision token is moved
+        there, because the live game already is the committed state. None: it cannot be told, so nobody may guess.
+        """
+        try:
+            if (record.campaign_id is None or not isinstance(token_before, tuple) or len(token_before) != 2
+                    or token_before[0] != record.campaign_id or type(token_before[1]) is not int):
+                return None
+            stored = self._require_campaign_store().get_campaign(
+                record.campaign_id, principal=self._sealed_principal(record),
+            )
+            revision = int(stored.metadata["revision"])
+            if revision == token_before[1]:
+                return False
+            if revision != token_before[1] + 1:
+                return None
+            candidate = json.loads(json.dumps(
+                serialize_campaign_payload(
+                    record.game_session, record.journal, record.narrative_memory, record.lore_authority,
+                ),
+                ensure_ascii=False, allow_nan=False,
+            ))
+            if candidate != stored.payload:
+                return None
+            record.game_session._campaign_persistence_version = (record.campaign_id, revision)
+            return True
+        except Exception:
+            return None
 
     def autosave_turn(
         self,

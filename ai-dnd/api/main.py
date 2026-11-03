@@ -1943,10 +1943,17 @@ def create_app(
             require_current(record)
             session = record.game_session
             snapshot = _capture_session(session)
+            lore_before = record.lore_authority
+            token_before = getattr(session, "_campaign_persistence_version", None)
+
+            def put_back() -> None:
+                record.lore_authority = lore_before
+                _rollback_session(record, session, snapshot)
+
             try:
                 result = getattr(session, f"{command}_quest")(quest_id)
             except ValueError as error:
-                _rollback_session(record, session, snapshot)
+                put_back()
                 raise HTTPException(
                     status_code=404,
                     detail={"code": "quest_unavailable", "message": str(error)},
@@ -1984,15 +1991,41 @@ def create_app(
                     quest=public_quest,
                     outcome=result["transition"],
                 )
-                if record.campaign_id is not None:
-                    manager.save_campaign_locked(record)
-                return redact_sensitive_values(response.model_dump())
+                # Built before the save, so nothing after a commit can fail and put the live game back.
+                payload = redact_sensitive_values(response.model_dump())
             except CampaignError as error:
-                _rollback_session(record, session, snapshot)
+                put_back()
                 raise campaign_http_exception(error) from None
             except Exception:
-                _rollback_session(record, session, snapshot)
+                put_back()
                 raise
+            if record.campaign_id is None:
+                return payload
+            try:
+                manager.save_campaign_locked(record)
+            except Exception as error:
+                # Stale, unknown and closed campaigns are refused inside the transaction before anything is written.
+                certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
+                landed = False if certain else manager.campaign_save_landed(record, token_before)
+                if landed is None:
+                    # Committed or not cannot be told; rolling back could split memory from storage (R05/R06).
+                    record.usable = False
+                    _logger.critical("Quest save failed and could not be reconciled; session closed")
+                    decision = failure_policy.classify_failure(
+                        failure_policy.ActionPhase.RECONCILIATION, "unknown", error,
+                    )
+                    raise HTTPException(
+                        status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
+                    ) from None
+                if landed:
+                    # The database holds exactly this result: the live game stays on it and the answer is the truth.
+                    _logger.error("Quest save committed but was not acknowledged (error_type=%s)", type(error).__name__)
+                    return payload
+                put_back()
+                if isinstance(error, CampaignError):
+                    raise campaign_http_exception(error) from None
+                raise
+            return payload
 
     @application.post(
         "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
