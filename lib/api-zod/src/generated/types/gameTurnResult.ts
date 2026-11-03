@@ -9,6 +9,7 @@ import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
 import type { LevelUpResult } from './levelUpResult';
+import type { PublicEconomicResolution } from './publicEconomicResolution';
 import type { QuestOutcome } from './questOutcome';
 import type { SkillCheckResult } from './skillCheckResult';
 import type { TurnOutcome } from './turnOutcome';
@@ -29,4 +30,6 @@ export interface GameTurnResult {
   level_up: LevelUpResult | null;
   /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
+  /** Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte. */
+  economic_resolution?: PublicEconomicResolution | null;
 }

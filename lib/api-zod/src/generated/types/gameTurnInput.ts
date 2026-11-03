@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatActionInput } from './combatActionInput';
+import type { EconomicAction } from './economicAction';
 import type { GameTurnInputCheckFeature } from './gameTurnInputCheckFeature';
 import type { GameTurnInputInteractionMode } from './gameTurnInputInteractionMode';
 
@@ -53,4 +54,6 @@ export interface GameTurnInput {
      * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
      */
   action_id?: string | null;
+  /** One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs. */
+  economic_action?: EconomicAction | null;
 }

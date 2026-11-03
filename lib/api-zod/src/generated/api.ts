@@ -4670,6 +4670,35 @@ export const playGameTurnBodyMessageMax = 4000;
 export const playGameTurnBodyTargetIdMax = 128;
 
 export const playGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playGameTurnBodyEconomicActionOneOneProposalRecipientIdMax = 128;
+
+export const playGameTurnBodyEconomicActionOneOneProposalSourceIdOneMax = 128;
+
+export const playGameTurnBodyEconomicActionOneOneProposalItemIdOneMax = 128;
+
+export const playGameTurnBodyEconomicActionOneOneProposalCountDefault = 1;
+export const playGameTurnBodyEconomicActionOneOneProposalCountMax = 999999999;
+
+export const playGameTurnBodyEconomicActionOneOneProposalAmountCpOneMin = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalAmountCpOneMax = 999999999;
+
+export const playGameTurnBodyEconomicActionOneOneProposalTipCpDefault = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalTipCpMin = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalTipCpMax = 999999999;
+
+export const playGameTurnBodyEconomicActionOneOneProposalTenderCpOneMin = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalTenderCpOneMax = 999999999;
+
+export const playGameTurnBodyEconomicActionOneOneProposalDependencyDefault = `base_required`;
+export const playGameTurnBodyEconomicActionOneOneProposalTextSpanOneStartMin = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalTextSpanOneStartMax = 4000;
+
+export const playGameTurnBodyEconomicActionOneOneProposalTextSpanOneEndMin = 0;
+export const playGameTurnBodyEconomicActionOneOneProposalTextSpanOneEndMax = 4000;
+
+export const playGameTurnBodyEconomicActionOneTwoOfferIdRegExp = new RegExp('^[0-9a-f]{32}$');
+export const playGameTurnBodyEconomicActionOneTwoConfirmationDigestRegExp = new RegExp('^[0-9a-f]{64}$');
+export const playGameTurnBodyEconomicActionOneThreeOfferIdRegExp = new RegExp('^[0-9a-f]{32}$');
 
 
 export const PlayGameTurnBody = zod.object({
@@ -4715,7 +4744,32 @@ export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
+  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish(),
+  "economic_action": zod.union([zod.union([zod.object({
+  "kind": zod.enum(['prepare']),
+  "proposal": zod.object({
+  "purpose": zod.enum(['purchase', 'room', 'gift', 'tip', 'item_gift']),
+  "recipient_id": zod.string().min(1).max(playGameTurnBodyEconomicActionOneOneProposalRecipientIdMax),
+  "source_id": zod.union([zod.string().min(1).max(playGameTurnBodyEconomicActionOneOneProposalSourceIdOneMax),zod.null()]).optional(),
+  "item_id": zod.union([zod.string().min(1).max(playGameTurnBodyEconomicActionOneOneProposalItemIdOneMax),zod.null()]).optional(),
+  "count": zod.number().int().min(1).max(playGameTurnBodyEconomicActionOneOneProposalCountMax).default(playGameTurnBodyEconomicActionOneOneProposalCountDefault),
+  "amount_cp": zod.union([zod.number().int().min(playGameTurnBodyEconomicActionOneOneProposalAmountCpOneMin).max(playGameTurnBodyEconomicActionOneOneProposalAmountCpOneMax),zod.null()]).optional(),
+  "tip_cp": zod.number().int().min(playGameTurnBodyEconomicActionOneOneProposalTipCpMin).max(playGameTurnBodyEconomicActionOneOneProposalTipCpMax).default(playGameTurnBodyEconomicActionOneOneProposalTipCpDefault),
+  "tender_cp": zod.union([zod.number().int().min(playGameTurnBodyEconomicActionOneOneProposalTenderCpOneMin).max(playGameTurnBodyEconomicActionOneOneProposalTenderCpOneMax),zod.null()]).optional(),
+  "dependency": zod.enum(['base_required', 'all_or_none']).default(playGameTurnBodyEconomicActionOneOneProposalDependencyDefault),
+  "text_span": zod.union([zod.object({
+  "start": zod.number().int().min(playGameTurnBodyEconomicActionOneOneProposalTextSpanOneStartMin).max(playGameTurnBodyEconomicActionOneOneProposalTextSpanOneStartMax),
+  "end": zod.number().int().min(playGameTurnBodyEconomicActionOneOneProposalTextSpanOneEndMin).max(playGameTurnBodyEconomicActionOneOneProposalTextSpanOneEndMax)
+}).strict().describe('Where in the line a proposal was read; traceability only, never authority.'),zod.null()]).optional()
+}).strict().describe('What the client may propose. The server fills the source action and sets goods and room prices itself; a differing amount_cp for goods or a room is a clarification, not a price.')
+}).strict().describe('Ask the engine to prepare a card; preparing alone moves no coin, goods or time.'),zod.object({
+  "kind": zod.enum(['confirm']),
+  "offer_id": zod.string().regex(playGameTurnBodyEconomicActionOneTwoOfferIdRegExp),
+  "confirmation_digest": zod.string().regex(playGameTurnBodyEconomicActionOneTwoConfirmationDigestRegExp)
+}).strict().describe('Confirm exactly the card the player saw, named by its id and confirmation digest.'),zod.object({
+  "kind": zod.enum(['cancel']),
+  "offer_id": zod.string().regex(playGameTurnBodyEconomicActionOneThreeOfferIdRegExp)
+}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs.')
 }).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playGameTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -6267,7 +6321,29 @@ export const PlayGameTurnResponse = zod.object({
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
   "reason": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
-}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
+}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
+  "economic_resolution": zod.union([zod.object({
+  "operation_id": zod.string(),
+  "offer_id": zod.union([zod.string(),zod.null()]),
+  "status": zod.enum(['applied', 'refused']),
+  "reason_code": zod.union([zod.string(),zod.null()]),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "refusals": zod.array(zod.object({
+  "line_id": zod.string(),
+  "reason_code": zod.string()
+})),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]),
+  "change_cp": zod.number().int(),
+  "net_debit_cp": zod.number().int(),
+  "public_summary": zod.string()
+}).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })
 
 
@@ -7900,7 +7976,29 @@ export const GetGameActionStatusResponse = zod.object({
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
   "reason": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
-}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
+}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
+  "economic_resolution": zod.union([zod.object({
+  "operation_id": zod.string(),
+  "offer_id": zod.union([zod.string(),zod.null()]),
+  "status": zod.enum(['applied', 'refused']),
+  "reason_code": zod.union([zod.string(),zod.null()]),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "refusals": zod.array(zod.object({
+  "line_id": zod.string(),
+  "reason_code": zod.string()
+})),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]),
+  "change_cp": zod.number().int(),
+  "net_debit_cp": zod.number().int(),
+  "public_summary": zod.string()
+}).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
   "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
@@ -9467,7 +9565,29 @@ export const AbandonGameActionResponse = zod.object({
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
   "reason": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
-}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
+}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
+  "economic_resolution": zod.union([zod.object({
+  "operation_id": zod.string(),
+  "offer_id": zod.union([zod.string(),zod.null()]),
+  "status": zod.enum(['applied', 'refused']),
+  "reason_code": zod.union([zod.string(),zod.null()]),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "refusals": zod.array(zod.object({
+  "line_id": zod.string(),
+  "reason_code": zod.string()
+})),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]),
+  "change_cp": zod.number().int(),
+  "net_debit_cp": zod.number().int(),
+  "public_summary": zod.string()
+}).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
   "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
@@ -25704,6 +25824,35 @@ export const playLegacyTurnBodyMessageMax = 4000;
 export const playLegacyTurnBodyTargetIdMax = 128;
 
 export const playLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playLegacyTurnBodyEconomicActionOneOneProposalRecipientIdMax = 128;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalSourceIdOneMax = 128;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalItemIdOneMax = 128;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalCountDefault = 1;
+export const playLegacyTurnBodyEconomicActionOneOneProposalCountMax = 999999999;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalAmountCpOneMin = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalAmountCpOneMax = 999999999;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalTipCpDefault = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTipCpMin = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTipCpMax = 999999999;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalTenderCpOneMin = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTenderCpOneMax = 999999999;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalDependencyDefault = `base_required`;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneStartMin = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneStartMax = 4000;
+
+export const playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneEndMin = 0;
+export const playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneEndMax = 4000;
+
+export const playLegacyTurnBodyEconomicActionOneTwoOfferIdRegExp = new RegExp('^[0-9a-f]{32}$');
+export const playLegacyTurnBodyEconomicActionOneTwoConfirmationDigestRegExp = new RegExp('^[0-9a-f]{64}$');
+export const playLegacyTurnBodyEconomicActionOneThreeOfferIdRegExp = new RegExp('^[0-9a-f]{32}$');
 
 
 export const PlayLegacyTurnBody = zod.object({
@@ -25749,7 +25898,32 @@ export const PlayLegacyTurnBody = zod.object({
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
+  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish(),
+  "economic_action": zod.union([zod.union([zod.object({
+  "kind": zod.enum(['prepare']),
+  "proposal": zod.object({
+  "purpose": zod.enum(['purchase', 'room', 'gift', 'tip', 'item_gift']),
+  "recipient_id": zod.string().min(1).max(playLegacyTurnBodyEconomicActionOneOneProposalRecipientIdMax),
+  "source_id": zod.union([zod.string().min(1).max(playLegacyTurnBodyEconomicActionOneOneProposalSourceIdOneMax),zod.null()]).optional(),
+  "item_id": zod.union([zod.string().min(1).max(playLegacyTurnBodyEconomicActionOneOneProposalItemIdOneMax),zod.null()]).optional(),
+  "count": zod.number().int().min(1).max(playLegacyTurnBodyEconomicActionOneOneProposalCountMax).default(playLegacyTurnBodyEconomicActionOneOneProposalCountDefault),
+  "amount_cp": zod.union([zod.number().int().min(playLegacyTurnBodyEconomicActionOneOneProposalAmountCpOneMin).max(playLegacyTurnBodyEconomicActionOneOneProposalAmountCpOneMax),zod.null()]).optional(),
+  "tip_cp": zod.number().int().min(playLegacyTurnBodyEconomicActionOneOneProposalTipCpMin).max(playLegacyTurnBodyEconomicActionOneOneProposalTipCpMax).default(playLegacyTurnBodyEconomicActionOneOneProposalTipCpDefault),
+  "tender_cp": zod.union([zod.number().int().min(playLegacyTurnBodyEconomicActionOneOneProposalTenderCpOneMin).max(playLegacyTurnBodyEconomicActionOneOneProposalTenderCpOneMax),zod.null()]).optional(),
+  "dependency": zod.enum(['base_required', 'all_or_none']).default(playLegacyTurnBodyEconomicActionOneOneProposalDependencyDefault),
+  "text_span": zod.union([zod.object({
+  "start": zod.number().int().min(playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneStartMin).max(playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneStartMax),
+  "end": zod.number().int().min(playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneEndMin).max(playLegacyTurnBodyEconomicActionOneOneProposalTextSpanOneEndMax)
+}).strict().describe('Where in the line a proposal was read; traceability only, never authority.'),zod.null()]).optional()
+}).strict().describe('What the client may propose. The server fills the source action and sets goods and room prices itself; a differing amount_cp for goods or a room is a clarification, not a price.')
+}).strict().describe('Ask the engine to prepare a card; preparing alone moves no coin, goods or time.'),zod.object({
+  "kind": zod.enum(['confirm']),
+  "offer_id": zod.string().regex(playLegacyTurnBodyEconomicActionOneTwoOfferIdRegExp),
+  "confirmation_digest": zod.string().regex(playLegacyTurnBodyEconomicActionOneTwoConfirmationDigestRegExp)
+}).strict().describe('Confirm exactly the card the player saw, named by its id and confirmation digest.'),zod.object({
+  "kind": zod.enum(['cancel']),
+  "offer_id": zod.string().regex(playLegacyTurnBodyEconomicActionOneThreeOfferIdRegExp)
+}).strict().describe('Close an open card; cancelling moves no coin, goods or time.')]).describe('One economic step of a turn, told apart by kind.'),zod.null()]).optional().describe('One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs.')
 }).strict().describe('The message must contain at least one non-whitespace character.')
 
 export const playLegacyTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -27301,7 +27475,29 @@ export const PlayLegacyTurnResponse = zod.object({
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
   "reason": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
-}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.')
+}),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
+  "economic_resolution": zod.union([zod.object({
+  "operation_id": zod.string(),
+  "offer_id": zod.union([zod.string(),zod.null()]),
+  "status": zod.enum(['applied', 'refused']),
+  "reason_code": zod.union([zod.string(),zod.null()]),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "refusals": zod.array(zod.object({
+  "line_id": zod.string(),
+  "reason_code": zod.string()
+})),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]),
+  "change_cp": zod.number().int(),
+  "net_debit_cp": zod.number().int(),
+  "public_summary": zod.string()
+}).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })
 
 

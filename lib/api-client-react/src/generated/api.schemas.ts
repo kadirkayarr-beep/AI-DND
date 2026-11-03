@@ -2498,6 +2498,123 @@ export interface CombatActionInput {
   steps: EconomyStepInput[];
 }
 
+export type EconomicActionPrepareKind = typeof EconomicActionPrepareKind[keyof typeof EconomicActionPrepareKind];
+
+
+export const EconomicActionPrepareKind = {
+  prepare: 'prepare',
+} as const;
+
+export type EconomicProposalInPurpose = typeof EconomicProposalInPurpose[keyof typeof EconomicProposalInPurpose];
+
+
+export const EconomicProposalInPurpose = {
+  purchase: 'purchase',
+  room: 'room',
+  gift: 'gift',
+  tip: 'tip',
+  item_gift: 'item_gift',
+} as const;
+
+export type EconomicProposalInDependency = typeof EconomicProposalInDependency[keyof typeof EconomicProposalInDependency];
+
+
+export const EconomicProposalInDependency = {
+  base_required: 'base_required',
+  all_or_none: 'all_or_none',
+} as const;
+
+/**
+ * Where in the line a proposal was read; traceability only, never authority.
+ */
+export interface TextSpan {
+  /**
+     * @minimum 0
+     * @maximum 4000
+     */
+  start: number;
+  /**
+     * @minimum 0
+     * @maximum 4000
+     */
+  end: number;
+}
+
+/**
+ * What the client may propose. The server fills the source action and sets goods and room prices itself; a differing amount_cp for goods or a room is a clarification, not a price.
+ */
+export interface EconomicProposalIn {
+  purpose: EconomicProposalInPurpose;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  recipient_id: string;
+  source_id?: string | null;
+  item_id?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 999999999
+     */
+  count?: number;
+  amount_cp?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 999999999
+     */
+  tip_cp?: number;
+  tender_cp?: number | null;
+  dependency?: EconomicProposalInDependency;
+  text_span?: TextSpan | null;
+}
+
+/**
+ * Ask the engine to prepare a card; preparing alone moves no coin, goods or time.
+ */
+export interface EconomicActionPrepare {
+  kind: EconomicActionPrepareKind;
+  proposal: EconomicProposalIn;
+}
+
+export type EconomicActionConfirmKind = typeof EconomicActionConfirmKind[keyof typeof EconomicActionConfirmKind];
+
+
+export const EconomicActionConfirmKind = {
+  confirm: 'confirm',
+} as const;
+
+/**
+ * Confirm exactly the card the player saw, named by its id and confirmation digest.
+ */
+export interface EconomicActionConfirm {
+  kind: EconomicActionConfirmKind;
+  /** @pattern ^[0-9a-f]{32}$ */
+  offer_id: string;
+  /** @pattern ^[0-9a-f]{64}$ */
+  confirmation_digest: string;
+}
+
+export type EconomicActionCancelKind = typeof EconomicActionCancelKind[keyof typeof EconomicActionCancelKind];
+
+
+export const EconomicActionCancelKind = {
+  cancel: 'cancel',
+} as const;
+
+/**
+ * Close an open card; cancelling moves no coin, goods or time.
+ */
+export interface EconomicActionCancel {
+  kind: EconomicActionCancelKind;
+  /** @pattern ^[0-9a-f]{32}$ */
+  offer_id: string;
+}
+
+/**
+ * One economic step of a turn, told apart by kind.
+ */
+export type EconomicAction = EconomicActionPrepare | EconomicActionConfirm | EconomicActionCancel;
+
 /**
  * The message must contain at least one non-whitespace character.
  */
@@ -2542,6 +2659,75 @@ export interface GameTurnInput {
      * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
      */
   action_id?: string | null;
+  /** One economic step (prepare, confirm or cancel a card). While economic actions are not open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs. */
+  economic_action?: EconomicAction | null;
+}
+
+export interface PublicOfferLine {
+  line_id: string;
+  label: string;
+  count: number;
+  unit_cp: number;
+  total_cp: number;
+  optional: boolean;
+}
+
+export type PublicEconomicOfferDependency = typeof PublicEconomicOfferDependency[keyof typeof PublicEconomicOfferDependency];
+
+
+export const PublicEconomicOfferDependency = {
+  base_required: 'base_required',
+  all_or_none: 'all_or_none',
+} as const;
+
+/**
+ * The card the player sees; no inner acceptance, check difficulty or refusal reason.
+ */
+export interface PublicEconomicOffer {
+  offer_id: string;
+  confirmation_digest: string;
+  counterparty_label: string;
+  lines: PublicOfferLine[];
+  dependency: PublicEconomicOfferDependency;
+  max_total_cp: number;
+  tender_cp?: number | null;
+  may_refuse: boolean;
+}
+
+export interface PublicLineRefusal {
+  line_id: string;
+  reason_code: string;
+}
+
+export type PublicEconomicResolutionStatus = typeof PublicEconomicResolutionStatus[keyof typeof PublicEconomicResolutionStatus];
+
+
+export const PublicEconomicResolutionStatus = {
+  applied: 'applied',
+  refused: 'refused',
+} as const;
+
+/**
+ * The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.
+ */
+export interface PublicEconomicResolution {
+  operation_id: string;
+  offer_id: string | null;
+  status: PublicEconomicResolutionStatus;
+  reason_code: string | null;
+  lines: PublicOfferLine[];
+  refusals: PublicLineRefusal[];
+  tender_cp: number | null;
+  change_cp: number;
+  net_debit_cp: number;
+  public_summary: string;
+}
+
+/**
+ * The player's own purse in copper; NPC balances are never public.
+ */
+export interface PublicWallet {
+  total_cp: number;
 }
 
 export type UnresolvedGameActionUnresolvedState = typeof UnresolvedGameActionUnresolvedState[keyof typeof UnresolvedGameActionUnresolvedState];
@@ -2964,6 +3150,8 @@ export interface GameTurnResult {
   level_up: LevelUpResult | null;
   /** Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts. */
   turn_outcome?: TurnOutcome | null;
+  /** Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte. */
+  economic_resolution?: PublicEconomicResolution | null;
 }
 
 export interface GameActionStatus {

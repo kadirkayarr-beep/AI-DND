@@ -2278,8 +2278,284 @@ components:
           - 'null'
           format: uuid
           pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+        economic_action:
+          description: One economic step (prepare, confirm or cancel a card). While economic actions are not
+            open yet, a request carrying it is refused with 409 economic_actions_disabled and nothing runs.
+          anyOf:
+          - $ref: '#/components/schemas/EconomicAction'
+          - type: 'null'
       required:
       - message
+    TextSpan:
+      type: object
+      description: Where in the line a proposal was read; traceability only, never authority.
+      additionalProperties: false
+      properties:
+        start:
+          type: integer
+          minimum: 0
+          maximum: 4000
+        end:
+          type: integer
+          minimum: 0
+          maximum: 4000
+      required:
+      - start
+      - end
+    EconomicProposalIn:
+      type: object
+      description: What the client may propose. The server fills the source action and sets goods and room
+        prices itself; a differing amount_cp for goods or a room is a clarification, not a price.
+      additionalProperties: false
+      properties:
+        purpose:
+          type: string
+          enum:
+          - purchase
+          - room
+          - gift
+          - tip
+          - item_gift
+        recipient_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        source_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 128
+          - type: 'null'
+        item_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 128
+          - type: 'null'
+        count:
+          type: integer
+          minimum: 1
+          maximum: 999999999
+          default: 1
+        amount_cp:
+          anyOf:
+          - type: integer
+            minimum: 0
+            maximum: 999999999
+          - type: 'null'
+        tip_cp:
+          type: integer
+          minimum: 0
+          maximum: 999999999
+          default: 0
+        tender_cp:
+          anyOf:
+          - type: integer
+            minimum: 0
+            maximum: 999999999
+          - type: 'null'
+        dependency:
+          type: string
+          enum:
+          - base_required
+          - all_or_none
+          default: base_required
+        text_span:
+          anyOf:
+          - $ref: '#/components/schemas/TextSpan'
+          - type: 'null'
+      required:
+      - purpose
+      - recipient_id
+    EconomicActionPrepare:
+      type: object
+      description: Ask the engine to prepare a card; preparing alone moves no coin, goods or time.
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - prepare
+        proposal:
+          $ref: '#/components/schemas/EconomicProposalIn'
+      required:
+      - kind
+      - proposal
+    EconomicActionConfirm:
+      type: object
+      description: Confirm exactly the card the player saw, named by its id and confirmation digest.
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - confirm
+        offer_id:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+        confirmation_digest:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+      required:
+      - kind
+      - offer_id
+      - confirmation_digest
+    EconomicActionCancel:
+      type: object
+      description: Close an open card; cancelling moves no coin, goods or time.
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - cancel
+        offer_id:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+      required:
+      - kind
+      - offer_id
+    EconomicAction:
+      description: One economic step of a turn, told apart by kind.
+      oneOf:
+      - $ref: '#/components/schemas/EconomicActionPrepare'
+      - $ref: '#/components/schemas/EconomicActionConfirm'
+      - $ref: '#/components/schemas/EconomicActionCancel'
+      discriminator:
+        propertyName: kind
+        mapping:
+          prepare: '#/components/schemas/EconomicActionPrepare'
+          confirm: '#/components/schemas/EconomicActionConfirm'
+          cancel: '#/components/schemas/EconomicActionCancel'
+    PublicOfferLine:
+      type: object
+      additionalProperties: false
+      properties:
+        line_id:
+          type: string
+        label:
+          type: string
+        count:
+          type: integer
+        unit_cp:
+          type: integer
+        total_cp:
+          type: integer
+        optional:
+          type: boolean
+      required:
+      - line_id
+      - label
+      - count
+      - unit_cp
+      - total_cp
+      - optional
+    PublicEconomicOffer:
+      type: object
+      description: The card the player sees; no inner acceptance, check difficulty or refusal reason.
+      additionalProperties: false
+      properties:
+        offer_id:
+          type: string
+        confirmation_digest:
+          type: string
+        counterparty_label:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOfferLine'
+        dependency:
+          type: string
+          enum:
+          - base_required
+          - all_or_none
+        max_total_cp:
+          type: integer
+        tender_cp:
+          anyOf:
+          - type: integer
+          - type: 'null'
+        may_refuse:
+          type: boolean
+      required:
+      - offer_id
+      - confirmation_digest
+      - counterparty_label
+      - lines
+      - dependency
+      - max_total_cp
+      - may_refuse
+    PublicLineRefusal:
+      type: object
+      additionalProperties: false
+      properties:
+        line_id:
+          type: string
+        reason_code:
+          type: string
+      required:
+      - line_id
+      - reason_code
+    PublicEconomicResolution:
+      type: object
+      description: The player-safe receipt of one economic result; no NPC purse, acceptance record or check
+        difficulty.
+      additionalProperties: false
+      properties:
+        operation_id:
+          type: string
+        offer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        status:
+          type: string
+          enum:
+          - applied
+          - refused
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOfferLine'
+        refusals:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicLineRefusal'
+        tender_cp:
+          anyOf:
+          - type: integer
+          - type: 'null'
+        change_cp:
+          type: integer
+        net_debit_cp:
+          type: integer
+        public_summary:
+          type: string
+      required:
+      - operation_id
+      - offer_id
+      - status
+      - reason_code
+      - lines
+      - refusals
+      - tender_cp
+      - change_cp
+      - net_debit_cp
+      - public_summary
+    PublicWallet:
+      type: object
+      description: The player's own purse in copper; NPC balances are never public.
+      additionalProperties: false
+      properties:
+        total_cp:
+          type: integer
+      required:
+      - total_cp
     CombatActionInput:
       type: object
       additionalProperties: false
@@ -2595,6 +2871,12 @@ components:
           - type: 'null'
           description: Player-safe receipt of what the turn resolved (target, found,
             place created). Null on older receipts.
+        economic_resolution:
+          anyOf:
+          - $ref: '#/components/schemas/PublicEconomicResolution'
+          - type: 'null'
+          description: Player-safe receipt of an economic result of this turn. Left out when the turn
+            settled none, so older receipts replay byte for byte.
       required:
       - session_id
       - action_id

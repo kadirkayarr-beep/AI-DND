@@ -1,9 +1,9 @@
 """Validated HTTP request and response models for the AI-DND API."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
 
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
@@ -209,6 +209,62 @@ class PublicEconomicOffer(BaseModel):
     may_refuse: bool
 
 
+class EconomicActionPrepare(BaseModel):
+    """Ask the engine to prepare a card; preparing alone moves no coin, goods or time."""
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["prepare"]
+    proposal: EconomicProposalIn
+
+
+class EconomicActionConfirm(BaseModel):
+    """Confirm exactly the card the player saw, named by its id and confirmation digest."""
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["confirm"]
+    offer_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    confirmation_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class EconomicActionCancel(BaseModel):
+    """Close an open card; cancelling moves no coin, goods or time."""
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["cancel"]
+    offer_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+
+
+class EconomicAction(RootModel[Annotated[
+    EconomicActionPrepare | EconomicActionConfirm | EconomicActionCancel,
+    Field(discriminator="kind"),
+]]):
+    """One economic step of a turn, told apart by kind."""
+
+
+class PublicLineRefusal(BaseModel):
+    line_id: str
+    reason_code: str
+
+
+class PublicEconomicResolution(BaseModel):
+    """The player-safe receipt of one economic result: no NPC purse, acceptance record or check difficulty."""
+    operation_id: str
+    offer_id: str | None
+    status: Literal["applied", "refused"]
+    reason_code: str | None
+    lines: list[PublicOfferLine]
+    refusals: list[PublicLineRefusal]
+    tender_cp: int | None
+    change_cp: int
+    net_debit_cp: int
+    public_summary: str
+
+
+class PublicWallet(BaseModel):
+    """The player's own purse in copper; NPC balances are never public."""
+    total_cp: int
+
+
 class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -221,6 +277,8 @@ class TurnRequest(BaseModel):
     combat_id: str | None = Field(default=None, min_length=1, max_length=128)
     combat_round: int | None = Field(default=None, ge=1, strict=True)
     combat_turn_index: int | None = Field(default=None, ge=0, strict=True)
+    # In the contract from S1a; play_turn refuses it with 409 economic_actions_disabled until A4 opens the gate.
+    economic_action: EconomicAction | None = None
 
     @model_validator(mode="after")
     def complete_combat_context(self):
@@ -621,6 +679,10 @@ class TurnResponse(BaseModel):
     quest_outcomes: list[QuestOutcome] = []
     level_up: LevelUpResult | None = None
     turn_outcome: TurnOutcome | None = None
+    # Left out when absent, so a receipt stored before this field replays byte for byte.
+    economic_resolution: PublicEconomicResolution | None = Field(
+        default=None, exclude_if=lambda value: value is None,
+    )
 
 
 class TurnUndoRequest(BaseModel):

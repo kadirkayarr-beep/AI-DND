@@ -143,6 +143,9 @@ _logger.propagate = False
 _UNSET = object()
 # What the player reads when a model failed and the turn was rolled back: a lost sentence, not a stuck game.
 MODEL_FAILURE_MESSAGE = "Bunu tam yakalayamadım; bir daha, belki biraz farklı söyler misin?"
+# The economic_action field is in the contract (S1a), but no turn path owns it yet: a request carrying it is refused
+# before any intent, lock or turn, so it never runs as a free-text turn. A4 turns this on.
+ECONOMIC_ACTIONS_ENABLED = False
 
 
 def _capture_session(session: Any) -> dict[str, Any]:
@@ -1037,6 +1040,11 @@ def create_app(
     )
     def play_turn(session_id: str, request: TurnRequest) -> TurnResponse:
         record = get_record(session_id)
+        if request.economic_action is not None and not ECONOMIC_ACTIONS_ENABLED:
+            raise HTTPException(status_code=409, detail={
+                "code": "economic_actions_disabled",
+                "message": "Economic actions are not open yet; nothing was applied.",
+            })
         active_adapter = application.state.ollama_adapter
         action_id = str(request.action_id or uuid4())
         effective_mode = "do" if request.combat_action is not None else request.interaction_mode
