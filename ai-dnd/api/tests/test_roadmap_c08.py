@@ -31,6 +31,16 @@ def world():
     }
 
 
+NOTE = "item_000004"
+
+
+def with_note(w):
+    """A plain thing of no worth: the only kind the kernel hands to a person without a card (step 0, K5)."""
+    w["inventory"].append({"item_id": NOTE, "name": "Folded note"})
+    w["item_sequence"] = 4
+    return w
+
+
 class TransferTests(unittest.TestCase):
     def test_item_kernel_preserves_existing_use_and_transfer(self):
         mine, owner = world(), world()
@@ -54,18 +64,30 @@ class TransferTests(unittest.TestCase):
         self.assertEqual(w["currency"], {"player": 500, "vendor": 100})
 
     def test_npc_gift_needs_consent_and_consent_is_spent_once(self):
-        w = world()
-        denied = equipment_rules.inventory_transfer(w, "player", "vendor", "item_000001")
+        w = with_note(world())
+        denied = equipment_rules.inventory_transfer(w, "player", "vendor", NOTE)
         self.assertEqual((denied["status"], denied["reason"]), ("rejected", "npc_consent_required"))
-        self.assertEqual(w, world())
-        w["npcs"][0]["item_consents"] = {"item_000001": {"operation": "give", "recipient": "vendor"}}
-        ok = equipment_rules.inventory_transfer(w, "player", "vendor", "item_000001")
+        self.assertEqual(w, with_note(world()))
+        w["npcs"][0]["item_consents"] = {NOTE: {"operation": "give", "recipient": "vendor"}}
+        ok = equipment_rules.inventory_transfer(w, "player", "vendor", NOTE)
         self.assertEqual(ok["status"], "applied")
         self.assertEqual(w["npcs"][0]["item_consents"], {})
-        self.assertEqual([i["item_id"] for i in w["npcs"][0]["inventory"]], ["item_000001"])
+        self.assertEqual([i["item_id"] for i in w["npcs"][0]["inventory"]], [NOTE])
+        self.assertNotIn(NOTE, [i["item_id"] for i in w["inventory"]])
         snapshot = copy.deepcopy(w)
-        self.assertEqual(equipment_rules.inventory_transfer(w, "player", "vendor", "item_000001")["status"], "rejected")
+        self.assertEqual(equipment_rules.inventory_transfer(w, "player", "vendor", NOTE)["status"], "rejected")
         self.assertEqual(w, snapshot)
+
+    def test_a_valued_gift_needs_its_card_and_moves_or_spends_nothing_here(self):
+        # Step 0 (K5): a priced dagger goes only through `/item give` and its card; the kernel neither moves it nor
+        # spends the consent, and never reports a card request as applied.
+        w = world()
+        w["npcs"][0]["item_consents"] = {"item_000001": {"operation": "give", "recipient": "vendor"}}
+        before = copy.deepcopy(w)
+        refused = equipment_rules.inventory_transfer(w, "player", "vendor", "item_000001")
+        self.assertEqual((refused["status"], refused["reason"], refused["changes"]),
+                         ("rejected", "item_card_required", []))
+        self.assertEqual(w, before)
 
     def test_stacks_unknown_routes_and_unknown_items_are_rejected_without_change(self):
         for args, reason in (
@@ -128,15 +150,16 @@ class ReviewHardeningTests(unittest.TestCase):
     """Findings of the independent C08 review."""
 
     def test_every_applied_move_reports_item_transfer_with_from_and_to(self):
-        w = world()
+        w = with_note(world())
         drop = equipment_rules.inventory_transfer(w, "player", "ground", "item_000001")
         self.assertEqual(drop["changes"], [{"kind": "item_transfer", "item_id": "item_000001", "name": "Dagger",
                                             "from": "player", "to": "ground:inn"}])
-        w["npcs"][0]["item_consents"] = {"item_000002": {"operation": "give", "recipient": "vendor"}}
-        give = equipment_rules.inventory_transfer(w, "player", "npc:vendor", "item_000002")
-        self.assertEqual((give["changes"][0]["from"], give["changes"][0]["to"]), ("player", "vendor"))
-        w["npcs"][0]["item_consents"] = {"item_000002": {"operation": "receive", "recipient": "player"}}
-        got = equipment_rules.inventory_transfer(w, "npc:vendor", "player", "item_000002")
+        w["npcs"][0]["item_consents"] = {NOTE: {"operation": "give", "recipient": "vendor"}}
+        give = equipment_rules.inventory_transfer(w, "player", "npc:vendor", NOTE)
+        self.assertEqual(give["changes"], [{"kind": "item_transfer", "item_id": NOTE, "name": "Folded note",
+                                            "from": "player", "to": "vendor"}])
+        w["npcs"][0]["item_consents"] = {NOTE: {"operation": "receive", "recipient": "player"}}
+        got = equipment_rules.inventory_transfer(w, "npc:vendor", "player", NOTE)
         self.assertEqual((got["status"], got["changes"][0]["from"], got["changes"][0]["to"]), ("applied", "vendor", "player"))
         equip = equipment_rules.resolve_item_use(w, "item_000002", {"use": "equip", "hand": "main_hand"})
         self.assertEqual(equip["changes"][0]["kind"], "equipment")
@@ -152,12 +175,15 @@ class ReviewHardeningTests(unittest.TestCase):
         self.assertEqual(equipment_rules.inventory_transfer(w, "player", "ground", "item_000001")["effects_pending"], [])
 
     def test_npc_ids_work_with_or_without_the_prefix_and_dead_npcs_are_looted_by_bare_id(self):
-        w = world()
-        w["npcs"][0]["item_consents"] = {"item_000001": {"operation": "give", "recipient": "vendor"}}
-        self.assertEqual(equipment_rules.inventory_transfer(w, "player", "vendor", "item_000001")["status"], "applied")
+        w = with_note(world())
+        w["npcs"][0]["item_consents"] = {NOTE: {"operation": "give", "recipient": "vendor"}}
+        self.assertEqual(equipment_rules.inventory_transfer(w, "player", "vendor", NOTE)["status"], "applied")
         w["npcs"][0].update(dead=True)
-        loot = equipment_rules.inventory_transfer(w, "vendor", "player", "item_000001")
-        self.assertEqual((loot["status"], loot["changes"][0]["from"]), ("applied", "vendor"))
+        loot = equipment_rules.inventory_transfer(w, "vendor", "player", NOTE)
+        self.assertEqual((loot["status"], loot["changes"][0]["from"], loot["changes"][0]["to"]),
+                         ("applied", "vendor", "player"))
+        self.assertIn(NOTE, [i["item_id"] for i in w["inventory"]])
+        self.assertEqual(w["npcs"][0]["inventory"], [])
         living = world()
         living["npcs"][0]["inventory"] = [{"item_id": "item_000009", "name": "Coin Purse"}]
         refused = equipment_rules.inventory_transfer(living, "vendor", "player", "item_000009")

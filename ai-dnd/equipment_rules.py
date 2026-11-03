@@ -49,7 +49,9 @@ def _commit(world: dict[str, Any], operation: str, args: list[str], item_id: Any
     candidate = copy.deepcopy(world)
     pending = _pending_effects(world, item_id)
     try:
-        economy._apply(candidate, operation, args)
+        if isinstance(economy._apply(candidate, operation, args), economy.ItemCardRequest):
+            # Step 0 (K5): a valued or held item changes hands only through its confirmed card, never here.
+            return _delta("rejected", "item_card_required")
         economy.validate_world(candidate)
     except (economy.EquipmentError, ValueError, TypeError, KeyError) as exc:
         reason = str(exc) if isinstance(exc, economy.EquipmentError) else "invalid_economic_state"
@@ -69,7 +71,10 @@ def _npc(identity: str) -> str:
 
 
 def inventory_transfer(world: dict[str, Any], source_id: str, target_id: str, item_id: str, quantity: int = 1) -> dict[str, Any]:
-    """Move one item between the player and an NPC (`npc:<id>` or the bare id; consent required), the ground, or a lootable owner."""
+    """Move one item between the player and an NPC (`npc:<id>` or the bare id; consent required), the ground, or a lootable owner.
+
+    A gift of a valued or held item is rejected as `item_card_required`: it goes only through `/item give` and its card.
+    """
     if not all(isinstance(v, str) and v for v in (source_id, target_id, item_id)):
         return _delta("rejected", "invalid_transfer_request")
     if type(quantity) is not int or quantity != 1:
