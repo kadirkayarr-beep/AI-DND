@@ -27,7 +27,7 @@ test('actual action panel routes explicit Rage through shared command guard and 
  control().props.onChange(true);assert.equal(control({sending:true}).props.confirmed,false);assert.equal(control().props.confirmed,false);
  control().props.onChange(true);state.character.rage=undefined;assert.equal(control()?.props.confirmed??false,false);state.character.rage=inactive;assert.equal(control().props.confirmed,false);
  control().props.onChange(true);state.combat.current_turn_index=2;assert.equal(control().props.confirmed,false);
- const bonus=render().find(n=>n.type==='span'&&n.props.children[0]==='Bonus: ');assert.equal(bonus.props.children[1],'hazır');
+ const bonus=render().find(n=>n.type==='span'&&n.props.children[0]==='Bonus eylem: ');assert.equal(bonus.props.children[1],'hazır');
  control().props.onChange(true);const c=control();const command={steps:[{kind:'activate_rage',resource:'bonus'}]};c.props.onCommand('rage',command);c.props.onCommand('rage',command);assert.equal(sends.length,1);assert.deepEqual(JSON.parse(JSON.stringify(sends[0])),command);assert.equal(control().props.confirmed,false);
 });
 test('actual character panel retains active authoritative Rage after combat cleanup',async()=>{const {TestCharacterPanel}=await vite.ssrLoadModule('/src/pages/game-browser.tsx');const tree=nodes(TestCharacterPanel({character:{rage:active,name:'Barbarian',level:2,max_hp:24,current_hp:24,proficient_skills:[]}}));const status=tree.find(n=>n.type?.name==='RageStatus');assert.ok(status);assert.equal(status.props.rage,active);});

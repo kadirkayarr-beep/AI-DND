@@ -166,10 +166,10 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   return (
     <section className="px-4 py-3 border-t border-amber-100/10" aria-label="Tur kaynakları" data-testid="action-economy-panel">
       <div className="story-meta flex flex-wrap gap-x-4 gap-y-1" data-testid="action-economy-resources">
-        <span>Action: {resources.base_action_spent ? 'kullanıldı' : 'hazır'}</span>
-        <span>Bonus: {resources.bonus_action_spent ? 'kullanıldı' : (resources.bonus_action_available || quickenedProjection(state)?.available || rageAvailable) ? 'hazır' : 'uygun yetenek yok'}</span>
-        <span>Reaction: {resources.reaction_available ? 'hazır; tetikleyici gerekir' : 'kullanılamaz'}</span>
-        <span>Hareket: {resources.movement_remaining} ft · Speed: {resources.speed_ft} ft</span>
+        <span>Eylem: {resources.base_action_spent ? 'kullanıldı' : 'hazır'}</span>
+        <span>Bonus eylem: {resources.bonus_action_spent ? 'kullanıldı' : (resources.bonus_action_available || quickenedProjection(state)?.available || rageAvailable) ? 'hazır' : 'uygun yetenek yok'}</span>
+        <span>Tepki: {resources.reaction_available ? 'hazır; tetikleyici gerekir' : 'kullanılamaz'}</span>
+        <span>Hareket: {resources.movement_remaining} ft · Hız: {resources.speed_ft} ft</span>
       </div>
       {resources.additional_actions.map((grant, index) => <div className="story-meta mt-1" key={index}>
         Ek Action · {grant.source}: {grant.remaining} · {grant.allowed_action_types.join(', ')}
@@ -194,7 +194,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
             {!!resources.attack_action?.remaining_attacks && <button type="button" className="action-suggestion" disabled={blocked || !targetId || !strike}
               onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId, ...fields, ...strike }); }}>Attack Action devamı</button>}
             <button type="button" className="action-suggestion" disabled={blocked || !legal('dash')}
-              onClick={() => send('Dash Action kullanıyorum.', { kind: 'dash' })}>Dash · Action</button>
+              onClick={() => send('Dash Action kullanıyorum.', { kind: 'dash' })}>Koş (Dash)</button>
             {resources.bonus_rules.map((ability) => <button key={ability} type="button" className="action-suggestion" disabled={blocked || !resources.bonus_action_available}
               onClick={() => send(`${ability} Bonus Action kullanıyorum.`, { kind: 'species', ability, ...(ability === 'celestial_revelation' ? { form: 'heavenly_wings' } : {}) })}>
               {ability === 'adrenaline_rush' ? 'Adrenalin / Dash' : ability === 'large_form' ? 'Büyük Biçim' : ability === 'cloud_jaunt' ? 'Bulut Sıçrayışı' : 'Göksel Tecelli · Kanatlar'} · Bonus
@@ -227,7 +227,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
             <button type="button" className="action-suggestion" disabled={blocked || !legal('ready') || (triggerActor === 'target' && !targetId) || (readyKind === 'attack' && !targetId) || (readyKind === 'move' && !distanceValid)}
               onClick={() => send('Ready Action hazırlıyorum.', { kind: 'ready',
                 trigger: { event: triggerEvent, actor_id: triggerActor === 'player' ? 'player' : targetId },
-                response: readyKind === 'attack' ? { kind: 'attack', target_id: targetId } : { kind: 'move', distance_ft: distanceValue } })}>Ready · Action</button>
+                response: readyKind === 'attack' ? { kind: 'attack', target_id: targetId } : { kind: 'move', distance_ft: distanceValue } })}>Hazırlan (Ready)</button>
           </div>
         </>
       )}

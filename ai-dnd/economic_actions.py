@@ -501,7 +501,7 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
                              public_message=f"{who} için eşya teklifi hazır: {_item_name(world, proposal.item_id)}. "
                                             "Onaylarsan verilir.")
     return PrepareResult(status="prepared", offer=offer, reason_code=None,
-                         public_message=f"{who} için teklif hazır: en çok {total} bakır. Onaylarsan işlem denenir.")
+                         public_message=f"{who} için teklif hazır: en çok {total} bakır. Onaylarsan işlem yapılır.")
 
 
 # ---------------------------------------------------------------------------------------------------------------

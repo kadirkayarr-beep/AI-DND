@@ -27,7 +27,7 @@ test('actual panel clears consent for a different owner/campaign/session despite
  const renderPanel=scope=>{index=0;return nodes(env.Panel({state:actual,targetId,sending:false,decisionScope:scope,onCommand:(_label,command)=>sends.push(command)})).find(n=>n.type==='MagicMissileControl');};
  renderPanel('owner-a:campaign-a:session-a').props.onQuickenedChange(true);assert.equal(renderPanel('owner-a:campaign-a:session-a').props.quickened,true);
  assert.equal(renderPanel('owner-b:campaign-b:session-b').props.quickened,false);
- index=0;const summary=nodes(env.Panel({state:actual,targetId:'npc-1',sending:false,onCommand:()=>{}})).find(n=>n.type==='span'&&n.props.children[0]==='Bonus: ');assert.equal(summary.props.children[1],'hazır');
+ index=0;const summary=nodes(env.Panel({state:actual,targetId:'npc-1',sending:false,onCommand:()=>{}})).find(n=>n.type==='span'&&n.props.children[0]==='Bonus eylem: ');assert.equal(summary.props.children[1],'hazır');
  const scope='owner-b:campaign-b:session-b';renderPanel(scope).props.onQuickenedChange(true);
  delete actual.spellcasting.sorcery_points;assert.equal(renderPanel(scope).props.quickened,false);
  actual.spellcasting.sorcery_points={current:3,max:3};assert.equal(renderPanel(scope).props.quickened,false);

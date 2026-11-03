@@ -604,18 +604,16 @@ class TheSpendCap(unittest.TestCase):
         self.haiku_only(path, reply=ok(haiku_reply("yarım"))).chat(CALL, LocalModel())
         self.assertEqual(json.loads(path.read_text())["input_tokens"], 1000)
 
-    def test_below_four_dollars_haiku_still_answers(self):
+    def test_below_four_dollars_haiku_answers(self):
         path = spend_file()
         self.spent(path, input_tokens=39_000_000, output_tokens=199_999)
         self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
 
-    def test_at_four_dollars_haiku_is_not_called_at_all(self):
+    def test_past_four_dollars_haiku_still_answers_because_the_cap_was_lifted(self):
         path = spend_file()
         self.spent(path, input_tokens=39_000_000, output_tokens=200_000)
-        local = LocalModel()
-        self.assertIsNone(self.haiku_only(path).chat(CALL, local)[1])
-        self.assertEqual(local.calls, 1)
-        self.assertEqual(self.cloud.hosts(), [GOOGLE])
+        self.assertEqual(self.haiku_only(path).chat(CALL, LocalModel())[1], "haiku")
+        self.assertEqual(json.loads(path.read_text())["input_tokens"], 39_001_000)
 
     def test_a_new_month_starts_at_zero(self):
         path = spend_file()
@@ -713,14 +711,14 @@ class TheSetting(unittest.TestCase):
             paths.append(model_chain.from_environment()._providers[0].spend._path)
         self.assertEqual(paths, [self.home / "appdata" / "AI-DND" / "model-chain-spend.json"] * 2)
 
-    def test_a_haiku_over_its_cap_is_not_listed_as_on(self):
+    def test_a_haiku_with_heavy_spend_is_still_on_because_the_cap_was_lifted(self):
         self.keys()
         spend = self.home / "appdata" / "AI-DND" / "model-chain-spend.json"
         spend.parent.mkdir(parents=True)
         month = datetime.now().astimezone().strftime("%Y-%m")
         spend.write_text(json.dumps({"month": month, "input_tokens": 50_000_000, "output_tokens": 0}))
         os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
-        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini"])
+        self.assertEqual(model_chain.from_environment().provider_names(), ["gemini", "haiku"])
 
     def test_the_status_line_names_providers_and_no_secret(self):
         self.keys()

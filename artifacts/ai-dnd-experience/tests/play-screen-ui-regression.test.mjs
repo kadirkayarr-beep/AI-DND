@@ -357,7 +357,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await mouseClick(play.page, '[data-testid="button-open-world"]');
     await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"]').open"), false, "experimental controls must default closed");
-    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Deneysel/i);
+    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Keşif ve yolculuk/i);
     const beforeExperimentalToggle = await play.page.evaluate("({requests:window.__playFixture.apiRequests.length,state:window.__playFixture.stateSnapshot(),draft:document.querySelector('[data-testid=\"input-player-message\"]')?.value ?? null,lastTurn:window.__playFixture.lastTurn})");
     await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary').scrollIntoView({block:'center'})");
     await mouseClick(play.page, '[data-testid="world-experimental"] > summary');

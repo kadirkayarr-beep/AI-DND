@@ -65,8 +65,8 @@ test('action economy displays server resources without creating rolls or budgets
       legal_actions: [{ kind: 'attack', legal: false, reason: 'spent' }],
     } } },
   } }));
-  assert.match(html, /Action: kullanıldı/);
-  assert.match(html, /Bonus: uygun yetenek yok/);
+  assert.match(html, /Eylem: kullanıldı/);
+  assert.match(html, /Bonus eylem: uygun yetenek yok/);
   assert.match(html, /Hareket: 17 ft/);
   assert.match(html, /tetikleyici gerekir/);
   assert.doesNotMatch(html, /d20|İSABET|ISKA/);

@@ -39,9 +39,7 @@ CALL_TIMEOUT_SECONDS = 20
 # answer measured was under 4 s, and two walks plus the adapter's 90 s stay inside the 240 s turn limit.
 CLOUD_WALK_SECONDS = 25
 DEFAULT_COOLDOWN_SECONDS = 60
-HAIKU_MONTHLY_CAP_USD = 4.0
-_HAIKU_INPUT_USD_PER_MILLION = 0.10
-_HAIKU_OUTPUT_USD_PER_MILLION = 0.50
+# No monthly dollar cap since the owner lifted it on 2026-11-03; the ledger still counts tokens and still fails closed if unreadable.
 # Gemini's free daily quota resets at midnight Pacific, which is 07:00 or 08:00 UTC.
 _QUOTA_RESET_HOUR_UTC = 8
 _DAILY_QUOTA = re.compile(r"per.?day|daily", re.IGNORECASE)
@@ -240,8 +238,7 @@ class HaikuSpend:
             tokens = self._load()
             if tokens is None or self._save_failed:
                 return False
-            usd = (tokens[0] * _HAIKU_INPUT_USD_PER_MILLION + tokens[1] * _HAIKU_OUTPUT_USD_PER_MILLION) / 1_000_000
-            return usd < HAIKU_MONTHLY_CAP_USD
+            return True
 
     def add(self, reply: Reply) -> None:
         with self._lock:

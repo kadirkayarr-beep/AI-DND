@@ -346,7 +346,7 @@ function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDra
   onSetCombatTarget: (targetId: string) => void;
 }) {
   return <details className="world-experimental" data-testid="world-experimental">
-    <summary><strong>Deneysel</strong><span>Keşif ve yolculuk · isteğe bağlı araçlar</span></summary>
+    <summary><strong>Keşif ve yolculuk</strong><span>isteğe bağlı araçlar</span></summary>
     <div className="world-experimental-content">
       <CourtyardHelp state={state} disabled={sending} onDraft={(text) => onDraft(text, 'do')} />
       <section className="data-row" data-testid="exploration-disclosure">
