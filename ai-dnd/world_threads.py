@@ -1782,24 +1782,50 @@ def tick(world: dict[str, Any], now: int) -> None:
     state = view(world)
     if state is None or type(now) is not int or now <= state["last_tick"]:
         return
+    # Kept only whole: a close and everything it means land together, or the town is as it was
+    # and the next tick tries again. Saved places stay the same objects: callers hold them across a clock step.
+    before = copy.deepcopy({key: value for key, value in world.items() if key != KEY})
     try:
-        # Kept only whole. Saved places stay the same objects: callers hold them across a clock step.
         work = copy.deepcopy(state)
         world[KEY] = work
         effects = _close_due(world, work, now)
         _replenish(world, work, now)
         work["last_tick"] = now
         validate(work)
-    except Exception:
-        _LOG.exception("World threads could not move on.")
-        world[KEY] = state
-        return
-    try:
         sync_from_quests(world, work)
         _apply_effects(world, effects)
         validate(work)
     except Exception:
-        _LOG.exception("A closed world thread left something undone.")
+        _LOG.exception("World threads could not move on.")
+        _put_back(world, before, keep=(KEY,))
+        world[KEY] = state
+
+
+_MISSING = object()
+
+
+def _put_back(live: Any, saved: Any, keep: tuple[str, ...] = ()) -> None:
+    """Undo a failed step in place, so a record a caller already holds is the one that comes back."""
+    if isinstance(live, dict):
+        for key in [key for key in live if key not in saved and key not in keep]:
+            del live[key]
+        for key, value in saved.items():
+            current = live.get(key, _MISSING)
+            if current is _MISSING or current != value:
+                if type(current) is type(value) and isinstance(value, (dict, list)) and (
+                        isinstance(value, dict) or len(current) == len(value)):
+                    _put_back(current, value)
+                else:
+                    live[key] = value
+        return
+    for index, value in enumerate(saved):
+        current = live[index]
+        if current != value:
+            if type(current) is type(value) and isinstance(value, (dict, list)) and (
+                    isinstance(value, dict) or len(current) == len(value)):
+                _put_back(current, value)
+            else:
+                live[index] = value
 
 
 def validate(state: Any) -> None:
