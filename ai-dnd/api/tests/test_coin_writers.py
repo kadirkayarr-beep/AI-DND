@@ -36,6 +36,7 @@ WRITERS = frozenset({
     "incidents/rewards.py:_wallet_source",       # the incident's source purse
     "incidents/rewards.py:grant",                # incident coin reward
     "api/character_creation.py:configure_character",  # the starting purse
+    "economic_actions.py:apply_resolution",      # the one owner of confirmed economic effects
 })
 
 

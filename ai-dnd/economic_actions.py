@@ -6,6 +6,10 @@ and judged by the engine alone: whether the counterparty is here, can act, refus
 holding them (a bribe, decided later by a Persuasion check). Preparing writes nothing: no coin, goods, clock or
 offer record. The API stores the offer in `world.flags.economic_offers` (A3); the turn paths are bound in A4.
 
+A confirmed offer is resolved (`resolve_offer`, read only) and written by the one owner `apply_resolution`:
+a settled copy first, the money receipt (`validate_economic_resolution`) on it, then the same steps on the live
+dicts in place. Earned pay goes through `settle_entitlement`, once per event. No turn reaches these yet (A4).
+
 No network, model or database call is made here.
 """
 
@@ -17,7 +21,7 @@ import hashlib
 import json
 import secrets
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 MAX_CP = 999_999_999
 MAX_COUNT = 999_999_999
@@ -439,3 +443,535 @@ def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id:
     total = sum(line.total_cp for line in lines)
     return PrepareResult(status="prepared", offer=offer, reason_code=None,
                          public_message=f"{who} için teklif hazır: en çok {total} bakır. Onaylarsan işlem denenir.")
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# A2: resolution, the one applier and the money receipt.
+# ---------------------------------------------------------------------------------------------------------------
+
+LEDGER_OPERATIONS_CAP = 200
+_OFFER_PURPOSES = ("purchase", "room", "gift", "tip", "item_gift")
+_ENGINE_PURPOSES = ("npc_gift", "entitlement")
+_POOL_PREFIX = "thread-pool:"
+
+_REFUSED_SUMMARY = {
+    "no_money": "Kesendeki para yetmedi; hiçbir şey ödenmedi.",
+    "tender_invalid": "Uzattığın para bu işe uymadı; hiçbir şey ödenmedi.",
+    "check_failed": "Teklif kabul görmedi; para kesende kaldı.",
+    "check_required": "Teklif henüz denenmedi; para kesende kaldı.",
+    "stale": "Durum değişti; teklifin yenilenmesi gerekiyor. Hiçbir şey ödenmedi.",
+}
+
+
+class EconomicReceiptError(Exception):
+    """A resolution that does not match its offer or the real before/after state; nothing was written."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class AssetDelta:
+    owner_id: str
+    asset_kind: Literal["currency", "item", "stock", "sink"]
+    asset_id: str
+    before: int
+    after: int
+
+
+@dataclass(frozen=True)
+class ServiceRight:
+    """The projection of `flags.inn_room`; no second record is kept."""
+    kind: Literal["room"]
+    place_id: str
+    holder_id: str
+    valid_until: int
+
+
+@dataclass(frozen=True)
+class LineRefusal:
+    line_id: str
+    reason_code: str
+
+
+@dataclass(frozen=True)
+class EconomicResolution:
+    operation_id: str
+    offer_id: str | None
+    purpose: Literal["purchase", "room", "gift", "tip", "item_gift", "npc_gift", "entitlement"]
+    base_fingerprint: str
+    status: Literal["applied", "refused"]
+    reason_code: str | None
+    lines: list[OfferLine]
+    asset_deltas: list[AssetDelta]
+    service_rights: list[ServiceRight]
+    world_effects: list[WorldEffect]
+    refusals: list[LineRefusal]
+    public_summary: str
+    tender_cp: int | None
+    change_cp: int
+    net_debit_cp: int
+    replayed: bool = False  # only a repeated entitlement event; never public
+
+
+@dataclass(frozen=True)
+class EconomicFacts:
+    balances: dict[str, int]
+    stock: dict[str, int]
+    items: dict[str, dict[str, int]]
+    services: list[ServiceRight]
+    sink_totals: dict[str, int]
+
+
+@dataclass(frozen=True)
+class PublicLineRefusal:
+    line_id: str
+    reason_code: str
+
+
+@dataclass(frozen=True)
+class PublicEconomicResolution:
+    """The player's receipt: no NPC purse, acceptance record or check difficulty."""
+    operation_id: str
+    offer_id: str | None
+    status: Literal["applied", "refused"]
+    reason_code: str | None
+    lines: list[PublicOfferLine]
+    refusals: list[PublicLineRefusal]
+    tender_cp: int | None
+    change_cp: int
+    net_debit_cp: int
+    public_summary: str
+
+
+def _ledger(world: dict[str, Any]) -> dict[str, Any]:
+    ledger = (world.get("flags") or {}).get("economic_ledger")
+    return ledger if isinstance(ledger, dict) else {}
+
+
+def _room_services(world: dict[str, Any]) -> list[ServiceRight]:
+    held = (world.get("flags") or {}).get("inn_room")
+    if not isinstance(held, dict):
+        return []
+    return [ServiceRight(kind="room", place_id=str(held.get("place")), holder_id="player",
+                         valid_until=held.get("until", 0))]
+
+
+def economic_facts(state: EconomicState) -> EconomicFacts:
+    """What money, goods, stock and service rights the world holds, read as it is (the caller settles labels)."""
+    import equipment_economy
+    import shop_trade
+    world = state.world
+    balances = {str(owner): amount for owner, amount in (world.get("currency") or {}).items() if type(amount) is int}
+    stock: dict[str, int] = {}
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict):
+            for good in shop_trade.goods(world, npc):
+                stock[f"{npc.get('id')}:{good['key']}"] = good["stock"]
+    items: dict[str, dict[str, int]] = {}
+    for owner, listed in equipment_economy.containers(world):
+        counts = items.setdefault(str(owner), {})
+        for item in listed if isinstance(listed, list) else []:
+            name = str(item.get("name") if isinstance(item, dict) else item)
+            counts[name] = counts.get(name, 0) + 1
+    sinks = _ledger(world).get("sink_totals") or {}
+    return EconomicFacts(balances=balances, stock=stock, items=items, services=_room_services(world),
+                         sink_totals={str(key): value for key, value in sinks.items() if type(value) is int})
+
+
+def _fingerprint(settled_world: dict[str, Any]) -> str:
+    return _sha(economic_facts(EconomicState(world=settled_world, character=None)))
+
+
+def _payer(purpose: str, lines: list[OfferLine]) -> str | None:
+    """The player pays every offer; an engine payment names its payer as the line's source."""
+    if purpose in _OFFER_PURPOSES:
+        return "player"
+    return lines[0].source_id if lines else None
+
+
+def _summary(status: str, reason: str | None, net: int, change: int, refusals: list[LineRefusal]) -> str:
+    if status != "applied":
+        return _REFUSED_SUMMARY.get(str(reason), "İşlem gerçekleşmedi; hiçbir şey ödenmedi.")
+    text = f"{net} bakır ödendi."
+    if change:
+        text += f" Para üstü {change} bakır."
+    if refusals:
+        text += " Bahşiş geçmedi; kesende kaldı."
+    return text
+
+
+def _refused(resolution: EconomicResolution, reason: str) -> EconomicResolution:
+    """The same resolution with nothing moved, decided on the copy before the live world is touched."""
+    return dataclasses.replace(
+        resolution, status="refused", reason_code=reason, asset_deltas=[], service_rights=[], world_effects=[],
+        refusals=[LineRefusal(line_id=line.line_id, reason_code=reason) for line in resolution.lines],
+        change_cp=0, net_debit_cp=0, public_summary=_summary("refused", reason, 0, 0, []))
+
+
+def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: str,
+                  check: Callable[[str, int], str] | None = None) -> EconomicResolution:
+    """The candidate result of a confirmed offer on a settled copy. Reads only; the acceptance is the offer's own.
+
+    `check(skill, dc)` rolls the offer's check and returns "BAŞARILI" or another result.
+    """
+    import bold_acts
+    world = _settled(state.world)
+    facts = economic_facts(EconomicState(world=world, character=None))
+    proposal = offer.proposal
+    lines = list(offer.lines)
+    tender = proposal.tender_cp
+    blank = EconomicResolution(
+        operation_id=operation_id, offer_id=offer.offer_id, purpose=proposal.purpose, base_fingerprint=_sha(facts),
+        status="refused", reason_code=None, lines=lines, asset_deltas=[], service_rights=[], world_effects=[],
+        refusals=[], public_summary="", tender_cp=tender, change_cp=0, net_debit_cp=0)
+    spec = offer.acceptance.check
+    if spec is not None:
+        if check is None:
+            return _refused(blank, "check_required")
+        import game
+        if check(spec.skill, game.DIFFICULTY_DC[spec.difficulty]) != "BAŞARILI":
+            return _refused(blank, "check_failed")
+    purse = facts.balances.get("player", 0)
+    if tender is not None and tender > purse:
+        return _refused(blank, "tender_invalid")
+    decisions = {decision.line_id: decision for decision in offer.acceptance.line_decisions}
+    refusals: list[LineRefusal] = []
+    accepted: list[OfferLine] = []
+    for line in lines:
+        decision = decisions.get(line.line_id)
+        if decision is not None and decision.status == "accepted":
+            accepted.append(line)
+            continue
+        reason = decision.reason_code if decision is not None else "no_decision"
+        if not line.optional or proposal.dependency == "all_or_none":
+            return _refused(blank, reason)  # the base, or anything in all-or-none, takes the whole offer down
+        refusals.append(LineRefusal(line_id=line.line_id, reason_code=reason))
+    if proposal.dependency == "all_or_none":
+        total = sum(line.total_cp for line in accepted)
+        if purse < total:
+            return _refused(blank, "no_money")
+        if tender is not None and tender < total:
+            return _refused(blank, "tender_invalid")
+    else:
+        running = sum(line.total_cp for line in accepted if not line.optional)
+        if purse < running:
+            return _refused(blank, "no_money")
+        if tender is not None and tender < running:
+            return _refused(blank, "tender_invalid")
+        kept = {line.line_id for line in accepted if not line.optional}
+        for line in accepted:
+            if not line.optional:
+                continue
+            if running + line.total_cp > purse:
+                refusals.append(LineRefusal(line_id=line.line_id, reason_code="no_money"))
+            elif tender is not None and running + line.total_cp > tender:
+                refusals.append(LineRefusal(line_id=line.line_id, reason_code="tender_short"))
+            else:
+                kept.add(line.line_id)
+                running += line.total_cp
+        accepted = [line for line in accepted if line.line_id in kept]
+        order = [line.line_id for line in lines]
+        refusals.sort(key=lambda refusal: order.index(refusal.line_id))
+    net = sum(line.total_cp for line in accepted)
+    deltas = [AssetDelta(owner_id="player", asset_kind="currency", asset_id="cp", before=purse, after=purse - net)]
+    credits: dict[str, int] = {}
+    sinks: dict[str, int] = {}
+    for line in accepted:
+        bucket = sinks if line.recipient_id.startswith("sink:") else credits
+        bucket[line.recipient_id] = bucket.get(line.recipient_id, 0) + line.total_cp
+    for owner, amount in credits.items():
+        held = facts.balances.get(owner, 0)
+        deltas.append(AssetDelta(owner_id=owner, asset_kind="currency", asset_id="cp", before=held, after=held + amount))
+    for sink_id, amount in sinks.items():
+        held = facts.sink_totals.get(sink_id, 0)
+        deltas.append(AssetDelta(owner_id=sink_id, asset_kind="sink", asset_id=sink_id, before=held,
+                                 after=held + amount))
+    for line in accepted:
+        if line.kind == "goods":
+            label = _line_label(line)
+            held = facts.items.get("player", {}).get(label, 0)
+            deltas.append(AssetDelta(owner_id="player", asset_kind="item", asset_id=label, before=held,
+                                     after=held + line.count))
+            left = facts.stock.get(f"{line.source_id}:{line.item_id}", 0)
+            deltas.append(AssetDelta(owner_id=str(line.source_id), asset_kind="stock", asset_id=str(line.item_id),
+                                     before=left, after=left - line.count))
+    now = (world.get("campaign_time") or {}).get("elapsed_seconds", 0)
+    rights = [ServiceRight(kind="room", place_id=offer.place_id, holder_id="player",
+                           valid_until=now + bold_acts._ROOM_DAY) for line in accepted if line.kind == "room"]
+    change = tender - net if tender is not None else 0
+    return dataclasses.replace(
+        blank, status="applied", asset_deltas=[delta for delta in deltas if delta.before != delta.after],
+        service_rights=rights, world_effects=list(offer.on_accept), refusals=refusals, change_cp=change,
+        net_debit_cp=net, public_summary=_summary("applied", None, net, change, refusals))
+
+
+def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
+                     confirmed_offer: EconomicOffer | None) -> EconomicResolution:
+    """The one writer of a confirmed economic effect: a settled copy first, the receipt, then the live dicts in place.
+
+    The copy and the live world go through the very same steps in the same order (label settling, the same `pay`
+    calls, the room right, the world effect, the ledger); any failure ends on the copy and the live world stays as
+    it was. Writing in place keeps the caller's thread, npc and deed references live. A purchase writes only its
+    coin here; its goods and stock are the counter's own and are checked by the counter with the same receipt.
+    """
+    import bold_acts
+    import equipment_economy
+    import equipment_native
+    import world_reactions
+    world = state.world
+    if resolution.operation_id in (_ledger(world).get("operations") or {}):
+        raise EconomicReceiptError("operation_id_reused")
+    if resolution.status != "applied":
+        return resolution
+    payer = _payer(resolution.purpose, resolution.lines)
+    if not isinstance(payer, str) or not payer:
+        raise EconomicReceiptError("payer_unknown")
+    pooled = resolution.purpose == "entitlement" and payer.startswith(_POOL_PREFIX)
+    money = [delta for delta in resolution.asset_deltas if delta.asset_kind in ("currency", "sink")]
+    written = dataclasses.replace(resolution, asset_deltas=money)
+    candidate = copy.deepcopy(world)
+    before: EconomicFacts | None = None
+    for target in (candidate, world):
+        live = target is world
+        try:
+            bold_acts.settle_coin_labels(target)
+            if not live:
+                if _fingerprint(target) != resolution.base_fingerprint:
+                    return _refused(resolution, "stale")
+                before = economic_facts(EconomicState(world=target, character=None))
+            wallets = target.setdefault("currency", {})
+            flags = target.setdefault("flags", {})
+            ledger = flags.setdefault("economic_ledger", {})
+            sink_totals = ledger.setdefault("sink_totals", {})
+            for delta in money:
+                amount = delta.after - delta.before
+                if delta.owner_id == payer:
+                    continue  # the payer's debit is the sum of the credits below; the receipt checks it
+                if delta.asset_kind == "sink":
+                    if amount < 0:
+                        raise EconomicReceiptError("sink_delta_negative")
+                    if wallets.get(payer, 0) - equipment_native.reserved_funds(target, payer) < amount:
+                        equipment_economy.fail("insufficient_funds")
+                    wallets[payer] = wallets.get(payer, 0) - amount  # a sink: nobody is paid, the total is kept
+                    sink_totals[delta.owner_id] = sink_totals.get(delta.owner_id, 0) + amount
+                    continue
+                if pooled:
+                    wallets[payer] = wallets.get(payer, 0) + amount  # the day's pool, open only for this payment
+                try:
+                    equipment_economy.pay(target, payer, delta.owner_id, amount)
+                finally:
+                    if pooled:
+                        wallets.pop(payer, None)
+            for effect in resolution.world_effects:
+                deed = world_reactions.holding(target, _npc(target, effect.npc_id))
+                if effect.kind != "bribe_accepted" or deed is None:
+                    raise EconomicReceiptError("world_effect_unavailable")
+                deed.pop("hold")
+            for right in resolution.service_rights:
+                flags["inn_room"] = {"place": right.place_id, "until": right.valid_until}
+            operations = ledger.setdefault("operations", {})
+            operations[resolution.operation_id] = {
+                "offer_id": resolution.offer_id, "purpose": resolution.purpose,
+                "net_debit_cp": resolution.net_debit_cp, "turn_index": flags.get("turn_index", 0)}
+            while len(operations) > LEDGER_OPERATIONS_CAP:
+                operations.pop(next(iter(operations)))
+            if resolution.purpose == "entitlement":
+                event_id = resolution.operation_id.removeprefix("entitlement:")
+                ledger.setdefault("entitlements", {})[event_id] = resolution.operation_id
+            if not live:
+                equipment_economy.validate_world(target)
+                validate_economic_resolution(before, economic_facts(EconomicState(world=target, character=None)),
+                                             written, confirmed_offer=confirmed_offer)
+        except equipment_economy.EquipmentError as error:
+            if live:
+                raise
+            if str(error) == "insufficient_funds":
+                return _refused(resolution, "no_money")
+            raise EconomicReceiptError(str(error)) from error
+    return resolution
+
+
+def settle_entitlement(state: EconomicState, *, event_id: str, payer_id: str, recipient_id: str,
+                       amount_cp: int) -> EconomicResolution:
+    """Earned pay, once per event: the engine calls it, no model can. A repeated event pays nothing."""
+    if not (isinstance(event_id, str) and event_id and isinstance(payer_id, str) and payer_id
+            and isinstance(recipient_id, str) and recipient_id and type(amount_cp) is int
+            and 0 < amount_cp <= MAX_CP):
+        raise EconomicReceiptError("invalid_entitlement")
+    line = OfferLine(line_id="entitlement:0", kind="gift", source_id=payer_id, item_id=None, recipient_id=recipient_id,
+                     count=1, unit_cp=amount_cp, total_cp=amount_cp, optional=False)
+    world = _settled(state.world)
+    known = (_ledger(world).get("entitlements") or {}).get(event_id)
+    if known is not None:
+        return EconomicResolution(
+            operation_id=known, offer_id=None, purpose="entitlement", base_fingerprint=_fingerprint(world),
+            status="applied", reason_code=None, lines=[line], asset_deltas=[], service_rights=[], world_effects=[],
+            refusals=[], public_summary="Bu iş günü zaten ödendi.", tender_cp=None, change_cp=0, net_debit_cp=0,
+            replayed=True)
+    facts = economic_facts(EconomicState(world=world, character=None))
+    held = facts.balances.get(recipient_id, 0)
+    deltas = [AssetDelta(owner_id=recipient_id, asset_kind="currency", asset_id="cp", before=held,
+                         after=held + amount_cp)]
+    if not payer_id.startswith(_POOL_PREFIX):
+        source = facts.balances.get(payer_id, 0)
+        deltas.append(AssetDelta(owner_id=payer_id, asset_kind="currency", asset_id="cp", before=source,
+                                 after=source - amount_cp))
+    resolution = EconomicResolution(
+        operation_id=f"entitlement:{event_id}", offer_id=None, purpose="entitlement", base_fingerprint=_sha(facts),
+        status="applied", reason_code=None, lines=[line], asset_deltas=deltas, service_rights=[], world_effects=[],
+        refusals=[], public_summary=f"{amount_cp} bakır hak edildi ve ödendi.", tender_cp=None, change_cp=0,
+        net_debit_cp=amount_cp, replayed=False)
+    return apply_resolution(state, resolution, confirmed_offer=None)
+
+
+def _reject(reason: str) -> None:
+    raise EconomicReceiptError(reason)
+
+
+def _changes(before: dict[str, int], after: dict[str, int]) -> dict[str, int]:
+    return {key: after.get(key, 0) - before.get(key, 0) for key in {*before, *after}
+            if after.get(key, 0) != before.get(key, 0)}
+
+
+def _item_changes(before: dict[str, dict[str, int]], after: dict[str, dict[str, int]]) -> dict[tuple[str, str], int]:
+    found = {}
+    for owner in {*before, *after}:
+        for name, moved in _changes(before.get(owner, {}), after.get(owner, {})).items():
+            found[(owner, name)] = moved
+    return found
+
+
+def validate_economic_resolution(before: EconomicFacts, after: EconomicFacts, resolution: EconomicResolution, *,
+                                 confirmed_offer: EconomicOffer | None) -> None:
+    """The receipt: price, tender, change, recipient, goods, stock and room right against the offer and the state.
+
+    A narration and a purse that agree on a wrong number still fail here: what should have moved is recomputed
+    from the confirmed offer (or, for an engine payment, from its own lines), and what did move is read from the
+    real before/after projection. Goods and stock are checked whenever the receipt claims them, and any goods or
+    stock change it does not claim fails. Raises EconomicReceiptError on any mismatch.
+    """
+    lines = list(resolution.lines)
+    for line in lines:
+        if not (type(line.count) is int and line.count >= 1 and _cp(line.unit_cp) and _cp(line.total_cp)
+                and line.unit_cp * line.count == line.total_cp):
+            _reject("line_price")
+    dependency = "base_required"
+    if confirmed_offer is not None:
+        if resolution.offer_id != confirmed_offer.offer_id or resolution.purpose != confirmed_offer.proposal.purpose:
+            _reject("offer_mismatch")
+        if lines != list(confirmed_offer.lines):
+            _reject("line_mismatch")
+        if resolution.tender_cp != confirmed_offer.proposal.tender_cp:
+            _reject("tender_mismatch")
+        dependency = confirmed_offer.proposal.dependency
+    elif resolution.purpose not in _ENGINE_PURPOSES or resolution.tender_cp is not None:
+        _reject("offer_required")
+    line_ids = [line.line_id for line in lines]
+    refused_ids = [refusal.line_id for refusal in resolution.refusals]
+    if len(set(line_ids)) != len(line_ids) or not set(refused_ids) <= set(line_ids) \
+            or len(set(refused_ids)) != len(refused_ids):
+        _reject("refusal_mismatch")
+    accepted: list[OfferLine] = []
+    if resolution.status == "applied":
+        accepted = [line for line in lines if line.line_id not in refused_ids]
+        if not accepted or any(not line.optional for line in lines if line.line_id in refused_ids) \
+                or dependency == "all_or_none" and refused_ids:
+            _reject("dependency_broken")
+        if confirmed_offer is not None:
+            decided = {decision.line_id: decision.status for decision in confirmed_offer.acceptance.line_decisions}
+            if any(decided.get(line.line_id) != "accepted" for line in accepted):
+                _reject("acceptance_mismatch")
+    elif resolution.status != "refused":
+        _reject("status_unknown")
+    net = sum(line.total_cp for line in accepted)
+    if resolution.net_debit_cp != net:
+        _reject("net_mismatch")
+    tender = resolution.tender_cp
+    change = 0
+    if accepted and tender is not None:
+        if not (net <= tender <= before.balances.get("player", 0)):
+            _reject("tender_mismatch")
+        change = tender - net
+    if resolution.change_cp != change:
+        _reject("change_mismatch")
+    payer = _payer(resolution.purpose, lines)
+    pooled = resolution.purpose == "entitlement" and isinstance(payer, str) and payer.startswith(_POOL_PREFIX)
+    want_coin: dict[str, int] = {}
+    want_sink: dict[str, int] = {}
+    for line in accepted:
+        if line.recipient_id == payer:
+            _reject("payer_is_recipient")
+        bucket = want_sink if line.recipient_id.startswith("sink:") else want_coin
+        bucket[line.recipient_id] = bucket.get(line.recipient_id, 0) + line.total_cp
+        if not pooled:
+            want_coin[str(payer)] = want_coin.get(str(payer), 0) - line.total_cp
+    want_coin = {owner: moved for owner, moved in want_coin.items() if moved}
+    moved_coin = _changes(before.balances, after.balances)
+    moved_sink = _changes(before.sink_totals, after.sink_totals)
+    if moved_coin != want_coin:
+        _reject("currency_mismatch")
+    if moved_sink != want_sink:
+        _reject("sink_mismatch")
+    claimed: dict[tuple[str, str, str], int] = {}
+    for delta in resolution.asset_deltas:
+        if delta.asset_kind == "currency":
+            seen = (before.balances.get(delta.owner_id, 0), after.balances.get(delta.owner_id, 0))
+        elif delta.asset_kind == "sink":
+            seen = (before.sink_totals.get(delta.owner_id, 0), after.sink_totals.get(delta.owner_id, 0))
+        elif delta.asset_kind == "item":
+            seen = (before.items.get(delta.owner_id, {}).get(delta.asset_id, 0),
+                    after.items.get(delta.owner_id, {}).get(delta.asset_id, 0))
+        elif delta.asset_kind == "stock":
+            key = f"{delta.owner_id}:{delta.asset_id}"
+            seen = (before.stock.get(key, 0), after.stock.get(key, 0))
+        else:
+            _reject("delta_kind")
+        identity = (delta.asset_kind, delta.owner_id, delta.asset_id)
+        if identity in claimed or (delta.before, delta.after) != seen:
+            _reject("delta_mismatch")
+        claimed[identity] = delta.after - delta.before
+    if {owner for kind, owner, _ in claimed if kind == "currency"} != set(moved_coin) \
+            or {owner for kind, owner, _ in claimed if kind == "sink"} != set(moved_sink):
+        _reject("delta_unclaimed")
+    claimed_items = {(owner, asset): moved for (kind, owner, asset), moved in claimed.items() if kind == "item"}
+    claimed_stock = {f"{owner}:{asset}": moved for (kind, owner, asset), moved in claimed.items() if kind == "stock"}
+    if _item_changes(before.items, after.items) != claimed_items or _changes(before.stock, after.stock) != claimed_stock:
+        _reject("goods_mismatch")
+    if claimed_items or claimed_stock:
+        want_items: dict[tuple[str, str], int] = {}
+        want_stock: dict[str, int] = {}
+        for line in accepted:
+            if line.kind == "goods":
+                label = _line_label(line)
+                want_items[("player", label)] = want_items.get(("player", label), 0) + line.count
+                key = f"{line.source_id}:{line.item_id}"
+                want_stock[key] = want_stock.get(key, 0) - line.count
+        if claimed_items != want_items or claimed_stock != want_stock:
+            _reject("goods_mismatch")
+    rooms = [line for line in accepted if line.kind == "room"]
+    rights = list(resolution.service_rights)
+    if rooms:
+        place = confirmed_offer.place_id if confirmed_offer is not None else None
+        if len(rooms) != 1 or len(rights) != 1 or rights[0].kind != "room" or rights[0].holder_id != "player" \
+                or rights[0].place_id != place or type(rights[0].valid_until) is not int or after.services != rights:
+            _reject("service_mismatch")
+    elif rights or after.services != before.services:
+        _reject("service_mismatch")
+    expected_effects = list(confirmed_offer.on_accept) if confirmed_offer is not None and accepted else []
+    if list(resolution.world_effects) != expected_effects:
+        _reject("effect_mismatch")
+
+
+def public_resolution(state: EconomicState, resolution: EconomicResolution) -> PublicEconomicResolution:
+    """The receipt the player may see: their own lines and money, never another purse or the inner acceptance."""
+    return PublicEconomicResolution(
+        operation_id=resolution.operation_id, offer_id=resolution.offer_id, status=resolution.status,
+        reason_code=resolution.reason_code,
+        lines=[PublicOfferLine(line_id=line.line_id, label=_line_label(line), count=line.count, unit_cp=line.unit_cp,
+                               total_cp=line.total_cp, optional=line.optional) for line in resolution.lines],
+        refusals=[PublicLineRefusal(line_id=refusal.line_id, reason_code=refusal.reason_code)
+                  for refusal in resolution.refusals],
+        tender_cp=resolution.tender_cp, change_cp=resolution.change_cp, net_debit_cp=resolution.net_debit_cp,
+        public_summary=resolution.public_summary)
