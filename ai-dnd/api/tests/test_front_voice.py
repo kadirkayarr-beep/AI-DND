@@ -61,13 +61,18 @@ class AnyBlowIsAnAttack(FrontTable):
         self.assertNotEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
 
     async def test_a_swing_in_a_fight_is_a_blow_too(self):
-        reply = await self.blow("yumruk atıyorum", thing_word="yumruk")
+        # Both sides are sturdy before the first blow: the fight's records are made from these numbers, so neither
+        # a first blow nor the answering one can end it, whoever wins initiative and whatever the dice say.
+        await self.begin()
         self.npc.update(current_hp=200, max_hp=200)
         self.session.character.update(max_hp=300, current_hp=300)
-        if self.world["combat"]["active"]:
-            self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
-            reply = await self.line("savuruyorum, omzuna")
-            self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], "thing_word": "yumruk"}
+        first = await self.line("yumruk atıyorum", "Ne yapıyorsun sen?")
+        self.assert_attacked(first)
+        self.assertTrue(self.world["combat"]["active"], first["narration"])
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        reply = await self.line("savuruyorum, omzuna")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
 
     async def test_words_in_a_fight_stay_words(self):
         await self.blow("yumruk atıyorum", thing_word="yumruk")

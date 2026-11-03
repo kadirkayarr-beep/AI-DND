@@ -113,6 +113,9 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         self.manager = SessionManager(campaign_store=store)
         self.model = LocalPersonModel()
         adapter = AuthenticatedOllamaAdapter(self.model)
+        # create_app binds this fake model into game.ollama for good; the binding scope puts the engine's own
+        # callbacks back after the test, so a later module never hears this fake's lines.
+        self.enterContext(adapter.engine_binding())
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=adapter,

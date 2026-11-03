@@ -169,11 +169,16 @@ class Papers(FrontTable):
         self.assertFalse(any(row["text"] in first for row in self.rows() if not row["public"]))
         self.assertTrue(notices)
 
-    async def test_taking_a_paper_and_reading_it_in_one_line_does_both(self):
+    async def test_taking_a_paper_this_scene_told_of_and_reading_it_in_one_line_does_both(self):
+        # A worthless thing is made from words only when this place's narration told of it (Kadir, 2026-11-03);
+        # a chat message alone makes nothing (test_narrated_pickup, test_item_transfer_source).
         await self.quiet_town()
-        self.session.messages.append({"role": "assistant", "content": "Çekmecede katlanmış eski bir parşömen duruyor."})
+        told = "Çekmecede katlanmış eski bir parşömen duruyor."
+        self.session.messages.append({"role": "assistant", "content": told})
+        self.session.recent_dm_narrations.append(told.casefold())
         self.client.front = {"kind": "take", "thing_word": "parşömen"}
         reply = await self.line("parsomeni alip okuyom")
-        self.assertTrue(any("parşömen" in str(item.get("name", "")).casefold() for item in self.world["inventory"]
-                            if isinstance(item, dict)), self.world["inventory"])
+        papers = [item for item in self.world["inventory"]
+                  if isinstance(item, dict) and "parşömen" in str(item.get("name", "")).casefold()]
+        self.assertEqual(len(papers), 1, self.world["inventory"])
         self.assertIn("Kâğıtta şunlar yazıyor", reply["narration"])
