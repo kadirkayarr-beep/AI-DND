@@ -1661,30 +1661,41 @@ def create_app(
                     type(error).__name__,
                 )
                 raise refuse_before_commit(500, "journal_error", "The campaign journal could not be updated safely.") from None
+            try:
+                response = TurnResponse(
+                    session_id=session_id,
+                    action_id=action_id,
+                    narration=narration,
+                    state=state,
+                    combat_result=combat_result,
+                    combat_history_entry=combat_history_entry,
+                    skill_check_result=skill_check_result,
+                    quest_outcomes=(
+                        action_result.get("quest_outcomes", [])
+                        if isinstance(action_result, dict)
+                        else []
+                    ),
+                    level_up=(
+                        LevelUpResult.model_validate(action_result["level_up"])
+                        if isinstance(action_result, dict) and action_result.get("level_up") is not None
+                        else None
+                    ),
+                    turn_outcome=_turn_outcome(action_result),
+                )
+                response_payload = redact_sensitive_values(
+                    response.model_dump(mode="json")
+                )
+            except Exception as error:
+                # Nothing is saved yet: the answer could not be built, so the turn is put back whole (B1).
+                _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
+                _logger.error("Turn response could not be built (error_type=%s)", type(error).__name__)
+                raise refuse_before_commit(500, "engine_error", "The turn response could not be built safely.") from None
             record.lore_authority = staged_lore_authority
-            response = TurnResponse(
-                session_id=session_id,
-                action_id=action_id,
-                narration=narration,
-                state=state,
-                combat_result=combat_result,
-                combat_history_entry=combat_history_entry,
-                skill_check_result=skill_check_result,
-                quest_outcomes=(
-                    action_result.get("quest_outcomes", [])
-                    if isinstance(action_result, dict)
-                    else []
-                ),
-                level_up=(
-                    LevelUpResult.model_validate(action_result["level_up"])
-                    if isinstance(action_result, dict) and action_result.get("level_up") is not None
-                    else None
-                ),
-                turn_outcome=_turn_outcome(action_result),
-            )
-            response_payload = redact_sensitive_values(
-                response.model_dump(mode="json")
-            )
             try:
                 manager.autosave_turn(
                     record,
