@@ -4,6 +4,8 @@ Each test goes through the HTTP turn with a mocked model, so it proves what
 Python does on its own: no raw error, no second reading of the player's words.
 """
 
+import uuid
+
 import bold_acts
 import game
 import local_places
@@ -183,20 +185,74 @@ class InnRoomTests(ThreePlaysTests):
                 self.assertNotIn("Koşulun", out["narration"])
                 self.assertEqual(self.world["location"], self.place["id"], out["narration"])
 
-    async def test_asking_for_a_room_pays_and_the_night_passes(self):
+    def prepared(self):
+        return [data for data in self.world["flags"].get("economic_offers", {}).values()
+                if data["status"] == "prepared"]
+
+    def room_operations(self):
+        operations = self.world["flags"].get("economic_ledger", {}).get("operations", {})
+        return [op for op in operations.values() if op["purpose"] == "room"]
+
+    async def confirm(self, out):
+        """Confirms the card the line opened, over HTTP, with a fresh action; returns the resolution."""
+        card = out["state"]["economic_offer"]
+        response = await self.post_scene_turn(self.url, PlayClient(), {
+            "message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+            "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                "confirmation_digest": card["confirmation_digest"]}})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["economic_resolution"]
+
+    def assert_one_room_card_and_nothing_paid(self, out):
+        """The line only prepares the room's card: no coin, no room, no sleep before it is confirmed."""
+        self.assertEqual(self.coin(), 2400, out["narration"])
+        self.assertIsNone(self.world["flags"].get("inn_room"), out["narration"])
+        self.assertEqual(self.session.character["current_hp"], 5, out["narration"])
+        [card] = self.prepared()
+        self.assertEqual(card["proposal"]["purpose"], "room")
+        self.assertEqual(card["proposal"]["recipient_id"], "npc_dorn")
+        self.assertEqual([(line["recipient_id"], line["total_cp"]) for line in card["lines"]],
+                         [(f"sink:lodging:{self.place['id']}", 50)])
+        self.assertEqual(out["state"]["economic_offer"]["offer_id"], card["offer_id"])
+        self.assertEqual(self.room_operations(), [])
+
+    async def assert_confirm_pays_the_room_once(self, out):
+        paid = await self.confirm(out)
+        self.assertEqual((paid["status"], paid["net_debit_cp"]), ("applied", 50))
+        self.assertEqual(self.coin(), 2350)
+        self.assertTrue(self.world["flags"].get("inn_room"))
+        self.assertEqual(self.session.character["current_hp"], 5)  # the confirm does not sleep; a new line does
+        again = await self.confirm(out)
+        self.assertEqual((again["status"], again["reason_code"], again["net_debit_cp"]),
+                         ("refused", "offer_not_prepared", 0))
+        self.assertEqual(self.coin(), 2350)
+        self.assertEqual(len(self.room_operations()), 1)
+
+    async def test_asking_for_a_room_opens_its_card_and_the_night_passes_once_paid(self):
+        # Was test_asking_for_a_room_pays_and_the_night_passes: the line no longer pays or sleeps by itself.
         await self.inn()
         before = self.world["campaign_time"]["elapsed_seconds"]
         out = await self.say("usta bana bi oda ver, sabaha kadar yatıcam")
-        self.assertLess(self.coin(), 2400, out["narration"])
-        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, out["narration"])
-        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"])
+        self.assert_one_room_card_and_nothing_paid(out)
+        self.assertLess(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, out["narration"])
+        await self.assert_confirm_pays_the_room_once(out)
+        slept = await self.say("sabaha kadar uyuyorum")
+        self.assertGreater(self.world["campaign_time"]["elapsed_seconds"], before + 6 * HOUR, slept["narration"])
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], slept["narration"])
         self.assertEqual(self.world["location"], self.place["id"])
+        self.assertEqual(self.coin(), 2350, slept["narration"])  # the room paid for is not paid again
+        self.assertEqual(self.prepared(), [])
 
-    async def test_walking_in_to_take_a_room_and_sleep_pays_too(self):
+    async def test_walking_in_to_take_a_room_opens_its_card_and_pays_on_confirm(self):
+        # Was test_walking_in_to_take_a_room_and_sleep_pays_too: the walk line prepares the card, the confirm pays.
         await self.inn(inside=False)
         out = await self.say("neyse ben hana dönüp oda tutayım, yarın sabaha kadar uyuyorum")
-        self.assertLess(self.coin(), 2400, out["narration"])
-        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])
+        self.assertEqual(self.world["location"], self.place["id"], out["narration"])
+        self.assert_one_room_card_and_nothing_paid(out)
+        await self.assert_confirm_pays_the_room_once(out)
+        slept = await self.say("sabaha kadar uyuyorum")
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], slept["narration"])
+        self.assertEqual(self.coin(), 2350, slept["narration"])
 
     async def test_a_room_with_no_money_is_a_no_from_the_barman(self):
         await self.inn()

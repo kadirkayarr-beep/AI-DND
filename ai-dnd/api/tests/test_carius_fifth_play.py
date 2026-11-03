@@ -6,6 +6,7 @@ Real app, real adapter, real engine; only the model client is scripted. The line
 from __future__ import annotations
 
 import unittest
+import uuid
 from unittest.mock import patch
 
 import bold_acts
@@ -120,6 +121,45 @@ class OneCoinOneTruth(FrontScene):
     def purse(self):
         return self.world["currency"]["player"]
 
+    def gift_card(self, out, amount):
+        """The one card the line opened: a gift of exactly that coin to the barman, nothing paid yet."""
+        cards = [data for data in self.world["flags"].get("economic_offers", {}).values()
+                 if data["status"] == "prepared"]
+        self.assertEqual(len(cards), 1, out["narration"])
+        proposal = cards[0]["proposal"]
+        self.assertEqual((proposal["purpose"], proposal["recipient_id"], proposal["amount_cp"]),
+                         ("gift", self.npc["id"], amount), out["narration"])
+        self.assertIsNone(proposal.get("tender_cp"))
+        self.assertEqual(out["state"]["economic_offer"]["offer_id"], cards[0]["offer_id"])
+        return out["state"]["economic_offer"]
+
+    def gift_operations(self):
+        operations = self.world["flags"].get("economic_ledger", {}).get("operations", {})
+        return [op for op in operations.values() if op["purpose"] == "gift"]
+
+    async def confirm(self, card):
+        response = await self.http.post(self.turn_url, json={
+            "message": "Teklifi onayla", "action_id": str(uuid.uuid4()),
+            "economic_action": {"kind": "confirm", "offer_id": card["offer_id"],
+                                "confirmation_digest": card["confirmation_digest"]}})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    async def confirm_pays_once(self, card, amount, *, purse, held):
+        """Confirming over the API moves exactly that coin to the barman once; a second confirm moves nothing."""
+        paid = await self.confirm(card)
+        resolution = paid["economic_resolution"]
+        self.assertEqual((resolution["status"], resolution["net_debit_cp"]), ("applied", amount), paid["narration"])
+        self.assertEqual(self.purse(), purse - amount)
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), held + amount)
+        self.assertNotEqual(paid["turn_outcome"]["action"], "purchase", paid["narration"])
+        again = (await self.confirm(card))["economic_resolution"]
+        self.assertEqual((again["status"], again["reason_code"], again["net_debit_cp"]),
+                         ("refused", "offer_not_prepared", 0))
+        self.assertEqual(self.purse(), purse - amount)
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), held + amount)
+        self.assertEqual(len(self.gift_operations()), 1)
+
     async def test_the_price_the_barman_says_is_the_price_the_purse_pays(self):
         await self.at_the_bar()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
@@ -132,9 +172,13 @@ class OneCoinOneTruth(FrontScene):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
         out = await self.line("bi altın atıyorum tezgaha, üstü kalsın, karşılığında biraz laf isterim. "
                               "mazduşa konağının sahibi kim biliyon mu", "Bilmem.")
-        self.assertEqual(self.purse(), 2335, out["narration"])
-        self.assertEqual(self.world["currency"][self.npc["id"]], 100)
+        # Keep-the-change with no order is a gift of the whole gold: its card opens, the confirm pays it.
+        self.assertEqual(self.purse(), 2435, out["narration"])
+        self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 0)
         self.assertNotEqual(out["turn_outcome"]["action"], "purchase", out["narration"])
+        card = self.gift_card(out, 100)
+        await self.confirm_pays_once(card, 100, purse=2435, held=0)
+        self.assertEqual(self.purse(), 2335)
 
     async def test_a_gold_put_down_with_a_beer_order_only_opens_the_counter(self):
         # The owner's call: coin and goods move only through the one counter trade, never with the words.
@@ -165,7 +209,12 @@ class OneCoinOneTruth(FrontScene):
         self.assertEqual(self.purse(), 2431, bought["narration"])
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 10}
         out = await self.line("al şu gümüşü de, üstü kalsın", "Sağ ol.")
-        self.assertEqual(self.purse(), 2435 - 4 - 10, out["narration"])
+        # The tip is its own gift card, not folded into the beer already bought; the confirm pays it.
+        self.assertEqual(self.purse(), 2431, out["narration"])
+        self.assertEqual(self.world["currency"][self.npc["id"]], 4)
+        card = self.gift_card(out, 10)
+        await self.confirm_pays_once(card, 10, purse=2431, held=4)
+        self.assertEqual(self.purse(), 2435 - 4 - 10)
         self.assertEqual(self.world["currency"][self.npc["id"]], 14)
 
     async def test_change_asked_back_is_not_left_on_the_counter(self):
@@ -191,7 +240,11 @@ class OneCoinOneTruth(FrontScene):
         await self.at_the_bar()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
         out = await self.line("bi altın atıyorum tezgaha, mazduşa konağının sahibi kim biliyon mu?", "Bilmem.")
-        self.assertEqual(self.purse(), 2335, out["narration"])
+        # The question does not swallow the coin: its gift card opens, and the confirm pays it.
+        self.assertEqual(self.purse(), 2435, out["narration"])
+        card = self.gift_card(out, 100)
+        await self.confirm_pays_once(card, 100, purse=2435, held=0)
+        self.assertEqual(self.purse(), 2335)
 
 
 class MessengersSayWhatHappened(unittest.TestCase):
