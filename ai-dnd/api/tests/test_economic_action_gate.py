@@ -66,7 +66,8 @@ class EconomicActionGateTests(unittest.IsolatedAsyncioTestCase):
                 bound_turn.assert_not_called()
                 self.assertEqual(self.snapshot(record), before)
                 self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
-                # No intent was claimed: the same id is still free for an ordinary turn.
+                # No intent was claimed (no turn action stored above), so re-sending the same command is refused
+                # the same way rather than replayed, and still changes nothing.
                 replay = await self.post(campaign, command)
                 self.assertEqual(replay.status_code, 409, replay.text)
                 self.assertEqual(replay.json()["detail"]["code"], "economic_actions_disabled")

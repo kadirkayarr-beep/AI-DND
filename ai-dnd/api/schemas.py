@@ -242,12 +242,16 @@ class EconomicAction(RootModel[Annotated[
 
 
 class PublicLineRefusal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     line_id: str
     reason_code: str
 
 
 class PublicEconomicResolution(BaseModel):
     """The player-safe receipt of one economic result: no NPC purse, acceptance record or check difficulty."""
+    model_config = ConfigDict(extra="forbid")
+
     operation_id: str
     offer_id: str | None
     status: Literal["applied", "refused"]
@@ -262,6 +266,8 @@ class PublicEconomicResolution(BaseModel):
 
 class PublicWallet(BaseModel):
     """The player's own purse in copper; NPC balances are never public."""
+    model_config = ConfigDict(extra="forbid")
+
     total_cp: int
 
 
