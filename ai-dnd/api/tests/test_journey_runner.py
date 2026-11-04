@@ -70,6 +70,17 @@ class RecordingModel(ScriptedModel):
             yield client
 
 
+class UnsavedChangeModel(ScriptedModel):
+    """The default driver, but just before a reload step it changes the live purse without saving it."""
+
+    @contextmanager
+    def bind(self, case, step):
+        with super().bind(case, step) as client:
+            if step.reload:
+                case.manager.get(case.last_session_id).game_session.world_state["currency"]["player"] = 1
+            yield client
+
+
 class TheRunnerSortsEveryStep(JourneyCase):
     async def test_a_passing_scenario_reports_all_pass(self):
         results = await self.run_scenario(beer_scenario())
@@ -203,6 +214,56 @@ class TheRunnerSortsEveryStep(JourneyCase):
         with self.assertRaises(ScenarioError) as raised:
             apply_setup(self, campaign, {"front_proposal": "1"})
         self.assertIn("front_proposal", str(raised.exception))
+
+    async def test_an_undo_step_takes_back_the_last_turn_through_the_undo_route(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96, "envanter": {"Bira": 1}}},
+            {"undo": True, "expect": {"kese": 100, "envanter": {}, "kisi_kese": {"barman": 0},
+                                      "gerekli_metin": "Son tur geri alındı"}},
+        ))
+        self.assertEqual([result.status for result in results], ["pass", "pass"], results)
+        record = self.manager.get(self.last_session_id)
+        self.assertEqual(record.game_session.world_state["currency"], {"player": 100, "barman": 0})
+        # The route's own trace: the undone turn stays in the history, followed by the undo marker.
+        history = self.store.get_campaign(record.campaign_id).history
+        self.assertEqual(history[-1]["player_message"], "↶ Son turu geri al")
+        self.assertIsNone(self.last_narrator_input)
+
+    async def test_an_undo_the_route_refuses_or_with_no_turn_before_it_fails_its_step(self):
+        (alone,) = await self.run_scenario(beer_scenario({"undo": True, "expect": {"kese": 100}}))
+        self.assertEqual(alone.status, "new_break")
+        self.assertIn("geri alınacak tur yok", alone.failures[0])
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+            {"undo": True, "expect": {"kese": 100}},
+            {"undo": True, "expect": {"kese": 100}},
+        ))
+        self.assertEqual([result.status for result in results], ["pass", "pass", "new_break"], results)
+        self.assertIn("HTTP 409", results[2].failures[0])  # one undo per turn: the route says no
+        self.assertIn("undo_unavailable", results[2].failures[0])
+
+    async def test_a_reload_step_reads_the_campaign_back_from_the_save(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+            {"reload": True, "expect": {"kese": 96, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 4}}},
+            {"command": BUY_SECOND_BEER, "expect": {"kese": 92, "envanter": {"Bira": 2}}},
+        ))
+        self.assertEqual([result.status for result in results], ["pass", "pass", "pass"], results)
+
+        def state(observed):
+            return {key: value for key, value in observed.items() if key not in {"narration", "anlaticiya_giden"}}
+
+        self.assertEqual(state(self.last_observations[1]), state(self.last_observations[0]))
+        self.assertEqual(results[1].narration, "")
+
+    async def test_a_reload_that_finds_the_save_behind_the_live_game_fails_its_step(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+            {"reload": True},
+        ), model=UnsavedChangeModel())
+        self.assertEqual([result.status for result in results], ["pass", "new_break"], results)
+        self.assertEqual(results[1].failures, ("yenileme: kese: canlı 1, kayıttan 96",))
+        self.assertEqual(self.last_observations[1]["kese"], 96)  # the step observes what came back from the save
 
     async def test_the_counter_offer_and_other_purses_are_observed(self):
         campaign = await self.create_campaign()

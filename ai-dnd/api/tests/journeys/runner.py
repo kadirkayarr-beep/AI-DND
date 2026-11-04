@@ -2,7 +2,9 @@
 
 Only the model is scripted (``ScriptedClient``, fed from each step's ``script``); the engine, the
 adapter, the save and the turn route are the product's own. After every step the live world is read
-(``read_observed``) and compared with the step's ``expect``. Each step then gets one status:
+(``read_observed``) and compared with the step's ``expect``. An ``undo`` step takes back the last turn through
+the product's undo route; a ``reload`` step reads the campaign back from its save in a fresh session manager
+and fails on any observed key where the save and the live game differ. Each step then gets one status:
 
 - ``pass``: no mismatch;
 - ``known_broken``: marked with note item numbers and really broken (counted, not failed);
@@ -33,7 +35,10 @@ import game
 import local_places
 import shop_trade
 from api import serializers
+from api.persistence.campaign_store import CampaignStore
+from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
+from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
@@ -61,6 +66,8 @@ _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"
 _ECONOMIC_MESSAGES = {"prepare": "Teklif hazırla", "confirm": "Teklifi onayla", "cancel": "Teklifi iptal et"}
 _COMBAT_MESSAGE = "Savaş eylemi"
+# Step-bound, not state: what the step said and what the narrator was sent. A reload compares everything else.
+_NOT_STATE = frozenset({"narration", "anlaticiya_giden"})
 
 
 @dataclass(frozen=True)
@@ -332,6 +339,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     last_narrator_input: str | None = None
     last_observations: list[dict[str, Any]]
     last_session_id: str | None = None
+    # The action id of the last turn sent, which an ``undo`` step names as the turn to take back.
+    last_turn_action_id: str | None = None
 
     async def run_scenario(self, scenario: Scenario, *, model: ModelDriver | None = None) -> list[StepResult]:
         model = model if model is not None else ScriptedModel()
@@ -341,6 +350,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_session_id = session_id
         self.last_narration = ""
         self.last_narrator_input = None
+        self.last_turn_action_id = None
         self.last_observations = []
         with _front_setting(scenario.setup):
             return await self._run_steps(scenario, session_id, model)
@@ -360,8 +370,12 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                                           step.known_broken, "", 0.0))
                 continue
             started = time.monotonic()
-            failures = await self._play(session_id, step, model)
-            observed = read_observed(self, session_id)
+            if step.reload:
+                failures, observed = self._reload(session_id, step, model)
+            else:
+                failures = await (self._undo(session_id, step, model) if step.undo
+                                  else self._play(session_id, step, model))
+                observed = read_observed(self, session_id)
             self.last_observations.append(observed)
             failures.extend(check_expect(step.expect, observed))
             status = _status(step, failures)
@@ -390,6 +404,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         """Send the step's one action; return the failures the action itself produced."""
         failures: list[str] = []
         body = self._body(session_id, step)
+        self.last_turn_action_id = body["action_id"]
         with model.bind(self, step) as client:
             told = NarratorInput(game.ollama.chat)
             with patch.object(game.ollama, "chat", told):
@@ -403,6 +418,38 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         else:
             self.last_narration = str(response.json().get("narration") or "")
         return failures
+
+    async def _undo(self, session_id: str, step: Step, model: ModelDriver) -> list[str]:
+        """Take back the last turn sent, through the product's undo route (the route alone decides whether it
+        may); return the failures the undo itself produced."""
+        self.last_narrator_input = None
+        self.last_narration = ""
+        if self.last_turn_action_id is None:
+            return ["geri al: geri alınacak tur yok (bu adımdan önce oynanmış tur yok)"]
+        body = {"action_id": str(uuid4()), "target_action_id": self.last_turn_action_id}
+        with model.bind(self, step) as client:
+            response = await self.http.post(f"/api/game/sessions/{session_id}/undo", json=body)
+        failures = [f"beklenmeyen model çağrısı: {keys}" for keys in getattr(client, "unexpected", None) or []]
+        if response.status_code != 200:
+            failures.append(f"HTTP {response.status_code}: {response.text[:300]}")
+        else:
+            self.last_narration = str(response.json().get("narration") or "")
+        return failures
+
+    def _reload(self, session_id: str, step: Step, model: ModelDriver) -> tuple[list[str], dict[str, Any]]:
+        """Read the campaign back from its save in a fresh session manager, as after a restart (nothing from the
+        live session carries over), and compare it with the live game key by key. The step observes what came
+        back from the save; later steps keep playing the live session."""
+        self.last_narrator_input = None
+        self.last_narration = ""
+        with model.bind(self, step):
+            live = read_observed(self, session_id)
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+            reloaded_id, *_ = fresh.resume_campaign(self.manager.get(session_id).campaign_id)
+        saved = read_observed(_Reader(fresh), reloaded_id)
+        failures = [f"yenileme: {key}: canlı {_show(live[key])}, kayıttan {_show(saved.get(key))}"
+                    for key in live if key not in _NOT_STATE and saved.get(key) != live[key]]
+        return failures, saved
 
     def _body(self, session_id: str, step: Step) -> dict[str, Any]:
         body: dict[str, Any] = {"action_id": str(uuid4())}
@@ -427,6 +474,19 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             body.update(combat_id=combat.get("combat_id"), combat_round=combat.get("round"),
                         combat_turn_index=combat.get("current_turn_index"))
         return body
+
+
+@dataclass
+class _Reader:
+    """What ``read_observed`` needs of a case, for a session manager other than the case's own."""
+
+    manager: SessionManager
+    last_narration: str = ""
+    last_narrator_input: str | None = None
+
+
+def _show(value: Any) -> str:
+    return "yok" if value is None else str(value)
 
 
 def _front_setting(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:

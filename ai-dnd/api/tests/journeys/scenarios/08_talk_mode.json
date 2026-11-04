@@ -1,0 +1,103 @@
+{
+  "id": "08_talk_mode",
+  "title": "Konuşma kipi (handa, Fighter, barmen Marek): Marek'le konuşurken 'bir oda tutmak istiyorum, geceyi burada geçireyim' oda kartını açar (madde 4); odama gidip uyuyunca konuşma kipi kapanır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; sonra 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) eski kişiyle, Marek'le, cevaplanmaz ve kip ona kilitlenmez (madde 15); hanın dışına çıkınca kip kapanır. Ölüm sonrası kip 10_death senaryosunda",
+  "source_items": [4, 15, 41],
+  "setup": {
+    "character": {
+      "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
+      "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",
+      "background": "Soldier", "alignment": "Chaotic Neutral", "ability_score_method": "standard_array",
+      "ability_scores": {"strength": 15, "dexterity": 13, "constitution": 14,
+                         "intelligence": 12, "wisdom": 10, "charisma": 8},
+      "background_ability_bonuses": {"strength": 2, "constitution": 1},
+      "proficient_skills": ["Athletics", "Intimidation", "Perception", "Insight", "Persuasion"],
+      "species_bonus_skills": ["Persuasion"], "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker", "fighting_style": "Defense", "equipment_package": "A",
+      "background_equipment_option": "A", "languages": ["Dwarvish", "Goblin"],
+      "origin": "Baldur's Gate", "appearance": "Sırım gibi.", "personality": "Kurnaz.",
+      "backstory": "Ordudan ayrıldı."
+    },
+    "campaign_start": {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                       "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"},
+    "place": {"kind": "smithy", "name": "Göl Sofrası Hanı", "scene_kind": "tavern", "place_kind": "tavern"},
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "current_hp": 5,
+    "seed": 7
+  },
+  "steps": [
+    {
+      "say": "Marek'e selam veriyorum",
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
+                            "completion": "complete"}},
+      "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
+    },
+    {
+      "say": "bir oda tutmak istiyorum, geceyi burada geçireyim",
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
+                            "completion": "complete"}},
+      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
+      "known_broken": [4]
+    },
+    {
+      "say": "bi oda tutayım usta",
+      "independent": true,
+      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
+    },
+    {
+      "economic_action": {"kind": "confirm"},
+      "independent": true,
+      "expect": {"oda": true, "kese": 50, "kart": null}
+    },
+    {
+      "say": "Marek'e iyi geceler diyorum",
+      "independent": true,
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
+                            "completion": "complete"}},
+      "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
+    },
+    {
+      "say": "odama gidip uyuyorum",
+      "independent": true,
+      "expect": {"hp": 28, "oda": true, "kip": {"active": false, "interlocutor": null}},
+      "known_broken": [41]
+    },
+    {
+      "say": "Marek'e günaydın diyorum",
+      "independent": true,
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
+                            "completion": "complete"}},
+      "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
+    },
+    {
+      "say": "konuşmayı bitiriyorum",
+      "independent": true,
+      "expect": {"kip": {"active": false, "interlocutor": null}}
+    },
+    {
+      "say": "satıcıya yaklaşıp ne sattığını soruyorum",
+      "independent": true,
+      "script": {"intent": {"intent": "talk", "action": "talk", "completion": "complete"}},
+      "expect": {"kip": {"active": false, "interlocutor": null}},
+      "known_broken": [15]
+    },
+    {
+      "say": "Marek'e selam veriyorum",
+      "independent": true,
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
+                            "completion": "complete"}},
+      "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
+    },
+    {
+      "say": "dışarı çıkıyorum",
+      "independent": true,
+      "expect": {"konum": "fr:city:neverwinter", "kip": {"active": false, "interlocutor": null}}
+    }
+  ]
+}

@@ -35,7 +35,9 @@ EXPECT_KEYS = frozenset(
     }
 )
 
-ACTION_KEYS = ("say", "command", "economic_action", "combat_action")
+# ``undo`` takes back the last turn through the product's undo route; ``reload`` reads the campaign back from
+# its save in a fresh session manager (a restart). Both take only ``true``.
+ACTION_KEYS = ("say", "command", "economic_action", "combat_action", "undo", "reload")
 _SCENARIO_KEYS = frozenset(
     {"id", "title", "source_items", "zero_tolerance", "real_chain_core", "setup", "steps"}
 )
@@ -45,6 +47,7 @@ _STEP_KEYS = frozenset(
 )
 _TEXT_ACTIONS = ("say", "command")
 _DICT_ACTIONS = ("economic_action", "combat_action")
+_TRUE_ACTIONS = ("undo", "reload")
 
 # Expectations compared as a subset when both sides are mappings: the step names
 # only the fields it cares about (the observed card, counter offer, mode or purse
@@ -68,6 +71,8 @@ class Step:
     known_broken: tuple[int, ...]
     real_chain: bool
     independent: bool
+    undo: bool = False
+    reload: bool = False
 
 
 @dataclass(frozen=True)
@@ -203,6 +208,9 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
     for key in _DICT_ACTIONS:
         if key in raw and not isinstance(raw[key], dict):
             raise ScenarioError(f"{where}: '{key}' bir nesne olmalı")
+    for key in _TRUE_ACTIONS:
+        if key in raw and raw[key] is not True:
+            raise ScenarioError(f"{where}: '{key}' yalnız true olabilir")
     if "script" in raw and not isinstance(raw["script"], dict):
         raise ScenarioError(f"{where}: 'script' bir nesne olmalı")
     expect = raw.get("expect", {})
@@ -224,6 +232,8 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
         known_broken=known_broken,
         real_chain=_boolean(raw, "real_chain", where),
         independent=_boolean(raw, "independent", where),
+        undo="undo" in raw,
+        reload="reload" in raw,
     )
 
 

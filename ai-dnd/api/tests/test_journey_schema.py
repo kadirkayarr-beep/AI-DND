@@ -130,6 +130,24 @@ class TheLoaderIsStrict(unittest.TestCase):
             with self.subTest(label), self.assertRaises(ScenarioError):
                 load_scenario(write_scenario(small_scenario(steps=[step])))
 
+    def test_undo_and_reload_are_actions_that_take_only_true(self):
+        steps = [{"say": "x"}, {"undo": True, "expect": {"kese": 100}}, {"reload": True}]
+        scenario = load_scenario(write_scenario(small_scenario(steps=steps)))
+        said, undo, reload = scenario.steps
+        self.assertEqual((said.undo, said.reload), (False, False))
+        self.assertEqual((undo.undo, undo.reload, undo.say, undo.expect), (True, False, None, {"kese": 100}))
+        self.assertEqual((reload.undo, reload.reload), (False, True))
+        for label, step, needle in (
+            ("undo false", {"undo": False}, "undo"),
+            ("undo text", {"undo": "evet"}, "undo"),
+            ("reload number", {"reload": 1}, "reload"),
+            ("undo and say", {"undo": True, "say": "x"}, "bir eylem"),
+            ("undo and reload", {"undo": True, "reload": True}, "bir eylem"),
+        ):
+            with self.subTest(label), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[step])))
+            self.assertIn(needle, str(raised.exception))
+
     def test_zero_tolerance_scenario_cannot_carry_known_broken(self):
         data = small_scenario(
             zero_tolerance=True,
