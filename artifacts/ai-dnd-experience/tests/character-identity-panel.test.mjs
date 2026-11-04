@@ -100,12 +100,14 @@ test('missing and null fields stay unlabeled fiction and an empty string stays e
 test('identity scroll stays inside the panel and the command box keeps its place', async () => {
   const css = await readFile('src/index.css', 'utf8');
   const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const panel = await readFile('src/components/character-panel.tsx', 'utf8');
   assert.match(css, /\.identity-notes \{[^}]*max-height: 9rem;[^}]*overflow: auto/);
   assert.match(css, /\.identity-note-text \{[^}]*white-space: pre-wrap/);
   assert.match(css, /\.play-shell \.command-box \{ position: static; flex: 0 0 auto;/);
   assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*?\.workspace-left, \.world-column \{ display: none; \}/);
-  assert.match(page, /<CharacterIdentityNotes character=\{character\} \/>/);
-  assert.match(page, /<CharacterPanel character=\{state\.character\} \/>/);
+  assert.match(panel, /<CharacterIdentityNotes character=\{character\} \/>/);
+  assert.match(page, /import \{ CharacterPanel, [^}]*\} from '@\/components\/character-panel';/);
+  assert.match(page, /<CharacterPanel character=\{state\.character\} walletTotalCp=\{state\.wallet\?\.total_cp \?\? null\} \/>/);
   assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} decisionScope=\{decisionScope\} conversionBlocked=\{conversionBlocked\} onCommand=\{onEconomyCommand\} \/>/);
   assert.doesNotMatch(page, /command-input[\s\S]{0,200}character-identity-notes|character-identity-notes[\s\S]{0,200}command-input/);
 });

@@ -2,14 +2,9 @@ import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
 import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
-import { RageStatus } from '@/components/rage-controls';
-import { FighterStatus } from '@/components/fighter-controls';
-import { PaladinStatus } from '@/components/paladin-controls';
-import { RogueStatus } from '@/components/rogue-controls';
-import { MonkStatus } from '@/components/monk-controls';
+import { CharacterPanel, InventoryPanel, PurseLine, StoredProgressionChoices } from '@/components/character-panel';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
 import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
-import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
 import { askServer, findUnresolvedOnServer, modelRefusalLine, RecoveryTimeoutError, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
@@ -35,7 +30,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Backpack,
   BookOpen,
   Check,
   ChevronDown,
@@ -110,7 +104,6 @@ import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
-import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { OuroborosMark } from '@/components/ouroboros-mark';
@@ -270,41 +263,6 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
       </section>
     </main>
   );
-}
-
-function StoredProgressionChoices({ character }: { character: GameCharacter }) {
-  return <>
-    {character.metamagic?.length ? <p>Kaydedilen Metamagic seçimleri: {character.metamagic.join(', ')}</p> : null}
-    {character.subclass_id && <p>Kaydedilen alt sınıf seçimi: {character.subclass_id}</p>}
-    <ProgressionEffectsNotice effects={character.progression_effects_pending} />
-  </>;
-}
-
-function CharacterPanel({ character, compact = false }: { character: GameCharacter; compact?: boolean }) {
-  const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
-  const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
-  return (
-    <section className={`state-panel ${compact ? 'compact-character' : ''}`} data-testid="panel-character">
-      <div className="character-top"><div><Kicker>Yolcu kaydı</Kicker><h2 data-testid="text-character-name">{character.name}</h2><div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div>
-      <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
-      <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
-      <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
-      <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
-      {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
-      {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
-      <RageStatus rage={character.rage} />
-      <FighterStatus fighter={character.fighter} />
-      <PaladinStatus paladin={character.paladin} />
-      <RogueStatus rogue={character.rogue} />
-      <MonkStatus monk={character.monk} />
-      <StoredProgressionChoices character={character} />
-      <CharacterIdentityNotes character={character} />
-    </section>
-  );
-}
-
-function InventoryPanel({ items }: { items: string[] }) {
-  return <section className="state-panel" data-testid="panel-inventory"><div className="flex items-end justify-between"><div><Kicker>Üzerinde</Kicker><h2>Envanter</h2></div><span className="character-badge">{String(items.length).padStart(2, '0')}</span></div>{items.length ? <div className="list-stack">{items.map((item, index) => <div className="list-row" key={`${item}-${index}`} data-testid={`item-inventory-${index}`}><span className="list-icon"><Backpack size={14} /></span>{item}</div>)}</div> : <div className="empty-line mt-4">Çantada kaydedilmiş eşya yok.</div>}</section>;
 }
 
 function WorldPanel({ state }: { state: GameState }) {
@@ -474,7 +432,7 @@ function DetailsPanel({ state }: { state: GameState }) {
 }
 
 function LeftColumn({ state, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
@@ -1053,7 +1011,7 @@ function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconom
   return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }
 
-function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { state: GameState; equipmentClasses?: unknown; onContinue: () => void; onBack: () => void }) {
+function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameState; catalog?: unknown; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
   const classPortraitCells: Record<string, number> = {
     fighter: 0, barbarian: 1, paladin: 2, ranger: 3, rogue: 4, monk: 5,
@@ -1110,7 +1068,8 @@ function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { stat
               </div>
               <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
             </div>
-            <StartingEquipmentNotice characterClass={character.class} classes={equipmentClasses} />
+            <StartingEquipmentNotice characterClass={character.class} catalog={catalog} />
+            <PurseLine totalCp={state.wallet?.total_cp ?? null} />
             <StoredProgressionChoices character={character} />
             {character.origin && (
               <div className="reveal-origin" data-testid="reveal-character-origin">
@@ -2306,7 +2265,7 @@ export default function GameBrowser() {
     />
   );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
-  if (phase === 'reveal' && state) return <CharacterReveal state={state} equipmentClasses={characterCatalogQuery.data?.classes} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
+  if (phase === 'reveal' && state) return <CharacterReveal state={state} catalog={characterCatalogQuery.data} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="design-preview dnd-app play-shell" data-testid="app-session">

@@ -1,4 +1,5 @@
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
+import { packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
 import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
 import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary } from '@/components/fighter-starting-creation';
@@ -1869,7 +1870,7 @@ export function CharacterCreationScreen({
               <section className="cc-step-panel">
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 6</div>
-                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} />
+                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} catalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundOption={backgroundEquipmentOption} />
                   <p className="cc-literary">Karakterinin macera yolculuğuna başlarken kuşanacağı silah, zırh ve teçhizatı seç.</p>
                 </div>
 
@@ -1888,7 +1889,7 @@ export function CharacterCreationScreen({
                           <span className="cc-card-title">Paket {pkg.id}: {pkg.label}</span>
                         </div>
                         <ul className="cc-item-list">
-                          {pkg.items?.map((it: string) => (
+                          {packageGoods(pkg).map((it: string) => (
                             <li key={it}>{it}</li>
                           ))}
                         </ul>
@@ -2367,11 +2368,12 @@ export function CharacterCreationScreen({
                       {characterClass === 'Fighter' && startingDraft.startingLevel > 1 && <FighterStartingSummary draft={startingDraft} metadata={fighterStartingMetadata} />}
                       {characterClass === 'Paladin' && startingDraft.startingLevel > 1 && <PaladinStartingSummary draft={startingDraft} metadata={paladinStartingMetadata} />}
                       {characterClass === 'Monk' && startingDraft.startingLevel > 1 && <MonkStartingSummary draft={startingDraft} metadata={monkStartingMetadata} />}
-                      <StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} /><div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
+                      <StartingEquipmentNotice characterClass={characterClass} catalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundOption={backgroundEquipmentOption} /><div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
                       <ul className="cc-sheet-items">
-                        {classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage)?.items?.map((it: string) => (
-                          <li key={it}>{it}</li>
-                        )) ?? <li>Standart Başlangıç Teçhizatı</li>}
+                        {(() => {
+                          const selected = classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage);
+                          return selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
+                        })()}
                       </ul>
                     </div>
                   </div>
