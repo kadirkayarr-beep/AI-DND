@@ -22,7 +22,7 @@
       "independent": true,
       "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}},
       "known_broken": [35],
-      "broken_because": ["tezgah: beklenen"]
+      "broken_because": ["tezgah: beklenen {'npc_id': 'barman', 'key': 'bira', 'unit_cp': 4}, gözlenen yok"]
     }
   ]
 }

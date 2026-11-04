@@ -84,7 +84,7 @@
       "known_broken": [
         115
       ],
-      "broken_because": ["kese: beklenen", "envanter: beklenen", "gorev: beklenen"]
+      "broken_because": ["kese: beklenen 112, gözlenen 100", "envanter: beklenen {}, gözlenen {'Iade takımı': 1}", "gorev: beklenen {'aktif': 0, 'kayit': []}, gözlenen {'aktif': 1, 'kayit': ['Teslimat: "]
     }
   ]
 }

@@ -42,7 +42,7 @@
       "say": "kaçıyorum",
       "expect": {"savas": false, "yasak_metin": "çıkış göremiyorsun"},
       "known_broken": [21],
-      "broken_because": ["savas: beklenen False", "yasak metin bulundu: çıkış göremiyorsun"]
+      "broken_because": ["savas: beklenen False, gözlenen True", "yasak metin bulundu: çıkış göremiyorsun"]
     }
   ]
 }

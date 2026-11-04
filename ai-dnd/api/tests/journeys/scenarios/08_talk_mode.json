@@ -41,7 +41,7 @@
                             "completion": "complete"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
       "known_broken": [4],
-      "broken_because": ["kart: beklenen"]
+      "broken_because": ["kart: beklenen {'max_total_cp': 50, 'counterparty_label': 'Marek'}, gözlenen yok"]
     },
     {
       "say": "bi oda tutayım usta",
@@ -66,7 +66,7 @@
       "independent": true,
       "expect": {"hp": 28, "oda": true, "kip": {"active": false, "interlocutor": null}},
       "known_broken": [41],
-      "broken_because": ["kip.active: beklenen False", "kip.interlocutor: beklenen yok"]
+      "broken_because": ["kip.active: beklenen False, gözlenen True", "kip.interlocutor: beklenen yok, gözlenen {'id': 'barman', 'name': 'Marek', 'role': 'Barmen'}"]
     },
     {
       "say": "Marek'e günaydın diyorum",
@@ -87,7 +87,7 @@
       "script": {"intent": {"intent": "talk", "action": "talk", "completion": "complete"}},
       "expect": {"kip": {"active": false, "interlocutor": null}},
       "known_broken": [15],
-      "broken_because": ["kip.active: beklenen False", "kip.interlocutor: beklenen yok"]
+      "broken_because": ["kip.active: beklenen False, gözlenen True", "kip.interlocutor: beklenen yok, gözlenen {'id': 'barman', 'name': 'Marek', 'role': 'Barmen'}"]
     },
     {
       "say": "Marek'e selam veriyorum",

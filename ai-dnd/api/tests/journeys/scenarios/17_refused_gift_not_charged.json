@@ -71,7 +71,7 @@
       "known_broken": [
         103
       ],
-      "broken_because": ["kese: beklenen", "kisi_kese.caravaner: beklenen"]
+      "broken_because": ["kese: beklenen 100, gözlenen 95", "kisi_kese.caravaner: beklenen 0, gözlenen 5"]
     }
   ]
 }

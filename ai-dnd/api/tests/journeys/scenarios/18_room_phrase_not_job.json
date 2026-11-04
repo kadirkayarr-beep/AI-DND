@@ -119,7 +119,7 @@
         110,
         115
       ],
-      "broken_because": ["kese: beklenen", "saat: beklenen", "gözlenen ['Hediye']"]
+      "broken_because": ["kese: beklenen 100, gözlenen 126", "saat: beklenen 0, gözlenen 8", "kart.kalemler: beklenen ['Oda (bir gece)'], gözlenen ['Hediye']"]
     }
   ]
 }

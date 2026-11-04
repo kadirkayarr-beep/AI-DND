@@ -55,14 +55,14 @@
       "say": "tabak yemeğimi yiyorum",
       "expect": {"envanter": {"Greatsword": 1, "Uzun Yay & 20 Ok": 1, "Macera Çantası": 1, "Bira": 2}, "kese": 100},
       "known_broken": [54],
-      "broken_because": ["'Tabak yemek': 1"]
+      "broken_because": ["envanter: beklenen {'Greatsword': 1, 'Uzun Yay & 20 Ok': 1, 'Macera Çantası': 1, 'Bira': 2}, gözlenen {'Greatsword': 1, 'Uzun Yay & 20 Ok': 1, 'Macera Çantası': 1, 'Tabak yemek': 1, 'Bira': 2}"]
     },
     {
       "say": "biramı içiyorum",
       "independent": true,
       "expect": {"envanter": {"Greatsword": 1, "Uzun Yay & 20 Ok": 1, "Macera Çantası": 1, "Bira": 1}, "kese": 100},
       "known_broken": [54],
-      "broken_because": ["'Bira': 2}"]
+      "broken_because": ["envanter: beklenen {'Greatsword': 1, 'Uzun Yay & 20 Ok': 1, 'Macera Çantası': 1, 'Bira': 1}, gözlenen {'Greatsword': 1, 'Uzun Yay & 20 Ok': 1, 'Macera Çantası': 1, 'Tabak yemek': 1, 'Bira': 2}"]
     },
     {
       "say": "Haydut'a uzun yayımla saldırıyorum",
@@ -77,7 +77,7 @@
       },
       "expect": {"savas": true, "cephane": {"arrow": 19}},
       "known_broken": [56],
-      "broken_because": ["no_ammunition", "savas: beklenen True", "cephane: beklenen"]
+      "broken_because": ["no_ammunition", "savas: beklenen True, gözlenen False", "cephane: beklenen {'arrow': 19}, gözlenen {}"]
     }
   ]
 }

@@ -101,7 +101,7 @@
       "known_broken": [
         111
       ],
-      "broken_because": ["xp: beklenen"]
+      "broken_because": ["xp: beklenen 10, gözlenen 0"]
     }
   ]
 }

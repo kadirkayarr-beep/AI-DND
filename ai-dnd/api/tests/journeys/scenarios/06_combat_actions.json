@@ -89,7 +89,7 @@
       "independent": true,
       "expect": {"savas": true, "hareket": 25},
       "known_broken": [40],
-      "broken_because": ["hareket: beklenen"]
+      "broken_because": ["hareket: beklenen 25, gözlenen 0"]
     },
     {
       "say": "rakibin yanına gidiyorum",
