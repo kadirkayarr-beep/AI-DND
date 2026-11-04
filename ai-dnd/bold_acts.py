@@ -602,6 +602,11 @@ _PRICE_ASKED = re.compile(r"\b(?:ne kadar|kac\w*|fiyat\w*|var mi|var midir)\b")
 _ROOM_PRICE = 50  # a modest inn stay, 5 silver a night
 
 
+def room_price(world: dict[str, Any], npc: dict[str, Any] | None) -> int:
+    """What a night's room costs with whoever serves here; the house price until a haggled cut is written."""
+    return _ROOM_PRICE
+
+
 def room_note(npc: dict[str, Any], text: Any) -> str:
     """Only when rooms are what is being talked of: otherwise whoever serves would sell a bed in every reply."""
     if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not _ROOM.search(living_world.normalize_text(text)):
