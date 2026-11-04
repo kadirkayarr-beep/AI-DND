@@ -16,6 +16,10 @@ its own `operation_id_for` id. Every coin a turn moves reaches the purses only t
 The API (A3) stores the card (`prepare_from_panel`), confirms it once (`confirm_offer`), cancels it, and after an
 undo reopens only the card the undone action consumed (`reconcile_offers_after_undo`); closed cards are pruned.
 
+A decline the NPC spoke is kept per part in `flags.money_declined` (`record_decline`): it cancels that NPC's open
+cards of the part, opens none while it holds, and ends only by an explicit take (`clear_decline`) or a new game
+day. Ledger operations carry a short `label` and the `payee_id`, read back by `recent_payments`.
+
 No network, model or database call is made here.
 """
 
@@ -25,9 +29,13 @@ import copy
 import dataclasses
 import hashlib
 import json
+import logging
 import secrets
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
+
+logger = logging.getLogger(__name__)
 
 MAX_CP = 999_999_999
 MAX_COUNT = 999_999_999
@@ -387,9 +395,262 @@ def confirmation_digest(offer: EconomicOffer) -> str:
                  "context_digest": offer.context_digest})
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# A spoken decline, kept per NPC and per part (Dilim 1, design §3b, D3, D25, D26). The model may only stop a card:
+# while a decline holds, no card of that part opens for that NPC and the open ones were cancelled when it was said.
+# It ends only by an explicit take of that part (`clear_decline`) or by a new game day; turns never end it.
+# ---------------------------------------------------------------------------------------------------------------
+
+DECLINE_CAP = 32  # NPCs with a decline on record; earlier days go first, today's never silently
+Part = str  # "tip", "gift", "room", "goods:<key>" or "*" (a decline whose part is unclear)
+_DECLINES = "money_declined"
+_DAY_SECONDS = 86400
+_LABEL_MAX = 40
+_PART_OF_PURPOSE = {"gift": "gift", "tip": "tip", "room": "room"}  # the card purposes a decline can stop
+_MONEY_CARD_PURPOSES = ("purchase", "room", "gift", "tip")
+
+
+@dataclass(frozen=True)
+class DeclineWrite:
+    status: Literal["written", "decline_cap_full"]
+    cancelled: int
+
+
+def game_day(world: Mapping[str, Any]) -> int:
+    """The whole days on the campaign clock; a missing or bad clock is day 0."""
+    clock = world.get("campaign_time") if isinstance(world, Mapping) else None
+    seconds = clock.get("elapsed_seconds") if isinstance(clock, Mapping) else None
+    return seconds // _DAY_SECONDS if type(seconds) is int and seconds >= 0 else 0
+
+
+def _is_part(part: Any) -> bool:
+    return part in ("tip", "gift", "room", "*") or (
+        isinstance(part, str) and part.startswith("goods:") and len(part) > len("goods:"))
+
+
+def _decline_rows(world: Mapping[str, Any]) -> Mapping[str, Any]:
+    flags = world.get("flags") if isinstance(world, Mapping) else None
+    records = flags.get(_DECLINES) if isinstance(flags, Mapping) else None
+    return records if isinstance(records, Mapping) else {}
+
+
+def _decline_row(row: Any) -> bool:
+    return (isinstance(row, dict) and _cp(row.get("amount_cp")) and type(row.get("day")) is int and row["day"] >= 0
+            and type(row.get("turn")) is int and row["turn"] >= 0)
+
+
+def _on_day(row: Any, day: int) -> bool:
+    return isinstance(row, Mapping) and type(row.get("day")) is int and row.get("day") == day
+
+
+def _latest(entry: Mapping[str, Any]) -> tuple[int, int]:
+    """(day, turn) of this NPC's newest decline row, for dropping the oldest NPC first."""
+    stamps = [(row["day"], row["turn"]) for row in entry.values()
+              if isinstance(row, Mapping) and type(row.get("day")) is int and type(row.get("turn")) is int]
+    return max(stamps) if stamps else (-1, -1)
+
+
+def _card_parts(proposal: EconomicProposal) -> list[Part]:
+    """The parts a card would pay: its purpose, and a tip riding on it."""
+    part = _PART_OF_PURPOSE.get(proposal.purpose)
+    if part is None:
+        return []
+    return [part, "tip"] if proposal.tip_cp and part != "tip" else [part]
+
+
+def _covered_by(offer: EconomicOffer, npc_id: str, part: Part) -> bool:
+    """Whether a decline of this part by this NPC closes the card. A bribe stays the guard's Persuasion check."""
+    if offer.proposal.recipient_id != npc_id or offer.acceptance.check is not None:
+        return False
+    if part == "*":
+        return offer.proposal.purpose in _MONEY_CARD_PURPOSES
+    return part in _card_parts(offer.proposal) or (part == "tip" and any(line.kind == "tip" for line in offer.lines))
+
+
+def record_decline(world: dict[str, Any], npc_id: str, part: Part, amount_cp: int, *, day: int,
+                   turn: int) -> DeclineWrite:
+    """Write the decline and cancel that NPC's open cards of that part (all money cards for `*`).
+
+    The counter's own offer is not touched here (`bold_acts` owns it). When the record is full, rows of earlier days
+    go first, oldest first; when all of them are today's, nothing is written, `decline_cap_full` is returned and
+    logged, and the open cards of the declined part are still cancelled: a cancel never moves money.
+    """
+    if not (isinstance(npc_id, str) and npc_id and _is_part(part) and _cp(amount_cp) and type(day) is int
+            and day >= 0 and type(turn) is int and turn >= 0):
+        raise ValueError("invalid_decline")
+    cancelled = len(cancel_prepared(world, actor_id="player",
+                                    predicate=lambda offer: _covered_by(offer, npc_id, part)))
+    flags = world.setdefault("flags", {})
+    if not isinstance(flags.get(_DECLINES), dict):
+        flags[_DECLINES] = {}
+    records = flags[_DECLINES]
+    if npc_id not in records and len(records) >= DECLINE_CAP:
+        ended = sorted((_latest(entry) if isinstance(entry, Mapping) else (-1, -1), key)
+                       for key, entry in records.items()
+                       if not isinstance(entry, Mapping) or _latest(entry)[0] < day)
+        needed = len(records) - DECLINE_CAP + 1
+        if len(ended) < needed:
+            logger.warning("decline_cap_full: %d NPCs declined today; the decline of %s (%s) is not written",
+                           len(records), npc_id, part)
+            return DeclineWrite(status="decline_cap_full", cancelled=cancelled)
+        for _, key in ended[:needed]:
+            records.pop(key)
+            logger.info("money_declined: the ended decline of %s made room", key)
+    entry = records.get(npc_id)
+    if not isinstance(entry, dict):
+        entry = records[npc_id] = {}
+    for ended_part in [key for key, row in entry.items() if not _on_day(row, day)]:
+        entry.pop(ended_part)  # this NPC's declines of an earlier day have already ended
+    entry[part] = {"amount_cp": amount_cp, "day": day, "turn": turn}
+    return DeclineWrite(status="written", cancelled=cancelled)
+
+
+def clear_decline(world: dict[str, Any], npc_id: str, part: Part) -> None:
+    """An explicit take of this part: its row goes, and an unclear decline lets this part through."""
+    records = (world.get("flags") or {}).get(_DECLINES)
+    entry = records.get(npc_id) if isinstance(records, dict) else None
+    if not isinstance(entry, dict):
+        return
+    entry.pop(part, None)
+    general = entry.get("*")
+    if part != "*" and isinstance(general, dict):
+        taken = general.get("taken") if isinstance(general.get("taken"), list) else []
+        general["taken"] = taken if part in taken else [*taken, part]
+    if not entry:
+        records.pop(npc_id)
+
+
+def declined(world: Mapping[str, Any], npc_id: str, part: Part, *, day: int) -> bool:
+    """Whether this NPC declined this part today: its own row, or an unclear decline this part was not taken from."""
+    entry = _decline_rows(world).get(npc_id)
+    if not isinstance(entry, Mapping):
+        return False
+    if _on_day(entry.get(part), day):
+        return True
+    general = entry.get("*")
+    if part == "*" or not _on_day(general, day):
+        return False
+    taken = general.get("taken")
+    return not (isinstance(taken, list) and part in taken)
+
+
+def repair_declines(world: dict[str, Any]) -> list[str]:
+    """Drop the malformed decline rows and, above the cap, the oldest NPCs (earlier days first). Returns each name."""
+    flags = world.get("flags")
+    if not isinstance(flags, dict) or _DECLINES not in flags:
+        return []
+    records = flags[_DECLINES]
+    dropped: list[str] = []
+    if not isinstance(records, dict):
+        flags[_DECLINES] = {}
+        dropped.append(_DECLINES)
+    else:
+        for npc_id in list(records):
+            path = f"{_DECLINES}.{npc_id}"
+            entry = records[npc_id]
+            if not (isinstance(npc_id, str) and npc_id and isinstance(entry, dict) and entry):
+                records.pop(npc_id)
+                dropped.append(path)
+                continue
+            for part in list(entry):
+                row = entry[part]
+                if not (_is_part(part) and _decline_row(row)):
+                    entry.pop(part)
+                    dropped.append(f"{path}.{part}")
+                    continue
+                for key in [key for key in row if key not in ("amount_cp", "day", "turn", "taken")]:
+                    row.pop(key)
+                    dropped.append(f"{path}.{part}.{key}")
+                if "taken" in row:
+                    taken = row["taken"]
+                    if part != "*":
+                        row.pop("taken")
+                        dropped.append(f"{path}.{part}.taken")
+                    elif not (isinstance(taken, list) and all(_is_part(item) and item != "*" for item in taken)):
+                        row["taken"] = []  # an unreadable list blocks every part again: money stays, never moves
+                        dropped.append(f"{path}.{part}.taken")
+            if not entry:
+                records.pop(npc_id)
+        excess = len(records) - DECLINE_CAP
+        if excess > 0:
+            for npc_id in sorted(records, key=lambda key: (_latest(records[key]), key))[:excess]:
+                records.pop(npc_id)
+                dropped.append(f"{_DECLINES}.{npc_id}")
+    for name in dropped:
+        logger.warning("repair_declines dropped %s", name)
+    return dropped
+
+
+def repair_ledger_labels(world: dict[str, Any]) -> list[str]:
+    """Drop a malformed `label` or `payee_id` from ledger operations; the operation itself always stays."""
+    flags = world.get("flags")
+    ledger = flags.get("economic_ledger") if isinstance(flags, dict) else None
+    operations = ledger.get("operations") if isinstance(ledger, dict) else None
+    if not isinstance(operations, dict):
+        return []
+    dropped: list[str] = []
+    for operation_id, record in operations.items():
+        if not isinstance(record, dict):
+            continue
+        label = record.get("label")
+        if "label" in record and not (isinstance(label, str) and 0 < len(label) <= _LABEL_MAX):
+            record.pop("label")
+            dropped.append(f"economic_ledger.operations.{operation_id}.label")
+        payee = record.get("payee_id")
+        if "payee_id" in record and not (isinstance(payee, str) and payee):
+            record.pop("payee_id")
+            dropped.append(f"economic_ledger.operations.{operation_id}.payee_id")
+    for name in dropped:
+        logger.warning("repair_ledger_labels dropped %s", name)
+    return dropped
+
+
+def recent_payments(world: Mapping[str, Any], limit: int = 3, payee_id: str | None = None) -> list[dict[str, Any]]:
+    """The player's latest payments that moved coin (net debit above 0), newest first; only to `payee_id` if given.
+
+    An NPC's give and earned pay are coin the player received, not paid, and are left out.
+    """
+    flags = world.get("flags") if isinstance(world, Mapping) else None
+    ledger = flags.get("economic_ledger") if isinstance(flags, Mapping) else None
+    operations = ledger.get("operations") if isinstance(ledger, Mapping) else None
+    if not isinstance(operations, Mapping) or type(limit) is not int or limit <= 0:
+        return []
+    found: list[dict[str, Any]] = []
+    for record in reversed(list(operations.values())):
+        if not isinstance(record, Mapping) or record.get("purpose") not in _OFFER_PURPOSES:
+            continue
+        amount = record.get("net_debit_cp")
+        if type(amount) is not int or amount <= 0:
+            continue
+        label, payee, turn = record.get("label"), record.get("payee_id"), record.get("turn_index")
+        payee = payee if isinstance(payee, str) and payee else None
+        if payee_id is not None and payee != payee_id:
+            continue
+        found.append({"label": label if isinstance(label, str) and label else None, "amount_cp": amount,
+                      "payee_id": payee, "turn_index": turn if type(turn) is int else None})
+        if len(found) == limit:
+            break
+    return found
+
+
+def _receipt_fields(lines: list[OfferLine], payee_id: Any) -> dict[str, str]:
+    """The ledger's short words for an operation: the base line's label and who was paid."""
+    base = next((line for line in lines if not line.optional), lines[0] if lines else None)
+    fields: dict[str, str] = {}
+    if base is not None:
+        fields["label"] = _line_label(base)[:_LABEL_MAX]
+    if isinstance(payee_id, str) and payee_id:
+        fields["payee_id"] = payee_id
+    return fields
+
+
 def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: EconomicProposal,
                       lines: list[OfferLine]) -> AcceptanceRecord | PrepareResult:
-    """The engine's word on the offer, before anything is recorded. A refusal opens no card."""
+    """The engine's word on the offer, before anything is recorded. A refusal opens no card.
+
+    A decline the NPC spoke today stops a gift, tip or room card of that part (the bribe path comes first).
+    """
+    import living_world
     import world_reactions
     world = _settled(state.world)
     npc = _npc(world, proposal.recipient_id)
@@ -400,6 +661,10 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         # The guard holding the player usually can tie them to the deed, so `refuses` is not asked here:
         # whether the coin is taken is the Persuasion check at confirmation, as the spoken bribe does today.
         check = CheckSpec(skill="Persuasion", difficulty=_difficulty(lines[0].total_cp))
+    elif any(declined(world, str(npc["id"]), part, day=game_day(world)) for part in _card_parts(proposal)):
+        who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
+        return PrepareResult(status="refused", offer=None, reason_code="npc_declined",
+                             public_message=f"{who} az önce parayı geri çevirdi.")
     elif world_reactions.refuses(world, npc):
         return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
                              public_message=world_reactions.refusal_line(npc))
@@ -905,9 +1170,12 @@ def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,
                         raise EconomicReceiptError("item_delta_mismatch")
                     written = dataclasses.replace(resolution, asset_deltas=money + moved_items)
             operations = ledger.setdefault("operations", {})
+            payee = (confirmed_offer.proposal.recipient_id if confirmed_offer is not None
+                     else resolution.lines[0].recipient_id if resolution.lines else None)
             operations[resolution.operation_id] = {
                 "offer_id": resolution.offer_id, "purpose": resolution.purpose,
-                "net_debit_cp": resolution.net_debit_cp, "turn_index": flags.get("turn_index", 0)}
+                "net_debit_cp": resolution.net_debit_cp, "turn_index": flags.get("turn_index", 0),
+                **_receipt_fields(resolution.lines, payee)}
             if resolution.purpose == "entitlement":
                 event_id = resolution.operation_id.removeprefix("entitlement:")
                 ledger.setdefault("entitlements", {})[event_id] = resolution.operation_id
@@ -1300,7 +1568,8 @@ def confirm_offer(state: EconomicState, *, offer_id: str, confirmation_digest: s
         bold_acts.settle_coin_labels(world)  # C10: the consuming confirm keeps the settled purse
         operations[operation_id] = {"offer_id": offer_id, "purpose": offer.proposal.purpose, "net_debit_cp": 0,
                                     "turn_index": world["flags"].get("turn_index", 0),
-                                    "reason_code": resolution.reason_code}
+                                    "reason_code": resolution.reason_code,
+                                    **_receipt_fields(list(offer.lines), offer.proposal.recipient_id)}
         trim_operations(operations)
     data.update(status="consumed", operation_id=operation_id)
     return resolution
