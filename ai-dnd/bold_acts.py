@@ -959,6 +959,8 @@ def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
     label = offer["label"]
     who = living_world.public_npc_name(server)
     line = f"{who} tezgâha dayanıyor. “{label[:1].upper()}{label[1:]} {offer['unit_cp']} bakır. Kaç tane?”"
+    import npc_statements
+    npc_statements.record(world, server, "", line, turn=None)
     return _reply(session, line, "shop_offer", "offer_open", None, [], offer=offer, npc_id=server["id"])
 
 

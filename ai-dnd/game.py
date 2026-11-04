@@ -8631,7 +8631,12 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if getattr(_session(), "_empty_handed", False):
         lines.append("Oyuncu bir şey uzatıyor gibi konuşuyor ama elinde öyle bir şey yok; ondan bir şey almış gibi yazma.")
     import bold_acts
-    return (_SPEECH_ANSWER_RULES + " ".join(lines) + bold_acts.speech_note(world, npc) + _town_note(world, npc)
+    import truth_card
+    held_out_cp = (decision.amount_cp if decision is not None and decision.npc_id == npc.get("id")
+                   and decision.kind != "paid_before" else 0)
+    card = truth_card.npc_view(world, npc=npc, held_out_cp=held_out_cp,
+                               this_turn=getattr(_session(), "_turn_notes", ()))
+    return (_SPEECH_ANSWER_RULES + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
             + town_knowledge.promise_note(world, npc)
             + town_knowledge.money_decided_note(getattr(_session(), "_thread_turn", None)) + "\n")
 
@@ -13318,6 +13323,7 @@ def ask_dungeon_master(
     narration_only=False,
 ):
     """Request one structured narration turn; apply only Python-validated lore updates."""
+    import truth_card
     world_state = _session().world_state
     if (action_result or {}).get("action") == "exploration_resolved":
         # Scoped narration never receives the catalog, hidden topology or mutable proposals.
@@ -13388,6 +13394,8 @@ def ask_dungeon_master(
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
             + json.dumps({"where_now": living_world.place_in_plain_words(world_state),
                           "perspective": scoped,
+                          "truth_card": truth_card.narrator_view(world_state, npc=npc_target,
+                                                                this_turn=getattr(_session(), "_turn_notes", ())),
                           "resolved": {k: v for k, v in action_result.items() if k != "direct_response"},
                           "player_intent": player_input}, ensure_ascii=False)
         )
@@ -13638,7 +13646,8 @@ def ask_dungeon_master(
            if getattr(_session(), "_nothing_taken", None) else "")
         + f"{_bag_note(pocket.bag_names(world_state))} Anlatında oyuncunun eline yeni bir şey geçiyorsa ya da bir şeyini "
         "birine veriyorsa item_claims alanında yalın adıyla bildir (to: player veya person); oyun onaylamazsa o cümle düşer.\n\n"
-        f"NARRATION FACTS (anlatılabilir olgular; boş alan gerçekleşmiş değildir):\n"
+        + truth_card.narrator_view(world_state, npc=npc_target, this_turn=getattr(_session(), "_turn_notes", ())) + "\n\n"
+        + f"NARRATION FACTS (anlatılabilir olgular; boş alan gerçekleşmiş değildir):\n"
         f"{json.dumps(_narrator_fact_view(_narration_fact_packet(action_result), action_result), ensure_ascii=False, separators=(',', ':'))}\n\n"
         f"CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n{living_scene_context}\n\n"
         f"RECENT NARRATION (yalnızca tekrar etmeme için; olgusal dayanak değil):\n{recent_narration_context}\n\n"

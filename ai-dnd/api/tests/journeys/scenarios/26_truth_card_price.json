@@ -1,0 +1,13 @@
+{
+  "id": "26_truth_card_price",
+  "title": "Motorun ödeme ve fiyat bilgisi konuşmaya ve anlatıcıya ayrı doğruluk kartlarıyla gider",
+  "source_items": [36, 38],
+  "setup": {"npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+            "currency": {"player": 100, "barman": 0}, "inventory": [], "seed": 7},
+  "steps": [
+    {"command": "/item shop_buy barman bira 1 0 4", "expect": {"kese": 96}},
+    {"say": "Marek'e teşekkür ediyorum", "script": {"intent": {"intent": "talk", "action": "talk", "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"}}},
+     "expect": {"konusmaya_giden": ["bira 4 bakır", "Bira", "ödendi", "SENİNLE OYUNCU ARASINDAKİ İŞLER"]}},
+    {"say": "etrafıma bakıyorum", "expect": {"anlaticiya_giden": ["bira 4 bakır", "Bira", "ödendi", "MOTOR GERÇEĞİ"]}}
+  ]
+}
