@@ -2,6 +2,7 @@
   "id": "05_greatsword",
   "title": "Silah (Fighter, paket C, Greatsword kuşanılmamış başlar): yumrukla açılan dövüşte savaş panelinin Saldır düğmesi ve saldırı karşılıklı Ready Greatsword ile çalışır, 'uygun bir silahın yok' (no_weapon) çıkmaz; konuşma diliyle 'büyük kılıcımla saldırıyorum' bugün de kılıcı çekip vurur (korunur)",
   "source_items": [39],
+  "real_chain_core": true,
   "setup": {
     "character": {
       "mode": "custom",
