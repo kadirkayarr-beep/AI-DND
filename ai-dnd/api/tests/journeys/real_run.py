@@ -1,20 +1,23 @@
 """The real-chain journey command: the same scenario files, played in this process with the real model chain.
 
-It spends money, so it plays only when told to (``--yap``). Without it, it prints the estimate (scenarios x steps x
-runs) and exits with 2 before anything can reach a model or a key. With it:
+It spends money, so it plays only when told to (``--yap``). Without it, it prints the estimate (engine model calls,
+an upper bound: two a say step, three a conversation turn) and exits with 2 before anything can reach a model or a
+key. With ``--yap`` and a ``--max-calls`` below that estimate it does not start either, and exits with 3. Otherwise:
 
 - the campaigns live in the runner's temporary store; the owner's save (``AI_DND_CAMPAIGN_DB``, the local play
   database) is taken out of this process's environment first, and the API's default app is not built;
 - every model call the engine makes is counted, and none is made past ``--max-calls``: the run stops at the next
   scenario and the report is still written, the cut steps marked as not run;
+- a report that cannot be built or written leaves a raw record of the run (``ADIM2_HAM_<date>.txt`` in ``--out``,
+  else in the temporary folder), so a paid run is never lost;
 - latency comes from the chain's observer (every cloud attempt, a skipped one with its reason) and from the adapter
   (the local model's answer, written to the usage ledger, and the whole engine call), one row per attempt and step
   call, so the report shows the median and the worst of the runs;
 - the report is ``report.build_report``'s, written as ``ADIM2_RAPOR_<date>.md`` into ``--out`` (never over an
   earlier one), with the run's own notes and the skipped attempts after it.
 
-No key is read before ``--yap``, and none is printed: the report scrubs key-like text, and a skip reason is printed
-only when it is a plain code.
+No key is read before ``--yap``, and none is printed: the report, its run notes and every printed line are scrubbed of
+key-like text, and a skip reason is printed only when it is a plain code.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ import argparse
 import os
 import re
 import sys
+import tempfile
 import time
 import unittest
 from collections import Counter
@@ -34,6 +38,8 @@ from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 from unittest.mock import patch
 
+import front_proposal
+from api.tests.journeys.report import scrub
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, load_scenario
 
 if TYPE_CHECKING:
@@ -43,11 +49,21 @@ if TYPE_CHECKING:
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
 DEFAULT_RUNS = 3
-DEFAULT_MAX_CALLS = 60
+# Ruling R20: above the core set's estimate (87 engine calls for three runs); Gemini is free, Haiku only answers when
+# Gemini cannot, so the cost stays small.
+DEFAULT_MAX_CALLS = 100
 EXIT_NOT_ASKED = 2
+EXIT_OVER_CAP = 3  # asked, but --max-calls is below the estimate: nothing started
+# Engine model calls a say step makes at most: the reading (intent or front) and the narration, and in a conversation
+# turn the person's reply as well. A command, a card or combat button, an undo or a reload is the engine's alone.
+_SAY_CALLS = 2
+_CONVERSATION_CALLS = 3
 
-# What start_local.ps1 -LocalPlay sets for the owner's play; set here only under --yap, only when unset.
-_PLAY_DEFAULTS = {"OLLAMA_HOST": "http://127.0.0.1:11434", "AI_DND_MODEL_CHAIN": "gemini,haiku,gemma"}
+# What start_local.ps1 -LocalPlay sets for the owner's play; set here only under --yap, only when unset. The front
+# reading is on in local play; its flag is set here directly, because front_proposal's local-play helper would also
+# point the route log at the owner's own file.
+_PLAY_DEFAULTS = {"OLLAMA_HOST": "http://127.0.0.1:11434", "AI_DND_MODEL_CHAIN": "gemini,haiku,gemma",
+                  front_proposal.FLAG: "1"}
 _LOOPBACK_HOST = re.compile(r"^https?://(127\.0\.0\.1|localhost|\[::1\])(:|/|$)")
 _PLAIN_REASON = re.compile(r"[A-Za-z0-9_]{1,40}")
 _LOCAL = "yerel"
@@ -64,8 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="core (real_chain_core işaretliler), all ya da virgülle kimlikler")
     parser.add_argument("--runs", type=_positive, default=DEFAULT_RUNS, help="her senaryo kaç kez koşar")
     parser.add_argument("--max-calls", type=_positive, default=DEFAULT_MAX_CALLS,
-                        help="motorun en çok kaç model çağrısı yapacağı (aşılmaz); bir motor çağrısı zincirde "
-                             "birden çok sağlayıcı denemesi olabilir, sağlayıcı isteği sayısı bundan fazla olabilir")
+                        help="motorun en çok kaç model çağrısı yapacağı (aşılmaz; tahminden küçükse koşu başlamaz); "
+                             "bir motor çağrısı zincirde birden çok sağlayıcı denemesi olabilir, sağlayıcı isteği "
+                             "sayısı bundan fazla olabilir")
     parser.add_argument("--yap", action="store_true", help="gerçekten koş (para harcar)")
     parser.add_argument("--out", type=Path, default=None,
                         help="raporun yazılacağı klasör (--yap ile zorunlu)")
@@ -98,8 +115,18 @@ def select_scenarios(choice: str, directory: Path = SCENARIO_DIR) -> dict[str, S
 
 
 def estimate_calls(scenarios: Mapping[str, Scenario], runs: int) -> int:
-    """Scenarios x steps x runs: one turn per step and run (a turn may make more than one model call)."""
-    return sum(len(scenario.steps) for scenario in scenarios.values()) * runs
+    """Engine model calls for every run, an upper bound (Ruling R20): see ``_step_calls``."""
+    return sum(_step_calls(step) for scenario in scenarios.values() for step in scenario.steps) * runs
+
+
+def _step_calls(step: Step) -> int:
+    """A say step makes two engine calls, three when it is a conversation turn (the step expects an open talk or
+    scripts the person's reply); every other step is played by the engine alone."""
+    if step.say is None:
+        return 0
+    mode = step.expect.get("kip")
+    talking = (isinstance(mode, Mapping) and mode.get("active") is True) or "spoken" in (step.script or {})
+    return _CONVERSATION_CALLS if talking else _SAY_CALLS
 
 
 def main(
@@ -111,44 +138,65 @@ def main(
     make_adapter: Callable[[], AuthenticatedOllamaAdapter | None] | None = None,
 ) -> int:
     out = out if out is not None else sys.stdout
+
+    def say(text: str) -> None:
+        print(scrub(text), file=out)
+
     args = parse_args(sys.argv[1:] if argv is None else argv)
     try:
         selection = select_scenarios(args.scenarios, scenario_dir)
     except ScenarioError as error:
-        print(f"Senaryo seçilemedi: {error}", file=out)
+        say(f"Senaryo seçilemedi: {error}")
         return 1
     steps = sum(len(scenario.steps) for scenario in selection.values())
-    print(f"Seçilen senaryolar: {', '.join(selection) or 'yok'}", file=out)
-    print(f"Tahmini tur: {len(selection)} senaryo × {steps} adım × {args.runs} koşu = "
-          f"{estimate_calls(selection, args.runs)} (bir tur birden çok model çağrısı yapabilir; "
-          f"en çok {args.max_calls} çağrı)", file=out)
+    estimate = estimate_calls(selection, args.runs)
+    say(f"Seçilen senaryolar: {', '.join(selection) or 'yok'}")
+    say(f"Tahmini motor çağrısı: {len(selection)} senaryo, {steps} adım, {args.runs} koşu: {estimate} "
+        f"(üst sınır: say adımı başına {_SAY_CALLS}, konuşma turunda {_CONVERSATION_CALLS}; öteki adımları motor "
+        f"kendisi oynar; sınır --max-calls {args.max_calls})")
+    if estimate > args.max_calls:
+        say(f"--max-calls {args.max_calls} tahminden ({estimate}) küçük: --yap ile de koşmaz (çıkış {EXIT_OVER_CAP}).")
     if not args.yap:
-        print("Gerçek zincir koşulmadı: para harcar, yalnız --yap ile koşar.", file=out)
+        say("Gerçek zincir koşulmadı: para harcar, yalnız --yap ile koşar.")
         return EXIT_NOT_ASKED
     if not selection:
-        print("Koşulacak senaryo yok.", file=out)
+        say("Koşulacak senaryo yok.")
         return 1
+    if estimate > args.max_calls:
+        say(f"Koşulmadı: --max-calls {args.max_calls}, tahmini {estimate} motor çağrısından küçük; "
+            f"en az --max-calls {estimate} ver.")
+        return EXIT_OVER_CAP
     if args.out is None:
-        print("Koşulmadı: raporun klasörü yok; --out <klasör> ver.", file=out)
+        say("Koşulmadı: raporun klasörü yok; --out <klasör> ver.")
+        return 1
+    try:
+        Path(args.out).mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        say(f"Koşulmadı: rapor klasörü açılamadı ({type(error).__name__}).")
         return 1
     _keep_the_owners_save_out()
     driver = build_driver(args.max_calls, make_adapter)
     if driver is None:
-        print("Koşulmadı: gerçek zincir kurulamadı (anahtar dosyası ya da AI_DND_MODEL_CHAIN yok).", file=out)
+        say("Koşulmadı: gerçek zincir kurulamadı (anahtar dosyası ya da AI_DND_MODEL_CHAIN yok).")
         return 1
     played = play(selection, args.runs, driver)
     if played.error:
-        print(f"Koşu bozuldu: {played.error}", file=out)
+        say(f"Koşu bozuldu: {played.error}")
         return 1
     day = today or datetime.now().astimezone().date()
-    text = assemble_report(selection, played, driver, args, day)
-    path = _free_path(Path(args.out), day)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    print(f"Model çağrısı: {driver.calls} (sınır {args.max_calls})", file=out)
+    say(f"Model çağrısı: {driver.calls} (sınır {args.max_calls})")
     if played.cut is not None:
-        print(f"--max-calls sınırına ulaşıldı; koşu erken durdu ({played.cut}).", file=out)
-    print(f"Rapor: {path}", file=out)
+        say(f"--max-calls sınırına ulaşıldı; koşu erken durdu ({played.cut}).")
+    try:
+        text = assemble_report(selection, played, driver, args, day)
+        path = _free_path(Path(args.out), f"ADIM2_RAPOR_{day.strftime('%Y%m%d')}", ".md")
+        path.write_text(text, encoding="utf-8")
+    except Exception as error:  # noqa: BLE001 - the run is paid for: its raw record must survive a report bug
+        say(f"Rapor yazılamadı ({type(error).__name__}); koşunun ham kaydı bırakılıyor.")
+        backup = _raw_backup(played, driver, args, day)
+        say(f"Ham kayıt: {backup}" if backup is not None else "Ham kayıt da yazılamadı.")
+        return 1
+    say(f"Rapor: {path}")
     return 0
 
 
@@ -376,7 +424,8 @@ def assemble_report(selection: Mapping[str, Scenario], played: Played, driver: R
             usage = None
     text = build_report(results, dict(selection), real_runs=real_runs, latency=driver.latency,
                         usage_today=usage, date=day.isoformat())
-    return text + "\n" + _run_notes(selection, played, driver, args) + "\n"
+    # The notes name scenarios and the cut too, so the whole text is scrubbed, not the report part alone.
+    return scrub(text + "\n" + _run_notes(selection, played, driver, args) + "\n")
 
 
 def _run_notes(selection: Mapping[str, Scenario], played: Played, driver: RealChain,
@@ -403,11 +452,36 @@ def _run_notes(selection: Mapping[str, Scenario], played: Played, driver: RealCh
     return "\n".join(lines)
 
 
-def _free_path(folder: Path, day: Date) -> Path:
-    stem = f"ADIM2_RAPOR_{day.strftime('%Y%m%d')}"
-    path = folder / f"{stem}.md"
+def _raw_backup(played: Played, driver: RealChain, args: argparse.Namespace, day: Date) -> Path | None:
+    """The run's step results as plain lines, in ``--out`` or else in the temporary folder; None if neither takes it."""
+    lines = ["# Adım 2 ham koşu kaydı (rapor yazılamadı)", "",
+             f"Model çağrısı: {driver.calls} (sınır {args.max_calls})"]
+    if played.cut is not None:
+        lines.append(f"Koşu erken durdu: {played.cut}")
+    runs = [(f"{key}, {number}. koşu", steps) for key, all_runs in played.complete.items()
+            for number, steps in enumerate(all_runs, start=1)]
+    runs += [(f"{key}, kesilen koşu", steps) for key, steps in played.partial.items()]
+    for title, steps in runs:
+        lines += ["", f"{title}:"]
+        lines += [f"- adım {step.index}: {step.status}" + (f": {'; '.join(step.failures)}" if step.failures else "")
+                  for step in steps]
+    text = scrub("\n".join(lines)) + "\n"
+    name = f"ADIM2_HAM_{day.strftime('%Y%m%d')}"
+    for folder in (Path(args.out), Path(tempfile.gettempdir())):
+        try:
+            path = _free_path(folder, name, ".txt")
+            path.write_text(text, encoding="utf-8")
+            return path
+        except OSError:
+            continue
+    return None
+
+
+def _free_path(folder: Path, stem: str, suffix: str) -> Path:
+    """``<stem><suffix>`` in the folder, or the first ``<stem>_<n><suffix>`` free: never over an earlier file."""
+    path = folder / f"{stem}{suffix}"
     number = 2
     while path.exists():
-        path = folder / f"{stem}_{number}.md"
+        path = folder / f"{stem}_{number}{suffix}"
         number += 1
     return path

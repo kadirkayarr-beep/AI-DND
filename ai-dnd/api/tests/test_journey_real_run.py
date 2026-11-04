@@ -22,6 +22,7 @@ from unittest.mock import patch
 
 import httpx
 
+import front_proposal
 from api import model_chain
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence import campaign_store
@@ -130,30 +131,59 @@ class Offline(unittest.TestCase):
 
 
 class TheGate(Offline):
-    def test_the_defaults_are_core_scenarios_three_runs_sixty_calls_and_no_spending(self):
+    def test_the_defaults_are_core_scenarios_three_runs_a_hundred_calls_and_no_spending(self):
         args = real_run.parse_args([])
-        self.assertEqual((args.scenarios, args.runs, args.max_calls, args.yap), ("core", 3, 60, False))
+        self.assertEqual((args.scenarios, args.runs, args.max_calls, args.yap), ("core", 3, 100, False))
 
     def test_without_yap_nothing_is_called_the_estimate_is_printed_and_the_exit_code_is_2(self):
         write_scenarios(self.scenarios, probe("01_a", 2), probe("02_b", 3), probe("03_c", 4, core=False))
         chain = FakeChain(self.folder)
         code, printed = self.run_command("--out", str(self.out), chain=chain)
         self.assertEqual(code, 2)
-        # Core only (two scenarios, 2 + 3 steps), three runs: 15 step turns.
-        self.assertIn("2 senaryo × 5 adım × 3 koşu = 15", printed)
+        # Core only (two scenarios, 2 + 3 say steps, two engine calls each), three runs: 30 engine calls.
+        self.assertIn("2 senaryo, 5 adım, 3 koşu: 30", printed)
         self.assertIn("--yap", printed)
         self.assertIsNone(chain.local, "the adapter was built without --yap")
         self.assertEqual(chain.cloud_requests, [])
         self.assertEqual(list(self.out.iterdir()), [])
         self.assertNotIn("AI_DND_MODEL_CHAIN", os.environ)
 
-    def test_the_estimate_is_scenarios_times_steps_times_runs(self):
-        write_scenarios(self.scenarios, probe("01_a", 2), probe("02_b", 3), probe("03_c", 4, core=False))
+    def test_the_estimate_counts_engine_calls_two_a_say_step_and_three_a_conversation_turn(self):
+        """Ruling R20: the estimate is engine calls, an upper bound: a say step makes at least two (reading and
+        narration), a conversation turn three (the reply as well); a command, a card or combat button, an undo or a
+        reload is played by the engine alone."""
+        talk = {"id": "04_d", "title": "Konuşma", "real_chain_core": True, "steps": [
+            {"say": "Marek, nasılsın?", "expect": {"kip": {"active": True}}},
+            {"say": "Marek'e soruyorum", "script": {"spoken": "İyiyim."}},
+            {"say": "etrafa bakıyorum", "expect": {"kip": {"active": False}}},
+            {"command": "/item shop_buy barman bira 1 0 4"},
+            {"economic_action": {"kind": "prepare"}},
+            {"combat_action": {"kind": "attack"}},
+            {"undo": True},
+            {"reload": True},
+        ]}
+        write_scenarios(self.scenarios, probe("01_a", 2), probe("02_b", 3), probe("03_c", 4, core=False), talk)
         code, printed = self.run_command("--scenarios", "all", "--runs", "2")
         self.assertEqual(code, 2)
-        self.assertIn("3 senaryo × 9 adım × 2 koşu = 18", printed)
+        self.assertIn(f"4 senaryo, 17 adım, 2 koşu: {((2 + 3 + 4) * 2 + 3 + 3 + 2) * 2}", printed)
         selection = real_run.select_scenarios("01_a,03_c", self.scenarios)
-        self.assertEqual(real_run.estimate_calls(selection, 5), (2 + 4) * 5)
+        self.assertEqual(real_run.estimate_calls(selection, 5), (2 + 4) * 2 * 5)
+        self.assertEqual(real_run.estimate_calls(real_run.select_scenarios("04_d", self.scenarios), 1), 8)
+
+    def test_a_cap_below_the_estimate_refuses_to_start_with_its_own_exit_code(self):
+        write_scenarios(self.scenarios, probe("01_a", 2))
+        chain = FakeChain(self.folder)
+        code, printed = self.run_command("--yap", "--out", str(self.out), "--max-calls", "11", chain=chain)
+        self.assertEqual(code, real_run.EXIT_OVER_CAP)
+        self.assertEqual(code, 3)  # not 2, which says the run was not asked for
+        self.assertIn("--max-calls 11", printed)
+        self.assertIn("12", printed)
+        self.assertIsNone(chain.local, "the adapter was built although the cap was below the estimate")
+        self.assertEqual(chain.cloud_requests, [])
+        self.assertEqual(list(self.out.iterdir()), [])
+        code, printed = self.run_command("--max-calls", "11")  # without --yap the estimate is told, the exit stays 2
+        self.assertEqual(code, 2)
+        self.assertIn("--max-calls", printed)
 
     def test_core_means_the_scenarios_flagged_real_chain_core(self):
         write_scenarios(self.scenarios, probe("01_a", 1), probe("02_b", 1, core=False))
@@ -217,7 +247,9 @@ class TheRealRun(Offline):
         write_scenarios(self.scenarios, probe("01_a", 3), probe("02_b", 3))
         chain = FakeChain(self.folder)
         engine_lines = io.StringIO()
-        with redirect_stdout(engine_lines):  # the engine prints its fallback line for each refused call
+        # The estimate is an upper bound; the cap still holds inside the run if the engine makes more calls.
+        with redirect_stdout(engine_lines), patch.object(real_run, "estimate_calls", return_value=3):
+            # the engine prints its fallback line for each refused call
             code, printed = self.run_command("--yap", "--scenarios", "all", "--out", str(self.out),
                                              "--max-calls", "3", chain=chain)
         self.assertEqual(code, 0, printed)
@@ -247,6 +279,84 @@ class TheRealRun(Offline):
             self.assertNotIn(FAKE_KEY, text)
             self.assertNotIn(KEY_IN_NARRATION, text)
             self.assertIsNone(KEY_LIKE.search(text), KEY_LIKE.search(text))
+
+    def test_the_run_notes_and_the_screen_are_scrubbed_as_well(self):
+        """Key-like text in a scenario id reaches the run notes after the report and the printed selection."""
+        scenario = probe(f"01_{KEY_IN_NARRATION}", 1)
+        scenario["steps"][0]["expect"]["savas"] = True  # a known break: the notes name the scenario
+        scenario["steps"][0]["known_broken"] = [99]
+        scenario["steps"][0]["broken_because"] = ["savas: beklenen True"]
+        write_scenarios(self.scenarios, scenario)
+        code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1", chain=FakeChain(self.folder))
+        self.assertEqual(code, 0, printed)
+        report = self.report()
+        self.assertIn("bilinen kırık işaretli adımı olan senaryolar: 01_[gizlendi]", report)
+        for text in (report, printed):
+            self.assertIsNone(KEY_LIKE.search(text), KEY_LIKE.search(text))
+
+    def test_a_report_that_cannot_be_built_leaves_a_raw_backup_of_the_run(self):
+        write_scenarios(self.scenarios, probe("01_a", 2))
+        with patch.object(real_run, "assemble_report", side_effect=ValueError("gecikme satırında saniye")):
+            code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1",
+                                             chain=FakeChain(self.folder))
+        self.assertEqual(code, 1, printed)
+        self.assertIn("ValueError", printed)
+        (backup,) = self.out.iterdir()
+        self.assertEqual(backup.name, "ADIM2_HAM_20261104.txt")
+        self.assertIn(str(backup), printed)
+        text = backup.read_text(encoding="utf-8")
+        self.assertIn("01_a, 1. koşu", text)
+        self.assertIn("adım 1: pass", text)
+        self.assertIn("adım 2: pass", text)
+        self.assertIn("Model çağrısı:", text)
+
+    def test_an_out_folder_that_cannot_be_made_stops_the_run_before_any_call(self):
+        write_scenarios(self.scenarios, probe("01_a", 1))
+        blocked = self.folder / "not-a-folder"
+        blocked.write_text("dosya", encoding="utf-8")
+        chain = FakeChain(self.folder)
+        code, printed = self.run_command("--yap", "--out", str(blocked / "rapor"), "--runs", "1", chain=chain)
+        self.assertEqual(code, 1, printed)
+        self.assertIn("rapor klasörü", printed)
+        self.assertIsNone(chain.local)
+
+    def test_a_raw_backup_goes_to_the_temporary_folder_when_the_out_folder_cannot_be_written(self):
+        write_scenarios(self.scenarios, probe("01_a", 1))
+        blocked = self.folder / "not-a-folder"
+        blocked.write_text("dosya", encoding="utf-8")
+        real_free_path = real_run._free_path
+
+        def out_folder_gone(folder, *rest):  # the out folder fails after the run (a lost drive, a full disk)
+            return blocked / "yok.md" if Path(folder) == self.out else real_free_path(folder, *rest)
+
+        with patch.object(real_run, "_free_path", out_folder_gone):
+            code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1",
+                                             chain=FakeChain(self.folder))
+        self.assertEqual(code, 1, printed)
+        self.assertEqual(list(self.out.iterdir()), [])
+        backups = [Path(line.split(": ", 1)[1]) for line in printed.splitlines() if line.startswith("Ham kayıt: ")]
+        self.assertEqual(len(backups), 1, printed)
+        self.addCleanup(backups[0].unlink)
+        self.assertTrue(backups[0].resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()), backups[0])
+        self.assertIn("01_a, 1. koşu", backups[0].read_text(encoding="utf-8"))
+
+    def test_the_play_settings_turn_the_front_reading_on_and_leave_the_route_log_alone(self):
+        """Local play reads the front with the flag on, so the real run does too; the flag is set directly (a value
+        already set stays), never through the local-play helper that also points the route log at the owner's file."""
+        write_scenarios(self.scenarios, probe("01_a", 1))
+        for given, expected in ((None, "1"), ("0", "0")):
+            with self.subTest(given=given), patch.object(
+                    front_proposal, "default_on_for_local_play", side_effect=AssertionError("helper called")):
+                os.environ.pop(front_proposal.FLAG, None)
+                os.environ.pop(front_proposal.ROUTE_LOG, None)
+                if given is not None:
+                    os.environ[front_proposal.FLAG] = given
+                code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1",
+                                                 chain=FakeChain(self.folder))
+                self.assertEqual(code, 0, printed)
+                self.assertEqual(os.environ.get(front_proposal.FLAG), expected)
+                self.assertNotIn(front_proposal.ROUTE_LOG, os.environ)
+        self.assertEqual(real_run._PLAY_DEFAULTS[front_proposal.FLAG], "1")
 
     def test_the_campaign_lives_in_a_temporary_store_never_the_owners_save(self):
         owner_save = self.folder / "AI-DND" / "local-play.sqlite3"
@@ -303,7 +413,7 @@ class TheRealRun(Offline):
                                          chain=FakeChain(self.folder))
         self.assertEqual(code, 0, printed)
         report = self.report()
-        self.assertIn("- 01_a: 1 üzerinden 0", report)
+        self.assertIn("- 01_a: 1 üzerinden 0 (eksik: 3 koşu beklenir)", report)
         notes = report.split("## Gerçek zincir koşusu", 1)[1]
         self.assertIn("bilinen kırık işaretli adımı olan senaryolar: 01_a", notes)
 
@@ -343,7 +453,10 @@ class TheCoreSet(Offline):
         printed = io.StringIO()
         self.assertEqual(real_run.main([], out=printed, scenario_dir=SCENARIO_DIR), 2)
         steps = sum(len(scenario.steps) for scenario in core.values())
-        self.assertIn(f"4 senaryo × {steps} adım × 3 koşu = {steps * 3}", printed.getvalue())
+        # rc1 2+3+3+3, rc2 2+3+3, rc3 2+2+2, rc4 2+2 engine calls (their commands are the engine's), three runs.
+        self.assertEqual(real_run.estimate_calls(core, 3), 87)
+        self.assertLessEqual(real_run.estimate_calls(core, 3), real_run.DEFAULT_MAX_CALLS)
+        self.assertIn(f"4 senaryo, {steps} adım, 3 koşu: 87", printed.getvalue())
 
     def test_a_core_journey_carries_no_known_break_so_its_ratio_is_the_chains(self):
         for key, scenario in self.core().items():
