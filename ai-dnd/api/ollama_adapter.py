@@ -170,6 +170,7 @@ class AuthenticatedOllamaAdapter:
         self._chain = chain
         # Measures the local model's calls (the chain's observer writes the cloud ones); None writes nothing.
         self.usage_ledger: UsageLedger | None = None
+        self._warned_day: str | None = None  # the ledger day whose spend warning is already in the log
 
     @property
     def model_name(self) -> LocalModelName:
@@ -210,16 +211,26 @@ class AuthenticatedOllamaAdapter:
             return None
         chain = model_chain.from_environment() if use_cloud else None
         adapter = cls(client, model_name=model_name, chain=chain)
-        if chain is not None:
+        if use_cloud:
+            # Local play measures Gemma too, with or without a cloud chain in front of it.
             adapter.usage_ledger = UsageLedger(model_chain._usage_path())
         return adapter
 
     def spend_warning(self) -> str | None:
-        """The ledger's warning line once today's known cost is high, else None. It never raises."""
+        """The ledger's warning line once today's known cost is high, else None. It never raises.
+
+        The line also goes to the log, once a ledger day (health reads it on every call).
+        """
         if self.usage_ledger is None:
             return None
         try:
-            return self.usage_ledger.warning()
+            text = self.usage_ledger.warning()
+            if text is not None:
+                day = self.usage_ledger.day()
+                if day != self._warned_day:
+                    self._warned_day = day
+                    _logger.warning("%s", text)
+            return text
         except Exception as error:  # noqa: BLE001 - a measuring aid must not break the caller
             _logger.warning("Usage ledger warning could not be read (%s).", type(error).__name__)
             return None

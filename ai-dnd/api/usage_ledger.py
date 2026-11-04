@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import sys
 import threading
 import time
@@ -43,6 +44,18 @@ _LOCK_WAIT_SECONDS = 2.0
 
 def _local_now() -> datetime:
     return datetime.now().astimezone()
+
+
+def _count(value: object) -> int:
+    """A token count as the reader accepts it: a whole number of zero or more, else 0."""
+    return value if type(value) is int and value >= 0 else 0
+
+
+def _duration(value: object) -> float | None:
+    """Seconds as the reader accepts them: a finite number of zero or more, else None."""
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        return None
+    return value
 
 
 class UsageLedger:
@@ -90,7 +103,8 @@ class UsageLedger:
                 handle.seek(0)
                 msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
-    def _day(self) -> str:
+    def day(self) -> str:
+        """The ledger's day: the clock's local date."""
         return self._now().strftime("%Y-%m-%d")
 
     def record(
@@ -103,12 +117,16 @@ class UsageLedger:
         seconds: float | None = None,
         outcome: str = "answered",
     ) -> None:
-        """Append one line. Never raises: a call must not wait on, or fail from, its own log."""
+        """Append one line. Never raises: a call must not wait on, or fail from, its own log.
+
+        A token count that is not a whole number of zero or more is written as 0, and a seconds value that is not
+        a real duration (NaN, infinity, negative, not a number) as None: the line stays readable and the call counts.
+        """
         try:
             line = json.dumps(
-                {"day": self._day(), "provider": provider, "input": input_tokens,
-                 "output": output_tokens, "thought": thought_tokens, "seconds": seconds,
-                 "outcome": outcome},
+                {"day": self.day(), "provider": provider, "input": _count(input_tokens),
+                 "output": _count(output_tokens), "thought": _count(thought_tokens),
+                 "seconds": _duration(seconds), "outcome": outcome},
                 separators=(",", ":"),
             ) + "\n"
             with self._lock:
@@ -121,7 +139,7 @@ class UsageLedger:
 
     def today(self) -> dict[str, dict[str, float]]:
         """Per provider: calls, input, output, thought, seconds for today. Unreadable lines are skipped."""
-        day = self._day()
+        day = self.day()
         totals: dict[str, dict[str, float]] = {}
         try:
             with self._lock, open(self._path, encoding="utf-8", errors="replace") as handle:

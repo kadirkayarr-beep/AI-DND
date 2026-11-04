@@ -552,6 +552,27 @@ class TheObserver(unittest.TestCase):
         self.assertEqual(response.message.content, '{"narration": "Sokak sessiz."}')
         self.assertTrue(any("observer" in line for line in logs.output))
 
+    def test_a_billed_reply_the_game_cannot_use_is_skipped_with_its_real_tokens(self):
+        """Haiku answered and was billed, but the game cannot use the reply: the skip carries the billed tokens
+        (the usage ledger counts what was paid), while the answer, the order and the Haiku count stay as they were."""
+        seen = []
+        path = spend_file()
+        clock = Clock()
+        providers = [model_chain.gemini(KEY), model_chain.haiku(KEY, model_chain.HaikuSpend(path, clock))]
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply("yarım")))
+        chain = model_chain.ModelChain(providers, transport=httpx.MockTransport(cloud), now=clock,
+                                       observer=seen.append)
+        local = LocalModel()
+        response, provider = chain.chat(CALL, local)
+        self.assertIsNone(provider)
+        self.assertEqual((local.calls, response), (1, local.answer))
+        self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
+        server_error, unusable = seen
+        self.assertEqual((server_error.reason, server_error.input_tokens, server_error.output_tokens), ("http_500", 0, 0))
+        self.assertEqual((unusable.provider, unusable.outcome, unusable.reason), ("haiku", "skipped", "unusable_reply"))
+        self.assertEqual((unusable.input_tokens, unusable.output_tokens, unusable.thought_tokens), (1000, 200, 0))
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 1000, "output_tokens": 200})
+
 
 class TheReplyShape(unittest.TestCase):
     """A cloud reply leaves shaped as Gemma's grammar would have shaped it, or the next provider is asked."""
@@ -789,11 +810,13 @@ class TheSetting(unittest.TestCase):
         chain = model_chain.from_environment()
         cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
         chain._http = httpx.Client(transport=httpx.MockTransport(cloud), trust_env=False)
+        # An injected clock, so a month that turns over mid-run cannot split the count.
+        haiku_count = chain._providers[1].spend
+        haiku_count._now = Clock()
         chain.chat(CALL, LocalModel())
         chain.chat(CALL, LocalModel())
         saved = json.loads(spend.read_text(encoding="utf-8"))
-        self.assertEqual(saved, {"month": datetime.now().astimezone().strftime("%Y-%m"),
-                                 "input_tokens": 2000, "output_tokens": 400})
+        self.assertEqual(saved, {"month": "2026-10", "input_tokens": 2000, "output_tokens": 400})
         self.assertEqual(sorted(path.name for path in folder.iterdir() if path.suffix in {".json", ".jsonl"}),
                          ["model-chain-spend.json", "model-usage.jsonl"])
         usage = [json.loads(line) for line in (folder / "model-usage.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -806,6 +829,22 @@ class TheSetting(unittest.TestCase):
         with_cloud = AuthenticatedOllamaAdapter.from_environment(use_cloud=True)
         self.assertEqual(with_cloud.usage_ledger._path, self.home / "appdata" / "AI-DND" / "model-usage.jsonl")
         self.assertIsNone(AuthenticatedOllamaAdapter.from_environment().usage_ledger)
+
+    def test_local_play_without_a_cloud_chain_still_measures_gemma(self):
+        """Ruling R21: local play with no cloud provider (no setting, only gemma, or no key) still gets the
+        ledger, so Gemma's calls are measured; outside local play nothing is written."""
+        os.environ.update(OLLAMA_HOST="http://127.0.0.1:11434", OLLAMA_PROXY_TOKEN="loopback")
+        expected = self.home / "appdata" / "AI-DND" / "model-usage.jsonl"
+        for setting in (None, "gemma", "gemini,haiku,gemma"):  # the last one with no key file
+            with self.subTest(setting=setting):
+                if setting is None:
+                    os.environ.pop("AI_DND_MODEL_CHAIN", None)
+                else:
+                    os.environ["AI_DND_MODEL_CHAIN"] = setting
+                local = AuthenticatedOllamaAdapter.from_environment(use_cloud=True)
+                self.assertIsNone(local.cloud_chain)
+                self.assertEqual(local.usage_ledger._path, expected)
+                self.assertIsNone(AuthenticatedOllamaAdapter.from_environment().usage_ledger)
 
     def test_the_status_line_names_providers_and_no_secret(self):
         self.keys()
@@ -1099,12 +1138,39 @@ class TheUsageLedgerWiring(unittest.TestCase):
         adapter = self.adapter(FakeCloud())
         self.assertIsNone(adapter.spend_warning())
         self.ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
-        self.assertIn("3.00 USD", adapter.spend_warning())
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
+            self.assertIn("3.00 USD", adapter.spend_warning())
         adapter.usage_ledger = None
         self.assertIsNone(adapter.spend_warning())
         adapter.usage_ledger = RaisingLedger()
         with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
             self.assertIsNone(adapter.spend_warning())
+
+    def test_the_spend_warning_is_logged_once_a_day(self):
+        """The warning line goes to the log the first time it shows on a day, and not again that day (health
+        reads it on every call); a new day that reaches the limit logs it again. Only the warning text is logged."""
+        clock = Clock()
+        ledger = usage_ledger.UsageLedger(self.path, now=clock)
+        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4:e4b")
+        adapter.usage_ledger = ledger
+        ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            first = adapter.spend_warning()
+        self.assertIn("3.00 USD", first)
+        self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{first}"])
+        with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
+            self.assertEqual(adapter.spend_warning(), first)
+            self.assertEqual(adapter.spend_warning(), first)
+        clock.advance(24 * 3600)
+        with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
+            self.assertIsNone(adapter.spend_warning())  # a new day: nothing spent yet
+        ledger.record("haiku", input_tokens=31_000_000, output_tokens=0)
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            again = adapter.spend_warning()
+        self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{again}"])
+        self.assertIn("3.10 USD", again)
+        with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
+            adapter.spend_warning()
 
 
 class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
@@ -1149,12 +1215,15 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         self.adapter.usage_ledger.record("haiku", input_tokens=31_000_000, output_tokens=0)
         expected = self.adapter.usage_ledger.warning()
         self.assertIsNotNone(expected)
-        for path in ("/api/game/health", "/api/health"):
-            health = (await self.http.get(path)).json()
-            self.assertEqual(health["spend_warning"], expected)
-            self.assertIn("3.10 USD", health["spend_warning"])
-            self.assertEqual(health["model"], "gemma4:e4b")
-            self.assertNotIn(KEY, json.dumps(health))
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            for path in ("/api/game/health", "/api/health"):
+                health = (await self.http.get(path)).json()
+                self.assertEqual(health["spend_warning"], expected)
+                self.assertIn("3.10 USD", health["spend_warning"])
+                self.assertEqual(health["model"], "gemma4:e4b")
+                self.assertNotIn(KEY, json.dumps(health))
+        # Health reads the warning on every call; the log gets it once that day.
+        self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{expected}"])
 
     async def test_health_survives_a_ledger_that_cannot_be_read(self):
         class Broken:

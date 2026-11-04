@@ -61,7 +61,8 @@ _logger = logging.getLogger("ai_dnd.api.ollama")
 
 @dataclass(frozen=True)
 class ChainAttempt:
-    """One provider try inside a chat call, for an optional observer. Tokens are zero when the try was skipped."""
+    """One provider try inside a chat call, for an optional observer. A skipped try carries the tokens of a reply
+    that came back and was billed but could not be used, and zero tokens otherwise."""
 
     provider: str
     outcome: Literal["answered", "skipped"]
@@ -299,10 +300,12 @@ def haiku(key: str, spend: HaikuSpend) -> Provider:
 
 
 class _Skipped(Exception):
-    """A provider gave no usable answer. Carries a fixed reason, never provider text."""
+    """A provider gave no usable answer. Carries a fixed reason, never provider text, and the reply when one
+    came back and was billed (only its token counts are read)."""
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, reply: Reply | None = None):
         self.reason = reason
+        self.reply = reply
         super().__init__(reason)
 
 
@@ -482,7 +485,7 @@ class ModelChain:
             provider.spend.add(reply)  # billed whether or not the game can use it
         text = _for_the_game(reply, call)
         if text is None:
-            raise _Skipped("unusable_reply")
+            raise _Skipped("unusable_reply", reply)
         return replace(reply, text=text)
 
     def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
@@ -507,7 +510,11 @@ class ModelChain:
                 seconds = time.monotonic() - started
                 _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
                              provider.name, reason, seconds)
-                self._notify(ChainAttempt(provider.name, "skipped", reason, seconds, 0, 0, 0))
+                billed = error.reply if isinstance(error, _Skipped) else None
+                self._notify(ChainAttempt(
+                    provider.name, "skipped", reason, seconds,
+                    *((billed.input_tokens, billed.output_tokens, billed.thought_tokens) if billed else (0, 0, 0)),
+                ))
                 continue
             seconds = time.monotonic() - started
             _logger.info("Model chain answered (provider=%s, seconds=%.2f, thought_tokens=%d)",

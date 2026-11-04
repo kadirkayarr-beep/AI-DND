@@ -237,6 +237,36 @@ class TheLedger(unittest.TestCase):
             {"day", "provider", "input", "output", "thought", "seconds", "outcome"},
         )
 
+    def test_a_bad_count_is_written_as_zero_and_the_call_still_counts(self):
+        """A token count that is missing, negative or not a whole number is written as 0, so the line stays
+        readable and the call is still counted (a null used to drop the whole line on read)."""
+        path = ledger_file()
+        ledger = UsageLedger(path, now=noon())
+        for bad in (None, -5, 3.5, True, "7", float("nan")):
+            with self.subTest(bad=bad):
+                ledger.record("gemini", input_tokens=bad, output_tokens=bad, thought_tokens=bad, seconds=0.5)
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len(rows), 6)
+        for row in rows:
+            self.assertEqual((row["input"], row["output"], row["thought"], row["seconds"]), (0, 0, 0, 0.5))
+        self.assertEqual(ledger.today()["gemini"], {"calls": 6, "input": 0, "output": 0, "thought": 0, "seconds": 3.0})
+
+    def test_a_seconds_value_that_is_not_a_real_duration_is_written_as_none(self):
+        """NaN, infinity, a negative or a non-number seconds value is refused: the line is still written (the call
+        counts with its tokens), its seconds is None, and the day's seconds sum stays a real number."""
+        path = ledger_file()
+        ledger = UsageLedger(path, now=noon())
+        for bad in (float("nan"), float("inf"), float("-inf"), -1.0, "2", True):
+            with self.subTest(bad=bad):
+                ledger.record("haiku", input_tokens=10, output_tokens=1, seconds=bad)
+        ledger.record("haiku", input_tokens=10, output_tokens=1, seconds=2)
+        text = path.read_text(encoding="utf-8")
+        self.assertNotIn("NaN", text)
+        self.assertNotIn("Infinity", text)
+        rows = [json.loads(line) for line in text.splitlines()]
+        self.assertEqual([row["seconds"] for row in rows], [None] * 6 + [2])
+        self.assertEqual(ledger.today()["haiku"], {"calls": 7, "input": 70, "output": 7, "thought": 0, "seconds": 2})
+
     def test_a_record_failure_logs_the_error_type_only(self):
         base = Path(tempfile.mkdtemp(dir=_TEMP.name))
         path = base / "secret-name-sk-123" / "model-usage.jsonl"

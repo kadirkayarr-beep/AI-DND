@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-import json
+import re
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -28,6 +28,23 @@ def validation_rejected(before: ea.EconomicFacts, after: ea.EconomicFacts, resol
     except ea.EconomicReceiptError:
         return True
     return False
+
+
+def fields_and_values(payload) -> tuple[set[str], list]:
+    """Every field name and every leaf value of a JSON-shaped payload, at any depth."""
+    keys: set[str] = set()
+    values: list = []
+    pending = [payload]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            keys.update(node)
+            pending.extend(node.values())
+        elif isinstance(node, (list, tuple)):
+            pending.extend(node)
+        else:
+            values.append(node)
+    return keys, values
 
 
 class TheReceiptIsIndependent(ResolutionFixture):
@@ -104,6 +121,14 @@ class TheReceiptIsIndependent(ResolutionFixture):
                 before, self.facts_after(lambda world: bought(world, beers=2)), sold, purchase))
 
     def test_public_receipt_hides_other_npc_wallet(self):
+        self.assert_the_wallet_stays_hidden()
+
+    def test_public_receipt_hides_other_npc_wallet_whatever_the_random_ids_hold(self):
+        """The offer id is random hex, so it may hold the wallet's digits; only the receipt's fields matter."""
+        with patch.object(ea, "new_offer_id", return_value="0137" + "0142" + "a" * 24):
+            self.assert_the_wallet_stays_hidden()
+
+    def assert_the_wallet_stays_hidden(self):
         self.w["currency"]["barman"] = 137
         self.w["npcs"][0].update(name="Gizli Marek", name_known_to_player=False)
         offer = self.offer(room(recipient_id="barman", tip_cp=5, tender_cp=100))
@@ -112,10 +137,17 @@ class TheReceiptIsIndependent(ResolutionFixture):
         public = ea.public_resolution(self.state(), result)
         payload = dataclasses.asdict(public)
         PublicEconomicResolutionSchema.model_validate(payload)
-        text = json.dumps(payload, ensure_ascii=False)
-        for hidden in ("137", "142", "asset_deltas", "balances", "base_fingerprint", "world_effects", "Gizli",
-                       "barman", "acceptance"):
-            self.assertNotIn(hidden, text)
+        # Checked field by field, not as one text: a random id or digest may hold the wallet's digits by chance.
+        keys, values = fields_and_values(payload)
+        for hidden in ("asset_deltas", "balances", "base_fingerprint", "world_effects", "acceptance"):
+            self.assertNotIn(hidden, keys)
+        for wallet in (137, 142):  # the barman's purse before and after the tip
+            self.assertNotIn(wallet, [value for value in values if type(value) is int])
+            # As a number of its own in a text (a summary sentence), not as digits inside a hex id.
+            self.assertEqual([value for value in values
+                              if isinstance(value, str) and re.search(rf"\b{wallet}\b", value)], [], wallet)
+        for word in ("Gizli", "barman", "acceptance"):
+            self.assertEqual([value for value in values if isinstance(value, str) and word in value], [], word)
         self.assertEqual((public.net_debit_cp, public.change_cp, public.tender_cp), (55, 45, 100))
         self.assertEqual([(line.line_id, line.total_cp) for line in public.lines], [("room:0", 50), ("tip:1", 5)])
 
