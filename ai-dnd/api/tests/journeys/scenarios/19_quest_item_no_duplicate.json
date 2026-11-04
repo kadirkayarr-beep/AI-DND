@@ -83,7 +83,8 @@
       },
       "known_broken": [
         115
-      ]
+      ],
+      "broken_because": ["kese: beklenen", "envanter: beklenen", "gorev: beklenen"]
     }
   ]
 }

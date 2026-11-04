@@ -11,6 +11,9 @@ import unittest
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems, summary_line
 from api.tests.journeys.schema import ScenarioError, load_scenario
 
+# The scenario files there were when this check was written; a renamed or emptied folder must not pass as green.
+MIN_SCENARIOS = 32
+
 
 class JourneysTest(JourneyCase):
     async def test_every_scenario_file(self):
@@ -21,11 +24,16 @@ class JourneysTest(JourneyCase):
                     scenario = load_scenario(path)
                 except ScenarioError as error:
                     self.fail(str(error))
+                # Ruling R19: every marker names the failures it stands for, so it cannot absorb another one.
+                unnamed = [number for number, step in enumerate(scenario.steps, start=1)
+                           if step.known_broken and not step.broken_because]
+                self.assertEqual(unnamed, [], f"{scenario.id}: known_broken without broken_because")
                 steps = await self.run_scenario(scenario)
                 results[scenario.id] = steps
                 problems = describe_problems(steps)
                 if problems:
                     self.fail(f"{scenario.id}:\n" + "\n".join(problems))
+        self.assertGreaterEqual(len(results), MIN_SCENARIOS, f"only {len(results)} scenario files ran")
         print(f"\nYolculuklar: {summary_line(results)}")
 
 

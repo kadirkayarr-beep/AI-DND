@@ -19,7 +19,8 @@
       "say": "5 bakır koyuyorum, üstü kalsın",
       "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5}},
       "expect": {"envanter": {"Bira": 1}, "kese": 95, "kisi_kese": {"barman": 5}},
-      "known_broken": [35]
+      "known_broken": [35],
+      "broken_because": ["envanter: beklenen", "kese: beklenen", "kisi_kese.barman: beklenen"]
     }
   ]
 }

@@ -64,7 +64,8 @@
     {
       "combat_action": {"steps": [{"kind": "attack", "target_id": "bandit"}]},
       "expect": {"savas": true, "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]},
-      "known_broken": [39]
+      "known_broken": [39],
+      "broken_because": ["no_weapon"]
     },
     {
       "combat_action": {
@@ -78,7 +79,8 @@
       },
       "independent": true,
       "expect": {"savas": true, "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]},
-      "known_broken": [39]
+      "known_broken": [39],
+      "broken_because": ["no_weapon"]
     },
     {
       "say": "Haydut'a büyük kılıcımla saldırıyorum",

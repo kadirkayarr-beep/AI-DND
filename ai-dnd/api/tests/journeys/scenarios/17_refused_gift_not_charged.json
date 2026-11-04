@@ -70,7 +70,8 @@
       },
       "known_broken": [
         103
-      ]
+      ],
+      "broken_because": ["kese: beklenen", "kisi_kese.caravaner: beklenen"]
     }
   ]
 }

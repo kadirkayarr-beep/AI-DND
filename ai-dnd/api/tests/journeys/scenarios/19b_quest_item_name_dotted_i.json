@@ -46,7 +46,8 @@
       },
       "known_broken": [
         115
-      ]
+      ],
+      "broken_because": ["gözlenen {'Iade takımı': 1}"]
     }
   ]
 }

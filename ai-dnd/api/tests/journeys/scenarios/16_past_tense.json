@@ -14,7 +14,8 @@
       "say": "az önce 5 bakır verdim",
       "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 500}},
       "expect": {"kart": null, "kese": 100},
-      "known_broken": [3]
+      "known_broken": [3],
+      "broken_because": ["kart: beklenen yok"]
     }
   ]
 }

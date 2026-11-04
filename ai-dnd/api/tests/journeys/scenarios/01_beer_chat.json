@@ -21,7 +21,8 @@
       "say": "bir bira alabilir miyim",
       "independent": true,
       "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}},
-      "known_broken": [35]
+      "known_broken": [35],
+      "broken_because": ["tezgah: beklenen"]
     }
   ]
 }

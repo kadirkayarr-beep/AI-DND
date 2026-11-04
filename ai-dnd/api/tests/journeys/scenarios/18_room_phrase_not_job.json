@@ -118,7 +118,8 @@
       "known_broken": [
         110,
         115
-      ]
+      ],
+      "broken_because": ["kese: beklenen", "saat: beklenen", "gözlenen ['Hediye']"]
     }
   ]
 }

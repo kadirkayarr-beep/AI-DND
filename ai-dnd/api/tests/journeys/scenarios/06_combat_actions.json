@@ -81,19 +81,22 @@
     {
       "say": "ready",
       "expect": {"savas": true, "yasak_metin": ["Dövüşün ortasında bu olmuyor", "Ready needs"]},
-      "known_broken": [40]
+      "known_broken": [40],
+      "broken_because": ["yasak metin bulundu: Dövüşün ortasında bu olmuyor"]
     },
     {
       "say": "okçuya yaklaşıyorum",
       "independent": true,
       "expect": {"savas": true, "hareket": 25},
-      "known_broken": [40]
+      "known_broken": [40],
+      "broken_because": ["hareket: beklenen"]
     },
     {
       "say": "rakibin yanına gidiyorum",
       "independent": true,
       "expect": {"savas": true, "yasak_metin": "yürüyüp gidemezsin"},
-      "known_broken": [40]
+      "known_broken": [40],
+      "broken_because": ["yasak metin bulundu: yürüyüp gidemezsin"]
     }
   ]
 }

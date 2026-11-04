@@ -40,7 +40,8 @@
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
                             "completion": "complete"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
-      "known_broken": [4]
+      "known_broken": [4],
+      "broken_because": ["kart: beklenen"]
     },
     {
       "say": "bi oda tutayım usta",
@@ -64,7 +65,8 @@
       "say": "odama gidip uyuyorum",
       "independent": true,
       "expect": {"hp": 28, "oda": true, "kip": {"active": false, "interlocutor": null}},
-      "known_broken": [41]
+      "known_broken": [41],
+      "broken_because": ["kip.active: beklenen False", "kip.interlocutor: beklenen yok"]
     },
     {
       "say": "Marek'e günaydın diyorum",
@@ -84,7 +86,8 @@
       "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk", "completion": "complete"}},
       "expect": {"kip": {"active": false, "interlocutor": null}},
-      "known_broken": [15]
+      "known_broken": [15],
+      "broken_because": ["kip.active: beklenen False", "kip.interlocutor: beklenen yok"]
     },
     {
       "say": "Marek'e selam veriyorum",

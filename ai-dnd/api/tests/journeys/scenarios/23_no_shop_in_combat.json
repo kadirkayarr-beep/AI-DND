@@ -1,8 +1,8 @@
 {
   "id": "23_no_shop_in_combat",
-  "title": "Savaşta alışveriş yok (114, Ruling R11, Kadir teyitli): handa dövüşten önce tezgâhtan bir bira alınabilir; Haydut'la dövüş sürerken aynı tezgâhtan ikinci bira alma komutu reddedilir, kese, envanter ve barmenin kesesi değişmez (tezgâh panelinin savaşta gizlenmesi arayüz işidir, burada sınanmaz)",
+  "title": "Savaşta alışveriş yok (122, Ruling R11, Kadir teyitli): handa dövüşten önce tezgâhtan bir bira alınabilir; Haydut'la dövüş sürerken aynı tezgâhtan ikinci bira alma komutu reddedilir, kese, envanter ve barmenin kesesi değişmez (tezgâh panelinin savaşta gizlenmesi arayüz işidir, burada sınanmaz)",
   "source_items": [
-    114
+    122
   ],
   "setup": {
     "campaign_start": {

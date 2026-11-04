@@ -37,7 +37,8 @@
         }
       },
       "expect": {"savas": false, "konum": "fr:city:neverwinter", "gerekli_metin": ["Ferumel ölür", "Orsik"]},
-      "known_broken": [47]
+      "known_broken": [21, 47],
+      "broken_because": ["gerekli metin bulunamadı: Orsik"]
     },
     {
       "say": "etrafıma bakıyorum",

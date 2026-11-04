@@ -34,7 +34,8 @@
     {
       "say": "ikna etmeye çalışıyorum, biraz indirim yap usta",
       "expect": {"kart": {"max_total_cp": 50}, "kese": 100, "gerekli_metin": ["başarılı", "indirim"]},
-      "known_broken": [37]
+      "known_broken": [37],
+      "broken_because": ["gerekli metin bulunamadı: indirim"]
     },
     {
       "economic_action": {"kind": "confirm"},
@@ -45,7 +46,8 @@
       "say": "yukarı çıkıp odama geçiyorum",
       "independent": true,
       "expect": {"oda": true, "anlaticiya_giden": ["oda tutuldu"]},
-      "known_broken": [38]
+      "known_broken": [38],
+      "broken_because": ["anlatıcıya giden metinde bulunamadı: oda tutuldu"]
     },
     {
       "say": "anahtarı alıp odaya gidiyorum",

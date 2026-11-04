@@ -41,7 +41,8 @@
     {
       "say": "kesemdeki parayı sayıyorum",
       "expect": {"kese": 6000, "envanter": {"Greatsword": 1, "Ağır Tatar Yayı & 20 Ok": 1, "Macera Çantası": 1}},
-      "known_broken": [34]
+      "known_broken": [34],
+      "broken_because": ["kese: beklenen", "'10 Altın': 1"]
     },
     {
       "economic_action": {"kind": "prepare", "proposal": {"purpose": "gift", "recipient_id": "barman", "amount_cp": 4}},
