@@ -10,11 +10,13 @@ import json
 import random
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 from api.tests.journeys.runner import (
     JourneyCase,
     ScriptedClient,
+    ScriptedModel,
     StepResult,
     apply_setup,
     describe_problems,
@@ -118,6 +120,41 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual(len(seen_first), 3)
         self.assertEqual(seen_first, seen_second)
         self.assertEqual([result.narration for result in first], [result.narration for result in second])
+
+    async def test_a_scripted_say_step_gets_the_scripted_narration_end_to_end(self):
+        class RecordingModel(ScriptedModel):
+            """The default driver, keeping each step's client so the test can see what it answered."""
+
+            def __init__(self):
+                self.clients = []
+
+            @contextmanager
+            def bind(self, case, step):
+                with super().bind(case, step) as client:
+                    self.clients.append(client)
+                    yield client
+
+        first_line = "Mum alevi titriyor; Marek kulağını tezgâha dayamış dinliyor."
+        second_line = "Kapının önünde bir köpek havlıyor, sonra susuyor."
+        model = RecordingModel()
+        results = await self.run_scenario(beer_scenario(
+            {"say": "Tezgâha yaslanıp salonu dinliyorum.",
+             "script": {"intent": "narrative", "narration": first_line},
+             "expect": {"gerekli_metin": first_line, "yasak_metin": second_line}},
+            {"say": "Gözlerimi kapatıp salonun sesini dinliyorum.",
+             "script": {"intent": "narrative", "narration": second_line},
+             "expect": {"gerekli_metin": second_line, "yasak_metin": first_line}},
+        ), model=model)
+        self.assertEqual([result.status for result in results], ["pass", "pass"], results)
+        self.assertIn(first_line, results[0].narration)
+        self.assertIn(second_line, results[1].narration)
+        self.assertNotIn(first_line, results[1].narration)
+        # Each step's own ScriptedClient answered the narrator call, and nothing unscripted was asked.
+        self.assertEqual(len(model.clients), 2)
+        for client in model.clients:
+            self.assertIn("narration", client.kinds)
+            self.assertEqual(client.unexpected, [])
+        self.assertEqual(self.last_narration, results[1].narration)
 
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()
