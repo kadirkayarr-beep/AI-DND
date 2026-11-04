@@ -1111,11 +1111,29 @@ def armor_class_total(
 UNOFFERED_FIGHTING_STYLES = ("Protection",)
 
 
+def _with_coin(entry: dict[str, Any], items: list[Any]) -> dict[str, Any]:
+    """Name the written coin among a pack's items: its gold total and the coin items, in order."""
+    from bold_acts import coin_label_gp
+
+    coin_items = [item for item in items if coin_label_gp(item) is not None]
+    entry["coin_gp"] = sum(coin_label_gp(item) for item in coin_items)
+    entry["coin_items"] = coin_items
+    return entry
+
+
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
+    from api.character_creation import BACKGROUND_OPTION_B_GP
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
                                        monk_starting_creation_options, paladin_starting_creation_options, rogue_starting_creation_options, sorcerer_starting_creation_options)
 
+    classes = copy.deepcopy(CLASS_DEFINITIONS)
+    for class_def in classes.values():
+        for package in class_def.get("equipment_packages", []):
+            _with_coin(package, package.get("items", []))
+    backgrounds = copy.deepcopy(BACKGROUND_DEFINITIONS)
+    for background_def in backgrounds.values():
+        _with_coin(background_def, background_def.get("equipment", []))  # option A; option B is background_option_b_gp
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
@@ -1124,8 +1142,8 @@ def get_character_creation_catalog() -> dict[str, Any]:
         "rogue_starting_creation": rogue_starting_creation_options(),
         "monk_starting_creation": monk_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
-        "classes": copy.deepcopy(CLASS_DEFINITIONS),
-        "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),
+        "classes": classes,
+        "backgrounds": backgrounds,
         "ability_score_methods": [
             {
                 "id": "standard_array",
@@ -1160,6 +1178,7 @@ def get_character_creation_catalog() -> dict[str, Any]:
             "armor_class": copy.deepcopy(ARMOR_CLASS_RULES),
             "armor_name_aliases": copy.deepcopy(ARMOR_NAME_ALIASES),
             "shield_item_tokens": list(SHIELD_ITEM_TOKENS),
+            "background_option_b_gp": BACKGROUND_OPTION_B_GP,
         },
     }
 

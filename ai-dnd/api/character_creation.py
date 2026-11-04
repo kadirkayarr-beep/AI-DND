@@ -30,9 +30,20 @@ from api.dnd_2024_rules import (
     validate_background_bonuses,
 )
 
+# Background equipment option B: this many gold pieces instead of the background's pack.
+BACKGROUND_OPTION_B_GP = 50
+
 _FIGHTER_PACKAGE_C_WEAPON_LABELS = {
     "Büyük Kılıç (Greatsword)": "Greatsword",
 }
+
+
+def _settle_new_character_coin(session: Any) -> None:
+    """New creation only: the coin written in the starting pack becomes the purse, once (never on load/resume)."""
+    import bold_acts
+    bold_acts.settle_coin_labels(session.world_state)
+    if hasattr(session, "inventory") and isinstance(session.inventory, list):
+        session.inventory = list(session.world_state["inventory"])
 
 
 def _detect_armor_and_shield(equipment_choices: list[str] | None) -> tuple[str | None, bool]:
@@ -506,7 +517,7 @@ def configure_character(
             raise CharacterCreationError("Background equipment option must be 'A' (package) or 'B' (50 GP).")
         bg_eq_opt = background_equipment_option
         if bg_eq_opt == "B":
-            bg_items = ["50 Altın"]
+            bg_items = [f"{BACKGROUND_OPTION_B_GP} Altın"]
         else:
             bg_items = list(bg_def["equipment"])
 
@@ -641,9 +652,9 @@ def configure_character(
             selected[0] if item == "Artisan's Tools" else item
             for item in equipment_choices
         ]
-    starting_gp = 50 if bg_eq_opt == "B" else bg_def.get("starting_gp")
+    starting_gp = BACKGROUND_OPTION_B_GP if bg_eq_opt == "B" else bg_def.get("starting_gp")
     if starting_gp is not None:
-        coin_label = "50 Altın" if bg_eq_opt == "B" else f"{starting_gp} GP"
+        coin_label = f"{BACKGROUND_OPTION_B_GP} Altın" if bg_eq_opt == "B" else f"{starting_gp} GP"
 
     modifiers = derived["modifiers"]
     level = character_level
@@ -764,8 +775,8 @@ def configure_character(
                     if held_weapon and held_weapon["weapon_id"] not in owned_weapon_ids:
                         hands[hand] = None
         if class_starting_gp is not None:
-            # Unknown background cash remains its unconverted inventory record;
-            # this wallet is the tracked verified portion, not complete wealth.
+            # The verified class and background cash; other written coin in the
+            # pack joins this purse once, below (_settle_new_character_coin).
             verified_background_gp = starting_gp if starting_gp is not None else 0
             session.world_state.setdefault("currency", {})["player"] = (class_starting_gp + verified_background_gp) * 100
         elif starting_gp is not None:
@@ -773,6 +784,9 @@ def configure_character(
         session.world_state["starting_equipment_source"] = "PHB2024-background-v1"
     if hasattr(session, "inventory") and isinstance(session.inventory, list):
         session.inventory = list(gameplay_items)
+    if hasattr(session, "world_state") and isinstance(session.world_state, dict):
+        # After the purse lines: the remaining written coin moves into the purse; the total is unchanged.
+        _settle_new_character_coin(session)
     if isinstance(session, game.GameSession):
         import spell_scope
         spell_scope.initialize(session)

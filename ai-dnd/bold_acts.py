@@ -581,15 +581,21 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
 
 
+def coin_label_gp(name: object) -> int | None:
+    """The gold a whole coin label names ("10 Altın", "15 GP"), or None for anything else ("10 Parşömen")."""
+    match = re.fullmatch(r"(\d+) (?:Altın|GP)", str(name))
+    return int(match.group(1)) if match else None
+
+
 def settle_coin_labels(world: dict[str, Any]) -> None:
-    """"8 Altın" written in the pack becomes real money the first time money is spent."""
+    """"8 Altın" written in the pack becomes real money: at new-character creation, and in an older save the first time money is spent."""
     kept = []
     wallets = world.setdefault("currency", {})
     for item in world.get("inventory", []):
         name = item.get("name") if isinstance(item, dict) else item
-        match = re.fullmatch(r"(\d+) (?:Altın|GP)", str(name))
-        if match:
-            wallets["player"] = wallets.get("player", 0) + int(match.group(1)) * 100
+        gp = coin_label_gp(name)
+        if gp is not None:
+            wallets["player"] = wallets.get("player", 0) + gp * 100
         else:
             kept.append(item)
     world["inventory"] = kept
