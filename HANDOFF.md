@@ -1,4 +1,8 @@
 # AI-DND devir notu (güncel) — son güncelleme 2026-11-05 00:15 (iş akışları durduruldu, her şey commit'li)
+## Güncel kısa durum — Jarvis, 2026-11-05
+Dilim 1: `task/dilim1-money-memory-20261104`, `C:\Users\Kadir\Desktop\AI-DND-dilim1`, uç `8aedb6dc`; tabandan 19, Jarvis devrinden 3 yeni kod commit'i. Görev 12/14/15 uygulaması ve odaklı testleri tamam; Claude incelemesi ve genel kapılar bekliyor. Başlangıç yolculuk ölçümü defterde 14/18/0; son genel toplam ölçülmedi. Gerçek zincir ve istem boyu ölçülmedi; oynayış bekliyor. Bu oturumlarda push/merge yok.
+Görev 11: panel onayı var, izinli odaklı web koşusu yok. Görev 17/18: ertelenen Görev 10 şema bağımlılığı; sıra değiştirilmedi. Görev 23 yalnız ara devir belgesi düzeyinde; "Dilim 1 hazır" tetiği verilmedi. Kalan işaretler, hafızanın beş eksik kanıtı ve test yeniden yazım listesi: `DILIM1_ARA_DEVIR_JARVIS_20261105.md`. Aşağıdaki eski durum tarihsel kayıttır; bu kısa durum günceldir.
+
 
 Bu dosya, projeyi hiç görmemiş bir yapay zeka ajanının nerede olduğumuzu anlayıp işe devam edebilmesi için yazıldı. Önce 1–4'ü oku; işe başlamadan 5 ve 6'yı. Eski ayrıntılar: `HANDOFF_ARSIV_20261030.md` (30 Ekim'e kadar), `HANDOFF_ARSIV_20261104.md` (31 Ekim–4 Kasım; 4 Kasım öğleden sonra sürümü en altta, olduğu gibi). Arşivde "ESKİ" yazan satırlar geçersizdir.
 
@@ -94,6 +98,15 @@ Betikler: `C:\Users\Kadir\.claude\projects\C--Users-Kadir-Desktop-AI-DND-b01-iso
 4. Her iki dilim bitince: dalları GitHub'a it (onaylı), ana hatta birleştirme önerisini Kadir'e sun (ayrı "yap"), sonra `main`/`dev` eşitleme ve dal temizliği (4. bölüm).
 5. Dilim 2 tasarım+plan hazır (`DILIM2_*`, J-014 uygulandı) ama Dilim 1 birleşmeden başlamaz.
 6. Otomatik GitHub yedeğini istersen yeniden kur: yaklaşık yarım saatte bir iki dalı `git push origin <dal>` (force yok).
+
+#### Jarvis devam kaydı (2026-11-05)
+Dilim 0 Görev 6: testler eklendi, Python veri kaynağı testi 1/1 geçti (JVD0T6RED); ürün kodu değişmedi, commit yok. Odaklı web koşusu için mevcut slot.sh giriş noktası bulunmadığından ekran RED bekliyor (J-019). İki test dosyası staged, yazar kilidi boş.
+
+Dilim 1 Görev 12: f77df47c, uygulama + 46 odaklı test tamam (JVD1T12FINAL, 4.405s). Ayrı anlatıcı/NPC doğruluk kartı ve fiyat sözü kaydı; uzun kapılar ve Claude incelemesi bekliyor. Sonraki bağımsız görev 14. Web engeli devam ediyor; ayrıntı J-020.
+
+Dilim 1 Görev 14: 9b657b87, uygulama + odaklı FOCUS 104 / FINAL 63 test OK (koşular örtüşür); tek kayıt tüketimi, mevcut eşya/kuşanma sahipliği korunur. Uzun kapılar ve Claude incelemesi bekliyor. Sonraki bağımsız görev 15. Ayrıntı J-021.
+
+Dilim 1 Görev 15: 8aedb6dc, ilk atışta tek sefer paket sayımı; kayıt/yükleme sonrası ikinci atış 18 ok. FINAL 327 ve FEATURES 258 test OK. Gerçek zincir/genel kapılar ve Claude incelemesi bekliyor; ayrıntı J-022. Sıradaki 17'nin remember_player_line alanı ertelenen 10'daki şemada henüz yok.
 
 #### Test sonuçları (Jarvis, bağımsız)
 `C-017` (Dilim 1 Görev 7 sonu `f0dc81d0`, tam paket, yuva 1) **zaman aşımıyla bitti: bu başarılı bir koşu DEĞİL** (J-015, J-016). 42 dakika, 3 parçanın üçü de 2400 sn sınırında kesildi; yaklaşık 1638 test başladı ama özet yok; kırık test adı yok. İki test hazırlığı çok uzun sürdü (`test_front_carries_more...test_a_look_goes_to_the_owner_of_looking` 861 sn, `test_carius_fifth_play...test_a_gold_handed_on_the_line_after_the_order_stays_in_the_purse` 444 sn, ikisi de `ExperimentalNpcDialogueTests.asyncSetUp`); neden büyük olasılıkla **aynı anda diğer yuvalarda test koşması (kaynak rekabeti)**, kanıtlanmadı. Sonuç: **tam paketi başka test koşmazken, tek başına koştur**; OOM kaydı yok. Eski tek-yuva koşuları (Dilim 1 Görev 1 öncesi, 3 parça) bu sürede bitiyordu.

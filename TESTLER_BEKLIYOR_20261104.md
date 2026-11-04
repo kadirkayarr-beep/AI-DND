@@ -17,3 +17,14 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 
 ## ÖNEMLİ NOT (2026-11-05, J-015/J-016): tam paket nasıl koşulur
 İlk bağımsız tam paket koşusu (Jarvis, yuva 1, Dilim 1 Görev 7 sonu) zaman aşımına uğradı ve **geçerli sonuç vermedi**: aynı anda başka yuvalarda da test koşuyordu. Tam paketi (`par`) yalnız **başka hiçbir test koşmuyorken, tek başına** koştur; hiçbir şey çıkarılamayan bir "0 test" satırı başarı değildir. Dilim 0/1 iş akışları açıkken tam paket koşturma.
+
+- [ ] Dilim 0 Görev 6 (Jarvis, J-019): NODE tam kontrolü bekliyor: bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh 3 AI-DND-dilim0 node. Odaklı web RED yolu mevcut değil; görev tamamlanmadı. Tarayıcı: plandaki BROWSER ile kabul edilen kasaba işi, Süren görevler 1 / rozet 01 / boş mesaj yok kontrolü bekliyor.
+
+- [ ] Dilim 1 Görev 12 (f77df47c, J-020): genel test_journeys otomatik incelemede geniş koşu olarak reddedildi; koşulmadı. Yetkili uzun kontrol aşamasında: bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh 2 AI-DND-dilim1 test D1T12JOURNEYS 900 api.tests.test_journeys. 03 adım 4 ve 26 tüm adımlar odaklı test_truth_card içinde geçti.
+- [ ] Dilim 1 Görev 12: plan Step 4 kalan regresyonları ve MONEY bekliyor: test_narrative_memory, test_lasting_consequences, test_f04_frozen_d06_restart, test_f04_n08_api_resume_context, test_f04_n08_process_restart, test_phase7_package ve planın MONEY listesi; komut DILIM1_PLAN_20261104.md Task 12 Step 4 (RUN D1T12 1800 ...). Claude bağımsız incelemesi bekliyor; 46 odaklı test tam paket kanıtı değildir.
+
+- [ ] Dilim 1 Görev 14 (9b657b87, J-021): MONEY ve genel yolculuk kapısı bekliyor. Yetkili uzun kontrol aşamasında plan Task 14 Step 4 MONEY listesi; genel yolculuk komutu: bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh 2 AI-DND-dilim1 test D1T14JOURNEYS 900 api.tests.test_journeys. 04b/28 yalnız test_item_use içinde sahte modelle geçti. 104 ve 63 odaklı test koşuları tam paket değildir. Claude bağımsız incelemesi bekliyor.
+
+- Jarvis Görev 15 (8aedb6dc): MONEY/genel yolculuk/tam paket/tarayıcı ve 04b yeni gerçek-zincir ok yönlendirme adımı bekliyor; yalnız odaklı FINAL 327 ve FEATURES 258 test geçti (J-022). Gerçek model koşusu yapılmadı.
+
+- [ ] Dilim 1 Görev 11 (J-023): başlamadı; yuva 2 için izinli odaklı web RED/GREEN yolu yok. Planın slot.sh 3 AI-DND-dilim1 node komutu son yuva kuralına aykırı ve tam web paketi çalıştırıyor; KOŞULMADI. Odaklı yol sağlanınca test_counter_reports_the_held_tip_only_while_it_is_valid ve panel shows the tip and confirms the total with it birlikte doğrulanmalı. MONEY/contract_parity ve tam web kapısı yetkili sonraki aşamada kalır.
