@@ -48,6 +48,7 @@ from api.campaign_journal import (
     update_campaign_journal,
 )
 from api.character_creation import CharacterCreationError
+from api.history_view import UNDO_HISTORY_MARKER, undo_narration
 from api.identity_suggestion import (
     IdentitySuggestionJob,
     IdentitySuggestionRequest,
@@ -2048,13 +2049,7 @@ def create_app(
                 record.narrative_memory = copy.deepcopy(checkpoint["narrative_memory"])
                 record.lore_authority = checkpoint["lore_authority"]
                 session.campaign_lore_state = checkpoint["lore_authority"]
-                quoted = str(checkpoint.get("player_message") or "").strip()
-                if len(quoted) > 120:
-                    quoted = quoted[:117] + "..."
-                narration = (
-                    f"Son tur geri alındı: “{quoted}” ve sonuçları yaşanmamış sayılıyor. "
-                    "Dünya o turdan önceki hâline döndü; sıradaki hamle senin."
-                )
+                narration = undo_narration(str(checkpoint.get("player_message") or ""))
                 state = serialize_session_state(session, record.journal, record.lore_authority)
                 response = TurnUndoResponse(
                     session_id=session_id,
@@ -2066,7 +2061,7 @@ def create_app(
                 payload = redact_sensitive_values(response.model_dump(mode="json"))
                 manager.autosave_turn(
                     record,
-                    "↶ Son turu geri al",
+                    UNDO_HISTORY_MARKER,
                     narration,
                     narrative_memory=record.narrative_memory,
                     turn_action_receipt={

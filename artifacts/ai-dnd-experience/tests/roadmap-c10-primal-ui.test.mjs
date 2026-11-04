@@ -9,6 +9,7 @@ import { createActionLifetime, reconcileState, ReconciliationError, RETRY_MESSAG
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '../src/lib/pending-action.ts';
 import { askServer, settlePending, unresolvedActionFrom } from '../src/lib/action-recovery.ts';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 import { getTurnInteractionMetadata } from '../src/lib/action-suggestions.ts';
 import { gateInjection } from './support/state-gate-env.mjs';
 
@@ -51,7 +52,7 @@ function harness({ sessionStorage = storage(), transport, refresh } = {}) {
     messageRef: { current: 'Takla atıyorum' }, entries: [], wasAtBottom: { current: true }, currentAuthEpoch: () => 1,
     pendingTurnNotice: () => ({ title: 'pending' }), recoveryHandlers: () => ({}), retryPendingTurn() {},
     RECOVERY_API: { status: async (_s,id) => ({ action_id:id, state:'unknown' }), abandon: async (_s,id) => ({action_id:id,state:'not_applied',detail:{not_applied:true,code:'abandoned'}}) },
-    setNotice: n => { if (n) notices.push(n); }, setResultCue() {}, setInFlightSessions() {}, setNewResponseEntryIndex() {}, setEntries() {}, setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setLastTurn() {}, setComposerOpen() {},
+    setNotice: n => { if (n) notices.push(n); }, setResultCue() {}, setInFlightSessions() {}, setNewResponseEntryIndex() {}, setEntries() {}, setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries, setComposerOpen() {},
     setMessage: value => { env.messageRef.current = value; },
     playGameTurn: async (_session, body) => { requests.push(structuredClone(body)); return transport ? transport(body) : { state: env.state, narration: 'server receipt' }; },
     queryClient, getGetGameSessionStateQueryKey: id => ['state', id], getGetCampaignsQueryKey: () => ['campaigns'],

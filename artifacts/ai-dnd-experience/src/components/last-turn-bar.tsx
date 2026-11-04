@@ -3,7 +3,10 @@ import { RotateCcw } from 'lucide-react';
 
 /**
  * LR00-P7 small undo control for the last completed turn, with an explicit
- * confirmation. Disabled while a turn or an undo is in flight.
+ * confirmation. Disabled while a turn or an undo is in flight. When there is no
+ * undo to offer it says why: a fight is on (`combatActive`: there is a last turn
+ * and combat is running), or the one step the engine allows was just taken
+ * (`justUndone`, until the next turn reply). The engine's rules stay as they are.
  */
 export function LastTurnBar({
   summary,
@@ -11,15 +14,19 @@ export function LastTurnBar({
   recoveringUndo,
   busy,
   onUndo,
+  combatActive,
+  justUndone,
 }: {
   summary: string | null;
   canUndo: boolean;
   recoveringUndo: boolean;
   busy: boolean;
   onUndo: () => void;
+  combatActive: boolean;
+  justUndone: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
-  if (!summary && !canUndo && !recoveringUndo) return null;
+  if (!summary && !canUndo && !recoveringUndo && !combatActive && !justUndone) return null;
   return (
     <div className="last-turn-bar mt-2 flex flex-wrap items-center gap-2 text-sm" data-testid="last-turn-bar">
       {summary && <span className="text-[#a99a80]" data-testid="text-turn-outcome">Sonuç: {summary}</span>}
@@ -33,15 +40,21 @@ export function LastTurnBar({
         <button
           type="button"
           className="dnd-button secondary"
-          style={{ minHeight: 32, minWidth: 32, padding: '0 10px' }}
+          style={{ minHeight: 32, minWidth: 32, padding: '0 10px', gap: 6 }}
           aria-label="Son turu geri al"
           title="Son turu geri al"
           disabled={busy}
           onClick={() => setConfirming(true)}
           data-testid="button-undo-last-turn"
         >
-          <RotateCcw size={14} aria-hidden="true" />
+          <RotateCcw size={14} aria-hidden="true" />Geri al
         </button>
+      )}
+      {combatActive && (
+        <span className="text-[#a99a80]" data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz.</span>
+      )}
+      {justUndone && !canUndo && !combatActive && (
+        <span className="text-[#a99a80]" data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır.</span>
       )}
       {canUndo && confirming && (
         <span role="group" aria-label="Geri alma onayı" className="flex items-center gap-2" data-testid="confirm-undo">

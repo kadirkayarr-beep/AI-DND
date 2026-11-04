@@ -9,6 +9,9 @@ import type { SkillCheckResult } from './skillCheckResult';
 
 export interface CampaignHistoryEntry {
   skill_check_result?: SkillCheckResult;
+  undone?: boolean;
+  undo_note?: boolean;
+  undo_target_unknown?: boolean;
   player_message: string;
   narration: string;
   created_at: Date;

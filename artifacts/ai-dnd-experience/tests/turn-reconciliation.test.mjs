@@ -11,6 +11,7 @@ import { unresolvedActionFrom } from '../src/lib/action-recovery.ts';
 import { rotateAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { QueryClient } from '@tanstack/react-query';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 // Execute production AST-selected bodies; replace only hook, transport and view boundaries.
 const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -39,7 +40,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
   recoveryHandlers: () => ({ check() {}, abandon() {} }), unresolvedActionFrom,
   turnLifetime: life,
-   wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {},
+   wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries,
    transcriptFollowsBottom,
   window: { sessionStorage, localStorage: storage(), crypto: { randomUUID: () => crypto.randomUUID() } },
   sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: current,
@@ -495,6 +496,23 @@ test('real submitTurn keeps server skill_check_result when reconciling saved cam
   'real submit/reconciliation must pass the persisted result to Transcript and SkillCheckResultCard');
  assert.deepEqual(JSON.parse(h.env.window.localStorage.getItem('transcript-session-a')).at(-1).skillCheckResult, skill,
   'the resume-friendly transcript cache must not drop the real skill result');
+ h.client.clear();
+});
+
+test('real submitTurn keeps the server undo flags in the transcript and its cache (Dilim 0 Görev 5)', async () => {
+ const history = [{player_message:'/item shop_buy barman bira 1 0 4', narration:'Bira aldın.', undone:true},
+  {player_message:'↶ Son turu geri al', narration:'Son tur geri alındı.', undo_note:true, undo_target_unknown:true},
+  {player_message:'Etrafa bakıyorum.', narration:'Salon sakin.'}];
+ const h = harness({ history, transport:async () => ({ state:old, narration:'Salon sakin.' }) });
+ await h.run();
+ const flags = entries => entries.map(e => [e.kind, e.undone === true, e.undoNote === true, e.undoTargetUnknown === true]);
+ const expected = [['player',true,false,false],['narration',true,false,false],['player',false,true,true],['narration',false,true,true],
+  ['player',false,false,false],['narration',false,false,false]];
+ assert.deepEqual(flags(h.shown.at(-1)), expected, 'the transcript shows the server flags as they came');
+ assert.deepEqual(flags(JSON.parse(h.env.window.localStorage.getItem('transcript-session-a'))), expected,
+  'the transcript cache keeps the same flags and no others');
+ assert.equal(h.shown.at(-1).at(-2).mode, 'do', 'only the last player line carries the sent move type');
+ assert.equal(h.shown.at(-1)[0].mode, undefined);
  h.client.clear();
 });
 

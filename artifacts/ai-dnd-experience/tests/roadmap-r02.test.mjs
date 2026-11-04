@@ -157,6 +157,7 @@ import ts from 'typescript';
 import { QueryClient } from '@tanstack/react-query';
 import { createActionLifetime, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 
 const gameSource = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const gameAst = ts.createSourceFile('game-browser.tsx', gameSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -208,7 +209,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
     PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
     pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
     recoveryHandlers: (serverActionId) => ({ check() {}, abandon() {}, serverActionId }), unresolvedActionFrom: recovery.unresolvedActionFrom,
-    wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {}, setLastTurn() {}, transcriptFollowsBottom,
+    wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue() {}, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries, transcriptFollowsBottom,
     window: { sessionStorage, localStorage, crypto: globalThis.crypto },
     sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state,
     inFlightSessionsRef: { current: new Set() }, undoPendingRef: { current: new Set() }, undoRequestsRef: { current: new Map() },

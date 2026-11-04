@@ -9,6 +9,7 @@ import {QueryClient} from '@tanstack/react-query';
 import {gateInjection} from './support/state-gate-env.mjs';
 import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 import {createActionLifetime,reconcileState,ReconciliationError,RETRY_MESSAGE} from '../src/lib/action-reconciliation.ts';
 import {startDeadline,withActionDeadline,ActionDeadlineError} from '../src/lib/action-deadline.ts';
 import {currentAuthEpoch,rotateAuthEpoch} from '@workspace/api-client-react/custom-fetch';
@@ -30,7 +31,7 @@ function render({owner='a',campaignId='c',sessionId='s',apply,canonical}={}){
  getGetGameSessionStateQueryKey:id=>['state',id],getGetCampaignsQueryKey:()=>['campaigns'],
  applyGameSessionLevelUp:async(s,r)=>{calls.push(structuredClone(r));if(apply)return apply(s,r);return {session_id:s,action_id:r.action_id,result:{status:'applied'}};},
  getCampaign:async id=>{calls.push('canonical '+id);if(canonical)return canonical(id);return {state:{hp:30},history:null,combat_history:null};},
- setLastTurn:()=>calls.push('clearUndo'),setNotice:n=>notices.push(n),friendlyError:e=>e.message,statusCode:e=>e.status,
+ setLastTurn:()=>calls.push('clearUndo'),setUndoneJustNow(){},historyToEntries,setNotice:n=>notices.push(n),friendlyError:e=>e.message,statusCode:e=>e.status,
  RECOVERY_API:{status:async(s,id)=>({action_id:id,state:'applied',response:null}),abandon:async(s,id)=>({action_id:id,state:'not_applied',detail:{not_applied:true,code:'abandoned'}})},
  state:{combat:{active:false}}, interactionMode:'do', conversationTargetId:'',combatTargetId:'npc-1',activeSessionRef:{current:sessionId},setResultCue(){},getTurnInteractionMetadata:()=>({interaction_mode:'do'}),
  setEntries(){},setCombatEntries(){},writeAdvisoryCache(){},mergeCombatHistory:v=>v,TRANSCRIPT_KEY:'t',messageRef:{current:''},setMessage(){},

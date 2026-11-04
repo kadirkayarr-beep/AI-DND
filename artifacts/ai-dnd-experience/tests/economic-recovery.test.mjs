@@ -14,6 +14,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { createActionLifetime, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 
 const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -97,7 +98,7 @@ function render({ status, abandon, unresolved, campaign, lifetime = createAction
     getGameSessionState: async () => campaign().state, queryClient: client, setEntries: (v) => entries.push(v),
     writeAdvisoryCache() {}, TRANSCRIPT_KEY: 't-', setCombatEntries() {}, mergeCombatHistory: (v) => v,
     getGetCampaignsQueryKey: () => ['campaigns'], setNotice: (v) => { notices.push(typeof v === 'function' ? v(notices.at(-1) ?? null) : v); },
-    setLastTurn: (v) => lastTurns.push(v), retryPendingTurn: () => calls.push({ kind: 'retry' }),
+    setLastTurn: (v) => lastTurns.push(v), setUndoneJustNow() {}, historyToEntries, retryPendingTurn: () => calls.push({ kind: 'retry' }),
     friendlyError: (e, fallback) => fallback ?? e?.message ?? 'error', messageRef: { current: '' }, setMessage() {},
     window: globalThis.window,
   };

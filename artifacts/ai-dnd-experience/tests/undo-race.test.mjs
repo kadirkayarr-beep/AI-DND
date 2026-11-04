@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 
 const source = await readFile(process.env.AI_DND_TEST_SOURCE ?? new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -88,6 +89,7 @@ function harness() {
     getGetCampaignsQueryKey: () => ['campaigns'],
     setUndoPendingSessions() {},
     setLastTurn(value) { env.visibleLastTurn = value; env.lastTurnRef.current = value; },
+    setUndoneJustNow(value) { env.undoneJustNow = value; }, historyToEntries,
     setEntries(value) { env.entries = typeof value === 'function' ? value(env.entries) : value; },
     setMessage(value) { env.message = value; },
     setNotice(value) { env.notice = value; },
@@ -191,6 +193,7 @@ test('failed undo releases its lock and retains the target so the user can retry
   await new Promise(resolve => setImmediate(resolve));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.env.visibleLastTurn?.actionId, 'old-action');
+  assert.notEqual(h.env.undoneJustNow, true, 'a failed undo never says the one-step rule');
   h.env.undo();
   assert.equal(h.undoRequests.length, 2);
 });
@@ -227,6 +230,7 @@ test('lost undo response keeps its action ID and reconciles current campaign sta
   assert.equal(Array.from(h.env.entries, entry => entry.text).join('|'), 'Other tab: yeni hamle|Güncel kampanya geçmişi');
   assert.equal(h.env.message, 'Keep this unsent draft');
   assert.equal(h.env.lastTurnRef.current, null);
+  assert.equal(h.env.undoneJustNow, true, 'a committed undo says the one-step rule until the next turn');
   assert.equal(h.env.undoRequestsRef.current.has('session-a'), false);
 });
 

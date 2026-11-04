@@ -9,6 +9,7 @@ import { afterEach, beforeEach, test } from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { QueryClient } from '@tanstack/react-query';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 import { createActionLifetime, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
@@ -87,7 +88,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
     getGameSessionState: async () => state, queryClient: client, setEntries: (v) => entries.push(v),
     writeAdvisoryCache() {}, TRANSCRIPT_KEY: 't-', setCombatEntries() {}, mergeCombatHistory: (v) => v,
     getGetCampaignsQueryKey: () => ['campaigns'], setNotice: (v) => { notices.push(typeof v === 'function' ? v(notices.at(-1) ?? null) : v); },
-    retryPendingTurn() {}, setLastTurn() {}, setPanelEpoch() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
+    retryPendingTurn() {}, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries, setPanelEpoch() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
     window: globalThis.window,
   };
   vm.runInNewContext(code, env);

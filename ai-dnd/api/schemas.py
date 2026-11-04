@@ -1543,6 +1543,10 @@ class CampaignHistoryEntry(BaseModel):
     skill_check_result: SkillCheckResult | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
+    # Read-time undo flags from the receipts' own link (api.history_view); never saved.
+    undone: bool | None = Field(default=None, exclude_if=lambda value: value is None)
+    undo_note: bool | None = Field(default=None, exclude_if=lambda value: value is None)
+    undo_target_unknown: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class CampaignDetailResponse(BaseModel):

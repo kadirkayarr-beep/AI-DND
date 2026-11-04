@@ -1,0 +1,23 @@
+{
+  "id": "13b_undo_text_no_raw_command",
+  "title": "Geri alma cümlesi ham komut alıntılamaz (52): tezgâhtan bira alınır ve geri alınır; kese, çanta ve barmenin kesesi döner; anlatıda 'Son tur geri alındı' vardır, 'shop_buy' ve '/item' yoktur",
+  "source_items": [52],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {"kese": 96, "envanter": {"Bira": 1}}
+    },
+    {
+      "undo": true,
+      "expect": {"kese": 100, "envanter": {}, "kisi_kese": {"barman": 0},
+                 "gerekli_metin": "Son tur geri alındı", "yasak_metin": ["shop_buy", "/item"]}
+    }
+  ]
+}

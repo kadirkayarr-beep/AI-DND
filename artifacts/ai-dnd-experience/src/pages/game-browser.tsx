@@ -89,13 +89,16 @@ import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-f
 import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
+import { NoticeBanner, type Notice, type RecoveryState } from '@/components/notice-banner';
+import { historyToEntries } from '@/lib/transcript-history';
+import { resumeComposerMode } from '@/lib/resume-mode';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
 import { applyGameState, gameStateScope, nextRevision } from '@/lib/game-state-gate';
 import { ActionDeadlineError, startDeadline, withActionDeadline } from '@/lib/action-deadline';
 import { gatedStateRead, stateStructuralSharing } from '@/lib/state-envelope';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
-import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
 import { ReadingSettings } from '@/components/reading-settings';
 import { readReadingPreferences, writeReadingPreferences, type ReadingPreferences } from '@/lib/reading-preferences';
@@ -119,15 +122,6 @@ import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.p
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
-// `recover` is the server-proven way out of an unresolved action: ask the server what it recorded, or close the id for good.
-// `recovery` is what the last server check left: `unknown` keeps every new change locked and offers a manual re-check.
-// `scope` is the campaign (or session) the check was about; blockingMutation honours the lock only for that scope.
-type RecoveryState = { status: 'applied' | 'not_applied' | 'unresolved' | 'unknown'; loading: boolean; mutationAllowed: boolean; scope: string };
-// `recheck` re-runs a lookup that timed out before any action id was known (nothing to abandon yet).
-type Notice = {
-  tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void;
-  recover?: { check: () => void; abandon: () => void }; checkLabel?: string; recovery?: RecoveryState; recheck?: () => void;
-};
 const RECOVERY_API: RecoveryApi = {
   status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction,
 };
@@ -195,19 +189,6 @@ function Kicker({ children }: { children: ReactNode }) {
 
 function Rule() {
   return <div className="dnd-rule" aria-hidden="true" />;
-}
-
-function NoticeBanner({ notice }: { notice: Notice }) {
-  return (
-    <div className={`notice ${notice.tone === 'error' ? 'error' : notice.tone === 'success' ? 'success' : ''}`} role="status" data-testid={`status-${notice.tone}`}>
-      <AlertTriangle size={15} className="shrink-0" />
-      <div><strong>{notice.title}</strong><div>{notice.detail}</div></div>
-      {notice.retry && <button type="button" className="dnd-button" data-testid="button-retry-turn" onClick={notice.retry}>Aynı hamleyi yeniden dene</button>}
-      {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>{notice.checkLabel ?? 'Durumu sunucudan kontrol et'}</button>}
-      {notice.recover && <button type="button" className="dnd-button" data-testid="button-abandon-action" onClick={notice.recover.abandon}>Bu hamleden vazgeç (sunucu doğrular)</button>}
-      {notice.recheck && <button type="button" className="dnd-button" data-testid="button-recheck-open-action" onClick={notice.recheck}>Tekrar kontrol et</button>}
-    </div>
-  );
 }
 
 function EngineHealth() {
@@ -1220,6 +1201,8 @@ export default function GameBrowser() {
   const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
   const lastTurnRef = useRef(lastTurn);
   lastTurnRef.current = lastTurn;
+  // True right after a successful undo until the next turn reply (or a reset, a new campaign, a resume).
+  const [undoneJustNow, setUndoneJustNow] = useState(false);
   const [undoPendingSessions, setUndoPendingSessions] = useState<Set<string>>(new Set());
   const undoPendingRef = useRef(new Set<string>());
   const undoRequestsRef = useRef(new globalThis.Map<string, {
@@ -1305,17 +1288,12 @@ export default function GameBrowser() {
         if (!isCurrent()) return;
         applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent });
         if (snapshot.history) {
-          setEntries([
-            ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-            ...snapshot.history.flatMap((entry) => [
-              { kind: 'player' as const, text: entry.player_message },
-              { kind: 'narration' as const, text: entry.narration,
-                skillCheckResult: entry.skill_check_result ?? undefined },
-            ]),
-          ]);
+          setEntries(historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening }));
         }
         if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
         if (lastTurnRef.current?.sessionId === sessionId && lastTurnRef.current.actionId === target) setLastTurn(null);
+        // One step only (the engine's rule): until a new turn lands the bar says why there is no second undo.
+        setUndoneJustNow(true);
         setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
@@ -1516,9 +1494,12 @@ export default function GameBrowser() {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
       const restored = Array.isArray(stored) ? stored.flatMap((entry): TranscriptEntry[] => {
         if (!entry || typeof entry !== 'object') return [];
-        const candidate = entry as { kind?: unknown; text?: unknown };
+        const candidate = entry as { kind?: unknown; text?: unknown; undone?: unknown; undoNote?: unknown; undoTargetUnknown?: unknown };
         if ((candidate.kind !== 'player' && candidate.kind !== 'narration') || typeof candidate.text !== 'string') return [];
-        return [{ kind: candidate.kind, text: candidate.text }];
+        return [{ kind: candidate.kind, text: candidate.text,
+          ...(candidate.undone === true ? { undone: true } : {}),
+          ...(candidate.undoNote === true ? { undoNote: true } : {}),
+          ...(candidate.undoTargetUnknown === true ? { undoTargetUnknown: true } : {}) }];
       }) : [];
       setEntries(restored);
     } catch { setEntries([]); }
@@ -1647,6 +1628,7 @@ export default function GameBrowser() {
     setCombatEndNotice(null);
     setConversationTargetId('');
     setInteractionMode('do');
+    setUndoneJustNow(false);
     setMessage('');
     setNotice(null);
     setResumingCampaignId(null);
@@ -1682,6 +1664,7 @@ export default function GameBrowser() {
         setCombatEndNotice(null);
         setInteractionMode('do');
         setConversationTargetId('');
+        setUndoneJustNow(false);
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(created.session_id);
@@ -1731,25 +1714,18 @@ export default function GameBrowser() {
     resumeCampaign.mutate({ campaignId: selectedCampaignId }, {
       onSuccess: (resumed) => {
         if (!accountWriteAllowed(epoch)) return;
-        const opening = resumed.state.scene?.opening;
-        const transcript: TranscriptEntry[] = [
-          ...(typeof opening === 'string' && opening.trim()
-            ? [{ kind: 'narration' as const, text: opening }]
-            : []),
-          ...resumed.history.flatMap((entry: CampaignHistoryEntry) => [
-          { kind: 'player' as const, text: entry.player_message },
-          { kind: 'narration' as const, text: entry.narration,
-            skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ];
+        const transcript: TranscriptEntry[] = historyToEntries(resumed.history, { opening: resumed.state.scene?.opening });
         setCampaignId(resumed.campaign_id);
         writeAdvisoryCache(LAST_CAMPAIGN_KEY, resumed.campaign_id);
         writeAdvisoryCache(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
-        setInteractionMode('do');
-        setConversationTargetId('');
+        // An open conversation (the engine's projection) stays in "Söyle" with that person; otherwise "Yap".
+        const resumedMode = resumeComposerMode(resumed.state);
+        setInteractionMode(resumedMode.mode);
+        setConversationTargetId(resumedMode.targetId);
+        setUndoneJustNow(false);
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(resumed.session_id);
@@ -1933,14 +1909,9 @@ export default function GameBrowser() {
         const stillVisible = activeSessionRef.current === sessionId;
         // Only a reconciled, committed result closes the pending action.
         closePending(key, 'confirmed');
-        const next: TranscriptEntry[] = snapshot.history ? [
-          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-          ...snapshot.history.flatMap((entry, index) => [
-            { kind: 'player' as const, text: entry.player_message, mode: index === snapshot.history!.length - 1 ? metadata.interaction_mode : undefined },
-            { kind: 'narration' as const, text: entry.narration,
-            skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ] : [
+        const next: TranscriptEntry[] = snapshot.history ? historyToEntries(snapshot.history, {
+          opening: snapshot.state.scene?.opening, lastPlayerMode: metadata.interaction_mode,
+        }) : [
           ...entries,
           { kind: 'player' as const, text: trimmed, mode: metadata.interaction_mode },
           {
@@ -1956,8 +1927,9 @@ export default function GameBrowser() {
         }
         writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
-          JSON.stringify(next.map(({ kind, text, skillCheckResult, mode }) => ({
+          JSON.stringify(next.map(({ kind, text, skillCheckResult, mode, undone, undoNote, undoTargetUnknown }) => ({
             kind, text, ...(mode ? { mode } : {}), ...(skillCheckResult ? { skillCheckResult } : {}),
+            ...(undone ? { undone } : {}), ...(undoNote ? { undoNote } : {}), ...(undoTargetUnknown ? { undoTargetUnknown } : {}),
           }))),
         );
         const combatResult = result.combat_result;
@@ -2023,7 +1995,10 @@ export default function GameBrowser() {
     setNotice({ tone: receipt.status === 'applied' ? 'success' : 'warning', title: 'Teklif',
       detail: changed ? 'Teklif değişti; yeni kart gerekir.' : receipt.public_summary });
   }
-        if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
+        if (stillVisible) {
+          setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
+          setUndoneJustNow(false);
+        }
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
         // A superseded or closed screen proves nothing about the server: the pending action stays.
@@ -2152,16 +2127,11 @@ export default function GameBrowser() {
       const accepted = applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
       if (!accepted) throw new ReconciliationError();
       if (snapshot.history) {
-        const next: TranscriptEntry[] = [
-          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-          ...snapshot.history.flatMap((entry) => [
-            { kind: 'player' as const, text: entry.player_message },
-            { kind: 'narration' as const, text: entry.narration, skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ];
+        const next: TranscriptEntry[] = historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening });
         setEntries(next);
-        writeAdvisoryCache(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
+        writeAdvisoryCache(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next.map(({ kind, text, skillCheckResult, undone, undoNote, undoTargetUnknown }) => ({
           kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),
+          ...(undone ? { undone } : {}), ...(undoNote ? { undoNote } : {}), ...(undoTargetUnknown ? { undoTargetUnknown } : {}),
         }))));
       }
       if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
@@ -2213,7 +2183,8 @@ export default function GameBrowser() {
       else if (verdict.kind === 'applied') await reconcileFromServer();
       // State, story and the last-turn slot come from the same server read: an earlier turn's outcome or undo target is
       // dropped, and a historical answer (an undone move) is never put back as the last turn.
-      if (verdict.kind === 'applied') setLastTurn(null);
+      // A recovered applied move is a turn reply too: the "only the last turn" line no longer applies.
+      if (verdict.kind === 'applied') { setLastTurn(null); setUndoneJustNow(false); }
       // A settled verdict also resets the counter panel (its waiting gate and old quote/seq) from the same server read.
       if (verdict.kind === 'applied' || verdict.kind === 'not_applied') setPanelEpoch((epoch) => epoch + 1);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
@@ -2376,6 +2347,8 @@ export default function GameBrowser() {
                 recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}
+                combatActive={Boolean(visibleLastTurn) && state.combat.active}
+                justUndone={undoneJustNow}
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}

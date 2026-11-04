@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 process.env.PORT ||= '4191';
 process.env.BASE_PATH ||= '/';
@@ -25,6 +27,11 @@ before(async () => {
   purse = await vite.ssrLoadModule('/src/lib/starting-purse.ts');
   notice = await vite.ssrLoadModule('/src/components/starting-equipment-notice.tsx');
   panel = await vite.ssrLoadModule('/src/components/character-panel.tsx');
+  history = await vite.ssrLoadModule('/src/lib/transcript-history.ts');
+  transcript = await vite.ssrLoadModule('/src/components/campaign-transcript.tsx');
+  lastTurn = await vite.ssrLoadModule('/src/components/last-turn-bar.tsx');
+  banner = await vite.ssrLoadModule('/src/components/notice-banner.tsx');
+  resumeMode = await vite.ssrLoadModule('/src/lib/resume-mode.ts');
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   render = (type, props) => renderToStaticMarkup(React.createElement(type, props));
@@ -100,4 +107,99 @@ test('the package list shows goods only; coin is the purse line; an old catalog 
   assert.deepEqual(purse.packageGoods({ id: 'A', items: ['Zırh', '10 Altın'] }), ['Zırh', '10 Altın']);
   assert.deepEqual(purse.packageGoods({ id: 'B', items: ['75 GP'], coin_items: ['75 GP'] }), []);
   assert.deepEqual(purse.packageGoods(null), []);
+});
+
+// Görev 5 (52, EK 6/6, 22, R, EK 5 T17): the undo is shown from the server's receipt-backed flags.
+const undoHistory = [{ player_message: 'bira', narration: 'n1', created_at: 't', undone: true },
+  { player_message: '↶ Son turu geri al', narration: 'Son tur geri alındı; o turda olanlar yaşanmamış sayılıyor.', created_at: 't', undo_note: true }];
+test('history becomes entries with the undo flags', () => {
+  const entries = history.historyToEntries(undoHistory, { opening: 'açılış' });
+  assert.deepEqual(entries.map(x => [x.kind, !!x.undone, !!x.undoNote]),
+    [['narration', false, false], ['player', true, false], ['narration', true, false], ['player', false, true], ['narration', false, true]]);
+  assert.equal(history.historyToEntries(undoHistory).length, 4);  // no opening, no extra entry
+  const moded = history.historyToEntries(undoHistory, { lastPlayerMode: 'say' });
+  assert.deepEqual(moded.filter(x => x.kind === 'player').map(x => x.mode), [undefined, 'say']);  // only the last player entry
+});
+test('an undone turn is faded and labelled, the undo row reads as a sentence', () => {
+  const html = render(transcript.Transcript, { entries: history.historyToEntries(undoHistory),
+    scrollRef: { current: null }, onScroll() {}, newResponseEntryIndex: null, onJumpToNewResponse() {} });
+  assert.equal((html.match(/class="(player-entry|story-entry) transcript-undone"/g) ?? []).length, 2);
+  assert.match(html, /data-testid="transcript-undone-0">Geri alındı</);
+  assert.match(html, /data-testid="transcript-undone-1">Geri alındı</);
+  assert.doesNotMatch(html, /transcript-undone-2/);
+  assert.match(html, /Geri aldın/); assert.match(html, /Son turu geri aldın\./);
+  assert.doesNotMatch(html, /↶/);
+});
+test('an unverifiable undo says so and a typed marker stays the player\'s words', () => {
+  // decisions 36-37: only a receipt-verified row reads as an undo
+  const html = render(transcript.Transcript, { entries: history.historyToEntries([
+    { player_message: '↶ Son turu geri al', narration: 'Son tur geri alındı; o turda olanlar yaşanmamış sayılıyor.', created_at: 't',
+      undo_note: true, undo_target_unknown: true },
+    { player_message: '↶ Son turu geri al', narration: 'Barmen omuz silker.', created_at: 't2' }]),
+    scrollRef: { current: null }, onScroll() {}, newResponseEntryIndex: null, onJumpToNewResponse() {} });
+  assert.match(html, /data-testid="transcript-undo-unknown-0">Hangi turun geri alındığı bu kayıtta artık doğrulanamıyor\.</);
+  assert.equal((html.match(/Son turu geri aldın\./g) ?? []).length, 1);          // only the verified row
+  assert.match(html, /data-testid="transcript-player-2"[\s\S]*?↶ Son turu geri al/); // the typed row shows as typed
+  assert.doesNotMatch(html, /transcript-undone-/);
+});
+test('right after an undo the bar says why there is no second undo', () => {
+  const base = { summary: null, recoveringUndo: false, busy: false, onUndo() {}, combatActive: false };
+  const once = render(lastTurn.LastTurnBar, { ...base, canUndo: false, justUndone: true });
+  assert.match(once, /data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır\.</);
+  assert.doesNotMatch(once, /button-undo-last-turn/);
+  assert.doesNotMatch(render(lastTurn.LastTurnBar, { ...base, canUndo: true, justUndone: false }), /text-undo-once/);
+});
+test('a resumed game keeps an open conversation in Söyle', async () => {
+  // before(): resumeMode = /src/lib/resume-mode.ts (decision 39b)
+  assert.deepEqual(resumeMode.resumeComposerMode({ conversation: { active: true, interlocutor: { id: 'barman', name: 'Marek' } } }),
+    { mode: 'say', targetId: 'barman' });
+  assert.deepEqual(resumeMode.resumeComposerMode({ conversation: { active: false, interlocutor: null } }), { mode: 'do', targetId: '' });
+  assert.deepEqual(resumeMode.resumeComposerMode({}), { mode: 'do', targetId: '' });
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /resumeComposerMode\(resumed\.state\)/);
+  assert.match(source, /justUndone=\{undoneJustNow\}/);
+});
+test('the undo button says Geri al and explains itself in a fight', () => {
+  const base = { summary: null, recoveringUndo: false, busy: false, onUndo() {}, justUndone: false };
+  const idle = render(lastTurn.LastTurnBar, { ...base, canUndo: true, combatActive: false });
+  assert.match(idle, /data-testid="button-undo-last-turn"[\s\S]*?Geri al<\/button>/);
+  assert.match(idle, /aria-label="Son turu geri al"/);
+  assert.doesNotMatch(idle, /text-undo-combat/);
+  const fight = render(lastTurn.LastTurnBar, { ...base, canUndo: false, combatActive: true });
+  assert.match(fight, /data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz\.</);
+  assert.doesNotMatch(fight, /button-undo-last-turn/);
+  assert.equal(render(lastTurn.LastTurnBar, { ...base, canUndo: false, combatActive: false }), '');
+});
+test('a success notice carries a check, not a warning', () => {
+  const ok = render(banner.NoticeBanner, { notice: { tone: 'success', title: 'Geri alındı', detail: 'Son tur geri alındı.' } });
+  assert.match(ok, /data-testid="notice-icon-success"/); assert.doesNotMatch(ok, /notice-icon-warning/);
+  const bad = render(banner.NoticeBanner, { notice: { tone: 'error', title: 'Olmadı', detail: 'Bağlantı koptu.' } });
+  assert.match(bad, /data-testid="notice-icon-warning"/); assert.doesNotMatch(bad, /notice-icon-success/);
+});
+test('the play screen maps history through one helper', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 4);
+  assert.doesNotMatch(source, /history\.flatMap\(\(entry/);
+  assert.match(source, /combatActive=\{Boolean\(visibleLastTurn\) && state\.combat\.active\}/);
+});
+test('the local transcript cache gives the undo flags back, and only true ones', async () => {
+  // A campaignless session restores its story from the local cache (game-browser.tsx restore effect, run as written).
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
+  const effect = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
+    && n.getText(ast).includes('setEntries(restored)'));
+  const js = ts.transpileModule('globalThis.restore = ' + effect.expression.arguments[0].getText(ast) + ';',
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  const cached = [{ kind: 'player', text: 'bira', undone: true }, { kind: 'narration', text: 'n1', undone: true },
+    { kind: 'player', text: '↶ Son turu geri al', undoNote: true, undoTargetUnknown: true }, { kind: 'narration', text: 'n2', undoNote: 'yes' }];
+  const shown = [];
+  const ctx = { sessionId: 'local-session', campaignId: '', TRANSCRIPT_KEY: 'ai-dnd-transcript-', JSON,
+    window: { localStorage: { getItem: () => JSON.stringify(cached) } },
+    setEntries: v => shown.push(v), setCombatEndNotice() {}, setCombatTargetId() {} };
+  vm.runInNewContext(js, ctx);
+  ctx.restore();
+  assert.deepEqual(JSON.parse(JSON.stringify(shown.at(-1))), [{ kind: 'player', text: 'bira', undone: true },
+    { kind: 'narration', text: 'n1', undone: true }, { kind: 'player', text: '↶ Son turu geri al', undoNote: true, undoTargetUnknown: true },
+    { kind: 'narration', text: 'n2' }]);
 });
