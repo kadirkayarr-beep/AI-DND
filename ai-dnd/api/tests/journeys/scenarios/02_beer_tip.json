@@ -13,12 +13,12 @@
     {
       "say": "bir bira alayım",
       "script": {"front": {"kind": "speak_to", "person_id": "barman"}},
-      "expect": {"kese": 100, "envanter": {}}
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}, "kese": 100, "envanter": {}}
     },
     {
       "say": "5 bakır koyuyorum, üstü kalsın",
       "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5}},
-      "expect": {"envanter": {"Bira": 1}, "kese": 95},
+      "expect": {"envanter": {"Bira": 1}, "kese": 95, "kisi_kese": {"barman": 5}},
       "known_broken": [35]
     }
   ]

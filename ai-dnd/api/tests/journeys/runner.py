@@ -27,7 +27,9 @@ from typing import Any, Literal, Protocol
 from uuid import uuid4
 from unittest.mock import patch
 
+import bold_acts
 import front_proposal
+import shop_trade
 from api import serializers
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect
@@ -170,15 +172,19 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
 
 def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     """What a step can expect, read from the live session (the save copy's public projection for the
-    conversation, the card and death; the live world for the rest)."""
+    conversation, the card and death; the live world for the rest).
+
+    ``kart`` is the economic card; ``tezgah`` is the counter's offer that a spoken order opens (settled
+    only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
     flags = world.get("flags") if isinstance(world.get("flags"), dict) else {}
     combat = world.get("combat") if isinstance(world.get("combat"), dict) else {}
     offer = state.get("economic_offer")
+    currency = world.get("currency") if isinstance(world.get("currency"), dict) else {}
     return {
-        "kese": (world.get("currency") or {}).get("player"),
+        "kese": currency.get("player"),
         "envanter": _inventory_counts(world.get("inventory") or []),
         "oda": bool(flags.get("inn_room")),
         "kip": copy.deepcopy(state.get("conversation")),
@@ -187,9 +193,26 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "hp": session.character.get("current_hp"),
         "kart": None if offer is None else {"max_total_cp": offer.get("max_total_cp"),
                                             "counterparty_label": offer.get("counterparty_label")},
+        "tezgah": _counter_offer(world),
+        "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
         "olu": (state.get("death_state") or {}).get("status"),
         "narration": getattr(case, "last_narration", ""),
     }
+
+
+def _counter_offer(world: dict[str, Any]) -> dict[str, Any] | None:
+    """The counter's offer while it still stands (the product's own test: same person, no trade settled since,
+    within its turns), with the unit price the counter quotes now; None otherwise."""
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if not isinstance(opened, dict):
+        return None
+    npc = next((npc for npc in world.get("npcs") or []
+                if isinstance(npc, dict) and npc.get("id") == opened.get("npc_id")), None)
+    if bold_acts.offer_still_open(world, npc) is None:
+        return None
+    quoted = shop_trade.quote(world, str(opened.get("npc_id")), str(opened.get("key")), 1)
+    return {"npc_id": opened.get("npc_id"), "key": opened.get("key"),
+            "unit_cp": None if quoted is None else quoted["unit_cp"]}
 
 
 def _inventory_counts(inventory: Sequence[Any]) -> dict[str, int]:

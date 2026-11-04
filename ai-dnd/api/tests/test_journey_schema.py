@@ -116,7 +116,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             set(EXPECT_KEYS),
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
-                "kart", "olu", "yasak_metin", "gerekli_metin",
+                "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
             },
         )
 
@@ -259,6 +259,23 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
         self.assertEqual(
             check_expect({"kart": {"max_total_cp": 5}}, {"kart": None}),
             ["kart: beklenen {'max_total_cp': 5}, gözlenen yok"],
+        )
+
+    def test_check_expect_matches_the_counter_offer_and_other_purses_by_the_keys_asked_for(self):
+        observed = {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4},
+                    "kisi_kese": {"barman": 4, "guard": 0}}
+        self.assertEqual(check_expect({"tezgah": {"key": "bira"}, "kisi_kese": {"barman": 4}}, observed), [])
+        self.assertEqual(
+            check_expect({"tezgah": {"unit_cp": 5}, "kisi_kese": {"barman": 5}}, observed),
+            ["tezgah.unit_cp: beklenen 5, gözlenen 4", "kisi_kese.barman: beklenen 5, gözlenen 4"],
+        )
+        self.assertEqual(
+            check_expect({"tezgah": None}, observed),
+            ["tezgah: beklenen yok, gözlenen {'npc_id': 'barman', 'key': 'bira', 'unit_cp': 4}"],
+        )
+        self.assertEqual(
+            check_expect({"tezgah": {"key": "bira"}}, {"tezgah": None}),
+            ["tezgah: beklenen {'key': 'bira'}, gözlenen yok"],
         )
 
     def test_check_expect_forbidden_text_is_case_insensitive(self):

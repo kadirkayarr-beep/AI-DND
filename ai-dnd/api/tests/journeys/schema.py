@@ -24,6 +24,8 @@ EXPECT_KEYS = frozenset(
         "konum",
         "hp",
         "kart",
+        "tezgah",
+        "kisi_kese",
         "olu",
         "yasak_metin",
         "gerekli_metin",
@@ -42,8 +44,9 @@ _TEXT_ACTIONS = ("say", "command")
 _DICT_ACTIONS = ("economic_action", "combat_action")
 
 # Expectations compared as a subset when both sides are mappings: the step names
-# only the fields it cares about (the observed card or mode carries more).
-_SUBSET_KEYS = frozenset({"kip", "kart"})
+# only the fields it cares about (the observed card, counter offer, mode or purse
+# list carries more).
+_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese"})
 _TEXT_CHECKS = frozenset({"yasak_metin", "gerekli_metin"})
 
 

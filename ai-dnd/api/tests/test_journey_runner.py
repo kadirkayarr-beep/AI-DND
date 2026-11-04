@@ -56,6 +56,19 @@ def beer_scenario(*steps, **changes):
         folder.rmdir()
 
 
+class RecordingModel(ScriptedModel):
+    """The default driver, keeping each step's client so a test can see what it answered."""
+
+    def __init__(self):
+        self.clients = []
+
+    @contextmanager
+    def bind(self, case, step):
+        with super().bind(case, step) as client:
+            self.clients.append(client)
+            yield client
+
+
 class TheRunnerSortsEveryStep(JourneyCase):
     async def test_a_passing_scenario_reports_all_pass(self):
         results = await self.run_scenario(beer_scenario())
@@ -124,18 +137,6 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual([result.narration for result in first], [result.narration for result in second])
 
     async def test_a_scripted_say_step_gets_the_scripted_narration_end_to_end(self):
-        class RecordingModel(ScriptedModel):
-            """The default driver, keeping each step's client so the test can see what it answered."""
-
-            def __init__(self):
-                self.clients = []
-
-            @contextmanager
-            def bind(self, case, step):
-                with super().bind(case, step) as client:
-                    self.clients.append(client)
-                    yield client
-
         first_line = "Mum alevi titriyor; Marek kulağını tezgâha dayamış dinliyor."
         second_line = "Kapının önünde bir köpek havlıyor, sonra susuyor."
         model = RecordingModel()
@@ -159,16 +160,6 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual(self.last_narration, results[1].narration)
 
     async def test_front_proposal_setup_turns_the_front_reading_on_for_the_steps_only(self):
-        class RecordingModel(ScriptedModel):
-            def __init__(self):
-                self.clients = []
-
-            @contextmanager
-            def bind(self, case, step):
-                with super().bind(case, step) as client:
-                    self.clients.append(client)
-                    yield client
-
         step = {"say": "Tezgâha yaslanıp salonu dinliyorum.",
                 "script": {"intent": "narrative", "narration": "Salon uğulduyor."}, "expect": {"kese": 100}}
         before = os.environ.get(front_proposal.FLAG)
@@ -186,6 +177,23 @@ class TheRunnerSortsEveryStep(JourneyCase):
         with self.assertRaises(ScenarioError) as raised:
             apply_setup(self, campaign, {"front_proposal": "1"})
         self.assertIn("front_proposal", str(raised.exception))
+
+    async def test_the_counter_offer_and_other_purses_are_observed(self):
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, beer_scenario().setup)
+        fresh = read_observed(self, campaign["session_id"])
+        self.assertIsNone(fresh["tezgah"])
+        self.assertEqual(fresh["kisi_kese"], {"barman": 0})
+        # A spoken order opens the counter's offer (not the economic card); the counter trade closes it and
+        # pays the barman.
+        results = await self.run_scenario(beer_scenario(
+            {"say": "bir bira alayım",
+             "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}, "kart": None,
+                        "kese": 100, "kisi_kese": {"barman": 0}}},
+            {"command": BUY_BEER,
+             "expect": {"tezgah": None, "kese": 96, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 4}}},
+        ))
+        self.assertEqual([result.status for result in results], ["pass", "pass"], results)
 
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()

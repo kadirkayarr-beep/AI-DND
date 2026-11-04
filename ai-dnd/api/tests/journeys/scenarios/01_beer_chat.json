@@ -1,0 +1,27 @@
+{
+  "id": "01_beer_chat",
+  "title": "Sohbetle bira: 'bir bira alayım' ve 'bir bira alabilir miyim' tezgâh teklifini açar, tezgâh alışverişi 4 bakır öder",
+  "source_items": [35],
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "say": "bir bira alayım",
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}, "kart": null, "kese": 100, "envanter": {}}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {"tezgah": null, "kese": 96, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 4}}
+    },
+    {
+      "say": "bir bira alabilir miyim",
+      "independent": true,
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}},
+      "known_broken": [35]
+    }
+  ]
+}

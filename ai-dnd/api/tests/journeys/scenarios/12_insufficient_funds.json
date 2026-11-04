@@ -12,7 +12,8 @@
   "steps": [
     {
       "economic_action": {"kind": "prepare", "proposal": {"purpose": "gift", "recipient_id": "barman", "amount_cp": 2000}},
-      "expect": {"kese": 1500, "kart": null, "envanter": {}}
+      "expect": {"kese": 1500, "kart": null, "envanter": {}, "kisi_kese": {"barman": 0},
+                 "gerekli_metin": "Kesendeki para bunu karşılamıyor"}
     }
   ]
 }
