@@ -18408,7 +18408,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "wait"}
+                      "blow_asked", "wait", "consume"}
 
 
 def _hand_over_coin(route, listed, front=None):
@@ -18569,6 +18569,30 @@ def _line_gives(item_id, player_input):
     bag = front_proposal._bag(world)
     stem = pocket._stem(next((row["name"] for row in bag if row["id"] == item_id), ""))
     return len(bag) == 1 or bool(stem and pocket._says_it(player_input, stem))
+
+
+def _front_consume(route, player_input):
+    """A listed item is consumed by its engine kind, never by the proposed prose."""
+    import item_use
+    import equipment_economy
+    session = _session()
+    session.require_player_can_act()
+    try:
+        result = item_use.consume(session.world_state, route["item"])
+    except equipment_economy.EquipmentError:
+        return None
+    if result.status != "consumed":
+        return None
+    if getattr(session, "_turn_notes", None) is None:
+        session._turn_notes = []
+    session._turn_notes.append((None, result.note))
+    flags = session.world_state.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    shown = result.note + "."
+    session.messages.extend([{"role": "user", "content": player_input}, {"role": "assistant", "content": shown}])
+    return {"reply": {"messages": session.messages, "narration": shown, "model_calls": 0,
+                      "action_result": {"action": "consume", "status": "consumed", "success": True,
+                                        "state_changes": ["inventory"], "direct_response": shown}}}
 
 
 def _front_hand_over(route, player_input):
@@ -18837,6 +18861,7 @@ def _dispatch_player_turn(
             and not getattr(_session(), "_front_strike", None)):  # a blow stood behind is no answer to an offer
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
+                    else _front_consume(front, player_input) if front is not None and front["kind"] == "consume"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
                     else _thread_gate(player_input, target_id, interaction_mode))

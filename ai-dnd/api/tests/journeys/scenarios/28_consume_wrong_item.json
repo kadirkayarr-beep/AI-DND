@@ -1,0 +1,36 @@
+{
+  "title": "Tüketim önerisindeki kılıç tüketilmez; çanta ve kese aynı kalır",
+  "source_items": [
+    54
+  ],
+  "setup": {
+    "inventory": [
+      "Greatsword",
+      "Bira"
+    ],
+    "front_proposal": true,
+    "seed": 7,
+    "currency": {
+      "player": 100
+    }
+  },
+  "id": "28_consume_wrong_item",
+  "steps": [
+    {
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "Bira": 1,
+          "Greatsword": 1
+        }
+      },
+      "script": {
+        "front": {
+          "item_name": "Greatsword",
+          "kind": "consume"
+        }
+      },
+      "say": "kılıcımı yiyorum"
+    }
+  ]
+}

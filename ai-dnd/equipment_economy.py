@@ -522,6 +522,28 @@ def canonical_hands(world, actor, owner):
     hands.update(resolved)
 
 
+def remove_item(world: dict, item_id: str) -> dict:
+    """Remove one owned, unequipped instance; failed validation changes nothing."""
+    validate_world(world)
+    item = next((row for row in world.get("inventory", [])
+                 if isinstance(row, dict) and row.get("item_id") == item_id), None)
+    if item is None:
+        fail("item_not_owned")
+    if is_armor_or_shield(item):
+        fail("armor_owner_required")
+    owner = {"inventory": [row for row in world.get("inventory", []) if isinstance(row, dict)],
+             "equipment": copy.deepcopy(world.get("equipment"))}
+    canonical_hands(owner, "player", owner)
+    if item_id in (owner.get("equipment") or {}).values():
+        fail("item_equipped")
+    candidate = copy.deepcopy(world)
+    removed = next(row for row in candidate["inventory"] if isinstance(row, dict) and row.get("item_id") == item_id)
+    candidate["inventory"].remove(removed)
+    validate_world(candidate)
+    world["inventory"] = candidate["inventory"]
+    return removed
+
+
 def move(world, item, source, destination, source_actor):
     clear_equipment(world, source_actor, item)
     source.remove(item)
