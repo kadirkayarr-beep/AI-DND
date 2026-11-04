@@ -221,6 +221,19 @@ class TheRunnerSortsEveryStep(JourneyCase):
         ))
         self.assertEqual([result.status for result in results], ["pass", "pass"], results)
 
+    async def test_the_ammunition_counter_is_observed_apart_from_the_items(self):
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, beer_scenario().setup)
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        world.pop("ammunition", None)
+        self.assertEqual(read_observed(self, campaign["session_id"])["cephane"], {})
+        apply_setup(self, campaign, {"ammunition": {"arrow": 20}, "inventory": ["Uzun Yay & 20 Ok"]})
+        observed = read_observed(self, campaign["session_id"])
+        self.assertEqual(observed["cephane"], {"arrow": 20})
+        self.assertEqual(observed["envanter"], {"Uzun Yay & 20 Ok": 1})  # the pack label is an item, not arrows
+        observed["cephane"]["arrow"] = 0
+        self.assertEqual(world["ammunition"], {"arrow": 20})  # a copy: reading never changes the counter
+
     async def test_campaign_start_and_place_stand_the_player_in_a_new_place_of_the_town(self):
         start = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
                  "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}

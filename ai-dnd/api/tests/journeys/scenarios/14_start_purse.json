@@ -1,0 +1,62 @@
+{
+  "id": "14_start_purse",
+  "title": "Başlangıç kesesi (Fighter, paket C, Asker arka planı B: 50 + paketteki 10 altın): yaratma yanıtı keseyi 6000 bakır gösterir (wallet.total_cp, yazılı altını sayar); oyun da 6000 ile başlar, '10 Altın' envanterde metin olarak kalmaz; ilk para işleminden (4 bakır hediye) sonra kese 5996, yani yaratmada gösterilen kese ile oynanan kese aynı",
+  "source_items": [34],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Kadir",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {"strength": 15, "dexterity": 13, "constitution": 14, "intelligence": 12, "wisdom": 10, "charisma": 8},
+      "background_ability_bonuses": {"strength": 2, "constitution": 1},
+      "proficient_skills": ["Athletics", "Intimidation", "Perception", "Insight", "Persuasion"],
+      "species_bonus_skills": ["Persuasion"],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "B",
+      "languages": ["Dwarvish", "Goblin"],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "seed": 5
+  },
+  "steps": [
+    {
+      "say": "kesemdeki parayı sayıyorum",
+      "expect": {"kese": 6000, "envanter": {"Greatsword": 1, "Ağır Tatar Yayı & 20 Ok": 1, "Macera Çantası": 1}},
+      "known_broken": [34]
+    },
+    {
+      "economic_action": {"kind": "prepare", "proposal": {"purpose": "gift", "recipient_id": "barman", "amount_cp": 4}},
+      "independent": true,
+      "expect": {"kart": {"max_total_cp": 4, "counterparty_label": "Marek"}}
+    },
+    {
+      "economic_action": {"kind": "confirm"},
+      "independent": true,
+      "expect": {
+        "kese": 5996,
+        "envanter": {"Greatsword": 1, "Ağır Tatar Yayı & 20 Ok": 1, "Macera Çantası": 1},
+        "kart": null,
+        "kisi_kese": {"barman": 4}
+      }
+    }
+  ]
+}

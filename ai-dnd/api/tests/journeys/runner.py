@@ -244,7 +244,9 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     conversation, the card and death; the live world for the rest).
 
     ``kart`` is the economic card; ``tezgah`` is the counter's offer that a spoken order opens (settled
-    only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's."""
+    only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's; ``cephane`` is
+    the player's ammunition counter (``world.ammunition``, type to count), kept apart from the items: a pack
+    label such as "Uzun Yay & 20 Ok" is one item and no arrows."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
@@ -252,6 +254,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     combat = world.get("combat") if isinstance(world.get("combat"), dict) else {}
     offer = state.get("economic_offer")
     currency = world.get("currency") if isinstance(world.get("currency"), dict) else {}
+    ammunition = world.get("ammunition") if isinstance(world.get("ammunition"), dict) else {}
     return {
         "kese": currency.get("player"),
         "envanter": _inventory_counts(world.get("inventory") or []),
@@ -264,6 +267,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
                                             "counterparty_label": offer.get("counterparty_label")},
         "tezgah": _counter_offer(world),
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
+        "cephane": copy.deepcopy(ammunition),
         "olu": (state.get("death_state") or {}).get("status"),
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),

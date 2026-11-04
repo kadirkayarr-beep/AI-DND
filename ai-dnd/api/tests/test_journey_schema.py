@@ -117,7 +117,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
-                "anlaticiya_giden",
+                "anlaticiya_giden", "cephane",
             },
         )
 
@@ -245,6 +245,18 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
         )
         self.assertEqual(len(problems), 1)
         self.assertTrue(problems[0].startswith("envanter: beklenen"))
+
+    def test_check_expect_compares_the_ammunition_counter_exactly(self):
+        """``cephane`` is the separate ammunition counter (``world.ammunition``), compared whole."""
+        self.assertEqual(check_expect({"cephane": {"arrow": 19}}, {"cephane": {"arrow": 19}}), [])
+        self.assertEqual(
+            check_expect({"cephane": {"arrow": 19}}, {"cephane": {}}),
+            ["cephane: beklenen {'arrow': 19}, gözlenen {}"],
+        )
+        self.assertEqual(
+            check_expect({"cephane": {"arrow": 19}}, {"cephane": {"arrow": 19, "bolt": 20}}),
+            ["cephane: beklenen {'arrow': 19}, gözlenen {'arrow': 19, 'bolt': 20}"],
+        )
 
     def test_check_expect_matches_card_and_mode_by_the_keys_asked_for(self):
         observed = {"kart": {"max_total_cp": 5, "counterparty_label": "Barmen"}}

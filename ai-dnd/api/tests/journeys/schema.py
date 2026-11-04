@@ -30,6 +30,7 @@ EXPECT_KEYS = frozenset(
         "yasak_metin",
         "gerekli_metin",
         "anlaticiya_giden",
+        "cephane",
     }
 )
 
