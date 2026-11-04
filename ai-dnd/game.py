@@ -18278,8 +18278,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                      or combat_lifecycle.is_flight(session, player_input)
                      or combat_lifecycle.is_standing_down(session, player_input)):
         return None  # a fight's own words need no reading
-    if (combat_action is not None or check_feature is not None or target_id is not None
-            or interaction_mode in {"say", "ask_dm"}):
+    # Said to a chosen person, a line is read only when a clause hands coin now, and only for that coin:
+    # a say line without coin spends no model call.
+    said_coin = (interaction_mode == "say" and target_id is not None and combat_action is None
+                 and check_feature is None and not fighting and isinstance(player_input, str)
+                 and front_proposal.names_coin(player_input))
+    if not said_coin and (combat_action is not None or check_feature is not None or target_id is not None
+                          or interaction_mode in {"say", "ask_dm"}):
         front_proposal.note(session, "skipped:typed")
         return None
     journey = world.get("journey")
@@ -18299,7 +18304,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         return None
     hint = interaction_adventure.hint(player_input, True)
-    addressed = _addressed_in(player_input) if hint else None
+    addressed = None
+    if hint and said_coin:  # in say mode the line is for the person chosen, whoever its words name
+        addressed = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
+    elif hint:
+        addressed = _addressed_in(player_input)
     with front_call():  # one reading answers for the whole turn, so it carries whatever proposal the line may need
         reply = parse_player_intent(
             player_input, front_list=listed, recent_scene_narration=_recent_player_visible_narration(),
@@ -18314,6 +18323,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
                             else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
+    if said_coin:  # the line stays with the person the player chose; of the reading only its coin and deal count
+        session._front_coin = front_proposal.coin_in(reply, player_input)
+        route = {"kind": "speak_to", "id": target_id}
+        front_proposal.note(session, "front:speak_to", reached=True)
+        _hand_over_coin(route, listed)
+        return route
     import world_happenings
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)

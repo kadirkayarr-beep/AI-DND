@@ -22,6 +22,7 @@ ROUTE_LOG = "AI_DND_ROUTE_LOG"
 KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
          "grab", "wait", "unclear")
 DEEDS = ("steal", "burn", "yield")
+DEALS = ("goods", "room", "tip", "gift", "paid_before")  # what the line's money is for; money_owner checks it
 NONE = "none"
 WAY_OUT = "way_out"  # the list's one word for leaving town: Python decides where that really leads
 MAX_PEOPLE = 12
@@ -84,6 +85,7 @@ def listing(session) -> dict[str, Any]:
                 offers.append({"id": thread["thread_id"], "person_id": person["id"], "item": thread.get("item_noun"),
                                "said": str(thread.get("offer_line") or "")[:200]})
     wants = [{"id": key, "name": row.get("label", key)} for key, row in world_threads.want_table().items()]
+    goods = _goods_here(world, active, [c["record"] for c in found if c["kind"] == "npc"])
     way_out = grounded_action.way_out_label(session)
     sheet = str(session.character.get("backstory") or "").strip()[:MAX_SHEET]
     early = int((world.get("flags") or {}).get("turn_index", 0) or 0) < SHEET_TURNS
@@ -98,8 +100,19 @@ def listing(session) -> dict[str, Any]:
         "bag": _bag(world),
         "parcels": parcels,
         "jobs": jobs,
+        "goods": goods,
         "speaking_with": active.get("id") if isinstance(active, dict) else None,
     }
+
+
+def _goods_here(world: Mapping[str, Any], active: Any, here: list[Any]) -> list[dict[str, str]]:
+    """What can be bought from the one who serves: the person spoken to, else the only vendor here; else nothing."""
+    import shop_trade
+    vendor = active if shop_trade.is_vendor(world, active) else None
+    if vendor is None:
+        vendors = {id(npc): npc for npc in here if shop_trade.is_vendor(world, npc)}
+        vendor = next(iter(vendors.values())) if len(vendors) == 1 else None
+    return [{"id": row["key"], "name": row["label"]} for row in shop_trade.goods(world, vendor)]
 
 
 def _ids(rows: list[dict[str, Any]]) -> list[str]:
@@ -111,6 +124,10 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
         "type": "object",
         "properties": {
             "kind": {"type": "string", "enum": list(KINDS)},
+            # Right after kind: a small model leaves a long object's last fields empty, and money cannot wait there.
+            "deal": {"type": "string", "enum": [*DEALS, NONE]},
+            "deal_goods": {"type": "string", "enum": _ids(listed["goods"])},
+            "keep_change": {"type": "boolean"},
             "person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
@@ -130,7 +147,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "inside": {"type": "boolean"},
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
-        "required": ["kind", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
+        "required": ["kind", "deal", "deal_goods", "keep_change", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
                      "threat_to", "strike_to", "deed", "coin_cp", "also_says"],
         "additionalProperties": False,
     }
@@ -161,6 +178,12 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; wait = uyumadan vakit geçiriyor: bekliyor, oyalanıyor, takılıyor, zamanın geçmesini istiyor; grab = listedeki birine vurmadan el koyuyor: yakasına yapışıyor, itiyor, sıkıştırıyor, bir yere bastırıyor (person_id kim; bastırdığı masa ya da tezgâh thing_id değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "
         f"Teklif hakkında soru sormak offer_answer değil speak_to olur. {_at_hand(listed)} "
+        "deal: oyuncunun bu satırda parası ya da isteği ne için: goods = goods listesindeki bir malı istiyor ya da onun "
+        "parasını veriyor; room = geceyi geçirecek bir oda istiyor ya da onun parasını veriyor; tip = bahşiş veriyor; "
+        "gift = karşılık beklemeden para veriyor; paid_before = daha önce ödediğini söylüyor ya da soruyor; para ve "
+        "alışveriş yoksa none. "
+        "deal_goods: deal goods ise goods listesindeki hangi mal; yoksa none. "
+        "keep_change: oyuncu verdiği paranın üstünü geri istemiyorsa true, yoksa false. "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "
         "threat_to: oyuncu birine canına, malına ya da kapısına zarar vereceğini açıkça söylüyorsa, nasıl söylerse söylesin o kişinin kimliği; yoksa none. "
         "strike_to: oyuncu şu anda birine vuruyorsa, yumruk, tekme, tokat atıyor, suratına ya da kafasına bir şey geçiriyor, bir şey fırlatıyor, silah savuruyorsa, hangi kelimeyle söylerse söylesin vurduğu kişinin kimliği; satırda kişi geçmese de 'savuruyorum', 'indiriyorum' gibi bir darbe varsa speaking_with kişisi (bir eşyayla vuruyorsa thing_word o eşyanın adı); soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümlede none. "
@@ -231,29 +254,41 @@ def _coin_said(words: list[str]) -> int | None:
     return int(sum(named)) if named else None
 
 
-def coin_in(reply: Any, line: str) -> int:
-    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much."""
+def _coin_clauses(line: str) -> list[str]:
+    """The clauses of a line that name coin leaving the hand now; no model is asked."""
     import game
     import living_world
     import world_threads
-    front = reply.get("front") if isinstance(reply, dict) else None
-    amount = front.get("coin_cp") if isinstance(front, dict) else None
-    if type(amount) is not int or amount <= 0:
-        return 0
     # Each clause that names coin speaks for itself: 'bi altın atıyorum, ... laf isterim' pays, 'veririm' alone does not.
     pieces = re.split(r"([,.;!?])", str(line))
     clauses = [(pieces[i], pieces[i + 1] if i + 1 < len(pieces) else "") for i in range(0, len(pieces), 2)]
     # A line that asks something hands coin only in a clause that says the hand moves now ('atıyorum', 'verdim'):
     # 'bi altın versem, bira verir misin?' and 'bende bi altın var, nereye harcasam?' hand nothing.
     asked = "?" in str(line)
-    words = []
+    found = []
     for clause, end in clauses:
         clause_words = living_world.normalize_text(clause).split()
         if (any(word.startswith(_COIN_WORDS) for word in clause_words) and end != "?"
                 and (not asked or any(_HANDED_NOW.fullmatch(word) for word in clause_words))
                 and not world_threads.says_later(clause)
                 and not game._NO_BLOW_NOW.search(game._normalize_turkish_typos(clause))):  # 'vermiyorum': said, not done
-            words.extend(clause_words)
+            found.append(clause)
+    return found
+
+
+def names_coin(line: str) -> bool:
+    """Whether a clause of the line hands coin now, the same test coin_in makes, with no model asked."""
+    return bool(_coin_clauses(line))
+
+
+def coin_in(reply: Any, line: str) -> int:
+    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much."""
+    import living_world
+    front = reply.get("front") if isinstance(reply, dict) else None
+    amount = front.get("coin_cp") if isinstance(front, dict) else None
+    if type(amount) is not int or amount <= 0:
+        return 0
+    words = [word for clause in _coin_clauses(line) for word in living_world.normalize_text(clause).split()]
     if not words:
         return 0
     said = _coin_said(words)
@@ -379,6 +414,11 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_rest = ""
     session._nothing_taken = None
     session._empty_handed = False
+    session._coin_decision = None  # money_owner's one decision for this turn's coin
+    session._coin_answer = None
+    session._coin_answer_for = None
+    session._coin_claimed = False
+    session._turn_notes = []
     combat = (getattr(session, "world_state", None) or {}).get("combat") or {}
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")
