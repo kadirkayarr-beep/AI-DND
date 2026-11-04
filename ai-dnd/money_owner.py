@@ -10,6 +10,9 @@ deal is checked by its kind and, when it fails, is `unclear` from the model: it 
 card of another kind. Only when the model gave no deal does held-out coin get a structural meaning (the open
 counter offer's tender, else a room) and otherwise it is `unclear`. Coin never becomes a gift unless the model
 said so. Opening an offer is not holding out coin: a goods or room deal with no coin still decides, with no tender.
+
+After the person answered, `open_card_after_reply` opens the one card the decision names (a gift or a tip card)
+and nothing else; the card itself, and the coin it may move on confirmation, are `economic_actions`'.
 """
 
 from __future__ import annotations
@@ -21,6 +24,13 @@ from typing import Any, Literal
 DealKind = Literal["goods", "room", "tip", "gift", "paid_before", "none"]
 DecisionKind = Literal["goods", "room", "tip", "gift", "paid_before", "unclear", "bribe"]
 _DEALS = ("goods", "room", "tip", "gift", "paid_before")
+
+COIN_LEFT_BEHIND = "Uzattığın para kimseye geçmedi; o kişi geride kaldı, para kesende."
+# The only decisions whose card opens after the reply, and the card's purpose: a Hediye card, a Bahşiş card.
+_CARD_AFTER_REPLY = {"gift": "gift", "tip": "tip"}
+# Coin held out for these waits for the player's confirmation of a card or the counter; a past payment, a bribe
+# (the guard's own card) and unclear coin do not.
+WAITS_FOR_CONFIRMATION = frozenset({"goods", "room", "gift", "tip"})
 
 
 @dataclass(frozen=True)
@@ -163,3 +173,64 @@ def blocks_money_moves(session: Any) -> bool:
     """Coin is leaving the player's hand this turn: no shift is worked and no wage is drawn on the same line (D4)."""
     decision = current(session)
     return decision is not None and decision.amount_cp > 0
+
+
+def unclear_note(amount_cp: int) -> str:
+    """This turn's note for coin held out with no meaning the engine could check (D29): nothing changed hands."""
+    return f"oyuncu {amount_cp} bakır gösterdi, ne için olduğu belli değil; para el değiştirmedi"
+
+
+def _tell(result: dict[str, Any], text: str) -> None:
+    result["narration"] = f"{result.get('narration') or ''} {text}".strip()
+
+
+def _note(session: Any, npc_id: str | None, text: str) -> None:
+    """A note for this turn only, as an (npc_id | None, text) pair: the person's view reads its own (D28)."""
+    notes = getattr(session, "_turn_notes", None)
+    if not isinstance(notes, list):
+        notes = session._turn_notes = []
+    notes.append((npc_id, text))
+
+
+def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str | None = None,
+                          coin_answer_for: str | None = None) -> None:
+    """After the person answered, the card this turn's decision names opens for the coin held out, and no other.
+
+    A gift decision opens a Hediye card and a tip decision a Bahşiş card; neither moves coin before it is confirmed.
+    Goods, room, a past payment and a bribe open nothing here: the counter, the room card and the guard's card are
+    their own owners'. An unclear decision opens no card and no word path (D29); the coin is noted for this turn.
+    Coin with no decision of its own opens nothing: never a silent gift. Coin a room or the counter read this line
+    is theirs; coin whose taker was left behind a change of place is told back in the purse; coin held out to nobody
+    named asks who.
+
+    The coin in hand is `session._coin_paid` (amount, person, place), written with the decision and taken off the
+    hand by the room or the counter that reads it; the caller clears it after this call. A decision opens a card only
+    for that coin (same person, same amount), so one left from another line never does. `coin_answer` and
+    `coin_answer_for` are the person's spoken answer about the coin, read from plan Task 10 on.
+    """
+    import economic_actions
+    held = getattr(session, "_coin_paid", None)
+    action = result.get("action_result") if isinstance(result, dict) else None
+    if not held or not isinstance(action, dict):
+        return
+    amount, person, place = held
+    if action.get("coin_seen_by") or action.get("action") == "shop_offer":
+        return  # the room or the counter offer read this coin; only its own card or trade can take it
+    if place != session.world_state.get("location"):
+        _tell(result, COIN_LEFT_BEHIND)
+        return
+    recipient = person.get("id") if isinstance(person, dict) else None
+    recipient = recipient if isinstance(recipient, str) and recipient else None
+    decision = current(session)
+    ours = decision is not None and decision.npc_id == recipient and decision.amount_cp == amount
+    if ours and decision.kind == "unclear" and decision.amount_cp > 0:
+        _note(session, recipient, unclear_note(decision.amount_cp))
+    if recipient is None:
+        _tell(result, economic_actions._CLARIFY["npc_unknown"])
+        return
+    purpose = _CARD_AFTER_REPLY.get(decision.kind) if ours else None
+    if purpose is None:
+        return  # only the decision names a card; held-out coin is never a gift by default
+    prepared = economic_actions.prepare_from_turn(
+        session, economic_actions.turn_proposal(purpose, recipient, amount_cp=decision.amount_cp))
+    _tell(result, prepared.public_message)

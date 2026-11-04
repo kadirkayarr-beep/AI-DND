@@ -121,21 +121,24 @@ class OneCoinOneTruth(FrontScene):
     def purse(self):
         return self.world["currency"]["player"]
 
-    def gift_card(self, out, amount):
-        """The one card the line opened: a gift of exactly that coin to the barman, nothing paid yet."""
+    LABELS = {"gift": "Hediye", "tip": "Bahşiş"}
+
+    def coin_card(self, out, purpose, amount):
+        """The one card the line opened: a gift or a tip of exactly that coin to the barman, nothing paid yet."""
         cards = [data for data in self.world["flags"].get("economic_offers", {}).values()
                  if data["status"] == "prepared"]
         self.assertEqual(len(cards), 1, out["narration"])
         proposal = cards[0]["proposal"]
         self.assertEqual((proposal["purpose"], proposal["recipient_id"], proposal["amount_cp"]),
-                         ("gift", self.npc["id"], amount), out["narration"])
+                         (purpose, self.npc["id"], amount), out["narration"])
         self.assertIsNone(proposal.get("tender_cp"))
         self.assertEqual(out["state"]["economic_offer"]["offer_id"], cards[0]["offer_id"])
+        self.assertEqual([line["label"] for line in out["state"]["economic_offer"]["lines"]], [self.LABELS[purpose]])
         return out["state"]["economic_offer"]
 
-    def gift_operations(self):
+    def coin_operations(self, purpose):
         operations = self.world["flags"].get("economic_ledger", {}).get("operations", {})
-        return [op for op in operations.values() if op["purpose"] == "gift"]
+        return [op for op in operations.values() if op["purpose"] == purpose]
 
     async def confirm(self, card):
         response = await self.http.post(self.turn_url, json={
@@ -145,7 +148,7 @@ class OneCoinOneTruth(FrontScene):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
-    async def confirm_pays_once(self, card, amount, *, purse, held):
+    async def confirm_pays_once(self, card, amount, *, purse, held, purpose):
         """Confirming over the API moves exactly that coin to the barman once; a second confirm moves nothing."""
         paid = await self.confirm(card)
         resolution = paid["economic_resolution"]
@@ -158,7 +161,7 @@ class OneCoinOneTruth(FrontScene):
                          ("refused", "offer_not_prepared", 0))
         self.assertEqual(self.purse(), purse - amount)
         self.assertEqual(self.world["currency"].get(self.npc["id"], 0), held + amount)
-        self.assertEqual(len(self.gift_operations()), 1)
+        self.assertEqual(len(self.coin_operations(purpose)), 1)
 
     async def test_the_price_the_barman_says_is_the_price_the_purse_pays(self):
         await self.at_the_bar()
@@ -169,15 +172,15 @@ class OneCoinOneTruth(FrontScene):
 
     async def test_a_gold_thrown_with_keep_the_change_pays_that_gold_and_buys_no_beer(self):
         await self.at_the_bar()
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100, "deal": "tip"}
         out = await self.line("bi altın atıyorum tezgaha, üstü kalsın, karşılığında biraz laf isterim. "
                               "mazduşa konağının sahibi kim biliyon mu", "Bilmem.")
-        # Keep-the-change with no order is a gift of the whole gold: its card opens, the confirm pays it.
+        # Keep-the-change with no order is read as a tip of the whole gold: its Bahşiş card opens, the confirm pays it.
         self.assertEqual(self.purse(), 2435, out["narration"])
         self.assertEqual(self.world["currency"].get(self.npc["id"], 0), 0)
         self.assertNotEqual(out["turn_outcome"]["action"], "purchase", out["narration"])
-        card = self.gift_card(out, 100)
-        await self.confirm_pays_once(card, 100, purse=2435, held=0)
+        card = self.coin_card(out, "tip", 100)
+        await self.confirm_pays_once(card, 100, purse=2435, held=0, purpose="tip")
         self.assertEqual(self.purse(), 2335)
 
     async def test_a_gold_put_down_with_a_beer_order_only_opens_the_counter(self):
@@ -207,13 +210,13 @@ class OneCoinOneTruth(FrontScene):
         await self.at_the_bar()
         bought = await self.line(f"/item shop_buy {self.npc['id']} bira 1 0 4")
         self.assertEqual(self.purse(), 2431, bought["narration"])
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 10}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 10, "deal": "tip"}
         out = await self.line("al şu gümüşü de, üstü kalsın", "Sağ ol.")
-        # The tip is its own gift card, not folded into the beer already bought; the confirm pays it.
+        # The tip is its own Bahşiş card, not folded into the beer already bought; the confirm pays it.
         self.assertEqual(self.purse(), 2431, out["narration"])
         self.assertEqual(self.world["currency"][self.npc["id"]], 4)
-        card = self.gift_card(out, 10)
-        await self.confirm_pays_once(card, 10, purse=2431, held=4)
+        card = self.coin_card(out, "tip", 10)
+        await self.confirm_pays_once(card, 10, purse=2431, held=4, purpose="tip")
         self.assertEqual(self.purse(), 2435 - 4 - 10)
         self.assertEqual(self.world["currency"][self.npc["id"]], 14)
 
@@ -238,12 +241,12 @@ class OneCoinOneTruth(FrontScene):
 
     async def test_a_coin_handed_before_a_question_still_pays(self):
         await self.at_the_bar()
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100, "deal": "gift"}
         out = await self.line("bi altın atıyorum tezgaha, mazduşa konağının sahibi kim biliyon mu?", "Bilmem.")
-        # The question does not swallow the coin: its gift card opens, and the confirm pays it.
+        # The question does not swallow the coin: the gift card the reading names opens, and the confirm pays it.
         self.assertEqual(self.purse(), 2435, out["narration"])
-        card = self.gift_card(out, 100)
-        await self.confirm_pays_once(card, 100, purse=2435, held=0)
+        card = self.coin_card(out, "gift", 100)
+        await self.confirm_pays_once(card, 100, purse=2435, held=0, purpose="gift")
         self.assertEqual(self.purse(), 2335)
 
 

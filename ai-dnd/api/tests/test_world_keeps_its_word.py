@@ -212,9 +212,9 @@ class FrontLines(FrontScene):
     async def test_a_coin_given_leaves_the_purse_and_the_person_has_it(self):
         await self.begin()
         self.world.setdefault("currency", {})["player"] = 100
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5, "deal": "gift"}
         out = await self.line("yasliya yarim gumus veriyorum sus diye")
-        # A4: the coin held out opens a gift card for that person; only its confirmation moves it.
+        # A4: the coin held out as a gift opens a gift card for that person; only its confirmation moves it.
         self.assertEqual(self.purse(), 100, out["narration"])
         self.assertEqual(self.held_out(), [(self.npc["id"], 5)])
         self.assertIn("5 bakır", out["narration"])
@@ -250,7 +250,7 @@ class FrontLines(FrontScene):
             with self.subTest(line=line):
                 await self.begin()
                 self.world.setdefault("currency", {})["player"] = 320
-                self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": read}
+                self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": read, "deal": "gift"}
                 out = await self.line(line)
                 self.assertEqual(self.purse(), 320, line)  # A4: held out, not paid, until the card is confirmed
                 self.assertEqual(self.held_out(), [(self.npc["id"], paid)], line)
@@ -261,7 +261,7 @@ class FrontLines(FrontScene):
     async def test_coin_with_no_figure_is_a_small_hand_not_the_readings_number(self):
         await self.begin()
         self.world.setdefault("currency", {})["player"] = 320
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 300}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 300, "deal": "gift"}
         out = await self.line("eline biraz para sikistiriyorum")
         self.assertEqual(self.purse(), 320)  # A4: held out, not paid, until the card is confirmed
         self.assertEqual(self.held_out(), [(self.npc["id"], 10)])

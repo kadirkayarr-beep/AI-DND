@@ -25,6 +25,7 @@ import world_threads
 from api.core_resolution import resolution_action_scope
 from api.tests import test_thread_hiring as hiring
 from api.tests.test_economic_action_http import EconomicHttpFixture
+from money_owner import CoinDecision
 
 DAY = 86400
 HOUR = 3600
@@ -73,8 +74,13 @@ class Talk(unittest.TestCase):
 
 
 class HandedCoin(Talk):
+    def hold_out(self, amount, npc_id, kind="gift"):
+        """What the reading leaves for coin held out in a line: the money owner's decision and the coin in hand."""
+        self.s._coin_decision = CoinDecision(kind, npc_id, amount, 0, None, "model", self.here)
+        self.s._coin_paid = (amount, self.npc(npc_id) if npc_id else None, self.here)
+
     def test_refused_gift_does_not_debit(self):
-        self.s._coin_paid = (5, self.npc("guest"), self.here)
+        self.hold_out(5, "guest")
         before = self.money()
         with patch.object(world_reactions, "refuses", side_effect=lambda world, npc: npc.get("id") == "guest"):
             result = self.s.run_player_turn("/item list")
@@ -85,7 +91,7 @@ class HandedCoin(Talk):
     def test_tip_is_not_swallowed_by_currency_flag(self):
         # The old end-of-turn payer skipped any line that already showed a coin change; the card does not.
         self.s._economic_turn_key = "turn-tip"
-        self.s._coin_paid = (5, self.npc("guest"), self.here)
+        self.hold_out(5, "guest")
         result = {"narration": "Kese şıngırdıyor.",
                   "action_result": {"action": "narrative", "status": "resolved", "state_changes": ["currency"]}}
         before = self.money()
@@ -97,7 +103,7 @@ class HandedCoin(Talk):
         self.assertEqual(card["proposal"]["source_action_id"], "turn-tip")
 
     def test_handed_coin_without_order_opens_gift_card_no_debit(self):
-        self.s._coin_paid = (5, self.npc("guest"), self.here)
+        self.hold_out(5, "guest")
         before = self.money()
         result = self.s.run_player_turn("/item list")
         self.assertEqual(self.money(), before)
@@ -110,21 +116,21 @@ class HandedCoin(Talk):
 
     def test_unconfirmed_coin_prompt_never_says_taken(self):
         guest = self.npc("guest")
-        self.s._coin_paid = (5, guest, self.here)
+        self.hold_out(5, "guest")
         note = game._experimental_speech_note(self.w, guest, None, "al şunu", session=self.s)
         self.assertNotIn("artık sende", note)
         self.assertIn("henüz sende değil", note)
         self.assertIn("5 bakır", note)
         # Coin held out to nobody the line could name opens no card naming anyone: whoever answers is not told of it.
-        self.s._coin_paid = (5, None, self.here)
+        self.hold_out(5, None, "unclear")
         note = game._experimental_speech_note(self.w, guest, None, "al şunu", session=self.s)
         self.assertNotIn("bakır uzatıyor", note)
         # Coin held out to someone else is not this person's either.
-        self.s._coin_paid = (5, self.npc("barman"), self.here)
+        self.hold_out(5, "barman")
         note = game._experimental_speech_note(self.w, guest, None, "al şunu", session=self.s)
         self.assertNotIn("bakır uzatıyor", note)
         # A room line takes the coin as its tender (or ignores it with a note): nobody is told it changed hands.
-        self.s._coin_paid = (100, self.npc("barman"), self.here)
+        self.hold_out(100, "barman", "room")
         self.s.run_player_turn("hancıya 1 altın verip oda tutuyorum")
         note = game._experimental_speech_note(self.w, self.npc("barman"), None, "oda", session=self.s)
         self.assertNotIn("artık sende", note)

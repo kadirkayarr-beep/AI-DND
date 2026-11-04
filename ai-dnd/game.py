@@ -40,6 +40,7 @@ import attributed_claims
 import effect_lifecycle
 import event_order
 import interaction_adventure
+import money_owner
 import npc_statements
 from weapon_catalog import WEAPONS
 from dataclasses import dataclass, field
@@ -8611,12 +8612,17 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if handed:
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
-    held_out = getattr(_session(), "_coin_paid", None)
-    if held_out and isinstance(held_out[1], dict) and held_out[1].get("id") == npc.get("id"):
-        # Coin waits for the card: the person must not be told it is already theirs (decisions 3 and 11). Only the
-        # person it was held out to hears of it; coin held to nobody named opens no card that names anyone.
-        lines.append(f"Oyuncu sana {held_out[0]} bakır uzatıyor; para henüz sende değil, "
-                     "oyuncu kartı onaylarsa geçer.")
+    decision = money_owner.current(_session())
+    if decision is not None and decision.amount_cp > 0 and decision.npc_id == npc.get("id"):
+        # Read from the money owner's decision: coin waiting for a card is not theirs yet (decisions 3 and 11), coin
+        # with no meaning opens no card and is only shown. Only the person it was held out to hears of it; a past
+        # payment is no coin held out now, and the guard weighs a bribe on its own card.
+        if decision.kind in money_owner.WAITS_FOR_CONFIRMATION:
+            lines.append(f"Oyuncu sana {decision.amount_cp} bakır uzatıyor; para henüz sende değil, "
+                         "oyuncu kartı onaylarsa geçer.")
+        elif decision.kind == "unclear":
+            lines.append(f"Oyuncu sana {decision.amount_cp} bakır gösterdi, ne için olduğu belli değil; "
+                         "para el değiştirmedi.")
     import bold_acts
     import pocket
     lines.append(bold_acts.room_note(npc, player_input))
@@ -17816,38 +17822,20 @@ def _run_player_turn_owned(
     return result
 
 
-COIN_LEFT_BEHIND = "Uzattığın para kimseye geçmedi; o kişi geride kaldı, para kesende."
+COIN_LEFT_BEHIND = money_owner.COIN_LEFT_BEHIND
 
 
 def _tell_the_coin(result):
-    """Coin held out in this line with no room or purchase to take it opens a gift card; nothing moves now.
+    """After the reply, the money owner opens the one card this turn's decision names; coin is never a silent gift.
 
-    It writes no coin. A line whose room or purchase already saw the coin (as tender, or ignored with a note)
-    prepares nothing, so a gift card never closes that line's own card. A taker read before a change of place is
-    left behind: no card, a short note.
+    It writes no coin. The coin in hand and the counter's hold on it end here, whatever the owner did.
     """
-    import economic_actions
     session = _session()
-    paid = getattr(session, "_coin_paid", None)
-    session._coin_paid = None
-    session._counter_held = None
-    action = result.get("action_result") if isinstance(result, dict) else None
-    if not paid or not isinstance(action, dict):
-        return
-    amount, person, place = paid
-    if action.get("coin_seen_by") or action.get("action") == "shop_offer":
-        return  # the room or the counter offer read this coin; only its own card or trade can take it
-    if place != session.world_state.get("location"):
-        result["narration"] = f"{result.get('narration') or ''} {COIN_LEFT_BEHIND}".strip()
-        return
-    recipient = person.get("id") if isinstance(person, dict) else None
-    if not isinstance(recipient, str) or not recipient:
-        result["narration"] = (f"{result.get('narration') or ''} "
-                               f"{economic_actions._CLARIFY['npc_unknown']}").strip()
-        return
-    prepared = economic_actions.prepare_from_turn(
-        session, economic_actions.turn_proposal("gift", recipient, amount_cp=amount))
-    result["narration"] = f"{result.get('narration') or ''} {prepared.public_message}".strip()
+    try:
+        money_owner.open_card_after_reply(session, result)
+    finally:
+        session._coin_paid = None
+        session._counter_held = None
 
 
 def _run_player_turn(

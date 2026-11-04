@@ -1,6 +1,6 @@
 {
   "id": "18_room_phrase_not_job",
-  "title": "Oda sözü iş değildir (110, 115): handa barmenin 26 bakırlık sayım işi kabul edilmişken 'Oda için beş gümüş ödüyorum' (ön okuma: barmenle konuşuyor, 50 bakır uzatıyor) sayım işini bitirmez, kese iş parasıyla artmaz, oyun saati ilerlemez ve açılan kart Hediye değil Oda kartıdır (50 bakır). Bugün aynı satır işin vardiyasını çalıştırır (8 saat geçer, 26 bakır ödenir, iş kapanır) ve 50 bakırlık Hediye kartı açar",
+  "title": "Oda sözü iş değildir (110, 115): handa barmenin 26 bakırlık sayım işi kabul edilmişken 'Oda için beş gümüş ödüyorum' (ön okuma: barmenle konuşuyor, 50 bakır uzatıyor) sayım işini bitirmez, kese iş parasıyla artmaz, oyun saati ilerlemez ve açılan kart Hediye değil Oda kartıdır (50 bakır). Bugün aynı satır vardiyayı çalıştırmaz ve Hediye kartı açmaz (para satırı iş değildir; sessiz hediye yok), ama Oda kartını da açmaz: kart yok",
   "source_items": [
     110,
     115
@@ -119,7 +119,7 @@
         110,
         115
       ],
-      "broken_because": ["kese: beklenen 100, gözlenen 126", "saat: beklenen 0, gözlenen 8", "kart.kalemler: beklenen ['Oda (bir gece)'], gözlenen ['Hediye']"]
+      "broken_because": ["kart: beklenen {'max_total_cp': 50, 'kalemler': ['Oda (bir gece)']}, gözlenen yok"]
     }
   ]
 }

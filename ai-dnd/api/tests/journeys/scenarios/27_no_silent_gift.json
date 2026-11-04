@@ -1,0 +1,32 @@
+{
+  "id": "27_no_silent_gift",
+  "title": "Sessiz hediye yok (35, D29): satıcı olmayan Osman'a ne için olduğu söylenmeden uzatılan 5 bakır kart açmaz, para kesede kalır; ön okuma 'deal: gift' derse aynı satır 5 bakırlık Hediye kartı açar; açık teklif yokken barmene bırakılan 3 bakır 'deal: tip' ile Hediye değil Bahşiş kartı açar. Kart onaylanmadan kese değişmez",
+  "source_items": [35],
+  "setup": {
+    "npcs": [
+      {"id": "osman", "name": "Osman", "role": "Kervancı", "current_hp": 10},
+      {"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}
+    ],
+    "currency": {"player": 100, "osman": 0, "barman": 0},
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Osman'a beş bakır uzatıyorum",
+      "script": {"front": {"kind": "speak_to", "person_id": "osman", "coin_cp": 5}},
+      "expect": {"kart": null, "kese": 100, "kisi_kese": {"osman": 0}}
+    },
+    {
+      "say": "Osman'a beş bakır uzatıyorum",
+      "script": {"front": {"kind": "speak_to", "person_id": "osman", "coin_cp": 5, "deal": "gift"}},
+      "expect": {"kart": {"max_total_cp": 5, "kalemler": ["Hediye"]}, "kese": 100, "kisi_kese": {"osman": 0}}
+    },
+    {
+      "say": "Marek'e üç bakır bırakıyorum",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 3, "deal": "tip"}},
+      "expect": {"kart": {"max_total_cp": 3, "kalemler": ["Bahşiş"]}, "kese": 100, "kisi_kese": {"barman": 0}}
+    }
+  ]
+}

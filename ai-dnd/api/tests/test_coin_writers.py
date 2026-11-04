@@ -19,6 +19,7 @@ import bold_acts
 import economic_actions as ea
 import game
 from api.core_resolution import resolution_action_scope
+from money_owner import CoinDecision
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -140,8 +141,13 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
         self.assertEqual(self.w["flags"]["counter_offer_v1"]["tender_cp"], 100)
         self.moved_by()
 
+    def gift_held_out(self, amount):
+        """Coin held out to the guest with the money owner's gift decision, as the reading leaves them."""
+        self.s._coin_decision = CoinDecision("gift", "guest", amount, 0, None, "model", self.w["location"])
+        self.s._coin_paid = (amount, self.w["npcs"][1], self.w["location"])
+
     def test_a_coin_handed_with_no_order_is_a_gift(self):
-        self.s._coin_paid = (5, self.w["npcs"][1], self.w["location"])
+        self.gift_held_out(5)
         self.s.run_player_turn("/item list")
         self.moved_by()  # the turn only opens the card
         [card] = self.prepared()
@@ -190,7 +196,7 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
         self.moved_by("economic_actions.py:apply_resolution")
 
     def test_unconfirmed_false_proposal_changes_no_relationship_or_clock(self):
-        self.s._coin_paid = (5, self.w["npcs"][1], self.w["location"])
+        self.gift_held_out(5)
         before = (dict(self.w["currency"]), copy.deepcopy(self.w.get("relationships")),
                   copy.deepcopy(self.w.get("campaign_time")))
         self.s.run_player_turn("/item list")
