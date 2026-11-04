@@ -151,3 +151,15 @@ def decide(world: dict[str, Any], *, person: dict[str, Any] | None, amount_cp: i
     else:
         kind, tip_cp, goods_key = _structural(world, person, amount)
     return CoinDecision(kind, _id_of(person), amount, tip_cp, goods_key, source, place_id)
+
+
+def current(session: Any) -> CoinDecision | None:
+    """This turn's decision, as the reading wrote it on the session (reset by `front_proposal.begin`)."""
+    decision = getattr(session, "_coin_decision", None)
+    return decision if isinstance(decision, CoinDecision) else None
+
+
+def blocks_money_moves(session: Any) -> bool:
+    """Coin is leaving the player's hand this turn: no shift is worked and no wage is drawn on the same line (D4)."""
+    decision = current(session)
+    return decision is not None and decision.amount_cp > 0

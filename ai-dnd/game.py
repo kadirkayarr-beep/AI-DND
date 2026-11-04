@@ -8326,8 +8326,14 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     """Write what was decided. Each writer leaves nothing behind if it cannot finish."""
     from adventure import dialogue_jobs
     import world_threads
+    import money_owner
     thread = world_threads.by_id(world, gate["thread_id"])
     decision = gate["decision"]
+    if decision in {"work", "pay"} and money_owner.blocks_money_moves(session):
+        # D4: coin leaving the player's hand is never a shift or a wage drawn; the line is said to the person
+        gate["decision"] = None
+        session._thread_turn = gate
+        return gate
     if decision == "pay":
         due, why = world_threads.wage_due(world, thread)
         amount, finished = world_threads.pay_day(world, thread) if due else (0, False)
@@ -18327,7 +18333,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         session._front_coin = front_proposal.coin_in(reply, player_input)
         route = {"kind": "speak_to", "id": target_id}
         front_proposal.note(session, "front:speak_to", reached=True)
-        _hand_over_coin(route, listed)
+        _hand_over_coin(route, listed, reply.get("front"))
         return route
     import world_happenings
     import world_threads
@@ -18394,7 +18400,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route["kind"] in {"sit", "attempt", "look", "unclear"} and timed_gameplay.names_a_stretch(world, player_input):
         route = {"kind": "wait"}  # 'akşama kadar', 'iki saat': whatever else the line does, it lets that time go by
     front_proposal.note(session, f"front:{route['kind']}", reached=True)
-    _hand_over_coin(route, listed)
+    _hand_over_coin(route, listed, reply.get("front"))
     if route["kind"] == "look":
         held["intent"] = "observe"
     session._front_thing = route.get("thing")
@@ -18406,24 +18412,32 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
                       "blow_asked", "wait"}
 
 
-def _hand_over_coin(route, listed):
+def _hand_over_coin(route, listed, front=None):
     """Coin the reading saw held out: nothing is paid by it. It waits, with who it was for and where, for a card.
 
     `_coin_paid` is (amount, person, place_id): the room or purchase of this line may take it as tender, otherwise
     the end of the turn opens a gift card. During an arrest it is the guard's to weigh only when it was held out to
     that guard or to nobody the reading could name; coin for someone else (the innkeeper) is no bribe.
+    `front` is the reading itself: the money owner's decision for this turn is written from its `deal` and the coin,
+    also when the deal came with no coin (D29: asking for a room or goods opens an offer and hands nothing over).
     """
     import bold_acts
+    import money_owner
     session = _session()
     session._counter_held = None
     amount = getattr(session, "_front_coin", 0)
-    if not amount or route["kind"] in {"strike", "blow_asked"}:
+    deal = money_owner.read_deal(front, listed)
+    if (not amount and deal is None) or route["kind"] in {"strike", "blow_asked"}:
         return
     import world_reactions
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
     guard = world_reactions.arrester(session.world_state)
+    session._coin_decision = money_owner.decide(session.world_state, person=person, amount_cp=amount, deal=deal,
+                                                arrester=guard)
+    if not amount:
+        return  # an offer asked for with no coin in hand: the decision alone, nothing waits for a card
     if guard is not None and (person is None or person.get("id") == guard.get("id")):
         session._bribe_held_out = amount  # whether this coin moves is the guard's to decide
         return
