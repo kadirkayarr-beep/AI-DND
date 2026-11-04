@@ -1,6 +1,6 @@
 {
   "id": "17_refused_gift_not_charged",
-  "title": "Reddedilen para kesilmez (103): kervancı uzatılan 5 bakırı sözle geri çevirir; aynı kişiye sonradan hazırlanıp onaylanan 5 bakırlık bahşiş kartı parayı kesmez (anlatı ile kart aynı doğruluktan okur). Bugün uzatma satırı reddin yanında 5 bakırlık bir Hediye kartı da açar ve bahşiş kartının onayı 5 bakır keser. Bu senaryo düzeltmenin 'kart açılır, onay kesmez' biçimini sınar; düzeltme kartı baştan açmamayı seçerse hazırla ve onay adımları yeniden yazılır",
+  "title": "Reddedilen para kesilmez (103; D3, D25, D26): kervancı uzatılan 5 bakırı neyi reddettiği belli olmadan geri çevirir; ret kart açtırmaz ve o kişiye hiçbir ödeme ilerlemez: panelden hazırlanan bahşiş reddedilir, aynı kişiye yine uzatılan para cevap gelmeyince kart açmaz (ret sürer). Ret yalnız aynı kalem için açık 'alırım' ile kalkar: bahşişi açıkça alınca Bahşiş kartı açılır ve onayı 5 bakır keser; genel retteki öteki kalem (hediye) kapalı kalır",
   "source_items": [
     103
   ],
@@ -30,13 +30,18 @@
           "person_id": "caravaner",
           "coin_cp": 5
         },
-        "spoken": "Paranı istemem, sakla onu; bahşiş almam."
+        "spoken": "Paranı istemem, sakla onu; bahşiş almam.",
+        "speech": {
+          "coin_answer": "declines",
+          "coin_answer_for": "unclear"
+        }
       },
       "expect": {
         "kese": 100,
         "kisi_kese": {
           "caravaner": 0
-        }
+        },
+        "kart": null
       }
     },
     {
@@ -46,6 +51,44 @@
           "purpose": "tip",
           "recipient_id": "caravaner",
           "amount_cp": 5
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "kart": null,
+        "gerekli_metin": "parayı geri çevirdi"
+      }
+    },
+    {
+      "say": "Şu beş bakırı al",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "caravaner",
+          "coin_cp": 5,
+          "deal": "tip"
+        },
+        "spoken": "Hm.",
+        "speech": {}
+      },
+      "expect": {
+        "kese": 100,
+        "kart": null
+      }
+    },
+    {
+      "say": "Peki, şu beş bakırı yine de al",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "caravaner",
+          "coin_cp": 5,
+          "deal": "tip"
+        },
+        "spoken": "Peki, madem ısrar ediyorsun.",
+        "speech": {
+          "coin_answer": "takes",
+          "coin_answer_for": "tip"
         }
       },
       "expect": {
@@ -63,15 +106,26 @@
         "kind": "confirm"
       },
       "expect": {
-        "kese": 100,
+        "kese": 95,
         "kisi_kese": {
-          "caravaner": 0
+          "caravaner": 5
+        }
+      }
+    },
+    {
+      "economic_action": {
+        "kind": "prepare",
+        "proposal": {
+          "purpose": "gift",
+          "recipient_id": "caravaner",
+          "amount_cp": 5
         }
       },
-      "known_broken": [
-        103
-      ],
-      "broken_because": ["kese: beklenen 100, gözlenen 95", "kisi_kese.caravaner: beklenen 0, gözlenen 5"]
+      "expect": {
+        "kese": 95,
+        "kart": null,
+        "gerekli_metin": "parayı geri çevirdi"
+      }
     }
   ]
 }
