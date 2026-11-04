@@ -55,7 +55,7 @@ _WHOLE_CALL = "toplam"
 _CUT = "--max-calls sınırı: bu adımdan itibaren model çağrısı yapılmadı; koşulmadı sayıldı"
 
 
-def parse_args(argv: Sequence[str]) -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="journey_real.py",
         description="Yolculuk senaryolarını gerçek model zinciriyle koşar (para harcar; yalnız --yap ile).",
@@ -64,10 +64,16 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
                         help="core (real_chain_core işaretliler), all ya da virgülle kimlikler")
     parser.add_argument("--runs", type=_positive, default=DEFAULT_RUNS, help="her senaryo kaç kez koşar")
     parser.add_argument("--max-calls", type=_positive, default=DEFAULT_MAX_CALLS,
-                        help="en çok kaç model çağrısı yapılır; aşılmaz")
+                        help="motorun en çok kaç model çağrısı yapacağı (aşılmaz); bir motor çağrısı zincirde "
+                             "birden çok sağlayıcı denemesi olabilir, sağlayıcı isteği sayısı bundan fazla olabilir")
     parser.add_argument("--yap", action="store_true", help="gerçekten koş (para harcar)")
-    parser.add_argument("--out", type=Path, default=Path.cwd(), help="raporun yazılacağı klasör")
-    return parser.parse_args(list(argv))
+    parser.add_argument("--out", type=Path, default=None,
+                        help="raporun yazılacağı klasör (--yap ile zorunlu)")
+    return parser
+
+
+def parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    return build_parser().parse_args(list(argv))
 
 
 def _positive(text: str) -> int:
@@ -121,6 +127,9 @@ def main(
         return EXIT_NOT_ASKED
     if not selection:
         print("Koşulacak senaryo yok.", file=out)
+        return 1
+    if args.out is None:
+        print("Koşulmadı: raporun klasörü yok; --out <klasör> ver.", file=out)
         return 1
     _keep_the_owners_save_out()
     driver = build_driver(args.max_calls, make_adapter)
@@ -325,6 +334,8 @@ def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Pla
     if problems:
         # The error's type only: its message could carry anything the failing call held.
         played.error = problems[0][1].strip().splitlines()[-1].split(":", 1)[0]
+    elif result.skipped or result.testsRun != 1:
+        played.error = "koşu atlandı"
     return played
 
 
@@ -365,10 +376,11 @@ def assemble_report(selection: Mapping[str, Scenario], played: Played, driver: R
             usage = None
     text = build_report(results, dict(selection), real_runs=real_runs, latency=driver.latency,
                         usage_today=usage, date=day.isoformat())
-    return text + "\n" + _run_notes(played, driver, args) + "\n"
+    return text + "\n" + _run_notes(selection, played, driver, args) + "\n"
 
 
-def _run_notes(played: Played, driver: RealChain, args: argparse.Namespace) -> str:
+def _run_notes(selection: Mapping[str, Scenario], played: Played, driver: RealChain,
+               args: argparse.Namespace) -> str:
     done = {key: len(runs) for key, runs in played.complete.items()}
     lines = ["## Gerçek zincir koşusu", "",
              f"- İstenen koşu: {args.runs}; senaryo başına tamamlanan: "
@@ -378,6 +390,11 @@ def _run_notes(played: Played, driver: RealChain, args: argparse.Namespace) -> s
     if played.cut is not None:
         lines.append(f"- --max-calls sınırına ({args.max_calls}) ulaşıldı; koşu erken durdu: {played.cut}. "
                      "Kesilen koşu, geçen koşu oranına girmez.")
+    marked = [key for key, scenario in selection.items() if any(step.known_broken for step in scenario.steps)]
+    if marked:
+        lines.append("- Bir koşu, bilinen kırık bir adımı kırıldığında da geçmemiş sayılır. Oranı yalnız zinciri "
+                     "değil motorun bilinen kırığını da gösteren, bilinen kırık işaretli adımı olan senaryolar: "
+                     f"{', '.join(marked)}.")
     lines += ["", "### Atlanan denemeler", ""]
     if not driver.skips:
         return "\n".join(lines + ["Atlanan deneme yok."])

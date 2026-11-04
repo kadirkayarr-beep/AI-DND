@@ -26,7 +26,7 @@ from api import model_chain
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence import campaign_store
 from api.tests.journeys import real_run
-from api.tests.journeys.runner import SCENARIO_DIR, ScriptedClient
+from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedClient
 from api.tests.journeys.schema import ScenarioError, load_scenario
 from api.usage_ledger import UsageLedger
 
@@ -169,6 +169,20 @@ class TheGate(Offline):
         flagged = {path.stem for path in SCENARIO_DIR.glob("*.json") if load_scenario(path).real_chain_core}
         self.assertEqual(set(core), flagged)
 
+    def test_a_real_run_needs_an_out_folder_so_no_report_lands_where_the_command_was_started(self):
+        write_scenarios(self.scenarios, probe("01_a", 1))
+        chain = FakeChain(self.folder)
+        code, printed = self.run_command("--yap", chain=chain)
+        self.assertEqual(code, 1)
+        self.assertIn("--out", printed)
+        self.assertIsNone(chain.local, "the adapter was built without an out folder")
+        self.assertEqual(chain.cloud_requests, [])
+
+    def test_the_call_cap_is_told_as_engine_calls_not_provider_requests(self):
+        text = real_run.build_parser().format_help()
+        self.assertIn("motor", text)
+        self.assertIn("sağlayıcı", text)
+
     def test_an_unknown_scenario_id_is_refused_without_spending(self):
         write_scenarios(self.scenarios, probe("01_a", 1))
         chain = FakeChain(self.folder)
@@ -267,6 +281,32 @@ class TheRealRun(Offline):
         self.assertEqual((self.out / "ADIM2_RAPOR_20261104.md").read_text(encoding="utf-8"), "önceki")
         self.assertTrue((self.out / "ADIM2_RAPOR_20261104_2.md").exists())
 
+    def test_a_skipped_run_is_a_broken_run_not_an_empty_report(self):
+        write_scenarios(self.scenarios, probe("01_a", 1))
+
+        async def skipped(case):
+            raise unittest.SkipTest("journey case skipped")
+
+        with patch.object(JourneyCase, "asyncSetUp", skipped):
+            code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1",
+                                             chain=FakeChain(self.folder))
+        self.assertEqual(code, 1, printed)
+        self.assertIn("Koşu bozuldu", printed)
+        self.assertEqual(list(self.out.iterdir()), [])
+
+    def test_a_scenario_with_a_known_break_is_said_to_count_the_engine_not_only_the_chain(self):
+        scenario = probe("01_a", 1)
+        scenario["steps"][0]["expect"]["savas"] = True  # really broken: looking around starts no fight
+        scenario["steps"][0]["known_broken"] = [99]
+        write_scenarios(self.scenarios, scenario)
+        code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "1",
+                                         chain=FakeChain(self.folder))
+        self.assertEqual(code, 0, printed)
+        report = self.report()
+        self.assertIn("- 01_a: 1 üzerinden 0", report)
+        notes = report.split("## Gerçek zincir koşusu", 1)[1]
+        self.assertIn("bilinen kırık işaretli adımı olan senaryolar: 01_a", notes)
+
     def test_no_real_chain_in_the_environment_means_no_run(self):
         write_scenarios(self.scenarios, probe("01_a", 1))
         printed = io.StringIO()
@@ -275,6 +315,69 @@ class TheRealRun(Offline):
         self.assertEqual(code, 1)
         self.assertIn("gerçek zincir kurulamadı", printed.getvalue())
         self.assertEqual(list(self.out.iterdir()), [])
+
+
+class TheCoreSet(Offline):
+    """The default real-chain set is the design's four (spec §5): price recall (36), consistency after payment
+    (2), the narrator matching the engine when there is no weapon to strike with (39), a fight started by a
+    headbutt with its latency (8, 19). Each says something about the chain alone."""
+
+    CORE = {
+        "rc1_price_recall": (36,),
+        "rc2_paid_consistency": (2,),
+        "rc3_refusal_narration": (39,),
+        "rc4_headbutt_start": (8, 19),
+    }
+    STATE_KEYS = {"kese", "envanter", "kip", "savas", "kisi_kese", "tezgah", "oda"}
+
+    def core(self):
+        return real_run.select_scenarios("core", SCENARIO_DIR)
+
+    def test_the_core_set_is_the_four_real_chain_journeys_of_the_design(self):
+        core = self.core()
+        self.assertEqual(set(core), set(self.CORE))
+        for key, items in self.CORE.items():
+            self.assertEqual(core[key].source_items, items, key)
+        self.assertFalse(load_scenario(SCENARIO_DIR / "05_greatsword.json").real_chain_core,
+                         "05 checks the engine's weapon (item 39), not the narrator against a refusal")
+        printed = io.StringIO()
+        self.assertEqual(real_run.main([], out=printed, scenario_dir=SCENARIO_DIR), 2)
+        steps = sum(len(scenario.steps) for scenario in core.values())
+        self.assertIn(f"4 senaryo × {steps} adım × 3 koşu = {steps * 3}", printed.getvalue())
+
+    def test_a_core_journey_carries_no_known_break_so_its_ratio_is_the_chains(self):
+        for key, scenario in self.core().items():
+            for number, step in enumerate(scenario.steps, start=1):
+                self.assertEqual(step.known_broken, (), f"{key} adım {number}")
+
+    def test_every_real_chain_step_checks_the_state_and_its_forbidden_text_is_short_and_plain(self):
+        for key, scenario in self.core().items():
+            chain_steps = [step for step in scenario.steps if step.real_chain]
+            self.assertTrue(chain_steps, f"{key}: no step for the real chain alone")
+            for number, step in enumerate(scenario.steps, start=1):
+                where = f"{key} adım {number}"
+                self.assertTrue(set(step.expect) & self.STATE_KEYS, f"{where}: no state check")
+                needles = step.expect.get("yasak_metin", [])
+                self.assertLessEqual(len(needles), 4, where)
+                for needle in needles:
+                    self.assertLessEqual(len(needle.split()), 3, f"{where}: {needle}")
+            self.assertTrue(any("yasak_metin" in step.expect for step in chain_steps), key)
+
+    def test_the_core_journeys_play_every_step_through_the_real_chain_path_offline(self):
+        chain = FakeChain(self.folder)
+        driver = real_run.build_driver(500, chain.make_adapter)
+        self.assertIsNotNone(driver)
+        played = real_run.play(self.core(), 1, driver)
+        self.assertIsNone(played.error)
+        self.assertIsNone(played.cut)
+        self.assertEqual(set(played.complete), set(self.CORE))
+        for key, (steps,) in played.complete.items():
+            for step in steps:
+                where = f"{key} adım {step.index}: {step.failures}"
+                self.assertNotEqual(step.status, "unreached", where)
+                self.assertFalse(any(failure.startswith(("HTTP ", "beklenmeyen model çağrısı"))
+                                     for failure in step.failures), where)
+        self.assertGreater(chain.local.calls, 0)
 
 
 if __name__ == "__main__":

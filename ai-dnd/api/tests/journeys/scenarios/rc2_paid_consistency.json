@@ -1,0 +1,118 @@
+{
+  "id": "rc2_paid_consistency",
+  "title": "Gerçek zincir, ödeme sonrası tutarlılık: bira tezgâhtan 4 bakıra alındıktan sonra barmen 'parayı bırakmadın' demez; kese, envanter ve barmenin kesesi ödemeyi tutar",
+  "source_items": [
+    2
+  ],
+  "real_chain_core": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Gül Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "say": "bir bira alayım",
+      "expect": {
+        "tezgah": {
+          "npc_id": "barman",
+          "key": "bira",
+          "unit_cp": 4
+        },
+        "kart": null,
+        "kese": 100,
+        "envanter": {}
+      }
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {
+        "tezgah": null,
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        }
+      }
+    },
+    {
+      "say": "Marek'e teşekkür ediyorum",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "barman",
+            "name": "Marek",
+            "role": "Barmen"
+          }
+        },
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        },
+        "yasak_metin": [
+          "parayı bırakmadan",
+          "parayı bırakmadın",
+          "ödemedin",
+          "parasını vermedin"
+        ]
+      }
+    },
+    {
+      "say": "Marek, hesabımız tamam mı?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "barman",
+            "name": "Marek",
+            "role": "Barmen"
+          }
+        },
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        },
+        "yasak_metin": [
+          "parayı bırakmadan",
+          "parayı bırakmadın",
+          "ödemedin",
+          "parasını vermedin"
+        ]
+      }
+    }
+  ]
+}

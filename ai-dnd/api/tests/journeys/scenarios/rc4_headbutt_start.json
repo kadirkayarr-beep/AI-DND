@@ -1,0 +1,63 @@
+{
+  "id": "rc4_headbutt_start",
+  "title": "Gerçek zincir, savaş başlatma ve gecikme: 'Haydut'a kafa atıyorum' savaşı net başlatır, ikinci kafa savaşta işlenir; her çağrının süresi gecikme tablosuna gider",
+  "source_items": [
+    8,
+    19
+  ],
+  "real_chain_core": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "bandit",
+        "name": "Haydut",
+        "role": "Bandit",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 12,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "current_hp": 12,
+    "seed": 1
+  },
+  "steps": [
+    {
+      "say": "Haydut'a kafa atıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true
+      }
+    },
+    {
+      "say": "Haydut'a yine kafa atıyorum",
+      "real_chain": true,
+      "expect": {
+        "savas": true,
+        "yasak_metin": [
+          "sonucu belirsiz",
+          "ne yapmak istediğin"
+        ]
+      }
+    }
+  ]
+}

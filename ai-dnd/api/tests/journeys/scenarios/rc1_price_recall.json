@@ -1,0 +1,117 @@
+{
+  "id": "rc1_price_recall",
+  "title": "Gerçek zincir, fiyat hatırlama: barmen birayı 4 bakır der, üç tur sohbetten sonra fiyatı hâlâ 4 bakırdır ve 'öyle demedim' demez; tezgâh 4 bakıra satar (motor fiyatın sahibi)",
+  "source_items": [
+    36
+  ],
+  "real_chain_core": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Gül Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "say": "bir bira alayım",
+      "expect": {
+        "tezgah": {
+          "npc_id": "barman",
+          "key": "bira",
+          "unit_cp": 4
+        },
+        "kart": null,
+        "kese": 100,
+        "envanter": {}
+      }
+    },
+    {
+      "say": "Marek, bu hanı ne zamandır işletiyorsun?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "barman",
+            "name": "Marek",
+            "role": "Barmen"
+          }
+        },
+        "kese": 100,
+        "envanter": {}
+      }
+    },
+    {
+      "say": "Bu akşam kalabalık mı olur?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "barman",
+            "name": "Marek",
+            "role": "Barmen"
+          }
+        },
+        "kese": 100,
+        "envanter": {}
+      }
+    },
+    {
+      "say": "Bira kaç bakırdı demiştin?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "barman",
+            "name": "Marek",
+            "role": "Barmen"
+          }
+        },
+        "kese": 100,
+        "envanter": {},
+        "yasak_metin": [
+          "öyle demedim",
+          "şey demedim",
+          "dört bakır değil",
+          "4 bakır değil"
+        ]
+      }
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        }
+      }
+    }
+  ]
+}
