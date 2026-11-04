@@ -1,12 +1,12 @@
 """Evidence behind the room journeys (03_room_sleep, 07_leave_room), kept as tests so it can be re-checked.
 
 The scenario files say what each step must leave behind (purse, room record, hp, place, text). What they
-cannot see is how a step got there: the dice the engine rolled, the turn's own outcome, and what the narrator
-was told. These tests replay the scenario files themselves and read exactly that: every step's turn response
-and every model call's messages.
+cannot see is how a step got there: the dice the engine rolled and the turn's own outcome. These tests replay
+the scenario files themselves and read exactly that: every step's turn response and every model call's
+messages.
 
-The last test is a known break (note item 38, the second half of spec decision (f)): it asserts what should
-happen and is expected to fail today, so a fix shows up as an unexpected success.
+What the narrator is told after the room is paid (note item 38, the second half of spec decision (f)) is now
+03's own step 4 (``anlaticiya_giden``, known broken [38]); these tests pin why that step breaks.
 """
 
 from __future__ import annotations
@@ -115,7 +115,7 @@ class RoomJourneyEvidence(JourneyCase):
         rolls Persuasion d20 16, total 17 against DC 15; item 37 is the same 17 against 15."""
         results, responses, _ = await self.play(ROOM_SLEEP)
         self.assertEqual([result.status for result in results],
-                         ["pass", "known_broken", "pass", "pass", "pass"], results)
+                         ["pass", "known_broken", "pass", "known_broken", "pass", "pass"], results)
         check = responses[1]["skill_check_result"]
         self.assertEqual(
             {key: check[key] for key in ("skill", "ability", "d20", "total", "dc", "outcome")},
@@ -126,19 +126,34 @@ class RoomJourneyEvidence(JourneyCase):
         # The roll changed nothing: the room card still asks 50 cp (item 37).
         self.assertEqual(results[1].failures, ("gerekli_metin: gerekli metin bulunamadı: indirim",))
 
+    async def test_the_narrator_is_not_told_the_room_is_held(self):
+        """03 step 4 (known broken [38], decision (f)): the first narrated turn after the room is paid. The
+        narrator is called, but nothing it is sent says the room is held: the confirm turn calls no narrator
+        ("50 bakır ödendi."), and the room reaches the narrator only as the player's own unverified words."""
+        results, responses, model = await self.play(ROOM_SLEEP)
+        self.assertEqual((results[2].status, results[3].status), ("pass", "known_broken"), results)
+        self.assertNotIn("narration", model.clients[2].kinds, "the confirm turn calls no narrator")
+        told = model.clients[3].narrator_text()
+        self.assertTrue(told, "03 step 4 calls the narrator")
+        self.assertIn("bi oda tutayım usta", told)
+        self.assertEqual(results[3].failures, ("anlaticiya_giden: anlatıcıya giden metinde bulunamadı: oda tutuldu",))
+        # The room is held: only the narrator's knowledge of it is missing.
+        self.assertTrue(self.last_observations[3]["oda"])
+        self.assertEqual(responses[3]["turn_outcome"]["status"], "resolved")
+
     async def test_the_key_line_and_the_sleep_line_work_on_the_engine_path(self):
         """Item 38 as Kadir met it does not reproduce on the engine path once the room card is confirmed: the
         key line is not answered with the empty-handed pocket line, and the sleep line is a full night's rest."""
         results, responses, model = await self.play(ROOM_SLEEP)
-        self.assertEqual([results[2].status, results[3].status, results[4].status], ["pass"] * 3, results)
-        self.assertTrue(model.clients[3].narrator_text(), "03 step 4 calls the narrator")
+        self.assertEqual([results[2].status, results[4].status, results[5].status], ["pass"] * 3, results)
+        self.assertTrue(model.clients[4].narrator_text(), "03 step 5 calls the narrator")
         scenario = load_scenario(ROOM_SLEEP)
-        (needle,) = scenario.steps[3].expect["yasak_metin"]
+        (needle,) = scenario.steps[4].expect["yasak_metin"]
         self.assertIn(needle.casefold(), pocket.EMPTY_HANDED.casefold(),
                       "the scenario's forbidden text is the engine's empty-handed line")
-        self.assertNotIn(pocket.EMPTY_HANDED.casefold(), responses[3]["narration"].casefold())
-        self.assertEqual(responses[3]["turn_outcome"]["action"], "narrative")
-        self.assertEqual((responses[4]["turn_outcome"]["action"], responses[4]["turn_outcome"]["status"]),
+        self.assertNotIn(pocket.EMPTY_HANDED.casefold(), responses[4]["narration"].casefold())
+        self.assertEqual(responses[4]["turn_outcome"]["action"], "narrative")
+        self.assertEqual((responses[5]["turn_outcome"]["action"], responses[5]["turn_outcome"]["status"]),
                          ("rest", "completed"))
         self.assertEqual(self.elapsed_seconds(), EIGHT_HOURS)
 
@@ -150,20 +165,6 @@ class RoomJourneyEvidence(JourneyCase):
         # One composed turn (walk in, then rest), not a bare rest; the night still passes.
         self.assertEqual(responses[3]["turn_outcome"]["status"], "completed")
         self.assertGreaterEqual(self.elapsed_seconds(), EIGHT_HOURS)
-
-    @unittest.expectedFailure
-    async def test_the_narrator_is_told_the_room_is_held(self):
-        """Known break, item 38 and spec decision (f): once the room is paid, the narrator is told "oda
-        tutuldu". Today the confirm turn calls no narrator ("50 bakır ödendi."), and the next narrated turn
-        (03 step 4) carries the room only as the player's own unverified words ("bi oda tutayım usta"). The
-        wanted words are a stand-in until 3b writes the line: decision (f)'s "oda tutuldu", or the engine's
-        own record name "inn_room"."""
-        # Its preconditions (the room paid and recorded, step 4 narrated) are asserted by the key-line test,
-        # so this expected failure can only fail on its own point.
-        _, _, model = await self.play(ROOM_SLEEP)
-        told = model.clients[3].narrator_text().casefold()
-        self.assertTrue("oda tutuldu" in told or "inn_room" in told,
-                        "the narrator is not told the room is held")
 
 
 if __name__ == "__main__":

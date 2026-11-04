@@ -29,6 +29,7 @@ EXPECT_KEYS = frozenset(
         "olu",
         "yasak_metin",
         "gerekli_metin",
+        "anlaticiya_giden",
     }
 )
 
@@ -133,6 +134,8 @@ def check_expect(expected: Mapping, observed: Mapping) -> list[str]:
         want = expected[key]
         if key in _TEXT_CHECKS:
             problems.extend(_check_text(key, want, observed.get("narration")))
+        elif key == "anlaticiya_giden":
+            problems.extend(_check_told(want, observed.get(key)))
         elif key in _SUBSET_KEYS and isinstance(want, Mapping) and isinstance(
             observed.get(key), Mapping
         ):
@@ -161,6 +164,17 @@ def _check_text(key: str, want: Any, narration: Any) -> list[str]:
         elif key == "gerekli_metin" and not found:
             problems.append(f"gerekli_metin: gerekli metin bulunamadı: {needle}")
     return problems
+
+
+def _check_told(want: Any, told: Any) -> list[str]:
+    """``anlaticiya_giden``: every needle is in what the narrator was sent this step (its input, not the
+    narration the player reads; spec §4.3, decision (f)). A step without a narrator call fails once, plainly."""
+    if not isinstance(told, str):
+        return ["anlaticiya_giden: bu adımda anlatıcı çağrılmadı"]
+    needles = [want] if isinstance(want, str) else list(want)
+    haystack = told.casefold()
+    return [f"anlaticiya_giden: anlatıcıya giden metinde bulunamadı: {needle}"
+            for needle in needles if str(needle).casefold() not in haystack]
 
 
 def _mismatch(label: str, want: Any, seen: Any) -> str:

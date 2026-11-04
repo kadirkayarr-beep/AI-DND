@@ -17,6 +17,7 @@ from pathlib import Path
 import front_proposal
 from api.tests.journeys.runner import (
     JourneyCase,
+    NarratorInput,
     ScriptedClient,
     ScriptedModel,
     StepResult,
@@ -159,6 +160,31 @@ class TheRunnerSortsEveryStep(JourneyCase):
             self.assertEqual(client.unexpected, [])
         self.assertEqual(self.last_narration, results[1].narration)
 
+    async def test_what_the_narrator_was_sent_is_observed_per_step(self):
+        """``anlaticiya_giden`` is read from the turn's own model calls (the engine's ``ollama.chat``, so it holds
+        for the scripted model and the real chain alike): every narrator call's messages, nothing from another
+        call kind and nothing from an earlier step. A turn without a narrator call observes None."""
+        listening = "Tezgâha yaslanıp salonu dinliyorum."
+        model = RecordingModel()
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+            {"say": listening, "script": {"intent": "narrative", "narration": "Salon uğulduyor."},
+             "expect": {"anlaticiya_giden": listening}},
+            {"say": "Gözlerimi kapatıp salonun sesini dinliyorum.",
+             "script": {"intent": "narrative", "narration": "Bir köpek havlıyor."},
+             "expect": {"anlaticiya_giden": "bu cümle anlatıcıya hiç gitmedi"}},
+        ), model=model)
+        self.assertEqual([result.status for result in results], ["pass", "pass", "new_break"], results)
+        self.assertEqual(results[2].failures,
+                         ("anlaticiya_giden: anlatıcıya giden metinde bulunamadı: bu cümle anlatıcıya hiç gitmedi",))
+        self.assertNotIn("narration", model.clients[0].kinds)
+        self.assertIsNone(self.last_observations[0]["anlaticiya_giden"])
+        self.assertIn("narration", model.clients[1].kinds)
+        self.assertIn("intent", model.clients[1].kinds)
+        told = self.last_observations[1]["anlaticiya_giden"]
+        self.assertIn(listening, told)
+        self.assertIn("Gözlerimi kapatıp", self.last_observations[2]["anlaticiya_giden"])
+
     async def test_front_proposal_setup_turns_the_front_reading_on_for_the_steps_only(self):
         step = {"say": "Tezgâha yaslanıp salonu dinliyorum.",
                 "script": {"intent": "narrative", "narration": "Salon uğulduyor."}, "expect": {"kese": 100}}
@@ -286,6 +312,27 @@ class TheScriptedClient(unittest.TestCase):
                          ("attack", "look", "none"))
         self.assertEqual(client.kinds, ["speech", "narration", "steps", "intent", "front"])
         self.assertEqual(client.unexpected, [])
+
+
+class TheNarratorInput(unittest.TestCase):
+    def test_only_narrator_calls_are_kept_and_every_call_still_goes_through(self):
+        answered = []
+
+        def chat(*args, **kwargs):
+            answered.append(kwargs["format"])
+            return {"message": {"content": "{}"}}
+
+        listen = NarratorInput(chat)
+        self.assertIsNone(listen.text())
+        listen(model="m", messages=[{"role": "system", "content": "sınıflandır"}],
+               format={"properties": {"intent": {}, "narration": {}}})
+        listen(model="m", messages=[{"role": "user", "content": "konuş"}], format={"properties": {"spoken_text": {}}})
+        self.assertIsNone(listen.text(), "a classifier that may narrate and a speech call are not the narrator")
+        listen(model="m", messages=[{"role": "system", "content": "Anlat."}, {"role": "user", "content": "Oda tutuldu."}],
+               format={"properties": {"narration": {}, "world_updates": {}}})
+        listen(model="m", messages=[{"role": "user", "content": "İkinci anlatı."}], format={"properties": {"narration": {}}})
+        self.assertEqual(listen.text(), "Anlat.\nOda tutuldu.\nİkinci anlatı.")
+        self.assertEqual(len(answered), 4)
 
 
 if __name__ == "__main__":

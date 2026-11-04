@@ -1,6 +1,6 @@
 {
   "id": "03_room_sleep",
-  "title": "Oda ve uyku (handa, Fighter): başarılı ikna zarından sonra oda fiyatı 50 bakırda kalıyorsa barmen nedenini söyler (indirim seçilirse bu adımın kartı ile onay adımının kesesi birlikte değişir); oda kartı onayı oda kaydını yazar ve 50 bakır alır; oda anahtarı eşya değildir; 'odama gidip uyuyorum' oda kaydı varken uyutur",
+  "title": "Oda ve uyku (handa, Fighter): başarılı ikna zarından sonra oda fiyatı 50 bakırda kalıyorsa barmen nedenini söyler (indirim seçilirse bu adımın kartı ile onay adımının kesesi birlikte değişir); oda kartı onayı oda kaydını yazar ve 50 bakır alır; ödemeden sonraki ilk anlatılan turda anlatıcıya 'oda tutuldu' gider (karar f; bu söz 3b satırı yazana kadar yer tutucudur); oda anahtarı eşya değildir; 'odama gidip uyuyorum' oda kaydı varken uyutur",
   "source_items": [37, 38],
   "setup": {
     "character": {
@@ -40,6 +40,12 @@
       "economic_action": {"kind": "confirm"},
       "independent": true,
       "expect": {"oda": true, "kese": 50, "kart": null, "envanter": {}}
+    },
+    {
+      "say": "yukarı çıkıp odama geçiyorum",
+      "independent": true,
+      "expect": {"oda": true, "anlaticiya_giden": ["oda tutuldu"]},
+      "known_broken": [38]
     },
     {
       "say": "anahtarı alıp odaya gidiyorum",

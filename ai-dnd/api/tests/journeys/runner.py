@@ -29,6 +29,7 @@ from unittest.mock import patch
 
 import bold_acts
 import front_proposal
+import game
 import local_places
 import shop_trade
 from api import serializers
@@ -68,6 +69,43 @@ class StepResult:
     seconds: float
 
 
+def _properties(schema: Any) -> Mapping[str, Any]:
+    properties = schema.get("properties", {}) if isinstance(schema, Mapping) else {}
+    return properties if isinstance(properties, Mapping) else {}
+
+
+def call_kind(schema: Any) -> str | None:
+    """The model call's kind, told apart by its requested schema: ``front``, ``intent``, ``speech``,
+    ``steps``, ``narration``, or None for a call no scenario can script."""
+    properties = _properties(schema)
+    for key, kind in (("front", "front"), ("intent", "intent"), ("spoken_text", "speech"), ("steps", "steps"),
+                      ("narration", "narration")):
+        if key in properties:
+            return kind
+    return None
+
+
+class NarratorInput:
+    """The engine's model call for one step, wrapped: every call goes through unchanged, and the messages of
+    each narrator call are kept. It sits on ``game.ollama.chat``, in front of whatever answers (the scripted
+    model or the real chain), so ``anlaticiya_giden`` reads the same thing under both."""
+
+    def __init__(self, chat: Any):
+        self._chat = chat
+        self._messages: list[str] | None = None
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        if call_kind(kwargs.get("format")) == "narration":
+            self._messages = self._messages if self._messages is not None else []
+            self._messages.extend(str(message.get("content", "")) for message in kwargs.get("messages") or []
+                                  if isinstance(message, Mapping))
+        return self._chat(*args, **kwargs)
+
+    def text(self) -> str | None:
+        """Everything the narrator was sent, one message per line; None when no narrator call was made."""
+        return None if self._messages is None else "\n".join(self._messages)
+
+
 class ScriptedClient(fixtures.FakeOllamaClient):
     """The model, scripted for one step. It tells the call kinds apart by the requested schema.
 
@@ -89,20 +127,17 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         self.unexpected: list[list[str]] = []
 
     def chat(self, *args, **kwargs):
-        schema = kwargs.get("format")
-        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
-        properties = properties if isinstance(properties, dict) else {}
-        if "front" in properties:
-            kind, packet = "front", {**self._intent_packet(properties), "front": self._front()}
-        elif "intent" in properties:
-            kind, packet = "intent", self._intent_packet(properties)
-        elif "spoken_text" in properties:
-            kind = "speech"
+        properties = _properties(kwargs.get("format"))
+        kind = call_kind(kwargs.get("format"))
+        if kind == "front":
+            packet = {**self._intent_packet(properties), "front": self._front()}
+        elif kind == "intent":
+            packet = self._intent_packet(properties)
+        elif kind == "speech":
             packet = {"spoken_text": self.script.get("spoken", _DEFAULT_SPOKEN), "stage_direction": ""}
-        elif "steps" in properties:
-            kind, packet = "steps", {"steps": []}
-        elif "narration" in properties:
-            kind = "narration"
+        elif kind == "steps":
+            packet = {"steps": []}
+        elif kind == "narration":
             packet = {"narration": self.script.get("narration", _DEFAULT_NARRATION),
                       "world_updates": {}, "lore_claims": []}
         else:
@@ -231,6 +266,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
         "olu": (state.get("death_state") or {}).get("status"),
         "narration": getattr(case, "last_narration", ""),
+        "anlaticiya_giden": getattr(case, "last_narrator_input", None),
     }
 
 
@@ -266,8 +302,10 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
     create_campaign = fixtures.CampaignApiTests.create_campaign
 
-    # Set by run_scenario: the last step's narration, every step's observation, the session played.
+    # Set by run_scenario: the last step's narration and what its narrator calls were sent (None: no narrator
+    # call), every step's observation, the session played.
     last_narration: str = ""
+    last_narrator_input: str | None = None
     last_observations: list[dict[str, Any]]
     last_session_id: str | None = None
 
@@ -278,6 +316,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         session_id = campaign["session_id"]
         self.last_session_id = session_id
         self.last_narration = ""
+        self.last_narrator_input = None
         self.last_observations = []
         with _front_setting(scenario.setup):
             return await self._run_steps(scenario, session_id, model)
@@ -324,7 +363,10 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         failures: list[str] = []
         body = self._body(session_id, step)
         with model.bind(self, step) as client:
-            response = await self.http.post(f"/api/game/sessions/{session_id}/turn", json=body)
+            told = NarratorInput(game.ollama.chat)
+            with patch.object(game.ollama, "chat", told):
+                response = await self.http.post(f"/api/game/sessions/{session_id}/turn", json=body)
+        self.last_narrator_input = told.text()
         unexpected = getattr(client, "unexpected", None) or []
         failures.extend(f"beklenmeyen model çağrısı: {keys}" for keys in unexpected)
         if response.status_code != 200:

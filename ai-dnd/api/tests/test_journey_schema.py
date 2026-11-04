@@ -117,6 +117,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
+                "anlaticiya_giden",
             },
         )
 
@@ -307,6 +308,26 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
         self.assertEqual(len(problems), 1)
         self.assertTrue(problems[0].startswith("gerekli_metin:"))
         self.assertEqual(len(check_expect({"gerekli_metin": "x"}, {})), 1)
+
+    def test_what_the_narrator_was_sent_is_checked_apart_from_the_narration(self):
+        """Spec §4.3 / decision (f): the narrator is told "oda tutuldu". That is the narrator's input, not the
+        narration the player reads, so ``anlaticiya_giden`` reads its own observation."""
+        told = {"narration": "Selam.", "anlaticiya_giden": "SİSTEM: Oyuncu bu handa ODA TUTTU.\nOda tutuldu."}
+        self.assertEqual(check_expect({"anlaticiya_giden": "oda tutuldu"}, told), [])
+        self.assertEqual(check_expect({"anlaticiya_giden": ["oda tuttu", "Oda Tutuldu"]}, told), [])
+        # Only the narrator's input counts: the same words in the narration do not pass.
+        self.assertEqual(
+            check_expect({"anlaticiya_giden": "oda tutuldu"},
+                         {"narration": "Oda tutuldu.", "anlaticiya_giden": "Selam."}),
+            ["anlaticiya_giden: anlatıcıya giden metinde bulunamadı: oda tutuldu"],
+        )
+        # A step whose turn never called the narrator cannot have told it anything; that is said plainly.
+        for observed in ({"narration": "50 bakır ödendi.", "anlaticiya_giden": None}, {}):
+            with self.subTest(observed=observed):
+                self.assertEqual(
+                    check_expect({"anlaticiya_giden": ["oda tutuldu", "inn"]}, observed),
+                    ["anlaticiya_giden: bu adımda anlatıcı çağrılmadı"],
+                )
 
     def test_check_expect_rejects_a_key_the_schema_does_not_know(self):
         with self.assertRaises(ScenarioError):
