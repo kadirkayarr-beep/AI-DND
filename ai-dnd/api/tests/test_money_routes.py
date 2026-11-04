@@ -12,6 +12,7 @@ Real app, real adapter, real engine; only the model is scripted (the journey har
 from __future__ import annotations
 
 import copy
+import json
 import os
 import unittest
 import uuid
@@ -46,10 +47,12 @@ class RouteClient(runner.ScriptedClient):
 
 
 class Routes(runner.JourneyCase):
+    setup = SETUP
+
     async def asyncSetUp(self):
         await super().asyncSetUp()
-        campaign = await self.create_campaign()
-        runner.apply_setup(self, campaign, SETUP)
+        campaign = await self._journey_campaign(self.setup)
+        runner.apply_setup(self, campaign, self.setup)
         self.session_id = campaign["session_id"]
         self.session = self.manager.get(self.session_id).game_session
         self.world = self.session.world_state
@@ -188,6 +191,84 @@ class OneAmountOneOperation(Routes):
         self.assertEqual((money_owner.current(self.session).kind, money_owner.current(self.session).source),
                          ("goods", "structural"))
         self.assertEqual((self.counter()["key"], self.counter_tender()), ("bira", 5))
+        self.assertEqual(self.cards(), [])
+        self.assertEqual(self.purse(), 100)
+
+
+# No sleep word here: the bed half stops at the card (or its absence), and no rest is run in this bare session.
+WALK_TO_ROOM = "hana gidip oda tutayım, şu elli bakırı al"
+
+
+class AWalkToBedObeysTheDecision(unittest.TestCase):
+    """`game._sleep_after_walk` reads a bed line through `bold_acts.take_room` once the walk has moved the player.
+    Under a decision the room words are not read (D29): only a `room` decision opens the room card, with the person
+    it names; a gift, tip, past payment, bribe or unclear decision opens none, and the coin stays for its own owner."""
+
+    def setUp(self):
+        import game
+        self.game = game
+        self.s = game.create_session()
+        self.w = self.s.world_state
+        self.w["npcs"] = [
+            {"id": "barman", "name": "Marek", "role": "Barmen", "location": self.w["location"], "current_hp": 10},
+            {"id": "osman", "name": "Osman", "role": "Kervancı", "location": self.w["location"], "current_hp": 10},
+        ]
+        self.w["currency"] = {"player": 500, "barman": 0, "osman": 0}
+        chat = patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call"))
+        chat.start()
+        self.addCleanup(chat.stop)
+
+    def walk(self, kind, line=WALK_TO_ROOM, *, npc="barman"):
+        self.s._economic_turn_key = f"walk-to-bed-{kind}"
+        self.s._coin_decision = CoinDecision(kind, npc, 50, 0, None, "model", self.w["location"])
+        self.s._coin_claimed = False
+        person = next(p for p in self.w["npcs"] if p["id"] == npc)
+        self.s._coin_paid = (50, person, self.w["location"])
+        walked = {"narration": "Hana giriyorsun.", "action_result": {"action": "move", "status": "completed",
+                                                                     "state_changes": ["location"]}}
+        self.game._sleep_after_walk(walked, line, "the-street", None, session=self.s)
+        return walked
+
+    def prepared(self):
+        return [data for data in self.w.get("flags", {}).get("economic_offers", {}).values()
+                if data["status"] == "prepared"]
+
+    def test_a_decision_other_than_room_opens_no_room_card(self):
+        for kind in ("gift", "tip", "paid_before", "bribe", "unclear"):
+            with self.subTest(kind=kind):
+                self.setUp()
+                walked = self.walk(kind)
+                self.assertEqual(self.prepared(), [])
+                self.assertNotIn("coin_seen_by", walked["action_result"])
+                self.assertIsNotNone(self.s._coin_paid)  # the coin is not the room's: it stays for its own owner
+                self.assertIs(self.s._coin_claimed, False)
+                self.assertEqual(self.w["currency"]["player"], 500)
+
+    def test_a_room_decision_opens_the_room_card_without_room_words(self):
+        self.walk("room", "hana gidip şu elli bakırı al")
+        [card] = self.prepared()
+        self.assertEqual((card["proposal"]["purpose"], card["proposal"]["tender_cp"]), ("room", 50))
+        self.assertEqual(self.w["currency"]["player"], 500)
+
+
+class AWalkToBedThroughTheTurn(Routes):
+    """The whole turn: the player walks back into the inn with coin and a goods deal for someone who sells
+    nothing. The decision is unclear (model), and the bed line's room words open no card on arrival (D29)."""
+
+    setup = {**json.loads((runner.SCENARIO_DIR / "07_leave_room.json").read_text(encoding="utf-8"))["setup"],
+             "npcs": SETUP["npcs"], "currency": SETUP["currency"]}
+
+    async def test_a_failed_model_deal_on_a_walk_to_bed_opens_no_room_card(self):
+        inn = self.world["location"]
+        with patch.dict(os.environ, {front_proposal.FLAG: "0"}):
+            out = await self.line("dışarı çıkıyorum")
+        self.assertNotEqual(self.world["location"], inn, out.get("narration"))
+        self.client.front = {"kind": "go_to", "place_id": inn, "inside": True, "person_id": "osman",
+                             "coin_cp": 50, "deal": "goods", "deal_goods": "bira"}
+        out = await self.line("hana gidip oda tutup uyuyorum, şu elli bakırı al")
+        self.assertEqual(self.world["location"], inn, out.get("narration"))  # the walk moved the player: the bed half was read
+        decision = money_owner.current(self.session)
+        self.assertEqual((decision.kind, decision.source), ("unclear", "model"))
         self.assertEqual(self.cards(), [])
         self.assertEqual(self.purse(), 100)
 

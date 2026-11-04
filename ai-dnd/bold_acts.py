@@ -680,7 +680,16 @@ def take_room(session, text: str) -> dict[str, Any] | None:
 
     Returns {"line", "paid": 0, "room", "status", "reason_code", "offer_id", "coin_seen"}; "room" is True only for a
     room already held (status "held").
+
+    Under this turn's money decision the words are not read (design §12 D29), whoever calls this (the walk to bed
+    in game._sleep_after_walk too): a `room` decision opens the card with the person it names, as `decided` does,
+    and any other decision (gift, tip, a past payment, a bribe, unclear, goods) opens none.
     """
+    import money_owner
+    decision = money_owner.current(session)
+    if decision is not None:
+        server = _decision_server(session, decision) if decision.kind == "room" else None
+        return None if server is None else _open_room(session, server)
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
@@ -829,12 +838,17 @@ def decided(session) -> dict[str, Any] | None:
     decision = money_owner.current(session)
     if decision is None or decision.kind not in ("room", "goods"):
         return None
-    server = next((npc for npc in session.active_npcs() if npc.get("id") == decision.npc_id), None)
+    server = _decision_server(session, decision)
     if server is None:
         return None
     if decision.kind == "room":
         return _room_reply(session, _open_room(session, server))
     return _counter_offer(session, server, decision.goods_key)
+
+
+def _decision_server(session, decision) -> dict[str, Any] | None:
+    """The person a money decision names, when they are here."""
+    return next((npc for npc in session.active_npcs() if npc.get("id") == decision.npc_id), None)
 
 
 def offer_still_open(world: dict[str, Any], npc: Any) -> dict[str, Any] | None:
