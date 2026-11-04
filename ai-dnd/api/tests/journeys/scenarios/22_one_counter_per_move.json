@@ -1,0 +1,83 @@
+{
+  "id": "22_one_counter_per_move",
+  "title": "Tek hamleye tek karşı saldırı (113): handa barmene yumruk atılınca turun savaş sonucunda düşman başına tek karşı saldırı olayı vardır. Bugün (tohum 1, barmen inisiyatifi kazanır) ilk yumruğun yanıtında barmenin iki saldırısı gelir (birinci turu yumruktan önce, ikinci turu yumruktan sonra) ve ikisi de yumruktan sonra 'karşı saldırı' diye anlatılır; ikinci yumrukta tek karşı saldırı vardır",
+  "source_items": [
+    113
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 30
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "seed": 1,
+    "death_mode": "NORMAL"
+  },
+  "steps": [
+    {
+      "say": "Marek'e yumruk atıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Marek",
+            "npc_id": "barman",
+            "evidence_quote": "Marek"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "karsi_saldiri": 1
+      },
+      "known_broken": [
+        113
+      ]
+    },
+    {
+      "say": "Marek'e bir yumruk daha atıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Marek",
+            "npc_id": "barman",
+            "evidence_quote": "Marek"
+          },
+          "completion": "complete"
+        }
+      },
+      "independent": true,
+      "expect": {
+        "savas": true,
+        "karsi_saldiri": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "id": "21_spell_target_in_melee",
+  "title": "Yakın dövüşteki hedefe büyü (112): handa barmenle yumruk yumruğa dövüşen Sorcerer ona Magic Missile atar; 'hedefin açıkça görünür olması gerekir' (spell_visibility_unknown) ile engellenmez, büyü çözülür ve 1. seviye yuvası 2'den 1'e iner",
+  "source_items": [
+    112
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Vael",
+      "race": "Human",
+      "species": "Human",
+      "class": "Sorcerer",
+      "background": "Criminal",
+      "alignment": "Neutral Good",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 8,
+        "dexterity": 14,
+        "constitution": 13,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15
+      },
+      "background_ability_bonuses": {
+        "dexterity": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Arcana",
+        "Insight",
+        "Persuasion",
+        "Sleight of Hand",
+        "Stealth"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Tough",
+      "origin_feat": "Alert",
+      "equipment_package": "A",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Giant"
+      ],
+      "cantrips": [
+        "Fire Bolt",
+        "Ray of Frost",
+        "Mage Hand",
+        "Minor Illusion"
+      ],
+      "spells": [
+        "Magic Missile",
+        "Shield"
+      ],
+      "origin": "Neverwinter",
+      "appearance": "İnce.",
+      "personality": "Sabırsız.",
+      "backstory": "Kaçak."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 30,
+        "distance_ft": 5
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "seed": 1,
+    "death_mode": "NORMAL"
+  },
+  "steps": [
+    {
+      "say": "Marek'e yumruk atıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Marek",
+            "npc_id": "barman",
+            "evidence_quote": "Marek"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "yuva": {
+          "1": 2
+        }
+      }
+    },
+    {
+      "combat_action": {
+        "steps": [
+          {
+            "kind": "magic",
+            "ability": "Magic Missile",
+            "target_id": "barman"
+          }
+        ]
+      },
+      "expect": {
+        "savas": true,
+        "yuva": {
+          "1": 1
+        }
+      },
+      "known_broken": [
+        112
+      ]
+    }
+  ]
+}

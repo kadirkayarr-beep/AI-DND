@@ -1,0 +1,99 @@
+{
+  "id": "19_quest_item_no_duplicate",
+  "title": "Görev eşyası (115): çömlekçinin 12 bakırlık iade işi kabul edilince 'İade takımı' ele geçer (bugün adı 'Iade takımı': noktalı İ kayboluyor); 'İade takımını alıyorum' ikinci bir eşya üretmez (sahte modelle motor yolunda bugün ikinci eşya çıkmıyor; bu adım yalnız adla kırık); iskeledeki alıcı Tuna'ya adıyla teslim 12 bakır öder ve görev kaydı kapanır (bugün teslim olmuyor)",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        }
+      },
+      "known_broken": [
+        115
+      ]
+    },
+    {
+      "say": "İade takımını alıyorum",
+      "independent": true,
+      "script": {
+        "front": {
+          "kind": "take",
+          "thing_word": "İade takımını"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        }
+      },
+      "known_broken": [
+        115
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "independent": true,
+      "expect": {
+        "kese": 100
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "independent": true,
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gorev": {
+          "aktif": 0,
+          "kayit": []
+        }
+      },
+      "known_broken": [
+        115
+      ]
+    }
+  ]
+}

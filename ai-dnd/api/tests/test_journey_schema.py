@@ -117,7 +117,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
-                "anlaticiya_giden", "cephane", "hareket",
+                "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
             },
         )
 
@@ -274,6 +274,19 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
         self.assertEqual(
             check_expect({"cephane": {"arrow": 19}}, {"cephane": {"arrow": 19, "bolt": 20}}),
             ["cephane: beklenen {'arrow': 19}, gözlenen {'arrow': 19, 'bolt': 20}"],
+        )
+
+    def test_check_expect_compares_experience_hours_quests_and_counter_attacks_exactly(self):
+        """``xp``, ``saat`` and ``karsi_saldiri`` are numbers; ``gorev`` (the open quest rows) is compared whole."""
+        observed = {"xp": 10, "saat": 0, "karsi_saldiri": 1, "gorev": {"aktif": 0, "kayit": []}}
+        self.assertEqual(check_expect(observed, observed), [])
+        self.assertEqual(
+            check_expect({"xp": 10, "saat": 0, "karsi_saldiri": 1}, {"xp": 0, "saat": 8, "karsi_saldiri": 2}),
+            ["xp: beklenen 10, gözlenen 0", "saat: beklenen 0, gözlenen 8", "karsi_saldiri: beklenen 1, gözlenen 2"],
+        )
+        self.assertEqual(
+            check_expect({"gorev": {"aktif": 0, "kayit": []}}, {"gorev": {"aktif": 1, "kayit": ["İade"]}}),
+            ["gorev: beklenen {'aktif': 0, 'kayit': []}, gözlenen {'aktif': 1, 'kayit': ['İade']}"],
         )
 
     def test_check_expect_matches_card_and_mode_by_the_keys_asked_for(self):

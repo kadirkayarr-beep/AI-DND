@@ -5,8 +5,9 @@ from __future__ import annotations
 import unittest
 
 from api.model_chain import ChainAttempt
+from api.tests.journeys.report import _kind as report_kind
 from api.tests.journeys.report import build_report, latency_row, real_run_flags
-from api.tests.journeys.runner import StepResult, summary_line
+from api.tests.journeys.runner import SCENARIO_DIR, StepResult, summary_line
 from api.tests.journeys.schema import Scenario, Step
 
 DATE = "2026-11-04"
@@ -103,6 +104,20 @@ class ReportCountsTest(unittest.TestCase):
         self.assertLess(escape, known.index("09c_escape_start_scene"))
         self.assertLess(known.index("09c_escape_start_scene"), other)
         self.assertLess(other, known.index("99_unlisted"))
+
+    def test_every_numbered_scenario_file_has_a_kind_and_money_with_records_stand_apart(self):
+        """The kind table is keyed by file number: a numbered scenario file left out of it would fall under "Diğer".
+        The owner's money and record mistakes (a refused coin charged, a room line paying a job, a doubled quest
+        item) are counted in their own group, apart from the plain purchases."""
+        numbered = sorted(path.stem for path in SCENARIO_DIR.glob("*.json") if path.stem[:1].isdigit())
+        self.assertTrue(numbered)
+        self.assertEqual([name for name in numbered if report_kind(name) == "Diğer"], [])
+        self.assertEqual({report_kind(name) for name in ("17_refused_gift_not_charged", "18_room_phrase_not_job",
+                                                         "19_quest_item_no_duplicate")}, {"Para ve kayıt"})
+        self.assertEqual(report_kind("23_no_shop_in_combat"), "Para ve alışveriş")
+        self.assertEqual(report_kind("09d_escape_in_inn"), "Kaçış, ölüm ve sonuçları")
+        self.assertEqual({report_kind(name) for name in ("20_xp_after_win", "21_spell_target_in_melee",
+                                                         "22_one_counter_per_move")}, {"Savaş eylemleri"})
 
     def test_a_stale_marker_and_an_unreached_scenario_are_not_counted_as_breaks(self):
         scenarios = {

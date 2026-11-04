@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import front_proposal
+from api.tests.journeys import runner
 from api.tests.journeys.runner import (
     JourneyCase,
     NarratorInput,
@@ -22,6 +23,7 @@ from api.tests.journeys.runner import (
     ScriptedModel,
     StepResult,
     apply_setup,
+    counter_attacks,
     describe_problems,
     read_observed,
     summary_line,
@@ -30,6 +32,8 @@ from api.tests.journeys.schema import ScenarioError, load_scenario
 
 BUY_BEER = "/item shop_buy barman bira 1 0 4"
 BUY_SECOND_BEER = "/item shop_buy barman bira 1 1 4"  # the counter sequence moved on after one trade
+NEVERWINTER = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+               "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
 
 
 def beer_scenario(*steps, **changes):
@@ -366,6 +370,96 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 0)  # a fresh turn: nothing moved
         session.world_state["combat"]["turn_resources"]["player"]["movement_used"] = 15
         self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 15)
+
+    async def test_experience_game_hours_and_open_quests_are_observed(self):
+        campaign = await self._journey_campaign({"campaign_start": NEVERWINTER})  # a started campaign clock
+        apply_setup(self, campaign, beer_scenario().setup)
+        session = self.manager.get(campaign["session_id"]).game_session
+        fresh = read_observed(self, campaign["session_id"])
+        self.assertEqual((fresh["xp"], fresh["saat"], fresh["gorev"]), (0, 0, {"aktif": 0, "kayit": []}))
+        self.assertIsNone(fresh["yuva"])  # the default character casts no spells (scenario 21 reads a caster's)
+        casting = {"slots": {"1": 2}}
+        slots = runner._spell_slots({"spellcasting_v1": casting})
+        self.assertEqual(slots, {"1": 2})
+        slots["1"] = 0
+        self.assertEqual(casting["slots"], {"1": 2})  # a copy: reading never spends a slot
+        session.character["xp"] = 10
+        session.world_state["campaign_time"]["elapsed_seconds"] += 8 * 3600 + 59 * 60  # whole hours only
+        session.world_state["quests"] = [{"quest_id": "q1", "title": "İade takımı", "status": "ACTIVE"},
+                                         {"quest_id": "q2", "title": "Eski iş", "status": "COMPLETED"}]
+        observed = read_observed(self, campaign["session_id"])
+        self.assertEqual((observed["xp"], observed["saat"]), (10, 8))
+        self.assertEqual(observed["gorev"], {"aktif": 1, "kayit": ["İade takımı"]})
+
+    async def test_the_card_names_its_lines(self):
+        results = await self.run_scenario(beer_scenario(
+            {"economic_action": {"kind": "prepare", "proposal": {"purpose": "tip", "recipient_id": "barman",
+                                                                 "amount_cp": 4}},
+             "expect": {"kart": {"max_total_cp": 4, "kalemler": ["Bahşiş"]}}}))
+        self.assertEqual([result.status for result in results], ["pass"], results)
+        self.assertEqual(self.last_observations[0]["kart"],
+                         {"max_total_cp": 4, "counterparty_label": "Marek", "kalemler": ["Bahşiş"]})
+
+    def test_counter_attacks_are_counted_per_enemy_from_the_turn_combat_result(self):
+        swing = {"actor": "bandit", "outcome": "hit", "damage": 3}
+        self.assertEqual(counter_attacks(None), 0)
+        self.assertEqual(counter_attacks({"outcome": "hit"}), 0)  # the player's own swing is no counter-attack
+        self.assertEqual(counter_attacks({"enemy_actions": [swing]}), 1)
+        self.assertEqual(counter_attacks({"enemy_actions": [swing, {**swing, "outcome": "miss"},
+                                                            {"actor": "thug", "outcome": "critical_hit"}]}), 2)
+        self.assertEqual(counter_attacks({"enemy_actions": [{"actor": "bandit", "outcome": "dodge"}]}), 0)
+        # The singular field is the engine's compatibility alias of the first entry; it counts only on its own.
+        self.assertEqual(counter_attacks({"enemy_action": swing, "enemy_actions": [swing]}), 1)
+        self.assertEqual(counter_attacks({"enemy_action": swing}), 1)
+
+    async def test_a_fight_step_observes_its_counter_attacks_from_the_turn_response(self):
+        bandit = {"id": "bandit", "name": "Haydut", "role": "Bandit", "current_hp": 300, "max_hp": 300,
+                  "armor_class": 30, "hostile": True, "distance_ft": 5}
+        attack = {"intent": "attack", "action": "attack",
+                  "target": {"type": "npc", "reference": "Haydut", "npc_id": "bandit", "evidence_quote": "Haydut"},
+                  "completion": "complete"}
+        results = await self.run_scenario(beer_scenario(
+            {"say": "Haydut'a saldırıyorum", "script": {"intent": attack}, "expect": {"savas": True}},
+            {"undo": True},
+            setup={"npcs": [bandit], "seed": 1}))
+        self.assertEqual(results[0].status, "pass", results)
+        fought, undone = (observed["karsi_saldiri"] for observed in self.last_observations)
+        self.assertGreaterEqual(fought, 1)  # the bandit answered the blow
+        self.assertEqual(undone, 0)  # an undo step is no exchange of blows
+
+    async def test_job_setup_gives_the_owner_a_town_job_where_the_player_stands(self):
+        owner = {"id": "potter", "name": "Halil", "role": "Çömlekçi", "current_hp": 10}
+        hiring = {"type": "hiring", "owner": "potter", "status": "accepted", "pay": 26, "work_days": 1,
+                  "line": "Tezgâhtaki çanakları say, akşama yirmi altı bakır."}
+        start = NEVERWINTER  # the default campaign has no town of its own to hold a job
+        campaign = await self._journey_campaign({"campaign_start": start})
+        apply_setup(self, campaign, {"npcs": [owner], "job": hiring})
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        (thread,) = world["world_threads_v1"]["threads"]
+        self.assertEqual((thread["type"], thread["status"], thread["owner_npc_id"], thread["place_id"]),
+                         ("hiring", "accepted", "potter", world["location"]))
+        self.assertEqual((thread["terms"]["pay"], thread["terms"]["work_days"]), (26, 1))
+        self.assertEqual(world["npcs"][0]["place_role_of"], world["location"])
+        saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertEqual(saved["world_threads_v1"]["threads"][0]["status"], "accepted")
+
+        errand = {"type": "errand", "owner": "potter", "status": "offered", "pay": 12, "noun": "iade takımı",
+                  "recipient": "Tuna", "target_kind": "harbor", "line": "İade takımını iskeledeki Tuna'ya götür."}
+        campaign = await self._journey_campaign({"campaign_start": start})
+        apply_setup(self, campaign, {"npcs": [owner], "job": errand})
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        (thread,) = world["world_threads_v1"]["threads"]
+        target = world["locations"][thread["target_place_id"]]
+        self.assertEqual((thread["type"], thread["status"], thread["item_noun"], thread["recipient_name"]),
+                         ("errand", "offered", "iade takımı", "Tuna"))
+        self.assertEqual((target["place_kind"], target["resident_name"]), ("harbor", "Tuna"))
+        for wrong, word in (({**hiring, "maas": 1}, "maas"), ({**hiring, "owner": "nobody"}, "owner"),
+                            ({**hiring, "type": "kavga"}, "type"), ({**errand, "status": "accepted"}, "status"),
+                            ({**hiring, "pay": "26"}, "pay")):
+            with self.subTest(wrong=wrong), self.assertRaises(ScenarioError) as raised:
+                apply_setup(self, await self._journey_campaign({"campaign_start": start}),
+                            {"npcs": [owner], "job": wrong})
+            self.assertIn(word, str(raised.exception))
 
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()

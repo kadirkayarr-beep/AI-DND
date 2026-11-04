@@ -32,6 +32,11 @@ EXPECT_KEYS = frozenset(
         "anlaticiya_giden",
         "cephane",
         "hareket",
+        "xp",
+        "saat",
+        "gorev",
+        "karsi_saldiri",
+        "yuva",
     }
 )
 

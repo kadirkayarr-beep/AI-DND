@@ -1,0 +1,94 @@
+{
+  "id": "23_no_shop_in_combat",
+  "title": "Savaşta alışveriş yok (114, Ruling R11, Kadir teyitli): handa dövüşten önce tezgâhtan bir bira alınabilir; Haydut'la dövüş sürerken aynı tezgâhtan ikinci bira alma komutu reddedilir, kese, envanter ve barmenin kesesi değişmez (tezgâh panelinin savaşta gizlenmesi arayüz işidir, burada sınanmaz)",
+  "source_items": [
+    114
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      },
+      {
+        "id": "bandit",
+        "name": "Haydut",
+        "role": "Bandit",
+        "current_hp": 300,
+        "max_hp": 300,
+        "armor_class": 30,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [],
+    "seed": 1,
+    "death_mode": "NORMAL"
+  },
+  "steps": [
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {
+        "savas": false,
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        }
+      }
+    },
+    {
+      "say": "Haydut'a saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "kese": 96
+      }
+    },
+    {
+      "command": "/item shop_buy barman bira 1 1 4",
+      "expect": {
+        "savas": true,
+        "kese": 96,
+        "envanter": {
+          "Bira": 1
+        },
+        "kisi_kese": {
+          "barman": 4
+        }
+      }
+    }
+  ]
+}

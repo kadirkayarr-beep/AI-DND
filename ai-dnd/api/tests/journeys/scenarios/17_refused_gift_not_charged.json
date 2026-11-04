@@ -1,0 +1,76 @@
+{
+  "id": "17_refused_gift_not_charged",
+  "title": "Reddedilen para kesilmez (103): kervancı uzatılan 5 bakırı sözle geri çevirir; aynı kişiye sonradan hazırlanıp onaylanan 5 bakırlık bahşiş kartı parayı kesmez (anlatı ile kart aynı doğruluktan okur). Bugün uzatma satırı reddin yanında 5 bakırlık bir Hediye kartı da açar ve bahşiş kartının onayı 5 bakır keser. Bu senaryo düzeltmenin 'kart açılır, onay kesmez' biçimini sınar; düzeltme kartı baştan açmamayı seçerse hazırla ve onay adımları yeniden yazılır",
+  "source_items": [
+    103
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "caravaner",
+        "name": "Osman",
+        "role": "Kervancı",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "caravaner": 0
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Kervancıya beş bakır uzatıyorum, al bunu",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "caravaner",
+          "coin_cp": 5
+        },
+        "spoken": "Paranı istemem, sakla onu; bahşiş almam."
+      },
+      "expect": {
+        "kese": 100,
+        "kisi_kese": {
+          "caravaner": 0
+        }
+      }
+    },
+    {
+      "economic_action": {
+        "kind": "prepare",
+        "proposal": {
+          "purpose": "tip",
+          "recipient_id": "caravaner",
+          "amount_cp": 5
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "kart": {
+          "max_total_cp": 5,
+          "kalemler": [
+            "Bahşiş"
+          ]
+        }
+      }
+    },
+    {
+      "economic_action": {
+        "kind": "confirm"
+      },
+      "expect": {
+        "kese": 100,
+        "kisi_kese": {
+          "caravaner": 0
+        }
+      },
+      "known_broken": [
+        103
+      ]
+    }
+  ]
+}

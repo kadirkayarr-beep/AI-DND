@@ -34,6 +34,7 @@ import front_proposal
 import game
 import local_places
 import shop_trade
+import world_threads
 from api import serializers
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -57,17 +58,31 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 #
 # ``death_mode`` is the new campaign's death mode (``game.DEATH_MODES``). The journeys default to the old NORMAL
 # mode, which rewinds a death in a fight; a new campaign in the product dies for real (PERMADEATH).
+#
+# ``job`` gives one of the scenario's people a town job where the player stands, built the way the product's own job
+# tests build one (a seeded thread of the town, rewritten): ``type`` hiring (worked on the spot, paid at the end of
+# the day) or errand (a parcel carried to ``recipient`` in a new ``target_kind`` place of the town); ``owner`` the
+# person's id; ``status`` offered or accepted (hiring only: an errand is accepted by a step, which puts the parcel in
+# hand); ``pay`` in copper; ``line`` what the owner said; ``work_days`` (hiring), ``noun`` (errand).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
-                        "current_hp", "seed", "front_proposal", "death_mode"})
+                        "current_hp", "seed", "front_proposal", "death_mode", "job"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
+JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"
 _ECONOMIC_MESSAGES = {"prepare": "Teklif hazırla", "confirm": "Teklifi onayla", "cancel": "Teklifi iptal et"}
 _COMBAT_MESSAGE = "Savaş eylemi"
-# Step-bound, not state: what the step said and what the narrator was sent. A reload compares everything else.
-_NOT_STATE = frozenset({"narration", "anlaticiya_giden"})
+# Step-bound, not state: what the step said, what the narrator was sent and the step's counter-attacks. A reload
+# compares everything else.
+_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri"})
+# An enemy's counter-attack in a turn's combat result: a swing that hit or missed (the engine's own exchange text
+# says "karşı saldırısı" for exactly these).
+_SWINGS = frozenset({"hit", "miss", "critical_hit"})
+_ACTIVE_QUEST = frozenset({"ACTIVE", "accepted"})
+_HOUR = 3600
+_DAY = 24 * _HOUR
 
 
 @dataclass(frozen=True)
@@ -223,9 +238,70 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
             world[key] = copy.deepcopy(setup[key])
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
+    if "job" in setup:
+        _give_job(world, setup["job"])
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])
+
+
+def _give_job(world: dict[str, Any], job: Any) -> None:
+    """One town job for one of the scenario's people, where the player stands (see ``SETUP_KEYS``)."""
+    if not isinstance(job, Mapping):
+        raise ScenarioError("setup 'job' bir nesne olmalı")
+    unknown = sorted(str(key) for key in job if key not in JOB_KEYS)
+    if unknown:
+        raise ScenarioError(
+            f"bilinmeyen job anahtarı: {', '.join(unknown)} (izinli: {', '.join(sorted(JOB_KEYS))})"
+        )
+    kind, status, pay, line = job.get("type"), job.get("status"), job.get("pay"), job.get("line")
+    if kind not in {"hiring", "errand"}:
+        raise ScenarioError(f"setup 'job.type' hiring ya da errand olmalı: {kind}")
+    if status not in ({"offered", "accepted"} if kind == "hiring" else {"offered"}):
+        raise ScenarioError(f"setup 'job.status' bu iş türünde olamaz: {status}")
+    if isinstance(pay, bool) or not isinstance(pay, int) or pay <= 0:
+        raise ScenarioError("setup 'job.pay' pozitif bir tam sayı olmalı")
+    if not isinstance(line, str) or not line:
+        raise ScenarioError("setup 'job.line' boş olmayan bir metin olmalı")
+    owner = next((npc for npc in world.get("npcs") or [] if npc.get("id") == job.get("owner")), None)
+    if owner is None:
+        raise ScenarioError(f"setup 'job.owner' senaryonun kişilerinden biri olmalı: {job.get('owner')}")
+    here = world["location"]
+    world.pop(world_threads.KEY, None)
+    state = world_threads.ensure(world)
+    if not state or not state["threads"]:
+        raise ScenarioError("setup 'job' kurulamadı: kasabanın iş kaydı yok")
+    turn = world["flags"].get("turn_index", 0)
+    thread = state["threads"][0]
+    thread.update(status="offered", place_id=here, owner_npc_id=owner["id"], owner_name=owner.get("name"),
+                  offered_at=0, offered_turn=turn, offer_line=line, owner_line=line, offer_line_turn=turn,
+                  expires_at=30 * _DAY)
+    if kind == "hiring":
+        days = job.get("work_days", 1)
+        if isinstance(days, bool) or not isinstance(days, int) or days <= 0:
+            raise ScenarioError("setup 'job.work_days' pozitif bir tam sayı olmalı")
+        thread.update(type="hiring", template_id="hand_wanted", target_place_id=None, recipient_name=None,
+                      terms={"pay": pay, "work_days": days, "pay_basis": "total", "pay_timing": "end_of_day",
+                             "deadline_text": f"{days} gün içinde"})
+        thread.pop("night_only", None)
+    else:
+        noun, recipient, target_kind = job.get("noun"), job.get("recipient"), job.get("target_kind")
+        if not isinstance(noun, str) or not noun or not isinstance(recipient, str) or not recipient:
+            raise ScenarioError("setup 'job.noun' ve 'job.recipient' boş olmayan metinler olmalı")
+        settlement = local_places.settlement_of(world, here)
+        target = (local_places.create_local_place(world, settlement, target_kind)
+                  if target_kind in local_places.PLACE_KINDS else None)
+        if target is None:
+            raise ScenarioError(f"setup 'job.target_kind' kurulamadı: {target_kind}")
+        target["resident_name"] = recipient
+        thread.update(type="errand", template_id="courier", target_place_id=target["id"], recipient_name=recipient,
+                      item_noun=noun, terms={"pay": pay, "work_days": None, "pay_basis": "per_trip",
+                                             "pay_timing": "on_delivery", "deadline_text": "bir gün içinde"})
+    state["threads"] = [thread]
+    owner["place_role_of"] = here
+    world["npc_speech_log"] = {owner["id"]: [{"player": "iş var mı", "npc": line}]}
+    if status == "accepted":
+        world_threads.accept_hired(world, thread)
 
 
 def _stand_in_place(world: dict[str, Any], place: Any) -> None:
@@ -263,7 +339,13 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's; ``cephane`` is
     the player's ammunition counter (``world.ammunition``, type to count), kept apart from the items: a pack
     label such as "Uzun Yay & 20 Ok" is one item and no arrows. ``hareket`` is the feet of movement the player
-    has used in the fight's current turn (None outside a fight or before the turn's resources exist)."""
+    has used in the fight's current turn (None outside a fight or before the turn's resources exist).
+
+    ``kart.kalemler`` names the card's lines as the card shows them (a room card says "Oda (bir gece)", a gift
+    "Hediye"). ``xp`` is the player's earned experience; ``saat`` the whole game hours gone since the campaign began;
+    ``gorev`` the quest rows still running (``world.quests``, a town errand's row included: count and titles).
+    ``karsi_saldiri`` is read from the step's own turn response: the most counter-attacks one enemy made in it.
+    ``yuva`` is the player's spell slots left, by level (``world.spellcasting_v1.slots``; None without spells)."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
@@ -281,15 +363,52 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "konum": world.get("location"),
         "hp": session.character.get("current_hp"),
         "kart": None if offer is None else {"max_total_cp": offer.get("max_total_cp"),
-                                            "counterparty_label": offer.get("counterparty_label")},
+                                            "counterparty_label": offer.get("counterparty_label"),
+                                            "kalemler": [line.get("label") for line in offer.get("lines") or []]},
         "tezgah": _counter_offer(world),
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
         "cephane": copy.deepcopy(ammunition),
         "hareket": _combat_movement(combat),
         "olu": (state.get("death_state") or {}).get("status"),
+        "xp": session.character.get("xp", 0),
+        "saat": (world.get("campaign_time") or {}).get("elapsed_seconds", 0) // _HOUR,
+        "gorev": _open_quests(world.get("quests") or []),
+        "karsi_saldiri": counter_attacks(getattr(case, "last_combat_result", None)),
+        "yuva": _spell_slots(world),
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
     }
+
+
+def counter_attacks(combat_result: Any) -> int:
+    """The most counter-attacks one enemy made in a turn's combat result (0 without any). ``enemy_actions`` is the
+    whole exchange; the singular ``enemy_action`` is the engine's alias of its first entry and counts only alone."""
+    if not isinstance(combat_result, Mapping):
+        return 0
+    enemies = combat_result.get("enemy_actions")
+    if not isinstance(enemies, list):
+        single = combat_result.get("enemy_action")
+        enemies = [single] if isinstance(single, Mapping) else []
+    counts: dict[str, int] = {}
+    for enemy in enemies:
+        if isinstance(enemy, Mapping) and enemy.get("outcome") in _SWINGS:
+            actor = str(enemy.get("actor") or enemy.get("actor_name") or "")
+            counts[actor] = counts.get(actor, 0) + 1
+    return max(counts.values(), default=0)
+
+
+def _spell_slots(world: Mapping[str, Any]) -> dict[str, int] | None:
+    """The player's spell slots left, by level (None for a character with no spellcasting)."""
+    casting = world.get("spellcasting_v1")
+    slots = casting.get("slots") if isinstance(casting, Mapping) else None
+    return copy.deepcopy(dict(slots)) if isinstance(slots, Mapping) else None
+
+
+def _open_quests(quests: Sequence[Any]) -> dict[str, Any]:
+    """The quest rows still running (the journal's own rows, a town errand's included), by title."""
+    titles = [str(row.get("title")) for row in quests
+              if isinstance(row, Mapping) and row.get("status") in _ACTIVE_QUEST]
+    return {"aktif": len(titles), "kayit": sorted(titles)}
 
 
 def _combat_movement(combat: Mapping[str, Any]) -> int | None:
@@ -337,6 +456,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     # call), every step's observation, the session played.
     last_narration: str = ""
     last_narrator_input: str | None = None
+    # The last turn's combat result as the turn response carried it (None: no turn, or no combat result).
+    last_combat_result: Mapping[str, Any] | None = None
     last_observations: list[dict[str, Any]]
     last_session_id: str | None = None
     # The action id of the last turn sent, which an ``undo`` step names as the turn to take back.
@@ -350,6 +471,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_session_id = session_id
         self.last_narration = ""
         self.last_narrator_input = None
+        self.last_combat_result = None
         self.last_turn_action_id = None
         self.last_observations = []
         with _front_setting(scenario.setup):
@@ -412,11 +534,13 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_narrator_input = told.text()
         unexpected = getattr(client, "unexpected", None) or []
         failures.extend(f"beklenmeyen model çağrısı: {keys}" for keys in unexpected)
+        self.last_combat_result = None
         if response.status_code != 200:
             self.last_narration = ""
             failures.append(f"HTTP {response.status_code}: {response.text[:300]}")
         else:
             self.last_narration = str(response.json().get("narration") or "")
+            self.last_combat_result = response.json().get("combat_result")
         return failures
 
     async def _undo(self, session_id: str, step: Step, model: ModelDriver) -> list[str]:
@@ -424,6 +548,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         may); return the failures the undo itself produced."""
         self.last_narrator_input = None
         self.last_narration = ""
+        self.last_combat_result = None
         if self.last_turn_action_id is None:
             return ["geri al: geri alınacak tur yok (bu adımdan önce oynanmış tur yok)"]
         body = {"action_id": str(uuid4()), "target_action_id": self.last_turn_action_id}
@@ -442,6 +567,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         back from the save; later steps keep playing the live session."""
         self.last_narrator_input = None
         self.last_narration = ""
+        self.last_combat_result = None
         with model.bind(self, step):
             live = read_observed(self, session_id)
             fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
