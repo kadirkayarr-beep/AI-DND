@@ -83,8 +83,9 @@ class T13ABeerIsPaidForOnce(AtTheCounter):
 
     async def test_a_gold_thrown_for_a_beer_opens_the_counter_and_moves_no_coin(self):
         await self.at_the_bar()
+        # The reading says what the coin is for (plan Task 8: with coin held out, the decision opens the counter)
         out = await self.say("bi altın atıyorum tezgaha usta, bi bira ver bana",
-                             {**self.speak(), "coin_cp": 100}, "Sağ ol.")
+                             {**self.speak(), "coin_cp": 100, "deal": "goods", "deal_goods": "bira"}, "Sağ ol.")
         self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])
         self.assertEqual(self.purse(), self.PURSE, out["narration"])
         self.assertEqual(self.barman(), 0)
@@ -123,7 +124,8 @@ class T43APlateIsPaidForOnce(AtTheCounter):
     async def test_a_plate_with_coin_counted_out_opens_the_counter_and_moves_nothing(self):
         await self.at_the_bar(barman_holds=100)
         out = await self.say("ver bi tabak o zaman, otuz bakırı sayıp tezgaha koyuyorum",
-                             {"kind": "attempt", "coin_cp": 30}, "Parayı aldım, peynirle ekmeği hemen getiriyorum.",
+                             {"kind": "attempt", "coin_cp": 30, "deal": "goods", "deal_goods": "yemek"},
+                             "Parayı aldım, peynirle ekmeği hemen getiriyorum.",
                              commitment={"kind": "give", "item": "Ekmek peynir", "amount_cp": 30},
                              stage="Barmen tezgaha bırakılan bakırları alıp bir tabak hazırlar")
         self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])

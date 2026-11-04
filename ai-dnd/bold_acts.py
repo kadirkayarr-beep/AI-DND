@@ -8,7 +8,7 @@ one short ledger, so the next person who hears of it can act on it.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 import living_world
 import relationships
@@ -642,8 +642,20 @@ def _wants_the_bed(folded: str) -> bool:
 COIN_NOT_TENDERED = "Uzattığın para hesaba katılmadı; kesende kalıyor."
 
 
-def held_out_coin(session) -> int | None:
-    """Coin held out with this line, taken off the hand so it can never turn into a gift card of its own."""
+def held_out_coin(session, purpose: Literal["room", "goods"]) -> int | None:
+    """Coin held out with this line for a room or the counter, taken off the hand so it can never turn into a gift card.
+
+    Under this turn's money decision the coin is the decision's: only the operation it names gets it, once
+    (`money_owner.claim`), and coin meant for something else stays in hand for its own owner. With no decision (no
+    front reading) the coin in hand is read as before.
+    """
+    import money_owner
+    if money_owner.current(session) is not None:
+        coin = money_owner.claim(session, purpose)
+        if coin is not None:
+            session._coin_paid = None
+            session._handed_note = None
+        return coin
     paid = getattr(session, "_coin_paid", None)
     session._coin_paid = None
     session._handed_note = None
@@ -669,15 +681,20 @@ def take_room(session, text: str) -> dict[str, Any] | None:
     Returns {"line", "paid": 0, "room", "status", "reason_code", "offer_id", "coin_seen"}; "room" is True only for a
     room already held (status "held").
     """
-    import economic_actions
-    import world_reactions
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
         return None
+    return _open_room(session, server)
+
+
+def _open_room(session, server: dict[str, Any]) -> dict[str, Any]:
+    """The room card with whoever serves, as `take_room` describes it, whatever words asked for it."""
+    import economic_actions
+    import world_reactions
     world = session.world_state
     who = living_world.public_npc_name(server)
-    coin = held_out_coin(session)
+    coin = held_out_coin(session, "room")
     note = f" {COIN_NOT_TENDERED}" if coin is not None else ""
     answer = {"paid": 0, "room": False, "reason_code": None, "offer_id": None, "coin_seen": coin is not None}
     if world_reactions.refuses(world, server):
@@ -771,22 +788,53 @@ def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) ->
 
 def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """A line that wants something on the list opens the counter's offer. Words move no coin and no goods:
-    only the one counter trade (shop_trade.commit) does, at the price this offer shows."""
+    only the one counter trade (shop_trade.commit) does, at the price this offer shows.
+
+    Under this turn's money decision the words are not read: the decision alone says which offer opens (`decided`),
+    also for a line said straight to whoever serves."""
+    import money_owner
+    if money_owner.current(session) is not None:
+        return decided(session)
     folded = fold(session, text)
     wanted = shop_trade.priced_in(folded)
     server = server if server is not None else _server_here(session)
     walking = _WALKS.search(folded)  # the order follows the walk
     if wanted is None or server is None or walking or "?" in text or not _BUY.search(folded):
         return None
+    return _counter_offer(session, server, wanted[0])
+
+
+def _counter_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
+    """The counter's offer for these goods with whoever serves, or their refusal; coin held out is read as tender."""
     world = session.world_state
     # Coin put down with the order is no payment: it stays in the purse, and nobody is told it changed hands.
     # It is read before it is cleared, as the offer's tender when it covers the price (C1).
-    coin = held_out_coin(session)
+    coin = held_out_coin(session, "goods")
     import world_reactions
     if world_reactions.refuses(world, server):
         return _coin_seen(_reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
                                  npc_id=server.get("id")), coin)
-    return _with_tender(session, server, wanted[0], coin)
+    return _with_tender(session, server, key, coin)
+
+
+def decided(session) -> dict[str, Any] | None:
+    """The offer this turn's money decision names, opened whatever the words say (design §12 D29).
+
+    A `room` decision opens the room card with the person it names and a `goods` decision the counter's offer for
+    those goods, whether the model or the engine's structure made it; the coin held out is their tender only through
+    `money_owner.claim`, and with no coin they open with none. Any other decision (gift, tip, a past payment, a bribe,
+    unclear) opens neither: None, and no word is read for it. None too when there is no decision.
+    """
+    import money_owner
+    decision = money_owner.current(session)
+    if decision is None or decision.kind not in ("room", "goods"):
+        return None
+    server = next((npc for npc in session.active_npcs() if npc.get("id") == decision.npc_id), None)
+    if server is None:
+        return None
+    if decision.kind == "room":
+        return _room_reply(session, _open_room(session, server))
+    return _counter_offer(session, server, decision.goods_key)
 
 
 def offer_still_open(world: dict[str, Any], npc: Any) -> dict[str, Any] | None:
@@ -807,7 +855,7 @@ def standing_offer(session, server: Any) -> dict[str, Any] | None:
     if (opened is None or not shop_trade.is_vendor(session.world_state, server)
             or world_reactions.refuses(session.world_state, server)):
         return None
-    return _with_tender(session, server, opened["key"], held_out_coin(session))
+    return _with_tender(session, server, opened["key"], held_out_coin(session, "goods"))
 
 
 def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
@@ -829,12 +877,20 @@ def _can_be_done(session, text: Any) -> bool:
 
 
 def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
-    """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide."""
+    """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide.
+
+    A money decision this turn owns the room and the counter (design §12 D29): its room or goods offer opens whatever
+    the words say, and any other decision skips both. The room and purchase words are read only with no decision.
+    """
+    import money_owner
     if isinstance(text, str) and text.lstrip().startswith("/"):
         return None  # a typed command has its own owner; the word lists never read it
     if isinstance(text, str):
-        settled = _room_asked(session, text) or ((_search_body(session, text) or _buy(session, text))
-                                                 if "?" not in text else None)
+        if money_owner.current(session) is not None:
+            settled = decided(session) or (_search_body(session, text) if "?" not in text else None)
+        else:
+            settled = _room_asked(session, text) or ((_search_body(session, text) or _buy(session, text))
+                                                     if "?" not in text else None)
         if settled is not None:
             return settled
     if is_theft(session, text) if deed is None else deed == "steal" and _can_be_done(session, text) and (

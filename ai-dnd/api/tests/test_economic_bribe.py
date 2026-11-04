@@ -16,6 +16,7 @@ import bold_acts
 import campaign_time
 import economic_actions as ea
 import game
+import money_owner
 import world_reactions
 from api.serializers import serialize_session_state
 from api.tests.test_economic_action_http import EconomicHttpFixture
@@ -210,9 +211,16 @@ class TheBribeCard(Arrest):
         self.assertEqual(bribe_cards(self.w), [])
         self.assertNotIn("bribe_card_opened", self.deed()["hold"])
         del deed
-        [card] = self.prepared()
-        self.assertEqual((card["proposal"]["purpose"], card["proposal"]["tender_cp"]), ("room", None))
-        self.assertIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
+        # Design §12 D29 (plan Task 8): five coppers fit neither an open offer nor the room's price, so the money
+        # owner's decision is unclear; the room words are not read for it. No card opens, nothing is paid, and the
+        # coin is noted for the innkeeper's turn only.
+        decision = money_owner.current(self.s)
+        self.assertEqual((decision.kind, decision.npc_id, decision.amount_cp, decision.source),
+                         ("unclear", "barman", 5, "structural"))
+        self.assertEqual(self.prepared(), [], result["narration"])
+        self.assertNotIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
         # Coin held out with nobody named goes to the guard's word.
         self.s._coin_paid = None
         self.s._front_coin = 5

@@ -11,8 +11,10 @@ card of another kind. Only when the model gave no deal does held-out coin get a 
 counter offer's tender, else a room) and otherwise it is `unclear`. Coin never becomes a gift unless the model
 said so. Opening an offer is not holding out coin: a goods or room deal with no coin still decides, with no tender.
 
-After the person answered, `open_card_after_reply` opens the one card the decision names (a gift or a tip card)
-and nothing else; the card itself, and the coin it may move on confirmation, are `economic_actions`'.
+A room or goods decision is carried out before the reply by the room card or the counter (`bold_acts`), which take the
+coin held out as tender only through `claim`: one turn's coin goes to one operation, once. After the person answered,
+`open_card_after_reply` opens the one card the decision names (a gift or a tip card) and nothing else; the card
+itself, and the coin it may move on confirmation, are `economic_actions`'.
 """
 
 from __future__ import annotations
@@ -179,6 +181,21 @@ def forget_turn(session: Any) -> None:
     session._coin_answer_for = None
     session._coin_claimed = False
     session._turn_notes = []
+
+
+def claim(session: Any, purpose: Literal["room", "goods"]) -> int | None:
+    """The coin held out this turn, handed once to the one operation the decision names (D5); None otherwise.
+
+    Only a `room` or `goods` decision has an operation that takes coin as tender (the room card, the counter's offer).
+    The first claim for the decision's own purpose takes the coin and marks it claimed (`session._coin_claimed`);
+    a second claim, a claim for another purpose and a claim with no decision get None. An offer asked for with no coin
+    in hand (D29) is claimed with no tender.
+    """
+    decision = current(session)
+    if decision is None or decision.kind != purpose or getattr(session, "_coin_claimed", False):
+        return None
+    session._coin_claimed = True
+    return decision.amount_cp if decision.amount_cp > 0 else None
 
 
 def blocks_money_moves(session: Any) -> bool:

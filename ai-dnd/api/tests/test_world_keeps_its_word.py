@@ -138,7 +138,9 @@ class AnInnHasRooms(OneTownScene):
         # The counter trade (shop_trade.commit) takes the price once; the order line only opens the offer.
         await self.inn()
         before = self.purse_after_labels()
-        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "coin_cp": 4})
+        # The reading says what the coin is for (plan Task 8: with coin held out, the decision opens the counter)
+        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "coin_cp": 4, "deal": "goods",
+                                "deal_goods": "bira"})
         with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
             out = await self.say("al sana 4 bakır, bi bira ver", client)
         self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])

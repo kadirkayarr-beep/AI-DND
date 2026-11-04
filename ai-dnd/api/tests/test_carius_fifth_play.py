@@ -186,7 +186,9 @@ class OneCoinOneTruth(FrontScene):
     async def test_a_gold_put_down_with_a_beer_order_only_opens_the_counter(self):
         # The owner's call: coin and goods move only through the one counter trade, never with the words.
         await self.at_the_bar()
-        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100}
+        # The reading says what the coin is for (plan Task 8: with coin held out, the decision opens the counter)
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 100, "deal": "goods",
+                             "deal_goods": "bira", "keep_change": True}
         out = await self.line("bi bira ver, al şu bi altını, üstü kalsın", "Sağ ol.")
         self.assertEqual(out["turn_outcome"]["action"], "shop_offer", out["narration"])
         self.assertEqual(self.purse(), 2435, out["narration"])

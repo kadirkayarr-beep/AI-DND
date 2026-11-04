@@ -18405,9 +18405,10 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
 def _hand_over_coin(route, listed, front=None):
     """Coin the reading saw held out: nothing is paid by it. It waits, with who it was for and where, for a card.
 
-    `_coin_paid` is (amount, person, place_id): the room or purchase of this line may take it as tender, otherwise
-    the end of the turn opens a gift card. During an arrest it is the guard's to weigh only when it was held out to
-    that guard or to nobody the reading could name; coin for someone else (the innkeeper) is no bribe.
+    `_coin_paid` is (amount, person, place_id): the room or the counter the decision names takes it as tender
+    (`money_owner.claim`); otherwise the card after the reply is the decision's, never a gift by default. During an
+    arrest it is the guard's to weigh only when it was held out to that guard or to nobody the reading could name; coin
+    for someone else (the innkeeper) is no bribe.
     `front` is the reading itself: the money owner's decision for this turn is written from its `deal` and the coin,
     also when the deal came with no coin (D29: asking for a room or goods opens an offer and hands nothing over).
     """
@@ -18432,11 +18433,15 @@ def _hand_over_coin(route, listed, front=None):
         session._bribe_held_out = amount  # whether this coin moves is the guard's to decide
         return
     held_out = (amount, person, session.world_state.get("location"))
-    if bold_acts.offer_still_open(session.world_state, person) is not None:
-        session._counter_held = person  # coin for the open offer is no gift: the counter trade alone takes it
+    decided = money_owner.current(session)
+    if (bold_acts.offer_still_open(session.world_state, person) is not None
+            and decided is not None and decided.kind == "goods"):
+        # Coin the decision gives the counter is no gift: the counter trade alone takes it. Coin it gives a room, a
+        # gift or a tip is theirs, never the open offer's tender (one amount, one operation: D5).
+        session._counter_held = person
         session._coin_paid = held_out  # read by that offer as its tender, and never turned into a gift
         return
-    session._coin_paid = held_out  # a card's tender or a gift card; never "now theirs" before it is confirmed
+    session._coin_paid = held_out  # the decided card's tender or amount; never "now theirs" before it is confirmed
 _NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
 

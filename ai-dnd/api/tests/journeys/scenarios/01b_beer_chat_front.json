@@ -1,0 +1,23 @@
+{
+  "id": "01b_beer_chat_front",
+  "title": "Sohbetle bira, ön okumayla (35, D29): 'bir bira alabilir miyim' (ön okuma: barmenle konuşuyor, deal goods, mal bira, para yok) kelimeye bakılmadan tezgâh teklifini açar, para uzatılmadığı için kart açılmaz ve kese değişmez; tezgâh alışverişi 4 bakır öder",
+  "source_items": [35],
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "bir bira alabilir miyim",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "deal": "goods", "deal_goods": "bira"}},
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}, "kart": null, "kese": 100}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {"kese": 96, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 4}}
+    }
+  ]
+}
