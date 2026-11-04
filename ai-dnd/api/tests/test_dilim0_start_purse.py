@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import unittest
 from unittest.mock import patch
 
@@ -80,6 +81,11 @@ class CoinLabel(unittest.TestCase):
 
 
 class StartPurse(unittest.TestCase):
+    def test_display_text_has_no_known_typo(self):
+        text = json.dumps(get_character_creation_catalog(), ensure_ascii=False)
+        self.assertNotIn("Zırsız", text)
+        self.assertIn("Zırhsız", text)
+
     def assert_conserved(self, before, after, expected, label):
         """Decision 35: the total moves into the purse unchanged; non-coin items stay as they were; settling again is a no-op."""
         b, a = before.world_state, after.world_state

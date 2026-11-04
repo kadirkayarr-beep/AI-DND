@@ -602,7 +602,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"],
         "armor_proficiencies": ["Light", "Medium", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
-        "features": ["Öfke (Rage)", "Zırsız Savunma (Unarmored Defense)", "Silah Ustalığı (Weapon Mastery)"],
+        "features": ["Öfke (Rage)", "Zırhsız Savunma (Unarmored Defense)", "Silah Ustalığı (Weapon Mastery)"],
         "is_spellcaster": False,
         "equipment_packages": [
             {"id": "A", "label": "Greataxe, 4 Handaxes, Explorer's Pack + 15 GP (yalnız sınıf payı)", "items": ["Büyük Balta (Greataxe)", "4 Handaxes", "Explorer's Pack", "15 GP"]},
@@ -708,7 +708,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"],
         "armor_proficiencies": [],
         "weapon_proficiencies": ["Simple", "Martial (Light)"],
-        "features": ["Dövüş Sanatları (Martial Arts d6)", "Zırsız Savunma (Unarmored Defense)"],
+        "features": ["Dövüş Sanatları (Martial Arts d6)", "Zırhsız Savunma (Unarmored Defense)"],
         "is_spellcaster": False,
         "equipment_packages": [
             {"id": "A", "label": "Mızrak & Hançerler", "items": ["Mızrak (Spear)", "5 Hançer", "Zindan Çantası", "11 Altın"]},
@@ -859,7 +859,7 @@ SPELLS_CATALOG = {
         "spells_level_1": [
             {"id": "Magic Missile", "name_tr": "Sihirli Füze (Magic Missile)", "desc": "Iskalamayan üç büyü oku fırlatır (her biri 1d4 + 1 güç hasarı)."},
             {"id": "Shield", "name_tr": "Kalkan (Shield)", "desc": "Tepki olarak zırh sınıfına +5 ekler ve Sihirli Füzeyi engeller."},
-            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Zırsız hedefin Zırh Sınıfını 13 + ÇEV mod yapar."},
+            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Zırhsız hedefin Zırh Sınıfını 13 + ÇEV mod yapar."},
             {"id": "Detect Magic", "name_tr": "Büyü Algılama (Detect Magic)", "desc": "30 fit içindeki büyü etkilerini ve okullarını hisseder."},
             {"id": "Sleep", "name_tr": "Uyku (Sleep)", "desc": "Hedefleri büyülü uykuya daldırır."},
             {"id": "Burning Hands", "name_tr": "Alevli Eller (Burning Hands)", "desc": "15 fitlik koniye 3d6 ateş hasarı saçar."},
