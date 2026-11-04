@@ -73,7 +73,12 @@ def build_report(
         _spend(usage_today),
         _raw_log(rows),
     ]
-    return _KEY_LIKE.sub(_REDACTED, "\n\n".join(parts)) + "\n"
+    return scrub("\n\n".join(parts)) + "\n"
+
+
+def scrub(text: str) -> str:
+    """The text with every key-like run replaced; a caller that adds text after the report runs it through here."""
+    return _KEY_LIKE.sub(_REDACTED, text)
 
 
 def latency_row(step: str, attempt: ChainAttempt) -> dict[str, Any]:
@@ -169,7 +174,7 @@ def _known_breaks(rows: Sequence[_Row]) -> str:
         lines += [f"### {kind}", ""]
         for row in groups[kind]:
             for step in row.known:
-                reason = step.failures[0] if step.failures else "neden kaydedilmemiş"
+                reason = "; ".join(step.failures) if step.failures else "neden kaydedilmemiş"
                 lines.append(f"- {_items(step.items, 'madde')}: {row.scenario.id}, adım {step.index}: "
                              f"{_oneline(reason)}")
         lines.append("")
@@ -181,7 +186,9 @@ def _real_chain(rows: Sequence[_Row], real_runs: Mapping[str, Sequence[int]]) ->
     for key, runs in sorted(real_runs.items()):
         if any(run not in (0, 1) for run in runs):
             raise ValueError(f"{key}: gerçek zincir koşusu 1 (geçti) ya da 0 (geçmedi) olmalı: {list(runs)}")
-    entries = [f"- {key}: {len(runs)} üzerinden {sum(runs)}" for key, runs in sorted(real_runs.items()) if runs]
+    entries = [f"- {key}: {len(runs)} üzerinden {sum(runs)}"
+               + (f" (eksik: {_RUNS_NEEDED} koşu beklenir)" if len(runs) < _RUNS_NEEDED else "")
+               for key, runs in sorted(real_runs.items()) if runs]
     waiting = [row.scenario.id for row in rows
                if row.scenario.real_chain_core and not real_runs.get(row.scenario.id)]
     lines += entries

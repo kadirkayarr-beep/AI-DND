@@ -7,9 +7,11 @@ the product's undo route; a ``reload`` step reads the campaign back from its sav
 and fails on any observed key where the save and the live game differ. Each step then gets one status:
 
 - ``pass``: no mismatch;
-- ``known_broken``: marked with note item numbers and really broken (counted, not failed);
+- ``known_broken``: marked with note item numbers and really broken for the marker's own reason (every failure holds
+  one of the step's ``broken_because`` substrings); counted, not failed;
 - ``marker_stale``: marked known broken but it passed (the marker must go);
-- ``new_break``: not marked and broken;
+- ``new_break``: not marked and broken, or marked but broken for another reason (a failure the marker does not name, a
+  server error, an unexpected model call, a reload that differs from the live game: those are never a known break);
 - ``unreached``: not run, because an earlier step was a known break and this step is not
   ``independent``, or because it is a real-chain step and the model is scripted.
 """
@@ -19,6 +21,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import time
 import unittest
 from collections.abc import Iterator, Mapping, Sequence
@@ -83,6 +86,11 @@ _SWINGS = frozenset({"hit", "miss", "critical_hit"})
 _ACTIVE_QUEST = frozenset({"ACTIVE", "accepted"})
 _HOUR = 3600
 _DAY = 24 * _HOUR
+# The failure of a real-chain step under the scripted model (it waits for the real chain, not for a fix).
+REAL_CHAIN_ONLY = "gerçek zincir adımı; sahte modelde koşulmadı"
+# Failures no known-broken marker may stand for (Ruling R19): a server error, a model call no scenario scripts, and a
+# reload that read something else back from the save than the live game held.
+_ALWAYS_NEW = re.compile(r"^(HTTP 5\d\d\b|beklenmeyen model çağrısı|yenileme:)")
 
 
 @dataclass(frozen=True)
@@ -511,9 +519,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                                           step.known_broken, "", 0.0))
                 continue
             if step.real_chain and not model.real_chain:
-                results.append(StepResult(index, "unreached",
-                                          ("gerçek zincir adımı; sahte modelde koşulmadı",),
-                                          step.known_broken, "", 0.0))
+                results.append(StepResult(index, "unreached", (REAL_CHAIN_ONLY,), step.known_broken, "", 0.0))
                 continue
             started = time.monotonic()
             if step.reload:
@@ -524,7 +530,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 observed = read_observed(self, session_id)
             self.last_observations.append(observed)
             failures.extend(check_expect(step.expect, observed))
-            status = _status(step, failures)
+            status = step_status(step, failures)
             if status == "known_broken":
                 blocked_by = index
             results.append(StepResult(index, status, tuple(failures), step.known_broken,
@@ -646,17 +652,28 @@ def _front_setting(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:
     return patch.dict(os.environ, {front_proposal.FLAG: "1" if setup["front_proposal"] else "0"})
 
 
-def _status(step: Step, failures: Sequence[str]) -> Status:
-    if step.known_broken:
-        return "known_broken" if failures else "marker_stale"
-    return "new_break" if failures else "pass"
+def step_status(step: Step, failures: Sequence[str]) -> Status:
+    """A step's status from its failures (see the module docstring)."""
+    if not step.known_broken:
+        return "new_break" if failures else "pass"
+    if not failures:
+        return "marker_stale"
+    if any(_ALWAYS_NEW.match(failure) for failure in failures):
+        return "new_break"
+    if step.broken_because and not all(any(cause in failure for cause in step.broken_because)
+                                       for failure in failures):
+        return "new_break"
+    return "known_broken"
 
 
 def describe_problems(results: Sequence[StepResult]) -> list[str]:
     """One Turkish line per step that must fail the suite (a new break or a stale marker)."""
     lines = []
     for result in results:
-        if result.status == "new_break":
+        if result.status == "new_break" and result.items:
+            lines.append(f"adım {result.index}: YENİ KIRIK (bilinen kırık {list(result.items)} işaretli, ama "
+                         "bu hata işaretin nedeni değil): " + "; ".join(result.failures))
+        elif result.status == "new_break":
             lines.append(f"adım {result.index}: YENİ KIRIK: " + "; ".join(result.failures))
         elif result.status == "marker_stale":
             lines.append(f"adım {result.index}: geçti ama bilinen kırık işaretli "
@@ -666,12 +683,14 @@ def describe_problems(results: Sequence[StepResult]) -> list[str]:
 
 def summary_line(results: Mapping[str, Sequence[StepResult]]) -> str:
     """Scenario counts: a scenario with any new break is a new break, else any known break makes it
-    known broken, else it passed. Stale markers are counted on their own."""
+    known broken, else it passed. Stale markers are counted on their own, and so are the steps that only the real
+    chain runs."""
     passed = known = new = 0
-    stale = 0
+    stale = pending = 0
     for steps in results.values():
         statuses = {result.status for result in steps}
         stale += sum(result.status == "marker_stale" for result in steps)
+        pending += sum(result.status == "unreached" and result.failures == (REAL_CHAIN_ONLY,) for result in steps)
         if "new_break" in statuses:
             new += 1
         elif "known_broken" in statuses:
@@ -679,4 +698,5 @@ def summary_line(results: Mapping[str, Sequence[StepResult]]) -> str:
         else:
             passed += 1
     line = f"{passed} geçti, {known} bilinen kırık, {new} yeni kırık"
-    return line + (f" ({stale} adımda işaret kaldırılmalı)" if stale else "")
+    line += f" ({stale} adımda işaret kaldırılmalı)" if stale else ""
+    return line + (f" ({pending} adım yalnız gerçek zincirde)" if pending else "")

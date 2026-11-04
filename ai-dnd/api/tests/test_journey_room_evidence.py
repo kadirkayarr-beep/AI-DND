@@ -78,7 +78,7 @@ def walk_back_to_sleep():
          "expect": {"hp": 28, "oda": True, "kese": 50, "konum": "location_001"}},
     ]
     folder = Path(tempfile.mkdtemp())
-    path = folder / "scenario.json"
+    path = folder / f"{data['id']}.json"  # the loader holds the id and the file name equal
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     try:
         return load_scenario(path)

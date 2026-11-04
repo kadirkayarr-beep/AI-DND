@@ -49,7 +49,7 @@ _SCENARIO_KEYS = frozenset(
 )
 _SCENARIO_REQUIRED = ("id", "title", "steps")
 _STEP_KEYS = frozenset(
-    {*ACTION_KEYS, "script", "expect", "known_broken", "real_chain", "independent"}
+    {*ACTION_KEYS, "script", "expect", "known_broken", "broken_because", "real_chain", "independent"}
 )
 _TEXT_ACTIONS = ("say", "command")
 _DICT_ACTIONS = ("economic_action", "combat_action")
@@ -66,6 +66,60 @@ class ScenarioError(ValueError):
     """A scenario file (or an expectation) the journey tests cannot trust."""
 
 
+def _integer(value: Any) -> bool:
+    return type(value) is int
+
+
+def _count_map(value: Any) -> bool:
+    """Name to a count: the inventory needs at least one of each name it lists, a counter may say 0."""
+    return isinstance(value, dict) and all(isinstance(name, str) and name and type(count) is int and count >= 0
+                                           for name, count in value.items())
+
+
+def _needles(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(value)
+    return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item for item in value)
+
+
+def _or_none(rule):
+    return lambda value: value is None or rule(value)
+
+
+def _filled_mapping(value: Any) -> bool:
+    """A subset match: an empty mapping would match anything, so it says nothing."""
+    return isinstance(value, dict) and bool(value)
+
+
+# What each expect key's value may be, so a wrong type fails when the file loads (in Turkish), never at check time.
+EXPECT_VALUE_RULES = {
+    "kese": (_integer, "tam sayı (bakır)"),
+    "hp": (_integer, "tam sayı"),
+    "xp": (_integer, "tam sayı"),
+    "saat": (_integer, "tam sayı"),
+    "karsi_saldiri": (_integer, "tam sayı"),
+    "esya_sayisi": (_integer, "tam sayı"),
+    "hareket": (_or_none(_integer), "tam sayı ya da null"),
+    "oda": (lambda value: isinstance(value, bool), "true ya da false"),
+    "savas": (lambda value: isinstance(value, bool), "true ya da false"),
+    "envanter": (lambda value: _count_map(value) and all(count > 0 for count in value.values()),
+                 "ad -> 1 ya da daha büyük adet nesnesi"),
+    "cephane": (_count_map, "tür -> 0 ya da daha büyük sayı nesnesi"),
+    "kisi_kese": (lambda value: _filled_mapping(value) and all(type(cp) is int for cp in value.values()),
+                  "boş olmayan kişi -> bakır nesnesi"),
+    "gorev": (lambda value: isinstance(value, dict), "nesne"),
+    "kip": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
+    "kart": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
+    "tezgah": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
+    "yuva": (_or_none(lambda value: isinstance(value, dict)), "nesne ya da null"),
+    "konum": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
+    "olu": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
+    "yasak_metin": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
+    "gerekli_metin": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
+    "anlaticiya_giden": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
+}
+
+
 @dataclass(frozen=True)
 class Step:
     say: str | None
@@ -79,6 +133,8 @@ class Step:
     independent: bool
     undo: bool = False
     reload: bool = False
+    # Ruling R19: substrings, one of which every failure of a marked step must hold; empty means not named.
+    broken_because: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -122,8 +178,11 @@ def load_scenario(path: Path) -> Scenario:
     setup = data.get("setup", {})
     if not isinstance(setup, dict):
         raise ScenarioError(f"{where}: 'setup' bir nesne olmalı")
+    scenario_id = _text(data, "id", where)
+    if scenario_id != path.stem:
+        raise ScenarioError(f"{where}: 'id' dosya adıyla aynı olmalı: id {scenario_id}, dosya {path.stem}")
     return Scenario(
-        id=_text(data, "id", where),
+        id=scenario_id,
         title=_text(data, "title", where),
         source_items=_integers(data, "source_items", where),
         zero_tolerance=zero_tolerance,
@@ -223,11 +282,26 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
     if not isinstance(expect, dict):
         raise ScenarioError(f"{where}: 'expect' bir nesne olmalı")
     _reject_unknown(expect, EXPECT_KEYS, where, "expect")
+    for key, value in expect.items():
+        rule, wanted = EXPECT_VALUE_RULES[key]
+        if not rule(value):
+            raise ScenarioError(f"{where}: expect '{key}' {wanted} olmalı, bulunan: {value!r}")
     known_broken = _integers(raw, "known_broken", where)
     if zero_tolerance and known_broken:
         raise ScenarioError(
             f"{where}: sıfır tolerans senaryosunda 'known_broken' kullanılamaz"
         )
+    broken_because = raw.get("broken_because")
+    if broken_because is not None:
+        if not known_broken:
+            raise ScenarioError(f"{where}: 'broken_because' yalnız 'known_broken' işaretli adımda kullanılır")
+        if not (isinstance(broken_because, list) and _needles(broken_because)):
+            raise ScenarioError(f"{where}: 'broken_because' boş olmayan metinlerin boş olmayan listesi olmalı")
+    real_chain = _boolean(raw, "real_chain", where)
+    if real_chain and known_broken:
+        raise ScenarioError(f"{where}: 'real_chain' adımı 'known_broken' taşıyamaz (oranı yalnız zincirin olmalı)")
+    if real_chain and zero_tolerance:
+        raise ScenarioError(f"{where}: sıfır tolerans senaryosunda 'real_chain' adımı olamaz (sahte modelde koşmaz)")
     return Step(
         say=raw.get("say"),
         command=raw.get("command"),
@@ -236,10 +310,11 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
         script=raw.get("script"),
         expect=expect,
         known_broken=known_broken,
-        real_chain=_boolean(raw, "real_chain", where),
+        real_chain=real_chain,
         independent=_boolean(raw, "independent", where),
         undo="undo" in raw,
         reload="reload" in raw,
+        broken_because=tuple(broken_because or ()),
     )
 
 

@@ -32,7 +32,7 @@ def scenario_variant(path: Path, change):
     data = json.loads(path.read_text(encoding="utf-8"))
     change(data)
     folder = Path(tempfile.mkdtemp())
-    variant = folder / "scenario.json"
+    variant = folder / f"{data['id']}.json"  # the loader holds the id and the file name equal
     variant.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     try:
         return load_scenario(variant)
@@ -101,7 +101,8 @@ class ItemJourneyEvidence(JourneyCase):
         made and spends one arrow (the step's own expectation, so it passes)."""
         def seeded(data):
             data["setup"]["ammunition"] = {"arrow": 20}
-            data["steps"] = [{key: value for key, value in data["steps"][2].items() if key != "known_broken"}]
+            data["steps"] = [{key: value for key, value in data["steps"][2].items()
+                              if key not in {"known_broken", "broken_because"}}]
             data["steps"][0].pop("independent", None)
 
         results, turns = await self.play(scenario_variant(CONSUME, seeded))

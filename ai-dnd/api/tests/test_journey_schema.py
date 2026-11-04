@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from api.tests.journeys import schema
 from api.tests.journeys.schema import (
     EXPECT_KEYS,
     Scenario,
@@ -25,9 +26,13 @@ def setUpModule():
     unittest.addModuleCleanup(_TEMP.cleanup)
 
 
-def write_scenario(data, *, raw: str | None = None) -> Path:
+def write_scenario(data, *, raw: str | None = None, name: str | None = None) -> Path:
+    """The file is named after the scenario id (the loader holds them equal), or ``scenario.json`` without one."""
     folder = Path(tempfile.mkdtemp(dir=_TEMP.name))
-    path = folder / "scenario.json"
+    if name is None:
+        known = isinstance(data, dict) and isinstance(data.get("id"), str) and data["id"]
+        name = f"{data['id']}.json" if known else "scenario.json"
+    path = folder / name
     path.write_text(raw if raw is not None else json.dumps(data), encoding="utf-8")
     return path
 
@@ -72,18 +77,21 @@ class TheLoaderIsStrict(unittest.TestCase):
                     "script": {"front": {"coin_cp": 500}},
                     "expect": {"kart": None},
                     "known_broken": [3, 35],
-                    "real_chain": True,
+                    "broken_because": ["kart: beklenen yok"],
                     "independent": True,
-                }
+                },
+                {"say": "x", "real_chain": True},
             ],
         )
         scenario = load_scenario(write_scenario(data))
-        (step,) = scenario.steps
+        step, chain_step = scenario.steps
         self.assertEqual(step.economic_action, {"action": "confirm"})
         self.assertEqual(step.script, {"front": {"coin_cp": 500}})
         self.assertEqual(step.known_broken, (3, 35))
-        self.assertTrue(step.real_chain)
+        self.assertEqual(step.broken_because, ("kart: beklenen yok",))
+        self.assertFalse(step.real_chain)
         self.assertTrue(step.independent)
+        self.assertTrue(chain_step.real_chain)
         self.assertTrue(scenario.real_chain_core)
 
     def test_unknown_key_is_rejected(self):
@@ -205,8 +213,76 @@ class TheLoaderIsStrict(unittest.TestCase):
         with self.assertRaises(ScenarioError) as raised:
             load_scenario(path)
         message = str(raised.exception)
-        self.assertIn("scenario.json", message)
+        self.assertIn("01_bira.json", message)
         self.assertIn("2", message)
+
+    def test_the_id_must_be_the_file_name(self):
+        """The id names the scenario everywhere (results, report, --scenarios); a copied file that kept its old id
+        would report under the wrong name."""
+        self.assertEqual(load_scenario(write_scenario(small_scenario())).id, "01_bira")
+        with self.assertRaises(ScenarioError) as raised:
+            load_scenario(write_scenario(small_scenario(), name="02_kopya.json"))
+        self.assertIn("02_kopya", str(raised.exception))
+        self.assertIn("01_bira", str(raised.exception))
+
+    def test_a_real_chain_step_is_never_marked_and_never_in_a_zero_tolerance_scenario(self):
+        """A real-chain step's ratio is the chain's own (a known break would count the engine), and a zero-tolerance
+        scenario must run whole under the scripted model, where a real-chain step is not run."""
+        for label, data, needle in (
+            ("marked", small_scenario(steps=[{"say": "x", "real_chain": True, "known_broken": [36],
+                                              "broken_because": ["kese"]}]), "real_chain"),
+            ("zero tolerance", small_scenario(zero_tolerance=True, steps=[{"say": "x", "real_chain": True}]),
+             "real_chain"),
+        ):
+            with self.subTest(label), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(data))
+            self.assertIn(needle, str(raised.exception))
+        self.assertTrue(load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "real_chain": True}])))
+                        .steps[0].real_chain)
+
+    def test_broken_because_names_the_failures_a_marker_stands_for(self):
+        data = small_scenario(steps=[{"say": "x", "known_broken": [35], "broken_because": ["kese: beklenen", "no_weapon"]}])
+        (step,) = load_scenario(write_scenario(data)).steps
+        self.assertEqual(step.broken_because, ("kese: beklenen", "no_weapon"))
+        self.assertEqual(load_scenario(write_scenario(small_scenario())).steps[0].broken_because, ())
+        for label, step_data in (
+            ("no marker", {"say": "x", "broken_because": ["kese"]}),
+            ("empty list", {"say": "x", "known_broken": [35], "broken_because": []}),
+            ("empty text", {"say": "x", "known_broken": [35], "broken_because": [""]}),
+            ("text not list", {"say": "x", "known_broken": [35], "broken_because": "kese"}),
+            ("number", {"say": "x", "known_broken": [35], "broken_because": [3]}),
+        ):
+            with self.subTest(label), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[step_data])))
+            self.assertIn("broken_because", str(raised.exception))
+
+    def test_expect_values_are_checked_when_the_file_loads(self):
+        """A value of the wrong type (or an empty needle) fails at load time in Turkish, never later as a bare
+        TypeError or as a check that can never fail."""
+        for key, value in (
+            ("kese", "5"), ("kese", True), ("kese", None), ("hp", 1.5), ("xp", "10"), ("saat", None),
+            ("karsi_saldiri", False), ("esya_sayisi", [1]), ("hareket", "25"),
+            ("oda", 1), ("savas", None),
+            ("envanter", []), ("envanter", {"Bira": "1"}), ("envanter", {"Bira": 0}), ("cephane", {"arrow": -1}),
+            ("cephane", None), ("kisi_kese", {"barman": "4"}), ("kisi_kese", {}), ("gorev", None),
+            ("kip", 3), ("kip", {}), ("kart", "açık"), ("kart", {}), ("tezgah", []), ("yuva", [1]),
+            ("konum", ""), ("konum", 5), ("olu", 0),
+            ("yasak_metin", ""), ("yasak_metin", []), ("yasak_metin", 5), ("yasak_metin", [""]),
+            ("yasak_metin", None), ("gerekli_metin", ["bira", 3]), ("anlaticiya_giden", []),
+        ):
+            with self.subTest(key=key, value=value), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {key: value}}])))
+            self.assertIn(key, str(raised.exception))
+        good = {"kese": 0, "hp": -2, "hareket": None, "oda": False, "envanter": {}, "cephane": {"arrow": 0},
+                "kisi_kese": {"barman": 4}, "gorev": {"aktif": 0, "kayit": []}, "kip": {"active": True},
+                "kart": None, "tezgah": {"key": "bira"}, "yuva": None, "konum": None, "olu": "alive",
+                "yasak_metin": "kılıç", "gerekli_metin": ["bira", "Marek"], "anlaticiya_giden": ["oda tutuldu"],
+                "karsi_saldiri": 1, "esya_sayisi": 1, "xp": 10, "saat": 0, "savas": True}
+        (step,) = load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": good}]))).steps
+        self.assertEqual(step.expect, good)
+
+    def test_every_expect_key_has_a_value_rule(self):
+        self.assertEqual(set(schema.EXPECT_VALUE_RULES), set(EXPECT_KEYS))
 
 
 class TheCheckerReportsInTurkish(unittest.TestCase):

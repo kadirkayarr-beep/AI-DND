@@ -26,6 +26,7 @@ from api.tests.journeys.runner import (
     counter_attacks,
     describe_problems,
     read_observed,
+    step_status,
     summary_line,
 )
 from api.tests.journeys.schema import ScenarioError, load_scenario
@@ -52,7 +53,7 @@ def beer_scenario(*steps, **changes):
     }
     data.update(changes)
     folder = Path(tempfile.mkdtemp())
-    path = folder / "scenario.json"
+    path = folder / f"{data['id']}.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     try:
         return load_scenario(path)
@@ -130,6 +131,25 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual(result.status, "new_break")
         self.assertEqual(result.failures, ("kese: beklenen 100, gözlenen 96",))
         self.assertEqual(result.items, ())
+
+    async def test_a_marked_step_that_breaks_for_another_reason_is_a_new_break(self):
+        """Ruling R19: a marker stands only for the failures its ``broken_because`` names. Every failure of the step
+        must hold one of them; one that does not makes the step a new break, and all its failures are told."""
+        (named,) = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 95}, "known_broken": [35],
+             "broken_because": ["kese: beklenen 95"]}))
+        self.assertEqual((named.status, named.failures), ("known_broken", ("kese: beklenen 95, gözlenen 96",)))
+        (other,) = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 95, "envanter": {"Bira": 2}}, "known_broken": [35],
+             "broken_because": ["kese: beklenen 95"]}))
+        self.assertEqual(other.status, "new_break")
+        self.assertEqual(other.items, (35,))
+        self.assertEqual(len(other.failures), 2)
+        (line,) = describe_problems([other])
+        self.assertIn("YENİ KIRIK", line)
+        self.assertIn("[35]", line)
+        self.assertIn("kese: beklenen 95", line)
+        self.assertIn("envanter: beklenen", line)
 
     async def test_steps_after_a_known_break_are_unreached_unless_independent(self):
         results = await self.run_scenario(beer_scenario(
@@ -525,6 +545,50 @@ class TheSuiteSummary(unittest.TestCase):
         (stale,) = describe_problems(results["d"])
         self.assertIn("[38]", stale)
         self.assertIn("işareti kaldır", stale)
+
+
+class TheMarkerCause(unittest.TestCase):
+    """Ruling R19: what a known-broken marker may stand for."""
+
+    def marked(self, *because):
+        step = {"say": "x", "known_broken": [35]}
+        if because:
+            step["broken_because"] = list(because)
+        return beer_scenario(step).steps[0]
+
+    def test_a_server_error_an_unexpected_model_call_or_a_reload_mismatch_is_always_new(self):
+        step = self.marked("HTTP", "beklenmeyen", "yenileme", "kese")
+        for failure in ("HTTP 500: {\"detail\": \"boom\"}", "HTTP 503: kapalı", "beklenmeyen model çağrısı: ['verdict']",
+                        "yenileme: kese: canlı 96, kayıttan 100"):
+            with self.subTest(failure=failure):
+                self.assertEqual(step_status(step, [failure]), "new_break")
+                self.assertEqual(step_status(step, ["kese: beklenen 95, gözlenen 96", failure]), "new_break")
+                self.assertEqual(step_status(self.marked(), [failure]), "new_break")
+        self.assertEqual(step_status(step, ['HTTP 400: {"detail":{"code":"no_weapon"}}']), "known_broken")
+
+    def test_every_failure_must_hold_a_named_cause(self):
+        step = self.marked("no_weapon", "kese: beklenen")
+        self.assertEqual(step_status(step, []), "marker_stale")
+        self.assertEqual(step_status(step, ["kese: beklenen 95, gözlenen 96"]), "known_broken")
+        self.assertEqual(step_status(step, ['HTTP 400: {"code":"no_weapon"}', "kese: beklenen 9, gözlenen 1"]),
+                         "known_broken")
+        self.assertEqual(step_status(step, ["kese: beklenen 95, gözlenen 96", "savas: beklenen True"]), "new_break")
+        # A marker without a named cause still stands for any failure but the always-new ones.
+        self.assertEqual(step_status(self.marked(), ["savas: beklenen True"]), "known_broken")
+        unmarked = beer_scenario({"say": "x"}).steps[0]
+        self.assertEqual((step_status(unmarked, []), step_status(unmarked, ["kese"])), ("pass", "new_break"))
+
+    def test_the_summary_says_how_many_steps_wait_for_the_real_chain(self):
+        def unreached(index, why):
+            return StepResult(index, "unreached", (why,), (), "", 0.0)
+
+        results = {
+            "rc": [StepResult(1, "pass", (), (), "", 0.0), unreached(2, runner.REAL_CHAIN_ONLY),
+                   unreached(3, runner.REAL_CHAIN_ONLY)],
+            # A real-chain step cut by an earlier known break waits for the engine, not for the chain.
+            "b": [StepResult(1, "known_broken", ("x",), (35,), "", 0.0), unreached(2, "adım 1 bilinen kırık; bu adım koşulmadı")],
+        }
+        self.assertEqual(summary_line(results), "1 geçti, 1 bilinen kırık, 0 yeni kırık (2 adım yalnız gerçek zincirde)")
 
 
 class TheScriptedClient(unittest.TestCase):

@@ -6,7 +6,7 @@ import unittest
 
 from api.model_chain import ChainAttempt
 from api.tests.journeys.report import _kind as report_kind
-from api.tests.journeys.report import build_report, latency_row, real_run_flags
+from api.tests.journeys.report import build_report, latency_row, real_run_flags, scrub
 from api.tests.journeys.runner import SCENARIO_DIR, StepResult, summary_line
 from api.tests.journeys.schema import Scenario, Step
 
@@ -66,6 +66,16 @@ class ReportCountsTest(unittest.TestCase):
         # A passing or newly broken scenario is not in the known-break list.
         self.assertNotIn("02_beer_tip", known)
         self.assertNotIn("06_combat_actions", known)
+
+    def test_a_known_break_lists_every_failure_of_its_step(self):
+        failures = ['HTTP 400: {"detail":{"code":"no_ammunition"}}', "savas: beklenen True, gözlenen False",
+                    "cephane: beklenen {'arrow': 19}, gözlenen {}"]
+        scenarios = {"04_consume": scenario("04_consume", [step(known_broken=[56])])}
+        results = {"04_consume": [result(1, "known_broken", items=[56], failures=failures)]}
+        known = build_report(results, scenarios, date=DATE).split("## Bilinen kırıklar", 1)[1].split("\n## ", 1)[0]
+        (line,) = [line for line in known.splitlines() if "04_consume" in line]
+        for failure in failures:
+            self.assertIn(failure, line)
 
     def test_the_scenario_table_names_each_outcome(self):
         results, scenarios = three_scenarios()
@@ -158,6 +168,14 @@ class RealRunTest(unittest.TestCase):
         section = report.split("## Gerçek zincir", 1)[1].split("\n## ", 1)[0]
         self.assertIn("02_beer_tip", section)
         self.assertIn("3 üzerinden 2", section)
+
+    def test_fewer_than_three_runs_are_said_to_be_short(self):
+        results, scenarios = three_scenarios()
+        report = build_report(results, scenarios, real_runs={"02_beer_tip": [1], "03_room_sleep": [1, 0, 1]},
+                              date=DATE)
+        section = report.split("## Gerçek zincir", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("- 02_beer_tip: 1 üzerinden 1 (eksik: 3 koşu beklenir)", section.splitlines())
+        self.assertIn("- 03_room_sleep: 3 üzerinden 2", section.splitlines())
 
     def test_core_scenarios_without_runs_are_named(self):
         scenarios = {"16_past_tense": scenario("16_past_tense", core=True)}
@@ -288,6 +306,11 @@ class RawLogAndSafetyTest(unittest.TestCase):
                               date=DATE)
         self.assertNotIn("AIza", report)
         self.assertNotIn("sk-ant-", report)
+
+    def test_scrub_hides_every_key_like_text(self):
+        """``scrub`` is the report's own filter, for text a caller adds after the report (the run notes)."""
+        self.assertEqual(scrub("a AIzaSyFAKE b sk-ant-api03-FAKE c sk-ABCDEFGHIJKLMNOP d sk-short e"),
+                         "a [gizlendi] b [gizlendi] c [gizlendi] d sk-short e")
 
     def test_table_cells_survive_pipes_in_text(self):
         scenarios = {"02_beer_tip": scenario("02_beer_tip", title="a | b")}
