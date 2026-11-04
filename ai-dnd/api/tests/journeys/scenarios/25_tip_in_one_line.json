@@ -1,0 +1,48 @@
+{
+  "id": "25_tip_in_one_line",
+  "title": "Üstü kalsın tek satırda (SIFIR TOLERANS; panel 'evet' yolu): 'bir bira, 5 bakır, üstü kalsın' (ön okuma: barmenle konuşuyor, deal goods, mal bira, üstü kalsın) tezgâh teklifini bira 4 + bahşiş 1 = 5 bakırla açar, kart açılmaz, kese değişmez; 5 bakırlık tek onay birayı ve bahşişi tek makbuzla öder (kese 95, barmen 5, Bira 1); Geri Al keseyi, barmenin kesesini, birayı ve bahşişli teklifi birlikte döndürür; yeniden onay bir kez öder; bayat teklif numarasıyla aynı onay hiçbir şey kesmez; her yenilemede kayıt canlı oyunla aynıdır",
+  "source_items": [35],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "bir bira, 5 bakır, üstü kalsın",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5, "deal": "goods",
+                           "deal_goods": "bira", "keep_change": true}},
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4, "tip_cp": 1, "total_cp": 5},
+                 "kese": 100, "envanter": {}, "kart": null}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 5",
+      "expect": {"tezgah": null, "kese": 95, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 5}}
+    },
+    {
+      "undo": true,
+      "expect": {"kese": 100, "envanter": {}, "kisi_kese": {"barman": 0},
+                 "tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4, "tip_cp": 1, "total_cp": 5},
+                 "kart": null, "gerekli_metin": "Son tur geri alındı"}
+    },
+    {
+      "reload": true,
+      "expect": {"kese": 100, "envanter": {}, "kisi_kese": {"barman": 0}}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 5",
+      "expect": {"tezgah": null, "kese": 95, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 5}}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 5",
+      "expect": {"kese": 95, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 5}}
+    },
+    {
+      "reload": true,
+      "expect": {"kese": 95, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 5}}
+    }
+  ]
+}

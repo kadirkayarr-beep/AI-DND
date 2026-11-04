@@ -7,12 +7,15 @@ one short ledger, so the next person who hears of it can act on it.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Literal
 
 import living_world
 import relationships
 import shop_trade
+
+logger = logging.getLogger(__name__)
 
 MAX_DEEDS = 24
 _STEAL = re.compile(
@@ -782,17 +785,91 @@ def _coin_seen(reply: dict[str, Any], coin: int | None) -> dict[str, Any]:
 
 
 def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) -> dict[str, Any]:
-    """Open the counter's offer; coin held out is its tender when price <= coin <= purse, and is ignored otherwise."""
+    """Open the counter's offer; coin held out is its tender when price <= coin <= purse, and is ignored otherwise.
+
+    When this turn's money decision bought these goods from this person and kept the change, the offer also carries
+    the decision's tip (`tip_cp`, Python's own figure: the coin held out over the price; design §3b, §11 D1), and the
+    line tells the price, the tip and the one total a confirmation pays. The tip is written only when the coin held
+    out is exactly that total.
+    """
     world = session.world_state
     quoted = shop_trade.quote(world, server["id"], key, 1)
     tender = _tender_or_none(world, coin, quoted["total_cp"], quoted["purse_cp"]) if quoted is not None else None
+    tip = _decided_tip(session, server, key, tender, quoted)
     reply = _open_offer(session, server, key)
     if tender is not None:
         world["flags"]["counter_offer_v1"]["tender_cp"] = tender
     elif coin is not None:
-        reply["narration"] = f"{reply['narration']} {COIN_NOT_TENDERED}"
-        reply["action_result"]["direct_response"] = reply["narration"]
+        _say_too(reply, COIN_NOT_TENDERED)
+    if tip:
+        world["flags"]["counter_offer_v1"]["tip_cp"] = tip
+        label = quoted["label"][:1].upper() + quoted["label"][1:]
+        _say_too(reply, f"{label} {quoted['unit_cp']} bakır + bahşiş {tip} bakır = {tender} bakır; "
+                        f"onaylarsan {tender} bakır geçer.")
     return _coin_seen(reply, coin)
+
+
+def _say_too(reply: dict[str, Any], text: str) -> None:
+    reply["narration"] = f"{reply['narration']} {text}"
+    reply["action_result"]["direct_response"] = reply["narration"]
+
+
+def _decided_tip(session, server: dict[str, Any], key: str, tender: int | None, quoted: dict[str, Any] | None) -> int:
+    """The tip this turn's money decision kept for these goods with this person, when the coin held out is the price
+    and that tip; 0 otherwise. The model never gives the figure: the money owner worked it out from the coin."""
+    import money_owner
+    decision = money_owner.current(session)
+    if (decision is None or decision.kind != "goods" or decision.npc_id != str(server.get("id"))
+            or decision.goods_key != key or quoted is None or tender is None):
+        return 0
+    tip = decision.tip_cp
+    return tip if type(tip) is int and tip > 0 and tender == quoted["total_cp"] + tip else 0
+
+
+_COUNTER_TIPS = ("tip_cp", "tip_after_cp")  # the panel-"yes" tip on the offer, and the panel-"no" waiting tip (D34)
+
+
+def drop_counter_tip(world: dict[str, Any], npc_id: str) -> bool:
+    """Take the tip off this person's counter offer (a tip they declined, design §3b item 1); True if one was there.
+
+    Both the offer's own tip and a tip waiting for after the goods go. The goods' offer stays, and the coin it takes
+    is the price: a tender above the price is brought down to it, so no part of the dropped tip is paid or counted.
+    """
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if not isinstance(opened, dict) or opened.get("npc_id") != npc_id:
+        return False
+    dropped = [field for field in _COUNTER_TIPS if field in opened]
+    for field in dropped:
+        opened.pop(field)
+    if not dropped or "tender_cp" not in opened:
+        return bool(dropped)
+    quoted = shop_trade.quote(world, str(npc_id), str(opened.get("key")), 1)
+    tender = opened["tender_cp"]
+    if quoted is None or type(tender) is not int:
+        opened.pop("tender_cp")
+    elif tender > quoted["total_cp"]:
+        opened["tender_cp"] = quoted["total_cp"]
+    return True
+
+
+def repair_counter_tip(world: dict[str, Any]) -> list[str]:
+    """Drop a counter offer's tip that is not a whole number of copper of at least 1; the offer itself stays.
+
+    Run on load (design §11 D7): a broken tip never fails the save, it is only left out, and each one is logged.
+    """
+    import economic_actions
+    opened = (world.get("flags") or {}).get("counter_offer_v1") if isinstance(world, dict) else None
+    if not isinstance(opened, dict):
+        return []
+    dropped = []
+    for field in _COUNTER_TIPS:
+        value = opened.get(field)
+        if field in opened and not (type(value) is int and 1 <= value <= economic_actions.MAX_CP):
+            opened.pop(field)
+            dropped.append(f"counter_offer_v1.{field}")
+    for name in dropped:
+        logger.warning("repair_counter_tip dropped %s", name)
+    return dropped
 
 
 def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:

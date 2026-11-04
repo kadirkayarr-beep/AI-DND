@@ -1,6 +1,6 @@
 {
   "id": "02_beer_tip",
-  "title": "'5 bakır koyuyorum, üstü kalsın' (4 bakırlık bira): bira envanterde, kese 5 eksik, barmene 1 bakır bahşiş",
+  "title": "'5 bakır koyuyorum, üstü kalsın' (4 bakırlık bira; ön okuma: barmenle konuşuyor, deal goods, mal bira, üstü kalsın): bahşişi Python hesaplar, tezgâh teklifi bira 4 + bahşiş 1 = 5 bakır gösterir, onaysız para geçmez; 5 bakırlık tek onay birayı ve bahşişi tek makbuzla öder: bira envanterde, kese 5 eksik, barmene 4 bakır bira + 1 bakır bahşiş",
   "source_items": [35],
   "setup": {
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
@@ -17,10 +17,14 @@
     },
     {
       "say": "5 bakır koyuyorum, üstü kalsın",
-      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5}},
-      "expect": {"envanter": {"Bira": 1}, "kese": 95, "kisi_kese": {"barman": 5}},
-      "known_broken": [35],
-      "broken_because": ["envanter: beklenen {'Bira': 1}, gözlenen {}", "kese: beklenen 95, gözlenen 100", "kisi_kese.barman: beklenen 5, gözlenen 0"]
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5, "deal": "goods",
+                           "deal_goods": "bira", "keep_change": true}},
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4, "tip_cp": 1, "total_cp": 5},
+                 "kese": 100, "envanter": {}}
+    },
+    {
+      "command": "/item shop_buy barman bira 1 0 5",
+      "expect": {"tezgah": null, "kese": 95, "envanter": {"Bira": 1}, "kisi_kese": {"barman": 5}}
     }
   ]
 }

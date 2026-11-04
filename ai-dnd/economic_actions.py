@@ -1739,21 +1739,27 @@ def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicRe
 
 
 def counter_purchase_offer(world: dict[str, Any], *, npc_id: str, key: str, count: int, unit_cp: int,
-                           tender_cp: int | None) -> EconomicOffer:
+                           tender_cp: int | None, tip_cp: int = 0) -> EconomicOffer:
     """The counter's own purchase, built in memory only: it is never stored and never confirmed from a card.
 
-    `shop_trade.commit` has already checked the vendor, price, stock, refusal and purse; the engine accepts.
+    `shop_trade.commit` has already checked the vendor, price, stock, refusal and purse; the engine accepts. A tip
+    the counter's offer carries (`tip_cp`, Python's own figure, checked by `shop_trade._tip`) is one more line to the
+    vendor, accepted by the engine too, so it is paid on the same receipt and never dropped as undecided (D8).
     """
-    lines =[OfferLine(line_id="goods:0", kind="goods", source_id=npc_id, item_id=key, recipient_id=npc_id,
+    tip = tip_cp if type(tip_cp) is int and tip_cp > 0 else 0
+    lines = [OfferLine(line_id="goods:0", kind="goods", source_id=npc_id, item_id=key, recipient_id=npc_id,
                        count=count, unit_cp=unit_cp, total_cp=unit_cp * count, optional=False)]
+    decisions = [LineDecision(line_id="goods:0", status="accepted", reason_code="engine_accepts")]
+    if tip:
+        lines.append(OfferLine(line_id="tip:1", kind="tip", source_id=None, item_id=None, recipient_id=npc_id,
+                               count=1, unit_cp=tip, total_cp=tip, optional=True))
+        decisions.append(LineDecision(line_id="tip:1", status="accepted", reason_code="engine_accepts"))
     proposal = EconomicProposal(purpose="purchase", recipient_id=npc_id, source_id=npc_id, item_id=key, count=count,
-                                amount_cp=None, tip_cp=0, tender_cp=tender_cp, dependency="base_required",
+                                amount_cp=None, tip_cp=tip, tender_cp=tender_cp, dependency="base_required",
                                 source_action_id=_active_action_id() or "counter", text_span=None)
     offer_id = new_offer_id()
     acceptance = AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=npc_id,
-                                  context_digest="", producer="engine", check=None,
-                                  line_decisions=[LineDecision(line_id="goods:0", status="accepted",
-                                                               reason_code="engine_accepts")])
+                                  context_digest="", producer="engine", check=None, line_decisions=decisions)
     turn = (world.get("flags") or {}).get("turn_index", 0)
     offer = EconomicOffer(offer_id=offer_id, actor_id="player", campaign_id=str(world.get("campaign_id") or "turn"),
                           place_id=str(world.get("location")), proposal=proposal, lines=lines, acceptance=acceptance,
