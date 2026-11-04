@@ -1,5 +1,9 @@
 # AI-DND devir notu (güncel) — son güncelleme 2026-11-05 00:15 (iş akışları durduruldu, her şey commit'li)
 ## Güncel kısa durum — Jarvis, 2026-11-05
+Dilim 0 Görev 15 ara devir belgesi: DILIM0_ARA_DEVIR_JARVIS_20261105.md; kapı açık, tam devir/oynayış bekliyor. Odaklı web başlatıcısı yalnız tasarım: ODAKLI_WEB_TEST_TASARIM_20261105.md; mevcut Python guard Node'a uygulanmaz, betikler değiştirilmedi.
+
+Dilim 0: uç 25850a09, Görev 11'in bağımsız katalog yazım parçası tamam (155 odaklı test OK); tüm Görev 11 tamam değil. Görev 6–10 ve Görev 11 UI kısmı izinli odaklı web yolu bekliyor. Görev 6'nın iki staged test hazırlığı değişmeden korundu. J-024 ayrıntıları içerir; Görev 5'e girilmedi, push yok.
+
 Dilim 1: `task/dilim1-money-memory-20261104`, `C:\Users\Kadir\Desktop\AI-DND-dilim1`, uç `8aedb6dc`; tabandan 19, Jarvis devrinden 3 yeni kod commit'i. Görev 12/14/15 uygulaması ve odaklı testleri tamam; Claude incelemesi ve genel kapılar bekliyor. Başlangıç yolculuk ölçümü defterde 14/18/0; son genel toplam ölçülmedi. Gerçek zincir ve istem boyu ölçülmedi; oynayış bekliyor. Bu oturumlarda push/merge yok.
 Görev 11: panel onayı var, izinli odaklı web koşusu yok. Görev 17/18: ertelenen Görev 10 şema bağımlılığı; sıra değiştirilmedi. Görev 23 yalnız ara devir belgesi düzeyinde; "Dilim 1 hazır" tetiği verilmedi. Kalan işaretler, hafızanın beş eksik kanıtı ve test yeniden yazım listesi: `DILIM1_ARA_DEVIR_JARVIS_20261105.md`. Aşağıdaki eski durum tarihsel kayıttır; bu kısa durum günceldir.
 

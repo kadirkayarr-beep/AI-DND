@@ -28,3 +28,5 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 - Jarvis Görev 15 (8aedb6dc): MONEY/genel yolculuk/tam paket/tarayıcı ve 04b yeni gerçek-zincir ok yönlendirme adımı bekliyor; yalnız odaklı FINAL 327 ve FEATURES 258 test geçti (J-022). Gerçek model koşusu yapılmadı.
 
 - [ ] Dilim 1 Görev 11 (J-023): başlamadı; yuva 2 için izinli odaklı web RED/GREEN yolu yok. Planın slot.sh 3 AI-DND-dilim1 node komutu son yuva kuralına aykırı ve tam web paketi çalıştırıyor; KOŞULMADI. Odaklı yol sağlanınca test_counter_reports_the_held_tip_only_while_it_is_valid ve panel shows the tip and confirms the total with it birlikte doğrulanmalı. MONEY/contract_parity ve tam web kapısı yetkili sonraki aşamada kalır.
+
+- [ ] Dilim 0 Görev 6–10 ve 11 UI (J-024): yuva 3'te odaklı web RED/GREEN yolu yok; tam node/tsc ve tarayıcı bekliyor. Görev 11 katalog alt parçasının Python doğrulaması tamam: 25850a09, 155 test OK; bu sonuç web/bütün görev kabulü değildir.
