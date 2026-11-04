@@ -16,16 +16,18 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import time
 import unittest
 from collections.abc import Iterator, Mapping, Sequence
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 from unittest.mock import patch
 
+import front_proposal
 from api import serializers
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect
@@ -34,7 +36,10 @@ SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
 
 Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached"]
 
-SETUP_KEYS = frozenset({"character", "npcs", "currency", "inventory", "ammunition", "current_hp", "seed"})
+# ``front_proposal`` (true/false) sets the front-reading flag for the scenario's steps only; local play runs
+# with it on, so a step whose script carries a ``front`` reading needs it.
+SETUP_KEYS = frozenset({"character", "npcs", "currency", "inventory", "ammunition", "current_hp", "seed",
+                        "front_proposal"})
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
@@ -147,6 +152,8 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         raise ScenarioError(
             f"bilinmeyen setup anahtarı: {', '.join(unknown)} (izinli: {', '.join(sorted(SETUP_KEYS))})"
         )
+    if "front_proposal" in setup and not isinstance(setup["front_proposal"], bool):
+        raise ScenarioError("setup 'front_proposal' true ya da false olmalı")
     session = case.manager.get(campaign["session_id"]).game_session
     world = session.world_state
     if "npcs" in setup:
@@ -215,6 +222,10 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_session_id = session_id
         self.last_narration = ""
         self.last_observations = []
+        with _front_setting(scenario.setup):
+            return await self._run_steps(scenario, session_id, model)
+
+    async def _run_steps(self, scenario: Scenario, session_id: str, model: ModelDriver) -> list[StepResult]:
         results: list[StepResult] = []
         blocked_by: int | None = None
         for index, step in enumerate(scenario.steps, start=1):
@@ -286,6 +297,13 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             body.update(combat_id=combat.get("combat_id"), combat_round=combat.get("round"),
                         combat_turn_index=combat.get("current_turn_index"))
         return body
+
+
+def _front_setting(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:
+    """The front-reading flag as the scenario sets it, restored afterwards; untouched when it says nothing."""
+    if "front_proposal" not in setup:
+        return nullcontext()
+    return patch.dict(os.environ, {front_proposal.FLAG: "1" if setup["front_proposal"] else "0"})
 
 
 def _status(step: Step, failures: Sequence[str]) -> Status:

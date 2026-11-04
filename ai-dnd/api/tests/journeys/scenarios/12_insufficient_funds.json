@@ -1,0 +1,18 @@
+{
+  "id": "12_insufficient_funds",
+  "title": "Yetersiz bakiye: 1500 bakırlık kesede 2000 bakırlık teklif reddedilir, kese değişmez, kart açılmaz",
+  "source_items": [],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 1500, "barman": 0},
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "economic_action": {"kind": "prepare", "proposal": {"purpose": "gift", "recipient_id": "barman", "amount_cp": 2000}},
+      "expect": {"kese": 1500, "kart": null, "envanter": {}}
+    }
+  ]
+}

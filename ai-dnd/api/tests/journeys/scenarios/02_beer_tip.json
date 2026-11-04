@@ -1,0 +1,25 @@
+{
+  "id": "02_beer_tip",
+  "title": "'5 bakır koyuyorum, üstü kalsın' (4 bakırlık bira): bira envanterde, kese 5 eksik, barmene 1 bakır bahşiş",
+  "source_items": [35],
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "bir bira alayım",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman"}},
+      "expect": {"kese": 100, "envanter": {}}
+    },
+    {
+      "say": "5 bakır koyuyorum, üstü kalsın",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 5}},
+      "expect": {"envanter": {"Bira": 1}, "kese": 95},
+      "known_broken": [35]
+    }
+  ]
+}

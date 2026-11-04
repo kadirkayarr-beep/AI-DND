@@ -7,12 +7,14 @@ is a new break; the steps after a known break are not run unless they say they s
 from __future__ import annotations
 
 import json
+import os
 import random
 import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
 
+import front_proposal
 from api.tests.journeys.runner import (
     JourneyCase,
     ScriptedClient,
@@ -155,6 +157,35 @@ class TheRunnerSortsEveryStep(JourneyCase):
             self.assertIn("narration", client.kinds)
             self.assertEqual(client.unexpected, [])
         self.assertEqual(self.last_narration, results[1].narration)
+
+    async def test_front_proposal_setup_turns_the_front_reading_on_for_the_steps_only(self):
+        class RecordingModel(ScriptedModel):
+            def __init__(self):
+                self.clients = []
+
+            @contextmanager
+            def bind(self, case, step):
+                with super().bind(case, step) as client:
+                    self.clients.append(client)
+                    yield client
+
+        step = {"say": "Tezgâha yaslanıp salonu dinliyorum.",
+                "script": {"intent": "narrative", "narration": "Salon uğulduyor."}, "expect": {"kese": 100}}
+        before = os.environ.get(front_proposal.FLAG)
+        kinds = {}
+        for setting in (True, False):
+            model = RecordingModel()
+            scenario = beer_scenario(step, setup={**beer_scenario().setup, "front_proposal": setting})
+            results = await self.run_scenario(scenario, model=model)
+            self.assertEqual([result.status for result in results], ["pass"], results)
+            kinds[setting] = model.clients[0].kinds
+            self.assertEqual(os.environ.get(front_proposal.FLAG), before)
+        self.assertIn("front", kinds[True])
+        self.assertNotIn("front", kinds[False])
+        campaign = await self.create_campaign()
+        with self.assertRaises(ScenarioError) as raised:
+            apply_setup(self, campaign, {"front_proposal": "1"})
+        self.assertIn("front_proposal", str(raised.exception))
 
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()

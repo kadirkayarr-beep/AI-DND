@@ -1,0 +1,25 @@
+{
+  "id": "13_no_raw_command",
+  "title": "Ham komut sızmaz: tezgâhtan ve kartla alışverişte anlatıya shop_buy komutu düşmez",
+  "source_items": [52],
+  "setup": {
+    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+    "currency": {"player": 100, "barman": 0},
+    "inventory": [],
+    "seed": 7
+  },
+  "steps": [
+    {
+      "command": "/item shop_buy barman bira 1 0 4",
+      "expect": {"kese": 96, "envanter": {"Bira": 1}, "yasak_metin": ["/__direct_shop_buy__", "shop_buy"]}
+    },
+    {
+      "economic_action": {"kind": "prepare", "proposal": {"purpose": "tip", "recipient_id": "barman", "amount_cp": 4}},
+      "expect": {"kese": 96, "kart": {"max_total_cp": 4}, "yasak_metin": ["/__direct_shop_buy__", "shop_buy"]}
+    },
+    {
+      "economic_action": {"kind": "confirm"},
+      "expect": {"kese": 92, "kart": null, "yasak_metin": ["/__direct_shop_buy__", "shop_buy"]}
+    }
+  ]
+}
