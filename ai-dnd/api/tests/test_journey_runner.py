@@ -6,6 +6,7 @@ is a new break; the steps after a known break are not run unless they say they s
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import random
@@ -13,7 +14,9 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
+import equipment_economy
 import front_proposal
 from api.tests.journeys import runner
 from api.tests.journeys.runner import (
@@ -628,6 +631,62 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertTrue(runner.denial_said(f"Marek tezgâhı siliyor. {unknown}"))
         self.assertFalse(runner.denial_said("Marek gülüyor. “Olur.”"))
         self.assertFalse(runner.denial_said(""))
+
+    async def test_setup_materialize_changes_only_the_bag_in_every_scenario(self):
+        """For every scenario file with a setup inventory, the setup's ``materialize`` call changes nothing in the
+        world but the player's bag (now records with ids, same names in the same order) and the item counter."""
+        real = equipment_economy.materialize
+        seen = []
+
+        def spy(world):
+            before = copy.deepcopy(world)
+            real(world)
+            seen.append((before, copy.deepcopy(world)))
+
+        paths = [path for path in sorted(runner.SCENARIO_DIR.glob("*.json"))
+                 if "inventory" in load_scenario(path).setup]
+        self.assertGreaterEqual(len(paths), 18)
+        for path in paths:
+            scenario = load_scenario(path)
+            with self.subTest(scenario=scenario.id):
+                seen.clear()
+                campaign = await self._journey_campaign(scenario.setup)
+                with patch.object(runner.equipment_economy, "materialize", side_effect=spy):
+                    apply_setup(self, campaign, scenario.setup)
+                (before, after), = seen
+                changed = {key for key in before.keys() | after.keys() if before.get(key) != after.get(key)}
+                self.assertLessEqual(changed, {"inventory", "item_sequence"}, changed)
+                self.assertEqual([item["name"] for item in after["inventory"]], list(scenario.setup["inventory"]))
+                self.assertTrue(all(isinstance(item.get("item_id"), str) for item in after["inventory"]))
+                saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+                self.assertEqual(saved["inventory"], after["inventory"])
+
+    async def test_what_was_told_survives_the_save_and_a_reload(self):
+        """``npc_told_v1`` written and saved goes through the save unchanged: a reload step reads the same
+        ``anlatilan`` from the fresh session as the live one holds, so the comparison raises nothing."""
+        told = {"gezgin": [{"text": "Babam değirmenci.", "cut": False}, {"text": "Yeşilova'dan geldim."}]}
+
+        class TellAndSaveModel(ScriptedModel):
+            """Just before a reload step it writes what a person was told and saves the campaign."""
+
+            @contextmanager
+            def bind(self, case, step):
+                with super().bind(case, step) as client:
+                    if step.reload:
+                        live = case.manager.get(case.last_session_id)
+                        live.game_session.world_state["npc_told_v1"] = copy.deepcopy(told)
+                        case.manager.save_campaign(live.campaign_id)
+                    yield client
+
+        results = await self.run_scenario(beer_scenario(
+            {"reload": True, "expect": {"kese": 100, "anlatilan": {"gezgin": ["değirmenci", "Yeşilova"]}}}),
+            model=TellAndSaveModel())
+        self.assertEqual([result.status for result in results], ["pass"], results)
+        self.assertEqual(self.last_observations[-1]["anlatilan"],
+                         {"gezgin": ["Babam değirmenci.", "Yeşilova'dan geldim."]})
+        campaign_id = self.manager.get(self.last_session_id).campaign_id
+        saved = self.store.get_campaign(campaign_id).payload["engine_save"]["world_state"]
+        self.assertEqual(saved["npc_told_v1"], told)
 
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()
