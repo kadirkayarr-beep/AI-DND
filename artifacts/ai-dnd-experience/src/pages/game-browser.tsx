@@ -1995,7 +1995,10 @@ export default function GameBrowser() {
     setNotice({ tone: receipt.status === 'applied' ? 'success' : 'warning', title: 'Teklif',
       detail: changed ? 'Teklif değişti; yeni kart gerekir.' : receipt.public_summary });
   }
-        if (stillVisible) {
+        // A card prepare or cancel is not a turn: the engine keeps its undo checkpoint (main.py economic_step), so
+        // the undo target and the one-step note stay on the turn before it. A confirm is the engine's to judge.
+        const cardStepOnly = result.turn_outcome?.action === 'economic_prepare' || result.turn_outcome?.action === 'economic_cancel';
+        if (stillVisible && !cardStepOnly) {
           setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
           setUndoneJustNow(false);
         }

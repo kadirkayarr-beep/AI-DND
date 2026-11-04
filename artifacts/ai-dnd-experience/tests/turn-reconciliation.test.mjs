@@ -516,6 +516,42 @@ test('real submitTurn keeps the server undo flags in the transcript and its cach
  h.client.clear();
 });
 
+test('real submitTurn keeps the undo target on a card prepare or cancel, as the engine does (Dilim 0 Görev 5, karar 31)', async () => {
+ // main.py economic_step: "Prepare and cancel are not turns: the undo checkpoint stays." The bar must keep pointing
+ // at the turn the engine would undo; a confirm is the engine's to judge, so it becomes the target as any turn does.
+ const outcomes = { prepare: { action: 'economic_prepare', status: 'prepared' }, cancel: { action: 'economic_cancel', status: 'cancelled' },
+  confirm: { action: 'economic_confirm', status: 'applied' } };
+ const h = harness({ transport: async ({ data }) => ({ state: old, narration: 'Synthetic receipt',
+  turn_outcome: data.economic_action ? outcomes[data.economic_action.kind] : { action: 'everyday_action', kind: 'look' } }) });
+ const lastTurns = [], justUndone = [];
+ h.env.setLastTurn = value => { lastTurns.push(value); };
+ h.env.setUndoneJustNow = value => { justUndone.push(value); };
+ const settle = async () => {
+  for (let i = 0; i < 100 && h.env.inFlightSessionsRef.current.size; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.inFlightSessionsRef.current.size, 0, 'turn settled');
+ };
+ globalThis.window = h.env.window;
+ h.env.submit('Synthetic action'); await settle();
+ assert.equal(lastTurns.length, 1);
+ const turn = lastTurns[0];
+ assert.equal(turn.actionId, h.requests[0].data.action_id);
+ assert.deepEqual(turn.outcome, { action: 'everyday_action', kind: 'look' });
+ assert.deepEqual(justUndone, [false]);
+ const proposal = { purpose: 'gift', recipient_id: 'npc_001', amount_cp: 4 };
+ h.env.submit('Teklif hazırla', undefined, 'do', false, { kind: 'prepare', proposal }); await settle();
+ h.env.submit('Teklifi iptal et', undefined, 'do', false, { kind: 'cancel', offer_id: 'offer-1' }); await settle();
+ assert.equal(h.requests.length, 3, 'both card steps reached the engine');
+ assert.deepEqual(h.requests.slice(1).map(r => r.data.economic_action.kind), ['prepare', 'cancel']);
+ assert.equal(lastTurns.length, 1, 'a card prepare or cancel never becomes the undo target');
+ assert.deepEqual(justUndone, [false], 'a card step is not the next turn of decision 39a');
+ h.env.submit('Teklifi onayla', undefined, 'do', false, { kind: 'confirm', offer_id: 'offer-2', confirmation_digest: 'd' }); await settle();
+ assert.equal(lastTurns.length, 2, 'a confirm is a turn the engine may undo');
+ assert.equal(lastTurns[1].actionId, h.requests[3].data.action_id);
+ assert.deepEqual(lastTurns[1].outcome, outcomes.confirm);
+ assert.deepEqual(justUndone, [false, false]);
+ h.client.clear();
+});
+
 test('resume history cannot be overwritten by stale local text cache on session-id change', () => {
  const effect=component.body.statements.find(node =>
   ts.isExpressionStatement(node) && node.getText(ast).startsWith('useEffect(')
