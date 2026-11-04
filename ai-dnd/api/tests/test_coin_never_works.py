@@ -97,6 +97,36 @@ class CoinNeverWorks(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.purse(), 126)
         self.assertIsNone(getattr(self.session, "_coin_decision", None))
 
+    async def offered(self):
+        """The same job, offered and not yet taken; 100 cp in the purse."""
+        await self.begin(kind="hiring")
+        self.thread["terms"].update(pay=26, work_days=1)
+        self.offer()
+        self.assertEqual(self.status(), "offered")
+        self.world.setdefault("currency", {})["player"] = 100
+        self.clock0 = self.elapsed()
+
+    async def test_an_offered_job_taken_up_with_coin_held_out_runs_no_shift(self):
+        # §0 (4): setting to the work offered is a yes in deed, but with coin held out the yes starts no shift
+        await self.offered()
+        self.client.front = {"kind": "work", "coin_cp": 5}
+        out = await self.line("Tamam, başlıyorum, al şu 5 bakırı")
+        self.assertEqual(self.elapsed(), self.clock0)
+        self.assertEqual(self.purse(), 100)
+        self.assertEqual(self.job()["status"], "accepted")  # the acceptance itself is still written
+        self.assertEqual(self.job().get("days_worked", 0), 0)
+        self.assertIsNone(self.job().get("last_paid_day_index"))
+        self.assertNotEqual(out["turn_outcome"]["action"], "work")
+        self.assertEqual((self.decision().amount_cp, self.decision().npc_id), (5, self.npc["id"]))
+
+    async def test_an_offered_job_taken_up_without_coin_still_runs_the_shift(self):
+        await self.offered()
+        self.client.front = {"kind": "work"}
+        await self.line("Tamam, başlıyorum")
+        self.assertEqual(self.elapsed() - self.clock0, 8 * HOUR)
+        self.assertEqual(self.purse(), 126)
+        self.assertIsNone(getattr(self.session, "_coin_decision", None))
+
     async def test_a_deal_with_no_coin_still_writes_the_decision_and_blocks_nothing(self):
         # D29: opening an offer is not holding out coin; the decision is written, with no tender
         await self.hired()

@@ -8371,7 +8371,8 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     if decision == "abandoned" and reading["move"]:
         return None  # the job is over and the walk is still a walk
     if world_threads.worked_on_the_spot(thread) and thread.get("status") == "accepted" and (
-            gate["decision"] == "work" or (gate["decision"] == "accepted" and (reading["start"] or gate.get("works")))):
+            gate["decision"] == "work" or (gate["decision"] == "accepted" and (reading["start"] or gate.get("works")))
+    ) and not money_owner.blocks_money_moves(session):  # §0 (4): a yes with coin held out is written, no shift starts
         if world_threads.can_start_now(world, thread):
             gate["reply"] = world_threads.work_turn(session, thread["thread_id"], player_input)
             return gate
