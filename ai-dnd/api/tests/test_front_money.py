@@ -14,8 +14,10 @@ from unittest.mock import patch
 
 import front_proposal
 import game
+import interaction_adventure
 from api.tests import test_front_proposal as front_tests
 from api.tests.journeys.runner import call_kind
+from api.tests.test_front_carries_more import ProposalClient
 
 GOODS = [{"id": "bira", "name": "bira"}, {"id": "sarap", "name": "şarap"}, {"id": "yemek", "name": "tabak yemek"}]
 LISTED = {"people": [{"id": "npc_a", "name": "A"}], "places": [], "things": [], "offers": [], "bag": [],
@@ -200,6 +202,93 @@ class SayModeCoin(Table):
                                                              "action_id": str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
         self.assertNotIn("front", self.client.kinds)
+
+
+class ProposalKindsClient(ProposalClient):
+    """The reading also carries the interaction half (as the real schema asks), and every call's kind is kept."""
+
+    def __init__(self):
+        super().__init__()
+        self.kinds = []
+
+    def chat(self, *args, **kwargs):
+        self.kinds.append(call_kind(kwargs.get("format")) or "other")
+        return super().chat(*args, **kwargs)
+
+
+class SayModeCoinKeepsTheTalk(Table):
+    """A say-mode coin line's later proposal step reuses the reading (the turn's classifier call): it behaves as a
+    free line the reading gave to the same person does (test_front_carries_more, test_front_voice), never worse.
+
+    The person spoken to is Sera, who has no job open: a coin line to the job's owner is taken as talk about the
+    job by the thread gate (D57, Task 6), which keeps any proposal out of that turn with or without the reading."""
+
+    say_to = SayModeCoin.say_to
+
+    async def begin(self, **kwargs):
+        await super().begin(**kwargs)
+        self.client = ProposalKindsClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.npc = next(npc for npc in self.world["npcs"] if npc["id"] == "npc_private_sera")
+        self.people = {"kişi": self.npc}
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 50, "deal": "room",
+                             "deal_goods": "none", "keep_change": False}
+
+    def promise(self, line, addressee):
+        self.client.interaction = {
+            "operation": "promise", "quote": line, "privacy": "addressed",
+            "conversation": {"addressee_id": addressee, "subject_phrase": "", "subject_role": "unknown",
+                             "meaning": "unknown", "topic_relation": "new", "candidate_evidence_ids": []}}
+
+    def assert_one_reading(self):
+        self.assertEqual(self.client.kinds.count("front"), 1)
+        self.assertNotIn("intent", self.client.kinds)  # the proposal step asked no second classifier call
+        self.assertLessEqual(len(self.client.kinds), 2)
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+        self.assertEqual(self.front_coin, 50)
+
+    async def test_a_promise_with_coin_said_to_the_person_is_recorded_from_the_one_reading(self):
+        await self.begin()
+        line = "Söz veriyorum oda için beş gümüş ödüyorum"
+        self.assertEqual(interaction_adventure.hint(line, self.npc), "promise")
+        self.promise(line, self.npc["id"])
+        reply = await self.say_to("kişi", line)
+        self.assert_one_reading()
+        self.assertEqual(reply["turn_outcome"]["status"], "recorded")
+
+    async def test_a_reading_that_left_the_promise_unusable_lets_the_chosen_person_answer(self):
+        await self.begin()
+        line = "Söz veriyorum oda için beş gümüş ödüyorum"
+        self.promise(line, None)
+        self.client.narration = "Görürüz bakalım."
+        reply = await self.say_to("kişi", line)
+        self.assert_one_reading()
+        self.assertIn("Görürüz bakalım.", reply["narration"])
+        self.assertNotEqual(reply["turn_outcome"]["status"], "recorded")
+
+    async def test_two_clauses_with_coin_said_to_the_person_get_the_person_and_keep_no_plan(self):
+        await self.begin()
+        line = "Oda için beş gümüş ödüyorum, sonra yukarı çıkıyorum"
+        self.assertEqual(interaction_adventure.hint(line, self.npc), "plan")
+        self.client.interaction = {"operation": "plan", "quote": line, "privacy": "private",
+                                   "steps": [{"quote": "Oda için beş gümüş ödüyorum", "depends_on": None,
+                                              "precondition": ""},
+                                             {"quote": "sonra yukarı çıkıyorum", "depends_on": 0,
+                                              "precondition": ""}]}
+        self.client.narration = "Anahtar tezgâhta."
+        reply = await self.say_to("kişi", line)
+        self.assert_one_reading()
+        self.assertIn("Anahtar tezgâhta.", reply["narration"])
+        self.assertFalse(((self.world.get(interaction_adventure.KEY) or {}).get("plan")))
+
+    async def test_a_say_line_without_coin_keeps_its_own_proposal_call(self):
+        await self.begin()
+        line = "Söz veriyorum yarın geri gelirim"
+        self.assertFalse(front_proposal.names_coin(line))
+        await self.say_to("kişi", line)
+        self.assertNotIn("front", self.client.kinds)  # no reading: the old proposal step asks the model itself
+        self.assertIn("intent", self.client.kinds)
+        self.assertEqual(self.routes()[-1]["route"], "skipped:typed")
 
 
 class TheTurnStartsClean(unittest.TestCase):
