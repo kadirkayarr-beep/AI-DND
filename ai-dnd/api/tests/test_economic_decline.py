@@ -42,22 +42,23 @@ class DeclineFixture(unittest.TestCase):
         return ea.EconomicState(world=self.world, character=self.s.character)
 
     @staticmethod
-    def proposal(purpose: str, npc_id: str, amount: int | None = None) -> ea.EconomicProposal:
+    def proposal(purpose: str, npc_id: str, amount: int | None = None, *, tip_cp: int = 0,
+                 dependency: str = "base_required") -> ea.EconomicProposal:
         return ea.EconomicProposal(purpose=purpose, recipient_id=npc_id, source_id=None, item_id=None, count=1,
-                                   amount_cp=amount, tip_cp=0, tender_cp=None, dependency="base_required",
+                                   amount_cp=amount, tip_cp=tip_cp, tender_cp=None, dependency=dependency,
                                    source_action_id=f"action-{purpose}-{npc_id}", text_span=None)
 
-    def prepare(self, purpose: str, npc_id: str, amount: int | None = None) -> str:
+    def prepare(self, purpose: str, npc_id: str, amount: int | None = None, **extra) -> str:
         """A card stored as it is, next to any other open one (an old save may hold more than one)."""
         offer_id = ea.new_offer_id()
-        result = ea.prepare_offer(self.state(), self.proposal(purpose, npc_id, amount), offer_id=offer_id,
+        result = ea.prepare_offer(self.state(), self.proposal(purpose, npc_id, amount, **extra), offer_id=offer_id,
                                   campaign_id="c", actor_id="player", turn_index=self.world["flags"]["turn_index"])
         self.assertEqual(result.status, "prepared", result.public_message)
         self.world["flags"].setdefault("economic_offers", {})[offer_id] = dataclasses.asdict(result.offer)
         return offer_id
 
-    def panel(self, purpose: str, npc_id: str, amount: int | None = None) -> ea.PrepareResult:
-        return ea.prepare_from_panel(self.state(), self.proposal(purpose, npc_id, amount), campaign_id="c",
+    def panel(self, purpose: str, npc_id: str, amount: int | None = None, **extra) -> ea.PrepareResult:
+        return ea.prepare_from_panel(self.state(), self.proposal(purpose, npc_id, amount, **extra), campaign_id="c",
                                      actor_id="player", turn_index=self.world["flags"]["turn_index"])
 
     def status(self, offer_id: str) -> str:
@@ -123,6 +124,48 @@ class ADeclineIsKeptPerPart(DeclineFixture):
         self.assertEqual((again.status, again.reason_code, again.public_message),
                          ("refused", "npc_declined", "Marek az önce parayı geri çevirdi."))
         self.assertEqual(self.prepared(), [])
+
+    def assert_room_paid_without_the_tip(self, offer_id: str) -> None:
+        purse, barman = self.world["currency"]["player"], self.world["currency"]["barman"]
+        resolution = self.confirm(offer_id)
+        self.assertEqual((resolution.status, resolution.net_debit_cp), ("applied", 50))
+        self.assertEqual([(refusal.line_id, refusal.reason_code) for refusal in resolution.refusals],
+                         [("tip:1", "npc_declined")])
+        self.assertIn("Bahşiş geçmedi; kesende kaldı.", resolution.public_summary)
+        self.assertEqual((self.world["currency"]["player"], self.world["currency"]["barman"]),
+                         (purse - 50, barman))  # the declined tip never reaches the barman
+
+    def test_a_tip_decline_lets_a_room_card_with_a_tip_open_and_drops_only_the_tip(self):
+        ea.record_decline(self.world, "barman", "tip", 2, day=0, turn=3)
+        room = self.panel("room", "barman", tip_cp=1)
+        self.assertEqual(room.status, "prepared", room.public_message)
+        self.assertEqual([line.kind for line in room.offer.lines], ["room", "tip"])
+        self.assertEqual({(d.line_id, d.status, d.reason_code) for d in room.offer.acceptance.line_decisions},
+                         {("room:0", "accepted", "engine_accepts"), ("tip:1", "refused", "npc_declined")})
+        self.assert_room_paid_without_the_tip(room.offer.offer_id)
+
+    def test_a_tip_decline_keeps_an_open_room_card_and_its_confirm_pays_no_tip(self):
+        room = self.prepare("room", "barman", tip_cp=1)
+        write = ea.record_decline(self.world, "barman", "tip", 1, day=0, turn=3)
+        self.assertEqual((write.status, write.cancelled), ("written", 0))
+        self.assertEqual(self.status(room), "prepared")
+        self.assert_room_paid_without_the_tip(room)
+
+    def test_a_room_or_unclear_decline_still_closes_a_room_card_with_a_tip(self):
+        for part in ("room", "*"):
+            self.world["flags"].pop("money_declined", None)
+            room = self.prepare("room", "barman", tip_cp=1)
+            write = ea.record_decline(self.world, "barman", part, 50, day=0, turn=3)
+            self.assertEqual((write.status, write.cancelled, self.status(room)), ("written", 1, "cancelled"), part)
+
+    def test_a_tip_decline_stops_a_room_and_tip_card_that_goes_only_as_a_whole(self):
+        whole = self.prepare("room", "barman", tip_cp=1, dependency="all_or_none")
+        write = ea.record_decline(self.world, "barman", "tip", 1, day=0, turn=3)
+        self.assertEqual((write.cancelled, self.status(whole)), (1, "cancelled"))
+        again = self.panel("room", "barman", tip_cp=1, dependency="all_or_none")
+        self.assertEqual((again.status, again.reason_code, again.public_message),
+                         ("refused", "npc_declined", "Marek az önce parayı geri çevirdi."))
+        self.assertEqual(self.panel("room", "barman").status, "prepared")  # the room alone still opens
 
     def test_an_unclear_decline_blocks_every_part_until_that_part_is_taken(self):
         gift, tip, room = self.prepare("gift", "osman", 5), self.prepare("tip", "osman", 2), \
@@ -216,6 +259,15 @@ class TheDeclineCap(DeclineFixture):
         self.assertTrue(ea.declined(self.world, "npc-00", "gift", day=1))
         # A full record still never lets an open card of the declined part charge later.
         self.assertEqual((full.cancelled, self.status(gift)), (1, "cancelled"))
+
+    def test_an_unwritten_tip_decline_closes_a_room_card_carrying_the_tip(self):
+        for index in range(ea.DECLINE_CAP):
+            ea.record_decline(self.world, f"npc-{index:02d}", "gift", 1, day=0, turn=index)
+        room = self.prepare("room", "barman", tip_cp=1)
+        with self.assertLogs("economic_actions", "WARNING"):
+            full = ea.record_decline(self.world, "barman", "tip", 1, day=0, turn=50)
+        # Nothing is on record to refuse the tip at confirmation, so the card carrying it does not stay open.
+        self.assertEqual((full.status, full.cancelled, self.status(room)), ("decline_cap_full", 1, "cancelled"))
 
     def test_an_overfull_record_never_grows_past_what_ended_rows_free(self):
         rows = {f"npc-{index:02d}": {"gift": {"amount_cp": 1, "day": 1, "turn": index}} for index in range(33)}

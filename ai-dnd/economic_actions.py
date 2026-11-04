@@ -450,21 +450,25 @@ def _latest(entry: Mapping[str, Any]) -> tuple[int, int]:
     return max(stamps) if stamps else (-1, -1)
 
 
-def _card_parts(proposal: EconomicProposal) -> list[Part]:
-    """The parts a card would pay: its purpose, and a tip riding on it."""
-    part = _PART_OF_PURPOSE.get(proposal.purpose)
-    if part is None:
-        return []
-    return [part, "tip"] if proposal.tip_cp and part != "tip" else [part]
+def _covered_by(offer: EconomicOffer, npc_id: str, part: Part, *, any_line: bool = False) -> bool:
+    """Whether a decline of this part by this NPC closes the card. A bribe stays the guard's Persuasion check.
 
-
-def _covered_by(offer: EconomicOffer, npc_id: str, part: Part) -> bool:
-    """Whether a decline of this part by this NPC closes the card. A bribe stays the guard's Persuasion check."""
+    A tip riding on another card is only that card's tip line (D26): the card stays open and its tip is refused at
+    confirmation, unless the card goes only as a whole. `any_line` closes every card carrying the part, for a
+    decline that could not be written and so cannot refuse the line later.
+    """
     if offer.proposal.recipient_id != npc_id or offer.acceptance.check is not None:
         return False
     if part == "*":
         return offer.proposal.purpose in _MONEY_CARD_PURPOSES
-    return part in _card_parts(offer.proposal) or (part == "tip" and any(line.kind == "tip" for line in offer.lines))
+    if _PART_OF_PURPOSE.get(offer.proposal.purpose) == part:
+        return True
+    return part == "tip" and any(line.kind == "tip" and (any_line or not line.optional) for line in offer.lines)
+
+
+def _tip_declined(world: Mapping[str, Any], npc_id: str, lines: list[OfferLine]) -> bool:
+    """Whether a tip line rides on this card and the NPC declined the tip today."""
+    return any(line.kind == "tip" for line in lines) and declined(world, npc_id, "tip", day=game_day(world))
 
 
 def record_decline(world: dict[str, Any], npc_id: str, part: Part, amount_cp: int, *, day: int,
@@ -473,17 +477,17 @@ def record_decline(world: dict[str, Any], npc_id: str, part: Part, amount_cp: in
 
     The counter's own offer is not touched here (`bold_acts` owns it). When the record is full, rows of earlier days
     go first, oldest first; when all of them are today's, nothing is written, `decline_cap_full` is returned and
-    logged, and the open cards of the declined part are still cancelled: a cancel never moves money.
+    logged, and every open card carrying the declined part is cancelled: a cancel never moves money.
+    A written tip decline leaves a card that only carries an optional tip open; its tip is refused at confirmation.
     """
     if not (isinstance(npc_id, str) and npc_id and _is_part(part) and _cp(amount_cp) and type(day) is int
             and day >= 0 and type(turn) is int and turn >= 0):
         raise ValueError("invalid_decline")
-    cancelled = len(cancel_prepared(world, actor_id="player",
-                                    predicate=lambda offer: _covered_by(offer, npc_id, part)))
     flags = world.setdefault("flags", {})
     if not isinstance(flags.get(_DECLINES), dict):
         flags[_DECLINES] = {}
     records = flags[_DECLINES]
+    making_room: list[str] = []
     if npc_id not in records and len(records) >= DECLINE_CAP:
         ended = sorted((_latest(entry) if isinstance(entry, Mapping) else (-1, -1), key)
                        for key, entry in records.items()
@@ -492,10 +496,16 @@ def record_decline(world: dict[str, Any], npc_id: str, part: Part, amount_cp: in
         if len(ended) < needed:
             logger.warning("decline_cap_full: %d NPCs declined today; the decline of %s (%s) is not written",
                            len(records), npc_id, part)
+            # Unwritten, the decline cannot refuse a tip line at confirmation: every card carrying it closes now.
+            cancelled = len(cancel_prepared(world, actor_id="player",
+                                            predicate=lambda offer: _covered_by(offer, npc_id, part, any_line=True)))
             return DeclineWrite(status="decline_cap_full", cancelled=cancelled)
-        for _, key in ended[:needed]:
-            records.pop(key)
-            logger.info("money_declined: the ended decline of %s made room", key)
+        making_room = [key for _, key in ended[:needed]]
+    cancelled = len(cancel_prepared(world, actor_id="player",
+                                    predicate=lambda offer: _covered_by(offer, npc_id, part)))
+    for key in making_room:
+        records.pop(key)
+        logger.info("money_declined: the ended decline of %s made room", key)
     entry = records.get(npc_id)
     if not isinstance(entry, dict):
         entry = records[npc_id] = {}
@@ -648,7 +658,8 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
                       lines: list[OfferLine]) -> AcceptanceRecord | PrepareResult:
     """The engine's word on the offer, before anything is recorded. A refusal opens no card.
 
-    A decline the NPC spoke today stops a gift, tip or room card of that part (the bribe path comes first).
+    A decline the NPC spoke today stops a gift, tip or room card of that part (the bribe path comes first). A
+    declined tip riding on another card refuses only its tip line; a card that goes only as a whole does not open.
     """
     import living_world
     import world_reactions
@@ -656,23 +667,31 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
     npc = _npc(world, proposal.recipient_id)
     if npc is None:
         return _clarify("npc_unknown")
+    npc_id = str(npc["id"])
     check = None
+    tip_off = False
     if _is_bribe(world, proposal, npc):
         # The guard holding the player usually can tie them to the deed, so `refuses` is not asked here:
         # whether the coin is taken is the Persuasion check at confirmation, as the spoken bribe does today.
         check = CheckSpec(skill="Persuasion", difficulty=_difficulty(lines[0].total_cp))
-    elif any(declined(world, str(npc["id"]), part, day=game_day(world)) for part in _card_parts(proposal)):
-        who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
-        return PrepareResult(status="refused", offer=None, reason_code="npc_declined",
-                             public_message=f"{who} az önce parayı geri çevirdi.")
-    elif world_reactions.refuses(world, npc):
-        return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
-                             public_message=world_reactions.refusal_line(npc))
+    else:
+        part = _PART_OF_PURPOSE.get(proposal.purpose)
+        tip_off = _tip_declined(world, npc_id, lines)
+        if (part is not None and declined(world, npc_id, part, day=game_day(world))) \
+                or (tip_off and any(line.kind == "tip" and not line.optional for line in lines)):
+            who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
+            return PrepareResult(status="refused", offer=None, reason_code="npc_declined",
+                                 public_message=f"{who} az önce parayı geri çevirdi.")
+        if world_reactions.refuses(world, npc):
+            return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
+                                 public_message=world_reactions.refusal_line(npc))
     reason = "check_required" if check is not None else "engine_accepts"
-    return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=str(npc["id"]),
+    decisions = [LineDecision(line_id=line.line_id, status="refused", reason_code="npc_declined")
+                 if tip_off and line.kind == "tip" else
+                 LineDecision(line_id=line.line_id, status="accepted", reason_code=reason) for line in lines]
+    return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=npc_id,
                             context_digest=context_digest(state, proposal, lines), producer="engine", check=check,
-                            line_decisions=[LineDecision(line_id=line.line_id, status="accepted", reason_code=reason)
-                                            for line in lines])
+                            line_decisions=decisions)
 
 
 def _line_label(line: OfferLine) -> str:
@@ -999,6 +1018,11 @@ def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: s
     if tender is not None and tender > purse:
         return _refused(blank, "tender_invalid")
     decisions = {decision.line_id: decision for decision in offer.acceptance.line_decisions}
+    if spec is None and _tip_declined(world, proposal.recipient_id, lines):
+        # A tip the NPC declined after the card opened is refused here; the rest of the card is left as it was.
+        decisions.update({line.line_id: LineDecision(line_id=line.line_id, status="refused",
+                                                     reason_code="npc_declined")
+                          for line in lines if line.kind == "tip"})
     refusals: list[LineRefusal] = []
     accepted: list[OfferLine] = []
     for line in lines:
