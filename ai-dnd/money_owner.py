@@ -169,6 +169,18 @@ def current(session: Any) -> CoinDecision | None:
     return decision if isinstance(decision, CoinDecision) else None
 
 
+def forget_turn(session: Any) -> None:
+    """A turn that runs no front reading (a check turn) starts with no decision, answer or note of an earlier line.
+
+    `front_proposal.begin` resets the same fields for every turn that reads the line.
+    """
+    session._coin_decision = None
+    session._coin_answer = None
+    session._coin_answer_for = None
+    session._coin_claimed = False
+    session._turn_notes = []
+
+
 def blocks_money_moves(session: Any) -> bool:
     """Coin is leaving the player's hand this turn: no shift is worked and no wage is drawn on the same line (D4)."""
     decision = current(session)

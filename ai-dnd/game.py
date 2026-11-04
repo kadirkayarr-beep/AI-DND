@@ -17795,6 +17795,7 @@ def _run_player_turn_owned(
             if front_on:
                 front_proposal.end(session)
                 front_proposal.log_turn(session, result)
+    money_owner.forget_turn(_session())  # no reading begins a check turn; an earlier line's coin is not this one's
     if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:

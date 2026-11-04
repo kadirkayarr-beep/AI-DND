@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import copy
 import unittest
+import uuid
 from unittest.mock import patch
 
+import combat_lifecycle
 import economic_actions as ea
 import game
 import money_owner
 from api.core_resolution import resolution_action_scope
+from api.tests import test_front_proposal as front_tests
 from money_owner import CoinDecision
 
 UNCLEAR = "ne için olduğu belli değil"
@@ -219,6 +222,91 @@ class TheDecisionNamesTheCard(Cards):
                 game._tell_the_coin(self.result())
         self.assertIsNone(self.s._coin_paid)
         self.assertIsNone(self.s._counter_held)
+
+    def test_a_check_turn_starts_with_no_decision_of_an_earlier_line(self):
+        # A check turn runs no front_proposal.begin, so the decision and the notes an earlier line left would be read
+        # in it by the speech note and the wage gate as if this line held coin out.
+        self.s._coin_decision = CoinDecision("gift", "osman", 5, 0, None, "model", self.here)
+        self.s._turn_notes = [("osman", money_owner.unclear_note(5))]
+        with self.assertRaises(combat_lifecycle.CombatRequestError):
+            self.s.run_player_turn("Takla atıyorum", check_feature="no_such_feature")
+        self.assertIsNone(money_owner.current(self.s))
+        self.assertFalse(money_owner.blocks_money_moves(self.s))
+        self.assertEqual(self.s._turn_notes, [])
+        self.assertEqual(self.prepared(), [])
+
+
+class TheDecisionLivesForItsHttpTurn(unittest.IsolatedAsyncioTestCase):
+    """Real app and engine, scripted model: the reading ahead of the turn begins it, so the run skips `begin`."""
+
+    asyncSetUp = front_tests.FrontTable.asyncSetUp
+    asyncTearDown = front_tests.FrontTable.asyncTearDown
+    campaign_with_npc = front_tests.FrontTable.campaign_with_npc
+    open_job = front_tests.FrontTable.open_job
+    begin = front_tests.FrontTable.begin
+    line = front_tests.FrontTable.line
+
+    async def ready(self):
+        await self.begin(kind="hiring")
+        self.world.setdefault("currency", {})["player"] = 100
+
+    def prepared(self):
+        return [data for data in self.world.get("flags", {}).get("economic_offers", {}).values()
+                if data["status"] == "prepared"]
+
+    def prompts_since(self, count):
+        return str(self.client.message_batches[count:])
+
+    async def test_an_unclear_coin_is_told_in_its_turn_and_gone_from_the_next(self):
+        await self.ready()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5}
+        await self.line("şu beş bakırı uzatıyorum", "Hm?")
+        self.assertEqual(money_owner.current(self.session).kind, "unclear")
+        self.assertIn("5 bakır gösterdi, ne için olduğu belli değil", self.prompts_since(0))
+        self.assertEqual([npc_id for npc_id, text in self.session._turn_notes if "belli değil" in text],
+                         [self.npc["id"]])  # written after the reply; the next turn's reading clears it
+        self.assertEqual(self.prepared(), [])
+        seen = len(self.client.message_batches)
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("bugün hava nasıl", "Güzel.")
+        self.assertIsNone(money_owner.current(self.session))
+        self.assertEqual(self.session._turn_notes, [])
+        self.assertNotIn("bakır gösterdi", self.prompts_since(seen))
+        self.assertNotIn("bakır uzatıyor", self.prompts_since(seen))
+        self.assertEqual(self.prepared(), [])
+        self.assertEqual(self.world["currency"]["player"], 100)
+
+    async def test_a_gift_opens_one_card_in_its_turn_and_none_in_the_next(self):
+        await self.ready()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5, "deal": "gift"}
+        await self.line("bu beş bakır senin, al", "Sağ ol.")
+        self.assertIn("Oyuncu sana 5 bakır uzatıyor; para henüz sende değil", self.prompts_since(0))
+        [card] = self.prepared()
+        self.assertEqual((card["proposal"]["purpose"], card["proposal"]["amount_cp"]), ("gift", 5))
+        seen = len(self.client.message_batches)
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("bugün hava nasıl", "Güzel.")
+        self.assertEqual([data["offer_id"] for data in self.prepared()], [card["offer_id"]])
+        self.assertNotIn("bakır uzatıyor", self.prompts_since(seen))
+        self.assertEqual(self.world["currency"]["player"], 100)
+
+    async def test_a_turn_that_failed_after_its_reading_leaves_no_coin_for_the_next(self):
+        # The reading ahead wrote the decision and the coin in hand, then the planner failed: the API closes the
+        # reading and the coin (api/main.py), so the next turn's run never skips `begin` on a stale reading.
+        await self.ready()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 5, "deal": "gift"}
+        with patch.object(self.session, "plan_living_world_turn", side_effect=RuntimeError("planner down")):
+            response = await self.http.post(self.turn_url, json={"message": "bu beş bakır senin, al",
+                                                                 "action_id": str(uuid.uuid4())})
+        self.assertNotEqual(response.status_code, 200)
+        self.assertFalse(getattr(self.session, "_front_ahead", False))
+        self.assertIsNone(getattr(self.session, "_coin_paid", None))
+        self.assertEqual(self.prepared(), [])
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.line("bugün hava nasıl", "Güzel.")
+        self.assertEqual(self.prepared(), [])
+        self.assertIsNone(money_owner.current(self.session))
+        self.assertEqual(self.world["currency"]["player"], 100)
 
 
 class TheReadingWritesWhatTheCardReads(Cards):
