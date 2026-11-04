@@ -829,6 +829,16 @@ def _decided_tip(session, server: dict[str, Any], key: str, tender: int | None, 
 _COUNTER_TIPS = ("tip_cp", "tip_after_cp")  # the panel-"yes" tip on the offer, and the panel-"no" waiting tip (D34)
 
 
+def close_declined_counter(world: dict[str, Any], npc_id: str, part: str) -> None:
+    """Only this counter's declined goods close; a declined tip leaves the goods."""
+    if part == "tip":
+        drop_counter_tip(world, npc_id)
+        return
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if (isinstance(opened, dict) and opened.get("npc_id") == npc_id
+            and (part == "*" or part == "goods:" + str(opened.get("key")))):
+        world["flags"].pop("counter_offer_v1")
+
 def drop_counter_tip(world: dict[str, Any], npc_id: str) -> bool:
     """Take the tip off this person's counter offer (a tip they declined, design §3b item 1); True if one was there.
 

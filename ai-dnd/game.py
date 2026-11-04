@@ -7940,6 +7940,9 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
     "properties": {
         "spoken_text": {"type": "string", "maxLength": 600},
         "stage_direction": {"type": "string", "maxLength": 600},
+        "coin_answer": {"type": "string", "enum": ["takes", "declines", "none"]},
+        "coin_answer_for": {"type": "string", "enum": ["unclear"]},
+        "remember_player_line": {"type": "boolean"},
         "commitment": {
             "type": "object",
             "properties": {
@@ -9380,7 +9383,13 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             player_input, interaction_context, world_state
         )
     if experimental_npc_dialogue:
-        schema = _EXPERIMENTAL_NPC_SPEECH_SCHEMA
+        schema = copy.deepcopy(_EXPERIMENTAL_NPC_SPEECH_SCHEMA)
+        speech_npc_id = (interaction_context or {}).get("npc_id")
+        schema["properties"]["coin_answer_for"]["enum"] = money_owner.parts_for(
+            world_state, _session(), speech_npc_id) + ["unclear"]
+        prompt += "\n`coin_answer`: parayı alıyor musun (takes), reddediyor musun (declines), yoksa konu değil mi (none)?"
+        prompt += "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
+        prompt += "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
     if front_list is not None:
         import front_proposal
         schema = copy.deepcopy(schema)
@@ -17846,6 +17855,9 @@ def _tell_the_coin(result):
     finally:
         session._coin_paid = None
         session._counter_held = None
+        session._coin_answer = None
+        session._coin_answer_for = None
+        session._coin_answer_npc = None
 
 
 def _run_player_turn(
@@ -21656,6 +21668,9 @@ def _run_player_turn_internal(
                     and set(raw_intent).issubset({
                         "spoken_text",
                         "stage_direction",
+                        "coin_answer",
+                        "coin_answer_for",
+                        "remember_player_line",
                         "commitment",
                         "threat",
                         # The intent pre-parser can merge its recognized,
@@ -21678,6 +21693,8 @@ def _run_player_turn_internal(
                     and len(raw_stage) <= 600
                 )
                 if valid_speech_packet:
+                    money_owner.read_answer(_session(), raw_intent, npc_target["id"],
+                        money_owner.parts_for(world_state, _session(), npc_target["id"]))
                     import npc_speech_boundary
                     cleaned_spoken = _clean_npc_speech(
                         npc_speech_boundary.normalize_bound_speech_label(

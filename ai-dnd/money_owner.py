@@ -179,6 +179,7 @@ def forget_turn(session: Any) -> None:
     session._coin_decision = None
     session._coin_answer = None
     session._coin_answer_for = None
+    session._coin_answer_npc = None
     session._coin_claimed = False
     session._turn_notes = []
 
@@ -221,6 +222,47 @@ def _note(session: Any, npc_id: str | None, text: str) -> None:
     notes.append((npc_id, text))
 
 
+def parts_for(world: dict, session: Any, npc_id: str) -> list[str]:
+    """Only the engine's current decision and this recipient's open offers."""
+    import economic_actions
+    import bold_acts
+    parts = set()
+    decision = current(session)
+    if decision is not None and decision.npc_id == npc_id:
+        if decision.kind == "goods" and decision.goods_key:
+            parts.add("goods:" + decision.goods_key)
+            if decision.tip_cp > 0:
+                parts.add("tip")
+        elif decision.kind in ("room", "gift", "tip"):
+            parts.add(decision.kind)
+    npc = economic_actions._npc(world, npc_id)
+    counter = bold_acts.offer_still_open(world, npc)
+    if counter is not None:
+        parts.add("goods:" + counter["key"])
+        if any(type(counter.get(key)) is int and counter[key] > 0 for key in ("tip_cp", "tip_after_cp")):
+            parts.add("tip")
+    for record in economic_actions.offer_records(world).values():
+        offer = economic_actions.offer_from_record(record)
+        if offer is None or offer.status != "prepared" or offer.proposal.recipient_id != npc_id:
+            continue
+        purpose = offer.proposal.purpose
+        if purpose == "purchase" and offer.proposal.item_id:
+            parts.add("goods:" + offer.proposal.item_id)
+        elif purpose in ("room", "gift", "tip"):
+            parts.add(purpose)
+        if purpose in ("purchase", "room", "gift", "tip") and any(line.kind == "tip" for line in offer.lines):
+            parts.add("tip")
+    return sorted(parts)
+
+
+def read_answer(session: Any, packet: Any, npc_id: str, parts: list[str]) -> None:
+    packet = packet if isinstance(packet, dict) else {}
+    answer = packet.get("coin_answer")
+    part = packet.get("coin_answer_for")
+    session._coin_answer = answer if isinstance(answer, str) and answer in ("takes", "declines", "none") else None
+    session._coin_answer_for = part if isinstance(part, str) and part in parts else "unclear"
+    session._coin_answer_npc = npc_id
+
 def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str | None = None,
                           coin_answer_for: str | None = None) -> None:
     """After the person answered, the card this turn's decision names opens for the coin held out, and no other.
@@ -240,6 +282,28 @@ def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str
     import economic_actions
     held = getattr(session, "_coin_paid", None)
     action = result.get("action_result") if isinstance(result, dict) else None
+    answer = coin_answer if coin_answer is not None else getattr(session, "_coin_answer", None)
+    part = coin_answer_for if coin_answer_for is not None else getattr(session, "_coin_answer_for", None)
+    speaker = getattr(session, "_coin_answer_npc", None)
+    npc = economic_actions._npc(session.world_state, speaker) if isinstance(speaker, str) else None
+    if (isinstance(action, dict) and action.get("npc_id") == speaker and npc is not None
+            and economic_actions._is_here(session.world_state, npc)):
+        if answer == "declines":
+            import bold_acts
+            import living_world
+            declined_part = part if part != "unclear" and economic_actions._is_part(part) else "*"
+            decision = current(session)
+            amount = decision.amount_cp if decision is not None and decision.npc_id == speaker else 0
+            economic_actions.record_decline(session.world_state, speaker, declined_part, amount,
+                day=economic_actions.game_day(session.world_state),
+                turn=session.world_state.get("flags", {}).get("turn_index", 0))
+            bold_acts.close_declined_counter(session.world_state, speaker, declined_part)
+            note = f"{living_world.turkish_initial_upper(living_world.public_npc_name(npc))} az önce parayı geri çevirdi."
+            _note(session, speaker, note)
+            _tell(result, note)
+            return  # a capped/unwritten no must not open a card either
+        if answer == "takes" and part not in (None, "unclear", "*"):
+            economic_actions.clear_decline(session.world_state, speaker, part)
     if not held or not isinstance(action, dict):
         return
     amount, person, place = held

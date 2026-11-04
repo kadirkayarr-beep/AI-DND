@@ -420,5 +420,18 @@ class TheSpeechPathReadsTheAnswer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.world["currency"]["player"], 100)
 
 
+
+from api.tests.journeys.runner import JourneyCase, SCENARIO_DIR
+from api.tests.journeys.schema import load_scenario
+
+
+class SpokenDeclineJourney(JourneyCase):
+    async def test_scenario_17_all_six_steps_pass_without_known_broken(self):
+        scenario = load_scenario(SCENARIO_DIR / "17_refused_gift_not_charged.json")
+        self.assertEqual(len(scenario.steps), 6)
+        self.assertTrue(all(not step.known_broken for step in scenario.steps))
+        results = await self.run_scenario(scenario)
+        self.assertEqual([result.status for result in results], ["pass"] * 6, results)
+
 if __name__ == "__main__":
     unittest.main()

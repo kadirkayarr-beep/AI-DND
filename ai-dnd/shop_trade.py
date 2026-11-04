@@ -227,6 +227,8 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
     fresh = quote(candidate, npc_id, key, count)
     if fresh is None:
         raise TradeRefused("goods_unknown")
+    if economic_actions.declined(candidate, npc_id, "goods:" + key, day=economic_actions.game_day(candidate)):
+        raise TradeRefused("npc_declined", fresh)
     if offer_seq != fresh["seq"]:
         raise TradeRefused("offer_stale", fresh)
     if type(count) is not int or count < 1:
