@@ -16,6 +16,8 @@ class HealthResponse(BaseModel):
     model: LocalModelName = DEFAULT_LOCAL_MODEL
     # Present only while the cloud chain is on: every model that may answer, in order.
     model_chain: list[str] | None = None
+    # Present only once today's model spend on known prices reaches the warning limit. It never stops play.
+    spend_warning: str | None = None
 
 
 class SessionResponse(BaseModel):

@@ -717,9 +717,11 @@ def create_app(
     @application.get("/api/health", response_model=HealthResponse, response_model_exclude_none=True)
     def health(response: Response) -> HealthResponse:
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
+        spend_warning = getattr(adapter, "spend_warning", None)
         return HealthResponse(
             model=adapter.model_name if adapter is not None else MODEL_NAME,
             model_chain=getattr(adapter, "model_chain", None),
+            spend_warning=spend_warning() if callable(spend_warning) else None,
         )
 
     @application.post("/api/logout", status_code=204)

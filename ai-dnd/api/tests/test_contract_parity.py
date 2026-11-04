@@ -988,6 +988,32 @@ class ContractParityTests(unittest.TestCase):
                     TurnRequest(message="wait", action_id=action_id)
                 self.assertIsNone(re.fullmatch(pattern, action_id))
 
+    def test_health_publishes_the_optional_spend_warning(self):
+        # The field is optional on the wire: the route leaves it out while no
+        # warning is due, so the contract and both generated clients must say
+        # the same, and the runtime app must publish it on both health routes.
+        self.assertIn("spend_warning", _runtime_field_names(HealthResponse))
+        published = _property("HealthResponse", "spend_warning")
+        self.assertEqual(_schema_types(published), {"string", "null"})
+        self.assertNotIn("spend_warning", _schema("HealthResponse").get("required", []))
+        self.assertNotIn("spend_warning", HealthResponse().model_dump(mode="json", exclude_none=True))
+        runtime_spec = app.openapi()
+        runtime_health = runtime_spec["components"]["schemas"]["HealthResponse"]
+        self.assertEqual(_schema_types(runtime_health["properties"]["spend_warning"]), {"string", "null"})
+        for relative in (
+            "lib/api-zod/src/generated/types/healthResponse.ts",
+            "lib/api-client-react/src/generated/api.schemas.ts",
+        ):
+            with self.subTest(file=relative):
+                text = (WORKSPACE_ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("spend_warning?: string | null;", text)
+        zod_text = (WORKSPACE_ROOT / "lib/api-zod/src/generated/api.ts").read_text(encoding="utf-8")
+        for response_name in ("GetGameHealthResponse", "GetLegacyHealthResponse"):
+            with self.subTest(zod=response_name):
+                start = zod_text.index(f"export const {response_name} = zod.object({{")
+                body = zod_text[start:zod_text.index("\n})", start)]
+                self.assertIn('"spend_warning": zod.string().nullish()', body)
+
     def test_health_and_request_schemas_match_runtime_models(self):
         runtime_health = HealthResponse.model_json_schema(mode="serialization")
         self.assertEqual(
@@ -4531,13 +4557,15 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
             ])
             for removed in original["required"]
         )
-        for field_name in original["properties"]:
+        for field_name, field_schema in original["properties"].items():
+            # A replacement equal to the published type is not drift.
             mutations.extend(
                 (("properties", field_name, "type"), replacement)
                 for replacement in (
                     None, "integer", "number", "boolean", "object", "array",
                     ["string", "null"],
                 )
+                if replacement != field_schema.get("type")
             )
         for path, replacement in mutations:
             for flow_style in (False, True):

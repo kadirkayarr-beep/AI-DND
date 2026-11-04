@@ -18,4 +18,9 @@ export interface HealthResponse {
      * @nullable
      */
   model_chain?: string[] | null;
+  /**
+     * Present only once today's model spend on known prices reaches the warning limit. It never stops play.
+     * @nullable
+     */
+  spend_warning?: string | null;
 }

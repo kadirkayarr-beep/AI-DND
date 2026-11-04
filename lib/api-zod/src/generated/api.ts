@@ -704,7 +704,8 @@ export const GetGameHealthResponse = zod.object({
   "status": zod.enum(['ok']).default(getGameHealthResponseStatusDefault),
   "engine": zod.enum(['AI-DND']).default(getGameHealthResponseEngineDefault),
   "model": zod.enum(['qwen3:8b', 'qwen3.5:4b-q4_K_M', 'qwen3.5:9b-q4_K_M', 'gemma4:e4b']).default(getGameHealthResponseModelDefault),
-  "model_chain": zod.array(zod.string()).nullish().describe('Present only while the cloud chain is on. Every model that may answer, in order.')
+  "model_chain": zod.array(zod.string()).nullish().describe('Present only while the cloud chain is on. Every model that may answer, in order.'),
+  "spend_warning": zod.string().nullish().describe('Present only once today\'s model spend on known prices reaches the warning limit. It never stops play.')
 })
 
 
@@ -23307,7 +23308,8 @@ export const GetLegacyHealthResponse = zod.object({
   "status": zod.enum(['ok']).default(getLegacyHealthResponseStatusDefault),
   "engine": zod.enum(['AI-DND']).default(getLegacyHealthResponseEngineDefault),
   "model": zod.enum(['qwen3:8b', 'qwen3.5:4b-q4_K_M', 'qwen3.5:9b-q4_K_M', 'gemma4:e4b']).default(getLegacyHealthResponseModelDefault),
-  "model_chain": zod.array(zod.string()).nullish().describe('Present only while the cloud chain is on. Every model that may answer, in order.')
+  "model_chain": zod.array(zod.string()).nullish().describe('Present only while the cloud chain is on. Every model that may answer, in order.'),
+  "spend_warning": zod.string().nullish().describe('Present only once today\'s model spend on known prices reaches the warning limit. It never stops play.')
 })
 
 

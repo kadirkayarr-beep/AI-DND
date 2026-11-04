@@ -1129,6 +1129,45 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
             self.assertNotIn(KEY, json.dumps(health))
 
+    def ledger_on_disk(self) -> usage_ledger.UsageLedger:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        day = datetime(2026, 11, 4, 12, 0, tzinfo=timezone.utc)
+        return usage_ledger.UsageLedger(Path(directory.name) / "model-usage.jsonl", now=lambda: day)
+
+    async def test_health_hides_spend_warning_when_none(self):
+        self.adapter._chain = chain_for(FakeCloud())
+        self.adapter.usage_ledger = self.ledger_on_disk()
+        self.adapter.usage_ledger.record("haiku", input_tokens=29_000_000, output_tokens=0)
+        for path in ("/api/game/health", "/api/health"):
+            health = (await self.http.get(path)).json()
+            self.assertNotIn("spend_warning", health)
+            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+
+    async def test_health_shows_spend_warning_when_over_three_usd(self):
+        self.adapter.usage_ledger = self.ledger_on_disk()
+        self.adapter.usage_ledger.record("haiku", input_tokens=31_000_000, output_tokens=0)
+        expected = self.adapter.usage_ledger.warning()
+        self.assertIsNotNone(expected)
+        for path in ("/api/game/health", "/api/health"):
+            health = (await self.http.get(path)).json()
+            self.assertEqual(health["spend_warning"], expected)
+            self.assertIn("3.10 USD", health["spend_warning"])
+            self.assertEqual(health["model"], "gemma4:e4b")
+            self.assertNotIn(KEY, json.dumps(health))
+
+    async def test_health_survives_a_ledger_that_cannot_be_read(self):
+        class Broken:
+            def warning(self):
+                raise OSError("disk gone")
+
+        self.adapter.usage_ledger = Broken()
+        with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
+            health = await self.http.get("/api/game/health")
+        self.assertIn("OSError", "\n".join(logs.output))
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4:e4b"})
+
     async def test_no_cloud_model_joins_the_local_allow_list(self):
         self.assertFalse({"gemini-3.5-flash-lite", "claude-haiku-5-5"} & set(SUPPORTED_LOCAL_MODELS))
 

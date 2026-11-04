@@ -2209,6 +2209,11 @@ components:
           description: Present only while the cloud chain is on. Every model that may answer, in order.
           items:
             type: string
+        spend_warning:
+          type:
+          - string
+          - 'null'
+          description: Present only once today's model spend on known prices reaches the warning limit. It never stops play.
       required:
       - status
       - engine
