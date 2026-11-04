@@ -41,3 +41,32 @@ def consume(world: dict, item_id: str) -> ConsumeResult:
     removed = equipment_economy.remove_item(world, item_id)
     name = removed["name"]
     return ConsumeResult("consumed", name, f"{name} {'içildi' if kind == 'drink' else 'yendi'}")
+
+def _unseeded_packs(world):
+    for item in world.get("inventory", []):
+        if isinstance(item, Mapping) and item.get("ammo_seeded_v1"):
+            continue
+        name = item.get("name") if isinstance(item, Mapping) else item
+        pack = _catalog()["ammunition"].get(name) if isinstance(name, str) else None
+        if pack is not None:
+            yield item, pack
+
+
+def ammo_available(world: Mapping, ammo_type: str) -> int:
+    return world.get("ammunition", {}).get(ammo_type, 0) + sum(
+        pack["count"] for _, pack in _unseeded_packs(world) if pack["type"] == ammo_type)
+
+
+def ensure_ammunition(world: dict) -> dict[str, int]:
+    equipment_economy.materialize(world)
+    ammunition = world.setdefault("ammunition", {})
+    for item, pack in _unseeded_packs(world):
+        kind = pack["type"]
+        ammunition[kind] = ammunition.get(kind, 0) + pack["count"]
+        item["ammo_seeded_v1"] = True
+    return ammunition
+
+
+def ammo_note(world: Mapping) -> str:
+    return " ".join(f"({label}: {count})" for kind, label in (("arrow", "ok"), ("bolt", "cıvata"))
+                    if (count := ammo_available(world, kind)) > 0)

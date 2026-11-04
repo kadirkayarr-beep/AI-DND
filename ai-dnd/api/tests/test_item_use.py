@@ -144,7 +144,11 @@ class ItemUse(unittest.TestCase):
 class ConsumeJourneys(JourneyCase):
     async def test_a_consume_reading_drops_the_food_and_beer_and_the_card_says_so(self):
         results = await self.run_scenario(load_scenario(SCENARIO_DIR / "04b_consume_front.json"))
-        self.assertEqual([r.status for r in results], ["pass", "pass"], results)
+        self.assertEqual([r.status for r in results[:2]], ["pass", "pass"], results)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results[2].status, "unreached")
+        from api.tests.journeys.runner import REAL_CHAIN_ONLY
+        self.assertEqual(results[2].failures, (REAL_CHAIN_ONLY,))
         session = self.manager.get(self.last_session_id).game_session
         self.assertIn((None, "Bira içildi"), session._turn_notes)
         self.assertIn("bu tur: Bira içildi", truth_card.narrator_view(session.world_state, this_turn=session._turn_notes))
@@ -154,3 +158,89 @@ class ConsumeJourneys(JourneyCase):
     async def test_a_consume_reading_cannot_eat_a_sword(self):
         results = await self.run_scenario(load_scenario(SCENARIO_DIR / "28_consume_wrong_item.json"))
         self.assertEqual([r.status for r in results], ["pass"], results)
+
+class AmmunitionTests(unittest.TestCase):
+    def bow(self, legacy=False):
+        from api.tests.test_weapon_attack import armed
+        session, npc = armed("Longbow", distance=30)
+        session.world_state.pop("ammunition")
+        session.world_state["inventory"] = (["Uzun Yay & 20 Ok"] if legacy else
+            [{"item_id": "bow1", "name": "Uzun Yay & 20 Ok", "weapon_id": "longbow"}])
+        return session, npc
+
+    def test_a_bow_shot_seeds_twenty_and_spends_one(self):
+        from api.tests.test_weapon_attack import resolve
+        session, npc = self.bow()
+        resolve(session, npc, "Longbow")
+        self.assertEqual(session.world_state["ammunition"], {"arrow": 19})
+        self.assertIs(session.world_state["inventory"][0]["ammo_seeded_v1"], True)
+
+    def test_save_reload_and_a_second_shot_leave_eighteen(self):
+        import tempfile
+        from pathlib import Path
+        from api.tests.test_weapon_attack import resolve
+        session, npc = self.bow()
+        resolve(session, npc, "Longbow")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "save.json"
+            session.save_game(path)
+            restored, _ = self.bow()
+            restored.load_game(path)
+        target = next(n for n in restored.world_state["npcs"] if n["id"] == npc["id"])
+        resolve(restored, target, "Longbow")
+        self.assertEqual(restored.world_state["ammunition"], {"arrow": 18})
+
+    def test_an_old_text_inventory_still_seeds_once(self):
+        from api.tests.test_weapon_attack import resolve
+        session, npc = self.bow(legacy=True)
+        resolve(session, npc, "Longbow")
+        self.assertEqual(item_use.ensure_ammunition(session.world_state), {"arrow": 19})
+        self.assertEqual(item_use.ensure_ammunition(session.world_state), {"arrow": 19})
+
+    def test_prepare_reads_without_writing(self):
+        import weapon_attack
+        session, npc = self.bow(legacy=True)
+        before = copy.deepcopy(session.world_state)
+        self.assertEqual(item_use.ammo_available(session.world_state, "arrow"), 20)
+        weapon_attack.prepare(session, "player", npc["id"], "Longbow")
+        self.assertEqual(session.world_state, before)
+        self.assertNotIn("ammunition", session.world_state)
+
+    def test_an_unlisted_label_is_skipped_silently(self):
+        world = {"inventory": ["Garip Yay & 5 Ok"]}
+        self.assertEqual(item_use.ammo_available(world, "arrow"), 0)
+        self.assertEqual(item_use.ensure_ammunition(world), {})
+        self.assertNotIn("ammo_seeded_v1", world["inventory"][0])
+
+    def test_ammo_note_and_card_show_remaining_counter_without_mutating(self):
+        world = {"inventory": [], "ammunition": {"arrow": 19, "bolt": 20}}
+        before = copy.deepcopy(world)
+        self.assertEqual(item_use.ammo_note(world), "(ok: 19) (cıvata: 20)")
+        self.assertIn("(ok: 19)", truth_card.narrator_view(world))
+        self.assertEqual(world, before)
+        self.assertEqual(item_use.ammo_note({"ammunition": {"arrow": 0}}), "")
+
+    def test_invalid_existing_counter_cannot_be_hidden_by_a_pack(self):
+        import weapon_attack
+        from combat_lifecycle import CombatRequestError
+        for invalid in (True, -1):
+            with self.subTest(invalid=invalid):
+                session, npc = self.bow()
+                session.world_state["ammunition"] = {"arrow": invalid}
+                before = copy.deepcopy(session.world_state)
+                with self.assertRaises(CombatRequestError):
+                    weapon_attack.prepare(session, "player", npc["id"], "Longbow")
+                self.assertEqual(session.world_state, before)
+
+    def test_two_distinct_packs_seed_once_each_and_existing_counter_survives(self):
+        world = {"inventory": ["Kısa Yay & 20 Ok", "Uzun Yay & 20 Ok"], "ammunition": {"arrow": 3}}
+        self.assertEqual(item_use.ammo_available(world, "arrow"), 43)
+        self.assertEqual(item_use.ensure_ammunition(world), {"arrow": 43})
+        self.assertEqual(item_use.ensure_ammunition(world), {"arrow": 43})
+
+class AmmunitionJourney(JourneyCase):
+    async def test_original_consume_scenario_bow_step_passes_without_broken_marker(self):
+        scenario = load_scenario(SCENARIO_DIR / "04_consume.json")
+        self.assertEqual(scenario.steps[2].known_broken, ())
+        results = await self.run_scenario(scenario)
+        self.assertEqual(results[2].status, "pass", results[2])

@@ -16,6 +16,7 @@ import paladin_features
 import monk_features
 import character_progression
 import rogue_features
+import item_use
 import initiative
 import spatial_rules
 from combat_lifecycle import CombatRequestError
@@ -591,8 +592,11 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     ammunition = None
     if "ammunition" in props:
         ammunition = weapon["ammunition_type"]
-        ammo = (session.world_state if actor == "player" else attacker).get("ammunition", {})
-        if integer(ammo.get(ammunition, 0), "ammunition", 0) < 1:
+        owner = session.world_state if actor == "player" else attacker
+        integer(owner.get("ammunition", {}).get(ammunition, 0), "ammunition", 0)
+        available = (item_use.ammo_available(session.world_state, ammunition) if actor == "player"
+                     else attacker.get("ammunition", {}).get(ammunition, 0))
+        if integer(available, "ammunition", 0) < 1:
             fail("no_ammunition", "Required ammunition is unavailable.")
     unarmed_option = choice.get("unarmed_option", "damage")
     if unarmed_option not in {"damage", "grapple", "shove"} or (not unarmed and unarmed_option != "damage"):
@@ -1012,6 +1016,8 @@ def _resolve(session, c):
         owner["equipment"] = weapon["equipment_after"]
     if c["ammunition"]:
         owner = session.world_state if actor == "player" else attacker
+        if actor == "player":
+            item_use.ensure_ammunition(owner)
         owner["ammunition"][c["ammunition"]] -= 1
     if "thrown" in weapon["properties"] and c["mode"] != "melee":
         items = inventory(session, actor, attacker)

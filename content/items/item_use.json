@@ -1,4 +1,9 @@
 {
   "kinds": {"Bira": "drink", "Şarap": "drink", "Tabak yemek": "food"},
-  "ammunition": {}
+  "ammunition": {
+    "Kısa Yay & 20 Ok": {"type": "arrow", "count": 20},
+    "Uzun Yay & 20 Ok": {"type": "arrow", "count": 20},
+    "Hafif Tatar Yayı & 20 Ok": {"type": "bolt", "count": 20},
+    "Ağır Tatar Yayı & 20 Ok": {"type": "bolt", "count": 20}
+  }
 }

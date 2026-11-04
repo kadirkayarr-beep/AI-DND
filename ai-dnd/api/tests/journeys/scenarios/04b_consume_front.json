@@ -119,6 +119,8 @@
         }
       },
       "say": "biramı içiyorum"
-    }
+    },
+    {"say": "Haydut'a uzun yayımla ok atıyorum", "real_chain": true, "independent": true,
+     "expect": {"savas": true, "cephane": {"arrow": 19}}}
   ]
 }

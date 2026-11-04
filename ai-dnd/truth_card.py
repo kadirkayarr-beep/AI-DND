@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 import bold_acts
 import economic_actions
 import living_world
+import item_use
 import pocket
 import shop_trade
 
@@ -175,7 +176,9 @@ def narrator_view(world: dict, *, npc: dict | None = None, this_turn=(), max_byt
     names = pocket.bag_names(world)
     remaining = max(0, len(world.get("inventory", [])) - 8)
     bag = "çanta: " + (", ".join(names[:8]) or "boş") + (f" ve {remaining} eşya daha" if remaining else "")
-    lines.extend([_Line("çanta", bag, shorter="çanta: " + (names[0] if names else "boş")),
+    ammo = item_use.ammo_note(world)
+    suffix = " " + ammo if ammo else ""
+    lines.extend([_Line("çanta", bag + suffix, shorter="çanta: " + (names[0] if names else "boş") + suffix),
                   _Line("oda", _room(world), 1), _Line("açık teklif", _offers(world), 3), _payments(world)])
     if this_turn:
         lines.append(_Line("bu tur", "bu tur: " + "; ".join(note for _, note in this_turn), 2))

@@ -75,9 +75,7 @@
           "completion": "complete"
         }
       },
-      "expect": {"savas": true, "cephane": {"arrow": 19}},
-      "known_broken": [56],
-      "broken_because": ["no_ammunition", "savas: beklenen True, gözlenen False", "cephane: beklenen {'arrow': 19}, gözlenen {}"]
+      "expect": {"savas": true, "cephane": {"arrow": 19}}
     }
   ]
 }
