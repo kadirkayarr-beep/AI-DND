@@ -38,6 +38,9 @@ EXPECT_KEYS = frozenset(
         "karsi_saldiri",
         "yuva",
         "esya_sayisi",
+        "anlatilan",
+        "konusmaya_giden",
+        "inkar",
     }
 )
 
@@ -49,7 +52,7 @@ _SCENARIO_KEYS = frozenset(
 )
 _SCENARIO_REQUIRED = ("id", "title", "steps")
 _STEP_KEYS = frozenset(
-    {*ACTION_KEYS, "script", "expect", "known_broken", "broken_because", "real_chain", "independent"}
+    {*ACTION_KEYS, "konus", "script", "expect", "known_broken", "broken_because", "real_chain", "independent"}
 )
 _TEXT_ACTIONS = ("say", "command")
 _DICT_ACTIONS = ("economic_action", "combat_action")
@@ -117,6 +120,11 @@ EXPECT_VALUE_RULES = {
     "yasak_metin": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
     "gerekli_metin": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
     "anlaticiya_giden": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
+    "konusmaya_giden": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
+    "inkar": (lambda value: isinstance(value, bool), "true ya da false"),
+    "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)
+                                                               for npc, needles in value.items()),
+                  "boş olmayan kişi -> boş olmayan metin (listesi) nesnesi"),
 }
 
 
@@ -135,6 +143,8 @@ class Step:
     reload: bool = False
     # Ruling R19: substrings, one of which every failure of a marked step must hold; empty means not named.
     broken_because: tuple[str, ...] = ()
+    # The person a ``say`` line is spoken to in say mode (the turn's ``interaction_mode: say`` and ``target_id``).
+    konus: str | None = None
 
 
 @dataclass(frozen=True)
@@ -208,6 +218,10 @@ def check_expect(expected: Mapping, observed: Mapping) -> list[str]:
             problems.extend(_check_text(key, want, observed.get("narration")))
         elif key == "anlaticiya_giden":
             problems.extend(_check_told(want, observed.get(key)))
+        elif key == "konusmaya_giden":
+            problems.extend(_check_spoken_to(want, observed.get(key)))
+        elif key == "anlatilan":
+            problems.extend(_check_kept(want, observed.get(key)))
         elif key in _SUBSET_KEYS and isinstance(want, Mapping) and isinstance(
             observed.get(key), Mapping
         ):
@@ -249,6 +263,33 @@ def _check_told(want: Any, told: Any) -> list[str]:
             for needle in needles if str(needle).casefold() not in haystack]
 
 
+def _check_spoken_to(want: Any, sent: Any) -> list[str]:
+    """``konusmaya_giden``: every needle is in what the step's last speech call was sent (all its messages). A step
+    without a speech call fails once, plainly."""
+    if not isinstance(sent, str):
+        return ["konusmaya_giden: bu adımda konuşma çağrılmadı"]
+    haystack = sent.casefold()
+    return [f"konusmaya_giden: konuşmaya giden metinde bulunamadı: {needle}"
+            for needle in _as_list(want) if needle.casefold() not in haystack]
+
+
+def _check_kept(want: Mapping, kept: Any) -> list[str]:
+    """``anlatilan``: for each person named, every needle is in what that person keeps of the player's own words
+    (``npc_told_v1``); a person with nothing kept holds no needle."""
+    kept = kept if isinstance(kept, Mapping) else {}
+    problems = []
+    for npc, needles in want.items():
+        rows = kept.get(npc)
+        haystack = "\n".join(str(row) for row in rows).casefold() if isinstance(rows, list) else ""
+        problems.extend(f"anlatilan.{npc}: anlatılan sözlerde bulunamadı: {needle}"
+                        for needle in _as_list(needles) if needle.casefold() not in haystack)
+    return problems
+
+
+def _as_list(needles: Any) -> list[str]:
+    return [needles] if isinstance(needles, str) else [str(needle) for needle in needles]
+
+
 def _mismatch(label: str, want: Any, seen: Any) -> str:
     return f"{label}: beklenen {_show(want)}, gözlenen {_show(seen)}"
 
@@ -276,6 +317,10 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
     for key in _TRUE_ACTIONS:
         if key in raw and raw[key] is not True:
             raise ScenarioError(f"{where}: '{key}' yalnız true olabilir")
+    if "konus" in raw:
+        if "say" not in raw:
+            raise ScenarioError(f"{where}: 'konus' yalnız 'say' ile birlikte kullanılır")
+        _text(raw, "konus", where)
     if "script" in raw and not isinstance(raw["script"], dict):
         raise ScenarioError(f"{where}: 'script' bir nesne olmalı")
     expect = raw.get("expect", {})
@@ -315,6 +360,7 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
         undo="undo" in raw,
         reload="reload" in raw,
         broken_because=tuple(broken_because or ()),
+        konus=raw.get("konus"),
     )
 
 

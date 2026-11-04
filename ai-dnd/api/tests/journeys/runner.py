@@ -33,8 +33,10 @@ from uuid import uuid4
 from unittest.mock import patch
 
 import bold_acts
+import equipment_economy
 import front_proposal
 import game
+import interaction_adventure
 import local_places
 import shop_trade
 import world_threads
@@ -71,15 +73,18 @@ SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currenc
                         "current_hp", "seed", "front_proposal", "death_mode", "job"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
-SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration"})
+SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
+# ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
+# too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
+SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"
 _ECONOMIC_MESSAGES = {"prepare": "Teklif hazırla", "confirm": "Teklifi onayla", "cancel": "Teklifi iptal et"}
 _COMBAT_MESSAGE = "Savaş eylemi"
-# Step-bound, not state: what the step said, what the narrator was sent and the step's counter-attacks. A reload
-# compares everything else.
-_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri"})
+# Step-bound, not state: what the step said, what the narrator and the speech call were sent, whether a stock denial
+# was said and the step's counter-attacks. A reload compares everything else.
+_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri", "konusmaya_giden", "inkar"})
 # An enemy's counter-attack in a turn's combat result: a swing that hit or missed (the engine's own exchange text
 # says "karşı saldırısı" for exactly these).
 _SWINGS = frozenset({"hit", "miss", "critical_hit"})
@@ -121,29 +126,42 @@ def call_kind(schema: Any) -> str | None:
 
 class NarratorInput:
     """The engine's model call for one step, wrapped: every call goes through unchanged, and the messages of
-    each narrator call are kept. It sits on ``game.ollama.chat``, in front of whatever answers (the scripted
-    model or the real chain), so ``anlaticiya_giden`` reads the same thing under both."""
+    each narrator call are kept, and apart from them the messages of the last speech call. It sits on
+    ``game.ollama.chat``, in front of whatever answers (the scripted model or the real chain), so
+    ``anlaticiya_giden`` and ``konusmaya_giden`` read the same thing under both."""
 
     def __init__(self, chat: Any):
         self._chat = chat
         self._messages: list[str] | None = None
+        self._speech: list[str] | None = None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        if call_kind(kwargs.get("format")) == "narration":
+        kind = call_kind(kwargs.get("format"))
+        if kind == "narration":
             self._messages = self._messages if self._messages is not None else []
-            self._messages.extend(str(message.get("content", "")) for message in kwargs.get("messages") or []
-                                  if isinstance(message, Mapping))
+            self._messages.extend(_message_texts(kwargs.get("messages")))
+        elif kind == "speech":
+            self._speech = _message_texts(kwargs.get("messages"))
         return self._chat(*args, **kwargs)
 
     def text(self) -> str | None:
         """Everything the narrator was sent, one message per line; None when no narrator call was made."""
         return None if self._messages is None else "\n".join(self._messages)
 
+    def speech_messages(self) -> list[str] | None:
+        """Every message text of the step's last speech call (a copy); None when no speech call was made."""
+        return None if self._speech is None else list(self._speech)
+
+
+def _message_texts(messages: Any) -> list[str]:
+    return [str(message.get("content", "")) for message in messages or [] if isinstance(message, Mapping)]
+
 
 class ScriptedClient(fixtures.FakeOllamaClient):
     """The model, scripted for one step. It tells the call kinds apart by the requested schema.
 
-    ``front`` (the front reading), ``intent`` (the classifier), ``spoken_text`` (NPC speech),
+    ``front`` (the front reading), ``intent`` (the classifier), ``spoken_text`` (NPC speech, with the script's
+    ``speech`` fields added as written),
     ``steps`` (grounded verbs; always answers no steps) and ``narration`` (the narrator). Any other
     request raises ``AssertionError`` and is kept in ``unexpected``, so the runner can fail the step
     even when the engine swallows the error and falls back.
@@ -156,6 +174,13 @@ class ScriptedClient(fixtures.FakeOllamaClient):
             raise ScenarioError(
                 f"bilinmeyen script anahtarı: {', '.join(unknown)} (izinli: {', '.join(sorted(SCRIPT_KEYS))})"
             )
+        speech = script.get("speech", {})
+        if not isinstance(speech, Mapping):
+            raise ScenarioError(f"script 'speech' bir nesne olmalı, bulunan: {speech!r}")
+        unknown = sorted(str(key) for key in speech if key not in SPEECH_SCRIPT_KEYS)
+        if unknown:
+            raise ScenarioError(f"bilinmeyen script speech anahtarı: {', '.join(unknown)} "
+                                f"(izinli: {', '.join(sorted(SPEECH_SCRIPT_KEYS))})")
         self.script = script
         self.kinds: list[str] = []
         self.unexpected: list[list[str]] = []
@@ -168,7 +193,8 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         elif kind == "intent":
             packet = self._intent_packet(properties)
         elif kind == "speech":
-            packet = {"spoken_text": self.script.get("spoken", _DEFAULT_SPOKEN), "stage_direction": ""}
+            packet = {"spoken_text": self.script.get("spoken", _DEFAULT_SPOKEN), "stage_direction": "",
+                      **copy.deepcopy(dict(self.script.get("speech") or {}))}
         elif kind == "steps":
             packet = {"steps": []}
         elif kind == "narration":
@@ -209,13 +235,14 @@ class ModelDriver(Protocol):
 
 
 class ScriptedModel:
-    """The default driver: a fresh ``ScriptedClient`` per step and no outside network."""
+    """The default driver: a fresh ``ScriptedClient`` per step and no outside network. A front reading's
+    ``item_name`` is turned here, from the live bag, into the ``item_id`` the reading names (see ``_bag_id``)."""
 
     real_chain = False
 
     @contextmanager
     def bind(self, case: "JourneyCase", step: Step) -> Iterator[ScriptedClient]:
-        client = ScriptedClient(step.script)
+        client = ScriptedClient(_with_bag_ids(case, step.script))
         with (
             patch("socket.socket.connect",
                   side_effect=AssertionError("External network is disabled in journey tests.")),
@@ -224,8 +251,28 @@ class ScriptedModel:
             yield client
 
 
+def _with_bag_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """The step's script with its front reading's ``item_name`` turned into that reading's ``item_id`` (the step's
+    own script is left as written)."""
+    front = (script or {}).get("front")
+    if not isinstance(front, Mapping) or "item_name" not in front:
+        return script
+    world = case.manager.get(case.last_session_id).game_session.world_state
+    reading = {key: value for key, value in front.items() if key != "item_name"}
+    reading["item_id"] = _bag_id(world, front["item_name"])
+    return {**script, "front": reading}
+
+
+def _bag_id(world: Mapping[str, Any], name: Any) -> str:
+    """The ``item_id`` of the first record in the live bag that bears this name; ``none`` when no record does."""
+    return next((item["item_id"] for item in world.get("inventory") or []
+                 if isinstance(item, Mapping) and item.get("name") == name and isinstance(item.get("item_id"), str)),
+                "none")
+
+
 def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]) -> None:
-    """Put the scenario's starting state into the live campaign and save it (dice seeded last)."""
+    """Put the scenario's starting state into the live campaign and save it (dice seeded last). The inventory is
+    made into item records with ids (``equipment_economy.materialize``), as the counter hands goods out in play."""
     unknown = sorted(str(key) for key in setup if key not in SETUP_KEYS)
     if unknown:
         raise ScenarioError(
@@ -244,6 +291,8 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
     for key in ("currency", "inventory", "ammunition"):
         if key in setup:
             world[key] = copy.deepcopy(setup[key])
+    if "inventory" in setup:
+        equipment_economy.materialize(world)
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
     if "job" in setup:
@@ -355,7 +404,13 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     ``karsi_saldiri`` is read from the step's own turn response: the most counter-attacks one enemy made in it, a
     counter-attack being a swing resolved after the player's own (see ``counter_attacks``).
     ``yuva`` is the player's spell slots left, by level (``world.spellcasting_v1.slots``; None without spells).
-    ``esya_sayisi`` is every item the player holds, whatever its name (a duplicate shows even under another name)."""
+    ``esya_sayisi`` is every item the player holds, whatever its name (a duplicate shows even under another name).
+
+    ``anlatilan`` is what each person keeps of the player's own words (``world.npc_told_v1``: person to the kept
+    texts), a state a reload compares. ``konusmaya_giden`` is every message the step's last speech call was sent (None:
+    no speech call) and ``inkar`` whether the step's narration holds one of the engine's stock denial or "I do not
+    know" lines (``denial_said``); both are the step's own, never compared on reload. ``tezgah`` carries the counter's
+    tip (``tip_cp``, 0 without one) and the total it asks for (``total_cp``, unit price and tip)."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
@@ -386,9 +441,30 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "gorev": _open_quests(world.get("quests") or []),
         "karsi_saldiri": counter_attacks(getattr(case, "last_combat_result", None)),
         "yuva": _spell_slots(world),
+        "anlatilan": _told(world),
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
+        "konusmaya_giden": getattr(case, "last_speech_input", None),
+        "inkar": getattr(case, "last_denial", False),
     }
+
+
+def _told(world: Mapping[str, Any]) -> dict[str, list[str]]:
+    """Person to the texts they keep of the player's own words (``npc_told_v1``); rows without a text are left out."""
+    told = world.get("npc_told_v1")
+    if not isinstance(told, Mapping):
+        return {}
+    return {str(npc): [row["text"] for row in rows if isinstance(row, Mapping) and isinstance(row.get("text"), str)]
+            for npc, rows in told.items() if isinstance(rows, list)}
+
+
+def denial_said(narration: Any) -> bool:
+    """Whether the narration holds the spoken part of one of the engine's stock denial lines
+    (``game._CLAIM_DENIAL_LINES``) or "I do not know" lines (``interaction_adventure._UNKNOWN_LINES``)."""
+    if not isinstance(narration, str) or not narration:
+        return False
+    lines = (*game._CLAIM_DENIAL_LINES, *interaction_adventure._UNKNOWN_LINES)
+    return any(line.split("“", 1)[-1].rstrip("”") in narration for line in lines)
 
 
 def counter_attacks(combat_result: Any) -> int:
@@ -463,8 +539,10 @@ def _counter_offer(world: dict[str, Any]) -> dict[str, Any] | None:
     if bold_acts.offer_still_open(world, npc) is None:
         return None
     quoted = shop_trade.quote(world, str(opened.get("npc_id")), str(opened.get("key")), 1)
-    return {"npc_id": opened.get("npc_id"), "key": opened.get("key"),
-            "unit_cp": None if quoted is None else quoted["unit_cp"]}
+    unit = None if quoted is None else quoted["unit_cp"]
+    tip = opened.get("tip_cp", 0)
+    return {"npc_id": opened.get("npc_id"), "key": opened.get("key"), "unit_cp": unit, "tip_cp": tip,
+            "total_cp": unit + tip if type(unit) is int and type(tip) is int else None}
 
 
 def _inventory_counts(inventory: Sequence[Any]) -> dict[str, int]:
@@ -485,9 +563,12 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     create_campaign = fixtures.CampaignApiTests.create_campaign
 
     # Set by run_scenario: the last step's narration and what its narrator calls were sent (None: no narrator
-    # call), every step's observation, the session played.
+    # call), what its last speech call was sent (None: no speech call), whether a stock denial was said, every step's
+    # observation, the session played.
     last_narration: str = ""
     last_narrator_input: str | None = None
+    last_speech_input: str | None = None
+    last_denial: bool = False
     # The last turn's combat result as the turn response carried it (None: no turn, or no combat result).
     last_combat_result: Mapping[str, Any] | None = None
     last_observations: list[dict[str, Any]]
@@ -503,6 +584,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_session_id = session_id
         self.last_narration = ""
         self.last_narrator_input = None
+        self.last_speech_input = None
+        self.last_denial = False
         self.last_combat_result = None
         self.last_turn_action_id = None
         self.last_observations = []
@@ -562,6 +645,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             with patch.object(game.ollama, "chat", told):
                 response = await self.http.post(f"/api/game/sessions/{session_id}/turn", json=body)
         self.last_narrator_input = told.text()
+        spoken_to = told.speech_messages()
+        self.last_speech_input = None if spoken_to is None else "\n".join(spoken_to)
         unexpected = getattr(client, "unexpected", None) or []
         failures.extend(f"beklenmeyen model çağrısı: {keys}" for keys in unexpected)
         self.last_combat_result = None
@@ -571,12 +656,15 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         else:
             self.last_narration = str(response.json().get("narration") or "")
             self.last_combat_result = response.json().get("combat_result")
+        self.last_denial = denial_said(self.last_narration)
         return failures
 
     async def _undo(self, session_id: str, step: Step, model: ModelDriver) -> list[str]:
         """Take back the last turn sent, through the product's undo route (the route alone decides whether it
         may); return the failures the undo itself produced."""
         self.last_narrator_input = None
+        self.last_speech_input = None
+        self.last_denial = False
         self.last_narration = ""
         self.last_combat_result = None
         if self.last_turn_action_id is None:
@@ -596,6 +684,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         live session carries over), and compare it with the live game key by key. The step observes what came
         back from the save; later steps keep playing the live session."""
         self.last_narrator_input = None
+        self.last_speech_input = None
+        self.last_denial = False
         self.last_narration = ""
         self.last_combat_result = None
         with model.bind(self, step):
@@ -611,6 +701,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         body: dict[str, Any] = {"action_id": str(uuid4())}
         if step.say is not None:
             body["message"] = step.say
+            if step.konus is not None:
+                body.update(interaction_mode="say", target_id=step.konus)
         elif step.command is not None:
             body["message"] = step.command
         elif step.economic_action is not None:
@@ -639,6 +731,8 @@ class _Reader:
     manager: SessionManager
     last_narration: str = ""
     last_narrator_input: str | None = None
+    last_speech_input: str | None = None
+    last_denial: bool = False
 
 
 def _show(value: Any) -> str:

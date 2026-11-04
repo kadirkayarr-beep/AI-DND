@@ -33,6 +33,7 @@ from api.tests.journeys.schema import ScenarioError, load_scenario
 
 BUY_BEER = "/item shop_buy barman bira 1 0 4"
 BUY_SECOND_BEER = "/item shop_buy barman bira 1 1 4"  # the counter sequence moved on after one trade
+SPEECH = {"type": "object", "properties": {"spoken_text": {}, "stage_direction": {}}}  # an NPC speech call's schema
 NEVERWINTER = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
                "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
 
@@ -510,6 +511,124 @@ class TheRunnerSortsEveryStep(JourneyCase):
                             {"npcs": [owner], "job": wrong})
             self.assertIn(word, str(raised.exception))
 
+    async def test_a_konus_step_is_say_mode_to_that_person(self):
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, beer_scenario().setup)
+        sid = campaign["session_id"]
+        spoken, plain = beer_scenario({"say": "Akşam kalabalık olur mu?", "konus": "barman"},
+                                      {"say": "Akşam kalabalık olur mu?"}).steps
+        body = self._body(sid, spoken)
+        self.assertEqual((body["message"], body["interaction_mode"], body["target_id"]),
+                         ("Akşam kalabalık olur mu?", "say", "barman"))
+        self.assertFalse({"interaction_mode", "target_id"} & set(self._body(sid, plain)))
+
+    async def test_the_speech_call_input_is_observed_apart_from_the_narrator(self):
+        """``konusmaya_giden`` is what the turn's last speech call was sent (every message of it), read like
+        ``anlaticiya_giden`` from the engine's own model calls; a turn without a speech call observes None."""
+        line = "Akşam kalabalık olur mu?"
+        model = RecordingModel()
+        results = await self.run_scenario(beer_scenario(
+            {"say": line, "konus": "barman", "script": {"spoken": "Olur, hem de nasıl."},
+             "expect": {"konusmaya_giden": line, "gerekli_metin": "Olur, hem de nasıl."}},
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+        ), model=model)
+        self.assertEqual([result.status for result in results], ["pass", "pass"], results)
+        self.assertIn("speech", model.clients[0].kinds)
+        talked, bought = self.last_observations
+        self.assertIsInstance(talked["konusmaya_giden"], str)
+        self.assertIn(line, talked["konusmaya_giden"])
+        self.assertIsNone(talked["anlaticiya_giden"])  # the speech call is not the narrator
+        self.assertIsNone(bought["konusmaya_giden"])  # nothing carried over from the step before
+
+    async def test_setup_items_get_ids_and_item_name_becomes_the_bag_id(self):
+        """The setup's inventory is made into records with ids, as the counter hands them out in play; a front
+        reading's ``item_name`` is turned into the first bag record of that name (``none`` when there is none)."""
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, {**beer_scenario().setup, "inventory": ["Bira", "Greatsword", "Bira"]})
+        self.last_session_id = campaign["session_id"]
+        bag = self.manager.get(campaign["session_id"]).game_session.world_state["inventory"]
+        self.assertTrue(all(isinstance(item, dict) and item.get("item_id") for item in bag), bag)
+        self.assertEqual([item["name"] for item in bag], ["Bira", "Greatsword", "Bira"])
+        self.assertEqual(len({item["item_id"] for item in bag}), 3)
+        saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertEqual(saved["inventory"], bag)
+        self.assertEqual(read_observed(self, campaign["session_id"])["envanter"], {"Bira": 2, "Greatsword": 1})
+        drink, sword, nothing = beer_scenario(
+            {"say": "biramı içiyorum", "script": {"front": {"kind": "consume", "item_name": "Bira"}}},
+            {"say": "kılıcımı yiyorum", "script": {"front": {"kind": "consume", "item_name": "Greatsword"}}},
+            {"say": "şarabımı içiyorum", "script": {"front": {"kind": "consume", "item_name": "Şarap"}}},
+        ).steps
+        for step, wanted in ((drink, bag[0]["item_id"]), (sword, bag[1]["item_id"]), (nothing, "none")):
+            with self.subTest(step=step.say), ScriptedModel().bind(self, step) as client:
+                front = client._front()
+                self.assertEqual((front["kind"], front["item_id"]), ("consume", wanted))
+                self.assertNotIn("item_name", front)
+        self.assertEqual(drink.script, {"front": {"kind": "consume", "item_name": "Bira"}})  # the step is untouched
+
+    async def test_anlatilan_and_the_counter_tip_are_observed(self):
+        """``anlatilan`` is what each person keeps of the player's words (``npc_told_v1``), a state compared on
+        reload; ``tezgah`` carries the counter's tip (0 without one) and the total it asks for."""
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, beer_scenario().setup)
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        self.assertEqual(read_observed(self, campaign["session_id"])["anlatilan"], {})
+        world["npc_told_v1"] = {"gezgin": [{"text": "Babam değirmenci."}, {"text": "Yeşilova'dan geldim.", "cut": False},
+                                           {"cut": True}, "satır"],
+                                "yolcu": "bozuk"}
+        observed = read_observed(self, campaign["session_id"])
+        self.assertEqual(observed["anlatilan"], {"gezgin": ["Babam değirmenci.", "Yeşilova'dan geldim."]})
+        observed["anlatilan"]["gezgin"].clear()
+        self.assertEqual(len(world["npc_told_v1"]["gezgin"]), 4)  # a copy: reading never changes the record
+
+        results = await self.run_scenario(beer_scenario(
+            {"say": "bir bira alayım",
+             "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4, "tip_cp": 0, "total_cp": 4}}}))
+        self.assertEqual([result.status for result in results], ["pass"], results)
+        live = self.manager.get(self.last_session_id).game_session.world_state
+        live["flags"]["counter_offer_v1"]["tip_cp"] = 1
+        self.assertEqual(read_observed(self, self.last_session_id)["tezgah"],
+                         {"npc_id": "barman", "key": "bira", "unit_cp": 4, "tip_cp": 1, "total_cp": 5})
+
+        class UntoldModel(ScriptedModel):
+            """Just before a reload step it changes what a person was told, without saving it."""
+
+            @contextmanager
+            def bind(self, case, step):
+                with super().bind(case, step) as client:
+                    if step.reload:
+                        case.manager.get(case.last_session_id).game_session.world_state["npc_told_v1"] = {
+                            "barman": [{"text": "Kaydedilmedi."}]}
+                    yield client
+
+        results = await self.run_scenario(beer_scenario({"reload": True, "expect": {"kese": 100}}),
+                                          model=UntoldModel())
+        self.assertEqual(results[0].status, "new_break", results)
+        self.assertEqual(results[0].failures,
+                         ("yenileme: anlatilan: canlı {'barman': ['Kaydedilmedi.']}, kayıttan {}",))
+
+    async def test_step_bound_observations_are_reset_by_undo_and_reload(self):
+        """``konusmaya_giden`` and ``inkar`` belong to the step's own turn: an undo or a reload observes neither, and
+        a reload never compares them with the save. ``inkar`` says whether one of the engine's stock denial or
+        "I do not know" lines was narrated."""
+        denial = runner.game._CLAIM_DENIAL_LINES[0].split("“", 1)[-1].rstrip("”")
+        results = await self.run_scenario(beer_scenario(
+            {"say": "Bana dün bir söz vermiştin.", "konus": "barman", "script": {"spoken": denial},
+             "expect": {"inkar": True, "konusmaya_giden": "dün bir söz"}},
+            {"undo": True, "expect": {"inkar": False}},
+            {"say": "Akşam kalabalık olur mu?", "konus": "barman", "script": {"spoken": "Olur."},
+             "expect": {"inkar": False, "konusmaya_giden": "kalabalık"}},
+            {"reload": True, "expect": {"inkar": False}},
+        ))
+        self.assertEqual([result.status for result in results], ["pass", "pass", "pass", "pass"], results)
+        self.assertEqual([observed["konusmaya_giden"] is None for observed in self.last_observations],
+                         [False, True, False, True])
+        self.assertTrue({"konusmaya_giden", "inkar"} <= runner._NOT_STATE)
+        self.assertNotIn("anlatilan", runner._NOT_STATE)
+        unknown = runner.interaction_adventure._UNKNOWN_LINES[0].format(n="Marek")
+        self.assertTrue(runner.denial_said(f"Marek tezgâhı siliyor. {unknown}"))
+        self.assertFalse(runner.denial_said("Marek gülüyor. “Olur.”"))
+        self.assertFalse(runner.denial_said(""))
+
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()
         campaign = await self.create_campaign()
@@ -620,6 +739,24 @@ class TheScriptedClient(unittest.TestCase):
         self.assertEqual(client.kinds, ["speech", "narration", "steps", "intent", "front"])
         self.assertEqual(client.unexpected, [])
 
+    def test_speech_script_fields_reach_the_speech_packet(self):
+        """``speech`` adds the speech answer's own fields; their values pass as written, a broken one too, so a
+        scenario can try a missing or broken answer. An unknown field or a ``speech`` that is no object fails."""
+        def speak(script):
+            return json.loads(ScriptedClient(script).chat(format=SPEECH)["message"]["content"])
+
+        packet = speak({"speech": {"coin_answer": "declines", "coin_answer_for": "tip"}})
+        self.assertEqual((packet["coin_answer"], packet["coin_answer_for"]), ("declines", "tip"))
+        self.assertEqual(speak({"speech": {"coin_answer": 7}})["coin_answer"], 7)
+        remembered = speak({"spoken": "Demek değirmenciydi.", "speech": {"remember_player_line": True}})
+        self.assertEqual((remembered["spoken_text"], remembered["remember_player_line"]), ("Demek değirmenciydi.", True))
+        self.assertNotIn("coin_answer", speak({}))  # without a script the answer leaves the fields out
+        for wrong in ({"speech": "declines"}, {"speech": {"coin_anwser": "declines"}},
+                      {"speech": {"spoken_text": "x"}}):
+            with self.subTest(wrong=wrong), self.assertRaises(ScenarioError) as raised:
+                ScriptedClient(wrong)
+            self.assertIn("speech", str(raised.exception))
+
 
 class TheNarratorInput(unittest.TestCase):
     def test_only_narrator_calls_are_kept_and_every_call_still_goes_through(self):
@@ -640,6 +777,21 @@ class TheNarratorInput(unittest.TestCase):
         listen(model="m", messages=[{"role": "user", "content": "İkinci anlatı."}], format={"properties": {"narration": {}}})
         self.assertEqual(listen.text(), "Anlat.\nOda tutuldu.\nİkinci anlatı.")
         self.assertEqual(len(answered), 4)
+
+    def test_the_last_speech_calls_messages_are_kept_apart(self):
+        listen = NarratorInput(lambda *args, **kwargs: {"message": {"content": "{}"}})
+        self.assertIsNone(listen.speech_messages())
+        listen(model="m", messages=[{"role": "user", "content": "Anlat."}], format={"properties": {"narration": {}}})
+        self.assertIsNone(listen.speech_messages(), "a narrator call is not a speech call")
+        listen(model="m", messages=[{"role": "system", "content": "Sen Marek'sin."}, {"role": "user", "content": "selam"}],
+               format={"properties": {"spoken_text": {}, "stage_direction": {}}})
+        self.assertEqual(listen.speech_messages(), ["Sen Marek'sin.", "selam"])
+        listen(model="m", messages=[{"role": "user", "content": "ikinci"}, "bozuk"],
+               format={"properties": {"spoken_text": {}}})
+        self.assertEqual(listen.speech_messages(), ["ikinci"])  # the last speech call only
+        listen.speech_messages().append("x")
+        self.assertEqual(listen.speech_messages(), ["ikinci"])  # a copy
+        self.assertEqual(listen.text(), "Anlat.")  # the narrator's input is unchanged
 
 
 if __name__ == "__main__":

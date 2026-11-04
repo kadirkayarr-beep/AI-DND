@@ -126,9 +126,35 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
-                "esya_sayisi",
+                "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar",
             },
         )
+
+    def step(self, raw: dict) -> Step:
+        (loaded,) = load_scenario(write_scenario(small_scenario(steps=[raw]))).steps
+        return loaded
+
+    def test_konus_goes_with_say_only_and_names_a_person(self):
+        """``konus`` speaks to one person in say mode: it names that person and needs a ``say`` line."""
+        self.assertEqual(self.step({"say": "selam", "konus": "barman"}).konus, "barman")
+        self.assertIsNone(self.step({"say": "selam"}).konus)
+        for bad in ({"say": "x", "konus": 3}, {"say": "x", "konus": ""}, {"command": "/item list", "konus": "barman"},
+                    {"undo": True, "konus": "barman"}):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError) as raised:
+                self.step(bad)
+            self.assertIn("konus", str(raised.exception))
+
+    def test_the_new_expect_values_are_checked_when_the_file_loads(self):
+        for key, value in (("anlatilan", {}), ("anlatilan", ["değirmenci"]), ("anlatilan", {"gezgin": []}),
+                           ("anlatilan", {"gezgin": [""]}), ("anlatilan", {"": ["x"]}), ("anlatilan", {"gezgin": 3}),
+                           ("konusmaya_giden", []), ("konusmaya_giden", ""), ("konusmaya_giden", None),
+                           ("inkar", 0), ("inkar", None), ("inkar", "false")):
+            with self.subTest(key=key, value=value), self.assertRaises(ScenarioError) as raised:
+                self.step({"say": "x", "expect": {key: value}})
+            self.assertIn(key, str(raised.exception))
+        good = {"anlatilan": {"gezgin": ["değirmenci"], "yolcu": "Yeşilova"}, "konusmaya_giden": "değirmenci",
+                "inkar": False}
+        self.assertEqual(self.step({"say": "x", "expect": good}).expect, good)
 
     def test_step_needs_exactly_one_action(self):
         for label, step in (
@@ -454,6 +480,31 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
                     check_expect({"anlaticiya_giden": ["oda tutuldu", "inn"]}, observed),
                     ["anlaticiya_giden: bu adımda anlatıcı çağrılmadı"],
                 )
+
+    def test_what_was_told_and_the_denial_are_checked(self):
+        """``anlatilan`` reads what each person keeps of the player's own words, ``konusmaya_giden`` what the speech
+        call was sent, ``inkar`` whether a stock denial line was said; all three are case-insensitive or exact."""
+        seen = {"anlatilan": {"gezgin": ["Babam değirmenci."]}, "konusmaya_giden": "…değirmenci…", "inkar": False,
+                "narration": ""}
+        self.assertEqual(check_expect({"anlatilan": {"gezgin": ["değirmenci"]}, "konusmaya_giden": ["değirmenci"],
+                                       "inkar": False}, seen), [])
+        self.assertEqual(check_expect({"anlatilan": {"gezgin": "BABAM"}, "konusmaya_giden": "Değirmenci"}, seen), [])
+        self.assertEqual(len(check_expect({"anlatilan": {"gezgin": ["kılıç"]}, "inkar": True}, seen)), 2)
+        self.assertEqual(
+            check_expect({"anlatilan": {"gezgin": ["kılıç", "değirmenci"], "yolcu": ["değirmenci"]},
+                          "inkar": True, "konusmaya_giden": ["ejderha"]}, seen),
+            ["anlatilan.gezgin: anlatılan sözlerde bulunamadı: kılıç",
+             "anlatilan.yolcu: anlatılan sözlerde bulunamadı: değirmenci",
+             "inkar: beklenen True, gözlenen False",
+             "konusmaya_giden: konuşmaya giden metinde bulunamadı: ejderha"],
+        )
+        # A step whose turn made no speech call cannot have sent it anything; that is said plainly.
+        for observed in ({"konusmaya_giden": None}, {}):
+            with self.subTest(observed=observed):
+                self.assertEqual(check_expect({"konusmaya_giden": ["değirmenci", "Yeşilova"]}, observed),
+                                 ["konusmaya_giden: bu adımda konuşma çağrılmadı"])
+        self.assertEqual(check_expect({"anlatilan": {"gezgin": "x"}}, {}),
+                         ["anlatilan.gezgin: anlatılan sözlerde bulunamadı: x"])
 
     def test_check_expect_rejects_a_key_the_schema_does_not_know(self):
         with self.assertRaises(ScenarioError):
