@@ -28,11 +28,12 @@ USAGE_FILE_NAME = "model-usage.jsonl"
 _logger = logging.getLogger("ai_dnd.api.ollama")
 
 # USD per million tokens as (input, output). Haiku's pair is the old code constant and has NOT
-# been checked against the current price list. Gemini is deliberately unknown (None): it never
-# enters a total. Gemma is local and costs nothing.
+# been checked against the current price list. Gemini is on the free tier (owner said free tier
+# 2026-11-04), so its price is known and zero; its calls and tokens are still counted. A provider with
+# None (or no entry) has an unknown price and never enters a total. Gemma is local and costs nothing.
 PRICES_USD_PER_MILLION: Mapping[str, tuple[float, float] | None] = {
     "haiku": (0.10, 0.50),
-    "gemini": None,
+    "gemini": (0.0, 0.0),
     "gemma": (0.0, 0.0),
 }
 

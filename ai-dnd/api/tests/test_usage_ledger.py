@@ -93,12 +93,25 @@ class TheLedger(unittest.TestCase):
 
     def test_known_usd_ignores_unknown_price(self):
         ledger = UsageLedger(ledger_file(), now=noon())
-        ledger.record("gemini", input_tokens=900_000_000, output_tokens=900_000_000, thought_tokens=5)
+        ledger.record("mystery", input_tokens=900_000_000, output_tokens=900_000_000, thought_tokens=5)
         ledger.record("haiku", input_tokens=2_000_000, output_tokens=1_000_000)
         ledger.record("gemma", input_tokens=50_000_000, output_tokens=50_000_000)
         ledger.record("someone-new", input_tokens=50_000_000, output_tokens=50_000_000)
-        self.assertEqual(PRICES_USD_PER_MILLION["gemini"], None)
-        # haiku: 2 M in at 0.10 + 1 M out at 0.50 = 0.70; gemini unknown, gemma free, unlisted provider unknown.
+        # haiku: 2 M in at 0.10 + 1 M out at 0.50 = 0.70; "mystery" and "someone-new" have no price, gemma is free.
+        self.assertAlmostEqual(ledger.known_usd_today(), 0.70)
+
+    def test_gemini_is_free_so_it_counts_as_zero_usd_but_its_calls_still_count(self):
+        ledger = UsageLedger(ledger_file(), now=noon())
+        ledger.record("gemini", input_tokens=900_000_000, output_tokens=900_000_000, thought_tokens=900_000_000,
+                      seconds=2.0)
+        self.assertEqual(PRICES_USD_PER_MILLION["gemini"], (0.0, 0.0))
+        self.assertEqual(
+            ledger.today()["gemini"],
+            {"calls": 1, "input": 900_000_000, "output": 900_000_000, "thought": 900_000_000, "seconds": 2.0},
+        )
+        self.assertEqual(ledger.known_usd_today(), 0.0)
+        # The price is known (free), not unknown: beside a Haiku line it adds exactly nothing to the total.
+        ledger.record("haiku", input_tokens=2_000_000, output_tokens=1_000_000)
         self.assertAlmostEqual(ledger.known_usd_today(), 0.70)
 
     def test_warning_at_three_usd_with_known_prices(self):
@@ -113,7 +126,7 @@ class TheLedger(unittest.TestCase):
 
     def test_warning_never_counts_an_unknown_price(self):
         ledger = UsageLedger(ledger_file(), now=noon())
-        ledger.record("gemini", input_tokens=10**12, output_tokens=10**12, thought_tokens=10**12)
+        ledger.record("mystery", input_tokens=10**12, output_tokens=10**12, thought_tokens=10**12)
         self.assertEqual(ledger.known_usd_today(), 0.0)
         self.assertIsNone(ledger.warning())
 
