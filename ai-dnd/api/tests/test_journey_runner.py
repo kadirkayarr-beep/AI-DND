@@ -260,6 +260,52 @@ class TheRunnerSortsEveryStep(JourneyCase):
                 apply_setup(self, fresh, wrong)
             self.assertIn(word, str(raised.exception))
 
+    async def test_death_mode_setup_makes_the_campaign_in_that_mode(self):
+        start = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                 "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
+        for setup, mode in (({"death_mode": "PERMADEATH"}, "PERMADEATH"),
+                            ({"death_mode": "IRONMAN", "campaign_start": start}, "IRONMAN"),
+                            ({}, "NORMAL")):
+            with self.subTest(setup=setup):
+                campaign = await self._journey_campaign(setup)
+                apply_setup(self, campaign, setup)
+                world = self.manager.get(campaign["session_id"]).game_session.world_state
+                self.assertEqual(world["death_state"]["mode"], mode)
+        for wrong in ("SONSUZ", 1, None):
+            with self.subTest(wrong=wrong):
+                with self.assertRaises(ScenarioError) as raised:
+                    await self._journey_campaign({"death_mode": wrong})
+                self.assertIn("death_mode", str(raised.exception))
+
+    async def test_a_place_with_no_exit_has_no_way_out_of_it(self):
+        start = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                 "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
+        cellar = {"kind": "smithy", "name": "Kilitli Mahzen", "no_exit": True}
+        setup = {"campaign_start": start, "place": cellar}
+        campaign = await self._journey_campaign(setup)
+        apply_setup(self, campaign, setup)
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        place = world["locations"][world["location"]]
+        self.assertEqual(place["name"], "Kilitli Mahzen")
+        self.assertNotIn("parent_location_id", place)
+        self.assertIsNone(place["exit_location_id"])
+        saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertIsNone(saved["locations"][world["location"]]["exit_location_id"])
+        with self.assertRaises(ScenarioError) as raised:
+            apply_setup(self, await self.create_campaign(), {"place": {**cellar, "no_exit": "evet"}})
+        self.assertIn("no_exit", str(raised.exception))
+
+    async def test_the_players_combat_movement_this_turn_is_observed(self):
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, {"npcs": [{"id": "bandit", "name": "Haydut", "role": "Bandit", "current_hp": 30,
+                                               "max_hp": 30, "hostile": True, "distance_ft": 5}]})
+        session = self.manager.get(campaign["session_id"]).game_session
+        self.assertIsNone(read_observed(self, campaign["session_id"])["hareket"])  # no fight, no combat movement
+        session.start_combat(session.world_state["npcs"][0])
+        self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 0)  # a fresh turn: nothing moved
+        session.world_state["combat"]["turn_resources"]["player"]["movement_used"] = 15
+        self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 15)
+
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()
         campaign = await self.create_campaign()

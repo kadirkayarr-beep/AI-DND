@@ -47,10 +47,14 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # ``place`` makes a new local place in the starting town and stands the player (and the scenario's people) in
 # it: ``kind`` is a local place kind, ``name`` its name, ``scene_kind``/``place_kind`` optional overrides. There is
 # no inn among the local place kinds; the product's own inn tests make one the same way (a place with the tavern
-# scene kind).
+# scene kind). ``no_exit`` (true) leaves the place without a way out (no parent, no exit), as the product's own
+# flight tests make one.
+#
+# ``death_mode`` is the new campaign's death mode (``game.DEATH_MODES``). The journeys default to the old NORMAL
+# mode, which rewinds a death in a fight; a new campaign in the product dies for real (PERMADEATH).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
-                        "current_hp", "seed", "front_proposal"})
-PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind"})
+                        "current_hp", "seed", "front_proposal", "death_mode"})
+PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
@@ -232,10 +236,15 @@ def _stand_in_place(world: dict[str, Any], place: Any) -> None:
                             f"(izinli: {', '.join(sorted(local_places.PLACE_KINDS))})")
     if not isinstance(name, str) or not name:
         raise ScenarioError("setup 'place.name' boş olmayan bir metin olmalı")
+    if "no_exit" in place and not isinstance(place["no_exit"], bool):
+        raise ScenarioError("setup 'place.no_exit' true ya da false olmalı")
     record = local_places.create_local_place(world, world["location"], kind, name=name)
     if record is None:
         raise ScenarioError(f"setup 'place' kurulamadı: {name}")
     record.update({key: place[key] for key in ("scene_kind", "place_kind") if key in place})
+    if place.get("no_exit"):
+        record.pop("parent_location_id", None)
+        record["exit_location_id"] = None
     world["location"] = record["id"]
 
 
@@ -246,7 +255,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     ``kart`` is the economic card; ``tezgah`` is the counter's offer that a spoken order opens (settled
     only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's; ``cephane`` is
     the player's ammunition counter (``world.ammunition``, type to count), kept apart from the items: a pack
-    label such as "Uzun Yay & 20 Ok" is one item and no arrows."""
+    label such as "Uzun Yay & 20 Ok" is one item and no arrows. ``hareket`` is the feet of movement the player
+    has used in the fight's current turn (None outside a fight or before the turn's resources exist)."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
@@ -268,10 +278,20 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "tezgah": _counter_offer(world),
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
         "cephane": copy.deepcopy(ammunition),
+        "hareket": _combat_movement(combat),
         "olu": (state.get("death_state") or {}).get("status"),
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
     }
+
+
+def _combat_movement(combat: Mapping[str, Any]) -> int | None:
+    """The player's movement used this turn, read from the fight's turn resources without making them."""
+    if not combat.get("active"):
+        return None
+    resources = combat.get("turn_resources")
+    player = resources.get("player") if isinstance(resources, Mapping) else None
+    return player.get("movement_used") if isinstance(player, Mapping) else None
 
 
 def _counter_offer(world: dict[str, Any]) -> dict[str, Any] | None:
@@ -352,9 +372,13 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
-        if "character" not in setup and "campaign_start" not in setup:
+        if not {"character", "campaign_start", "death_mode"} & set(setup):
             return await self.create_campaign()
-        body: dict[str, Any] = {"death_mode": "NORMAL"}
+        mode = setup.get("death_mode", "NORMAL")
+        if mode not in game.DEATH_MODES:
+            raise ScenarioError(f"setup 'death_mode' bilinen bir ölüm kipi değil: {mode} "
+                                f"(izinli: {', '.join(game.DEATH_MODES)})")
+        body: dict[str, Any] = {"death_mode": mode}
         for key in ("character", "campaign_start"):
             if key in setup:
                 body[key] = setup[key]

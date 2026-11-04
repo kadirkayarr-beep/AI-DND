@@ -1,0 +1,99 @@
+{
+  "id": "06_combat_actions",
+  "title": "Savaş eylemleri (Fighter 3, Haydut yanında, Okçu 30 feet ötede): tetik ve karşılıkla Ready çalışır ve tetiklenince karşılık uygulanır; Dash, Second Wind, Action Surge ve açık 'N feet' hareketi çalışır (yeşil, korunur); tetiksiz 'ready' Türkçe, ne eksik olduğunu söyleyen bir mesaj verir, 'Dövüşün ortasında bu olmuyor' demez; 'okçuya yaklaşıyorum' savaş hareketidir (25 feet, Okçunun yanına; iki rakip varken 'rakibe' belirsiz olduğu için rakip adıyla); Kadir'in 'rakibin yanına gidiyorum' cümlesi seyahat diye reddedilmez",
+  "source_items": [40],
+  "setup": {
+    "character": {
+      "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
+      "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",
+      "background": "Soldier", "alignment": "Chaotic Neutral", "ability_score_method": "standard_array",
+      "ability_scores": {"strength": 15, "dexterity": 13, "constitution": 14,
+                         "intelligence": 12, "wisdom": 10, "charisma": 8},
+      "background_ability_bonuses": {"strength": 2, "constitution": 1},
+      "proficient_skills": ["Athletics", "Intimidation", "Perception", "Insight", "Persuasion"],
+      "species_bonus_skills": ["Persuasion"], "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker", "fighting_style": "Defense", "equipment_package": "A",
+      "background_equipment_option": "A", "languages": ["Dwarvish", "Goblin"],
+      "origin": "Baldur's Gate", "appearance": "Sırım gibi.", "personality": "Kurnaz.",
+      "backstory": "Ordudan ayrıldı."
+    },
+    "campaign_start": {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                       "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"},
+    "npcs": [
+      {"id": "bandit", "name": "Haydut", "role": "Bandit", "current_hp": 40, "max_hp": 40, "armor_class": 12,
+       "hostile": true, "distance_ft": 5},
+      {"id": "archer", "name": "Okçu", "role": "Bandit", "current_hp": 30, "max_hp": 30, "armor_class": 12,
+       "hostile": true, "distance_ft": 30}
+    ],
+    "current_hp": 12,
+    "seed": 1
+  },
+  "steps": [
+    {
+      "say": "Haydut'a saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {"type": "npc", "reference": "Haydut", "npc_id": "bandit", "evidence_quote": "Haydut"},
+          "completion": "complete"
+        }
+      },
+      "expect": {"savas": true, "hp": 12}
+    },
+    {
+      "combat_action": {
+        "steps": [
+          {
+            "kind": "ready",
+            "trigger": {"event": "actor_attacks", "actor_id": "bandit"},
+            "response": {"kind": "attack", "target_id": "bandit"}
+          },
+          {"kind": "end_turn"}
+        ]
+      },
+      "expect": {"savas": true, "gerekli_metin": "hazır bekliyorsun"}
+    },
+    {
+      "say": "reaksiyonumu kullanıyorum",
+      "expect": {"savas": true, "gerekli_metin": "Hazırladığın tepkiyi uygularsın"}
+    },
+    {
+      "combat_action": {"steps": [{"kind": "dash"}]},
+      "expect": {"savas": true, "hareket": 0, "gerekli_metin": "30 feet daha hareket"}
+    },
+    {
+      "combat_action": {"steps": [{"kind": "second_wind", "resource": "bonus"}]},
+      "expect": {"savas": true, "hp": 19, "gerekli_metin": "Second Wind"}
+    },
+    {
+      "combat_action": {"steps": [{"kind": "action_surge"}]},
+      "expect": {"savas": true, "gerekli_metin": "ek eylem"}
+    },
+    {
+      "say": "25 feet ilerliyorum",
+      "expect": {"savas": true, "hareket": 25}
+    },
+    {
+      "combat_action": {"steps": [{"kind": "end_turn"}]},
+      "expect": {"savas": true, "hareket": 0, "hp": 19}
+    },
+    {
+      "say": "ready",
+      "expect": {"savas": true, "yasak_metin": ["Dövüşün ortasında bu olmuyor", "Ready needs"]},
+      "known_broken": [40]
+    },
+    {
+      "say": "okçuya yaklaşıyorum",
+      "independent": true,
+      "expect": {"savas": true, "hareket": 25},
+      "known_broken": [40]
+    },
+    {
+      "say": "rakibin yanına gidiyorum",
+      "independent": true,
+      "expect": {"savas": true, "yasak_metin": "yürüyüp gidemezsin"},
+      "known_broken": [40]
+    }
+  ]
+}
