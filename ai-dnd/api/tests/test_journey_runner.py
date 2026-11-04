@@ -1,0 +1,190 @@
+"""The journey runner: it drives the real app over HTTP with a scripted model and sorts every step.
+
+A step marked known broken must really break (a fixed one says "remove the marker"); an unmarked failure
+is a new break; the steps after a known break are not run unless they say they stand on their own.
+"""
+
+from __future__ import annotations
+
+import json
+import random
+import tempfile
+import unittest
+from pathlib import Path
+
+from api.tests.journeys.runner import (
+    JourneyCase,
+    ScriptedClient,
+    StepResult,
+    apply_setup,
+    describe_problems,
+    read_observed,
+    summary_line,
+)
+from api.tests.journeys.schema import ScenarioError, load_scenario
+
+BUY_BEER = "/item shop_buy barman bira 1 0 4"
+BUY_SECOND_BEER = "/item shop_buy barman bira 1 1 4"  # the counter sequence moved on after one trade
+
+
+def beer_scenario(*steps, **changes):
+    """The one built-in journey: a purse of 100 cp, a barman, one beer bought at the counter for 4 cp."""
+    data = {
+        "id": "00_runner_beer",
+        "title": "Tezgâhtan bir bira (çalıştırıcı sınaması)",
+        "source_items": [35],
+        "setup": {
+            "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+            "currency": {"player": 100, "barman": 0},
+            "inventory": [],
+            "seed": 7,
+        },
+        "steps": list(steps) or [{"command": BUY_BEER, "expect": {"kese": 96, "envanter": {"Bira": 1}}}],
+    }
+    data.update(changes)
+    folder = Path(tempfile.mkdtemp())
+    path = folder / "scenario.json"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    try:
+        return load_scenario(path)
+    finally:
+        path.unlink()
+        folder.rmdir()
+
+
+class TheRunnerSortsEveryStep(JourneyCase):
+    async def test_a_passing_scenario_reports_all_pass(self):
+        results = await self.run_scenario(beer_scenario())
+        self.assertEqual([result.status for result in results], ["pass"], results)
+        (result,) = results
+        self.assertIsInstance(result, StepResult)
+        self.assertEqual((result.index, result.failures, result.items), (1, (), ()))
+        self.assertIn("4 bakır", result.narration)
+        self.assertGreaterEqual(result.seconds, 0.0)
+        self.assertEqual(self.last_observations[-1]["kese"], 96)
+        self.assertEqual(self.last_observations[-1]["envanter"], {"Bira": 1})
+
+    async def test_known_broken_step_that_fails_is_counted_not_failed(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 95}, "known_broken": [35]}))
+        (result,) = results
+        self.assertEqual(result.status, "known_broken")
+        self.assertEqual(result.items, (35,))
+        self.assertEqual(result.failures, ("kese: beklenen 95, gözlenen 96",))
+
+    async def test_known_broken_step_that_passes_is_marker_stale(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}, "known_broken": [35]}))
+        (result,) = results
+        self.assertEqual(result.status, "marker_stale")
+        self.assertEqual((result.items, result.failures), ((35,), ()))
+
+    async def test_unmarked_failure_is_new_break(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 100, "envanter": {"Bira": 1}}}))
+        (result,) = results
+        self.assertEqual(result.status, "new_break")
+        self.assertEqual(result.failures, ("kese: beklenen 100, gözlenen 96",))
+        self.assertEqual(result.items, ())
+
+    async def test_steps_after_a_known_break_are_unreached_unless_independent(self):
+        results = await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 95}, "known_broken": [35]},
+            {"command": BUY_BEER, "expect": {"kese": 1}},
+            {"command": BUY_SECOND_BEER, "expect": {"kese": 92, "envanter": {"Bira": 2}}, "independent": True},
+            {"command": BUY_BEER, "expect": {"kese": 1}},
+        ))
+        self.assertEqual([result.status for result in results],
+                         ["known_broken", "unreached", "pass", "unreached"], results)
+        self.assertEqual([result.index for result in results], [1, 2, 3, 4])
+        # The unreached steps never ran: only two beers were bought.
+        self.assertEqual(read_observed(self, self.last_session_id)["kese"], 92)
+        self.assertIn("adım 1", results[1].failures[0])
+
+    async def test_same_scenario_twice_gives_identical_observations(self):
+        scenario = beer_scenario(
+            {"command": BUY_BEER, "expect": {"kese": 96}},
+            {"say": "Tezgâha yaslanıp salonu dinliyorum.",
+             "script": {"intent": "narrative", "narration": "Salon uğulduyor; Marek bardak siliyor."},
+             "expect": {"kese": 96, "savas": False}},
+            {"command": BUY_SECOND_BEER, "expect": {"kese": 92, "envanter": {"Bira": 2}}},
+        )
+        first = await self.run_scenario(scenario)
+        seen_first = self.last_observations
+        second = await self.run_scenario(scenario)
+        seen_second = self.last_observations
+        self.assertEqual([result.status for result in first], ["pass", "pass", "pass"], first)
+        self.assertEqual([result.status for result in second], ["pass", "pass", "pass"], second)
+        self.assertEqual(len(seen_first), 3)
+        self.assertEqual(seen_first, seen_second)
+        self.assertEqual([result.narration for result in first], [result.narration for result in second])
+
+    async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
+        scenario = beer_scenario()
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, scenario.setup)
+        session = self.manager.get(campaign["session_id"]).game_session
+        self.assertEqual(session.rng.getstate(), random.Random(7).getstate())
+        self.assertEqual(session.world_state["currency"], {"player": 100, "barman": 0})
+        self.assertEqual(session.world_state["npcs"][0]["location"], session.world_state["location"])
+        saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertEqual(saved["currency"], {"player": 100, "barman": 0})
+        with self.assertRaises(ScenarioError) as raised:
+            apply_setup(self, campaign, {"seed": 7, "kese": 100})
+        self.assertIn("kese", str(raised.exception))
+
+
+class TheSuiteSummary(unittest.TestCase):
+    def test_new_breaks_and_stale_markers_fail_the_suite_and_scenarios_are_counted(self):
+        def step(index, status, items=()):
+            return StepResult(index, status, ("kese: beklenen 95, gözlenen 96",) if status != "pass" else (),
+                              items, "", 0.0)
+
+        results = {
+            "a": [step(1, "pass")],
+            "b": [step(1, "known_broken", (35,)), step(2, "unreached")],
+            "c": [step(1, "pass"), step(2, "new_break")],
+            "d": [step(1, "marker_stale", (38,))],
+        }
+        self.assertEqual(summary_line(results), "2 geçti, 1 bilinen kırık, 1 yeni kırık (1 adımda işaret kaldırılmalı)")
+        self.assertEqual(describe_problems(results["a"] + results["b"]), [])
+        (new,) = describe_problems(results["c"])
+        self.assertIn("YENİ KIRIK", new)
+        self.assertIn("kese: beklenen 95, gözlenen 96", new)
+        (stale,) = describe_problems(results["d"])
+        self.assertIn("[38]", stale)
+        self.assertIn("işareti kaldır", stale)
+
+
+class TheScriptedClient(unittest.TestCase):
+    def test_scripted_client_rejects_an_unscripted_call_kind(self):
+        client = ScriptedClient({"narration": "Sessiz bir akşam."})
+        with self.assertRaises(AssertionError):
+            client.chat(model="m", messages=[], format={"type": "object", "properties": {"verdict": {}}})
+        with self.assertRaises(AssertionError):
+            client.chat(model="m", messages=[])
+        self.assertEqual(len(client.unexpected), 2)
+        with self.assertRaises(ScenarioError):
+            ScriptedClient({"narrasyon": "yazım hatası"})
+
+    def test_each_known_call_kind_answers_from_the_script(self):
+        client = ScriptedClient({"intent": "attack", "front": {"kind": "look"}, "spoken": "Hoş geldin.",
+                                 "narration": "Kapı gıcırdar."})
+
+        def ask(*keys):
+            reply = client.chat(model="m", messages=[], format={"properties": {key: {} for key in keys}})
+            return json.loads(reply["message"]["content"])
+
+        self.assertEqual(ask("spoken_text", "stage_direction")["spoken_text"], "Hoş geldin.")
+        self.assertEqual(ask("narration", "world_updates")["narration"], "Kapı gıcırdar.")
+        self.assertEqual(ask("steps")["steps"], [])
+        self.assertEqual(ask("intent", "action")["intent"], "attack")
+        front = ask("intent", "front")
+        self.assertEqual((front["intent"], front["front"]["kind"], front["front"]["person_id"]),
+                         ("attack", "look", "none"))
+        self.assertEqual(client.kinds, ["speech", "narration", "steps", "intent", "front"])
+        self.assertEqual(client.unexpected, [])
+
+
+if __name__ == "__main__":
+    unittest.main()
