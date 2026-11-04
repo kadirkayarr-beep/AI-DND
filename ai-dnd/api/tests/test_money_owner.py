@@ -170,6 +170,21 @@ class MoneyOwnerDecision(unittest.TestCase):
         self.w["flags"]["turn_index"] = 6
         self.assertEqual(self.decide(self.barman, 5, None).kind, "unclear")
 
+    def test_the_counter_offer_takes_coin_two_turns_on_for_its_own_server_only(self):
+        # the same bold_acts.offer_still_open check _hand_over_coin uses today (design §3a: "bugünkü 18415 dalı")
+        self.open_counter_offer("bira")
+        self.w["flags"]["turn_index"] = 5
+        d = self.decide(self.barman, 5, None)
+        self.assertEqual((d.kind, d.goods_key, d.source), ("goods", "bira", "structural"))
+        self.assertIsNone(bold_acts.offer_still_open(self.w, None))
+        for person in (None, self.osman):
+            self.assertEqual(self.decide(person, 5, None).kind, "unclear", person)
+        self.w["shop_trades_v1"] = {"seq": 1}  # a counter trade settled since the offer was opened
+        self.assertEqual(self.decide(self.barman, 5, None).kind, "unclear")
+        self.w["shop_trades_v1"] = {"seq": 0}
+        self.w["flags"]["turn_index"] = 2  # an offer stamped later than this turn is no offer
+        self.assertEqual(self.decide(self.barman, 5, None).kind, "unclear")
+
     def test_in_a_fight_every_deal_is_unclear(self):
         self.w["combat"] = {"active": True}
         self.open_counter_offer("bira")
