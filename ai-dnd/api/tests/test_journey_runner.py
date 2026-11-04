@@ -195,6 +195,32 @@ class TheRunnerSortsEveryStep(JourneyCase):
         ))
         self.assertEqual([result.status for result in results], ["pass", "pass"], results)
 
+    async def test_campaign_start_and_place_stand_the_player_in_a_new_place_of_the_town(self):
+        start = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                 "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
+        inn = {"kind": "smithy", "name": "Göl Sofrası Hanı", "scene_kind": "tavern", "place_kind": "tavern"}
+        setup = {**beer_scenario().setup, "campaign_start": start, "place": inn}
+        campaign = await self._journey_campaign(setup)
+        apply_setup(self, campaign, setup)
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        here = world["location"]
+        self.assertNotEqual(here, "fr:city:neverwinter")
+        place = world["locations"][here]
+        self.assertEqual((place["name"], place["parent_location_id"], place["exit_location_id"]),
+                         ("Göl Sofrası Hanı", "fr:city:neverwinter", "fr:city:neverwinter"))
+        self.assertEqual((place["scene_kind"], place["place_kind"]), ("tavern", "tavern"))
+        self.assertEqual(world["npcs"][0]["location"], here)  # the people stand in the place, not in the street
+        saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertEqual(saved["location"], here)
+        for wrong, word in (({"campaign_start": "neverwinter"}, "campaign_start"),
+                            ({"place": {**inn, "kapı": "açık"}}, "kapı"),
+                            ({"place": {**inn, "kind": "han"}}, "han"),
+                            ({"place": {"kind": "smithy"}}, "name")):
+            with self.subTest(wrong=wrong), self.assertRaises(ScenarioError) as raised:
+                fresh = await self.create_campaign()
+                apply_setup(self, fresh, wrong)
+            self.assertIn(word, str(raised.exception))
+
     async def test_setup_seeds_the_dice_and_rejects_an_unknown_key(self):
         scenario = beer_scenario()
         campaign = await self.create_campaign()

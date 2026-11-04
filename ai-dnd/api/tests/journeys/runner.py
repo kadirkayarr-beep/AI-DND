@@ -29,6 +29,7 @@ from unittest.mock import patch
 
 import bold_acts
 import front_proposal
+import local_places
 import shop_trade
 from api import serializers
 from api.tests import test_campaign_api as fixtures
@@ -40,8 +41,15 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 
 # ``front_proposal`` (true/false) sets the front-reading flag for the scenario's steps only; local play runs
 # with it on, so a step whose script carries a ``front`` reading needs it.
-SETUP_KEYS = frozenset({"character", "npcs", "currency", "inventory", "ammunition", "current_hp", "seed",
-                        "front_proposal"})
+#
+# ``campaign_start`` is the new campaign's start (setting, region, starting town), as the create route takes it.
+# ``place`` makes a new local place in the starting town and stands the player (and the scenario's people) in
+# it: ``kind`` is a local place kind, ``name`` its name, ``scene_kind``/``place_kind`` optional overrides. There is
+# no inn among the local place kinds; the product's own inn tests make one the same way (a place with the tavern
+# scene kind).
+SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
+                        "current_hp", "seed", "front_proposal"})
+PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind"})
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
@@ -156,8 +164,12 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         )
     if "front_proposal" in setup and not isinstance(setup["front_proposal"], bool):
         raise ScenarioError("setup 'front_proposal' true ya da false olmalı")
+    if "campaign_start" in setup and not isinstance(setup["campaign_start"], Mapping):
+        raise ScenarioError("setup 'campaign_start' bir nesne olmalı")
     session = case.manager.get(campaign["session_id"]).game_session
     world = session.world_state
+    if "place" in setup:
+        _stand_in_place(world, setup["place"])
     if "npcs" in setup:
         world["npcs"] = [{"location": world["location"], **copy.deepcopy(npc)} for npc in setup["npcs"]]
     for key in ("currency", "inventory", "ammunition"):
@@ -168,6 +180,28 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])
+
+
+def _stand_in_place(world: dict[str, Any], place: Any) -> None:
+    """A new local place in the town the player stands in; the player is then inside it."""
+    if not isinstance(place, Mapping):
+        raise ScenarioError("setup 'place' bir nesne olmalı")
+    unknown = sorted(str(key) for key in place if key not in PLACE_KEYS)
+    if unknown:
+        raise ScenarioError(
+            f"bilinmeyen place anahtarı: {', '.join(unknown)} (izinli: {', '.join(sorted(PLACE_KEYS))})"
+        )
+    kind, name = place.get("kind"), place.get("name")
+    if kind not in local_places.PLACE_KINDS:
+        raise ScenarioError(f"setup 'place.kind' bilinen bir yer türü değil: {kind} "
+                            f"(izinli: {', '.join(sorted(local_places.PLACE_KINDS))})")
+    if not isinstance(name, str) or not name:
+        raise ScenarioError("setup 'place.name' boş olmayan bir metin olmalı")
+    record = local_places.create_local_place(world, world["location"], kind, name=name)
+    if record is None:
+        raise ScenarioError(f"setup 'place' kurulamadı: {name}")
+    record.update({key: place[key] for key in ("scene_kind", "place_kind") if key in place})
+    world["location"] = record["id"]
 
 
 def read_observed(case: Any, session_id: str) -> dict[str, Any]:
@@ -275,10 +309,13 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
-        if "character" not in setup:
+        if "character" not in setup and "campaign_start" not in setup:
             return await self.create_campaign()
-        response = await self.http.post("/api/game/campaigns",
-                                        json={"death_mode": "NORMAL", "character": setup["character"]})
+        body: dict[str, Any] = {"death_mode": "NORMAL"}
+        for key in ("character", "campaign_start"):
+            if key in setup:
+                body[key] = setup[key]
+        response = await self.http.post("/api/game/campaigns", json=body)
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
