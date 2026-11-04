@@ -781,6 +781,24 @@ class TheSetting(unittest.TestCase):
         self.assertEqual((rows[1]["input"], rows[1]["output"]), (1000, 200))
         self.assertNotIn("file-key", text)
 
+    def test_haiku_spend_still_counts_the_same_with_the_ledger_wired_in(self):
+        self.keys()
+        os.environ["AI_DND_MODEL_CHAIN"] = "gemini,haiku,gemma"
+        folder = self.home / "appdata" / "AI-DND"
+        spend = folder / "model-chain-spend.json"
+        chain = model_chain.from_environment()
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        chain._http = httpx.Client(transport=httpx.MockTransport(cloud), trust_env=False)
+        chain.chat(CALL, LocalModel())
+        chain.chat(CALL, LocalModel())
+        saved = json.loads(spend.read_text(encoding="utf-8"))
+        self.assertEqual(saved, {"month": datetime.now().astimezone().strftime("%Y-%m"),
+                                 "input_tokens": 2000, "output_tokens": 400})
+        self.assertEqual(sorted(path.name for path in folder.iterdir() if path.suffix in {".json", ".jsonl"}),
+                         ["model-chain-spend.json", "model-usage.jsonl"])
+        usage = [json.loads(line) for line in (folder / "model-usage.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sum(row["input"] for row in usage if row["provider"] == "haiku"), 2000)
+
     def test_the_local_play_adapter_gets_a_ledger_on_the_same_path_and_a_plain_one_does_not(self):
         self.keys()
         os.environ.update(AI_DND_MODEL_CHAIN="gemini,haiku,gemma", OLLAMA_HOST="http://127.0.0.1:11434",
