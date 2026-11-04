@@ -3,9 +3,15 @@
 It only formats. The caller passes the step results of each scenario, the loaded scenarios, and optional
 measurements as plain mappings (so this module does not depend on the runner's model driver or on ``ModelChain``):
 
-- ``real_runs``: scenario id -> one entry per real-chain run, ``1`` when that run passed and ``0`` when it did not;
-- ``latency``: rows ``{"step", "provider", "seconds"}``, one per provider attempt (a summary of the chain attempts);
+- ``real_runs``: scenario id -> one entry per real-chain run, ``1`` when that run passed and ``0`` when it did not
+  (``real_run_flags`` makes that list from booleans);
+- ``latency``: rows ``{"step", "provider", "seconds"}``, one per provider attempt, skipped ones included because a
+  skipped try still cost its seconds (``latency_row`` makes a row from a ``ChainAttempt``);
 - ``usage_today``: provider -> ``{"calls", "input", "output", "thought", "seconds"}`` (``UsageLedger.today()``).
+
+The headline counts use the rule of ``runner.summary_line`` (a new break beats a known break, which beats a pass),
+with one deliberate difference: a scenario with no results, or only unreached steps, is counted as "koşulmadı"
+instead of as passed.
 
 Nothing here reads a key file; any key-like text that reaches a step's narration or failure is scrubbed from the
 finished report.
@@ -19,6 +25,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from api.model_chain import ChainAttempt
     from api.tests.journeys.runner import StepResult
     from api.tests.journeys.schema import Scenario
 
@@ -65,6 +72,18 @@ def build_report(
         _raw_log(rows),
     ]
     return _KEY_LIKE.sub(_REDACTED, "\n\n".join(parts)) + "\n"
+
+
+def latency_row(step: str, attempt: ChainAttempt) -> dict[str, Any]:
+    """The latency row for one provider attempt of one step (skipped attempts count: they cost their seconds)."""
+    return {"step": step, "provider": attempt.provider, "seconds": attempt.seconds}
+
+
+def real_run_flags(passed: Sequence[bool]) -> list[int]:
+    """The ``real_runs`` entry for one scenario: ``1`` for a run that passed, ``0`` for one that did not."""
+    if any(type(run) is not bool for run in passed):
+        raise ValueError(f"gerçek zincir koşusu True ya da False olmalı: {list(passed)}")
+    return [int(run) for run in passed]
 
 
 class _Row:

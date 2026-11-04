@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import unittest
 
-from api.tests.journeys.report import build_report
-from api.tests.journeys.runner import StepResult
+from api.model_chain import ChainAttempt
+from api.tests.journeys.report import build_report, latency_row, real_run_flags
+from api.tests.journeys.runner import StepResult, summary_line
 from api.tests.journeys.schema import Scenario, Step
 
 DATE = "2026-11-04"
@@ -157,6 +158,39 @@ class RealRunTest(unittest.TestCase):
         results, scenarios = three_scenarios()
         with self.assertRaises(ValueError):
             build_report(results, scenarios, real_runs={"02_beer_tip": [1, 2]}, date=DATE)
+
+
+class ProducerContractTest(unittest.TestCase):
+    """What the real-chain command feeds the builder: pinned here so both sides use one shape."""
+
+    def test_headline_counts_agree_with_the_runner_summary_line(self):
+        results, scenarios = three_scenarios()
+        headline = build_report(results, scenarios, date=DATE).splitlines()[2].strip("*")
+        self.assertEqual(headline, summary_line(results))
+
+    def test_a_chain_attempt_becomes_one_latency_row_skipped_attempts_included(self):
+        skipped = ChainAttempt("gemini", "skipped", "http_500", 20.25, 0, 0, 0)
+        answered = ChainAttempt("haiku", "answered", None, 3.5, 100, 20, 0)
+        rows = [latency_row("bira/1", skipped), latency_row("bira/1", answered)]
+        self.assertEqual(rows, [{"step": "bira/1", "provider": "gemini", "seconds": 20.25},
+                                {"step": "bira/1", "provider": "haiku", "seconds": 3.5}])
+        results, scenarios = three_scenarios()
+        section = build_report(results, scenarios, latency=rows, date=DATE).split("## Gecikme", 1)[1] \
+            .split("\n## ", 1)[0]
+        self.assertIn("20,25", section)
+        self.assertIn("3,5", section)
+
+    def test_real_run_flags_encode_a_passed_run_as_one(self):
+        flags = real_run_flags([True, False, True])
+        self.assertEqual(flags, [1, 0, 1])
+        results, scenarios = three_scenarios()
+        report = build_report(results, scenarios, real_runs={"02_beer_tip": flags}, date=DATE)
+        self.assertIn("3 üzerinden 2", report)
+
+    def test_real_run_flags_refuse_anything_but_a_bool(self):
+        for bad in ([1, 0], ["geçti"], [None]):
+            with self.assertRaises(ValueError):
+                real_run_flags(bad)
 
 
 class LatencyAndSpendTest(unittest.TestCase):
