@@ -1,6 +1,6 @@
 {
   "id": "22_one_counter_per_move",
-  "title": "Tek hamleye tek karşı saldırı (113): handa barmene yumruk atılınca turun savaş sonucunda düşman başına tek karşı saldırı olayı vardır. Bugün (tohum 1, barmen inisiyatifi kazanır) ilk yumruğun yanıtında barmenin iki saldırısı gelir (birinci turu yumruktan önce, ikinci turu yumruktan sonra) ve ikisi de yumruktan sonra 'karşı saldırı' diye anlatılır; ikinci yumrukta tek karşı saldırı vardır",
+  "title": "Tek hamleye tek karşı saldırı (113): handa barmene yumruk atılınca turun savaş sonucunda, oyuncunun yumruğundan SONRA çözülen düşman başına tek saldırı vardır. Tohum 1'de barmen inisiyatifi kazanır: ilk yanıtta birinci tur saldırısı yumruktan önce, ikinci tur saldırısı yumruktan sonra çözülür (D&D 2024'te doğru); karşı saldırı yalnız sonrakidir. İkisinin de yumruktan sonra 'karşı saldırı' diye anlatılması 22b'de ölçülür",
   "source_items": [
     113
   ],
@@ -53,10 +53,7 @@
       "expect": {
         "savas": true,
         "karsi_saldiri": 1
-      },
-      "known_broken": [
-        113
-      ]
+      }
     },
     {
       "say": "Marek'e bir yumruk daha atıyorum",

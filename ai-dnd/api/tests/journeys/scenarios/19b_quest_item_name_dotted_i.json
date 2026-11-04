@@ -1,0 +1,52 @@
+{
+  "id": "19b_quest_item_name_dotted_i",
+  "title": "Görev eşyasının adı (115, EK 5 Ek bulgular b 'ad bozulması'): çömlekçinin iade işi kabul edilince ele geçen eşyanın adı 'İade takımı'dır. Bugün 'Iade takımı': iş satırındaki adın ilk harfi Python'un str.upper'ıyla büyütülüyor ve Türkçe i noktasını kaybediyor (adventure/dialogue_jobs.py). Kökü 19'un çoğalma ve teslim kırığından ayrı olduğu için ayrı senaryo: 19'un tek eşya adımı bu adla kırık sayılmaz",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "envanter": {
+          "İade takımı": 1
+        }
+      },
+      "known_broken": [
+        115
+      ]
+    }
+  ]
+}

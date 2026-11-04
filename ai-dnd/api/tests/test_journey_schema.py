@@ -118,6 +118,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
+                "esya_sayisi",
             },
         )
 
@@ -288,6 +289,12 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
             check_expect({"gorev": {"aktif": 0, "kayit": []}}, {"gorev": {"aktif": 1, "kayit": ["İade"]}}),
             ["gorev: beklenen {'aktif': 0, 'kayit': []}, gözlenen {'aktif': 1, 'kayit': ['İade']}"],
         )
+
+    def test_check_expect_compares_the_item_count_exactly(self):
+        """``esya_sayisi`` (every item the player holds, whatever its name) is a number compared exactly."""
+        self.assertEqual(check_expect({"esya_sayisi": 1}, {"esya_sayisi": 1}), [])
+        self.assertEqual(check_expect({"esya_sayisi": 1}, {"esya_sayisi": 2}),
+                         ["esya_sayisi: beklenen 1, gözlenen 2"])
 
     def test_check_expect_matches_card_and_mode_by_the_keys_asked_for(self):
         observed = {"kart": {"max_total_cp": 5, "counterparty_label": "Barmen"}}

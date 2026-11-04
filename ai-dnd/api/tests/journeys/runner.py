@@ -344,8 +344,10 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     ``kart.kalemler`` names the card's lines as the card shows them (a room card says "Oda (bir gece)", a gift
     "Hediye"). ``xp`` is the player's earned experience; ``saat`` the whole game hours gone since the campaign began;
     ``gorev`` the quest rows still running (``world.quests``, a town errand's row included: count and titles).
-    ``karsi_saldiri`` is read from the step's own turn response: the most counter-attacks one enemy made in it.
-    ``yuva`` is the player's spell slots left, by level (``world.spellcasting_v1.slots``; None without spells)."""
+    ``karsi_saldiri`` is read from the step's own turn response: the most counter-attacks one enemy made in it, a
+    counter-attack being a swing resolved after the player's own (see ``counter_attacks``).
+    ``yuva`` is the player's spell slots left, by level (``world.spellcasting_v1.slots``; None without spells).
+    ``esya_sayisi`` is every item the player holds, whatever its name (a duplicate shows even under another name)."""
     session = case.manager.get(session_id).game_session
     world = session.world_state
     state = serializers.serialize_session_state(session)
@@ -357,6 +359,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     return {
         "kese": currency.get("player"),
         "envanter": _inventory_counts(world.get("inventory") or []),
+        "esya_sayisi": sum(_inventory_counts(world.get("inventory") or []).values()),
         "oda": bool(flags.get("inn_room")),
         "kip": copy.deepcopy(state.get("conversation")),
         "savas": bool(combat.get("active")),
@@ -382,19 +385,40 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
 
 def counter_attacks(combat_result: Any) -> int:
     """The most counter-attacks one enemy made in a turn's combat result (0 without any). ``enemy_actions`` is the
-    whole exchange; the singular ``enemy_action`` is the engine's alias of its first entry and counts only alone."""
+    whole exchange; the singular ``enemy_action`` is the engine's alias of its first entry and counts only alone.
+
+    A counter-attack answers the player's swing, so it is resolved after it. An enemy that won initiative takes its
+    turn before the player's blow and its next turn after it, both in one response (D&D 2024 initiative order); the
+    first is no counter-attack. The order is the last number of the resolution id within the player's action
+    (``<action_id>:attack_roll:<n>``). A swing whose order cannot be compared with the player's counts."""
     if not isinstance(combat_result, Mapping):
         return 0
     enemies = combat_result.get("enemy_actions")
     if not isinstance(enemies, list):
         single = combat_result.get("enemy_action")
         enemies = [single] if isinstance(single, Mapping) else []
+    player_order = _resolution_order(combat_result)
     counts: dict[str, int] = {}
     for enemy in enemies:
-        if isinstance(enemy, Mapping) and enemy.get("outcome") in _SWINGS:
-            actor = str(enemy.get("actor") or enemy.get("actor_name") or "")
-            counts[actor] = counts.get(actor, 0) + 1
+        if not isinstance(enemy, Mapping) or enemy.get("outcome") not in _SWINGS:
+            continue
+        order = _resolution_order(enemy)
+        if player_order is not None and order is not None and order[0] == player_order[0] \
+                and order[1] < player_order[1]:
+            continue  # resolved before the player's swing: the enemy's own turn, not an answer to the blow
+        actor = str(enemy.get("actor") or enemy.get("actor_name") or "")
+        counts[actor] = counts.get(actor, 0) + 1
     return max(counts.values(), default=0)
+
+
+def _resolution_order(roll: Mapping[str, Any]) -> tuple[str, int] | None:
+    """(action id, place in that action) from ``<action_id>:<kind>:<n>``; None when the id says no such thing."""
+    action_id, resolution_id = roll.get("action_id"), roll.get("resolution_id")
+    if not isinstance(action_id, str) or not isinstance(resolution_id, str) \
+            or not resolution_id.startswith(action_id + ":"):
+        return None
+    number = resolution_id.rsplit(":", 1)[-1]
+    return (action_id, int(number)) if number.isdigit() else None
 
 
 def _spell_slots(world: Mapping[str, Any]) -> dict[str, int] | None:

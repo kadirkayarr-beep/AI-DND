@@ -1,6 +1,6 @@
 {
   "id": "19_quest_item_no_duplicate",
-  "title": "Görev eşyası (115): çömlekçinin 12 bakırlık iade işi kabul edilince 'İade takımı' ele geçer (bugün adı 'Iade takımı': noktalı İ kayboluyor); 'İade takımını alıyorum' ikinci bir eşya üretmez (sahte modelle motor yolunda bugün ikinci eşya çıkmıyor; bu adım yalnız adla kırık); iskeledeki alıcı Tuna'ya adıyla teslim 12 bakır öder ve görev kaydı kapanır (bugün teslim olmuyor)",
+  "title": "Görev eşyası (115): çömlekçinin 12 bakırlık iade işi kabul edilince görev eşyası ele geçer; 'İade takımını alıyorum' ikinci bir eşya üretmez (eşya sayısı 1 kalır, adı ne olursa olsun; sahte modelle motor yolunda bugün ikinci eşya çıkmıyor); iskeledeki alıcı Tuna'ya adıyla teslim 12 bakır öder ve görev kaydı kapanır (bugün teslim olmuyor). Eşyanın adındaki noktalı İ bozulması ayrı bir kökten gelir ve çoğalmayı örtmesin diye 19b'de ölçülür",
   "source_items": [
     115
   ],
@@ -41,13 +41,8 @@
       "say": "olur, götürürüm",
       "expect": {
         "kese": 100,
-        "envanter": {
-          "İade takımı": 1
-        }
-      },
-      "known_broken": [
-        115
-      ]
+        "esya_sayisi": 1
+      }
     },
     {
       "say": "İade takımını alıyorum",
@@ -60,13 +55,8 @@
       },
       "expect": {
         "kese": 100,
-        "envanter": {
-          "İade takımı": 1
-        }
-      },
-      "known_broken": [
-        115
-      ]
+        "esya_sayisi": 1
+      }
     },
     {
       "say": "iskeleye gidiyorum",

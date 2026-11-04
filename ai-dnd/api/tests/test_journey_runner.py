@@ -96,6 +96,17 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertGreaterEqual(result.seconds, 0.0)
         self.assertEqual(self.last_observations[-1]["kese"], 96)
         self.assertEqual(self.last_observations[-1]["envanter"], {"Bira": 1})
+        self.assertEqual(self.last_observations[-1]["esya_sayisi"], 1)  # every item held, whatever its name
+
+    async def test_the_item_count_counts_every_item_whatever_its_name(self):
+        await self.run_scenario(beer_scenario(
+            {"command": BUY_BEER, "expect": {"esya_sayisi": 1}},
+            setup={"npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+                   "currency": {"player": 100, "barman": 0}, "inventory": ["Iade takımı", "İade takımı"],
+                   "seed": 7}))
+        observed = self.last_observations[0]
+        self.assertEqual(observed["envanter"], {"Iade takımı": 1, "İade takımı": 1, "Bira": 1})
+        self.assertEqual(observed["esya_sayisi"], 3)
 
     async def test_known_broken_step_that_fails_is_counted_not_failed(self):
         results = await self.run_scenario(beer_scenario(
@@ -411,6 +422,24 @@ class TheRunnerSortsEveryStep(JourneyCase):
         # The singular field is the engine's compatibility alias of the first entry; it counts only on its own.
         self.assertEqual(counter_attacks({"enemy_action": swing, "enemy_actions": [swing]}), 1)
         self.assertEqual(counter_attacks({"enemy_action": swing}), 1)
+
+    def test_only_enemy_swings_resolved_after_the_players_swing_are_counter_attacks(self):
+        """An enemy that won initiative swings before the player's blow and again after it in one response; only the
+        swing after the blow answers it. The order is the resolution id's last number within the same action."""
+        def roll(actor, number, action="act-1"):
+            return {"actor": actor, "outcome": "miss", "action_id": action,
+                    "resolution_id": f"{action}:attack_roll:{number}"}
+        player = {**roll("player", 2), "enemy_action": roll("barman", 1),
+                  "enemy_actions": [roll("barman", 1), roll("barman", 3)]}
+        self.assertEqual(counter_attacks(player), 1)
+        self.assertEqual(counter_attacks({**player, "enemy_actions": [roll("barman", 1)]}), 0)
+        self.assertEqual(counter_attacks({**player, "enemy_actions": [roll("barman", 3), roll("barman", 4),
+                                                                      roll("thug", 5)]}), 2)
+        self.assertEqual(counter_attacks({**player, "enemy_actions": [roll("barman", 10)]}), 1)  # 10 after 2, not "1"
+        # Without an order to compare (no player roll, another action, no id), every swing counts as before.
+        self.assertEqual(counter_attacks({"enemy_actions": [roll("barman", 1), roll("barman", 3)]}), 2)
+        self.assertEqual(counter_attacks({**player, "enemy_actions": [roll("barman", 1, "act-0")]}), 1)
+        self.assertEqual(counter_attacks({**player, "enemy_actions": [{"actor": "barman", "outcome": "hit"}]}), 1)
 
     async def test_a_fight_step_observes_its_counter_attacks_from_the_turn_response(self):
         bandit = {"id": "bandit", "name": "Haydut", "role": "Bandit", "current_hp": 300, "max_hp": 300,

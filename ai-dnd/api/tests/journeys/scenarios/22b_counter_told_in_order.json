@@ -1,0 +1,64 @@
+{
+  "id": "22b_counter_told_in_order",
+  "title": "Karşı saldırının anlatı sırası (113, EK 5 Ek bulgular e): tohum 1'de inisiyatifi kazanan barmen ilk yumruktan ÖNCE bir kez, SONRA bir kez saldırır. Anlatı bugün ikisini de yumruktan sonra 'karşı saldırısı' diye yazar (yumruk, ardından iki karşı saldırı): oyuncu tek hamleye iki karşı saldırı okur. Yumruktan önceki saldırı yumruktan önce ya da karşı saldırı adı olmadan anlatılmalı",
+  "source_items": [
+    113
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 30
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "seed": 1,
+    "death_mode": "NORMAL"
+  },
+  "steps": [
+    {
+      "say": "Marek'e yumruk atıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Marek",
+            "npc_id": "barman",
+            "evidence_quote": "Marek"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "yasak_metin": [
+          "Saldırın hedefi ıskalar. Marek adlı rakibinin karşı saldırısı seni ıskalar. Marek adlı rakibinin karşı saldırısı"
+        ]
+      },
+      "known_broken": [
+        113
+      ]
+    }
+  ]
+}
