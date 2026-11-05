@@ -83,7 +83,9 @@ class CounterTrade(unittest.TestCase):
         self.unchanged("offer_stale")
 
     def test_a_changed_price_changes_nothing_and_gives_the_fresh_quote(self):
+        import economic_actions
         self.w["npcs"][0]["price_cut_cp_v1"] = {"bira": 1}
+        self.w["npcs"][0]["price_cut_day_v1"] = economic_actions.game_day(self.w)
         result = self.unchanged("price_changed", total=4)
         self.assertEqual(result["action_result"]["offer"]["total_cp"], 3)
         self.assertTrue(self.buy(total=3)["action_result"]["success"])

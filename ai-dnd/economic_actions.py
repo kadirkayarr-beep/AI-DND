@@ -321,7 +321,7 @@ def _lines(world: dict[str, Any], proposal: EconomicProposal, npc: dict[str, Any
         base = OfferLine(line_id="item:0", kind="item", source_id="player", item_id=str(item["item_id"]),
                          recipient_id=npc_id, count=1, unit_cp=0, total_cp=0, optional=False)
     elif proposal.purpose == "room":
-        price = bold_acts._ROOM_PRICE
+        price = bold_acts.room_price(world, npc)
         base = OfferLine(line_id="room:0", kind="room", source_id=npc_id, item_id=None,
                          recipient_id=f"sink:lodging:{world.get('location')}", count=1, unit_cp=price,
                          total_cp=price, optional=False)

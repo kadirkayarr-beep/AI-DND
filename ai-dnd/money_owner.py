@@ -327,3 +327,55 @@ def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str
     prepared = economic_actions.prepare_from_turn(
         session, economic_actions.turn_proposal(purpose, recipient, amount_cp=decision.amount_cp))
     _tell(result, prepared.public_message)
+
+
+def haggle(session: Any, npc: dict | None, check_result: Mapping) -> str | None:
+    """Only an engine check on this NPC's open offer can change its price; no payment occurs."""
+    import copy
+    import bold_acts
+    import economic_actions as ea
+    import living_world
+    import shop_trade
+    import world_reactions
+    world = session.world_state
+    if (not isinstance(npc, dict) or not isinstance(check_result, Mapping)
+            or check_result.get("skill") not in ("Persuasion", "Intimidation", "Deception")
+            or not ea._is_here(world, npc) or ea._combat(world)
+            or not shop_trade.is_vendor(world, npc)
+            or world_reactions.refuses(world, npc)):
+        return None
+    room = next((offer for data in ea.offer_records(world).values()
+                 if (offer := ea.offer_from_record(data)) is not None
+                 and offer.status == "prepared" and offer.proposal.purpose == "room"
+                 and offer.proposal.recipient_id == npc.get("id")), None)
+    counter = bold_acts.offer_still_open(world, npc)
+    if room is not None:
+        key, label, base = "room", "oda", bold_acts._ROOM_PRICE
+        price = bold_acts.room_price(world, npc)
+    elif counter is not None:
+        entry = next((row for row in shop_trade.PRICES if row[0] == counter.get("key")), None)
+        if entry is None:
+            return None
+        key, label, base = entry
+        price = next(row["unit_cp"] for row in shop_trade.goods(world, npc) if row["key"] == key)
+    else:
+        return None
+    if ea.declined(world, npc["id"], "room" if key == "room" else "goods:" + key, day=ea.game_day(world)):
+        return None
+    if check_result.get("result") != "BAŞARILI":
+        return f"İkna tutmadı: fiyat aynı, {label} {price} bakır."
+    old = {field: copy.deepcopy(npc[field]) for field in ("price_cut_cp_v1", "price_cut_day_v1") if field in npc}
+    cut = shop_trade.apply_cut(world, npc, key, base)
+    if cut is None:
+        return None
+    if room is not None:
+        refreshed = ea.prepare_from_turn(session, room.proposal)
+        if refreshed.status != "prepared":
+            for field in ("price_cut_cp_v1", "price_cut_day_v1"):
+                npc.pop(field, None)
+            npc.update(old)
+            return None
+    else:
+        counter["turn"] = world.get("flags", {}).get("turn_index", 0)
+    who = living_world.public_npc_name(npc)
+    return f"İkna başarılı: {who} indirim yapıyor, {label} artık {base - cut} bakır."

@@ -607,14 +607,17 @@ _ROOM_PRICE = 50  # a modest inn stay, 5 silver a night
 
 def room_price(world: dict[str, Any], npc: dict[str, Any] | None) -> int:
     """What a night's room costs with whoever serves here; the house price until a haggled cut is written."""
-    return _ROOM_PRICE
+    import economic_actions
+    return _ROOM_PRICE - shop_trade._cut(npc or {}, "room", economic_actions.game_day(world))
 
 
-def room_note(npc: dict[str, Any], text: Any) -> str:
+def room_note(npc: dict[str, Any], text: Any, *, world: dict | None = None) -> str:
     """Only when rooms are what is being talked of: otherwise whoever serves would sell a bed in every reply."""
     if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not _ROOM.search(living_world.normalize_text(text)):
         return ""
-    return f"Burada kalacak oda verilir, gecelik {_ROOM_PRICE // 10} gümüş; oda yok deme."
+    price = room_price(world or {}, npc)
+    shown = f"{price // 10} gümüş" if price % 10 == 0 else f"{price} bakır"
+    return f"Burada kalacak oda verilir, gecelik {shown}; oda yok deme."
 
 
 def _priced_in(folded: str) -> tuple[str, str, int] | None:
@@ -717,7 +720,8 @@ def _open_room(session, server: dict[str, Any]) -> dict[str, Any]:
     if isinstance(held, dict) and held.get("place") == world.get("location") and now < held.get("until", 0):
         return {**answer, "line": f"{who} başıyla merdivenleri gösteriyor. “Odan yukarıda, duruyor.”{note}",
                 "room": True, "status": "held"}
-    tender = _tender_or_none(world, coin, _ROOM_PRICE, economic_actions.wallet_total_cp(world))
+    price = room_price(world, server)
+    tender = _tender_or_none(world, coin, price, economic_actions.wallet_total_cp(world))
     if tender is not None:
         note = ""
     prepared = economic_actions.prepare_from_turn(
@@ -726,7 +730,7 @@ def _open_room(session, server: dict[str, Any]) -> dict[str, Any]:
         session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
         paid_with = f" Uzattığın {tender} bakır bu kartın parası sayılıyor." if tender is not None else ""
         return {**answer, "status": "offered", "offer_id": prepared.offer.offer_id,
-                "line": (f"{who} başıyla merdivenleri gösteriyor. “Gecelik {_ROOM_PRICE} bakır.” "
+                "line": (f"{who} başıyla merdivenleri gösteriyor. “Gecelik {price} bakır.” "
                          f"{prepared.public_message}{paid_with}{note}")}
     if prepared.reason_code == "purse_below_base":
         return {**answer, "status": "clarification", "reason_code": prepared.reason_code,
@@ -765,7 +769,9 @@ def _room_asked(session, text: str) -> dict[str, Any] | None:
     if world_reactions.refuses(session.world_state, server):
         return _reply(session, world_reactions.refusal_line(server), "lodging", "refused", None, [])
     who = living_world.public_npc_name(server)
-    return _reply(session, f"{who} başıyla merdivenleri gösteriyor. “Gecelik {_ROOM_PRICE // 10} gümüş; yukarıda boş oda var.”",
+    price = room_price(session.world_state, server)
+    shown = f"{price // 10} gümüş" if price % 10 == 0 else f"{price} bakır"
+    return _reply(session, f"{who} başıyla merdivenleri gösteriyor. “Gecelik {shown}; yukarıda boş oda var.”",
                   "lodging", "quoted", None, [], npc_id=server.get("id"))
 
 

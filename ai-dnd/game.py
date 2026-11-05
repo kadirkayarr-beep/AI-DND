@@ -8661,7 +8661,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
                          "para el değiştirmedi.")
     import bold_acts
     import pocket
-    lines.append(bold_acts.room_note(npc, player_input))
+    lines.append(bold_acts.room_note(npc, player_input, world=world))
     lines.append(bold_acts.price_note(npc, player_input))
     lines.append(_bag_note(pocket.bag_names(world)))
     if getattr(_session(), "_empty_handed", False):
@@ -15598,6 +15598,9 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             ),
         )
         apply_check_outcome_to_world_state(player_input, check_result)
+        haggle_note = money_owner.haggle(_session(), npc_target or _active_interlocutor(), check_result)
+        if haggle_note:
+            result["haggle_note"] = haggle_note
         outcome = _skill_result_category(check_result.get("result"))
         result.update({
             "action": "skill_check",
@@ -17877,6 +17880,9 @@ def _tell_the_coin(result):
     session = _session()
     try:
         money_owner.open_card_after_reply(session, result)
+        note = (result.get("action_result") or {}).get("haggle_note")
+        if isinstance(note, str) and note:
+            result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
         session._coin_paid = None
         session._counter_held = None

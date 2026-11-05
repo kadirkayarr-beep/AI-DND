@@ -68,8 +68,10 @@ def seq(world: dict[str, Any]) -> int:
     return value if type(value) is int and value >= 0 else 0
 
 
-def _cut(npc: dict[str, Any], key: str) -> int:
-    """The discount hook: a later owner of haggling may write it; nothing here does."""
+def _cut(npc: dict[str, Any], key: str, day: int) -> int:
+    """A recorded discount applies only on its game day."""
+    if type(npc.get("price_cut_day_v1")) is not int or npc["price_cut_day_v1"] != day:
+        return 0
     cuts = npc.get("price_cut_cp_v1")
     value = cuts.get(key, 0) if isinstance(cuts, dict) else 0
     return value if type(value) is int and value > 0 else 0
@@ -85,8 +87,10 @@ def _stock(npc: dict[str, Any], key: str) -> int:
 def goods(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     if not is_vendor(world, npc):
         return []
-    return [{"key": key, "label": label, "unit_cp": max(0, price - _cut(npc, key)), "stock": _stock(npc, key),
-             "discount_cp": min(price, _cut(npc, key))}
+    import economic_actions
+    day = economic_actions.game_day(world)
+    return [{"key": key, "label": label, "unit_cp": max(0, price - _cut(npc, key, day)), "stock": _stock(npc, key),
+             "discount_cp": min(price, _cut(npc, key, day))}
             for key, label, price in PRICES]
 
 
@@ -304,3 +308,17 @@ def commit_typed(world: dict[str, Any], args: list[str]) -> str:
         equipment_economy.fail("invalid_item_command")
     count, offer_seq, total = (int(number) for number in numbers)
     return commit(world, npc_id, key, count, offer_seq, total)
+
+
+def apply_cut(world: dict, npc: dict, key: str, base_cp: int) -> int | None:
+    """The engine grants one non-stacking price reduction per NPC per game day."""
+    import economic_actions
+    day = economic_actions.game_day(world)
+    if type(base_cp) is not int or base_cp <= 0:
+        return None
+    if type(npc.get("price_cut_day_v1")) is int and npc["price_cut_day_v1"] == day:
+        return None
+    amount = max(1, base_cp // 10)
+    npc["price_cut_cp_v1"] = {key: amount}
+    npc["price_cut_day_v1"] = day
+    return amount
