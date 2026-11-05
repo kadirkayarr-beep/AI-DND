@@ -32,6 +32,8 @@ before(async () => {
   lastTurn = await vite.ssrLoadModule('/src/components/last-turn-bar.tsx');
   banner = await vite.ssrLoadModule('/src/components/notice-banner.tsx');
   resumeMode = await vite.ssrLoadModule('/src/lib/resume-mode.ts');
+  counter = await vite.ssrLoadModule('/src/lib/quest-counter.ts');
+  questUi = await vite.ssrLoadModule('/src/components/quest-journal-section.tsx');
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   render = (type, props) => renderToStaticMarkup(React.createElement(type, props));
@@ -202,4 +204,29 @@ test('the local transcript cache gives the undo flags back, and only true ones',
   assert.deepEqual(JSON.parse(JSON.stringify(shown.at(-1))), [{ kind: 'player', text: 'bira', undone: true },
     { kind: 'narration', text: 'n1', undone: true }, { kind: 'player', text: '↶ Son turu geri al', undoNote: true, undoTargetUnknown: true },
     { kind: 'narration', text: 'n2' }]);
+});
+
+// before(): counter = /src/lib/quest-counter.ts, questUi = /src/components/quest-journal-section.tsx
+const noAdventures = { rumors: [], active: [], completed: [], failed: [], timeline: [] };
+const questProps = { quests: [], offers: [], knownNpcs: [], onAccept() {}, onCancel() {},
+  acceptPending: false, cancelPending: false, hasError: false };
+test('the counter counts running quests and running adventures, not finished ones', () => {
+  assert.equal(counter.runningQuestCount({ quests: [{ status: 'accepted' }, { status: 'completed' }, { status: 'cancelled' }],
+    campaign_adventures: { active: [{ title: 'Teslimat' }] } }), 2);
+  assert.equal(counter.runningQuestCount({ quests: [], campaign_adventures: null }), 0);
+  assert.equal(counter.runningQuestCount({ quests: [{ status: 'active' }] }), 1);
+});
+test('the quest section never says no quests while an adventure runs', () => {
+  const running = render(questUi.QuestJournalSection, { ...questProps, adventures: { ...noAdventures,
+    active: [{ title: 'Teslimat', summary: "İade takımını Tuna'ya götür.", objectives: [] }] } });
+  assert.doesNotMatch(running, /empty-journal-quests/);
+  assert.match(running, /<span class="character-badge">01<\/span>/);
+  const empty = render(questUi.QuestJournalSection, { ...questProps, adventures: noAdventures });
+  assert.match(empty, /data-testid="empty-journal-quests"[^>]*>\s*Henüz kayıtlı görev yok\./);
+  assert.match(empty, /<span class="character-badge">00<\/span>/);
+});
+test('the rail summary says Süren görevler from the same count', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /Süren görevler \{runningQuestCount\(state\)\}/);
+  assert.doesNotMatch(source, /Görevler \{state\.quests\?\.length/);
 });

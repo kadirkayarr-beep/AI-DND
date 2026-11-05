@@ -1,3 +1,4 @@
+import { runningQuestCount } from '@/lib/quest-counter';
 import type { GameState } from '@workspace/api-client-react';
 
 const QUEST_STATUS_LABELS: Record<string, string> = {
@@ -42,7 +43,7 @@ export function QuestJournalSection({
     <section className="journal-section" data-testid="section-journal-quests">
       <div className="journal-section-heading">
         <div><span className="eyebrow">Kayıt defteri</span><h3>Görevler</h3></div>
-        <span className="character-badge">{String(quests.length).padStart(2, '0')}</span>
+        <span className="character-badge">{String(runningQuestCount({ quests, campaign_adventures: adventures })).padStart(2, '0')}</span>
       </div>
       {hasError && (
         <p className="mt-3 text-sm text-red-700" role="alert" data-testid="quest-command-error">
@@ -54,7 +55,11 @@ export function QuestJournalSection({
           {commandNotice}
         </p>
       )}
-      {(offers.length > 0 || quests.length > 0) ? (
+      {(offers.length > 0 || quests.length > 0
+        || (adventures?.active.length ?? 0) > 0
+        || (adventures?.rumors.length ?? 0) > 0
+        || (adventures?.completed.length ?? 0) > 0
+        || (adventures?.failed.length ?? 0) > 0) ? (
         <div className="mt-3">
           {offers.map((quest) => (
             <article

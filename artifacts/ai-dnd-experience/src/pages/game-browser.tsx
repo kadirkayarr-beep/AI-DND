@@ -1,3 +1,4 @@
+import { runningQuestCount } from '@/lib/quest-counter';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
 import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
@@ -350,7 +351,7 @@ function RailSummary({ panel, state }: { panel: RailPanelId; state: GameState })
   }
   if (panel === 'journal') return <div className="rail-summary" data-testid="summary-journal">
     <span>Yerler {state.journal.discovered_locations.length} · Kişiler {state.journal.known_npcs.length}</span>
-    <span>Görevler {state.quests?.length ?? 0}</span>
+    <span>Süren görevler {runningQuestCount(state)}</span>
   </div>;
   return <div className="rail-summary" data-testid="summary-combat">
     {state.combat.active
