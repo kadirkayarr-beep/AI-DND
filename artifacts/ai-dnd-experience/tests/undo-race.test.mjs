@@ -383,3 +383,38 @@ test('undo is blocked while a move is unresolved and sends no request', async ()
   h.env.undo();
   assert.equal(h.undoRequests.length, 1, 'with nothing unresolved the same undo goes out');
 });
+
+for (const [reason,consumed] of [['stale',false],['digest_mismatch',false],['offer_not_prepared',false],['no_money',true],['tender_invalid',true],['check_failed',true]]) {
+ test(`real confirm then undo targets the engine checkpoint for ${reason}`,async()=>{
+  const h=harness();
+  h.env.turnLifetime.begin=()=>({signal:new AbortController().signal,isCurrent:()=>true,deadlineExpired:()=>false,close(){}});
+  const prior=[{player_message:'Synthetic purchase',narration:'Purchased.'}];
+  let history=prior;
+  h.env.getCampaign=async()=>({state:h.env.state,history,combat_history:[]});
+  const settle=async()=>{for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));};
+  h.env.submit('Confirm synthetic card',undefined,'do',false,{kind:'confirm',offer_id:'synthetic-offer',confirmation_digest:'digest'});
+  h.turnResponse.resolve({state:h.env.state,narration:'Synthetic refusal',turn_outcome:{action:'economic_confirm',status:'refused',reason},economic_resolution:{status:'refused',reason_code:reason,public_summary:'Synthetic refusal'}});
+  await settle();
+  assert.equal(h.turnRequests.length,1);
+  assert.equal(h.turnRequests[0][0],'session-a');
+  assert.equal(JSON.stringify(h.turnRequests[0][1].economic_action),JSON.stringify({kind:'confirm',offer_id:'synthetic-offer',confirmation_digest:'digest'}));
+  assert.equal(h.env.inFlightSessionsRef.current.size,0);
+  assert.equal(h.env.notice.tone,'warning');
+  assert.equal(h.env.notice.title,'Teklif');
+  assert.equal(h.env.notice.detail,reason==='stale'?'Teklif değişti; yeni kart gerekir.':'Synthetic refusal');
+  const target=consumed?'new-action':'old-action';
+  assert.equal(h.env.visibleLastTurn.actionId,target);
+  h.env.undo();
+  assert.equal(h.undoRequests.length,1);
+  assert.equal(h.undoRequests[0][1].target_action_id,target,'real undo transport targets the retained or consumed checkpoint');
+  history=[{...prior[0],undone:!consumed},{player_message:'Confirm synthetic card',narration:'Synthetic refusal',undone:consumed},{player_message:'Undo',narration:'Undone.',undo_note:true}];
+  h.undoResponse.resolve({state:h.env.state,narration:'Undone.'});
+  await settle();
+  assert.equal(h.env.visibleLastTurn,null,'successful undo clears the checkpoint');
+  assert.equal(h.env.undoneJustNow,true);
+  assert.equal(h.env.notice.tone,'success');
+  assert.equal(h.env.undoRequestsRef.current.size,0);
+  assert.equal(h.env.undoPendingRef.current.size,0);
+  assert.deepEqual(Array.from(h.env.entries,e=>[e.kind,e.undone===true,e.undoNote===true]),[['player',!consumed,false],['narration',!consumed,false],['player',consumed,false],['narration',consumed,false],['player',false,true],['narration',false,true]]);
+ });
+}

@@ -2011,9 +2011,13 @@ export default function GameBrowser() {
     setNotice({ tone: receipt.status === 'applied' ? 'success' : 'warning', title: 'Teklif',
       detail: changed ? 'Teklif değişti; yeni kart gerekir.' : receipt.public_summary });
   }
-        // A card prepare or cancel is not a turn: the engine keeps its undo checkpoint (main.py economic_step), so
-        // the undo target and the one-step note stay on the turn before it. A confirm is the engine's to judge.
-        const cardStepOnly = result.turn_outcome?.action === 'economic_prepare' || result.turn_outcome?.action === 'economic_cancel';
+        // Prepare/cancel and non-consuming confirm refusals retain the engine's previous undo checkpoint.
+        // Other refusals consume the card and are turns, just like applied confirmations.
+        const nonConsumingConfirm = result.turn_outcome?.action === 'economic_confirm'
+          && receipt?.status === 'refused'
+          && ['offer_not_prepared', 'digest_mismatch', 'stale'].includes(receipt.reason_code ?? '');
+        const cardStepOnly = result.turn_outcome?.action === 'economic_prepare'
+          || result.turn_outcome?.action === 'economic_cancel' || nonConsumingConfirm;
         if (stillVisible && !cardStepOnly) {
           setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
           setUndoneJustNow(false);
