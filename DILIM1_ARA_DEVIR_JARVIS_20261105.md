@@ -1,33 +1,28 @@
-# Dilim 1 ara devir — 2026-11-05
+# Dilim 1 ara devir — Jarvis, 2026-11-05
 
-Durum: uygulama kısmen tamamlandı, genel kapılar ve oynayış bekliyor. Bu belge Görev 23'ün ara durum kaydıdır; Görev 23 bütünü tamamlanmadı ve "Dilim 1 hazır" tetiği verilmedi.
+Durum: uygulama ve odaklı testler ilerledi; genel kapılar, bağımsız inceleme ve oynayış bekliyor. Görev 23 kısmi; “Dilim 1 hazır” tetiği verilmedi.
+Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç 8f3fad79. ae815c4f tabanından 28, Jarvis devrinin 353ce7d6 ucundan 12 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
 
-Dal: task/dilim1-money-memory-20261104. Çalışma kopyası: C:\Users\Kadir\Desktop\AI-DND-dilim1. Uç: 8aedb6dc36aca69b8cb62a21f6bf6750b890c54d. ae815c4f tabanından 19 commit; Jarvis devrinin 353ce7d6 ucundan 3 yeni yerel kod commit'i. Bu oturumlarda push ve merge yapılmadı; uzak dalın güncel ucu yeniden sorgulanmadı.
+Tamamlanan uygulama ve odaklı kontroller:
+- Görev 12 (36 motor yarısı/38): f77df47c, 46 test OK.
+- Görev 14 (54): 9b657b87, 104/63 odaklı test OK.
+- Görev 15 (56/107 sayaç): 8aedb6dc, 327/258 odaklı test OK.
+- Görev 10 (103): 09ef524f + 93b739e8, son 138 test OK; iki eski satın alma-ret hatası kapandı.
+- Görev 17/18 (116): 9f5c6a45,4d3d269e,449e6975,8f8122ec,6ed89bc0. Dört eski continuity hatası kapandı: üç tam şema testi onaylı yedi alanı aynen ister, bir kaynak istem-sırası hatası değişmeyen testle düzeltildi. Son hafıza seçimi 151 test OK (J-032).
+- Görev 20 (37): e0e2731c; zar yolu probe geçti, oda50->45, bira4->3; günde bir indirim, ertesi gün yeniden tam fiyat. 201 test OK (J-033).
+- Görev 21: 8f3fad79; yükleme onarımı, kayıt tekrarları ve Geri Al. 149 test OK,174.308s (J-034).
+Sayılar örtüşen odaklı seçimlerdir; toplanmaz, genel paket sonucu değildir. Son hafıza/pazarlık/kayıt proof.json sonuçları PASS, errors/failures/skipped=0; dosya/ağ/alt süreç korumaları doğrulandı.
 
-Tamamlanan Jarvis işleri:
-- Görev 12 / madde 36'nın motor yarısı ve 38: ayrı salt okunur anlatıcı/NPC doğruluk kartı; f77df47c. 46 odaklı test OK.
-- Görev 14 / madde 54'ün yeni front yolu: yiyecek/içecek tam ad tablosu ve tek kayıt tüketimi; 9b657b87. FOCUS 104, FINAL 63 test OK; koşular örtüşür.
-- Görev 15 / madde 56 ve 107'nin sayaç yarısı: paketten bir kez cephane, kayıt/yükleme sonrası ikinci atış 18; 8aedb6dc. FINAL 327 test OK, FEATURES 258 test OK.
-Bu sayılar genel paket sonucu değildir. Ayrıntı ve gerçek komutlar J-020/J-021/J-022'de. Guard dosya/ağ/alt süreç engelleri doğrulandı. Bağımsız Claude incelemesi bekliyor.
+Hafıza kapsamı: “Dilim 1: NPC başına son 40 seçilmiş söz; tam arşiv sonraki iş.” Beş kanıt: doğru dinleyen (test_npc_told ve 24 diğer NPC adımı); kalıcı kaynak (commit/replay/yeniden kayıt); yeniden açılmış kaynak (yeni SessionManager+app); son model girdisi (yeni manager testinde FACT var, undo sonrası tüm girdilerde yok); son cevap (scripted recall cevabı) geçti. Bunlar sahte modelle motor kanıtıdır; gerçek modelin doğru sözü seçip hatırlaması kanıtlanmadı.
 
-Yolculuk önce/sonra:
-- Önce: defterdeki Task 1 tarihsel ölçümü 14 geçti, 18 bilinen kırık, 0 yeni kırık; 7 adım yalnız gerçek zincirde. Bu oturumda yeniden ölçülmedi.
-- Sonra: genel yolculuk paketi çalıştırılmadı; yeni toplam ve "0 yeni kırık" sonucu yok. Yalnız 03 adım 4, 26, 04b'nin ilk iki adımı, 28 ve 04 adım 3 ilgili odaklı testlerde geçti.
-- Kaynak dosyalarının salt okunur sayımı: 20 adımda known_broken var. Bu, test sonucu değildir ve başlangıç çalışma kapsamıyla doğrudan karşılaştırılmaz. Kalan kimlikler: 4, 15, 21, 34, 35, 37, 39, 40, 41, 47, 54, 111, 112, 115, 121.
-- 35 eski yedek yolda (01 adım 3), 54 eski yedek yolda (04 adım 1/2) kalıyor. 37 (03 adım 2) Görev 20 yapılmadığı için doğrulanmadı; ürün kapsamından çıkarıldığına karar verilmedi.
-- Gerçek zincir çalıştırılmadı. 107'nin model yönlendirme yarısı ve 36'nın gerçek zincir yarısı doğrulanmadı. İstem boyu (Görev 22 Step 3b) ölçülmedi.
+Yolculuk: önceki genel ölçüm 14 geçti/18 bilinen kırık/0 yeni kırık tarihsel kayıttır; yeniden çalıştırılmadı. Son genel toplam ölçülmedi. 03 altı adım geçti; 24 on altı scripted adım geçti, adım12 REAL_CHAIN_ONLY; 24r dört adımın tamamı aynı nedenle koşulmadı. Beş gerçek adım başarı sayılmadı. Kaynak sayımı 19 known_broken adımı: 4,15,21,34,35,39,40,41,47,54,111,112,115,121; test sonucu değildir. 37 artık işaretli değil; genel kapı D hâlâ bekliyor.
 
-Hafıza 116: Görev 17, 18 ve 21 uygulanmadı. "NPC başına son 40 seçilmiş söz; tam arşiv sonraki iş" planlanan kapsamdır, mevcut ürüne ilişkin başarı iddiası değildir. Beş kanıtın durumu ayrı ayrı: doğru dinleyen — bekliyor; kalıcı kaynak — bekliyor; yeniden açılmış kaynak — bekliyor; son model girdisi — bekliyor; son cevap — bekliyor.
-
-Engeller ve sıra:
-- Görev 11: panel için Kadir'in evet kararı D1-R1'de var. Eksik olan izin değildir. slot.sh node ek hedef argümanı iletmez; slot_web.sh check tam tsc/test:c06/test:standard çalıştırır. Odaklı web RED/GREEN yolu yok. Planın yuva 3 komutu da son kullanıcı talimatındaki dilim1=yuva2 sınırıyla uyumsuz. Başka yuva veya korumasız test denenmedi. Görev 11 başlamadı; "üstü kalsın" panel ana yolu tamamlanmadı.
-- En küçük çözüm: araç sahibinin yuva 2 içinde tek hedef dosyasını çalıştıran, izinli hedeflerle sınırlı bir web test yolu sağlaması. Bu rapor slot.sh/slot_web.sh değiştirme izni değildir; bu betikler değiştirilmedi.
-- Görev 17: plan remember_player_line şema alanını Görev 10'a bağlar; game.py içinde alan henüz yok. Son doğrudan talimat nedeniyle Görev 10 öne çekilmedi, alanı ayırmak için plan genişletilmedi. Görev 18, 17'ye bağlı. Riskli sıra değişikliği yapılmadı.
-- Görev 23: HANDOFF §4b, genel kapılar beklerken devir belgesi yazılmasına açıkça izin verir. Bu izin, eksik uygulamayı tamamlanmış sayma veya "Dilim 1 hazır" bildirimine dönüştürülmedi.
-- Para/kayıt/Geri Al görevleri 10, 20, 21 ve Dilim 0 Görev 5 sona bırakılmaya devam ediyor. Tamamlandı diye işaretlenmedi.
-- Yan etki maddeleri 2 ve 12 için ayrı kapanış kanıtı bu ara devirde yok; ilgili kapsam ve bütünleşik testler bekliyor.
-
-Ürünü yalnız Kadir kabul eder; 30 dakikalık oynayış bekliyor.
+Kalanlar:
+- Görev 11 panel onayı var; güvenli odaklı Node yolu yok. slot.sh node hedef aktarmıyor, slot_web tam kontrol ve farklı izolasyon kullanıyor. Koruma değiştirilmedi; “üstü kalsın” panel ana yolu tamamlanmadı.
+- Ara kapılar13/16/19, Görev20 kapıD ve bütün dal Görev22, tam MONEY, tarayıcı, gerçek süreç restart ve gerçek model koşuları ertelendi. 35/54 eski yedek yol işaretleri kalıyor; 107 yönlendirme ve 36 gerçek zincir yarısı doğrulanmadı.
+- Görev22 Step3b istem boyu ölçülmedi. Yan etki2/12 için ayrı bütünleşik kapanış kanıtı yok.
+- Para/kayıt/Geri Al Görev10/20/21: İNCELEME BEKLİYOR (sıfır tolerans). Dilim0 Görev5 de bağımsız inceleme bekler. Önceki para dosyası kapsam kararı kullanıcı talimatıyla çözüldü; yeniden karar bekleyen engel olarak gösterilmez.
+- Ürünü yalnız Kadir kabul eder; 30 dakikalık oynayış bekliyor.
 
 ## Eski test yeniden yazımları — tek yerde kayıt
 
@@ -70,3 +65,10 @@ Jarvis'in 353ce7d6..8aedb6dc aralığı:
 - test_truth_card.py/test_item_use.py başlangıçta yeni dosyalardır; 04b/26/28 yeni senaryolardır. Bu aralıkta başka eski test dosyası değiştirilmedi (git diff --name-only ile doğrulandı).
 
 Belge doğrulaması: plan Task 11/23, HANDOFF §4b/10, görev defteri D1-R1 ve Task 1, slot.sh/slot_web.sh, git log/sayım/fark ve senaryo JSON dosyaları salt okundu. Yeni ürün testi çalıştırılmadı; yalnız belge değişikliği için yapay başarısız test üretilmedi.
+Son devirden sonraki eski test değişiklikleri (J-026/J-031/J-033):
+- test_experimental_npc_dialogue.test_opt_in_save_failure_rolls_back_and_retry_receipt_replays: tam şema kümesi 4'ten onaylı7 alana; rollback/replay iddiaları aynı.
+- test_npc_p2_continuity içindeki üç tam şema beklentisi: mevcut dört alana coin_answer, coin_answer_for, remember_player_line eklendi; tam küme eşitliği ve yasak alanlar korunur. Follow-up testi değiştirilmedi; istem açıklamaları canlı son satırdan önceye taşındı.
+- test_shop_trade ortak fixture: price_cut_day_v1=game_day eklendi; dört türeyen testte eski fiyat reddi/3cp/497 bakiye iddiaları korundu.
+- 03_room_sleep: plan Görev20 gereği fiyat/kart45,kese55; seed12 aynı, known_broken37 kaldırıldı; altı adım geçti.
+- Yeni testlerdeki hazırlık düzeltmeleri J-033/J-034'te kayıtlı; eski test silme/atlama yok.
+Tam eski test adları (adlar değişmedi): test_continuity_first_person_switch_can_come_from_environment; test_speech_call_uses_lean_schema_and_non_greedy_sampling; test_guard_fake_client_output_conforms_to_the_requested_schema. Shop fixture: CounterTrade.test_a_changed_price_changes_nothing_and_gives_the_fresh_quote, WordsOpenTheCounter/WhatIsShownIsNotFree/TypedLane mirasları dahil.

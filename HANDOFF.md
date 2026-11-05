@@ -1,5 +1,13 @@
 # AI-DND devir notu (güncel) — son güncelleme 2026-11-05 00:15 (iş akışları durduruldu, her şey commit'li)
+## Son doğrulanan durum — 2026-11-05, J-034/J-035
+Dilim1 task/dilim1-money-memory-20261104 / AI-DND-dilim1 uç8f3fad79; tabandan28, Jarvis devrinden12 commit. Dört continuity hatası ve iki para hatası kapandı. 24/24r eklendi; hafıza151, pazarlık201, kayıt/Geri Al149 odaklı test OK. Görev10/20/21 İNCELEME BEKLİYOR (sıfır tolerans). Önceki genel yolculuk14/18/0; son genel toplam ölçülmedi; kaynakta19 known_broken adımı. Gerçek zincir/istem boyu ölçülmedi. Node ve uzun kapılar bekliyor; oynayış bekliyor, hazır/kabul/push/merge yok. Güncel ayrıntı ve tüm eski-test değişiklikleri DILIM1_ARA_DEVIR_JARVIS_20261105.md. Aşağıdaki eski uç ve engel satırları tarihsel kilometre taşlarıdır; para kapsam izni artık açık engel değildir.
 ## Güncel kısa durum — Jarvis, 2026-11-05
+Dilim 1 güncel uç 4d3d269: Görev 18 partial/WIP; 27 hafıza testinde 2 FAIL, 132 odaklı regresyonda 6 FAIL (iki yeni ret senaryosu + dört eski continuity hatası). narrative_memory test_5 OK. Mevcut ret/spoken_reference davranışı ile planın uydurma-idda reddi arasında çelişki var; J-028 kanıt ve tüm kalan bağımlılıkları içerir. 24/24r senaryoları henüz yok. Para kararı ve Node engeli korunuyor; complete/hazır/push yok. Aşağıdaki uçlar önceki kilometre taşlarıdır.
+
+Dilim 1 güncel uç 9f5c6a4: Görev 17 partial/WIP. Yeni hafıza testleri FINAL2 17/17 OK; plandaki 133 odaklı testte 4 eski devamlılık FAIL, dördü de 09ef524f tabanında yeniden doğrulandı. J-027 ayrıntıları içerir. Görev 10 iki satın alma FAIL/kapsam kararı açık; Node engeli korunuyor. Görev 17 complete değil; 18/20/21'e geçilmedi. Aşağıdaki 09ef524 Görev 10 kilometre taşıdır.
+
+Dilim 1 güncel uç 09ef524: Görev 10 WIP, İNCELEME BEKLİYOR (sıfır tolerans). Son odaklı koşu 45 test: 43 OK / 2 satın alma-kartı FAIL. economic_actions purchase ret kapsamı plan Files dışında; J-026 karar/engel kaydı. Görev 10 tamamlanmadı; 20/21'e geçilmedi. Aşağıdaki 8aedb6dc önceki yeşil kilometre taşıdır.
+
 Dilim 0 Görev 15 ara devir belgesi: DILIM0_ARA_DEVIR_JARVIS_20261105.md; kapı açık, tam devir/oynayış bekliyor. Odaklı web başlatıcısı yalnız tasarım: ODAKLI_WEB_TEST_TASARIM_20261105.md; mevcut Python guard Node'a uygulanmaz, betikler değiştirilmedi.
 
 Dilim 0: uç 25850a09, Görev 11'in bağımsız katalog yazım parçası tamam (155 odaklı test OK); tüm Görev 11 tamam değil. Görev 6–10 ve Görev 11 UI kısmı izinli odaklı web yolu bekliyor. Görev 6'nın iki staged test hazırlığı değişmeden korundu. J-024 ayrıntıları içerir; Görev 5'e girilmedi, push yok.
@@ -192,3 +200,15 @@ Jarvis, `HANDOFF.md`'deki "Claude" geçen adımların bir kısmı Claude'un kend
 
 ### 10.3 Hangi belge nerede (hızlı harita, ayrıntı 6. bölümde)
 Yol haritası: `YOL_HARITASI_REVIZYON_20261104.md` + `YOL_PLAN_20261104.md`. Planlar: `ADIM2_PLAN`, `DILIM0_PLAN`, `DILIM1_PLAN`, `DILIM2_PLAN` (hepsi `_20261104.md`); tasarımlar aynı adlarla `_TASARIM_`. Oynayış notları: `CANLI_OYUN_NOTLARI_20261103.md`. Test listesi: `TESTLER_BEKLIYOR_20261104.md`. Posta: `AI-DND-ORTAK\` (`KURALLAR.md`, `KARARLAR.md`, `YAZAR_KILIDI.md`). Replit (yalnız oyunu internette oynamak için): `REPLIT_KURULUM_20261105.md`.
+
+Task 10: purchase decline repair 93b739e8 (Jarvis); 138 focused tests OK, 14.165s, JVD1T10REPAIR. J-029. INCELEME BEKLIYOR / long MONEY gate pending; not accepted. Existing two purchase failures fixed; no old tests changed.
+
+Task 18: two new recall failures repaired in 449e6975 (Jarvis). REPAIR 149 tests / four known baseline failures (145 OK); SPEECH 13 OK, 3.627s. J-030. Old tests unchanged. Still partial: four schema/prompt baseline failures, scenarios 24/24r, long gates and independent review pending.
+
+Tasks 17/18 baseline continuity blockers cleared: JVD1CONTGREEN 107 OK, 24.954s (J-031). Three exact schema expectations updated to approved seven fields; source prompt ordering fixed with unchanged follow-up assertion. Full gates/review remain pending.
+
+Task 18: scenarios 24/24r added; focused final 151 OK, 32.494s (J-032). 16 scripted journey steps pass; five real-chain steps unrun by design, never counted as real evidence. Long gates and independent review pending. Continuity source/schema fix 8f8122e.
+
+Task 20: implementation and focused checks done (Jarvis), INCELEME BEKLIYOR. Probe passed; FINAL 201 OK in15.418s, J-033. Scenario03 now six pass, seed12 unchanged; MONEY/gateD and independent review pending, not accepted.
+
+Task 21: implementation and focused checks complete (Jarvis), commit 8f3fad79; INCELEME BEKLIYOR (zero tolerance). FINAL 149 OK,174.308s,runs/20261105T122743-JVD1T21FINAL. Seven new atomic save/undo/memory tests; no old assertions weakened. Full MONEY/process-restart/independent review pending. J-034.

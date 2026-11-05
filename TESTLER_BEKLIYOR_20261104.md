@@ -30,3 +30,19 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 - [ ] Dilim 1 Görev 11 (J-023): başlamadı; yuva 2 için izinli odaklı web RED/GREEN yolu yok. Planın slot.sh 3 AI-DND-dilim1 node komutu son yuva kuralına aykırı ve tam web paketi çalıştırıyor; KOŞULMADI. Odaklı yol sağlanınca test_counter_reports_the_held_tip_only_while_it_is_valid ve panel shows the tip and confirms the total with it birlikte doğrulanmalı. MONEY/contract_parity ve tam web kapısı yetkili sonraki aşamada kalır.
 
 - [ ] Dilim 0 Görev 6–10 ve 11 UI (J-024): yuva 3'te odaklı web RED/GREEN yolu yok; tam node/tsc ve tarayıcı bekliyor. Görev 11 katalog alt parçasının Python doğrulaması tamam: 25850a09, 155 test OK; bu sonuç web/bütün görev kabulü değildir.
+
+- [ ] Dilim 1 Görev 10 (09ef524, J-026): odaklı 45 testte 2 satın alma-kartı ret testi FAIL. Önce economic_actions kapsam kararı ve TDD düzeltmesi; ardından Task 10 Step 4 tam MONEY kapısı uygun yetki/boş bilgisayarda. 17'nin altı adımı odaklı geçti; genel paket başarısı yok. İNCELEME BEKLİYOR (sıfır tolerans).
+
+- Jarvis Görev 17 (9f5c6a4, J-027): uzun MONEY/tam paket/web/gerçek zincir koşulmadı; Görev 21 kayıt-Geri Al kanıtları ve bağımsız inceleme bekliyor. Odaklı altı modül koşuldu: 133 test/4 taban FAIL. Görev 10 şema/istem düzeltmesi sonrası aynı JVD1T17FOCUS modülleri yeniden koşulmalı; 17 yeni hafıza testi FINAL2 OK.
+
+- Jarvis Görev 18 (4d3d269, J-028): iki ret senaryosu kırık; plandaki mevcut korumayı koruma şartıyla çelişki çözülmeli. 24/24r senaryoları yazılmadı; genel journeys/MONEY/tam paket/web/gerçek zincir koşulmadı. Altı odaklı modül 132 test/6 FAIL; dört continuity hatası tabandan, test_5 OK. Bağımsız inceleme bekliyor.
+
+- 93b739e8: purchase decline repair; 138 focused OK; full MONEY and independent zero-tolerance review pending (J-029).
+
+- 449e6975: two recall failures fixed; four known continuity schema/prompt failures, scenarios 24/24r, long gates and independent review pending. J-030.
+
+- J-032: four continuity failures closed; 24/24r files created; real 24 step12 + all four 24r steps still unrun; long gates/review pending.
+
+- J-033 Task20: 201 focused OK; full MONEY/gateD,11/12/25 journeys and independent zero-tolerance review pending.
+
+- Görev 21 / 8f3fad79: tam MONEY, bütün dal ve gerçek süreç restart kapıları + bağımsız sıfır tolerans incelemesi bekliyor; 149 ilgili kayıt testi geçti (J-034), bunlar genel kabul değildir.
