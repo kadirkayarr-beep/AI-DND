@@ -21665,27 +21665,6 @@ def _run_player_turn_internal(
                 if experimental_npc_dialogue else ""
             ),
         )
-        # The same speech call may select an actual witnessed engine source.
-        # Selection never grants authority to the packet's free-form speech,
-        # selected player memory, commitment, or mechanical suggestions.
-        import witness_recall
-        import npc_statements
-        witnessed_text = (witness_recall.answer(
-            world_state, npc_target, player_input, raw_intent.get("witness_recall"),
-            about=npc_statements.claim_about(player_input))
-            if isinstance(raw_intent, dict) and is_npc_historical_claim(player_input) else None)
-        if witnessed_text is not None:
-            # A source selection cannot grant a payment or lift a decline.
-            # A negative answer must still reach the existing money veto owner.
-            if raw_intent.get("coin_answer") == "declines":
-                money_owner.read_answer(_session(), raw_intent, npc_target["id"],
-                    money_owner.parts_for(world_state, _session(), npc_target["id"]))
-            name = living_world.public_npc_name(npc_target)
-            response = f'{name}, “{witnessed_text}” diye gördüğü olayı hatırlatır.'
-            action_result = {"action": "dialogue", "status": "answered_from_witnessed_deed",
-                             "success": True, "npc_id": npc_target["id"], "state_changes": []}
-            record_npc_interaction(npc_target, response, player_input, npc_target)
-            return finish_turn(action_result, response, safety_handling="python_scene_response")
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
                 raw_intent,
@@ -21700,6 +21679,35 @@ def _run_player_turn_internal(
                 ),
             )
         )
+        # A live source ID alone does not bind that event to this question.
+        # Supported personal memory and validated profile answers keep their owner.
+        import witness_recall
+        import npc_statements
+        witness_requested = (isinstance(raw_intent, dict) and "witness_recall" in raw_intent
+            and is_npc_historical_claim(player_input)
+            and npc_statements.claim_about(player_input) == "memory")
+        # A profile/personal answer may take precedence, but cannot drop this veto.
+        # Positive money answers gain no authority from a witness proposal.
+        if witness_requested and raw_intent.get("coin_answer") == "declines":
+            money_owner.read_answer(_session(), raw_intent, npc_target["id"],
+                money_owner.parts_for(world_state, _session(), npc_target["id"]))
+        witness_attempt = (witness_requested and not told_support
+            and not (conversation_resolution and conversation_resolution.get("answer_field")))
+        if witness_attempt:
+            witnessed_text = witness_recall.answer(
+                world_state, npc_target, player_input, raw_intent.get("witness_recall"), about="memory")
+            name = living_world.public_npc_name(npc_target)
+            if witnessed_text is not None:
+                response = f'{name}, "Alıntıladığın olay: {witnessed_text}" diye gördüğü olayı hatırlatır.'
+                action_result = {"action": "dialogue", "status": "answered_from_witnessed_deed",
+                                 "success": True, "npc_id": npc_target["id"], "state_changes": []}
+                record_npc_interaction(npc_target, response, player_input, npc_target)
+            else:
+                response = f'{name}, "Hangi olaydan söz ettiğini biraz açar mısın?" diye sorar.'
+                action_result = {"action": "dialogue", "status": "unverified",
+                                 "success": False, "npc_id": npc_target["id"], "state_changes": []}
+                # Clarification is not a new canonical memory or witness source.
+            return finish_turn(action_result, response, safety_handling="python_scene_response")
         # An optional classifier can supply a validated canonical answer, but
         # cannot veto experimental speech. Its rejected data grants no authority.
         if (

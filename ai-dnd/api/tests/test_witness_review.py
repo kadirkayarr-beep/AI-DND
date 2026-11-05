@@ -26,6 +26,8 @@ class ReviewClient(WitnessRecallClient):
         if "spoken_text" in (kwargs.get("format") or {}).get("properties", {}):
             packet = json.loads(result["message"]["content"])
             packet.update(coin_answer=self.answer, coin_answer_for=self.part)
+            if getattr(self, "omit_source_quote", False):
+                packet["witness_recall"].pop("source_quote", None)
             result["message"]["content"] = json.dumps(packet, ensure_ascii=False)
         return result
 
@@ -50,14 +52,17 @@ class WitnessReviewSetup(EconomicHttpFixture):
         response = await fixtures.CampaignApiTests.post_scene_turn(self, self.turn_url, client, body)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(len(client.offered), 1, "the malicious/valid selector really received a live source")
+        self.assertEqual(client.calls, 1, "one speech request per turn")
         return response.json(), body
 
-    async def decline_then_confirm(self, proposal, part):
+    async def decline_then_confirm(self, proposal, part, *, question=RECALL, expected_status=None):
         # Assault is a witnessed engine deed without the separate grave-deed vendor refusal.
         await self.ready_witness(kind="assault", text="Birinin üzerine yürüdü")
         card = await self.card(**proposal)
         before = self.financial_state()
-        reply, _ = await self.recall(RECALL, answer="declines", part=part)
+        reply, _ = await self.recall(question, answer="declines", part=part)
+        if expected_status is not None:
+            self.assertEqual(reply["turn_outcome"]["status"], expected_status)
         after_reply = self.financial_state()
         declined = ea.declined(self.world, "barman", part, day=ea.game_day(self.world))
         card_status = self.offers()[card["offer_id"]]["status"]
@@ -79,6 +84,10 @@ class WitnessReviewHttp(WitnessReviewSetup):
     async def test_witness_gift_no_cancels_the_old_card_and_prevents_actual_debit(self):
         await self.decline_then_confirm({"purpose": "gift", "recipient_id": "barman", "amount_cp": 5}, "gift")
 
+    async def test_an_explicit_witness_source_answer_keeps_the_same_coin_decline_veto(self):
+        await self.decline_then_confirm({"purpose": "gift", "recipient_id": "barman", "amount_cp": 5}, "gift",
+            question="Birinin üzerine yürüdü. Bu olayı hatırlıyor musun?",
+            expected_status="answered_from_witnessed_deed")
     def full_snapshot(self):
         return copy.deepcopy((self.record.game_session.serialize_game_state(),
             self.record.game_session.rng.getstate(), self.record.journal, self.record.narrative_memory,

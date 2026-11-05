@@ -10,14 +10,15 @@ class WitnessSources(unittest.TestCase):
         self.npc = {"id": "kalila", "name": "Kalila", "location": "town"}
         self.deed = {"kind": "arson", "text": "Atölye içinde ateş yaktı", "turn": 1,
                      "witnesses": ["kalila"], "heard": [], "told": []}
+        self.question = self.deed["text"] + ". Hatırlıyor musun?"
         self.world = {"location": "town", "npcs": [self.npc], "flags": {"deeds": [self.deed]}}
 
     def proposal(self):
         return {"scope": "witnessed_deed", "source_id": recall.candidates(self.world, self.npc)[0]["source_id"],
-                "evidence_quote": "Ne yaptım hatırlıyor musun?"}
+                "evidence_quote": self.question, "source_quote": self.deed["text"]}
 
     def answer(self, proposal, about="memory"):
-        return recall.answer(self.world, self.npc, "Ne yaptım hatırlıyor musun?", proposal, about=about)
+        return recall.answer(self.world, self.npc, self.question, proposal, about=about)
 
     def test_valid_selection_returns_only_the_engine_source_and_never_mutates_it(self):
         before = copy.deepcopy(self.world)
@@ -72,3 +73,21 @@ class WitnessSources(unittest.TestCase):
         rows = recall.candidates(self.world, self.npc)
         self.assertEqual([row["text"] for row in rows], [good["text"]])
         self.assertEqual(self.world, before)
+
+    def test_a_valid_id_and_quote_cannot_answer_an_unrelated_question(self):
+        proposal = self.proposal()
+        family = "Babamın ne iş yaptığını hatırlıyor musun?"
+        self.assertIsNone(recall.answer(self.world, self.npc, family,
+            {**proposal, "evidence_quote": family}, about="memory"))
+
+    def test_source_quote_must_be_whole_live_text_and_complete_tokens_in_the_message(self):
+        proposal = self.proposal()
+        for quote in (None, True, [], "Atölye", "Başka olay"):
+            with self.subTest(quote=quote):
+                self.assertIsNone(self.answer({**proposal, "source_quote": quote}))
+        partial_word = "Başka" + self.question
+        self.assertIsNone(recall.answer(self.world, self.npc, partial_word,
+            {**proposal, "evidence_quote": partial_word}, about="memory"))
+        punctuated = '"' + self.deed["text"] + '"; hatırlıyor musun?'
+        self.assertEqual(recall.answer(self.world, self.npc, punctuated,
+            {**proposal, "evidence_quote": punctuated}, about="memory"), self.deed["text"])

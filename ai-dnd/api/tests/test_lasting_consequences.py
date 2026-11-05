@@ -22,10 +22,12 @@ class WitnessRecallClient(PlayClient):
         if "spoken_text" in props:
             proposal = props.get("witness_recall", {}).get("properties", {})
             self.offered = proposal.get("source_id", {}).get("enum", [])
+            quotes = proposal.get("source_quote", {}).get("enum", [])
             source_id = self.offered[0] if self.source == "offered" and self.offered else self.source
             packet = json.loads(answer["message"]["content"])
             packet["witness_recall"] = {"scope": self.scope, "source_id": source_id,
-                                        "evidence_quote": self.quote}
+                                        "evidence_quote": self.quote,
+                                        "source_quote": quotes[0] if quotes else "Quenna Atölyesi içinde ateş yaktı"}
             answer["message"]["content"] = json.dumps(packet, ensure_ascii=False)
         return answer
 
@@ -550,7 +552,7 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
         out = await self.say("muhafız, buralarda en güçlü lord kim, koruma arayan bi soylu var mı", PlayClient(spoken="Sor bakalım."))
         self.assertTrue(out["narration"].startswith("Isolde") or "uhafız" in out["narration"].split("“")[0], out["narration"])
 
-    async def test_someone_who_saw_it_does_not_deny_it_was_ever_said(self):
+    async def test_generic_witness_recall_asks_for_the_event_instead_of_selecting_one(self):
         await self.town()
         self.add_person("Kalila", "Usta")
         deed_owner = self.world["npcs"][0]
@@ -565,9 +567,10 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
         out = await self.say(line, client)
         self.assertEqual(client.calls - calls_before, 1)
         self.assertEqual(len(client.offered), 1)
-        self.assertIn("Quenna Atölyesi içinde ateş yaktı", out["narration"])
+        self.assertNotIn("Quenna Atölyesi içinde ateş yaktı", out["narration"])
         self.assertNotIn("Baban değirmenciydi", out["narration"])
-        self.assertEqual(out["turn_outcome"]["status"], "answered_from_witnessed_deed")
+        self.assertEqual(out["turn_outcome"]["status"], "unverified")
+        self.assertIn("?", out["narration"])
 
 
     async def test_witnessed_deed_does_not_verify_an_unrecorded_npc_promise(self):
@@ -606,10 +609,11 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
         self.assertNotIn("Baban değirmenciydi", out["narration"])
 
     async def test_witness_recall_requires_a_live_exact_source_quote_and_scope(self):
-        for source, quote, scope in (("outside", "ben dün burada ne yaptım hatırlıyor musun", "witnessed_deed"),
-                                     (True, "ben dün burada ne yaptım hatırlıyor musun", "witnessed_deed"),
+        question = "Quenna Atölyesi içinde ateş yaktı. Bu olayı hatırlıyor musun?"
+        for source, quote, scope in (("outside", question, "witnessed_deed"),
+                                     (True, question, "witnessed_deed"),
                                      ("offered", "başka bir söz", "witnessed_deed"),
-                                     ("offered", "ben dün burada ne yaptım hatırlıyor musun", "npc_words")):
+                                     ("offered", question, "npc_words")):
             with self.subTest(source=source, quote=quote, scope=scope):
                 await self.town()
                 person = self.add_person("Kalila", "Usta")
@@ -618,7 +622,7 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
                     "witnesses": [person["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
                 }]
                 await self.say("selam kalila", PlayClient(spoken="Selam."))
-                out = await self.say("ben dün burada ne yaptım hatırlıyor musun",
+                out = await self.say(question,
                                      WitnessRecallClient(quote, source=source, scope=scope))
                 self.assertNotIn("Quenna Atölyesi", out["narration"])
                 self.assertNotIn("Baban değirmenciydi", out["narration"])
