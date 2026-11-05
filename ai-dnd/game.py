@@ -2732,6 +2732,20 @@ def save_game(path):
     return destination
 
 
+def _repair_dilim1_fields(world: dict) -> list[str]:
+    """Repair optional slice-one rows through their owners; never change payment operations."""
+    import logging
+    import npc_told
+    import economic_actions
+    import bold_acts
+    dropped = npc_told.repair(world)
+    dropped += economic_actions.repair_declines(world)
+    dropped += economic_actions.repair_ledger_labels(world)
+    dropped += bold_acts.repair_counter_tip(world)
+    for name in dropped:
+        logging.getLogger(__name__).warning("dilim1 load repaired: %s", name)
+    return dropped
+
 def load_game(path):
     """Validate and restore a JSON snapshot without executing arbitrary code."""
     previous_format = getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION)
@@ -2762,6 +2776,7 @@ def load_game(path):
     try:
         world_state.clear()
         world_state.update(saved_world)
+        _repair_dilim1_fields(world_state)
         living_world.ensure_scene_state(world_state)
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
