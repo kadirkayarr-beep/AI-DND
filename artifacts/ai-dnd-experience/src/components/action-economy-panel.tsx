@@ -1,3 +1,4 @@
+import { term, termTitle, feetText, SENT, moveSentence, abilitySentence } from '@/lib/tr-terms';
 import { RageControl, readRageProjection } from './rage-controls';
 import { FighterControl } from './fighter-controls';
 import { PaladinControl, SacredWeaponChoice, readPaladinProjection } from './paladin-controls';
@@ -32,9 +33,9 @@ export function RecklessAttackControl({ available, active, selected, disabled, o
 }) {
   if (!available && !active) return null;
   return <div className="story-meta mt-2" data-testid="reckless-attack-control">
-    {active ? <p data-testid="reckless-attack-active">Reckless Attack etkin.</p> : <label>
+    {active ? <p data-testid="reckless-attack-active"><span title={termTitle('reckless_attack')}>{term('reckless_attack')}</span> etkin.</p> : <label>
       <input type="checkbox" checked={selected} disabled={disabled} onChange={event => { if (!disabled) onChange(event.target.checked); }} />
-      {' '}Bu saldırıda Reckless Attack seç
+      {' '}Bu saldırıda <span title={termTitle('reckless_attack')}>{term('reckless_attack')}</span> seç
     </label>}
     <p>Sonraki kendi turun başlayana kadar Strength saldırı zarların Avantaj kazanır; sana karşı saldırı zarları da Avantaj kazanır. Dexterity saldırısı bu seçimi yapabilir ancak saldırı Avantajı kazanmaz.</p>
   </div>;
@@ -78,20 +79,20 @@ export function MagicMissileControl({ state, targetId, slot, onSlotChange, block
     && candidate && offered.includes(selected) && (slots[String(selected)] ?? 0) > 0;
   return <div className="mt-3 story-meta" data-testid="magic-missile-controls">
     {projection && <div>
-      <p data-testid="sorcery-points">Sorcery Points: {projection.current}/{projection.max}</p>
+      <p data-testid="sorcery-points"><span title={termTitle('sorcery_points')}>{term('sorcery_points')}</span>: {projection.current}/{projection.max}</p>
       <label><input type="checkbox" data-testid="select-quickened-spell" checked={optedIn}
         disabled={blocked || !projection.available} onChange={event => { if (!blocked && projection.available) onQuickenedChange?.(event.target.checked); }} />
-        {' '}Bu Magic Missile için Quickened Spell · 2 Sorcery Points · Bonus Action</label>
-      {projection.reason && <p role="status">Quickened Spell kullanılamıyor: {projection.reason}</p>}
+        {' '}Bu Magic Missile için <span title={termTitle('quickened_spell')}>{term('quickened_spell')}</span> · 2 <span title={termTitle('sorcery_points')}>{term('sorcery_points')}</span> · <span title={termTitle('bonus_action')}>{term('bonus_action')}</span></label>
+      {projection.reason && <p role="status"><span title={termTitle('quickened_spell')}>{term('quickened_spell')}</span> kullanılamıyor: {projection.reason}</p>}
       <p>Yalnızca bu büyü için açık seçimdir; diğer Metamagic etkileri uygulanmış değildir. Bu tur başka seviye 1+ büyü kullanımı sunucu tarafından denetlenir.</p>
     </div>}
     <label>Magic Missile · yuva seviyesi <select data-testid="select-magic-missile-slot" value={slot} disabled={blocked} onChange={event => onSlotChange(event.target.value)}>
       {offered.map(level => <option key={level} value={String(level)} disabled={(slots[String(level)] ?? 0) <= 0}>{level}. seviye · kalan {slots[String(level)]}</option>)}
     </select></label>
-    <button type="button" className="action-suggestion" data-testid="button-cast-magic-missile" disabled={!enabled} onClick={() => {
+    <button type="button" className="action-suggestion" data-testid="button-cast-magic-missile" title={optedIn ? termTitle('quickened_spell') + ' / ' + termTitle('bonus_action') : termTitle('action')} disabled={!enabled} onClick={() => {
       if (!enabled) return;
       onCommand('Magic Missile kullanıyorum.', { steps: [{ kind: 'magic', ability: 'Magic Missile', target_id: targetId, slot_level: selected, ...(optedIn ? { metamagic: 'quickened_spell' as const } : {}) }] });
-    }}>Magic Missile · {optedIn ? 'Bonus Action (Quickened)' : 'Action'}</button>
+    }}>Magic Missile · {optedIn ? 'Bonus eylem (Hızlandırılmış)' : (term('action'))}</button>
     <p>Ortak hedef alanından bir hedef seç. Menzil, görüş ve hedef koşullarını sunucu doğrular; seçili hedef önceden onaylanmış değildir.</p>
   </div>;
 }
@@ -166,38 +167,38 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   return (
     <section className="px-4 py-3 border-t border-amber-100/10" aria-label="Tur kaynakları" data-testid="action-economy-panel">
       <div className="story-meta flex flex-wrap gap-x-4 gap-y-1" data-testid="action-economy-resources">
-        <span>Eylem: {resources.base_action_spent ? 'kullanıldı' : 'hazır'}</span>
-        <span>Bonus eylem: {resources.bonus_action_spent ? 'kullanıldı' : (resources.bonus_action_available || quickenedProjection(state)?.available || rageAvailable) ? 'hazır' : 'uygun yetenek yok'}</span>
-        <span>Tepki: {resources.reaction_available ? 'hazır; tetikleyici gerekir' : 'kullanılamaz'}</span>
-        <span>Hareket: {resources.movement_remaining} ft · Hız: {resources.speed_ft} ft</span>
+        <span title={termTitle('action')}>Eylem: {resources.base_action_spent ? 'kullanıldı' : 'hazır'}</span>
+        <span title={termTitle('bonus_action')}>Bonus eylem: {resources.bonus_action_spent ? 'kullanıldı' : (resources.bonus_action_available || quickenedProjection(state)?.available || rageAvailable) ? 'hazır' : 'uygun yetenek yok'}</span>
+        <span title={termTitle('reaction')}>Tepki: {resources.reaction_available ? 'hazır; tetikleyici gerekir' : 'kullanılamaz'}</span>
+        <span title={termTitle('speed') + ' / ' + termTitle('feet')}>{`Hareket: ${feetText(resources.movement_remaining)} · Hız: ${feetText(resources.speed_ft)}`}</span>
       </div>
-      {resources.additional_actions.map((grant, index) => <div className="story-meta mt-1" key={index}>
-        Ek Action · {grant.source}: {grant.remaining} · {grant.allowed_action_types.join(', ')}
+      {resources.additional_actions.map((grant, index) => <div className="story-meta mt-1" key={index} title={termTitle('action')}>
+        Ek eylem · {grant.source}: {grant.remaining} · {grant.allowed_action_types.join(', ')}
       </div>)}
-      {resources.ready && <p className="story-meta mt-2" data-testid="ready-status">
-        Ready: {resources.ready.trigger.event === 'actor_moves' ? 'hareket' : 'saldırı'} sonrası {resources.ready.response.kind === 'move' ? 'hareket' : 'Action'}.
+      {resources.ready && <p className="story-meta mt-2" data-testid="ready-status" title={termTitle('ready')}>
+        Hazırlan: {resources.ready.trigger.event === 'actor_moves' ? 'hareket' : 'saldırı'} sonrası {resources.ready.response.kind === 'move' ? 'hareket' : 'eylem'}.
       </p>}
       {(!pending || reactionEnabled || intent.active) && recklessControl}
       {pending ? (
         <div className="action-suggestion-list mt-2" data-testid="reaction-opportunity">
           <span className="story-meta">Hazırladığın hamlenin koşulu gerçekleşti.</span>
-          <button type="button" className="action-suggestion" disabled={sending || !resources.reaction_available}
-            onClick={() => send('Ready Reaction kullanıyorum.', { kind: 'react', opportunity_id: resources.opportunity!.id })}>Reaction kullan</button>
-          <button type="button" className="action-suggestion" disabled={sending}
-            onClick={() => send('Ready Reaction fırsatını atlıyorum.', { kind: 'decline_reaction', opportunity_id: resources.opportunity!.id })}>Fırsatı atla</button>
+          <button title={termTitle('reaction')} type="button" className="action-suggestion" disabled={sending || !resources.reaction_available}
+            onClick={() => send(SENT.react, { kind: 'react', opportunity_id: resources.opportunity!.id })}>Tepkiyi kullan</button>
+          <button title={termTitle('opportunity')} type="button" className="action-suggestion" disabled={sending}
+            onClick={() => send(SENT.decline_reaction, { kind: 'decline_reaction', opportunity_id: resources.opportunity!.id })}>Fırsatı geç</button>
         </div>
       ) : (
         <>
           <div className="action-suggestion-list mt-2">
-            <button type="button" className="action-suggestion" disabled={blocked || !legal('attack') || !targetId || !strike}
-              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send('Saldırı Action kullanıyorum.', { kind: 'attack', target_id: targetId, ...fields, ...strike }); }}>Saldır · Action</button>
-            {!!resources.attack_action?.remaining_attacks && <button type="button" className="action-suggestion" disabled={blocked || !targetId || !strike}
-              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send('Aynı Attack Action içindeki saldırıya devam ediyorum.', { kind: 'continue_attack', target_id: targetId, ...fields, ...strike }); }}>Attack Action devamı</button>}
-            <button type="button" className="action-suggestion" disabled={blocked || !legal('dash')}
-              onClick={() => send('Dash Action kullanıyorum.', { kind: 'dash' })}>Koş (Dash)</button>
-            {resources.bonus_rules.map((ability) => <button key={ability} type="button" className="action-suggestion" disabled={blocked || !resources.bonus_action_available}
-              onClick={() => send(`${ability} Bonus Action kullanıyorum.`, { kind: 'species', ability, ...(ability === 'celestial_revelation' ? { form: 'heavenly_wings' } : {}) })}>
-              {ability === 'adrenaline_rush' ? 'Adrenalin / Dash' : ability === 'large_form' ? 'Büyük Biçim' : ability === 'cloud_jaunt' ? 'Bulut Sıçrayışı' : 'Göksel Tecelli · Kanatlar'} · Bonus
+            <button title={termTitle('attack') + ' / ' + termTitle('action')} type="button" className="action-suggestion" disabled={blocked || !legal('attack') || !targetId || !strike}
+              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send(SENT.attack, { kind: 'attack', target_id: targetId, ...fields, ...strike }); }}>Saldır · {term('action')}</button>
+            {!!resources.attack_action?.remaining_attacks && <button title={termTitle('attack') + ' / ' + termTitle('action')} type="button" className="action-suggestion" disabled={blocked || !targetId || !strike}
+              onClick={() => { const fields = sacredFields(); setSacredChoice({ wanted: false, radiant: false }); send(SENT.continue_attack, { kind: 'continue_attack', target_id: targetId, ...fields, ...strike }); }}>Saldırı eylemine devam</button>}
+            <button title={termTitle('dash')} type="button" className="action-suggestion" disabled={blocked || !legal('dash')}
+              onClick={() => send(SENT.dash, { kind: 'dash' })}>{term('dash')}</button>
+            {resources.bonus_rules.map((ability) => <button key={ability} title={termTitle('bonus_action') + (ability === 'adrenaline_rush' ? ' / ' + termTitle('dash') : '')} type="button" className="action-suggestion" disabled={blocked || !resources.bonus_action_available}
+              onClick={() => send(abilitySentence(ability === 'adrenaline_rush' ? 'Adrenalin / Koş' : ability === 'large_form' ? 'Büyük Biçim' : ability === 'cloud_jaunt' ? 'Bulut Sıçrayışı' : 'Göksel Tecelli · Kanatlar'), { kind: 'species', ability, ...(ability === 'celestial_revelation' ? { form: 'heavenly_wings' } : {}) })}>
+              {ability === 'adrenaline_rush' ? 'Adrenalin / Koş' : ability === 'large_form' ? 'Büyük Biçim' : ability === 'cloud_jaunt' ? 'Bulut Sıçrayışı' : 'Göksel Tecelli · Kanatlar'} · Bonus eylem
             </button>)}
             <button type="button" className="action-suggestion" disabled={blocked}
               onClick={() => send('Turumu bitiriyorum.', { kind: 'end_turn' })}>Turu bitir</button>
@@ -214,22 +215,22 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
           <details data-testid="combat-more-actions">
             <summary>Diğer eylemler</summary>
           <div className="flex flex-wrap items-center gap-2 mt-3 story-meta">
-            <label>Mesafe (ft) <input aria-label="Hareket mesafesi" type="number" min="1" step="1" className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} onChange={(event) => setDistance(event.target.value)} /></label>
+            <label title={termTitle('feet')}>Mesafe (fit) <input aria-label="Hareket mesafesi" type="number" min="1" step="1" className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} onChange={(event) => setDistance(event.target.value)} /></label>
             <button type="button" className="action-suggestion" disabled={blocked || !distanceValid || resources.movement_remaining <= 0}
-              onClick={() => send(`${distanceValue} feet hareket ediyorum.`, { kind: 'move', distance_ft: distanceValue })}>Hareket et</button>
-            <label>Tetikleyici <select aria-label="Ready tetikleyicisi" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerEvent} onChange={(event) => setTriggerEvent(event.target.value as typeof triggerEvent)}>
+              onClick={() => send(moveSentence(distanceValue), { kind: 'move', distance_ft: distanceValue })}>Hareket et</button>
+            <label>Tetikleyici <select aria-label="Hazırlık tetikleyicisi" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerEvent} onChange={(event) => setTriggerEvent(event.target.value as typeof triggerEvent)}>
               <option value="actor_attacks">Saldırı tamamlandığında</option><option value="actor_moves">Hareket tamamlandığında</option>
             </select></label>
-            <select aria-label="Ready tetikleyicisinin aktörü" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerActor} onChange={(event) => setTriggerActor(event.target.value)}>
+            <select aria-label="Tetikleyen" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerActor} onChange={(event) => setTriggerActor(event.target.value)}>
               <option value="target">Seçili hedef</option><option value="player">Ben</option>
             </select>
-            <select aria-label="Ready yanıtı" className="bg-stone-900 border border-amber-100/20 rounded" value={readyKind} onChange={(event) => setReadyKind(event.target.value as typeof readyKind)}>
+            <select aria-label="Hazırlık yanıtı" className="bg-stone-900 border border-amber-100/20 rounded" value={readyKind} onChange={(event) => setReadyKind(event.target.value as typeof readyKind)}>
               <option value="attack">Saldırı</option><option value="move">Hareket</option>
             </select>
-            <button type="button" className="action-suggestion" disabled={blocked || !legal('ready') || (triggerActor === 'target' && !targetId) || (readyKind === 'attack' && !targetId) || (readyKind === 'move' && !distanceValid)}
-              onClick={() => send('Ready Action hazırlıyorum.', { kind: 'ready',
+            <button title={termTitle('ready')} type="button" className="action-suggestion" disabled={blocked || !legal('ready') || (triggerActor === 'target' && !targetId) || (readyKind === 'attack' && !targetId) || (readyKind === 'move' && !distanceValid)}
+              onClick={() => send(SENT.ready, { kind: 'ready',
                 trigger: { event: triggerEvent, actor_id: triggerActor === 'player' ? 'player' : targetId },
-                response: readyKind === 'attack' ? { kind: 'attack', target_id: targetId } : { kind: 'move', distance_ft: distanceValue } })}>Hazırlan (Ready)</button>
+                response: readyKind === 'attack' ? { kind: 'attack', target_id: targetId } : { kind: 'move', distance_ft: distanceValue } })}>{term('ready')}</button>
           </div>
           </details>
         </>

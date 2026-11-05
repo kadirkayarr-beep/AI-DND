@@ -1,3 +1,4 @@
+import { term, termTitle } from '@/lib/tr-terms';
 import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
 import { SpeciesTraitControls, speciesEffectText } from './species-trait-controls';
 import { DeathRecoveryControls } from './death-recovery-controls';
@@ -388,13 +389,13 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
             ? rawAttack as AttackResult : null;
           const npcAttacks = kind === 'end_turn' && Array.isArray(step.enemy_actions) ? step.enemy_actions : [];
           return <div key={index}>
-            <div className="combat-event">{kind === 'move' ? `Hareket · ${String(step.distance_ft)} ft · maliyet ${String(step.movement_cost_ft)} ft`
-              : kind === 'dash' ? `Dash · ${String(step.resource)} · +${String(step.movement_added_ft)} ft`
-              : kind === 'ready' ? 'Ready Action hazırlandı'
+            <div className="combat-event" title={kind === 'move' ? termTitle('feet') : kind === 'dash' ? [termTitle('dash'), termTitle(step.resource === 'bonus' ? 'bonus_action' : 'action'), termTitle('feet')].join(' / ') : kind === 'ready' ? termTitle('ready') + ' / ' + termTitle('action') : kind === 'react' ? termTitle('ready') + ' / ' + termTitle('reaction') : kind === 'decline_reaction' ? termTitle('reaction') : kind === 'end_turn' || kind === 'species' ? undefined : termTitle('attack') + ' / ' + termTitle('action')}>{kind === 'move' ? `Hareket · ${String(step.distance_ft)} fit · maliyet ${String(step.movement_cost_ft)} fit`
+              : kind === 'dash' ? `${term('dash')} · ${step.resource === 'bonus' ? term('bonus_action') : term('action')} · +${String(step.movement_added_ft)} fit`
+              : kind === 'ready' ? (term('ready') + " " + term('action') + " hazırlandı")
               : kind === 'end_turn' ? 'Tur tamamlandı'
-              : kind === 'decline_reaction' ? 'Reaction fırsatı atlandı'
+              : kind === 'decline_reaction' ? (term('reaction') + " fırsatı atlandı")
               : kind === 'species' ? 'Tür yeteneği çözüldü'
-              : kind === 'react' ? 'Ready Reaction çözüldü' : 'Attack Action çözüldü'}</div>
+              : kind === 'react' ? (term('ready') + " " + term('reaction') + " çözüldü") : (term('attack') + " " + term('action') + " çözüldü")}</div>
             {attack !== null && <AttackReadout result={attack} entryId={`${entry.id}-${index}`} heading="Saldırının sonucu" />}
             {npcAttacks.map((npcAttack, npcIndex) => <AttackReadout key={npcIndex}
               result={npcAttack as AttackResult} entryId={`${entry.id}-${index}-${npcIndex}`} heading="Rakibin saldırısı" enemy />)}

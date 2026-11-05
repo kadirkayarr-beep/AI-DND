@@ -1,3 +1,4 @@
+import { term, termTitle } from '@/lib/tr-terms';
 import type { CombatActionInput, RageState, RageAvailability } from '@workspace/api-client-react';
 type Availability = RageAvailability;
 type Rage = RageState;
@@ -16,10 +17,10 @@ export function RageStatus({ rage }: { rage: unknown }) {
   const value = readRageProjection(rage);
   if (!value) return null;
   return <div className="story-meta mt-3" data-testid="rage-status">
-    <p data-testid="rage-uses">Rage kullanımı: {value.uses_remaining}/{value.max_uses}</p>
-    <p data-testid={value.active ? 'rage-active' : 'rage-inactive'}>{value.active ? 'Rage etkin' : 'Rage etkin değil'}</p>
+    <p data-testid="rage-uses"><span title={termTitle('rage')}>{term('rage')}</span> kullanımı: {value.uses_remaining}/{value.max_uses}</p>
+    <p title={termTitle('rage')} data-testid={value.active ? 'rage-active' : 'rage-inactive'}>{value.active ? (term('rage') + " etkin") : (term('rage') + " etkin değil")}</p>
     {value.active && <p data-testid="rage-duration">Sunucunun bildirdiği kalan süre: {value.remaining_seconds} saniye. Bu bir canlı geri sayım değildir.</p>}
-    <p>Sunucunun doğruladığı Barbarian Rage durumu desteklenir; tüm sınıf özellikleri uygulanmış değildir. Etkinlik, gerçek tur ve zaman ilerlemesinde sunucuda değerlendirilir; çatışma bitişi tek başına Rage'i bitirmez.</p>
+    <p>Sunucunun doğruladığı Barbarian <span title={termTitle('rage')}>{term('rage')}</span> durumu desteklenir; tüm sınıf özellikleri uygulanmış değildir. Etkinlik, gerçek tur ve zaman ilerlemesinde sunucuda değerlendirilir; çatışma bitişi tek başına <span title={termTitle('rage')}>{term('rage')}</span>'i bitirmez.</p>
   </div>;
 }
 
@@ -34,13 +35,13 @@ export function RageControl({ rage, confirmed, onChange, blocked, onCommand }: {
   const enabled = !blocked && availability.available;
   return <div className="story-meta mt-3" data-testid="rage-controls">
     <RageStatus rage={value} />
-    <label><input type="checkbox" data-testid="rage-confirm" checked={confirmed} disabled={!enabled} onChange={event => { if (enabled) onChange(event.target.checked); }} />
-      {value.active ? ' Bu tur Rage süresini Bonus Action ile uzatmayı onaylıyorum.' : ' Rage başlatmak için 1 kullanım ve Bonus Action harcamayı onaylıyorum.'}</label>
-    <button type="button" className="action-suggestion" data-testid={value.active ? 'button-extend-rage' : 'button-activate-rage'} disabled={!enabled || !confirmed} onClick={() => {
+    <label title={termTitle('rage') + ' / ' + termTitle('bonus_action')}><input type="checkbox" data-testid="rage-confirm" checked={confirmed} disabled={!enabled} onChange={event => { if (enabled) onChange(event.target.checked); }} />
+      {value.active ? (" Bu tur " + term('rage') + " süresini " + term('bonus_action') + " ile uzatmayı onaylıyorum.") : (" " + term('rage') + " başlatmak için 1 kullanım ve " + term('bonus_action') + " harcamayı onaylıyorum.")}</label>
+    <button title={termTitle('rage') + ' / ' + termTitle('bonus_action')} type="button" className="action-suggestion" data-testid={value.active ? 'button-extend-rage' : 'button-activate-rage'} disabled={!enabled || !confirmed} onClick={() => {
       if (!enabled || !confirmed) return;
-      onCommand(value.active ? 'Rage süresini uzatıyorum.' : 'Rage başlatıyorum.', { steps: [{ kind, resource: 'bonus' }] });
-    }}>{value.active ? 'Rage uzat' : 'Rage başlat'} · Bonus Action</button>
-    {availability.reason && <p role="status">Rage kullanılamıyor: {availability.reason}</p>}
+      onCommand(value.active ? (term('rage') + " süresini uzatıyorum.") : (term('rage') + " başlatıyorum."), { steps: [{ kind, resource: 'bonus' }] });
+    }}>{value.active ? (term('rage') + " uzat") : (term('rage') + " başlat")} · <span title={termTitle('bonus_action')}>{term('bonus_action')}</span></button>
+    {availability.reason && <p role="status"><span title={termTitle('rage')}>{term('rage')}</span> kullanılamıyor: {availability.reason}</p>}
     <p>Bu uygulamada başlatma ve elle uzatma yalnız kendi çatışma turunda desteklenir. Bu bir PHB dış-çatışma yasağı değildir.</p>
   </div>;
 }

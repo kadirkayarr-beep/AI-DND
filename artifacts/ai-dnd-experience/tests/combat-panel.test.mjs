@@ -67,7 +67,7 @@ test('action economy displays server resources without creating rolls or budgets
   } }));
   assert.match(html, /Eylem: kullanıldı/);
   assert.match(html, /Bonus eylem: uygun yetenek yok/);
-  assert.match(html, /Hareket: 17 ft/);
+  assert.match(html, /Hareket: 17 fit/);
   assert.match(html, /tetikleyici gerekir/);
   assert.doesNotMatch(html, /d20|İSABET|ISKA/);
 });
@@ -665,3 +665,9 @@ test('campaign adventures show rumor, clue, and outcome labels without internal 
   assert.match(html, /Sonuçsuz/);
   assert.doesNotMatch(html, /MISSING_PERSON|template_version|objective_id|opportunity:/);
 });
+test('combat event terms are Turkish with original names on hover', () => {
+  const event = { event_id: 'hover-economy', turn_index: 1, result: { action: 'action_economy', economy_steps: [{kind:'dash', resource:'bonus',movement_added_ft:30},{kind:'move',distance_ft:5,movement_cost_ft:5},{kind:'ready'},{kind:'react'},{kind:'decline_reaction'},{kind:'continue_attack'}] } };
+  const html = renderCombatPanel(makeState(), mergeCombatHistory([event], []));
+  for (const title of ['Dash / Bonus Action / feet','feet','Ready / Action','Ready / Reaction','Reaction','Attack / Action']) assert.ok(html.includes(`title="${title}"`), title);
+});
+

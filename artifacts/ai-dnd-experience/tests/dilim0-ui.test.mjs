@@ -361,3 +361,64 @@ test('long combat rows fold without hiding primary actions or changing availabil
   assert.match(busy, /disabled=""[^>]*>Hareket et</);
   assert.match(busy, /disabled=""[^>]*>Hazırlan/);
 });
+
+test('combat terms, accessible labels and sent sentences are Turkish without changing typed commands', async () => {
+  const terms = await vite.ssrLoadModule('/src/lib/tr-terms.ts');
+  const economy = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
+  assert.deepEqual(terms.SENT, { attack: 'Saldırıyorum.', continue_attack: 'Aynı saldırı eyleminde bir saldırı daha yapıyorum.',
+    dash: 'Koşuyorum.', ready: 'Hazırlanıp bekliyorum.', react: 'Hazırladığım tepkiyi kullanıyorum.', decline_reaction: 'Tepki fırsatını geçiyorum.' });
+  assert.equal(terms.moveSentence(30), '30 fit hareket ediyorum.');
+  assert.equal(terms.abilitySentence('Büyük Biçim'), 'Büyük Biçim kullanıyorum.');
+  const html = render(economy.ActionEconomyPanel, { state: playerTurnState, targetId: 'npc_bandit', sending: false, onCommand() {} });
+  for (const word of [/Action\b/, /Reaction\b/, /\bReady\b/, /\bDash\b/, /\bft\b/]) assert.doesNotMatch(stripTitles(html), word);
+  assert.match(html, /Hareket: 30 fit · Hız: 30 fit/); assert.match(html, /title="Dash"/);
+  for (const label of ['Hazırlık tetikleyicisi', 'Tetikleyen', 'Hazırlık yanıtı', 'Hareket mesafesi']) assert.ok(html.includes(`aria-label="${label}"`));
+  const source = await readFile('src/components/action-economy-panel.tsx', 'utf8');
+  assert.match(source, /send\(SENT\.dash, \{ kind: 'dash' \}\)/);
+  assert.match(source, /send\(moveSentence\(distanceValue\), \{ kind: 'move', distance_ft: distanceValue \}\)/);
+  assert.match(source, /send\(SENT\.react, \{ kind: 'react', opportunity_id: /);
+  assert.match(source, /send\(SENT\.decline_reaction, \{ kind: 'decline_reaction', opportunity_id: /);
+  for (const old of ['Saldırı Action kullanıyorum.', 'Attack Action içindeki', 'Dash Action kullanıyorum.', 'Ready Action hazırlıyorum.',
+    'Ready Reaction kullanıyorum.', 'Ready Reaction fırsatını atlıyorum.', 'Bonus Action kullanıyorum.', 'feet hareket ediyorum']) assert.ok(!source.includes(old), old);
+});
+test('combat glossary keeps original hover names and translated visible names', async () => {
+  const terms = await vite.ssrLoadModule('/src/lib/tr-terms.ts');
+  for (const [key, value] of Object.entries(terms.TR_TERMS)) {
+    assert.equal(terms.term(key), value.tr); assert.equal(terms.termTitle(key), value.en);
+    assert.notEqual(value.tr, value.en);
+  }
+  assert.equal(terms.term('second_wind'), 'İkinci Nefes');
+  assert.equal(terms.term('sneak_attack'), 'Gizli Saldırı');
+  assert.equal(terms.feetText(5), '5 fit');
+});
+
+test('all action costs and distances preserve their original hover names', async () => {
+  const economy = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
+  const state = structuredClone(playerTurnState);
+  state.combat.action_economy.actors.player.bonus_rules = ['adrenaline_rush'];
+  const html = render(economy.ActionEconomyPanel, { state, targetId: 'npc_bandit', sending: false, onCommand() {} });
+  assert.match(html, /title="Speed \/ feet"/);
+  assert.match(html, /<label title="feet">Mesafe \(fit\)/);
+  assert.match(html, /title="Attack \/ Action"/);
+  assert.match(html, /title="Bonus Action \/ Dash"/);
+});
+
+test('rage status and confirmation preserve original hover names', async () => {
+  const rage = await vite.ssrLoadModule('/src/components/rage-controls.tsx');
+  const value = { uses_remaining: 1, max_uses: 2, active: true, remaining_seconds: 6, activate: { available: false, reason: 'active' }, extend: { available: true, reason: null } };
+  const html = render(rage.RageControl, { rage: value, confirmed: true, blocked: false, onChange() {}, onCommand() {} });
+  assert.match(html, /<p[^>]*title="Rage"[^>]*data-testid="rage-active"|<p[^>]*data-testid="rage-active"[^>]*title="Rage"/);
+  assert.match(html, /<button[^>]*title="Rage \/ Bonus Action"/);
+  assert.match(html, /<label title="Rage \/ Bonus Action"/);
+});
+
+test('monk second strike and action costs use the shared Turkish glossary', async () => {
+  const monk = await vite.ssrLoadModule('/src/components/monk-controls.tsx');
+  const yes = { available: true, reason: null };
+  const value = { martial_arts_die: 8, martial_arts_ready: true, movement_bonus_ft: 10, save_dc: 13, focus: { points_remaining: 3, max_points: 5 }, martial_arts_strike: yes, flurry_of_blows: yes, flurry_strikes_remaining: 1, patient_defense: yes, step_of_the_wind: yes, uncanny_metabolism: yes, stunning_strike: yes, deflect_mode: 'reduce', open_hand_techniques: ['push'] };
+  const html = render(monk.MonkControl, { monk: value, targetId: 'npc', blocked: false, attackEnabled: true, continueEnabled: true, technique: '', onTechniqueChange() {}, onCommand() {} });
+  assert.doesNotMatch(stripTitles(html), /Flurry| · Bonus(?:<| ·)/);
+  assert.match(html, /title="Flurry of Blows"/);
+  assert.match(html, /title="Bonus Action">Bonus eylem/);
+});
+

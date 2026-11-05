@@ -1,3 +1,5 @@
+const visibleText = e => Array.isArray(e) ? e.map(visibleText).join('') : e && typeof e === 'object' ? visibleText(e.props?.children) : e == null ? '' : String(e);
+import * as terms from '../src/lib/tr-terms.ts';
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import path from 'node:path';
@@ -161,16 +163,16 @@ async function panelHarness(state) {
     React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) },
     useRef(value) { const index = cursor++; return slots[index] ??= { current: value }; },
     useState(value) { const index = cursor++; if (!(index in slots)) slots[index] = value; return [slots[index], next => { slots[index] = typeof next === 'function' ? next(slots[index]) : next; }]; } };
-  vm.runInNewContext(code, env);
+  Object.assign(env, terms); vm.runInNewContext(code, env);
   const props = { state, targetId: 'npc', sending: false, onCommand: (_, command) => sent.push(JSON.parse(JSON.stringify(command))) };
   const flat = e => Array.isArray(e) ? e.flatMap(flat) : e && typeof e === 'object' ? [e, ...flat(e.props?.children)] : [];
   const render = () => { cursor = 0; return flat(env.Panel(props)); };
-  const button = label => render().find(n => n.type === 'button' && n.props.children.includes(label));
+  const button = label => render().find(n => n.type === 'button' && visibleText(n.props.children) === label);
   const strike = () => render().find(n => n.type === 'CunningStrikeControl').props;
   const settle = () => { props.sending = true; render(); props.sending = false; render(); };  // one send finishing, as the owner reports it
   return { props, sent, render, button, strike, settle };
 }
-const ATTACK = 'Saldır · Action', CONTINUE = 'Attack Action devamı';
+const ATTACK = 'Saldır · Eylem', CONTINUE = 'Saldırı eylemine devam';
 
 test('panel: the picked strike travels on the attack and the pick is cleared once it is sent', async () => {
   const h = await panelHarness(panelState(ROGUE()));

@@ -153,7 +153,7 @@ test('Sacred Weapon fields follow the server block', () => {
 
 test('the status names what is catalog-only and what is detected', () => {
   const text = html(React.createElement(controls.PaladinStatus, { paladin: PALADIN() }));
-  assert.match(text, /Lay On Hands: 12\/15/);
+  assert.match(text.replace(/<[^>]+>/g, ''), /Şifa Eli: 12\/15/); assert.match(text, /title="Lay on Hands"/);
   assert.match(text, /Channel Divinity: 1\/2/);
   assert.match(text, /fiend 30 ft/);
   assert.match(text, /Her zaman hazır: Divine Smite/);

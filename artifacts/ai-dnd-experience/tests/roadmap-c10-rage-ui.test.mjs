@@ -1,3 +1,4 @@
+import * as terms from '../src/lib/tr-terms.ts';
 import assert from 'node:assert/strict';
 import {before,after,test} from 'node:test';
 import path from 'node:path';
@@ -20,7 +21,7 @@ test('actual action panel routes explicit Rage through shared command guard and 
  const functions=['createQuickenedIntent','quickenedProjection','ActionEconomyPanel'].map(name=>ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name).getText(ast).replace(/^export /,''));
  const code=ts.transpileModule(functions.join('\n')+'\nglobalThis.Panel=ActionEconomyPanel;',{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
  const slots=[];let index=0;const env={FighterControl:'FighterControl',PaladinControl:'PaladinControl',SacredWeaponChoice:'SacredWeaponChoice',readPaladinProjection:()=>null,sacredWeaponFields:()=>({}),MonkControl:'MonkControl',RogueControl:'RogueControl',CunningStrikeControl:'CunningStrikeControl',readRogueProjection:()=>null,cunningStrikeFields:()=>({}),readRageProjection:ui.readRageProjection,RageControl:'RageControl',createRecklessIntent:ui.createRecklessIntent,MagicMissileControl:'MagicMissileControl',RecklessAttackControl:'RecklessAttackControl',React:{createElement:(type,props,...children)=>({type,props:{...props,children}})},useRef:value=>{const i=index++;return slots[i]??={current:value};},useState:value=>{const i=index++;slots[i]??=value;return[slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];}};
- vm.runInNewContext(code,env);const state={character:{rage:inactive},combat:{active:true,combat_id:'combat1',round:1,current_turn_index:0,current_actor_id:'player',action_economy:{actors:{player:{legal_actions:[],additional_actions:[],bonus_rules:[],bonus_action_available:false}}}}};
+ Object.assign(env, terms); vm.runInNewContext(code,env);const state={character:{rage:inactive},combat:{active:true,combat_id:'combat1',round:1,current_turn_index:0,current_actor_id:'player',action_economy:{actors:{player:{legal_actions:[],additional_actions:[],bonus_rules:[],bonus_action_available:false}}}}};
  const sends=[];const render=(extra={})=>{index=0;return nodes(env.Panel({state,targetId:'npc',sending:false,decisionScope:'a:campaign:session',onCommand:(_m,c)=>sends.push(c),...extra}));};const control=extra=>render(extra).find(n=>n.type==='RageControl');
  assert.ok(control(),'real panel mounts Rage control');control().props.onChange(true);assert.equal(control().props.confirmed,true);
  assert.equal(control({decisionScope:'other-owner:other-campaign:session'}).props.confirmed,false);assert.equal(control().props.confirmed,false);

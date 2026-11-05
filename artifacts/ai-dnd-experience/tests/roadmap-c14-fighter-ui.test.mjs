@@ -1,3 +1,4 @@
+import * as terms from '../src/lib/tr-terms.ts';
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -187,12 +188,13 @@ test('projection reader refuses malformed blocks; the panel never derives anythi
 });
 
 test('Second Wind and Action Surge send the exact typed steps and respect the server availability', async () => {
-  const sent = [];
-  const tree = fighter => nodes(controls.FighterControl({ fighter, blocked: false, shift: '', onShiftChange: () => {}, onCommand: (label, step) => sent.push(step) }));
+  const sent = [], labels = [];
+  const tree = fighter => nodes(controls.FighterControl({ fighter, blocked: false, shift: '', onShiftChange: () => {}, onCommand: (label, step) => { labels.push(label); sent.push(step); } }));
   const live = tree(FIGHTER());
   byId(live, 'button-second-wind').props.onClick();
   byId(live, 'button-action-surge').props.onClick();
   assert.deepEqual(sent, [{ kind: 'second_wind', resource: 'bonus' }, { kind: 'action_surge' }]);
+  assert.deepEqual(labels, ['İkinci Nefes kullanıyorum.', 'Eylem Atılımı kullanıyorum.']);
   const spent = FIGHTER(); spent.second_wind.activate = { available: false, reason: 'second_wind_uses_exhausted' }; spent.action_surge.activate = { available: false, reason: 'action_surge_uses_exhausted' };
   const off = tree(spent); assert.equal(byId(off, 'button-second-wind').props.disabled, true); assert.equal(byId(off, 'button-action-surge').props.disabled, true);
   const blocked = nodes(controls.FighterControl({ fighter: FIGHTER(), blocked: true, shift: '', onShiftChange: () => {}, onCommand: () => assert.fail('sent') }));
@@ -234,7 +236,7 @@ test('real species panel: out of combat Second Wind follows the projection, uses
   const live = secondWindButton(speciesPanel({ fighter: FIGHTER() }));
   assert.ok(live, 'shown for a wounded Fighter with a use left');
   assert.doesNotMatch(live[0], /disabled/);
-  assert.match(live[1], /Second Wind · 2 kullanım/);
+  assert.match(live[1].replace(/<[^>]*>/g, ''), /İkinci Nefes · 2 kullanım/); assert.match(live[1], /title="Second Wind"/);
   assert.match(secondWindButton(speciesPanel({ fighter: FIGHTER(), current_hp: 20 }))[0], /disabled/, 'nothing to heal');
   const spent = FIGHTER(); spent.second_wind.uses_remaining = 0;
   assert.equal(secondWindButton(speciesPanel({ fighter: spent })), null);
@@ -255,7 +257,7 @@ test('real species panel source: the out of combat button sends only the typed a
     ts.forEachChild(n, visit); })(ast);
   assert.ok(button, 'the guarded button exists');
   const code = ts.transpileModule(`globalThis.__r=(${button.getText(ast)});`, { fileName: 'b.tsx', compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const element = notBusy => { const sent = [], env = { React, notBusy, character: { current_hp: 5, max_hp: 20 }, fighter: FIGHTER(), send: value => sent.push(JSON.stringify(value)) }; vm.runInNewContext(code, env); return { props: env.__r.props, sent }; };
+  const element = notBusy => { const sent = [], env = { React, notBusy, character: { current_hp: 5, max_hp: 20 }, fighter: FIGHTER(), send: value => sent.push(JSON.stringify(value)) }; Object.assign(env, terms); vm.runInNewContext(code, env); return { props: env.__r.props, sent }; };
   const live = element(true);
   live.props.onClick();
   assert.deepEqual(live.sent, ['{"action":"second_wind"}']);

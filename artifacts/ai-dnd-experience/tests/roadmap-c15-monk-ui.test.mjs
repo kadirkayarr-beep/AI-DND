@@ -172,7 +172,7 @@ test('projection reader refuses malformed blocks; nothing is derived from the cl
 
 test('status shows the server values only', () => {
   const html = render(React.createElement(controls.MonkStatus, { monk: MONK() }));
-  assert.match(html, /1d8/); assert.match(html, /3\/5/); assert.match(html, /DC 13/); assert.match(html, /\+10 ft/);
+  assert.match(html, /1d8/); assert.match(html, /3\/5/); assert.match(html, /DC 13/); assert.match(html.replace(/<[^>]+>/g, ''), /\+10 fit/); assert.match(html, /title="feet"/);
   const low = render(React.createElement(controls.MonkStatus, { monk: LEVEL_ONE() }));
   assert.match(low, /1d6/); assert.doesNotMatch(low, /Focus/);
 });
