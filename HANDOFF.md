@@ -1,4 +1,6 @@
 # AI-DND devir notu (güncel) — son güncelleme 2026-11-05 00:15 (iş akışları durduruldu, her şey commit'li)
+
+Son ek / J-036: Dilim1 uç6d791c3e (tabandan29/devirden13), yalnız istem ölçüm testi; 2 test OK. 24/8 speech6791,26/2 speech5653,26/3 narrator14841 UTF-8 bayt; kısaltma yok. 22 Step3b kanıtlandı; gerçek zincir/token/genel kapılar ve hazır bildirimi bekliyor. Para/kayıt incelemesi ayrı yürütülüyor. Aşağıdaki önceki ölçülmedi ifadeleri tarihsel kayıttır.
 ## Son doğrulanan durum — 2026-11-05, J-034/J-035
 Dilim1 task/dilim1-money-memory-20261104 / AI-DND-dilim1 uç8f3fad79; tabandan28, Jarvis devrinden12 commit. Dört continuity hatası ve iki para hatası kapandı. 24/24r eklendi; hafıza151, pazarlık201, kayıt/Geri Al149 odaklı test OK. Görev10/20/21 İNCELEME BEKLİYOR (sıfır tolerans). Önceki genel yolculuk14/18/0; son genel toplam ölçülmedi; kaynakta19 known_broken adımı. Gerçek zincir/istem boyu ölçülmedi. Node ve uzun kapılar bekliyor; oynayış bekliyor, hazır/kabul/push/merge yok. Güncel ayrıntı ve tüm eski-test değişiklikleri DILIM1_ARA_DEVIR_JARVIS_20261105.md. Aşağıdaki eski uç ve engel satırları tarihsel kilometre taşlarıdır; para kapsam izni artık açık engel değildir.
 ## Güncel kısa durum — Jarvis, 2026-11-05

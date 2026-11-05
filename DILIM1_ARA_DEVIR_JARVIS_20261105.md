@@ -1,7 +1,7 @@
 # Dilim 1 ara devir — Jarvis, 2026-11-05
 
 Durum: uygulama ve odaklı testler ilerledi; genel kapılar, bağımsız inceleme ve oynayış bekliyor. Görev 23 kısmi; “Dilim 1 hazır” tetiği verilmedi.
-Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç 8f3fad79. ae815c4f tabanından 28, Jarvis devrinin 353ce7d6 ucundan 12 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
+Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç 6d791c3e. ae815c4f tabanından 29, Jarvis devrinin 353ce7d6 ucundan 13 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
 
 Tamamlanan uygulama ve odaklı kontroller:
 - Görev 12 (36 motor yarısı/38): f77df47c, 46 test OK.
@@ -20,7 +20,7 @@ Yolculuk: önceki genel ölçüm 14 geçti/18 bilinen kırık/0 yeni kırık tar
 Kalanlar:
 - Görev 11 panel onayı var; güvenli odaklı Node yolu yok. slot.sh node hedef aktarmıyor, slot_web tam kontrol ve farklı izolasyon kullanıyor. Koruma değiştirilmedi; “üstü kalsın” panel ana yolu tamamlanmadı.
 - Ara kapılar13/16/19, Görev20 kapıD ve bütün dal Görev22, tam MONEY, tarayıcı, gerçek süreç restart ve gerçek model koşuları ertelendi. 35/54 eski yedek yol işaretleri kalıyor; 107 yönlendirme ve 36 gerçek zincir yarısı doğrulanmadı.
-- Görev22 Step3b istem boyu ölçülmedi. Yan etki2/12 için ayrı bütünleşik kapanış kanıtı yok.
+- Görev22 Step3b istem boyu ölçüldü; aşağıdaki J-036 tablosuna bak. Yan etki2/12 için ayrı bütünleşik kapanış kanıtı yok.
 - Para/kayıt/Geri Al Görev10/20/21: İNCELEME BEKLİYOR (sıfır tolerans). Dilim0 Görev5 de bağımsız inceleme bekler. Önceki para dosyası kapsam kararı kullanıcı talimatıyla çözüldü; yeniden karar bekleyen engel olarak gösterilmez.
 - Ürünü yalnız Kadir kabul eder; 30 dakikalık oynayış bekliyor.
 
@@ -72,3 +72,12 @@ Son devirden sonraki eski test değişiklikleri (J-026/J-031/J-033):
 - 03_room_sleep: plan Görev20 gereği fiyat/kart45,kese55; seed12 aynı, known_broken37 kaldırıldı; altı adım geçti.
 - Yeni testlerdeki hazırlık düzeltmeleri J-033/J-034'te kayıtlı; eski test silme/atlama yok.
 Tam eski test adları (adlar değişmedi): test_continuity_first_person_switch_can_come_from_environment; test_speech_call_uses_lean_schema_and_non_greedy_sampling; test_guard_fake_client_output_conforms_to_the_requested_schema. Shop fixture: CounterTrade.test_a_changed_price_changes_nothing_and_gives_the_fresh_quote, WordsOpenTheCounter/WhatIsShownIsNotFree/TypedLane mirasları dahil.
+
+## İstem boyu — Görev22 Step3b, J-036
+Kod ucu6d791c3e (tabandan29, Jarvis devrinden13 commit); yalnız ölçüm test dosyası eklendi. 2 test OK,1.066s, JVD1PROMPTBYTES / runs/20261105T123802-JVD1PROMPTBYTES. Ürün kaynağı değişmedi.
+| Örnek | Son çağrı | Tüm içerik UTF-8 bayt | Doğruluk görünümü | Hafıza görünümü |
+|---|---|---:|---:|---:|
+| 24 adım8 | konuşma | 6791 | 100 | 131 |
+| 26 adım2 | konuşma | 5653 | 233 | 0 |
+| 26 adım3 | anlatıcı | 14841 | 307 | 0 |
+Diğer karşı çağrılar yapılmadı; sıfır uzunlukta çağrı değildir. NarratorInput'ın satırla birleştirdiği message içerikleri ölçüldü; protokol zarfı/token ölçümü değildir. Kısaltma işareti yok. Gerçek model token sayısı yok. Bütün dal kapısı ve hazır bildirimi hâlâ bekliyor.
