@@ -19,8 +19,7 @@ export function RageStatus({ rage }: { rage: unknown }) {
   return <div className="story-meta mt-3" data-testid="rage-status">
     <p data-testid="rage-uses"><span title={termTitle('rage')}>{term('rage')}</span> kullanımı: {value.uses_remaining}/{value.max_uses}</p>
     <p title={termTitle('rage')} data-testid={value.active ? 'rage-active' : 'rage-inactive'}>{value.active ? (term('rage') + " etkin") : (term('rage') + " etkin değil")}</p>
-    {value.active && <p data-testid="rage-duration">Sunucunun bildirdiği kalan süre: {value.remaining_seconds} saniye. Bu bir canlı geri sayım değildir.</p>}
-    <p>Sunucunun doğruladığı Barbarian <span title={termTitle('rage')}>{term('rage')}</span> durumu desteklenir; tüm sınıf özellikleri uygulanmış değildir. Etkinlik, gerçek tur ve zaman ilerlemesinde sunucuda değerlendirilir; çatışma bitişi tek başına <span title={termTitle('rage')}>{term('rage')}</span>'i bitirmez.</p>
+    {value.active && <p data-testid="rage-duration">Kalan süre: {value.remaining_seconds} sn</p>}
   </div>;
 }
 

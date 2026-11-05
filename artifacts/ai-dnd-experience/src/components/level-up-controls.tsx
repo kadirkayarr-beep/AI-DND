@@ -98,7 +98,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
     {emptyChoice && <label><input type="checkbox" data-testid="level-up-confirm-empty" checked={draft.confirmed} disabled={disabled}
       onChange={event => onChange({ ...draft, confirmed: event.target.checked })} /> Bu kazanılmış adımın uygulanmasını onaylıyorum.</label>}
     {needsAsi && <label><input data-testid="level-up-confirm-con" type="checkbox" disabled={disabled || !asi} checked={draft.confirmed} onChange={event => { if (!disabled && asi) onChange({ ...draft, confirmed: event.target.checked }); }} /> Ability Score Improvement: {asiChoiceLabel(asi)} seçimini onaylıyorum.</label>}
-    {!!preview.effects_supported?.length && <aside data-testid="level-up-supported-effects" aria-label="Desteklenen etkiler"><strong>Sunucunun bildirdiği desteklenen kapsam</strong><ul>{preview.effects_supported.map((effect, index) => <li key={index}>{effect}</li>)}</ul></aside>}
+    {!!preview.effects_supported?.length && <aside data-testid="level-up-supported-effects" aria-label="Desteklenen etkiler"><strong>Bu seviyede oyunda işleyenler</strong><p>{preview.effects_supported.length} özellik</p></aside>}
     <ProgressionEffectsNotice effects={preview.effects_pending} />
     <button type="button" className="dnd-button" data-testid="button-confirm-level-up" disabled={disabled || !valid} onClick={() => {
       if (!valid || disabled || !preview.campaign_id || preview.revision == null || preview.target_level == null) return;

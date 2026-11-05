@@ -1,3 +1,4 @@
+import { speciesLabel } from '@/lib/campaign-presentation';
 import { term, termTitle } from '@/lib/tr-terms';
 import { applyGameState, nextRevision } from '@/lib/game-state-gate';
 import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
@@ -239,7 +240,7 @@ export function SpeciesTraitControls({
           <span className="combat-overline">KARAKTERİNİN KÖKENİ</span>
           <h3 id="species-traits-heading">Tür yetenekleri</h3>
         </div>
-        <span className="species-traits-species">{species}</span>
+        <span className="species-traits-species">{speciesLabel(species)}</span>
       </div>
 
       {species === 'Aasimar' && (

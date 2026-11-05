@@ -6,8 +6,7 @@ import { updateLimitedSelection } from '@/lib/character-catalog-normalizer';
 export function ProgressionEffectsNotice({ effects }: { effects?: string[] }) {
   if (!effects?.length) return null;
   return <aside className="cc-progression-notice" aria-label="Henüz uygulanmayan özellikler">
-    <strong>Sunucunun bildirdiği bekleyen veya sınırlı kapsam:</strong>
-    <ul>{effects.map((effect, index) => <li key={index}>{effect}</li>)}</ul>
+    Bu seviyedeki {effects.length} özellik henüz oyunda tam işlemiyor.
   </aside>;
 }
 

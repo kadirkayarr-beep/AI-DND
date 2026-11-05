@@ -1,3 +1,4 @@
+import { originFeatLabel } from '@/lib/catalog-display';
 import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
 import { showsCounter } from '@/lib/play-panels';
 import { runningQuestCount } from '@/lib/quest-counter';
@@ -93,6 +94,7 @@ import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
 import { NoticeBanner, type Notice, type RecoveryState } from '@/components/notice-banner';
+import { skillLabel } from '@/lib/skill-label';
 import { historyToEntries } from '@/lib/transcript-history';
 import { resumeComposerMode } from '@/lib/resume-mode';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
@@ -241,7 +243,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
         </div>
         <aside className="real-entry-card">
           <div className="real-card-mark"><Shield size={17} aria-hidden="true" /></div>
-          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span><strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
+          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span>{' '}<strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
           <span className="entry-health"><EngineHealth /></span>
         </aside>
       </section>
@@ -1049,7 +1051,7 @@ function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameSt
                 <h2 data-testid="reveal-character-name">{character.name}</h2>
                 <div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div>
               </div>
-              <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
+              <span className="character-badge">Sv. {character.level}</span>
             </div>
             <StartingEquipmentNotice characterClass={character.class} catalog={catalog} />
             <PurseLine totalCp={state.wallet?.total_cp ?? null} />
@@ -1066,12 +1068,12 @@ function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameSt
                 <div className="mt-2 flex flex-wrap gap-2">
                   {character.origin_feat && (
                     <span className="status-pill" data-testid="reveal-background-origin-feat">
-                      Geçmiş: {character.origin_feat}
+                      Geçmiş: {originFeatLabel((catalog as { origin_feats?: unknown } | undefined)?.origin_feats, character.origin_feat)}
                     </span>
                   )}
                   {character.species_bonus_feat && (
                     <span className="status-pill" data-testid="reveal-species-bonus-feat">
-                      Tür: {character.species_bonus_feat}
+                      Tür: {originFeatLabel((catalog as { origin_feats?: unknown } | undefined)?.origin_feats, character.species_bonus_feat)}
                     </span>
                   )}
                 </div>
@@ -1100,7 +1102,7 @@ function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameSt
               <Kicker>Usta olunan beceriler</Kicker>
               <div className="mt-3 flex flex-wrap gap-2">
                 {character.proficient_skills.length
-                  ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>)
+                  ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skillLabel(skill)}</span>)
                   : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}
               </div>
             </div>
@@ -1109,7 +1111,7 @@ function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameSt
                 <Kicker>Tür becerileri</Kicker>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {character.species_bonus_skills.map((skill) => (
-                    <span className="status-pill" key={skill}>{skill}</span>
+                    <span className="status-pill" key={skill}>{skillLabel(skill)}</span>
                   ))}
                 </div>
               </div>

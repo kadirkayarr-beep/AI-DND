@@ -30,7 +30,7 @@ test('source loss retains visible selected level and provides retry and explicit
 test('real level-three choice fieldsets show separate choices and honest pending effects',()=>{
  const html=render('StartingLevelChoices',{draft:full,metadata:meta,initialSpells:['Magic Missile','Shield'],onChange:()=>{}});
  assert.match(html,/<fieldset/);assert.match(html,/<legend/);
- for(const text of ['2. seviye','3. seviye','Quickened Spell','Twinned Spell','Aberrant Sorcery','Draconic Sorcery','Subclass effects pending'])assert.ok(html.includes(text),text);
+ for(const text of ['2. seviye','3. seviye','Quickened Spell','Twinned Spell','Aberrant Sorcery','Draconic Sorcery','Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor.'])assert.ok(html.includes(text),text);
  assert.match(html,/type="checkbox"/);assert.match(html,/type="radio"/);
  assert.doesNotMatch(html,/value="Magic Missile"/);assert.doesNotMatch(html,/value="Shield"/);
  const two=render('StartingLevelChoices',{draft:{...full,startingLevel:2,level3Prepared:[],subclassId:''},metadata:meta,initialSpells:['Magic Missile','Shield'],onChange:()=>{}});
@@ -43,10 +43,10 @@ test('higher-level HP is deferred and all new choice inputs respect in-flight cr
  for(const input of html.match(/<input[^>]*>/g)||[])assert.match(input,/disabled=""/);
  assert.ok((html.match(/<input[^>]*>/g)||[]).length>0);
 });
-test('pending effects notice is conditional and renders server text as inert text',()=>{
+test('pending effects notice is conditional and counts effects without rendering untrusted server text',()=>{
  assert.equal(render('ProgressionEffectsNotice',{}),'');assert.equal(render('ProgressionEffectsNotice',{effects:[]}),'');
  const html=render('ProgressionEffectsNotice',{effects:['Font not implemented','<script>test</script>']});
- assert.ok(html.includes('Font not implemented'));assert.ok(html.includes('&lt;script&gt;'));assert.doesNotMatch(html,/<script>/);
+ assert.match(html,/Bu seviyedeki 2 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(html,/Font not implemented|&lt;script&gt;|<script>|<li/);
 });
 
 // Invoke the actual controlled presenter callbacks. This is not DOM/browser interaction evidence.

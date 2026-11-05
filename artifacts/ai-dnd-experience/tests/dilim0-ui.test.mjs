@@ -422,3 +422,111 @@ test('monk second strike and action costs use the shared Turkish glossary', asyn
   assert.match(html, /title="Bonus Action">Bonus eylem/);
 });
 
+
+test('skills read in Turkish', async () => {
+  display = await vite.ssrLoadModule('/src/lib/skill-label.ts');
+  assert.equal(display.skillLabel('Athletics'), 'Atletizm');
+  assert.equal(display.skillLabel('Uydurma'), 'Uydurma');
+  assert.equal(display.skillLabel(''), '');
+});
+test('inventory hides the item id and shows equipped as a tag', async () => {
+  inv = await vite.ssrLoadModule('/src/lib/inventory-display.ts');
+  assert.deepEqual(inv.inventoryDisplay('Deri Zırh [item_000001] (kuşanılmış)'), { name: 'Deri Zırh', equipped: true });
+  assert.deepEqual(inv.inventoryDisplay('Bira [item_000006]'), { name: 'Bira', equipped: false });
+  for (const name of ['10 Parşömen', 'Not [kenar] içinde', 'Deri Zırh (kuşanılmış)', 'Not [', '']) {
+    assert.deepEqual(inv.inventoryDisplay(name), { name, equipped: false });
+  }
+});
+test('the character panel has no LVL, no ids and no developer notes', () => {
+  const html = render(panel.CharacterPanel, { character: { ...fighter, proficient_skills: ['Athletics'], progression_effects_pending: ['Rogue equipment packages are pending'] } });
+  assert.match(html, /Atletizm/); assert.match(html, /Sv\. 1/);
+  assert.doesNotMatch(html, /LVL|Sunucunun|Rogue equipment|\[item_/);
+});
+test('the inventory panel shows names and an equipped tag, never the id', () => {
+  const html = render(panel.InventoryPanel, { items: ['Deri Zırh [item_000001] (kuşanılmış)', 'Bira [item_000006]'] });
+  assert.match(html, /Deri Zırh/); assert.match(html, /kuşanılmış/); assert.match(html, /Bira/);
+  assert.doesNotMatch(html, /\[item_/);
+});
+test('the creation notice counts pending features in one Turkish sentence', async () => {
+  sorcerer = await vite.ssrLoadModule('/src/components/sorcerer-starting-creation.tsx');
+  const html = render(sorcerer.ProgressionEffectsNotice, { effects: ['Rogue equipment packages are pending', 'b'] });
+  assert.match(html, /Bu seviyedeki 2 özellik henüz oyunda tam işlemiyor\./);
+  assert.doesNotMatch(html, /Sunucunun|Rogue equipment|<li/);
+  assert.equal(render(sorcerer.ProgressionEffectsNotice, { effects: [] }), '');
+  assert.equal(render(sorcerer.ProgressionEffectsNotice, {}), '');
+});
+test('stored progression hides pending prose and unknown subclass identifiers', () => {
+  const html=render(panel.StoredProgressionChoices,{character:{...fighter,subclass_id:'unknown_subclass',progression_effects_pending:['Secret English pending']}});
+  assert.doesNotMatch(html,/unknown_subclass|Secret English|henüz oyunda/);
+});
+test('rage duration is a value without developer prose or a client countdown', async () => {
+  const rage=await vite.ssrLoadModule('/src/components/rage-controls.tsx');
+  const source=await readFile('src/components/rage-controls.tsx','utf8');
+  assert.match(source,/Kalan süre:.*remaining_seconds.*sn/);
+  assert.doesNotMatch(source,/Sunucunun bildirdiği kalan süre|Bu bir canlı geri sayım/);
+});
+test('welcome and creation display skills without changing submitted skill identifiers', async () => {
+  const game=await readFile('src/pages/game-browser.tsx','utf8');
+  const creation=await readFile('src/components/character-creation-screen.tsx','utf8');
+  assert.doesNotMatch(game,/LVL \{/);
+  assert.match(game,/Sv\. \{character\.level\}/);
+  assert.match(game,/skillLabel\(skill\)/);
+  assert.match(creation,/allSkills\.map\(skillLabel\)\.join/);
+  assert.match(creation,/proficient_skills: derivedStats\.allSkills/);
+});
+test('account card separates its heading from its description', async () => {
+  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  assert.match(source,/HESABIN VE KAMPANYALARIN<\/span>\{' '\}<strong>/);
+});
+
+test('offline catalog keeps localized feature and trait descriptions without changing identity', async () => {
+  const {DEFAULT_CATALOG:c}=await vite.ssrLoadModule('/src/lib/character-catalog-defaults.ts');
+  assert.equal(c.races.Dwarf.traits.find(t=>t.name.includes('Stonecunning')).name_tr, 'Taş Hissi');
+  assert.doesNotMatch(c.races.Gnome.traits.map(t=>t.desc).join(' '), /Intelligence|Wisdom|Charisma|Forest Gnome/);
+  assert.doesNotMatch(c.classes.Fighter.features.join(' '), /Second Wind|Fighting Style/);
+  assert.ok(c.classes.Fighter.skill_options.includes('Athletics'));
+});
+test('specialized origin feats keep the catalog name and localized class', async () => {
+  const labels=await vite.ssrLoadModule('/src/lib/catalog-display.ts');
+  const feats={'Magic Initiate':{name_tr:'Büyüye Giriş'},'Savage Attacker':{name_tr:'Vahşi Saldırgan'}};
+  assert.equal(labels.originFeatLabel(feats,'Magic Initiate (Wizard)'), 'Büyüye Giriş (Sihirbaz)');
+  assert.equal(labels.originFeatLabel(feats,'Savage Attacker'),'Vahşi Saldırgan');
+  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  assert.match(source,/originFeatLabel\([^;]*character\.species_bonus_feat/);
+});
+test('inventory preserves terminal unrelated brackets and labels without proven generated identity', async () => {
+  const {inventoryDisplay}=await vite.ssrLoadModule('/src/lib/inventory-display.ts');
+  for(const name of ['Not [kenar]','Kılıç (kuşanılmış)','Not [custom-id]','Not []','Not [item_]'])assert.deepEqual(inventoryDisplay(name),{name,equipped:false});
+  assert.deepEqual(inventoryDisplay('Not [kenar] [item_000004]'),{name:'Not [kenar]',equipped:false});
+});
+test('starting scopes disclose counts for the selected level, not raw supported prose', async () => {
+  for(const [file,name] of [['fighter','Fighter'],['monk','Monk'],['rogue','Rogue'],['paladin','Paladin']]){
+    const ui=await vite.ssrLoadModule('/src/components/'+file+'-starting-creation.tsx');
+    const html=render(ui[name+'StartingScope'],{level:5,metadata:{supported_starting_levels:[1,5],level_5:{effects_supported:['Raw supported one','Raw supported two'],effects_pending:['Raw pending']}}});
+    assert.match(html,/Bu seviyede oyunda işleyenler/);assert.match(html,/>2 özellik</);
+    assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor/);assert.doesNotMatch(html,/Raw supported|Raw pending/);
+  }
+});
+
+test('every starting scope uses distinct counts from the requested level', async () => {
+  const metadata={supported_starting_levels:[1,2,3,4,5]};
+  for(const [level,supported,pending] of [[2,1,8],[3,2,4],[4,4,2],[5,8,1]])metadata['level_'+level]={effects_supported:Array.from({length:supported},(_,i)=>'raw supported '+level+' '+i),effects_pending:Array.from({length:pending},(_,i)=>'raw pending '+level+' '+i)};
+  for(const [file,name] of [['fighter','Fighter'],['monk','Monk'],['rogue','Rogue'],['paladin','Paladin'],['barbarian','Barbarian']]){
+    const ui=await vite.ssrLoadModule('/src/components/'+file+'-starting-creation.tsx');
+    for(const [level,supported,pending] of [[2,1,8],[3,file==='barbarian'?3:2,4],[4,4,2],[5,8,1]]){
+      const html=render(ui[name+'StartingScope'],{level,metadata});
+      assert.match(html,new RegExp('>'+supported+' özellik<'),file+' level '+level);
+      assert.match(html,new RegExp('Bu seviyedeki '+pending+' özellik henüz oyunda tam işlemiyor'),file+' pending '+level);
+      assert.doesNotMatch(html,/raw supported|raw pending/);
+    }
+  }
+});
+
+test('primal skill options display Turkish labels while retaining submitted IDs', async () => {
+  const ui=await vite.ssrLoadModule('/src/components/barbarian-starting-creation.tsx');
+  const metadata={level_3:{subclass_options:[],primal_knowledge_skill_options:['Athletics','Survival']}};
+  const html=render(ui.BarbarianStartingChoices,{draft:{startingLevel:3,subclassId:'',primalSkill:'Survival'},metadata,ownedSkills:[],onChange(){}});
+  assert.match(html,/<option value="Athletics">Atletizm<\/option>/);
+  assert.match(html,/<option value="Survival" selected="">Hayatta Kalma<\/option>/);
+  assert.doesNotMatch(html,/>Athletics<|>Survival</);
+});

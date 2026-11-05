@@ -206,7 +206,7 @@ test('the shared level-up surface hands a Paladin preview to its own component',
   const props = { draft: { cantrip: '', preparedSpell: '', confirmed: false }, onChange() {}, onConfirm() {}, onCancel() {} };
   const text = html(React.createElement(plain.LevelUpChoices, { ...props, preview: preview(2, TWO, { fighting_style_options: ['Defense'] }) }));
   assert.match(text, /level-up-style/);
-  assert.match(text, /Weapon Mastery pending/);
+  assert.match(text,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(text,/Weapon Mastery pending/);
   assert.match(html(React.createElement(plain.LevelUpChoices, { ...props, preview: preview(2, { prepared_spells: 9 }) })), /henüz desteklenmiyor/);
 });
 
@@ -231,5 +231,5 @@ test('start controls offer only catalog levels and the choices show exactly the 
   assert.deepEqual(changes[0].paladinCantrips, []);
   const summary = html(React.createElement(ui.PaladinStartingSummary, { draft: draftN(4), metadata }));
   assert.match(summary, /Oath of Devotion/);
-  assert.match(summary, /catalog-only/);
+  assert.match(summary,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(summary,/catalog-only/);
 });

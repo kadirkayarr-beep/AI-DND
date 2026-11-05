@@ -81,6 +81,18 @@ class CoinLabel(unittest.TestCase):
 
 
 class StartPurse(unittest.TestCase):
+
+    def test_catalog_display_labels_are_turkish_without_changing_ids(self):
+        catalog = get_character_creation_catalog()
+        self.assertEqual(catalog['classes']['Fighter']['name_tr'], 'Savaşçı')
+        self.assertEqual(catalog['backgrounds']['Soldier']['name_tr'], 'Asker')
+        self.assertEqual(catalog['origin_feats']['Savage Attacker']['name_tr'], 'Vahşi Saldırgan')
+        self.assertIn('İkinci Nefes', catalog['classes']['Fighter']['features'])
+        self.assertIn('Dövüş Sanatları (d6)', catalog['classes']['Monk']['features'])
+        self.assertIn('Athletics', catalog['classes']['Fighter']['skill_options'])
+        self.assertEqual(catalog['classes']['Fighter']['hit_die'], 10)
+        self.assertEqual(catalog['backgrounds']['Soldier']['feat'], 'Savage Attacker')
+
     def test_display_text_has_no_known_typo(self):
         text = json.dumps(get_character_creation_catalog(), ensure_ascii=False)
         self.assertNotIn("Zırsız", text)

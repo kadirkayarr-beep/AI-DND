@@ -79,7 +79,7 @@ export function PaladinLevelChoices({ preview, draft, onChange, onConfirm, onCan
     {preview.target_level === LEVEL_FOUR && <AsiChoicePicker choices={preview.supported_asi_choices} selected={asi} disabled={disabled} testId="level-up-asi-choice" onChange={choice => onChange({ ...draft, asi: choice, confirmed: false })} />}
     <label><input type="checkbox" data-testid="level-up-confirm-paladin" checked={draft.confirmed} disabled={disabled}
       onChange={event => onChange({ ...draft, confirmed: event.target.checked })} /> {preview.target_level === LEVEL_FOUR ? `Ability Score Improvement: ${asiChoiceLabel(asi)} ve` : 'Bu'} seçimleri onaylıyorum.</label>
-    {!!preview.effects_supported?.length && <aside data-testid="level-up-supported-effects" aria-label="Desteklenen etkiler"><strong>Sunucunun bildirdiği desteklenen kapsam</strong><ul>{preview.effects_supported.map((effect, index) => <li key={index}>{effect}</li>)}</ul></aside>}
+    {!!preview.effects_supported?.length && <aside data-testid="level-up-supported-effects" aria-label="Desteklenen etkiler"><strong>Bu seviyede oyunda işleyenler</strong><p>{preview.effects_supported.length} özellik</p></aside>}
     <ProgressionEffectsNotice effects={preview.effects_pending} />
     <button type="button" className="dnd-button" data-testid="button-confirm-level-up" disabled={disabled || !request} onClick={() => { if (request && !disabled) onConfirm(request); }}>Seçimleri uygula</button>
     <button type="button" className="dnd-button secondary" data-testid="button-cancel-level-up" disabled={disabled} onClick={onCancel}>Taslağı iptal et</button>

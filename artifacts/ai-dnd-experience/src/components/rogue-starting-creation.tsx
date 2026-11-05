@@ -28,7 +28,7 @@ export function RogueStartingLevelControl({ draft, metadata, onChange, onRetry, 
     }}>{(metadata?.supported_starting_levels ?? [1]).map(level => <option key={level} value={level}>{level}</option>)}
       {unavailable && <option value={draft.startingLevel} disabled>{draft.startingLevel} — kullanılamıyor</option>}
     </select></label>
-    {unavailable && <p role="status">Seçili Rogue seviyesi doğrulanamıyor. Yeniden deneyin veya açıkça seviye 1 seçin; seçim otomatik düşürülmez.</p>}
+    {unavailable && <p role="status">Seçili Düzenbaz seviyesi doğrulanamıyor. Yeniden deneyin veya açıkça seviye 1 seçin; seçim otomatik düşürülmez.</p>}
     {!metadata && <button type="button" disabled={disabled} onClick={onRetry}>Yeniden dene</button>}
     {SELECTABLE_LEVELS.some(level => level === draft.startingLevel) && metadata && <RogueStartingScope metadata={metadata} level={draft.startingLevel} />}
   </div>;
@@ -39,7 +39,7 @@ export function RogueStartingChoices({ draft, metadata, onChange, disabled = fal
   draft: StartingDraft; metadata?: RogueStartingCreationOptions; onChange: (draft: StartingDraft) => void; disabled?: boolean;
 }) {
   const source = metadata?.level_3;
-  if (!source) return <p role="status">Rogue seviye 3 seçenekleri doğrulanamadı.</p>;
+  if (!source) return <p role="status">Düzenbaz seviye 3 seçenekleri doğrulanamadı.</p>;
   const four = draft.startingLevel >= LEVEL_FOUR ? metadata?.level_4 : undefined;
   const asi = four && draft.level4Asi ? sourceAsiChoice(four.supported_asi_choices, draft.level4Asi) : undefined;
   return <div className="cc-sub-section" data-testid="rogue-start3-choices">
@@ -48,8 +48,8 @@ export function RogueStartingChoices({ draft, metadata, onChange, disabled = fal
       <option value="">Seçin</option>
       {source.subclass_options.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
     </select></label>
-    {draft.startingLevel >= LEVEL_FOUR && !four && <p role="status">Rogue seviye 4 seçenekleri doğrulanamadı.</p>}
-    {four && <fieldset disabled={disabled} className="cc-sub-section"><legend>4. seviye Ability Score Improvement</legend>
+    {draft.startingLevel >= LEVEL_FOUR && !four && <p role="status">Düzenbaz seviye 4 seçenekleri doğrulanamadı.</p>}
+    {four && <fieldset disabled={disabled} className="cc-sub-section"><legend>4. seviye Yetenek Puanı Artışı</legend>
       <AsiChoicePicker choices={four.supported_asi_choices} selected={asi} disabled={disabled} testId="rogue-asi-choice"
         onChange={choice => onChange({ ...draft, level4Asi: choice, level4ConConfirmed: false })} />
       <label><input type="checkbox" data-testid="rogue-asi-confirm" disabled={disabled || !asi} checked={draft.level4ConConfirmed ?? false}
@@ -60,10 +60,10 @@ export function RogueStartingChoices({ draft, metadata, onChange, disabled = fal
 }
 
 const SCOPE_HEADINGS: Record<number, string> = {
-  [LEVEL_TWO]: 'Rogue başlangıç seviyesi 2 — ek seçim gerektirmez.',
-  [LEVEL_THREE]: 'Rogue başlangıç seviyesi 3 — alt sınıf seçimi gerekir.',
-  [LEVEL_FOUR]: 'Rogue başlangıç seviyesi 4 — alt sınıf ve Ability Score Improvement seçimi gerekir.',
-  [LEVEL_FIVE]: 'Rogue başlangıç seviyesi 5 — alt sınıf ve 4. seviye ASI seçimi gerekir; 5. seviye ek seçim istemez.',
+  [LEVEL_TWO]: 'Düzenbaz başlangıç seviyesi 2 — ek seçim gerektirmez.',
+  [LEVEL_THREE]: 'Düzenbaz başlangıç seviyesi 3 — alt sınıf seçimi gerekir.',
+  [LEVEL_FOUR]: 'Düzenbaz başlangıç seviyesi 4 — alt sınıf ve Yetenek Puanı Artışı seçimi gerekir.',
+  [LEVEL_FIVE]: 'Düzenbaz başlangıç seviyesi 5 — alt sınıf ve 4. seviye yetenek puanı artışı seçimi gerekir; 5. seviye ek seçim istemez.',
 };
 
 function scopeBlock(metadata: RogueStartingCreationOptions | undefined, level: number) {
@@ -74,12 +74,12 @@ function scopeBlock(metadata: RogueStartingCreationOptions | undefined, level: n
 /** Every level's server list is cumulative, so the block of the chosen level is the whole scope. */
 export function RogueStartingScope({ metadata, level = LEVEL_TWO }: { metadata?: RogueStartingCreationOptions; level?: number }) {
   const block = scopeBlock(metadata, level);
-  if (!metadata || !block) return <p role="status">Rogue seviye {level} kapsamı doğrulanamadı.</p>;
+  if (!metadata || !block) return <p role="status">Düzenbaz seviye {level} kapsamı doğrulanamadı.</p>;
   return <aside className="cc-progression-notice" data-testid="rogue-starting-scope">
     <strong>{SCOPE_HEADINGS[level]}</strong>
-    <p>Seviye seçimini son Oluştur onayıyla uygularsın. Bu akış tüm Rogue özelliklerinin uygulandığı anlamına gelmez.</p>
-    <h4>Desteklenen kapsam</h4>
-    <ul>{block.effects_supported.map((effect, index) => <li key={index}>{effect}</li>)}</ul>
+    <p>Seviye seçimini son Oluştur onayıyla uygularsın. Bu akış tüm Düzenbaz özelliklerinin uygulandığı anlamına gelmez.</p>
+    <h4>Bu seviyede oyunda işleyenler</h4>
+    <p>{block.effects_supported.length} özellik</p>
     <ProgressionEffectsNotice effects={block.effects_pending} />
     <p>Can ve XP sunucu tarafından oluşturulur.</p>
   </aside>;
@@ -93,7 +93,7 @@ export function RogueStartingSummary({ draft, metadata }: { draft: StartingDraft
     <RogueStartingScope metadata={metadata} level={draft.startingLevel} />
     {draft.startingLevel >= LEVEL_THREE && <div className="cc-sub-section">
       <p>Alt sınıf seçimi: {metadata?.level_3?.subclass_options.find(option => option.id === draft.subclassId)?.name ?? '—'}</p>
-      {draft.startingLevel >= LEVEL_FOUR && <p>Ability Score Improvement: {asiChoiceLabel(asi)} (sunucu uygular)</p>}
+      {draft.startingLevel >= LEVEL_FOUR && <p>Yetenek Puanı Artışı: {asiChoiceLabel(asi)} (sunucu uygular)</p>}
     </div>}
   </>;
 }

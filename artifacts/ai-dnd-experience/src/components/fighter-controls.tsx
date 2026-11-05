@@ -1,3 +1,5 @@
+import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
+import { catalogDisplayName } from '@/lib/catalog-display';
 import { term, termTitle, abilitySentence } from '@/lib/tr-terms';
 import type { EconomyStepInput, FighterState, GameState } from '@workspace/api-client-react';
 import type { InteractionMode } from '@/lib/action-suggestions';
@@ -34,7 +36,7 @@ export function FighterStatus({ fighter }: { fighter: unknown }) {
   return <div className="story-meta mt-3" data-testid="fighter-status">
     <p data-testid="fighter-second-wind-uses"><span title={termTitle('second_wind')}>{term('second_wind')}</span>: {value.second_wind.uses_remaining}/{value.second_wind.max_uses} · 1d{value.second_wind.die} + {value.second_wind.level_bonus}</p>
     {value.action_surge && <p data-testid="fighter-action-surge-uses"><span title={termTitle('action_surge')}>{term('action_surge')}</span>: {value.action_surge.uses_remaining}/{value.action_surge.max_uses}</p>}
-    {value.fighting_style && <p data-testid="fighter-style">Dövüş tarzı: {value.fighting_style}</p>}
+    {value.fighting_style && <p data-testid="fighter-style">Dövüş tarzı: {catalogDisplayName((DEFAULT_CATALOG.classes?.Fighter as { fighting_styles?: unknown } | undefined)?.fighting_styles, value.fighting_style) ?? value.fighting_style}</p>}
   </div>;
 }
 
