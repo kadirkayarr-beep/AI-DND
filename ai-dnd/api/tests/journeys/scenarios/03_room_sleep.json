@@ -109,6 +109,16 @@
           "başarılı",
           "indirim"
         ]
+      },
+      "script": {
+        "intent": {
+          "price_negotiation": {
+            "evidence_quote": "ikna etmeye çalışıyorum, biraz indirim yap usta",
+            "offer_id": "$room:barman",
+            "npc_id": "barman"
+          },
+          "intent": "persuasion"
+        }
       }
     },
     {

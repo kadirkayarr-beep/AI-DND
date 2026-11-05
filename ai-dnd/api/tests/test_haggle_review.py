@@ -7,7 +7,12 @@ import game
 import money_owner
 import shop_trade
 from api.tests.test_spoken_decline import Spoken
+from api.tests.test_haggle_intent import proposal, LINE
 
+
+def approved_haggle(session, npc, check):
+    return money_owner.haggle(session, npc, check,
+                              negotiation=proposal(session.world_state), player_input=LINE)
 
 class ReviewedPrices(Spoken):
     def test_day_one_discount_is_the_price_in_the_speech_input(self):
@@ -32,7 +37,7 @@ class ReviewedPrices(Spoken):
         self.assertEqual(self.prepare("room", "barman", amount_cp=50, tender_cp=50).status, "prepared")
         [old] = self.prepared()
         before = self.money()
-        note = money_owner.haggle(self.s, self.npc("barman"), {"skill": "Persuasion", "result": "BAŞARILI"})
+        note = approved_haggle(self.s, self.npc("barman"), {"skill": "Persuasion", "result": "BAŞARILI"})
         self.assertIsNotNone(note)
         self.assertEqual(self.money(), before)
         [new] = self.prepared()
@@ -47,7 +52,7 @@ class ReviewedPrices(Spoken):
         proposal = replace(ea.turn_proposal("room", "barman", amount_cp=50, tender_cp=60), tip_cp=5)
         self.assertEqual(ea.prepare_from_turn(self.s, proposal).status, "prepared")
         before = self.money()
-        self.assertIsNotNone(money_owner.haggle(self.s, self.npc("barman"),
+        self.assertIsNotNone(approved_haggle(self.s, self.npc("barman"),
                                               {"skill": "Persuasion", "result": "BAŞARILI"}))
         [card] = self.prepared()
         self.assertEqual(card["proposal"]["tip_cp"], 5)
@@ -59,7 +64,7 @@ class ReviewedPrices(Spoken):
 
     def test_yesterday_discount_card_cannot_pay_today(self):
         self.prepare("room", "barman")
-        money_owner.haggle(self.s, self.npc("barman"), {"skill": "Persuasion", "result": "BAŞARILI"})
+        approved_haggle(self.s, self.npc("barman"), {"skill": "Persuasion", "result": "BAŞARILI"})
         [card] = self.prepared()
         self.w.setdefault("campaign_time", {})["elapsed_seconds"] = 86400
         before = self.money()

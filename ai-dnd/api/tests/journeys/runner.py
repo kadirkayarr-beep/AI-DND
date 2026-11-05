@@ -242,7 +242,7 @@ class ScriptedModel:
 
     @contextmanager
     def bind(self, case: "JourneyCase", step: Step) -> Iterator[ScriptedClient]:
-        client = ScriptedClient(_with_bag_ids(case, step.script))
+        client = ScriptedClient(_with_price_offer_ids(case, _with_bag_ids(case, step.script)))
         with (
             patch("socket.socket.connect",
                   side_effect=AssertionError("External network is disabled in journey tests.")),
@@ -250,6 +250,22 @@ class ScriptedModel:
         ):
             yield client
 
+
+def _with_price_offer_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """Resolve an explicit scripted $room:NPC/$goods:NPC selector to the live opaque offer id."""
+    intent = (script or {}).get("intent")
+    value = intent.get("price_negotiation") if isinstance(intent, Mapping) else None
+    offer_id = value.get("offer_id") if isinstance(value, Mapping) else None
+    if not isinstance(offer_id, str) or not offer_id.startswith(("$room:", "$goods:")):
+        return script
+    import money_owner
+    kind, npc_id = offer_id[1:].split(":", 1)
+    world = case.manager.get(case.last_session_id).game_session.world_state
+    found = [row for row in money_owner.price_negotiation_offers(world)
+             if row["kind"] == kind and row["npc_id"] == npc_id]
+    if len(found) != 1:
+        raise ScenarioError("Scripted price negotiation must name exactly one current offer")
+    return {**script, "intent": {**intent, "price_negotiation": {**value, "offer_id": found[0]["offer_id"]}}}
 
 def _with_bag_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
     """The step's script with its front reading's ``item_name`` turned into that reading's ``item_id`` (the step's

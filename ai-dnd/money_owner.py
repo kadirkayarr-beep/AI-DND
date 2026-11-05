@@ -329,8 +329,49 @@ def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str
     _tell(result, prepared.public_message)
 
 
-def haggle(session: Any, npc: dict | None, check_result: Mapping) -> str | None:
-    """Only an engine check on this NPC's open offer can change its price; no payment occurs."""
+def price_negotiation_offers(world: dict) -> list[dict]:
+    """Current, local price targets; opaque ids bind a proposal to an offer and its day."""
+    import bold_acts
+    import economic_actions as ea
+    import shop_trade
+    import world_reactions
+    if ea._combat(world):
+        return []
+    day = ea.game_day(world)
+    people = [npc for npc in world.get("npcs", []) if isinstance(npc, dict)
+              and ea._is_here(world, npc) and shop_trade.is_vendor(world, npc)
+              and not world_reactions.refuses(world, npc)]
+    result = []
+    for npc in people:
+        for data in ea.offer_records(world).values():
+            offer = ea.offer_from_record(data)
+            if (offer is not None and offer.status == "prepared" and offer.proposal.purpose == "room"
+                    and offer.proposal.recipient_id == npc.get("id")):
+                result.append({"offer_id": f"room:{offer.offer_id}:{day}", "npc_id": npc["id"],
+                               "kind": "room", "item": "room"})
+        counter = bold_acts.offer_still_open(world, npc)
+        if counter is not None and any(row[0] == counter.get("key") for row in shop_trade.PRICES):
+            result.append({"offer_id": f"counter:{npc['id']}:{counter['key']}:{counter['seq']}:{counter['turn']}:{day}",
+                           "npc_id": npc["id"], "kind": "goods", "item": counter["key"]})
+    return result
+
+
+def price_negotiation(world: dict, value: Any, player_input: str) -> dict | None:
+    """Validate identity and verbatim evidence, never infer semantic intent from a word list."""
+    if (not isinstance(value, dict) or set(value) != {"offer_id", "npc_id", "evidence_quote"}
+            or not isinstance(player_input, str)):
+        return None
+    quote = value.get("evidence_quote")
+    if not isinstance(quote, str) or not quote.strip() or len(quote) > 240 or quote not in player_input:
+        return None
+    if not any(row["offer_id"] == value.get("offer_id") and row["npc_id"] == value.get("npc_id")
+               for row in price_negotiation_offers(world)):
+        return None
+    return dict(value)
+
+def haggle(session: Any, npc: dict | None, check_result: Mapping, *,
+           negotiation: Any = None, player_input: str = "") -> str | None:
+    """An explicit price-negotiation proposal plus an engine check; no payment occurs."""
     import copy
     import bold_acts
     import economic_actions as ea
@@ -344,15 +385,20 @@ def haggle(session: Any, npc: dict | None, check_result: Mapping) -> str | None:
             or not shop_trade.is_vendor(world, npc)
             or world_reactions.refuses(world, npc)):
         return None
+    admitted = price_negotiation(world, negotiation, player_input)
+    if admitted is None or admitted["npc_id"] != npc.get("id"):
+        return None
+    chosen = next(row for row in price_negotiation_offers(world) if row["offer_id"] == admitted["offer_id"])
     room = next((offer for data in ea.offer_records(world).values()
                  if (offer := ea.offer_from_record(data)) is not None
                  and offer.status == "prepared" and offer.proposal.purpose == "room"
-                 and offer.proposal.recipient_id == npc.get("id")), None)
+                 and offer.proposal.recipient_id == npc.get("id")
+                 and chosen["offer_id"] == f"room:{offer.offer_id}:{ea.game_day(world)}"), None)
     counter = bold_acts.offer_still_open(world, npc)
     if room is not None:
         key, label, base = "room", "oda", bold_acts._ROOM_PRICE
         price = bold_acts.room_price(world, npc)
-    elif counter is not None:
+    elif counter is not None and chosen["kind"] == "goods" and chosen["item"] == counter.get("key"):
         entry = next((row for row in shop_trade.PRICES if row[0] == counter.get("key")), None)
         if entry is None:
             return None

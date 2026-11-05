@@ -35,12 +35,17 @@ import economic_actions as ea
 import money_owner
 import shop_trade
 from api.tests.test_spoken_decline import Spoken
+from api.tests.test_haggle_intent import proposal, LINE
 
 
 class HaggleRules(Spoken):
     def haggle(self, success=True, skill="Persuasion", npc_id="barman"):
+        targets = money_owner.price_negotiation_offers(self.w)
+        target = next((o for o in targets if o["npc_id"] == npc_id), None)
+        value = proposal(self.w, npc_id, target["kind"]) if target else None
         return money_owner.haggle(self.s, self.npc(npc_id),
-                                  {"skill": skill, "result": "BAŞARILI" if success else "BAŞARISIZ"})
+                                  {"skill": skill, "result": "BAŞARILI" if success else "BAŞARISIZ"},
+                                  negotiation=value, player_input=LINE)
 
     def test_a_successful_check_takes_ten_percent_off_the_room_once_a_day(self):
         self.assertEqual(self.prepare("room", "barman").status, "prepared")
@@ -119,7 +124,7 @@ class UnrelatedSocialCheck(JourneyCase):
     async def test_successful_reassurance_does_not_discount_the_open_room(self):
         scenario = load_scenario(SCENARIO_DIR / "03_room_sleep.json")
         unrelated = replace(scenario.steps[1], say="ikna etmeye çalışıyorum, köprüden geçmek güvenli usta",
-                            expect={"kart": {"max_total_cp": 50}, "kese": 100})
+                            expect={"kart": {"max_total_cp": 50}, "kese": 100}, script={"intent": "persuasion"})
         scenario = replace(scenario, steps=(scenario.steps[0], unrelated))
         with patch.object(game, "apply_check_outcome_to_world_state",
                           wraps=game.apply_check_outcome_to_world_state) as checks:
