@@ -1,6 +1,6 @@
 {
   "id": "17_refused_gift_not_charged",
-  "title": "Reddedilen para kesilmez (103): kervancı uzatılan 5 bakırı sözle geri çevirir; aynı kişiye sonradan hazırlanıp onaylanan 5 bakırlık bahşiş kartı parayı kesmez (anlatı ile kart aynı doğruluktan okur). Bugün uzatma satırı reddin yanında 5 bakırlık bir Hediye kartı da açar ve bahşiş kartının onayı 5 bakır keser. Bu senaryo düzeltmenin 'kart açılır, onay kesmez' biçimini sınar; düzeltme kartı baştan açmamayı seçerse hazırla ve onay adımları yeniden yazılır",
+  "title": "Reddedilen veya kabulü belirsiz güncel hediye teklifi: aynı alıcıya hazırlanan bahşiş kartının onayı para kesmez; semantik teklif ve kart aynı kabul kaydını kullanır (103).",
   "source_items": [
     103
   ],
@@ -28,7 +28,8 @@
         "front": {
           "kind": "speak_to",
           "person_id": "caravaner",
-          "coin_cp": 5
+          "coin_cp": 5,
+          "economic_intent": "gift"
         },
         "spoken": "Paranı istemem, sakla onu; bahşiş almam."
       },
@@ -67,11 +68,7 @@
         "kisi_kese": {
           "caravaner": 0
         }
-      },
-      "known_broken": [
-        103
-      ],
-      "broken_because": ["kese: beklenen 100, gözlenen 95", "kisi_kese.caravaner: beklenen 0, gözlenen 5"]
+      }
     }
   ]
 }

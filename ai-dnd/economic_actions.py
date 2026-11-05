@@ -331,6 +331,35 @@ def _lines(world: dict[str, Any], proposal: EconomicProposal, npc: dict[str, Any
     return lines
 
 
+def record_coin_response(world: dict[str, Any], npc: dict[str, Any], amount_cp: int, response: Any,
+                         *, source_action_id: str | None = None) -> None:
+    """A shown reply to this bound coin offer, not a price or a transfer authorization."""
+    import equipment_economy
+    person = _npc(world, npc.get("id"))
+    if (person is None or not _is_here(world, person) or not equipment_economy.npc_can_act(person)
+            or type(amount_cp) is not int or amount_cp <= 0 or _held_deed(world, person) is not None):
+        return
+    replies = person.get("coin_responses")
+    if not isinstance(replies, dict):
+        replies = person["coin_responses"] = {}
+    key = str(amount_cp)
+    if response == "accept":
+        replies.pop(key, None)  # clears only this conversation gate; engine refusal still owns acceptance
+    else:
+        replies[key] = {"status": "refuse" if response == "refuse" else "unknown", "source_action_id": source_action_id}
+
+
+def _coin_response(npc: dict[str, Any], proposal: EconomicProposal) -> str | None:
+    if proposal.purpose not in ("gift", "tip"):
+        return None
+    replies = npc.get("coin_responses")
+    if not isinstance(replies, dict) or str(proposal.amount_cp) not in replies:
+        return None
+    response = replies[str(proposal.amount_cp)]
+    status = response.get("status") if isinstance(response, dict) else response
+    return "refuse" if status == "refuse" else "unknown"
+
+
 def context_digest(state: EconomicState, proposal: EconomicProposal, lines: list[OfferLine]) -> str:
     """What the offer depends on: the counterparty, the place, combat, the line prices and stock, the room right.
 
@@ -351,6 +380,8 @@ def context_digest(state: EconomicState, proposal: EconomicProposal, lines: list
             person["hold"] = {"at": deed.get("at"), "guard": hold.get("guard"), "arrest": hold.get("arrest")}
         else:
             person["refuses"] = world_reactions.refuses(world, npc)
+            person["coin_response"] = ((npc.get("coin_responses") or {}).get(str(proposal.amount_cp))
+                                       if proposal.purpose in ("gift", "tip") else None)
     priced = []
     for line in lines:
         entry = {"line_id": line.line_id, "kind": line.kind, "item_id": line.item_id, "recipient_id": line.recipient_id,
@@ -403,10 +434,14 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
     elif world_reactions.refuses(world, npc):
         return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
                              public_message=world_reactions.refusal_line(npc))
-    reason = "check_required" if check is not None else "engine_accepts"
+    response = _coin_response(npc, proposal) if check is None else None
+    if response == "refuse":
+        return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
+                             public_message="Bu para teklifi kabul edilmedi; para kesende kaldı.")
+    reason = "npc_consent_required" if response == "unknown" else "check_required" if check is not None else "engine_accepts"
     return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=str(npc["id"]),
                             context_digest=context_digest(state, proposal, lines), producer="engine", check=check,
-                            line_decisions=[LineDecision(line_id=line.line_id, status="accepted", reason_code=reason)
+                            line_decisions=[LineDecision(line_id=line.line_id, status="refused" if response == "unknown" else "accepted", reason_code=reason)
                                             for line in lines])
 
 
@@ -435,7 +470,8 @@ def public_offer(state: EconomicState, offer: EconomicOffer) -> PublicEconomicOf
                                unit_cp=line.unit_cp,
                                total_cp=line.total_cp, optional=line.optional) for line in offer.lines],
         dependency=offer.proposal.dependency, max_total_cp=sum(line.total_cp for line in offer.lines),
-        tender_cp=offer.proposal.tender_cp, may_refuse=offer.acceptance.check is not None)
+        tender_cp=offer.proposal.tender_cp, may_refuse=(offer.acceptance.check is not None
+            or any(line.status == "refused" for line in offer.acceptance.line_decisions)))
 
 
 def prepare_offer(state: EconomicState, proposal: EconomicProposal, *, offer_id: str, campaign_id: str,

@@ -7938,6 +7938,7 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
     "type": "object",
     "properties": {
         "spoken_text": {"type": "string", "maxLength": 600},
+        "coin_response": {"type": "string", "enum": ["none", "accept", "refuse"]},
         "stage_direction": {"type": "string", "maxLength": 600},
         "commitment": {
             "type": "object",
@@ -7956,7 +7957,7 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         # Required, because a small model leaves an optional field out: real play never once filled one for a threat.
         "threat": {"type": "string", "maxLength": 48},
     },
-    "required": ["spoken_text", "stage_direction", "threat"],
+    "required": ["spoken_text", "stage_direction", "threat", "coin_response"],
     "additionalProperties": False,
 }
 _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
@@ -8610,6 +8611,9 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
     held_out = getattr(_session(), "_coin_paid", None)
+    pending = getattr(_session(), "_spoken_coin_proposal", None)
+    if pending is not None and pending.recipient_id == npc.get("id"):
+        held_out = (pending.amount_cp, npc, world.get("location"))  # prompt evidence only, never tender
     if held_out and isinstance(held_out[1], dict) and held_out[1].get("id") == npc.get("id"):
         # Coin waits for the card: the person must not be told it is already theirs (decisions 3 and 11). Only the
         # person it was held out to hears of it; coin held to nobody named opens no card that names anyone.
@@ -9367,6 +9371,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             player_input, interaction_context, world_state
         )
     if experimental_npc_dialogue:
+        prompt += ("\ncoin_response: only for coin currently held out to you, reflect your own spoken reply: "
+                   "accept if you agree to receive that gift, refuse if you decline it, otherwise none. "
+                   "No price, amount, recipient or transfer is decided by this field. A purchase/room is owned by the engine.")
         schema = _EXPERIMENTAL_NPC_SPEECH_SCHEMA
     if front_list is not None:
         import front_proposal
@@ -17741,6 +17748,8 @@ def _clear_turn_transients(session) -> None:
     session._coin_paid = None
     session._front_coin = 0
     session._front_economic_none = False
+    session._spoken_coin_proposal = None
+    session._spoken_coin_result = None
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
@@ -17830,6 +17839,18 @@ def _tell_the_coin(result):
     paid = getattr(session, "_coin_paid", None)
     session._coin_paid = None
     session._counter_held = None
+    pending = getattr(session, "_spoken_coin_proposal", None)
+    if pending is not None:
+        person = next((n for n in active_npcs() if n.get("id") == pending.recipient_id), None)
+        if person is not None:
+            _record_spoken_coin_response(person, None)  # a deterministic reply supplies no semantic acceptance
+    spoken = getattr(session, "_spoken_coin_result", None)
+    session._spoken_coin_result = None
+    if spoken is not None and isinstance(result, dict):
+        result["narration"] = f"{result.get('narration') or ''} {spoken.public_message}".strip()
+        result.setdefault("action_result", {}).update(status=spoken.status, success=spoken.status == "prepared",
+                                                      reason_code=spoken.reason_code)
+        return
     if getattr(session, "_front_economic_none", False):
         return
     action = result.get("action_result") if isinstance(result, dict) else None
@@ -18420,6 +18441,38 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
                       "blow_asked", "wait"}
 
 
+def _defer_spoken_coin_offer(route):
+    """Only an admitted gift/tip can ask this bound person before the card is shown."""
+    session = _session()
+    amount = getattr(session, "_front_coin", 0)
+    if (not route.get("valid") or route.get("purpose") not in ("gift", "tip")
+            or type(amount) is not int or amount <= 0 or session.world_state.get("combat", {}).get("active")):
+        return False
+    person = next((n for n in active_npcs() if n.get("id") == route.get("id")), None)
+    import equipment_economy
+    import bold_acts
+    import economic_actions
+    import world_reactions
+    if (person is None or not equipment_economy.npc_can_act(person)
+            or economic_actions._held_deed(session.world_state, person) is not None
+            or bold_acts.offer_still_open(session.world_state, person) is not None):
+        return False
+    session._spoken_coin_proposal = economic_actions.turn_proposal(route["purpose"], person["id"], amount_cp=amount)
+    return True
+
+
+def _record_spoken_coin_response(npc, response):
+    session = _session()
+    proposal = getattr(session, "_spoken_coin_proposal", None)
+    if proposal is None or proposal.recipient_id != npc.get("id"):
+        return
+    session._spoken_coin_proposal = None
+    import economic_actions
+    economic_actions.record_coin_response(session.world_state, npc, proposal.amount_cp, response,
+                                          source_action_id=turn_source_key(session))
+    session._spoken_coin_result = economic_actions.prepare_from_turn(session, proposal)
+
+
 def _front_economic_offer(route, player_input):
     """A current semantic purpose selects an existing engine owner, never a price or a debit."""
     import bold_acts
@@ -18833,7 +18886,7 @@ def _dispatch_player_turn(
         economic_result = None
         if not confessed:
             with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-                economic_result = _front_economic_offer(read, player_input)
+                economic_result = None if _defer_spoken_coin_offer(read) else _front_economic_offer(read, player_input)
         if economic_result is not None:
             return economic_result
         read = {"kind": "speak_to", "id": read["id"]}
@@ -21722,6 +21775,7 @@ def _run_player_turn_internal(
                     and set(raw_intent).issubset({
                         "spoken_text",
                         "stage_direction",
+                        "coin_response",
                         "commitment",
                         "threat",
                         # The intent pre-parser can merge its recognized,
@@ -21954,6 +22008,8 @@ def _run_player_turn_internal(
                     if not text.casefold().startswith(name.casefold()):
                         text = f'{name}, “{text}”'
 
+            if experimental_npc_dialogue:
+                _record_spoken_coin_response(npc_target, raw_intent.get("coin_response") if accepted_model_speech else None)
             if (
                 empty_model_narration
                 or unverified_history_echo
