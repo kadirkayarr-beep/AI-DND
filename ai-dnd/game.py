@@ -8030,7 +8030,7 @@ def _experimental_recent_exchanges(npc_id):
     return result[-_NPC_SPEECH_KEEP:]
 
 
-def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
+def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
     """Remember one exchange the player actually saw. Not state, not evidence."""
     if (
         not isinstance(npc_id, str)
@@ -8046,6 +8046,17 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text):
     import npc_statements
     npc = next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
     if npc is not None:
+        listener = _active_interlocutor()
+        if (remember is True and isinstance(player_text, str) and "?" not in player_text
+                and listener is not None and listener.get("id") == npc_id
+                and npc.get("current_hp", 1) > 0
+                and npc.get("combat_status") != "dead" and npc.get("status") != "dead"
+                and not world.get("combat", {}).get("active")
+                and not is_npc_historical_claim(player_text)
+                and not _has_private_profile_value(npc, player_text)):
+            import npc_told
+            npc_told.remember(world, npc_id, player_text,
+                              turn=world.get("flags", {}).get("turn_index", 0))
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
         town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc), offer_talk=_offer_talk_with(npc))
 
@@ -8563,6 +8574,16 @@ def _claim_denial_quotes():
     return tuple(line.split("“", 1)[-1].rstrip("”") for line in _CLAIM_DENIAL_LINES)
 
 
+def _has_private_profile_value(npc, text) -> bool:
+    profile = npc.get("personal_profile")
+    if not isinstance(profile, dict) or not isinstance(text, str):
+        return False
+    return any(value.casefold() in text.casefold()
+               for field, value in profile.items()
+               if field not in interaction_adventure.SHAREABLE_PROFILE_FIELDS
+               and isinstance(value, str) and value.strip())
+
+
 def _experimental_speech_note(world, npc, name_stance, player_input):
     """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
     label = living_world.public_npc_name(npc)
@@ -8600,6 +8621,11 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     earlier = town_knowledge.said_before_note(world, npc, _claim_denial_quotes()).strip()
     if earlier:
         lines.append(earlier)
+    import npc_told
+    told = npc_told.relevant(world, npc.get("id"), player_input)
+    if told:
+        lines.append(npc_told.view(told,
+            header="Oyuncunun sana daha önce söyledikleri (söylendi; doğruluğunu bilmezsin):"))
     said_before = _lines_already_said(npc, world)[-3:]
     if said_before:
         lines.append(
@@ -8678,15 +8704,7 @@ def _experimental_npc_dialogue_context(
         and isinstance(entry.get("source_id"), str)
         and not entry.get("secret")
     ][-6:]
-    profile = npc.get("personal_profile")
-    private_values = {
-        value.casefold()
-        for field, value in profile.items()
-        if isinstance(profile, dict)
-        and field not in interaction_adventure.SHAREABLE_PROFILE_FIELDS
-        and isinstance(value, str)
-        and value.strip()
-    } if isinstance(profile, dict) else set()
+
     exchanges = _experimental_recent_exchanges(npc["id"])
     recent_player_utterances = []
     for entry in npc.get("memory", []) if isinstance(npc.get("memory"), list) else []:
@@ -8698,7 +8716,7 @@ def _experimental_npc_dialogue_context(
         ):
             continue
         text = entry["text"].strip()[:240]
-        if any(value in text.casefold() for value in private_values):
+        if _has_private_profile_value(npc, text):
             continue
         recent_player_utterances.append(text)
     return {
@@ -21919,7 +21937,7 @@ def _run_player_turn_internal(
                     if terms:
                         text = f"{text} “{terms}”"
                     _remember_experimental_npc_speech(
-                        npc_target["id"], player_input, text
+                        npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
                     )
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
@@ -21938,7 +21956,7 @@ def _run_player_turn_internal(
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
                 if terms:
                     text, spoken = f"{text} “{terms}”", f"{spoken} {terms}"
-                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken)
+                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True)
                 if settled_money.get("note"):
                     text = f"{text} {settled_money['note']}"
             return finish_turn(
