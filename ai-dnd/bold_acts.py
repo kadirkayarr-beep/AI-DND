@@ -625,13 +625,13 @@ def _priced_in(folded: str) -> tuple[str, str, int] | None:
     return shop_trade.priced_in(folded)
 
 
-def price_note(npc: dict[str, Any], text: Any) -> str:
+def price_note(npc: dict[str, Any], text: Any, *, world=None) -> str:
     """What whoever serves says a thing costs is what the purse will pay for it: one list, said and charged."""
     folded = living_world.normalize_text(text)
     if not _SERVER.search(living_world.normalize_text(npc.get("role"))) or not (
             _priced_in(folded) or _PRICE_ASKED.search(folded)):
         return ""
-    prices = ", ".join(f"{line['label']} {line['unit_cp']} bakır" for line in shop_trade.goods(None, npc))
+    prices = ", ".join(f"{line['label']} {line['unit_cp']} bakır" for line in shop_trade.goods(world, npc))
     return f"Burada fiyatlar şöyle: {prices}. Fiyat sorulursa bunları söyle, başka fiyat söyleme."
 _ROOM_DAY = 24 * 3600
 

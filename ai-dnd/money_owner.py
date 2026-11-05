@@ -20,7 +20,7 @@ itself, and the coin it may move on confirmation, are `economic_actions`'.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 DealKind = Literal["goods", "room", "tip", "gift", "paid_before", "none"]
@@ -369,7 +369,7 @@ def haggle(session: Any, npc: dict | None, check_result: Mapping) -> str | None:
     if cut is None:
         return None
     if room is not None:
-        refreshed = ea.prepare_from_turn(session, room.proposal)
+        refreshed = ea.prepare_from_turn(session, replace(room.proposal, amount_cp=base - cut))
         if refreshed.status != "prepared":
             for field in ("price_cut_cp_v1", "price_cut_day_v1"):
                 npc.pop(field, None)

@@ -8677,7 +8677,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     import bold_acts
     import pocket
     lines.append(bold_acts.room_note(npc, player_input, world=world))
-    lines.append(bold_acts.price_note(npc, player_input))
+    lines.append(bold_acts.price_note(npc, player_input, world=world))
     lines.append(_bag_note(pocket.bag_names(world)))
     if getattr(_session(), "_empty_handed", False):
         lines.append("Oyuncu bir şey uzatıyor gibi konuşuyor ama elinde öyle bir şey yok; ondan bir şey almış gibi yazma.")
