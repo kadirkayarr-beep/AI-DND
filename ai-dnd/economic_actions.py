@@ -450,6 +450,13 @@ def _latest(entry: Mapping[str, Any]) -> tuple[int, int]:
     return max(stamps) if stamps else (-1, -1)
 
 
+def _proposal_part(proposal: EconomicProposal) -> str | None:
+    """The engine's decline key, shared by preparation, cancellation and resolution."""
+    if proposal.purpose == "purchase":
+        return f"goods:{proposal.item_id}"
+    return _PART_OF_PURPOSE.get(proposal.purpose)
+
+
 def _covered_by(offer: EconomicOffer, npc_id: str, part: Part, *, any_line: bool = False) -> bool:
     """Whether a decline of this part by this NPC closes the card. A bribe stays the guard's Persuasion check.
 
@@ -461,7 +468,7 @@ def _covered_by(offer: EconomicOffer, npc_id: str, part: Part, *, any_line: bool
         return False
     if part == "*":
         return offer.proposal.purpose in _MONEY_CARD_PURPOSES
-    if _PART_OF_PURPOSE.get(offer.proposal.purpose) == part:
+    if _proposal_part(offer.proposal) == part:
         return True
     return part == "tip" and any(line.kind == "tip" and (any_line or not line.optional) for line in offer.lines)
 
@@ -658,7 +665,7 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
                       lines: list[OfferLine]) -> AcceptanceRecord | PrepareResult:
     """The engine's word on the offer, before anything is recorded. A refusal opens no card.
 
-    A decline the NPC spoke today stops a gift, tip or room card of that part (the bribe path comes first). A
+    A decline the NPC spoke today stops a goods, gift, tip or room card of that part (the bribe path comes first). A
     declined tip riding on another card refuses only its tip line; a card that goes only as a whole does not open.
     """
     import living_world
@@ -675,7 +682,7 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         # whether the coin is taken is the Persuasion check at confirmation, as the spoken bribe does today.
         check = CheckSpec(skill="Persuasion", difficulty=_difficulty(lines[0].total_cp))
     else:
-        part = _PART_OF_PURPOSE.get(proposal.purpose)
+        part = _proposal_part(proposal)
         tip_off = _tip_declined(world, npc_id, lines)
         if (part is not None and declined(world, npc_id, part, day=game_day(world))) \
                 or (tip_off and any(line.kind == "tip" and not line.optional for line in lines)):
@@ -1007,6 +1014,9 @@ def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: s
         operation_id=operation_id, offer_id=offer.offer_id, purpose=proposal.purpose, base_fingerprint=_sha(facts),
         status="refused", reason_code=None, lines=lines, asset_deltas=[], service_rights=[], world_effects=[],
         refusals=[], public_summary="", tender_cp=tender, change_cp=0, net_debit_cp=0)
+    if proposal.purpose == "purchase" and declined(
+            world, proposal.recipient_id, _proposal_part(proposal), day=game_day(world)):
+        return _refused(blank, "npc_declined")
     spec = offer.acceptance.check
     if spec is not None:
         if check is None:

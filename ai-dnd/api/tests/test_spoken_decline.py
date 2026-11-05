@@ -435,3 +435,40 @@ class SpokenDeclineJourney(JourneyCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class PurchaseDeclineBoundary(Spoken):
+    def test_goods_decline_cancels_existing_purchase_and_confirmation_moves_nothing(self):
+        prepared = self.prepare_purchase("barman", "bira")
+        self.assertEqual(prepared.status, "prepared")
+        [card] = self.prepared()
+        ea.record_decline(self.w, "barman", "goods:bira", 4, day=ea.game_day(self.w), turn=1)
+        self.assertEqual(self.w["flags"]["economic_offers"][card["offer_id"]]["status"], "cancelled")
+        before = self.money()
+        result = self.confirm(card, "declined-purchase")
+        self.assertEqual((result.status, result.net_debit_cp), ("refused", 0))
+        self.assertEqual(self.money(), before)
+
+    def test_goods_decline_is_scoped_to_the_item_and_recipient(self):
+        self.npc("osman")["role"] = "Barmen"
+        ea.record_decline(self.w, "barman", "goods:bira", 4, day=ea.game_day(self.w), turn=1)
+        before = self.money()
+        for npc_id, key, expected in (("barman", "bira", "refused"),
+                                      ("barman", "yemek", "prepared"),
+                                      ("osman", "bira", "prepared")):
+            with self.subTest(npc=npc_id, item=key):
+                if npc_id == "osman":
+                    self.npc("barman")["location"] = "elsewhere"  # only the serving vendor offers a card
+                self.assertEqual(self.prepare_purchase(npc_id, key).status, expected)
+        self.assertEqual(self.money(), before)
+
+    def test_resolution_rechecks_a_purchase_decline_without_mutating_world(self):
+        prepared = self.prepare_purchase("barman", "bira")
+        self.assertEqual(prepared.status, "prepared")
+        ea.record_decline(self.w, "barman", "goods:bira", 4, day=ea.game_day(self.w), turn=1)
+        before = copy.deepcopy(self.w)
+        result = ea.resolve_offer(ea.EconomicState(world=self.w, character=self.s.character),
+                                  prepared.offer, operation_id="declined-candidate")
+        self.assertEqual((result.status, result.reason_code, result.net_debit_cp),
+                         ("refused", "npc_declined", 0))
+        self.assertEqual(result.asset_deltas, [])
+        self.assertEqual(self.w, before)
