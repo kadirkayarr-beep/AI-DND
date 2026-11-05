@@ -9231,6 +9231,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
             + json.dumps(interaction_context, ensure_ascii=False, separators=(",", ":"))
             + "\n"
+            + "\n`coin_answer`: parayı alıyor musun (takes), reddediyor musun (declines), yoksa konu değil mi (none)?"
+            + "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
+            + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
@@ -9412,9 +9415,6 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc_id = (interaction_context or {}).get("npc_id")
         schema["properties"]["coin_answer_for"]["enum"] = money_owner.parts_for(
             world_state, _session(), speech_npc_id) + ["unclear"]
-        prompt += "\n`coin_answer`: parayı alıyor musun (takes), reddediyor musun (declines), yoksa konu değil mi (none)?"
-        prompt += "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
-        prompt += "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
     if front_list is not None:
         import front_proposal
         schema = copy.deepcopy(schema)
