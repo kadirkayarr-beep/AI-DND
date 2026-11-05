@@ -119,3 +119,46 @@ test('the play screen mounts the counter inline above the story, never in the dr
   assert.match(page.slice(mount, page.indexOf('/>', mount)), /onTrade=\{\(text\) => submitTurn\(text, undefined, 'do'\)\}/);
   assert.doesNotMatch(await readFile('src/components/shop-panel.tsx', 'utf8'), /DrawerSheet|playGameTurn|fetch\(/);
 });
+
+// Task 11: prepared regression cases. Execute only through the approved D1 web runner.
+const tippedCounter = () => ({ ...counter, seq: 0,
+  held: { npc_id: 'barman', key: 'bira', count: 1, tip_cp: 1, total_cp: 5 } });
+
+test('shows the tip and confirms the total with it', () => {
+  const h = harness(tippedCounter());
+  h.byId('shop-more-bira').props.onClick();
+  const html = render(React.createElement(ui.ShopCounterCard, h.props()));
+  assert.ok(html.includes('Toplam: 4 + bahşiş 1 = 5 bakır.'));
+  assert.ok(html.includes('Onayla (5 bakır)'));
+  assert.equal(h.byId('button-confirm-shop').props.disabled, false);
+  h.byId('button-confirm-shop').props.onClick();
+  assert.deepEqual(h.sent, ['/item shop_buy barman bira 1 0 5']);
+});
+
+test('held tip applies only to its single selected good from the same vendor', () => {
+  for (const change of ['count', 'good', 'vendor']) {
+    const view = tippedCounter();
+    if (change === 'vendor') view.held.npc_id = 'another-vendor';
+    const h = harness(view);
+    h.byId('shop-more-bira').props.onClick();
+    if (change === 'count') h.byId('shop-more-bira').props.onClick();
+    if (change === 'good') h.byId('shop-more-yemek').props.onClick();
+    const expected = change === 'count' ? 8 : change === 'good' ? 30 : 4;
+    const html = render(React.createElement(ui.ShopCounterCard, h.props()));
+    assert.ok(html.includes(`Onayla (${expected} bakır)`));
+    assert.equal(html.includes('+ bahşiş'), false);
+    h.byId('button-confirm-shop').props.onClick();
+    assert.deepEqual(h.sent, [change === 'count' ? '/item shop_buy barman bira 2 0 8'
+      : change === 'good' ? '/item shop_buy barman yemek 1 0 30' : '/item shop_buy barman bira 1 0 4']);
+  }
+});
+
+test('the displayed goods plus held tip must fit the purse before confirmation', () => {
+  const view = tippedCounter();
+  view.purse = { total_cp: 4, gp: 0, sp: 0, cp: 4 };
+  const h = harness(view);
+  h.byId('shop-more-bira').props.onClick();
+  assert.equal(h.byId('button-confirm-shop').props.disabled, true);
+  h.byId('button-confirm-shop').props.onClick();
+  assert.deepEqual(h.sent, []);
+});
