@@ -659,7 +659,7 @@ def _tender_or_none(world: dict[str, Any], amount: int | None, price: int, purse
     return amount if amount is not None and price <= amount <= purse else None
 
 
-def take_room(session, text: str) -> dict[str, Any] | None:
+def take_room(session, text: str, *, server=None, requested: bool = False) -> dict[str, Any] | None:
     """A night's room asked for: whoever serves here opens the room card; nothing is paid by the words.
 
     The price is the house's own (_ROOM_PRICE) and, when the card is confirmed, it goes to nobody: the inn keeps no
@@ -672,9 +672,15 @@ def take_room(session, text: str) -> dict[str, Any] | None:
     """
     import economic_actions
     import world_reactions
+    if not requested and getattr(session, "_front_economic_none", False):
+        return None
     folded = fold(session, text)
-    server = _server_here(session)
-    if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
+    if server is None:
+        server = _server_here(session)
+    else:
+        server = next((npc for npc in session.active_npcs() if npc.get("id") == server.get("id")), None)
+    if (server is None or not _SERVER.search(fold(session, str(server.get("role", ""))))
+            or (not requested and not (_ROOM.search(folded) and _wants_the_bed(folded)))):
         return None
     world = session.world_state
     who = living_world.public_npc_name(server)
@@ -725,6 +731,8 @@ def _room_reply(session, room: dict[str, Any]) -> dict[str, Any]:
 
 def _room_asked(session, text: str) -> dict[str, Any] | None:
     """'Oda ne kadar?' is answered with what a room really costs, by whoever serves; a bed asked for in the same line opens the room card."""
+    if getattr(session, "_front_economic_none", False):
+        return None
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not _ROOM.search(folded) or _WALKS.search(folded):  # 'odaya giriyorum' is a walk
@@ -733,6 +741,11 @@ def _room_asked(session, text: str) -> dict[str, Any] | None:
         return _room_reply(session, take_room(session, text))
     if "?" not in text and not _PRICE_ASKED.search(folded):
         return None
+    return room_quote(session, server)
+
+
+def room_quote(session, server):
+    """The same bound server quotes the engine price; no proposal, tender or room right is written."""
     import world_reactions
     if world_reactions.refuses(session.world_state, server):
         return _reply(session, world_reactions.refusal_line(server), "lodging", "refused", None, [])

@@ -1,10 +1,22 @@
 {
   "id": "16_past_tense",
   "title": "Geçmiş zaman: 'az önce 5 bakır verdim' yeni teklif açmaz (ön okuma, modelin okumasını taklit eder: coin_cp=500)",
-  "source_items": [3],
+  "source_items": [
+    3
+  ],
   "setup": {
-    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
-    "currency": {"player": 100, "barman": 0},
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
     "inventory": [],
     "seed": 7,
     "front_proposal": true
@@ -12,10 +24,18 @@
   "steps": [
     {
       "say": "az önce 5 bakır verdim",
-      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 500}},
-      "expect": {"kart": null, "kese": 100},
-      "known_broken": [3],
-      "broken_because": ["kart: beklenen yok, gözlenen {'max_total_cp': 5, 'counterparty_label': 'Marek', 'kalemler': ['Hediye']}"]
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "barman",
+          "coin_cp": 500,
+          "economic_intent": "none"
+        }
+      },
+      "expect": {
+        "kart": null,
+        "kese": 100
+      }
     }
   ]
 }

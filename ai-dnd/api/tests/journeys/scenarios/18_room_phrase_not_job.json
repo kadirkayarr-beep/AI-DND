@@ -1,6 +1,6 @@
 {
   "id": "18_room_phrase_not_job",
-  "title": "Oda sözü iş değildir (110, 115): ödeme konuşması kabul edilmiş sayım vardiyasını çalıştırmaz; para ve zaman değişmez. Kalan bilinen kırık (110): açılan kart Oda yerine Hediye kartıdır.",
+  "title": "Oda sözü iş değildir (110, 115): doğrulanmış oda amacı aynı alıcıya motor fiyatıyla kart hazırlar; para ve saat değişmez, oda hakkı onayı bekler.",
   "source_items": [
     110,
     115
@@ -101,7 +101,8 @@
         "front": {
           "kind": "speak_to",
           "person_id": "barman",
-          "coin_cp": 50
+          "coin_cp": 50,
+          "economic_intent": "room"
         }
       },
       "expect": {
@@ -114,13 +115,7 @@
             "Oda (bir gece)"
           ]
         }
-      },
-      "known_broken": [
-        110
-      ],
-      "broken_because": [
-        "kart.kalemler: beklenen ['Oda (bir gece)'], gözlenen ['Hediye']"
-      ]
+      }
     }
   ]
 }
