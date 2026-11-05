@@ -780,6 +780,10 @@ def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) ->
     elif coin is not None:
         reply["narration"] = f"{reply['narration']} {COIN_NOT_TENDERED}"
         reply["action_result"]["direct_response"] = reply["narration"]
+    import economic_actions
+    economic_actions.cancel_prepared(
+        world, actor_id="player", predicate=lambda offer: offer.counter_binding is not None
+        and not shop_trade.binding_matches(world, offer))
     return _coin_seen(reply, coin)
 
 

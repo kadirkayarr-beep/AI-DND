@@ -143,6 +143,7 @@ class EconomicOffer:
     operation_id: str | None
     prepared_turn: int
     consumed_action_id: str | None
+    counter_binding: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -382,6 +383,9 @@ def context_digest(state: EconomicState, proposal: EconomicProposal, lines: list
             person["refuses"] = world_reactions.refuses(world, npc)
             person["coin_response"] = ((npc.get("coin_responses") or {}).get(str(proposal.amount_cp))
                                        if proposal.purpose in ("gift", "tip") else None)
+            if proposal.purpose == "purchase" and proposal.tip_cp:
+                replies = npc.get("coin_responses")
+                person["tip_response"] = replies.get(str(proposal.tip_cp)) if isinstance(replies, dict) else None
     priced = []
     for line in lines:
         entry = {"line_id": line.line_id, "kind": line.kind, "item_id": line.item_id, "recipient_id": line.recipient_id,
@@ -410,12 +414,16 @@ def _proposal_canon(proposal: EconomicProposal) -> dict[str, Any]:
 
 
 def confirmation_digest(offer: EconomicOffer) -> str:
-    """sha256 of what the player confirms; the text span is traceability and is left out."""
-    return _sha({"offer_id": offer.offer_id, "actor_id": offer.actor_id, "campaign_id": offer.campaign_id,
-                 "place_id": offer.place_id, "proposal": _proposal_canon(offer.proposal),
-                 "lines": [dataclasses.asdict(line) for line in offer.lines],
-                 "dependency": offer.proposal.dependency, "tender_cp": offer.proposal.tender_cp,
-                 "context_digest": offer.context_digest})
+    """The displayed lines and their native order; old cards retain their original digest shape."""
+    canon = {"offer_id": offer.offer_id, "actor_id": offer.actor_id, "campaign_id": offer.campaign_id,
+             "place_id": offer.place_id, "proposal": _proposal_canon(offer.proposal),
+             "lines": [dataclasses.asdict(line) for line in offer.lines],
+             "dependency": offer.proposal.dependency, "tender_cp": offer.proposal.tender_cp,
+             "context_digest": offer.context_digest}
+    if offer.counter_binding is not None:
+        canon["counter_binding"] = offer.counter_binding
+        canon["counter_acceptance"] = dataclasses.asdict(offer.acceptance)
+    return _sha(canon)
 
 
 def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: EconomicProposal,
@@ -439,10 +447,19 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
                              public_message="Bu para teklifi kabul edilmedi; para kesende kaldı.")
     reason = "npc_consent_required" if response == "unknown" else "check_required" if check is not None else "engine_accepts"
+    decisions = []
+    tip_response = (_coin_response(npc, dataclasses.replace(proposal, purpose="tip", amount_cp=proposal.tip_cp))
+                    if proposal.purpose == "purchase" and proposal.tip_cp else None)
+    for line in lines:
+        line_response = tip_response if line.kind == "tip" and proposal.purpose == "purchase" else response
+        line_reason = ("npc_refuses" if line_response == "refuse" else "npc_consent_required"
+                       if line_response == "unknown" else reason)
+        decisions.append(LineDecision(line_id=line.line_id,
+                                      status="refused" if line_response in ("refuse", "unknown") else "accepted",
+                                      reason_code=line_reason))
     return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=str(npc["id"]),
                             context_digest=context_digest(state, proposal, lines), producer="engine", check=check,
-                            line_decisions=[LineDecision(line_id=line.line_id, status="refused" if response == "unknown" else "accepted", reason_code=reason)
-                                            for line in lines])
+                            line_decisions=decisions)
 
 
 def _line_label(line: OfferLine) -> str:
@@ -1285,6 +1302,8 @@ def _still_holds(state: EconomicState, offer: EconomicOffer) -> bool:
     lines = _lines(world, proposal, npc)
     if isinstance(lines, str) or lines != list(offer.lines):
         return False
+    if offer.counter_binding is not None and not shop_trade.binding_matches(world, offer):
+        return False
     return context_digest(state, proposal, lines) == offer.context_digest
 
 
@@ -1323,12 +1342,23 @@ def confirm_offer(state: EconomicState, *, offer_id: str, confirmation_digest: s
     if not _still_holds(state, offer):
         data["status"] = "cancelled"
         return _unmoved(operation_id, offer_id, "stale", offer)
-    resolution = resolve_offer(state, offer, operation_id=operation_id, check=check)
-    if resolution.status == "applied":
-        resolution = apply_resolution(state, resolution, confirmed_offer=offer)
-        if resolution.status != "applied" and resolution.reason_code == "stale":
-            data["status"] = "cancelled"  # the copy found the world moved; nothing was written to the live one
+    if offer.counter_binding is not None:
+        import shop_trade
+        try:
+            resolution = shop_trade.confirm_bound_offer(world, offer, operation_id=operation_id)
+        except shop_trade.TradeRefused:
+            data["status"] = "cancelled"
             return _unmoved(operation_id, offer_id, "stale", offer)
+        data = offer_records(world).get(offer_id)  # native atomic swap replaced the stored dictionary
+        if not isinstance(data, dict):
+            raise EconomicReceiptError("offer_not_prepared")
+    else:
+        resolution = resolve_offer(state, offer, operation_id=operation_id, check=check)
+        if resolution.status == "applied":
+            resolution = apply_resolution(state, resolution, confirmed_offer=offer)
+            if resolution.status != "applied" and resolution.reason_code == "stale":
+                data["status"] = "cancelled"
+                return _unmoved(operation_id, offer_id, "stale", offer)
     if resolution.status != "applied":
         operations = world.setdefault("flags", {}).setdefault("economic_ledger", {}).setdefault("operations", {})
         if operation_id in operations:

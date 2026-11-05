@@ -18518,6 +18518,13 @@ def _front_economic_offer(route, player_input):
             offered = bold_acts.standing_offer(session, person) if amount is not None else None
         session._coin_paid = None
         if offered is not None:
+            if route.get("keep_change"):
+                opened = (session.world_state.get("flags") or {}).get("counter_offer_v1") or {}
+                prepared = shop_trade.prepare_keep_change(session, person["id"], str(opened.get("key")), amount)
+                result = bold_acts._reply(session, prepared.public_message, "narrative", prepared.status, None, [],
+                                          reason_code=prepared.reason_code)
+                result["action_result"]["success"] = prepared.status == "prepared"
+                return result
             return offered
         result = bold_acts._reply(session, economic_actions._CLARIFY["no_stock_or_service"], "narrative", "clarification", None, [], reason_code="no_stock_or_service")
         result["action_result"]["success"] = False
