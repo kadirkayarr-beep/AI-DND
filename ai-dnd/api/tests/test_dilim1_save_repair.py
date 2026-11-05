@@ -200,3 +200,15 @@ class SaveRepair(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(self.world, snapshot)
             _, _, reloaded = self.fresh()
             self.assertEqual(reloaded.game_session.world_state, snapshot)
+    async def test_null_memory_loads_remembers_and_saves_again(self):
+        await self.ready()
+        self.world[npc_told.KEY] = None
+        self.manager.save_campaign(self.cid)
+        manager, sid, record = self.fresh()
+        world = record.game_session.world_state
+        self.assertTrue(npc_told.remember(world, self.npc["id"], FACT, turn=1))
+        expected = {self.npc["id"]: [{"turn": 1, "text": FACT}]}
+        self.assertEqual(world[npc_told.KEY], expected)
+        manager.save_campaign(self.cid)
+        _, _, reopened = self.fresh()
+        self.assertEqual(reopened.game_session.world_state[npc_told.KEY], expected)

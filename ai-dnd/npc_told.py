@@ -39,7 +39,7 @@ def _rows(world, npc_id):
 
 def repair(world: dict) -> list[str]:
     state = world.get(KEY)
-    if state is None:
+    if KEY not in world:
         return []
     if not isinstance(state, dict):
         world[KEY] = {}
