@@ -21675,6 +21675,11 @@ def _run_player_turn_internal(
             about=npc_statements.claim_about(player_input))
             if isinstance(raw_intent, dict) and is_npc_historical_claim(player_input) else None)
         if witnessed_text is not None:
+            # A source selection cannot grant a payment or lift a decline.
+            # A negative answer must still reach the existing money veto owner.
+            if raw_intent.get("coin_answer") == "declines":
+                money_owner.read_answer(_session(), raw_intent, npc_target["id"],
+                    money_owner.parts_for(world_state, _session(), npc_target["id"]))
             name = living_world.public_npc_name(npc_target)
             response = f'{name}, “{witnessed_text}” diye gördüğü olayı hatırlatır.'
             action_result = {"action": "dialogue", "status": "answered_from_witnessed_deed",
