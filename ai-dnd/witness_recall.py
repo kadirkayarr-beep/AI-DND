@@ -37,9 +37,9 @@ def candidates(world: Mapping, npc: Mapping | None) -> list[dict[str, str]]:
         try:
             payload = json.dumps([npc["id"], index, deed], sort_keys=True,
                                  ensure_ascii=False, allow_nan=False)
+            identity = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         except (TypeError, ValueError):
             continue
-        identity = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         rows.append({"source_id": "witness:" + identity, "text": text})
         if len(rows) == 8:
             break

@@ -64,3 +64,11 @@ class WitnessSources(unittest.TestCase):
         self.assertEqual(rows[0]["text"], "Olay 11")
         self.assertEqual(len({row["source_id"] for row in rows}), 8)
         self.assertEqual(self.world, before)
+
+    def test_unpaired_unicode_source_is_ignored_without_breaking_the_other_sources(self):
+        good = copy.deepcopy(self.deed)
+        self.world["flags"]["deeds"] = [good, {**good, "text": "bad\ud800"}]
+        before = copy.deepcopy(self.world)
+        rows = recall.candidates(self.world, self.npc)
+        self.assertEqual([row["text"] for row in rows], [good["text"]])
+        self.assertEqual(self.world, before)
