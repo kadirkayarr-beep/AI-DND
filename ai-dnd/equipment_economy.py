@@ -919,6 +919,11 @@ def execute(session, text, *, advance_turn=True):
             wallet = candidate.get("currency", {}).get("player")
             if wallet:
                 narration += f" Kesende {wallet // 100} altın {wallet % 100} bakır var."
+        if tokens[1] == "list":
+            import item_use
+            note = item_use.ammo_note(candidate)
+            if note:
+                narration += " " + note
         original = dict(world)  # the untouched saved values: _apply only ever wrote to the candidate copy
         world.clear()
         world.update(candidate)

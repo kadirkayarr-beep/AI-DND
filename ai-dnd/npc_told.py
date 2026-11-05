@@ -125,7 +125,7 @@ def supports(world: Mapping, npc_id: str, claim: str, *, about: Literal["own_wor
 
 def view(rows: Sequence[str], *, header: str, max_bytes: int = 600, max_chars: int = 200) -> str:
     budget = max(0, min(max_bytes, VIEW_BYTES))
-    width = max(0, min(max_chars, VIEW_CHARS))
+    width = max(0, min(max_chars, VIEW_CHARS) - 2)  # quote characters share the row budget
     suffix = "… (kısaltıldı; tamamı kayıtta)"
     lines = []
     for row in rows[:VIEW_ROWS]:

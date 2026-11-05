@@ -18904,10 +18904,7 @@ def _dispatch_player_turn(
     if read is not None and read["kind"] == "bag":
         listed = equipment_economy.execute(_session(), "çantamda ne var")
         if listed is not None:
-            import item_use
-            note = item_use.ammo_note(world_state)
-            if listed["action_result"]["success"] and note:
-                listed["narration"] += " " + note
+
             return listed
     if combat_action is None and interaction_mode not in {"say", "ask_dm"}:
         from adventure import dialogue_jobs
