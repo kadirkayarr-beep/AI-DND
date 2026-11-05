@@ -1627,6 +1627,14 @@ class ShopCounterPurse(BaseModel):
     cp: int = Field(ge=0)
 
 
+class ShopCounterHeld(BaseModel):
+    npc_id: str
+    key: str
+    count: Literal[1]
+    tip_cp: int = Field(ge=1)
+    total_cp: int = Field(ge=1)
+
+
 class ShopCounterResponse(BaseModel):
     """What the counter here offers now; reading it writes nothing and makes no receipt."""
     session_id: str
@@ -1637,6 +1645,7 @@ class ShopCounterResponse(BaseModel):
     vendor: ShopCounterVendor | None
     lines: list[ShopCounterLine]
     purse: ShopCounterPurse
+    held: ShopCounterHeld | None = None
     seq: int = Field(ge=0)
 
 

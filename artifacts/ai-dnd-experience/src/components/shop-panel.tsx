@@ -67,7 +67,10 @@ export function ShopCounterCard({ counter, counts, onCounts, onConfirm, onClose,
   const vendor = counter.vendor;
   const chosen = counter.lines.find(line => (counts[line.key] ?? 0) > 0);
   const count = chosen ? counts[chosen.key] : 0;
-  const total = chosen ? chosen.unit_cp * count : 0;
+  const held = counter.held;
+  const tipped = !!chosen && count === 1 && held?.count === 1
+    && held.npc_id === vendor.npc_id && held.key === chosen.key;
+  const total = tipped ? held.total_cp : chosen ? chosen.unit_cp * count : 0;
   const affordable = total <= counter.purse.total_cp;
   const valid = !!chosen && count >= 1 && count <= chosen.stock && affordable;
   const step = (key: string, next: number, stock: number) => {
@@ -90,7 +93,8 @@ export function ShopCounterCard({ counter, counts, onCounts, onConfirm, onClose,
     </ul>
     {notice && <p role="alert" data-testid="shop-notice">{notice}</p>}
     {chosen && !affordable && <p role="status">{shopReasonText('insufficient_funds')}</p>}
-    <p>Toplam: {total} bakır. Para üstü verilmez; ödeme bakır karşılığıyla düşülür.</p>
+    {tipped ? <p>Toplam: {chosen!.unit_cp} + bahşiş {held.tip_cp} = {total} bakır.</p>
+      : <p>Toplam: {total} bakır. Para üstü verilmez; ödeme bakır karşılığıyla düşülür.</p>}
     <button type="button" className="dnd-button" data-testid="button-confirm-shop" disabled={disabled || !valid} onClick={() => {
       if (disabled || !valid || !chosen) return;
       onConfirm(`/item shop_buy ${vendor.npc_id} ${chosen.key} ${count} ${counter.seq} ${total}`);

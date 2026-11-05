@@ -2656,7 +2656,7 @@ def create_app(
             return level_up_projection(record, session_id)
 
     @application.get("/api/game/sessions/{session_id}/shop", response_model=ShopCounterResponse,
-                     operation_id="getGameSessionShop")
+                     operation_id="getGameSessionShop", response_model_exclude_unset=True)
     def read_shop_counter(session_id: str) -> dict[str, Any]:
         """The counter's quote, read under the turn lock so it is never half a turn; it writes nothing."""
         import shop_trade
@@ -2671,7 +2671,7 @@ def create_app(
             return ShopCounterResponse.model_validate(dict(
                 session_id=session_id, campaign_id=record.campaign_id,
                 revision=token[1] if isinstance(token, tuple) and len(token) == 2 else None, **counter,
-            )).model_dump(mode="json")
+            )).model_dump(mode="json", exclude_unset=True)
 
     @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
                       operation_id="applyGameSessionLevelUp")

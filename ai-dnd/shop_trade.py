@@ -133,6 +133,13 @@ def counter(world: dict[str, Any]) -> dict[str, Any]:
         result["reason"] = "vendor_refuses"
     else:
         result.update(status="ready", lines=goods(world, npc))
+        for line in result["lines"]:
+            fresh = quote(world, str(npc.get("id")), line["key"], 1)
+            tip = _tip(world, str(npc.get("id")), line["key"], 1, fresh) if fresh else 0
+            if tip:
+                result["held"] = {"npc_id": str(npc.get("id")), "key": line["key"], "count": 1,
+                                  "tip_cp": tip, "total_cp": fresh["total_cp"] + tip}
+                break
     if npc is not None:
         result["vendor"] = {"npc_id": str(npc.get("id")), "name": living_world.public_npc_name(npc)}
     return result
