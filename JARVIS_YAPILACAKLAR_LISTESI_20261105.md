@@ -2,10 +2,10 @@
 
 Bu liste, bugünden sonra yapılacak **her şeyi** sırayla verir: Dilim 0, Dilim 1, Dilim 2, Dilim 3, Dilim 4, Adım 4 ve sonrası. Hiçbir madde atlanmaz. **Kaldığın yeri unutursan bu dosyaya bak.** Bir maddeyi bitirince buradaki kutuyu işaretle ve yanına commit numarasını yaz (dosya: `C:\Users\Kadir\Desktop\AI-DND-b01-isolated\JARVIS_YAPILACAKLAR_LISTESI_20261105.md`).
 
-Kutu işaretleri: `[x]` bitti, `[~]` yarım (WIP var), `[ ]` yapılmadı, `[K]` kapı (görev olarak yapma, test listesinde), `[!]` Kadir'in ya da Claude'un "yap"ını bekliyor.
+Kutu işaretleri: `[x]` bitti, `[~]` yarım (WIP var), `[ ]` yapılmadı, `[!]` Kadir'in ya da Claude'un "yap"ını bekliyor.
 
 ## SIRADAKİ GÖREV (her görev bitince bu satırı güncelle)
-**SIRADAKİ:** Jarvis kendi ara devir notlarına göre günceller (`DILIM0_ARA_DEVIR_JARVIS_20261105.md`, `DILIM1_ARA_DEVIR_JARVIS_20261105.md`). Claude'un 2026-11-05 13:30 durumu: Dilim 0 Görev 8, 9, 10, 11-UI ve 5 açık; Dilim 1 Görev 11-UI (web test yolu kararı), 22-kapıları ve bağımsız inceleme açık.  Son güncelleme: 2026-11-05 13:30 (Claude)
+**ÖNCE (DEĞİŞİKLİK 4):** odaklı web test yolunu uygula (ODAKLI_WEB_TEST_TASARIM_20261105.md; yedek, önce/sonra aynı sonuç, bağımsız onay), sonra kapı görevlerini koş.  **SIRADAKİ:** Jarvis kendi ara devir notlarına göre günceller (`DILIM0_ARA_DEVIR_JARVIS_20261105.md`, `DILIM1_ARA_DEVIR_JARVIS_20261105.md`). Claude'un 2026-11-05 13:30 durumu: Dilim 0 Görev 8, 9, 10, 11-UI ve 5 açık; Dilim 1 Görev 11-UI (web test yolu kararı), 22-kapıları ve bağımsız inceleme açık.  Son güncelleme: 2026-11-05 13:30 (Claude)
 
 **SIRA ÖZETİ (Claude'un C-019'daki sırasından ŞU FARKLA düzeltildi: devir görevleri en sona):**
 1. Dilim 0: Görev 6, 7, 8, 9, 10, 11  →  2. Dilim 1: Görev 11, 12, 14, 15, 17, 18  →  3. Hassas görevler: Dilim 0 Görev 5, Dilim 1 Görev 10, 20, 21  →  4. Devir görevleri: Dilim 0 Görev 15, Dilim 1 Görev 23  →  5. Bölüm D (bitiş adımları).
@@ -15,7 +15,7 @@ Kutu işaretleri: `[x]` bitti, `[~]` yarım (WIP var), `[ ]` yapılmadı, `[K]` 
 2. O klasöre git; `git status` temiz olmalı; `git log --oneline -5`.
 3. Planda görevin tam metnini oku (`### Task N:` başlığından bir sonrakine kadar): Files, Interfaces, adımlar. Planın başındaki Global Constraints ve Review Focus'u oku.
 4. Önce başarısız test, sonra kod, sonra yeşil. Odaklı test: `bash C:\Users\Kadir\Desktop\AI-DND-TOOLS\slot.sh <yuva> <klasör> test <ETİKET> <SN> api.tests.<modül>` (Dilim 0 → yuva 3, Dilim 1 → yuva 2, Dilim 2 → yuva 2; noktalı modül adı).
-5. Uzun kontrolleri (MONEY, tam paket, tarayıcı, gerçek zincir) KOŞMA; `TESTLER_BEKLIYOR_20261104.md` dosyasına tek satır ekle.
+5. Uzun kontroller (MONEY, yolculuklar, web, tam paket) artık KOŞULUR (KURALLAR.md DEĞİŞİKLİK 4): kapı görevlerinde ve dilim sonunda; tam paket yalnız başka test koşmazken tek başına. Gerçek zincir koşusu ve harcama Kadir'in 'yap'ıdır.
 6. `git status` bak (günlük/koşu çıktısı sahnelenmişse çıkar); ayrı yerel commit; atıf satırı yok.
 7. Rapor: `AI-DND-ORTAK\jarvis_to_claude\` içine kısa `J-0NN` (görev no, commit, komut, sonuç satırı, atladıkların). Defter: `...\.superpowers\sdd\DILIM*_PLAN_20261104\progress.md` içine `Task N: complete (Jarvis)`. HANDOFF.md 'DURUM' bölümüne satır. Bu listede kutuyu işaretle, SIRADAKİ satırını güncelle.
 8. Kilidi boşalt. Sonraki göreve geç.
@@ -38,10 +38,10 @@ Klasör `AI-DND-dilim0`, dal `task/dilim0-ui-20261104`, yuva 3, plan `DILIM0_PLA
 - [ ] Hassas görev Görev 5'i bitir (yukarıdaki not).
 - [ ] **Görev 15:** Devir — EN SON: tüm görevler bitince devir raporu (`DILIM0_RAPOR_...md`) + HANDOFF satırı
 
-**Dilim 0 kapıları (KOŞMA, `TESTLER_BEKLIYOR_20261104.md` listesinde):**
-- [K] **Görev 12:** Ara kapı — Kadir ya da Jarvis bilgisayar boşken ayrıca koşar
-- [K] **Görev 13:** Tarayıcı doğrulaması (sonra) — Kadir ya da Jarvis bilgisayar boşken ayrıca koşar
-- [K] **Görev 14:** Bütün dal doğrulaması — Kadir ya da Jarvis bilgisayar boşken ayrıca koşar
+**Dilim 0 kapıları (KURALLAR.md DEĞİŞİKLİK 4: artık Jarvis yapar; web yolu önce, tarayıcı Kadir'in bilgisayarında Ollama açıkken):**
+- [ ] **Görev 12:** Ara kapı — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
+- [ ] **Görev 13:** Tarayıcı doğrulaması (sonra) — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
+- [ ] **Görev 14:** Bütün dal doğrulaması — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
 
 ## C. DİLİM 1 — para/kart tek sahip + kişisel hafıza
 Klasör `AI-DND-dilim1`, dal `task/dilim1-money-memory-20261104`, yuva 2, plan `DILIM1_PLAN_20261104.md`, tasarım `DILIM1_TASARIM_20261104.md`.
@@ -70,11 +70,11 @@ Klasör `AI-DND-dilim1`, dal `task/dilim1-money-memory-20261104`, yuva 2, plan `
 - [x] **Görev 21:** Kayıt yükleme onarımı ve geri al — KAYIT / GERİ AL; Jarvis yaptı (8f3fad79, 02ee56d1); İNCELEME BEKLİYOR (sıfır tolerans)
 - [~] **Görev 23:** Devir — KISMEN: ara devir yazıldı (DILIM1_ARA_DEVIR_JARVIS_20261105.md); bitmiş dilim raporu (`DILIM1_RAPOR_...md`) en sona
 
-**Dilim 1 kapıları (KOŞMA, `TESTLER_BEKLIYOR_20261104.md` listesinde):**
-- [K] **Görev 13:** Ara kapı A (para ve kart) — görev olarak yapma
-- [K] **Görev 16:** Ara kapı B (tüketim ve mühimmat) — görev olarak yapma
-- [K] **Görev 19:** Ara kapı C (hafıza) — görev olarak yapma
-- [K] **Görev 22:** Bütün dal doğrulaması — görev olarak yapma
+**Dilim 1 kapıları (KURALLAR.md DEĞİŞİKLİK 4: artık Jarvis yapar; tam paket en son ve tek başına; gerçek zincir koşusu Kadir'in 'yap'ı):**
+- [ ] **Görev 13:** Ara kapı A (para ve kart) — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
+- [ ] **Görev 16:** Ara kapı B (tüketim ve mühimmat) — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
+- [ ] **Görev 19:** Ara kapı C (hafıza) — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
+- [ ] **Görev 22:** Bütün dal doğrulaması — Jarvis yapar; ayrıntı TESTLER_BEKLIYOR_20261104.md
 
 ## D. DİLİM 0 ve DİLİM 1 BİTİNCE (bu sırayla)
 - [ ] İki dilimin görev kutularını kontrol et: B ve C bölümlerinde `[ ]` ve `[~]` kalmamalı (kapılar `[K]` kalır).
@@ -94,21 +94,21 @@ Plan `DILIM2_PLAN_20261104.md`, tasarım `DILIM2_TASARIM_20261104.md`. **[!] Ba�
 - [!] **Görev 5:** Doğru alıcıya teslim, bir kez ödeme, Geri Al (115, sıfır tolerans) — KAYIT/GERİ AL: en son, İNCELEME BEKLİYOR
 - [!] **Görev 6:** Görev günlüğü tek kaynak (`quest_log`)
 - [!] **Görev 7:** İzler: teslimin olay satırı, bir sonraki iş ve günlükteki iz
-- [K] **Görev 8:** Ara kapı A (görevler ve izler) — kapı: koşma, TESTLER listesine yaz
+- [!] **Görev 8:** Ara kapı A (görevler ve izler) — kapı: Jarvis yapar (DEĞİŞİKLİK 4)
 - [!] **Görev 9:** `talk_mode`: kip alanlarının tek yazarı
 - [!] **Görev 10:** Uyku kipi kapatır; adı geçen ama burada olmayan kişi (41, 15)
 - [!] **Görev 11:** Konuşurken oda ya da mal istemek kart açar (4)
-- [K] **Görev 12:** Ara kapı B (konuşma kipi) — kapı: koşma, TESTLER listesine yaz
+- [!] **Görev 12:** Ara kapı B (konuşma kipi) — kapı: Jarvis yapar (DEĞİŞİKLİK 4)
 - [!] **Görev 13:** Türkçe, nedenli ret metinleri (`refusals`) (40, EK 6 #5)
 - [!] **Görev 14:** `gear`: saldırıda silah çekme ve Ready silahı (39)
 - [!] **Görev 15:** `wield` önerisi, anlatıcıya giden ret ve doğruluk kartının yeni satırları (rc3)
 - [!] **Görev 16:** Savaşta rakibe yaklaşma (40)
 - [!] **Görev 17:** Karşı saldırının anlatı sırası (121)
-- [K] **Görev 18:** Ara kapı C (savaş ve ret) — kapı: koşma, TESTLER listesine yaz
+- [!] **Görev 18:** Ara kapı C (savaş ve ret) — kapı: Jarvis yapar (DEĞİŞİKLİK 4)
 - [!] **Görev 19:** Kayıt yükleme onarımı ve Geri Al kanıtları — KAYIT/GERİ AL: en son, İNCELEME BEKLİYOR
 - [!] **Görev 20:** Gerçek zincir senaryoları (yalnız dosya; koşu Görev 22'de)
 - [!] **Görev 21:** Senaryo ve test yeniden yazım listesinin denetimi
-- [K] **Görev 22:** Bütün dal doğrulaması ve gerçek zincir kısa kontrolü — kapı: koşma, TESTLER listesine yaz
+- [!] **Görev 22:** Bütün dal doğrulaması ve gerçek zincir kısa kontrolü — kapı: Jarvis yapar (DEĞİŞİKLİK 4)
 - [!] **Görev 23:** Devir — en son
 
 ## F. DİLİM 3 — dünya davranışları, ilk 10 dakika, 3a kanıtı (tasarım ve plan HENÜZ YOK)
