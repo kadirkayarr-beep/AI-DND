@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 // B3: bounded recovery and panel reconciliation in the REAL GameBrowser source. serverRecovery, blockingMutation and their
 // helpers are selected from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport
 // are replaced. Timers are node:test fake timers, so no test waits on a real clock and nothing touches the network.
@@ -80,7 +81,7 @@ function render({ status, abandon, unresolved, campaign, lifetime = createAction
     abandon: (sid, actionId, options) => { calls.push({ kind: 'abandon', sid, actionId, signal: options?.signal }); return abandon ? abandon(actionId, options) : never(); },
     unresolved: (sid, options) => { calls.push({ kind: 'unresolved', sid, signal: options?.signal }); return unresolved ? unresolved(options) : never(); },
   };
-  const env = {
+  const env = { ...combatStartInjection(),
     sessionId, campaignId, serverRecoveryRef: { current: null },
     RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer,
     RecoveryTimeoutError: recovery.RecoveryTimeoutError,
@@ -205,6 +206,7 @@ test('test_applied_reconciles_last_turn_wallet_and_card', { timeout: 30_000 }, a
   assert.deepEqual(shown.wallet, { total_cp: 96 }, 'the purse is the server purse');
   assert.equal(shown.economic_offer, null, 'the consumed card is gone');
   assert.equal(view.entries.length, 1, 'the story is rebuilt from the same server read');
+  assert.deepEqual(view.env.combatStartNotices, [null]);
   assert.deepEqual(view.lastTurns, [null], 'the last-turn slot is refreshed: no stale earlier turn stays as the undo target or outcome');
   const recoveryState = view.notices.at(-1).recovery;
   assert.equal(recoveryState.status, 'applied');
@@ -229,6 +231,7 @@ test('test_undone_replay_does_not_restore_old_success', { timeout: 30_000 }, asy
   const shown = view.client.getQueryData(['state', SESSION]);
   assert.deepEqual(shown.wallet, { total_cp: 100 }, 'the screen shows the undone present, not the old purse');
   assert.equal(shown.economic_offer?.offer_id, 'offer-1', 'the card the undo opened again is shown');
+  assert.deepEqual(view.env.combatStartNotices, [null]);
   assert.deepEqual(view.lastTurns, [null], 'the old success is never put back as the last turn');
   const notice = view.notices.at(-1);
   assert.doesNotMatch(`${notice.title} ${notice.detail}`, /4 bakır ödendi|uygulandığını doğruladı/, 'the old receipt is not presented as current');
@@ -263,6 +266,7 @@ test('test_campaign_switch_drops_stale_promise', { timeout: 30_000 }, async () =
   assert.equal(view.client.getQueryData(['state', SESSION]), undefined, 'the late answer writes no state');
   assert.deepEqual(view.entries, [], 'the late answer writes no story');
   assert.deepEqual(view.lastTurns, []);
+  assert.deepEqual(view.env.combatStartNotices, []);
   assert.equal(view.calls.some((c) => c.kind === 'getCampaign'), false);
   assert.equal(pending.readPending(OWNER, CAMPAIGN)?.key.actionId, key.actionId, 'the identity is kept for the next visit');
   assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');

@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
@@ -33,7 +34,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
  const requests = [], shown = [], errors = [], setters = [];
  const life = createActionLifetime();
- const env = {
+ const env = { ...combatStartInjection(),
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
   closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null, currentAccountOwner: () => 'user-a', LOCAL_OWNER: 'local',
   PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
@@ -58,7 +59,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
    setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {}, setComposerOpen() {},
    statusCode: e => e.status, friendlyError: e => e?.message ?? 'Synthetic error',
  };
-  for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
+  for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatStartNotice', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
   const original = env[name]; env[name] = (...args) => { setters.push([name, ...args]); return original(...args); };
  }
  vm.runInNewContext(code, env);
@@ -78,6 +79,7 @@ test('a failed optional transcript cache does not turn a committed turn into an 
  await h.run();
  assert.equal(h.requests.length, 1);
   assert.equal(h.errors.length, 0, JSON.stringify(h.errors));
+ assert.deepEqual(h.env.combatStartNotices, [null]);
  assert.equal(h.shown.at(-1).at(-1).text, 'Synthetic receipt');
  assert.equal(h.client.getQueryData(['state', 'session-a']).revision, current.revision);
  assert.equal(draft, '');

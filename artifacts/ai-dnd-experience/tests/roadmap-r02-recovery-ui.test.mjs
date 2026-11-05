@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 // R02 recovery wiring in the REAL GameBrowser source: serverRecovery, recoveryHandlers and showServerOpenAction are selected
 // from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport are replaced. The
 // transport answers with the shared backend bodies (ai-dnd/api/tests/fixtures/r02_intent_contract.json). This proves the
@@ -74,7 +75,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
       return answers.unresolved ?? { unresolved: null };
     },
   };
-  const env = {
+  const env = { ...combatStartInjection(),
     sessionId, campaignId, serverRecoveryRef: sharedRef ?? { current: null },
     RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer, RecoveryTimeoutError: recovery.RecoveryTimeoutError,
     readPending: pending.readPending, currentAccountOwner: () => OWNER, LOCAL_OWNER: 'local',
@@ -106,6 +107,7 @@ test('applied: authoritative state is reconciled BEFORE the pending move closes,
   await view.env.serverRecovery('check');
   assert.deepEqual(seenWhileReconciling, [true], 'still pending while the state is read');
   assert.equal(pending.readPending(OWNER, 'campaign-a'), null, 'closed only after the reconcile');
+  assert.deepEqual(view.env.combatStartNotices, [null]);
   assert.equal(view.entries.length, 1, 'the story is rebuilt from the server history');
   assert.equal(view.notices.at(-1).tone, 'success');
   assert.deepEqual(view.calls.filter((c) => c.startsWith('status') || c.startsWith('abandon')), [`status session-a ${key.actionId}`]);

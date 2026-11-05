@@ -1,3 +1,5 @@
+import { unresolvedActionFrom } from '../src/lib/action-recovery.ts';
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
@@ -53,7 +55,7 @@ function harness() {
   let uuidCounter = 0;
   let statusReadCount = 0;
   const state = { revision: 'before-undo', combat: { active: false }, quests: [] };
-  const env = {
+  const env = { ...combatStartInjection(), unresolvedActionFrom,
     sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do',
     conversationTargetId: '', combatTargetId: '',
     visibleLastTurn: { sessionId: 'session-a', actionId: 'old-action', outcome: null },

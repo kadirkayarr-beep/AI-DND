@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -44,7 +45,7 @@ function harness({ sessionStorage = storage(), transport, refresh } = {}) {
   const requests = [], notices = [];
   const intent = controls.createPrimalKnowledgeIntent();
   intent.sync({ key: JSON.stringify(['owner', 'campaign', 'session', 'do']), available: true });
-  const env = {
+  const env = { ...combatStartInjection(),
     ...gateInjection(), reconcileState, ReconciliationError, RETRY_MESSAGE, closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, askServer, settlePending, unresolvedActionFrom, transcriptFollowsBottom, getTurnInteractionMetadata,
     ...controls, primalKnowledgeIntent: intent, redrawPrimalKnowledge() {}, tacticalMindIntent: controls.createPrimalKnowledgeIntent(), tacticalMindAvailable: () => false,
     currentAccountOwner: () => 'owner', LOCAL_OWNER: 'local', campaignId: 'campaign', sessionId: 'session', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: structuredClone(state),
@@ -182,7 +183,7 @@ test('actual applied recovery reconciles history card without replaying a reques
   const h=harness({transport:async()=>{throw Error('lost feature reply')}});h.choose();h.submit();await h.settled();const pending=readPending('owner','campaign');
   const result={skill:'Survival',ability:'strength',original_ability:'wisdom',check_feature:'primal_knowledge',d20:8,total:13,ability_modifier:3,proficiency_modifier:2,total_modifier:5,difficulty:'medium',outcome:'failure'};
   h.env.state.character.primal_knowledge_check.available=false;h.env.RECOVERY_API.status=async()=>({action_id:pending.key.actionId,state:'applied',response:null});let entries;h.env.setEntries=value=>entries=value;h.env.getCampaign=async()=>({state:h.env.state,history:[{player_message:'İzlere bakıyorum',narration:'Eski izler',skill_check_result:result}],combat_history:[]});
-  await h.env.recover('check');assert.equal(h.requests.length,1);assert.equal(readPending('owner','campaign'),null);assert.deepEqual(entries.at(-1).skillCheckResult,result);const html=render(React.createElement(card.SkillCheckResultCard,{result:entries.at(-1).skillCheckResult}));assert.match(html,/Kuvvet \(Primal Knowledge\)/);assert.match(html,/Asıl yetenek.*BİL/);h.close();
+  await h.env.recover('check');assert.equal(h.requests.length,1);assert.equal(readPending('owner','campaign'),null);assert.deepEqual(entries.at(-1).skillCheckResult,result);assert.deepEqual(h.env.combatStartNotices,[null]);const html=render(React.createElement(card.SkillCheckResultCard,{result:entries.at(-1).skillCheckResult}));assert.match(html,/Kuvvet \(Primal Knowledge\)/);assert.match(html,/Asıl yetenek.*BİL/);h.close();
 });
 
 test('actual frontend opted request survives generated parser with no client mechanics added', async () => {
