@@ -544,13 +544,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .command-box { position: static; flex: 0 0 auto; margin-top: 12px; z-index: 1; background: #1b1510; }
 .play-shell .command-form { position: static; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; background: #1b1510; padding-top: 8px; }
 .play-shell .command-form .command-target-label { flex: 0 1 12rem; min-width: 0; max-width: 100%; }
-.play-shell .transcript-scroll { flex: 1 1 auto; min-height: 8rem; max-height: 30dvh; overflow-y: auto; }
+.play-shell .transcript-scroll { flex: 1 1 auto; min-height: max(220px, 38dvh); max-height: none; overflow-y: auto; }
 .play-shell .story-heading { margin-bottom: 12px; }
 @media (max-width: 1120px), (max-height: 699px) {
   .play-shell .drawer-backdrop { align-items: flex-end; }
   .play-shell .drawer-sheet { width: 100%; max-height: 86dvh; }
   .play-shell .command-context { max-height: 6.5rem; }
-  .play-shell .transcript-scroll { max-height: 18dvh; }
+  .play-shell .transcript-scroll { max-height: none; }
 }
 .player-account {
   position: fixed;

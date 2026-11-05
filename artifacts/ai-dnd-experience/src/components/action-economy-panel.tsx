@@ -211,6 +211,8 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
             technique={monkTechnique} onTechniqueChange={setMonkTechnique} onCommand={(label, step) => send(label, step)} />
           <RageControl rage={rage} confirmed={rageIntent.selected} blocked={blocked} onChange={value => { rageIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
           <MagicMissileControl state={state} targetId={targetId} slot={magicSlot} onSlotChange={setMagicSlot} blocked={blocked} magicAvailable={legal('magic')} quickened={quickenedIntent.selected} onQuickenedChange={value => { quickenedIntent.choose(value); redrawIntent(n => n + 1); }} onCommand={(label, command) => { if (command.steps[0]) send(label, command.steps[0]); }} />
+          <details data-testid="combat-more-actions">
+            <summary>Diğer eylemler</summary>
           <div className="flex flex-wrap items-center gap-2 mt-3 story-meta">
             <label>Mesafe (ft) <input aria-label="Hareket mesafesi" type="number" min="1" step="1" className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} onChange={(event) => setDistance(event.target.value)} /></label>
             <button type="button" className="action-suggestion" disabled={blocked || !distanceValid || resources.movement_remaining <= 0}
@@ -229,6 +231,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
                 trigger: { event: triggerEvent, actor_id: triggerActor === 'player' ? 'player' : targetId },
                 response: readyKind === 'attack' ? { kind: 'attack', target_id: targetId } : { kind: 'move', distance_ft: distanceValue } })}>Hazırlan (Ready)</button>
           </div>
+          </details>
         </>
       )}
     </section>

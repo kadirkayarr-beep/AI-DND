@@ -337,3 +337,27 @@ test('accepted current server recovery clears an old combat start banner without
     assert.deepEqual(shown, current && accepted ? [null] : []);
   }
 });
+
+test('the play shell never caps the story below a readable height', async () => {
+  const css = await readFile('src/index.css', 'utf8') + await readFile('src/components/unwritten-play.css', 'utf8');
+  assert.doesNotMatch(css, /\.play-shell \.transcript-scroll \{[^}]*max-height:\s*(18|30)dvh/);
+  assert.match(css, /\.play-shell \.transcript-scroll \{[^}]*min-height:\s*max\(220px,\s*38dvh\)/);
+});
+test('long combat rows fold without hiding primary actions or changing availability', async () => {
+  const economy = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
+  const html = render(economy.ActionEconomyPanel, { state: playerTurnState, targetId: 'npc_bandit', sending: false, onCommand() {} });
+  const start = html.indexOf('data-testid="combat-more-actions"');
+  assert.ok(start > 0);
+  const end = html.indexOf('</details>', start);
+  assert.ok(end > start);
+  const inside = html.slice(start, end), outside = html.slice(0,start) + html.slice(end);
+  assert.match(inside, /<summary>Diğer eylemler<\/summary>/);
+  assert.match(inside, />Hareket et</); assert.match(inside, /Hazırlan/);
+  assert.match(inside, /aria-label="Hareket mesafesi"/);
+  assert.match(outside, />Saldır · /); assert.match(outside, />Turu bitir</); assert.match(outside, />Koş/);
+  assert.doesNotMatch(outside, />Hareket et</);
+  assert.doesNotMatch(html, /<details[^>]*data-testid="combat-more-actions"[^>]*\sopen/);
+  const busy = render(economy.ActionEconomyPanel, { state: playerTurnState, targetId: 'npc_bandit', sending: true, onCommand() {} });
+  assert.match(busy, /disabled=""[^>]*>Hareket et</);
+  assert.match(busy, /disabled=""[^>]*>Hazırlan/);
+});

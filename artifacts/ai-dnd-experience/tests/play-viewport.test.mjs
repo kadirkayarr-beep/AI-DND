@@ -116,7 +116,9 @@ test('play shell locks desktop viewports and allows scroll for narrow, short, an
   assert.match(play, /\.play-shell \.command-form \{[^}]*flex-wrap: wrap/);
   assert.match(play, /\.play-shell \.command-form \.command-target-label \{ flex: 0 1 12rem; min-width: 0; max-width: 100%; \}/);
   assert.match(play, /@media \(max-width: 560px\) \{\s*\.play-shell \.command-form \{ display: block; \}/);
-  assert.match(play, /\.play-shell \.transcript-scroll \{ flex: 1 1 auto; min-height: 8rem; max-height: 30dvh; overflow-y: auto; \}/);
+  // Task8 replaces the former visual cap, preserving scrolling and keyboard safeguards below.
+  assert.match(play, /\.play-shell \.transcript-scroll \{ flex: 1 1 auto; min-height: max\(220px, 38dvh\); max-height: none; overflow-y: auto; \}/);
+  assert.doesNotMatch(play, /\.play-shell \.transcript-scroll \{[^}]*max-height:\s*(18|30)dvh/);
   assert.match(play, /height: calc\(100dvh - var\(--keyboard-inset, 0px\)\)/);
   assert.doesNotMatch(play, /padding-bottom: var\(--keyboard-inset/);
   assert.match(play, /@media \(max-width: 1120px\), \(max-height: 699px\)/);
