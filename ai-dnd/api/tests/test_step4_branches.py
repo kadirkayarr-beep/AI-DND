@@ -169,15 +169,35 @@ class SaidButNeverRecorded(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()["narration"]
 
-    async def test_coming_back_to_it_is_answered_by_the_person_not_denied_by_a_stock_line(self):
+    async def test_unrecorded_notebook_claim_is_not_verified_by_a_different_quote(self):
         await self.begin()
-        await self.line("yazdın mı peki? o etkinlik ne zaman, ne zaman geleyim", mode="say")
+        import copy
+        import npc_statements
+        first = await self.line("yazdın mı peki? o etkinlik ne zaman, ne zaman geleyim", mode="say")
+        self.assertIn("Yazmasına yazdım", first)
+        claim = "dün beni deftere yazdın, yarın sabah gel dedin. bak deftere"
+        self.assertEqual(npc_statements.claim_support(self.world, self.npc, claim)["status"], "unsupported")
+        before_money = copy.deepcopy(self.world.get("currency"))
+        before_commitments = copy.deepcopy(npc_statements.view(self.world)["commitments"])
         self.world["flags"].update(active_npc_id=None, active_npc_until_turn=-1)
-        text = await self.line("dün beni deftere yazdın, yarın sabah gel dedin. bak deftere", "Evet demiştim ama defter dolu.")
-        self.assertIn("defter dolu", text)
-        self.assertNotIn("Yanlış kapıyı", text)
-        self.assertNotIn("öyle bir sözüm yok", text)
+        text = await self.line(claim, "Evet demiştim ama defter dolu.")
+        self.assertNotIn("Evet demiştim", text)
+        self.assertNotIn("defter dolu", text)
+        self.assertEqual(self.world.get("currency"), before_money)
+        self.assertEqual(npc_statements.view(self.world)["commitments"], before_commitments)
 
+    async def test_a_displayed_recorded_quote_can_be_recalled_without_added_notebook_claims(self):
+        await self.begin()
+        first = await self.line("yazdın mı peki? o etkinlik ne zaman, ne zaman geleyim", mode="say")
+        import npc_statements
+        self.assertIn("Yazmasına yazdım", first)
+        ledger = self.world.get(npc_statements.KEY)
+        self.assertIsNotNone(ledger)
+        self.assertIn("Yazmasına yazdım", str(ledger))
+        self.assertEqual(npc_statements.claim_support(self.world, self.npc,
+            "dün beni deftere yazdın, yarın sabah gel dedin. bak deftere")["status"], "unsupported")
+        text = await self.line("etkinlik yarın sabah demiştin", "Etkinlik yarın sabah demiştim.")
+        self.assertIn("Etkinlik yarın sabah demiştim", text, {"ledger": ledger, "reply": text})
     async def test_a_person_with_no_job_is_told_to_take_it_back(self):
         await self.begin()
         await self.line("yazdın mı peki? ne zaman geleyim", mode="say")
