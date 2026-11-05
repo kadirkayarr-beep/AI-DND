@@ -46,3 +46,5 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 - J-033 Task20: 201 focused OK; full MONEY/gateD,11/12/25 journeys and independent zero-tolerance review pending.
 
 - Görev 21 / 8f3fad79: tam MONEY, bütün dal ve gerçek süreç restart kapıları + bağımsız sıfır tolerans incelemesi bekliyor; 149 ilgili kayıt testi geçti (J-034), bunlar genel kabul değildir.
+
+- J-037: açık ürün-sözleşme kararı ve kırmızı UnrelatedSocialCheck; a22ce75c son seçim129/1FAIL, tam MONEY geçmedi. J-038/039 teknik düzeltmeleri bağımsız inceleme bekler; uzun/gerçek kapılar değişmedi.
