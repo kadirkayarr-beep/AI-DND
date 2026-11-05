@@ -24,6 +24,7 @@ import os
 import re
 import time
 import unittest
+import httpx
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
@@ -41,6 +42,8 @@ import local_places
 import shop_trade
 import world_threads
 from api import serializers
+from api.auth import FixedAuthenticator
+from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
@@ -622,7 +625,9 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 continue
             started = time.monotonic()
             if step.reload:
-                failures, observed = self._reload(session_id, step, model)
+                failures, observed = await self._reload(session_id, step, model)
+                if not failures:
+                    session_id = self.last_session_id
             else:
                 failures = await (self._undo(session_id, step, model) if step.undo
                                   else self._play(session_id, step, model))
@@ -695,10 +700,10 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             self.last_narration = str(response.json().get("narration") or "")
         return failures
 
-    def _reload(self, session_id: str, step: Step, model: ModelDriver) -> tuple[list[str], dict[str, Any]]:
+    async def _reload(self, session_id: str, step: Step, model: ModelDriver) -> tuple[list[str], dict[str, Any]]:
         """Read the campaign back from its save in a fresh session manager, as after a restart (nothing from the
         live session carries over), and compare it with the live game key by key. The step observes what came
-        back from the save; later steps keep playing the live session."""
+        back from the save; later HTTP steps use that reopened manager and session."""
         self.last_narrator_input = None
         self.last_speech_input = None
         self.last_denial = False
@@ -706,11 +711,23 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_combat_result = None
         with model.bind(self, step):
             live = read_observed(self, session_id)
-            fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+            reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+            fresh = SessionManager(campaign_store=reopened_store)
             reloaded_id, *_ = fresh.resume_campaign(self.manager.get(session_id).campaign_id)
         saved = read_observed(_Reader(fresh), reloaded_id)
         failures = [f"yenileme: {key}: canlı {_show(live[key])}, kayıttan {_show(saved.get(key))}"
                     for key in live if key not in _NOT_STATE and saved.get(key) != live[key]]
+        if not failures:
+            adapter = self.app.state.ollama_adapter
+            headers = dict(self.http.headers)
+            base_url = self.http.base_url
+            app = create_app(session_manager=fresh, ollama_adapter=adapter,
+                             authenticator=FixedAuthenticator(TEST_PLAYER))
+            await self.http.aclose()
+            self.manager, self.store, self.app = fresh, reopened_store, app
+            self.last_session_id = reloaded_id
+            self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                          base_url=base_url, headers=headers)
         return failures, saved
 
     def _body(self, session_id: str, step: Step) -> dict[str, Any]:
