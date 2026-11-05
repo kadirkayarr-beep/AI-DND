@@ -4,6 +4,8 @@ Bu liste, bugünden sonra yapılacak **her şeyi** sırayla verir: Dilim 0, Dili
 
 Kutu işaretleri: `[x]` bitti, `[~]` yarım (WIP var), `[ ]` yapılmadı, `[!]` Kadir'in ya da Claude'un "yap"ını bekliyor.
 
+**TAM REHBER:** `AI-DND-ORTAK\claude_to_jarvis61105-1500_claude_024_saglikli-devam-rehberi.md` (C-024): fazlar, test koşma, bağımsız inceleme, gerçek zincir, tarayıcı, git hijyeni, Kadir'e danışılacaklar. Kadir'in tarafındaki işler sana onaylandı (KURALLAR.md DEĞİŞİKLİK 5): gerçek zincir koşuları, tarayıcı doğrulaması, tam paket, taze oturumla bağımsız inceleme. Birleştirme, `main`/`dev`, silme hâlâ Kadir'in "yap"ı.
+
 ## SIRADAKİ GÖREV (her görev bitince bu satırı güncelle)
 **ÖNCE (DEĞİŞİKLİK 4):** odaklı web test yolunu uygula (ODAKLI_WEB_TEST_TASARIM_20261105.md; yedek, önce/sonra aynı sonuç, bağımsız onay), sonra kapı görevlerini koş.  **SIRADAKİ:** Jarvis kendi ara devir notlarına göre günceller (`DILIM0_ARA_DEVIR_JARVIS_20261105.md`, `DILIM1_ARA_DEVIR_JARVIS_20261105.md`). Claude'un 2026-11-05 13:30 durumu: Dilim 0 Görev 8, 9, 10, 11-UI ve 5 açık; Dilim 1 Görev 11-UI (web test yolu kararı), 22-kapıları ve bağımsız inceleme açık.  Son güncelleme: 2026-11-05 13:30 (Claude)
 
