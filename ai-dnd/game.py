@@ -21320,15 +21320,15 @@ def _run_player_turn_internal(
             if (isinstance(npc_target, dict) and claimed_npc is npc_target
                     and npc_target.get("location") == world_state.get("location")):
                 told_support = npc_told.supports(world_state, npc_target["id"], player_input, about=about)
-        # Someone the player has talked to answers for their own words in their
-        # own voice: "38 bakır dedin" is haggling, not a forged promise. Only a
-        # claimed promise still has to be turned down.
+        # A previous conversation alone cannot support a new quoted claim.
+        # Only recorded support (or the existing witnessed-deed path) may
+        # bypass the unsupported-history check.
         import bold_acts
         spoken_reference = bool(
             about == "npc_words" and isinstance(npc_target, dict) and claimed_npc is npc_target
             and npc_target.get("location") == world_state.get("location")
             and (bold_acts.remembers(world_state, npc_target) or (
-                ledger["status"] != "absent" and ledger.get("claim_kind") in (None, "said")
+                ledger["status"] == "supported" and ledger.get("claim_kind") in (None, "said")
                 and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
             ))
         )
@@ -21835,7 +21835,13 @@ def _run_player_turn_internal(
                 # A reply may refuse the unrecorded claim or ask back in its own
                 # words; only one that goes along with it is replaced.
                 unverified_history_echo = (
-                    not invalid_or_empty and not _npc_speech_is_claim_refusal(text)
+                    not invalid_or_empty and (
+                        not _npc_speech_is_claim_refusal(text)
+                        # With no selected personal memory, an unrecognised factual
+                        # answer is not evidence of refusal. Reuse the existing
+                        # explicit refusal check; leave NPC-word ask-backs alone.
+                        or (about != "npc_words" and not _npc_speech_rejects_claim(text))
+                    )
                 )
                 if not invalid_or_empty and not unverified_history_echo:
                     action_result["own_words"] = True  # their own answer stands; nothing was granted
