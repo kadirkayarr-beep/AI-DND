@@ -101,3 +101,28 @@ class ToldClaims(unittest.IsolatedAsyncioTestCase):
         _, _, self.session, self.url, self.npc = await self.campaign_with_npc()
         narration, _ = await self.claim("Babamın ne iş yaptığını hatırlıyor musun?", "Baban değirmenciydi.")
         self.assert_denied(narration)
+
+from api.tests.journeys.runner import JourneyCase, SCENARIO_DIR, REAL_CHAIN_ONLY
+from api.tests.journeys.schema import load_scenario
+
+
+class PersonalMemoryJourney(JourneyCase):
+    async def test_scenario_24_scripted_steps_pass_and_real_step_stays_unrun(self):
+        scenario = load_scenario(SCENARIO_DIR / "24_personal_memory.json")
+        self.assertEqual(len(scenario.steps), 17)
+        self.assertTrue(all(not step.known_broken for step in scenario.steps))
+        self.assertEqual([i for i, step in enumerate(scenario.steps) if step.real_chain], [11])
+        results = await self.run_scenario(scenario)
+        expected = ["pass"] * 17
+        expected[11] = "unreached"
+        self.assertEqual([r.status for r in results], expected, results)
+        self.assertEqual(results[11].failures, (REAL_CHAIN_ONLY,))
+
+    async def test_scenario_24r_is_unscripted_and_never_runs_the_real_model_here(self):
+        scenario = load_scenario(SCENARIO_DIR / "24r_personal_memory_real.json")
+        self.assertEqual(len(scenario.steps), 4)
+        self.assertTrue(all(step.real_chain and not step.script and not step.known_broken
+                            for step in scenario.steps))
+        results = await self.run_scenario(scenario)
+        self.assertEqual([r.status for r in results], ["unreached"] * 4)
+        self.assertTrue(all(r.failures == (REAL_CHAIN_ONLY,) for r in results))

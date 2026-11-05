@@ -1,0 +1,332 @@
+{
+  "id": "24_personal_memory",
+  "setup": {
+    "seed": 7,
+    "npcs": [
+      {
+        "name": "Selim",
+        "id": "gezgin",
+        "current_hp": 10,
+        "role": "Gezgin"
+      },
+      {
+        "name": "Nermin",
+        "id": "yolcu",
+        "current_hp": 10,
+        "role": "Yolcu"
+      }
+    ],
+    "inventory": [],
+    "front_proposal": true,
+    "currency": {
+      "gezgin": 0,
+      "player": 100,
+      "yolcu": 0
+    }
+  },
+  "source_items": [
+    116
+  ],
+  "steps": [
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Benim köyüm Yeşilova, babam orada değirmenci.",
+      "script": {
+        "spoken": "Değirmenci demek, güzel.",
+        "speech": {
+          "remember_player_line": true
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Yol uzun mu?",
+      "script": {
+        "spoken": "Yolculuk yorucu, biraz dinleneceğim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Hava soğudu.",
+      "script": {
+        "spoken": "Yolculuk yorucu, biraz dinleneceğim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Bu kasabada han var mı?",
+      "script": {
+        "spoken": "Yolculuk yorucu, biraz dinleneceğim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Atın yorgun görünüyor.",
+      "script": {
+        "spoken": "Yolculuk yorucu, biraz dinleneceğim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "say": "Geceyi nerede geçireceksin?",
+      "script": {
+        "spoken": "Yolculuk yorucu, biraz dinleneceğim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "reload": true
+    },
+    {
+      "expect": {
+        "konusmaya_giden": [
+          "değirmenci"
+        ],
+        "inkar": false,
+        "yasak_metin": [
+          "anımsamıyorum",
+          "karıştırmış"
+        ]
+      },
+      "say": "Babamın ne iş yaptığını hatırlıyor musun?",
+      "script": {
+        "spoken": "Değirmenciydi, Yeşilova'da.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": false
+      },
+      "say": "Babamın işini sana söylemiştim",
+      "script": {
+        "spoken": "Evet, değirmenci.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": true
+      },
+      "say": "Sen bana dün bir hazine haritasından bahsetmiştin.",
+      "script": {
+        "spoken": "Evet, hazine haritasından bahsetmiştim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": true
+      },
+      "say": "Sen bana bir kılıç vereceğini söylemiştin.",
+      "script": {
+        "spoken": "Evet, kılıç verecektim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "yolcu",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "real_chain": true,
+      "say": "Babamın ne iş yaptığını hatırlıyor musun?",
+      "expect": {
+        "inkar": false,
+        "gerekli_metin": [
+          "değirmen"
+        ]
+      },
+      "konus": "gezgin"
+    },
+    {
+      "expect": {
+        "inkar": true
+      },
+      "say": "Sana ejderhanın yerini söylemiştim",
+      "script": {
+        "spoken": "Evet, ejderhanın yerini söylemiştin.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": true
+      },
+      "say": "Ben sana babamı söylemiştim, sen de bana yardım edeceğine söz vermiştin.",
+      "script": {
+        "spoken": "Evet, yardım edeceğime söz vermiştim.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": false,
+        "konusmaya_giden": [
+          "değirmenci"
+        ]
+      },
+      "say": "Sana babamın ejderha avladığını söylemiştim",
+      "script": {
+        "spoken": "Babanın değirmenci olduğunu söylemiştin, ejderhayı değil.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "inkar": true
+      },
+      "say": "Babamın ne iş yaptığını hatırlıyor musun?",
+      "script": {
+        "spoken": "Baban değirmenciydi.",
+        "speech": {
+          "remember_player_line": false
+        },
+        "front": {
+          "person_id": "yolcu",
+          "kind": "speak_to"
+        }
+      }
+    },
+    {
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "kimse bilmiyor"
+          ]
+        }
+      },
+      "say": "Çocukluğumda köyün dışındaki eski değirmenin yanında yürür, dereden gelen suyu seyrederdim. Babam her akşam oradan dönerken yolda bulduğu taşları anlatırdı. Bu yolculuğa çıkmadan önce o taşları bir sandığa koyup evin arkasındaki ağacın dibine sakladım, ama bunu kimse bilmiyor.",
+      "script": {
+        "spoken": "Anlattığını aklımda tutarım.",
+        "speech": {
+          "remember_player_line": true
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      }
+    }
+  ],
+  "title": "NPC kişisel hafızası: kaynak, yeniden açma ve uydurma iddia ayrımı"
+}

@@ -1,0 +1,76 @@
+{
+  "id": "24r_personal_memory_real",
+  "setup": {
+    "seed": 7,
+    "npcs": [
+      {
+        "name": "Selim",
+        "id": "gezgin",
+        "current_hp": 10,
+        "role": "Gezgin"
+      },
+      {
+        "name": "Nermin",
+        "id": "yolcu",
+        "current_hp": 10,
+        "role": "Yolcu"
+      }
+    ],
+    "inventory": [],
+    "front_proposal": true,
+    "currency": {
+      "gezgin": 0,
+      "player": 100,
+      "yolcu": 0
+    }
+  },
+  "source_items": [
+    116
+  ],
+  "steps": [
+    {
+      "real_chain": true,
+      "say": "Benim köyüm Yeşilova, babam orada değirmenci.",
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "konus": "gezgin"
+    },
+    {
+      "real_chain": true,
+      "say": "Yol uzun mu?",
+      "expect": {},
+      "konus": "gezgin"
+    },
+    {
+      "real_chain": true,
+      "expect": {
+        "anlatilan": {
+          "gezgin": [
+            "değirmenci"
+          ]
+        }
+      },
+      "reload": true
+    },
+    {
+      "real_chain": true,
+      "say": "Babamın ne iş yaptığını hatırlıyor musun?",
+      "expect": {
+        "gerekli_metin": [
+          "değirmen"
+        ],
+        "konusmaya_giden": [
+          "değirmenci"
+        ],
+        "inkar": false
+      },
+      "konus": "gezgin"
+    }
+  ],
+  "title": "Gerçek zincirde kişisel hafıza: seçim, kayıt, yeniden açma, model girdisi ve cevap"
+}
