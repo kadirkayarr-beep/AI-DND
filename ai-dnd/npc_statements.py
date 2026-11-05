@@ -675,6 +675,20 @@ def _stem_match(a: str, b: str) -> bool:
     return long_.startswith(short[: max(3, min(len(short), 5))])
 
 
+_OWN_WORDS = re.compile(r"\b(?:soylemistim|demistim|anlattim|anlatmistim|bahsetmistim|soyledim|dedim|bahsettim)\b")
+
+
+def claim_about(claim: str) -> str:
+    folded = fold(claim)
+    # The existing broad speech pattern also matches first-person verbs.
+    # Remove only those matched spans before checking for an NPC speech clause;
+    # a second clause about the NPC still wins over the player's own words.
+    if (any(pattern.search(folded) for _, pattern in _CLAIM_PATTERNS)
+            or _SAID_CLAIM.search(_OWN_WORDS.sub(" ", folded))):
+        return "npc_words"
+    return "own_words" if _OWN_WORDS.search(folded) else "memory"
+
+
 def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str) -> dict[str, Any]:
     """Is a 'you told me / you promised' claim backed by this NPC's own words?
 
@@ -690,7 +704,7 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
     if not statements and not commitments:
         return {"status": "absent"}
     folded = fold(claim)
-    if re.search(r"\b(?:soylemistim|demistim|anlattim|anlatmistim|bahsetmistim|soyledim|dedim|bahsettim)\b", folded):
+    if claim_about(claim) == "own_words":
         return {"status": "absent"}  # a claim about the player's own words: memory owns it
     claim_kind = next((kind for kind, pattern in _CLAIM_PATTERNS if pattern.search(folded)), None)
     drop = tuple(p for _, p in _CLAIM_PATTERNS) + (_SAID_CLAIM,)

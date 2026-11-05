@@ -8622,10 +8622,17 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if earlier:
         lines.append(earlier)
     import npc_told
-    told = npc_told.relevant(world, npc.get("id"), player_input)
+    about = npc_statements.claim_about(player_input)
+    supported = npc_told.supports(world, npc.get("id"), player_input, about=about)
+    told = supported if supported else npc_told.relevant(world, npc.get("id"), player_input)
     if told:
         lines.append(npc_told.view(told,
             header="Oyuncunun sana daha önce söyledikleri (söylendi; doğruluğunu bilmezsin):"))
+    elif about == "own_words":
+        context = npc_told.context_rows(world, npc.get("id"))
+        if context:
+            lines.append(npc_told.view(context,
+                header="Oyuncunun sana son söyledikleri (yalnız bağlam; bu sözle ilgisi belli değil):"))
     said_before = _lines_already_said(npc, world)[-3:]
     if said_before:
         lines.append(
@@ -21276,6 +21283,7 @@ def _run_player_turn_internal(
         )
 
     experimental_unverified_claim = False
+    told_support = []
     spoken_reference = False
     if (
         interaction_mode != "ask_dm"
@@ -21305,12 +21313,19 @@ def _run_player_turn_internal(
             supported_entry and not npc_statements.legacy_entry_supports(supported_entry, player_input)
         ):
             supported_entry = None
+        import npc_told
+        about = npc_statements.claim_about(player_input)
+        if about != "npc_words":
+            supported_entry = None  # legacy conversation text is not selected personal memory
+            if (isinstance(npc_target, dict) and claimed_npc is npc_target
+                    and npc_target.get("location") == world_state.get("location")):
+                told_support = npc_told.supports(world_state, npc_target["id"], player_input, about=about)
         # Someone the player has talked to answers for their own words in their
         # own voice: "38 bakır dedin" is haggling, not a forged promise. Only a
         # claimed promise still has to be turned down.
         import bold_acts
         spoken_reference = bool(
-            isinstance(npc_target, dict) and claimed_npc is npc_target
+            about == "npc_words" and isinstance(npc_target, dict) and claimed_npc is npc_target
             and npc_target.get("location") == world_state.get("location")
             and (bold_acts.remembers(world_state, npc_target) or (
                 ledger["status"] != "absent" and ledger.get("claim_kind") in (None, "said")
@@ -21319,7 +21334,9 @@ def _run_player_turn_internal(
         )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
-        if spoken_reference:
+        if told_support:
+            experimental_unverified_claim = False
+        elif spoken_reference:
             pass
         elif (
             not supported_entry
@@ -21668,7 +21685,7 @@ def _run_player_turn_internal(
             if experimental_npc_dialogue:
                 action_result["npc_id"] = npc_target["id"]
                 action_result["status"] = "experimental_attributed_speech"
-                if spoken_reference or thread_talk or _report_of_someone_else(player_input, npc_target):
+                if told_support or spoken_reference or thread_talk or _report_of_someone_else(player_input, npc_target):
                     action_result["own_words"] = True
 
             raw_narration = raw_intent.get("narration") if isinstance(raw_intent, dict) else None
@@ -21825,6 +21842,7 @@ def _run_player_turn_internal(
             else:
                 unverified_history_echo = (
                     not invalid_or_empty
+                    and not told_support
                     and _unverified_past_event_assertion(player_input)
                     and bool(_claim_keywords(text) & _claim_keywords(player_input))
                 )
