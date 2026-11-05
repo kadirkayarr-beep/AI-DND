@@ -14520,6 +14520,7 @@ def finalize_narration(
     *,
     resolved_fallback_response=None,
     attributed_speech=None,
+    python_town_response=None,
 ):
     """Sanitize narration after Python has applied every validated proposal and state change."""
     session = _session()
@@ -14530,6 +14531,22 @@ def finalize_narration(
         "scene_type": _narration_scene_type(action_result),
     }
     handling = "python_fallback" if fallback_reason_code else "accepted"
+
+    def is_live_town_response(text):
+        # Positive authority belongs to this exact live Python source, not to a
+        # model label, a substring, or a previously validated different response.
+        if (not isinstance(python_town_response, str) or not python_town_response.strip()
+                or text != python_town_response or not isinstance(npc_target, dict)
+                or not isinstance(action_result, dict)
+                or action_result.get("action") not in {"dialogue", "query"}
+                or action_result.get("npc_id") != npc_target.get("id")
+                or is_npc_historical_claim(player_input)):
+            return False
+        live = next((npc for npc in session.world_state.get("npcs", [])
+                     if isinstance(npc, dict) and npc.get("id") == npc_target.get("id")
+                     and npc.get("location") == session.world_state.get("location")), None)
+        return (live is npc_target and isinstance(live.get("id"), str) and bool(live["id"])
+                and python_town_response == _town_fallback(session.world_state, live, player_input))
 
     def fallback_for_turn(*, default_response=None, **fallback_kwargs):
         if (
@@ -14581,7 +14598,8 @@ def finalize_narration(
         handling = "python_fallback"
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
-    if not attributed_speech and _narrated_money_can_lie(action_result):
+    if (not attributed_speech and _narrated_money_can_lie(action_result)
+            and not is_live_town_response(narration)):
         import pocket
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
@@ -14604,9 +14622,13 @@ def finalize_narration(
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
 
-    safety = _narration_safety_decision(
-        narration, player_input, npc_target, action_result,
-        attributed_speech=attributed_speech,
+    safety = (
+        {"unsafe": False, "reason_code": None, "trigger_span": None,
+         "scene_type": _narration_scene_type(action_result)}
+        if is_live_town_response(narration) else _narration_safety_decision(
+            narration, player_input, npc_target, action_result,
+            attributed_speech=attributed_speech,
+        )
     )
     if safety["unsafe"]:
         repaired_payload = (
@@ -21915,14 +21937,19 @@ def _run_player_turn_internal(
                 invalid_or_empty = True
             empty_model_narration = isinstance(raw_narration, str) and not raw_narration.strip()
 
+            python_town_response = None
             if invalid_or_empty:
-                text = (
-                    _spoken_name_answer("", npc_target) if name_stance == "reveal"
-                    else _job_fallback(world_state)
-                    or (experimental_unverified_claim and historical_claim_denial(npc_target, player_input))
-                    or _town_fallback(world_state, npc_target, player_input)
-                    or interaction_adventure.immersive_unknown(npc_target, player_input)
-                )
+                if name_stance == "reveal":
+                    text = _spoken_name_answer("", npc_target)
+                else:
+                    text = (_job_fallback(world_state)
+                            or (experimental_unverified_claim and historical_claim_denial(npc_target, player_input)))
+                    if not text:
+                        town_reply = _town_fallback(world_state, npc_target, player_input)
+                        if isinstance(town_reply, str) and town_reply.strip():
+                            text = python_town_response = town_reply
+                        else:
+                            text = interaction_adventure.immersive_unknown(npc_target, player_input)
             else:
                 text = raw_narration
 
@@ -21971,6 +21998,7 @@ def _run_player_turn_internal(
                     if unverified_history_echo else None
                 ),
                 attributed_speech=attributed_speech,
+                python_town_response=python_town_response,
             )
             narration_safety = getattr(_session(), "last_narration_safety", None)
             narration_safety = (
