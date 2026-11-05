@@ -6,7 +6,7 @@ the scenario files themselves and read exactly that: every step's turn response 
 messages.
 
 What the narrator is told after the room is paid (note item 38, the second half of spec decision (f)) is now
-03's own step 4 (``anlaticiya_giden``, known broken [38]); these tests pin why that step breaks.
+03's own step 4 (``anlaticiya_giden``); these tests verify the repaired room context and the exact price/roll evidence.
 """
 
 from __future__ import annotations
@@ -20,7 +20,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pocket
-from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedClient, ScriptedModel
+from api.tests.journeys.runner import (SCENARIO_DIR, JourneyCase, ScriptedClient, ScriptedModel,
+                                       _with_bag_ids, _with_price_offer_ids)
 from api.tests.journeys.schema import load_scenario
 
 ROOM_SLEEP = SCENARIO_DIR / "03_room_sleep.json"
@@ -54,7 +55,7 @@ class RecordingModel(ScriptedModel):
 
     @contextmanager
     def bind(self, case, step):
-        client = RecordingClient(step.script)
+        client = RecordingClient(_with_price_offer_ids(case, _with_bag_ids(case, step.script)))
         self.clients.append(client)
         with (
             patch("socket.socket.connect",
@@ -115,7 +116,7 @@ class RoomJourneyEvidence(JourneyCase):
         rolls Persuasion d20 16, total 17 against DC 15; item 37 is the same 17 against 15."""
         results, responses, _ = await self.play(ROOM_SLEEP)
         self.assertEqual([result.status for result in results],
-                         ["pass", "known_broken", "pass", "known_broken", "pass", "pass"], results)
+                         ["pass"] * 6, results)
         check = responses[1]["skill_check_result"]
         self.assertEqual(
             {key: check[key] for key in ("skill", "ability", "d20", "total", "dc", "outcome")},
@@ -123,21 +124,21 @@ class RoomJourneyEvidence(JourneyCase):
              "outcome": "success"},
         )
         self.assertEqual(responses[1]["turn_outcome"]["action"], "skill_check")
-        # The roll changed nothing: the room card still asks 50 cp (item 37).
-        self.assertEqual(results[1].failures, ("gerekli_metin: gerekli metin bulunamadı: indirim",))
+        self.assertEqual(results[1].failures, ())
+        self.assertEqual(self.last_observations[1]["kart"]["max_total_cp"], 45)
+        self.assertEqual(self.last_observations[1]["kese"], 100)
+        self.assertEqual(self.last_observations[2]["kese"], 55)
 
-    async def test_the_narrator_is_not_told_the_room_is_held(self):
-        """03 step 4 (known broken [38], decision (f)): the first narrated turn after the room is paid. The
-        narrator is called, but nothing it is sent says the room is held: the confirm turn calls no narrator
-        ("50 bakır ödendi."), and the room reaches the narrator only as the player's own unverified words."""
+    async def test_the_narrator_is_told_the_paid_room_is_held(self):
+        """Task12: the first narrated turn after payment receives the engine-held room context."""
         results, responses, model = await self.play(ROOM_SLEEP)
-        self.assertEqual((results[2].status, results[3].status), ("pass", "known_broken"), results)
+        self.assertEqual((results[2].status, results[3].status), ("pass", "pass"), results)
         self.assertNotIn("narration", model.clients[2].kinds, "the confirm turn calls no narrator")
         told = model.clients[3].narrator_text()
         self.assertTrue(told, "03 step 4 calls the narrator")
-        self.assertIn("bi oda tutayım usta", told)
-        self.assertEqual(results[3].failures, ("anlaticiya_giden: anlatıcıya giden metinde bulunamadı: oda tutuldu",))
-        # The room is held: only the narrator's knowledge of it is missing.
+        self.assertIn("oda tutuldu", told.casefold())
+        self.assertEqual(results[3].failures, ())
+        # Both the engine record and narrator context contain the held room.
         self.assertTrue(self.last_observations[3]["oda"])
         self.assertEqual(responses[3]["turn_outcome"]["status"], "resolved")
 
