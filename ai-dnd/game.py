@@ -9436,6 +9436,19 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         schema["properties"]["front"] = front_proposal.schema(front_list)
         schema["required"] = list(dict.fromkeys([*schema.get("required", []), "front"]))
         prompt += front_proposal.guidance(front_list)
+    if experimental_npc_dialogue or dialogue_narration:
+        import npc_statements
+        import witness_recall
+        addressed = (interaction_context or {}).get("npc_id") or ((interaction_context or {}).get("addressee") or {}).get("npc_id")
+        witness_npc = next((n for n in world_state.get("npcs", [])
+                            if isinstance(n, dict) and n.get("id") == addressed), None)
+        witness_rows = (witness_recall.candidates(world_state, witness_npc)
+                        if is_npc_historical_claim(player_input)
+                        and npc_statements.claim_about(player_input) == "memory" else [])
+        if witness_rows:
+            schema = copy.deepcopy(schema)
+            schema["properties"]["witness_recall"] = witness_recall.schema(witness_rows)
+            prompt += witness_recall.guidance(witness_rows)
     price_targets = money_owner.price_negotiation_offers(world_state)
     if experimental_npc_dialogue or dialogue_narration:
         addressed = (interaction_context or {}).get("npc_id") or ((interaction_context or {}).get("addressee") or {}).get("npc_id")
@@ -21375,16 +21388,13 @@ def _run_player_turn_internal(
                     and npc_target.get("location") == world_state.get("location")):
                 told_support = npc_told.supports(world_state, npc_target["id"], player_input, about=about)
         # A previous conversation alone cannot support a new quoted claim.
-        # Only recorded support (or the existing witnessed-deed path) may
+        # Only recorded speech support may
         # bypass the unsupported-history check.
-        import bold_acts
         spoken_reference = bool(
             about == "npc_words" and isinstance(npc_target, dict) and claimed_npc is npc_target
             and npc_target.get("location") == world_state.get("location")
-            and (bold_acts.remembers(world_state, npc_target) or (
-                ledger["status"] == "supported" and ledger.get("claim_kind") in (None, "said")
-                and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
-            ))
+            and ledger["status"] == "supported" and ledger.get("claim_kind") in (None, "said")
+            and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
         )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
@@ -21655,6 +21665,22 @@ def _run_player_turn_internal(
                 if experimental_npc_dialogue else ""
             ),
         )
+        # The same speech call may select an actual witnessed engine source.
+        # Selection never grants authority to the packet's free-form speech,
+        # selected player memory, commitment, or mechanical suggestions.
+        import witness_recall
+        import npc_statements
+        witnessed_text = (witness_recall.answer(
+            world_state, npc_target, player_input, raw_intent.get("witness_recall"),
+            about=npc_statements.claim_about(player_input))
+            if isinstance(raw_intent, dict) and is_npc_historical_claim(player_input) else None)
+        if witnessed_text is not None:
+            name = living_world.public_npc_name(npc_target)
+            response = f'{name}, “{witnessed_text}” diye gördüğü olayı hatırlatır.'
+            action_result = {"action": "dialogue", "status": "answered_from_witnessed_deed",
+                             "success": True, "npc_id": npc_target["id"], "state_changes": []}
+            record_npc_interaction(npc_target, response, player_input, npc_target)
+            return finish_turn(action_result, response, safety_handling="python_scene_response")
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
                 raw_intent,
@@ -21760,6 +21786,7 @@ def _run_player_turn_internal(
                         "coin_answer",
                         "coin_answer_for",
                         "remember_player_line",
+                        "witness_recall",
                         "price_negotiation",
                         "commitment",
                         "threat",

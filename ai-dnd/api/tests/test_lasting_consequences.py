@@ -8,6 +8,27 @@ import game
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
 
+class WitnessRecallClient(PlayClient):
+    """Same speech request, proposing only a Python-offered witnessed source."""
+    def __init__(self, quote, *, source="offered", scope="witnessed_deed"):
+        super().__init__(spoken="Baban değirmenciydi.")  # must never gain authority from a deed
+        self.quote, self.source, self.scope = quote, source, scope
+        self.offered = []
+
+    def chat(self, *args, **kwargs):
+        import json
+        answer = super().chat(*args, **kwargs)
+        props = (kwargs.get("format") or {}).get("properties", {})
+        if "spoken_text" in props:
+            proposal = props.get("witness_recall", {}).get("properties", {})
+            self.offered = proposal.get("source_id", {}).get("enum", [])
+            source_id = self.offered[0] if self.source == "offered" and self.offered else self.source
+            packet = json.loads(answer["message"]["content"])
+            packet["witness_recall"] = {"scope": self.scope, "source_id": source_id,
+                                        "evidence_quote": self.quote}
+            answer["message"]["content"] = json.dumps(packet, ensure_ascii=False)
+        return answer
+
 class OwnWordsAndConfessions(ThreePlaysTests):
     async def scene(self, *people):
         await self.begin(FIGHTER)
@@ -538,9 +559,69 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
             "witnesses": [deed_owner["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
         }]
         await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
-        out = await self.say("ben dün burada ne yaptım hatırlıyor musun", PlayClient(spoken="Hatırlamaz olur muyum, senin yüzünden buradayım."))
-        self.assertIn("Hatırlamaz olur muyum", out["narration"])
+        line = "ben dün burada ne yaptım hatırlıyor musun"
+        client = WitnessRecallClient(line)
+        calls_before = client.calls
+        out = await self.say(line, client)
+        self.assertEqual(client.calls - calls_before, 1)
+        self.assertEqual(len(client.offered), 1)
+        self.assertIn("Quenna Atölyesi içinde ateş yaktı", out["narration"])
+        self.assertNotIn("Baban değirmenciydi", out["narration"])
+        self.assertEqual(out["turn_outcome"]["status"], "answered_from_witnessed_deed")
 
+
+    async def test_witnessed_deed_does_not_verify_an_unrecorded_npc_promise(self):
+        await self.town()
+        person = self.add_person("Kalila", "Usta")
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": [person["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
+        }]
+        await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
+        before = self.world.get("currency", {}).copy()
+        out = await self.say("bana dokuz bakır vereceğine söz verdin", PlayClient(spoken="Evet, söz verdim."))
+        self.assertNotIn("Evet, söz verdim", out["narration"])
+        self.assertEqual(self.world.get("currency", {}), before)
+
+    async def test_another_persons_witness_record_does_not_verify_this_npcs_memory(self):
+        await self.town()
+        person = self.add_person("Kalila", "Usta")
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": ["someone_else"], "turn": 1, "at": 0, "heard": [], "told": [],
+        }]
+        await self.say("selam kalila", PlayClient(spoken="Selam."))
+        out = await self.say("ben dün burada ne yaptım hatırlıyor musun", PlayClient(spoken="Hatırlamaz olur muyum."))
+        self.assertNotIn("Hatırlamaz olur muyum", out["narration"])
+
+    async def test_a_witnessed_fire_does_not_support_unrelated_family_memory(self):
+        await self.town()
+        person = self.add_person("Kalila", "Usta")
+        self.world["flags"]["deeds"] = [{
+            "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+            "witnesses": [person["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
+        }]
+        await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
+        out = await self.say("Babamın ne iş yaptığını hatırlıyor musun?", PlayClient(spoken="Baban değirmenciydi."))
+        self.assertNotIn("Baban değirmenciydi", out["narration"])
+
+    async def test_witness_recall_requires_a_live_exact_source_quote_and_scope(self):
+        for source, quote, scope in (("outside", "ben dün burada ne yaptım hatırlıyor musun", "witnessed_deed"),
+                                     (True, "ben dün burada ne yaptım hatırlıyor musun", "witnessed_deed"),
+                                     ("offered", "başka bir söz", "witnessed_deed"),
+                                     ("offered", "ben dün burada ne yaptım hatırlıyor musun", "npc_words")):
+            with self.subTest(source=source, quote=quote, scope=scope):
+                await self.town()
+                person = self.add_person("Kalila", "Usta")
+                self.world["flags"]["deeds"] = [{
+                    "kind": "arson", "text": "Quenna Atölyesi içinde ateş yaktı", "location": "shop", "victim_id": None,
+                    "witnesses": [person["id"]], "turn": 1, "at": 0, "heard": [], "told": [],
+                }]
+                await self.say("selam kalila", PlayClient(spoken="Selam."))
+                out = await self.say("ben dün burada ne yaptım hatırlıyor musun",
+                                     WitnessRecallClient(quote, source=source, scope=scope))
+                self.assertNotIn("Quenna Atölyesi", out["narration"])
+                self.assertNotIn("Baban değirmenciydi", out["narration"])
 
 class ASmoulderingFire(OneTownScene):
     async def test_walking_back_in_the_smoke_is_there_to_see(self):
