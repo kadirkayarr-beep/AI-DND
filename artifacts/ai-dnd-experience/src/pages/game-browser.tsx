@@ -1,3 +1,4 @@
+import { showsCounter } from '@/lib/play-panels';
 import { runningQuestCount } from '@/lib/quest-counter';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
@@ -2295,11 +2296,14 @@ export default function GameBrowser() {
         disabled={turnSending || undoBusy || Boolean(blockingMutation())}
         onConfirm={async (offerId, digest) => { submitTurn(ECONOMIC_MESSAGES.confirm, undefined, 'do', false, { kind: 'confirm', offer_id: offerId, confirmation_digest: digest }); }}
         onCancel={async (offerId) => { submitTurn(ECONOMIC_MESSAGES.cancel, undefined, 'do', false, { kind: 'cancel', offer_id: offerId }); }} />}
-      {!state.combat.active && <EconomicPrepareControls
+      {!state.combat.active && <details className="economic-prepare-drawer" data-testid="economic-prepare-drawer">
+        <summary>Para ver ya da teklif hazırla</summary>
+        <EconomicPrepareControls
         counterparties={(state.npcs ?? []).filter(npc => npc.location === state.location).map(npc => ({ id: npc.id, label: npc.name }))}
         disabled={Boolean(state.economic_offer) || turnSending || undoBusy || Boolean(blockingMutation())}
-        onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />}
-      {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
+        onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />
+      </details>}
+      {showsCounter(state, campaignId) && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
         probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}
       <StoryColumn

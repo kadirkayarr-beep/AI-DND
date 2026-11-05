@@ -498,3 +498,19 @@
   .design-preview.play-shell .transcript-region { height:320px; min-height:320px; flex:1 0 320px; overflow:hidden; }
   .design-preview.play-shell .transcript-region > .transcript-scroll { min-height:0; flex:1 1 0; overflow-y:auto; }
 }
+
+.economic-prepare-drawer > summary { cursor: pointer; padding: 8px 0; }
+[data-testid="economic-prepare-controls"] label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+[data-testid="economic-prepare-controls"] input,
+[data-testid="economic-prepare-controls"] select {
+  border: 1px solid var(--preview-border, #51534c);
+}
+[data-testid="economic-prepare-controls"] > button {
+  display: block;
+  margin-top: 12px;
+}

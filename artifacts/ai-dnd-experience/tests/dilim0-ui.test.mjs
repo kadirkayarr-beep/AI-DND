@@ -230,3 +230,20 @@ test('the rail summary says Süren görevler from the same count', async () => {
   assert.match(source, /Süren görevler \{runningQuestCount\(state\)\}/);
   assert.doesNotMatch(source, /Görevler \{state\.quests\?\.length/);
 });
+
+// Görev 7: additions preserve all existing tests and setup unchanged.
+test('the counter shows outside a fight only', async () => {
+  const panels = await vite.ssrLoadModule('/src/lib/play-panels.ts');
+  assert.equal(panels.showsCounter({ combat: { active: false } }, 'c1'), true);
+  assert.equal(panels.showsCounter({ combat: { active: true } }, 'c1'), false);
+  assert.equal(panels.showsCounter({ combat: { active: false } }, ''), false);
+  assert.equal(panels.showsCounter({ combat: null }, 'c1'), true);
+  assert.equal(panels.showsCounter({}, 'c1'), true);
+});
+test('the play screen draws the counter through showsCounter and folds the offer form', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /showsCounter\(state, campaignId\) && <ShopControls/);
+  assert.match(source, /economic-prepare-drawer[\s\S]{0,200}Para ver ya da teklif hazırla/);
+  assert.match(source, /!state\.combat\.active && <details className="economic-prepare-drawer"/);
+  assert.doesNotMatch(source, /<details[^>]*economic-prepare-drawer[^>]*\sopen/);
+});
