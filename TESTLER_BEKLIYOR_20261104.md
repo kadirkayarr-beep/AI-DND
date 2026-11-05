@@ -52,3 +52,7 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 2026-11-05 Jarvis Task6 ee6aff7d: focused UI17 and engine1 passed. Plan Task6 Step5 real-model browser acceptance PENDING under current no-real-model instruction. Task5 money/save/Undo acceptance/review unchanged and PENDING.
 
 - J-040 düzeltmesi: J-037 niyet kararı verilmiş ve regresyon kapalı;3787a4f7/297 odaklı OK. Yeni sözleşmenin bağımsız incelemesi ve önceki uzun/gerçek kapılar bekler. Niyet kararı artık engel değildir.
+
+2026-11-05 Task9 61bd2060: UI24 and unchanged combat-panel17 passed, exit0. Real-model browser/mobile acceptance PENDING. Task10/11 desired English removal conflicts with original text assertions (e.g. roadmap-c14-fighter-ui.test.mjs:117); existing tests preserved. No slice-ready declaration; MONEY/save/Undo gates unchanged.
+
+- J-041/ad231081: doğal konuşma pazarlığı bağımsız inceleme bekliyor;165 odaklı OK, uzun MONEY/bütün dal ve gerçek model kanıtı değildir.

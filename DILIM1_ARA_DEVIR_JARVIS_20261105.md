@@ -3,7 +3,7 @@
 Güncel: J-040 ile açık pazarlık-niyeti regresyonu kapandı;297 odaklı OK. Bağımsız inceleme ve genel kapılar bekliyor; hazır değil.
 
 Durum: uygulama ve odaklı testler ilerledi; genel kapılar, bağımsız inceleme ve oynayış bekliyor. Görev 23 kısmi; “Dilim 1 hazır” tetiği verilmedi.
-Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç 3787a4f7. ae815c4f tabanından 34, Jarvis devrinin 353ce7d6 ucundan 18 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
+Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç ad231081. ae815c4f tabanından 35, Jarvis devrinin 353ce7d6 ucundan 19 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
 
 Tamamlanan uygulama ve odaklı kontroller:
 - Görev 12 (36 motor yarısı/38): f77df47c, 46 test OK.
@@ -87,3 +87,5 @@ Son bağımsız inceleme takibi / J-037–039: Dilim1 ucu a22ce75c (tabandan32/d
 Güncel / J-040: Dilim1 uç3787a4f7 (ae815c4f tabanından34, Jarvis devrinden18 yerel commit). Onaylı açık-teklife bağlı price_negotiation sözleşmesi uygulandı; J-037 ilgisiz sosyal başarı regresyonu kapandı. 297 odaklı test OK,43.407s,runs/20261105T130500-JVD1INTENTFINAL2. Eski kayıt fixture düzeltmesi ayrı c799ad78. Sıfır tolerans bağımsız inceleme bekliyor; tam MONEY/uzun kapılar/kabul değildir. Görev23 ara raporu güncel, hazır tetiği yok. Önceki “açık niyet kararı/1FAIL” satırları tarihsel kayıttır.
 İstem güncel ölçümü JVD1PROMPTCURRENT2OK:24/8speech6822(100truth/131memory),26/2speech5649(233/0),26/3narration14841(307/0) UTF8bayt. Kısaltma ve gerçek token ölçümü yok; çağrılmayan diğer kanallar yok olarak kaydedildi.
 Eski-test sözleşme güncellemesi J-040: test_haggle.HaggleRules ve test_haggle_review.ReviewedPrices olumlu çağrılarına açık teklif önerisi/alınan oyuncu sözü eklendi; önceki miktar, bakiye, günlük sınır ve ret iddiaları aynı. Senaryo03 yalnız açık model niyeti script'i kazandı; seed12 ve tüm beklentiler aynı. UnrelatedSocialCheck script'i açık persuasion ve pazarlık önerisi yok durumunu sabitler; başarının fiyata etki etmemesi iddiaları aynı. test_journey_runner eski hafıza fixture'ına turn1/2 eklendi (c799ad78); hiçbir beklenti silinmedi/atlanmadı/gevşetilmedi.
+
+Güncel / J-041: Dilim1 uçad231081 (tabandan35/devirden19). Doğal Say ve Do+seçiliNPC soru pazarlığı aynı konuşma model çağrısındaki yapısal öneriden ortak Python zar/fiyat yoluna bağlandı. 9 yeni HTTP test ve son165 odaklı test OK,28.186s,runs/20261105T132152-JVD1SAYHAGGLEFINAL. Ek model çağrısı/kelime-regex yok; gerçek model koşusu yok. J-040'ın doğal konuşma kapsamındaki boşluğu kapandı; bağımsız sıfır tolerans incelemesi ve uzun kapılar bekliyor. İstem ölçümleri önceki3787a4f7 koşusunun kanıtıdır; yeni açık-teklif konuşma istemi için ölçüm/kabul iddiası yok. Hazır/push/merge yok.
