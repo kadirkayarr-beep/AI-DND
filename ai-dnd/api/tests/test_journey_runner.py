@@ -664,7 +664,7 @@ class TheRunnerSortsEveryStep(JourneyCase):
     async def test_what_was_told_survives_the_save_and_a_reload(self):
         """``npc_told_v1`` written and saved goes through the save unchanged: a reload step reads the same
         ``anlatilan`` from the fresh session as the live one holds, so the comparison raises nothing."""
-        told = {"gezgin": [{"text": "Babam değirmenci.", "cut": False}, {"text": "Yeşilova'dan geldim."}]}
+        told = {"gezgin": [{"turn": 1, "text": "Babam değirmenci.", "cut": False}, {"turn": 2, "text": "Yeşilova'dan geldim."}]}
 
         class TellAndSaveModel(ScriptedModel):
             """Just before a reload step it writes what a person was told and saves the campaign."""
