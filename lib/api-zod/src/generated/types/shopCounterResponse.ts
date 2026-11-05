@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { ShopCounterHeld } from './shopCounterHeld';
 import type { ShopCounterLine } from './shopCounterLine';
 import type { ShopCounterPurse } from './shopCounterPurse';
 import type { ShopCounterResponseStatus } from './shopCounterResponseStatus';
@@ -14,14 +15,15 @@ import type { ShopCounterVendor } from './shopCounterVendor';
  * What the counter here offers now; reading it writes nothing and makes no receipt.
  */
 export interface ShopCounterResponse {
-  session_id: string;
   campaign_id: string | null;
-  revision: number | null;
-  status: ShopCounterResponseStatus;
-  reason: string | null;
-  vendor: ShopCounterVendor | null;
+  held?: ShopCounterHeld | null;
   lines: ShopCounterLine[];
   purse: ShopCounterPurse;
+  reason: string | null;
+  revision: number | null;
   /** @minimum 0 */
   seq: number;
+  session_id: string;
+  status: ShopCounterResponseStatus;
+  vendor: ShopCounterVendor | null;
 }

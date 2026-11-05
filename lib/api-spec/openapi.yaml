@@ -1912,61 +1912,8 @@ components:
       - sp
       - cp
       title: ShopCounterPurse
-    ShopCounterResponse:
-      type: object
-      description: What the counter here offers now; reading it writes nothing
-        and makes no receipt.
-      properties:
-        session_id:
-          type: string
-          title: Session Id
-        campaign_id:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Campaign Id
-        revision:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Revision
-        status:
-          type: string
-          enum:
-          - ready
-          - unavailable
-          title: Status
-        reason:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Reason
-        vendor:
-          anyOf:
-          - $ref: '#/components/schemas/ShopCounterVendor'
-          - type: 'null'
-        lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/ShopCounterLine'
-          title: Lines
-        purse:
-          $ref: '#/components/schemas/ShopCounterPurse'
-        seq:
-          type: integer
-          minimum: 0
-          title: Seq
-      required:
-      - session_id
-      - campaign_id
-      - revision
-      - status
-      - reason
-      - vendor
-      - lines
-      - purse
-      - seq
-      title: ShopCounterResponse
+    ShopCounterHeld: {"properties":{"count":{"const":1,"title":"Count","type":"integer"},"key":{"title":"Key","type":"string"},"npc_id":{"title":"Npc Id","type":"string"},"tip_cp":{"minimum":1.0,"title":"Tip Cp","type":"integer"},"total_cp":{"minimum":1.0,"title":"Total Cp","type":"integer"}},"required":["npc_id","key","count","tip_cp","total_cp"],"title":"ShopCounterHeld","type":"object"}
+    ShopCounterResponse: {"description":"What the counter here offers now; reading it writes nothing and makes no receipt.","properties":{"campaign_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Campaign Id"},"held":{"anyOf":[{"$ref":"#/components/schemas/ShopCounterHeld"},{"type":"null"}]},"lines":{"items":{"$ref":"#/components/schemas/ShopCounterLine"},"title":"Lines","type":"array"},"purse":{"$ref":"#/components/schemas/ShopCounterPurse"},"reason":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Reason"},"revision":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Revision"},"seq":{"minimum":0.0,"title":"Seq","type":"integer"},"session_id":{"title":"Session Id","type":"string"},"status":{"enum":["ready","unavailable"],"title":"Status","type":"string"},"vendor":{"anyOf":[{"$ref":"#/components/schemas/ShopCounterVendor"},{"type":"null"}]}},"required":["session_id","campaign_id","revision","status","reason","vendor","lines","purse","seq"],"title":"ShopCounterResponse","type":"object"}
     LevelUpPreviewResponse:
       properties:
         primal_knowledge_skill_options:

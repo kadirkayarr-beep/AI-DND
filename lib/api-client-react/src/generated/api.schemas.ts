@@ -446,6 +446,16 @@ export interface ShopCounterPurse {
   cp: number;
 }
 
+export interface ShopCounterHeld {
+  count: 1;
+  key: string;
+  npc_id: string;
+  /** @minimum 1 */
+  tip_cp: number;
+  /** @minimum 1 */
+  total_cp: number;
+}
+
 export type ShopCounterResponseStatus = typeof ShopCounterResponseStatus[keyof typeof ShopCounterResponseStatus];
 
 
@@ -458,16 +468,17 @@ export const ShopCounterResponseStatus = {
  * What the counter here offers now; reading it writes nothing and makes no receipt.
  */
 export interface ShopCounterResponse {
-  session_id: string;
   campaign_id: string | null;
-  revision: number | null;
-  status: ShopCounterResponseStatus;
-  reason: string | null;
-  vendor: ShopCounterVendor | null;
+  held?: ShopCounterHeld | null;
   lines: ShopCounterLine[];
   purse: ShopCounterPurse;
+  reason: string | null;
+  revision: number | null;
   /** @minimum 0 */
   seq: number;
+  session_id: string;
+  status: ShopCounterResponseStatus;
+  vendor: ShopCounterVendor | null;
 }
 
 export type LevelUpPreviewResponseStatus = typeof LevelUpPreviewResponseStatus[keyof typeof LevelUpPreviewResponseStatus];

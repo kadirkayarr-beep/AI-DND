@@ -6531,6 +6531,8 @@ export const GetGameSessionShopParams = zod.object({
   "session_id": zod.coerce.string()
 })
 
+
+
 export const getGameSessionShopResponseLinesItemUnitCpMin = 0;
 
 export const getGameSessionShopResponseLinesItemStockMin = 0;
@@ -6550,15 +6552,14 @@ export const getGameSessionShopResponseSeqMin = 0;
 
 
 export const GetGameSessionShopResponse = zod.object({
-  "session_id": zod.string(),
   "campaign_id": zod.union([zod.string(),zod.null()]),
-  "revision": zod.union([zod.number().int(),zod.null()]),
-  "status": zod.enum(['ready', 'unavailable']),
-  "reason": zod.union([zod.string(),zod.null()]),
-  "vendor": zod.union([zod.object({
+  "held": zod.union([zod.object({
+  "count": zod.literal(1),
+  "key": zod.string(),
   "npc_id": zod.string(),
-  "name": zod.string()
-}),zod.null()]),
+  "tip_cp": zod.number().int().min(1),
+  "total_cp": zod.number().int().min(1)
+}),zod.null()]).optional(),
   "lines": zod.array(zod.object({
   "key": zod.string(),
   "label": zod.string(),
@@ -6572,7 +6573,15 @@ export const GetGameSessionShopResponse = zod.object({
   "sp": zod.number().int().min(getGameSessionShopResponsePurseSpMin),
   "cp": zod.number().int().min(getGameSessionShopResponsePurseCpMin)
 }),
-  "seq": zod.number().int().min(getGameSessionShopResponseSeqMin)
+  "reason": zod.union([zod.string(),zod.null()]),
+  "revision": zod.union([zod.number().int(),zod.null()]),
+  "seq": zod.number().int().min(getGameSessionShopResponseSeqMin),
+  "session_id": zod.string(),
+  "status": zod.enum(['ready', 'unavailable']),
+  "vendor": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string()
+}),zod.null()])
 }).describe('What the counter here offers now; reading it writes nothing and makes no receipt.')
 
 

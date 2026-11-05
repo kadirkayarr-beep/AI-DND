@@ -320,6 +320,7 @@ export * from './rogueState';
 export * from './rogueSteadyAimState';
 export * from './rogueUncannyDodgeState';
 export * from './sceneIncident';
+export * from './shopCounterHeld';
 export * from './shopCounterLine';
 export * from './shopCounterPurse';
 export * from './shopCounterResponse';
