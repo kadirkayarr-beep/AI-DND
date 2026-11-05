@@ -783,14 +783,14 @@ def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) ->
     return _coin_seen(reply, coin)
 
 
-def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:
+def shop_offer(session, text: str, server: dict[str, Any] | None = None, *, requested: bool = False) -> dict[str, Any] | None:
     """A line that wants something on the list opens the counter's offer. Words move no coin and no goods:
     only the one counter trade (shop_trade.commit) does, at the price this offer shows."""
     folded = fold(session, text)
     wanted = shop_trade.priced_in(folded)
     server = server if server is not None else _server_here(session)
     walking = _WALKS.search(folded)  # the order follows the walk
-    if wanted is None or server is None or walking or "?" in text or not _BUY.search(folded):
+    if wanted is None or server is None or walking or (not requested and ("?" in text or not _BUY.search(folded))):
         return None
     world = session.world_state
     # Coin put down with the order is no payment: it stays in the purse, and nobody is told it changed hands.

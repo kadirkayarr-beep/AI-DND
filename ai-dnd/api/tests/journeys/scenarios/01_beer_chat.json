@@ -6,11 +6,13 @@
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
     "currency": {"player": 100, "barman": 0},
     "inventory": [],
-    "seed": 7
+    "seed": 7,
+    "front_proposal": true
   },
   "steps": [
     {
       "say": "bir bira alayım",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "economic_intent": "purchase"}},
       "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}, "kart": null, "kese": 100, "envanter": {}}
     },
     {
@@ -19,10 +21,9 @@
     },
     {
       "say": "bir bira alabilir miyim",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "economic_intent": "purchase"}},
       "independent": true,
-      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}},
-      "known_broken": [35],
-      "broken_because": ["tezgah: beklenen {'npc_id': 'barman', 'key': 'bira', 'unit_cp': 4}, gözlenen yok"]
+      "expect": {"tezgah": {"npc_id": "barman", "key": "bira", "unit_cp": 4}}
     }
   ]
 }

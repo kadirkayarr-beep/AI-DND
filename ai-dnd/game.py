@@ -18511,8 +18511,11 @@ def _front_economic_offer(route, player_input):
         _hand_over_coin({"kind": "speak_to", "id": person["id"]}, {"people": [{"id": person["id"]}], "speaking_with": person["id"]})
         if getattr(session, "_bribe_held_out", 0):
             return None  # the existing law owner has priority even for a serving guard
-        offered = (bold_acts.standing_offer(session, person) if amount is not None else None)
-        offered = offered or bold_acts.shop_offer(session, player_input, person)
+        wanted = shop_trade.priced_in(bold_acts.fold(session, player_input))
+        if wanted is not None:
+            offered = bold_acts.shop_offer(session, player_input, person, requested=True)
+        else:
+            offered = bold_acts.standing_offer(session, person) if amount is not None else None
         session._coin_paid = None
         if offered is not None:
             return offered
