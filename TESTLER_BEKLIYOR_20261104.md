@@ -48,3 +48,7 @@ Kadir kararı (2026-11-04): "Kodlamayı bitir, testleri bekleme." Ajanlar yalnı
 - Görev 21 / 8f3fad79: tam MONEY, bütün dal ve gerçek süreç restart kapıları + bağımsız sıfır tolerans incelemesi bekliyor; 149 ilgili kayıt testi geçti (J-034), bunlar genel kabul değildir.
 
 - J-037: açık ürün-sözleşme kararı ve kırmızı UnrelatedSocialCheck; a22ce75c son seçim129/1FAIL, tam MONEY geçmedi. J-038/039 teknik düzeltmeleri bağımsız inceleme bekler; uzun/gerçek kapılar değişmedi.
+
+2026-11-05 Jarvis Task6 ee6aff7d: focused UI17 and engine1 passed. Plan Task6 Step5 real-model browser acceptance PENDING under current no-real-model instruction. Task5 money/save/Undo acceptance/review unchanged and PENDING.
+
+- J-040 düzeltmesi: J-037 niyet kararı verilmiş ve regresyon kapalı;3787a4f7/297 odaklı OK. Yeni sözleşmenin bağımsız incelemesi ve önceki uzun/gerçek kapılar bekler. Niyet kararı artık engel değildir.

@@ -1,9 +1,9 @@
 # Dilim 1 ara devir — Jarvis, 2026-11-05
 
-Güncel uyarı: J-037–039 ekine bak; dalda bir açık pazarlık-niyeti regresyonu var. Son koşu128OK/1FAIL; hazır değil.
+Güncel: J-040 ile açık pazarlık-niyeti regresyonu kapandı;297 odaklı OK. Bağımsız inceleme ve genel kapılar bekliyor; hazır değil.
 
 Durum: uygulama ve odaklı testler ilerledi; genel kapılar, bağımsız inceleme ve oynayış bekliyor. Görev 23 kısmi; “Dilim 1 hazır” tetiği verilmedi.
-Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç a22ce75c. ae815c4f tabanından 32, Jarvis devrinin 353ce7d6 ucundan 16 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
+Dal: task/dilim1-money-memory-20261104; çalışma kopyası C:\Users\Kadir\Desktop\AI-DND-dilim1; uç 3787a4f7. ae815c4f tabanından 34, Jarvis devrinin 353ce7d6 ucundan 18 yerel kod commit'i. Push/merge yok; uzak uç sorgulanmadı.
 
 Tamamlanan uygulama ve odaklı kontroller:
 - Görev 12 (36 motor yarısı/38): f77df47c, 46 test OK.
@@ -84,3 +84,6 @@ Kod ucu6d791c3e (tabandan29, Jarvis devrinden13 commit); yalnız ölçüm test d
 | 26 adım3 | anlatıcı | 14841 | 307 | 0 |
 Diğer karşı çağrılar yapılmadı; sıfır uzunlukta çağrı değildir. NarratorInput'ın satırla birleştirdiği message içerikleri ölçüldü; protokol zarfı/token ölçümü değildir. Kısaltma işareti yok. Gerçek model token sayısı yok. Bütün dal kapısı ve hazır bildirimi hâlâ bekliyor.
 Son bağımsız inceleme takibi / J-037–039: Dilim1 ucu a22ce75c (tabandan32/devirden16). Null hafıza02ee56d1 düzeltildi,37 odaklı OK. Günlü fiyat konuşma notu ve sabit tutarlı oda teklifi a22ce75c düzeltildi; son129 testte128OK/1FAIL, tüm7 yeni sınır testi OK. Tek açık FAIL d4f605a4 pazarlık-niyeti regresyonu; yazılı Task20 sözleşmesinin sosyal beceri+açık teklif koşulu ilgisiz sosyal başarıyı da indirime çeviriyor. Yeni yapısal fiyat-pazarlığı niyeti sözleşmesi kararı gerekli (J-037). Dal yeşil/hazır değil; sıfır tolerans inceleme ve uzun kapılar bekliyor. Doğrudan fazla tahsilat veya kayıt kaybı kanıtlanmadı. İstem ölçümü6d791c3e J-036'da; üç örnek için geçerli, son değişiklikten sonra tekrar ölçülmedi.
+Güncel / J-040: Dilim1 uç3787a4f7 (ae815c4f tabanından34, Jarvis devrinden18 yerel commit). Onaylı açık-teklife bağlı price_negotiation sözleşmesi uygulandı; J-037 ilgisiz sosyal başarı regresyonu kapandı. 297 odaklı test OK,43.407s,runs/20261105T130500-JVD1INTENTFINAL2. Eski kayıt fixture düzeltmesi ayrı c799ad78. Sıfır tolerans bağımsız inceleme bekliyor; tam MONEY/uzun kapılar/kabul değildir. Görev23 ara raporu güncel, hazır tetiği yok. Önceki “açık niyet kararı/1FAIL” satırları tarihsel kayıttır.
+İstem güncel ölçümü JVD1PROMPTCURRENT2OK:24/8speech6822(100truth/131memory),26/2speech5649(233/0),26/3narration14841(307/0) UTF8bayt. Kısaltma ve gerçek token ölçümü yok; çağrılmayan diğer kanallar yok olarak kaydedildi.
+Eski-test sözleşme güncellemesi J-040: test_haggle.HaggleRules ve test_haggle_review.ReviewedPrices olumlu çağrılarına açık teklif önerisi/alınan oyuncu sözü eklendi; önceki miktar, bakiye, günlük sınır ve ret iddiaları aynı. Senaryo03 yalnız açık model niyeti script'i kazandı; seed12 ve tüm beklentiler aynı. UnrelatedSocialCheck script'i açık persuasion ve pazarlık önerisi yok durumunu sabitler; başarının fiyata etki etmemesi iddiaları aynı. test_journey_runner eski hafıza fixture'ına turn1/2 eklendi (c799ad78); hiçbir beklenti silinmedi/atlanmadı/gevşetilmedi.
