@@ -670,4 +670,3 @@ test('combat event terms are Turkish with original names on hover', () => {
   const html = renderCombatPanel(makeState(), mergeCombatHistory([event], []));
   for (const title of ['Dash / Bonus Action / feet','feet','Ready / Action','Ready / Reaction','Reaction','Attack / Action']) assert.ok(html.includes(`title="${title}"`), title);
 });
-

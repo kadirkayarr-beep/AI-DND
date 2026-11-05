@@ -37,7 +37,7 @@ export function RecklessAttackControl({ available, active, selected, disabled, o
       <input type="checkbox" checked={selected} disabled={disabled} onChange={event => { if (!disabled) onChange(event.target.checked); }} />
       {' '}Bu saldırıda <span title={termTitle('reckless_attack')}>{term('reckless_attack')}</span> seç
     </label>}
-    <p>Sonraki kendi turun başlayana kadar Strength saldırı zarların Avantaj kazanır; sana karşı saldırı zarları da Avantaj kazanır. Dexterity saldırısı bu seçimi yapabilir ancak saldırı Avantajı kazanmaz.</p>
+    <p>Sonraki kendi turun başlayana kadar Kuvvet saldırı zarların Avantaj kazanır; sana karşı saldırı zarları da Avantaj kazanır. Çeviklik saldırısı bu seçimi yapabilir ancak saldırı Avantajı kazanmaz.</p>
   </div>;
 }
 
@@ -84,7 +84,7 @@ export function MagicMissileControl({ state, targetId, slot, onSlotChange, block
         disabled={blocked || !projection.available} onChange={event => { if (!blocked && projection.available) onQuickenedChange?.(event.target.checked); }} />
         {' '}Bu Magic Missile için <span title={termTitle('quickened_spell')}>{term('quickened_spell')}</span> · 2 <span title={termTitle('sorcery_points')}>{term('sorcery_points')}</span> · <span title={termTitle('bonus_action')}>{term('bonus_action')}</span></label>
       {projection.reason && <p role="status"><span title={termTitle('quickened_spell')}>{term('quickened_spell')}</span> kullanılamıyor: {projection.reason}</p>}
-      <p>Yalnızca bu büyü için açık seçimdir; diğer Metamagic etkileri uygulanmış değildir. Bu tur başka seviye 1+ büyü kullanımı sunucu tarafından denetlenir.</p>
+      <p>Yalnızca bu büyü için açık seçimdir; diğer Üstbüyü etkileri uygulanmış değildir. Bu tur başka seviye 1+ büyü kullanımı sunucu tarafından denetlenir.</p>
     </div>}
     <label>Magic Missile · yuva seviyesi <select data-testid="select-magic-missile-slot" value={slot} disabled={blocked} onChange={event => onSlotChange(event.target.value)}>
       {offered.map(level => <option key={level} value={String(level)} disabled={(slots[String(level)] ?? 0) <= 0}>{level}. seviye · kalan {slots[String(level)]}</option>)}

@@ -530,3 +530,113 @@ test('primal skill options display Turkish labels while retaining submitted IDs'
   assert.match(html,/<option value="Survival" selected="">Hayatta Kalma<\/option>/);
   assert.doesNotMatch(html,/>Athletics<|>Survival</);
 });
+
+// C-024 independent review regressions: existing tests above remain unchanged.
+const subclassCatalog = {
+  fighter_starting_creation: { level_3: { subclass_options: [{ id: 'champion', name: 'Şampiyon' }] } },
+  paladin_starting_creation: { level_3: { subclass_options: [{ id: 'devotion', name: 'Adanmışlık Yemini' }] } },
+};
+
+test('known subclass catalog names survive the real character panel and welcome render', async () => {
+  const character = { ...fighter, level: 3, subclass_id: 'champion' };
+  const state = { ...makeState(), character, wallet: { total_cp: 100 } };
+  const before = JSON.stringify(state);
+  assert.match(render(panel.CharacterPanel, { character, catalog: subclassCatalog }), /Alt sınıf: Şampiyon/);
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'CharacterReveal');
+  assert.ok(declaration, 'production welcome component exists');
+  const empty = () => null;
+  const context = { React, classPortraitSheet: '', speciesPortraitSheet: '', halfElfPortrait: '',
+    speciesLabel: value => value, classLabel: value => value, skillLabel: value => value,
+    originFeatLabel: (_, value) => value, Brand: empty, ArrowLeft: empty, ArrowRight: empty,
+    OuroborosMark: empty, Rule: empty, CampaignDate: empty, SpellcastingPanel: empty,
+    StartingEquipmentNotice: empty, PurseLine: panel.PurseLine,
+    StoredProgressionChoices: panel.StoredProgressionChoices,
+    Kicker: ({ children }) => React.createElement('span', null, children) };
+  vm.runInNewContext(ts.transpileModule(declaration.getText(ast), {
+    compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 },
+  }).outputText, context);
+  assert.match(render(context.CharacterReveal, { state, catalog: subclassCatalog, onContinue() {}, onBack() {} }), /Alt sınıf: Şampiyon/);
+  assert.equal(JSON.stringify(state), before, 'display never rewrites the character or save');
+});
+
+test('subclass display uses only the matching class catalog and hides missing or ambiguous names', () => {
+  const shown = character => render(panel.StoredProgressionChoices, { character, catalog: subclassCatalog });
+  assert.match(shown({ ...fighter, subclass_id: 'champion' }), /Alt sınıf: Şampiyon/);
+  assert.doesNotMatch(shown({ ...fighter, class: 'Paladin', subclass_id: 'champion' }), /Alt sınıf:|champion|Şampiyon/);
+  assert.doesNotMatch(shown({ ...fighter, subclass_id: 'unknown_subclass' }), /Alt sınıf:|unknown_subclass/);
+  for (const catalog of [undefined, {}, { fighter_starting_creation: { level_3: { subclass_options: [
+    { id: 'champion', name: ' ' },
+  ] } } }, { fighter_starting_creation: { level_3: { subclass_options: [
+    { id: 'champion', name: 'Şampiyon' }, { id: 'champion', name: 'Başka ad' },
+  ] } } }]) {
+    assert.doesNotMatch(render(panel.StoredProgressionChoices, { character: { ...fighter, subclass_id: 'champion' }, catalog }), /Alt sınıf:|champion/);
+  }
+});
+
+test('the live character drawer forwards the real catalog at every production boundary', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const openings = [];
+  function visit(node) {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) openings.push(node);
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  for (const tag of ['DrawerSheet', 'LeftColumn', 'CharacterPanel']) {
+    const nodes = openings.filter(node => node.tagName.getText(ast) === tag);
+    assert.equal(nodes.length, 1, `one production ${tag} call`);
+    const attribute = nodes[0].attributes.properties.find(item => ts.isJsxAttribute(item) && item.name.text === 'catalog');
+    assert.ok(attribute && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression, `${tag} receives the catalog`);
+    const expression = attribute.initializer.expression.getText(ast);
+    assert.equal(vm.runInNewContext(`(${expression})`, { characterCatalogQuery: { data: subclassCatalog }, catalog: subclassCatalog }), subclassCatalog);
+  }
+});
+
+test('reckless and quickened descriptions use Turkish visible prose while preserving spell names', async () => {
+  const economy = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
+  const reckless = render(economy.RecklessAttackControl, { available: true, active: false, selected: false, disabled: false, onChange() {} });
+  assert.doesNotMatch(stripTitles(reckless), /\bStrength\b|\bDexterity\b/);
+  assert.match(reckless, /Kuvvet/); assert.match(reckless, /Çeviklik/);
+  const state = { ...playerTurnState, spellcasting: { prepared: ['Magic Missile'], slots: { '1': 2 }, sorcery_points: { current: 2, max: 2 } },
+    combat: { ...playerTurnState.combat, action_economy: { actors: { player: { quickened_spell: { available: true, reason: null } } } } } };
+  const magic = render(economy.MagicMissileControl, { state, targetId: 'npc_bandit', slot: '1', onSlotChange() {}, blocked: false, magicAvailable: true, onCommand() {} });
+  assert.match(magic, /magic-missile-controls/);
+  assert.doesNotMatch(stripTitles(magic), /\bMetamagic\b/);
+  assert.match(magic, /Üstbüyü/); assert.match(magic, /Magic Missile/);
+});
+
+test('a cold saved-campaign resume enables and fills the real catalog query before showing the subclass', async () => {
+  const { QueryClient, QueryObserver } = await import('@tanstack/react-query');
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let declaration;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(ast) === 'characterCatalogQuery') declaration = node;
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  assert.ok(declaration?.initializer, 'production catalog hook exists');
+  const script = ts.transpileModule('globalThis.observed = ' + declaration.initializer.getText(ast) + ';', {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const queryKey = ['cold-resume-catalog'];
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  let calls = 0;
+  const queryFn = async () => { calls += 1; return subclassCatalog; };
+  const observer = new QueryObserver(client, { queryKey, queryFn, enabled: false });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    assert.equal(client.getQueryData(queryKey), undefined, 'starts with an empty real query cache');
+    for (const phase of ['opening', 'library', 'adventure']) {
+      vm.runInNewContext(script, { phase, getGetCharacterCreationCatalogQueryKey: () => queryKey,
+        useGetCharacterCreationCatalog: options => { observer.setOptions({ ...options.query, queryFn }); return observer.getCurrentResult(); } });
+      await new Promise(resolve => setImmediate(resolve));
+      if (phase !== 'adventure') assert.equal(calls, 0, `${phase} need not fetch character display metadata`);
+    }
+    assert.equal(calls, 1, 'resuming into the actual adventure phase requests the catalog');
+    assert.equal(client.getQueryData(queryKey), subclassCatalog);
+    assert.match(render(panel.CharacterPanel, { character: { ...fighter, level: 3, subclass_id: 'champion' }, catalog: client.getQueryData(queryKey) }), /Alt sınıf: Şampiyon/);
+  } finally { unsubscribe(); client.clear(); }
+});

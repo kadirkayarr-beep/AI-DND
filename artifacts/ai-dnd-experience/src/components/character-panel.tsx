@@ -13,6 +13,7 @@ import { inventoryDisplay } from '@/lib/inventory-display';
 import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { coinText } from '@/lib/coins';
+import { subclassCatalogName } from '@/lib/catalog-display';
 
 function Kicker({ children }: { children: ReactNode }) {
   return <div className="dnd-kicker">{children}</div>;
@@ -24,12 +25,13 @@ export function PurseLine({ totalCp }: { totalCp?: number | null }) {
   return <div className="data-row mt-3" data-testid="text-character-purse">{`Kese: ${coinText(totalCp)}`}</div>;
 }
 
-export function StoredProgressionChoices({ character, subclassName }: { character: GameCharacter; subclassName?: string }) {
+export function StoredProgressionChoices({ character, catalog }: { character: GameCharacter; catalog?: unknown }) {
+  const subclassName = subclassCatalogName(catalog, character.class, character.subclass_id);
   // A raw subclass identifier is not a player-facing catalog name.
   return <>{character.metamagic?.length ? <p>Üstbüyü seçimleri: {character.metamagic.map(id => METAMAGIC_LABELS[id] ?? id).join(', ')}</p> : null}{character.subclass_id && subclassName?.trim() ? <p>Alt sınıf: {subclassName}</p> : null}</>;
 }
 
-export function CharacterPanel({ character, compact = false, walletTotalCp }: { character: GameCharacter; compact?: boolean; walletTotalCp?: number | null }) {
+export function CharacterPanel({ character, compact = false, walletTotalCp, catalog }: { character: GameCharacter; compact?: boolean; walletTotalCp?: number | null; catalog?: unknown }) {
   const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
   const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
   return (
@@ -47,7 +49,7 @@ export function CharacterPanel({ character, compact = false, walletTotalCp }: { 
       <PaladinStatus paladin={character.paladin} />
       <RogueStatus rogue={character.rogue} />
       <MonkStatus monk={character.monk} />
-      <StoredProgressionChoices character={character} />
+      <StoredProgressionChoices character={character} catalog={catalog} />
       <CharacterIdentityNotes character={character} />
     </section>
   );

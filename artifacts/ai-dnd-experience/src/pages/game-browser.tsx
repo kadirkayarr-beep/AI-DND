@@ -417,8 +417,8 @@ function DetailsPanel({ state }: { state: GameState }) {
   </section>;
 }
 
-function LeftColumn({ state, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
+function LeftColumn({ state, catalog, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; catalog?: unknown; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} catalog={catalog} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
@@ -931,7 +931,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconomyCommand, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; decisionScope?: string; conversionBlocked?: boolean; onEconomyCommand?: (message: string, command: CombatActionInput) => void; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
+function DrawerSheet({ drawer, state, catalog, decisionScope, conversionBlocked, onEconomyCommand, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; catalog?: unknown; decisionScope?: string; conversionBlocked?: boolean; onEconomyCommand?: (message: string, command: CombatActionInput) => void; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef(returnFocus);
@@ -993,7 +993,7 @@ function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconom
     };
   }, [drawer, focusAfterCloseRef]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} catalog={catalog} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }
 
 function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameState; catalog?: unknown; onContinue: () => void; onBack: () => void }) {
@@ -1055,7 +1055,7 @@ function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameSt
             </div>
             <StartingEquipmentNotice characterClass={character.class} catalog={catalog} />
             <PurseLine totalCp={state.wallet?.total_cp ?? null} />
-            <StoredProgressionChoices character={character} />
+            <StoredProgressionChoices character={character} catalog={catalog} />
             {character.origin && (
               <div className="reveal-origin" data-testid="reveal-character-origin">
                 <Kicker>Kişisel köken</Kicker>
@@ -1186,7 +1186,7 @@ export default function GameBrowser() {
   const characterCatalogQuery = useGetCharacterCreationCatalog({
     query: {
       queryKey: getGetCharacterCreationCatalogQueryKey(),
-      enabled: phase === 'creation',
+      enabled: phase === 'creation' || phase === 'reveal' || phase === 'adventure',
       retry: false,
     },
   });
@@ -2382,7 +2382,7 @@ export default function GameBrowser() {
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
           </main>
         </div>
-        {state && <DrawerSheet drawer={drawer} state={state} decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])} conversionBlocked={turnSending || undoBusy || Boolean(blockingMutation())} onEconomyCommand={(text, command) => submitTurn(text, command, 'do')} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
+        {state && <DrawerSheet drawer={drawer} state={state} catalog={characterCatalogQuery.data} decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])} conversionBlocked={turnSending || undoBusy || Boolean(blockingMutation())} onEconomyCommand={(text, command) => submitTurn(text, command, 'do')} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
         <div className="session-footnote" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}

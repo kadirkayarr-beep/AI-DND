@@ -65,7 +65,7 @@ test('real control shows both Advantage consequences, is unchecked, and disables
   const tree=nodes(ui.RecklessAttackControl({available:true,active:false,selected:false,disabled:false,onChange:v=>chosen=v}));
   const input=tree.find(n=>n.type==='input'); assert.equal(input.props.checked,false);
   input.props.onChange({target:{checked:true}}); assert.equal(chosen,true);
-  const text=JSON.stringify(tree); assert.match(text,/Strength/); assert.match(text,/Avantaj/); assert.match(text,/sana/); assert.match(text,/sonraki/i);
+  const text=JSON.stringify(tree); assert.match(text,/Kuvvet saldırı zarların Avantaj kazanır/); assert.match(text,/sana karşı saldırı zarları da Avantaj kazanır/); assert.match(text,/Çeviklik saldırısı bu seçimi yapabilir ancak saldırı Avantajı kazanmaz/); assert.match(text,/Avantaj/); assert.match(text,/sana/); assert.match(text,/sonraki/i);
   const disabled=nodes(ui.RecklessAttackControl({available:true,active:false,selected:false,disabled:true,onChange:v=>chosen=v})).find(n=>n.type==='input');
   chosen=false; disabled.props.onChange({target:{checked:true}}); assert.equal(chosen,false);
 });

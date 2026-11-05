@@ -22,3 +22,15 @@ export function originFeatLabel(section: unknown, id: string): string {
   }
   return id;
 }
+
+/** A stored subclass is shown only through the matching class's current catalog. */
+export function subclassCatalogName(catalog: unknown, characterClass: string, subclassId?: string | null): string | undefined {
+  if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog) || !subclassId) return undefined;
+  const section = (catalog as Record<string, { level_3?: { subclass_options?: unknown } } | undefined>)[`${characterClass.trim().toLowerCase()}_starting_creation`];
+  const options = section?.level_3?.subclass_options;
+  if (!Array.isArray(options)) return undefined;
+  const matches = options.filter(option => option && typeof option === 'object' && !Array.isArray(option) && option.id === subclassId);
+  if (matches.length !== 1) return undefined;
+  const name: unknown = matches[0].name;
+  return typeof name === 'string' && name.trim() ? name.trim() : undefined;
+}
