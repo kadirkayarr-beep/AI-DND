@@ -161,7 +161,8 @@ def quote(world: dict[str, Any], npc_id: str, key: str, count: int) -> dict[str,
 
 def _this_offer(world: dict[str, Any], npc_id: str, key: str, fresh: dict[str, Any]) -> dict[str, Any] | None:
     """The counter's open offer when it is this very one: the same person, the same goods, no trade settled since."""
-    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    import bold_acts
+    opened = bold_acts.offer_still_open(world, {"id": npc_id})
     if (not isinstance(opened, dict) or opened.get("npc_id") != npc_id or opened.get("key") != key
             or opened.get("seq") != fresh["seq"]):
         return None
