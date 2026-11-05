@@ -3,6 +3,7 @@
 Merhaba Jarvis. Claude'un haftalık kullanım hakkı bitiyor; Kadir onun yerine seni görevlendirdi. Kararlar `C:\Users\Kadir\Desktop\AI-DND-ORTAK\KARARLAR.md` ve `KURALLAR.md` dosyalarındadır (DEĞİŞİKLİK 1, 2 ve 3). Bu mesaj yetki vermez; yetki o iki dosyadadır.
 
 ## 1. Önce bunları oku (bu sırayla)
+0. **`C:\Users\Kadir\Desktop\AI-DND-b01-isolated\JARVIS_YAPILACAKLAR_LISTESI_20261105.md`**: bugünden sonraki HER ŞEYİN tikli ana listesi (Dilim 0–4, Adım 4, sonrası). Kaldığın yeri unutursan buradan bul; her görevden sonra kutuyu işaretle ve "SIRADAKİ GÖREV" satırını güncelle. Sıra: Dilim 0 Görev 6–11, Dilim 1 Görev 11, 12, 14, 15, 17, 18, sonra hassas görevler (Dilim 0 Görev 5, Dilim 1 Görev 10, 20, 21), en sona devir görevleri.
 1. `C:\Users\Kadir\Desktop\AI-DND-ORTAK\KURALLAR.md` (özellikle DEĞİŞİKLİK 1, 2, 3) ve `KARARLAR.md` son satırlar.
 2. `C:\Users\Kadir\Desktop\AI-DND-b01-isolated\HANDOFF.md`: önce **10. bölüm** (senin için elle çalışma yöntemi ve Kadir'e danışılacak yerler), sonra "DURUM: HER ŞEY DURDURULDU" bölümü ve 2., 3. bölümler.
 3. Mesajlar: `claude_to_jarvis\` altında `C-018` (görevlerin) ve `C-019` (Claude'un yerine geçmen), `C-020` (Replit'te test koşma görüşüm).

@@ -184,6 +184,7 @@ Kural `AI-DND-ORTAK\KURALLAR.md` "DEĞİŞİKLİK 2", karar `KARARLAR.md` son sa
 **GÜNCELLEME (Kadir, 2026-11-05): "Jarvis sen gelene kadar senin yerini alsın"** → `KURALLAR.md` DEĞİŞİKLİK 3, mesaj `C-019`. Jarvis para/kayıt/Geri Al görevlerini de yazabilir (en sona bırakır, "İNCELEME BEKLİYOR" işaretler), iki dilim dalını ve `docs/devir-belgeleri-20261105` dalını force olmadan push edebilir, devir notunu ve defterleri günceller, dilim sonu 19 maddelik testi hazırlar. Claude döndüğünde: önce `jarvis_to_claude\` raporlarını ve `git log` farkını oku, "İNCELEME BEKLİYOR" işaretli işleri bağımsız incele, sonra birleştirme önerisini Kadir'e sun.
 
 ## 10. JARVIS İÇİN KISA KILAVUZ (Claude yokken devam eden ajan: önce burayı oku)
+**EN ÖNEMLİ DOSYA: `JARVIS_YAPILACAKLAR_LISTESI_20261105.md`** — Dilim 0'dan Dilim 4'e, Adım 4'e ve sonrasına kadar her şeyin tikli ana listesi (SIRADAKİ GÖREV satırı dahil). Kaldığın yeri unutursan oradan devam et. Görev sırası orada C-019'dakinden şu farkla düzeltilmiştir: devir görevleri (Dilim 0 Görev 15, Dilim 1 Görev 23) en sona kalır.
 Jarvis, `HANDOFF.md`'deki "Claude" geçen adımların bir kısmı Claude'un kendi araçlarına (Workflow, subagent, ToolSearch) göre yazıldı; **onları kullanamazsın**. Aşağıdaki elle yöntemi kullan.
 
 ### 10.1 Elle çalışma yöntemi (bir görev = bir döngü)
