@@ -1296,7 +1296,8 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             any(
                 set(schema.get("properties", {}))
-                == {"spoken_text", "stage_direction", "commitment", "threat"}
+                == {"spoken_text", "stage_direction", "commitment", "threat",
+                    "coin_answer", "coin_answer_for", "remember_player_line"}
                 and schema.get("required") == ["spoken_text", "stage_direction", "threat"]
                 for schema in recommendation_client.schemas
             ),
@@ -1451,14 +1452,21 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.status_code, 200, response.text)
                 # The owner rejected a stock reply: the person answers each of these once. A claimed
                 # promise stays unverified and grants nothing, and none of them makes a place.
-                asked = message != history_claims[0]
+                asked = message == hidden_question  # both unsupported history claims stay unverified
                 self.assertEqual(
                     response.json()["turn_outcome"]["status"],
                     "experimental_attributed_speech" if asked else "unverified",
+                    {"about": npc_statements.claim_about(message),
+                     "ledger": npc_statements.claim_support(session.world_state, guard, message),
+                     "response": response.json()},
                 )
                 self.assertEqual(recommendation_client.chat_calls, before_veto_calls + 1)
                 self.assertEqual(set(session.world_state["locations"]), places_before)
                 self.assertNotIn("Mavi Fener", response.json()["narration"])
+                if message == history_claims[1]:
+                    # Unverified is the claim status, not a stock-answer requirement:
+                    # this unrelated, grounded NPC reply still reaches the player.
+                    self.assertIn(quote, response.json()["narration"])
 
     async def test_default_npc_place_statement_keeps_attribution_after_resume_and_respects_locked_target(self):
         city_id, session_id, session, turn_url, tavern_id, door = (
