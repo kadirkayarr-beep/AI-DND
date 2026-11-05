@@ -32,14 +32,15 @@ if TYPE_CHECKING:
 # Known breaks are grouped by kind. A kind is told by the scenario file's number; a scenario not listed here is
 # grouped under "Diğer" (a new scenario file shows up there until it is added).
 _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Para ve alışveriş", ("01", "01b", "02", "12", "13", "14", "16", "23", "25", "27")),
+    ("Para ve alışveriş", ("01", "01b", "02", "12", "13", "14", "16", "23", "25", "26", "27")),
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b")),
     ("Oda, uyku ve çıkış", ("03", "07")),
-    ("Eşya, silah ve tüketim", ("04", "05")),
+    ("Eşya, silah ve tüketim", ("04", "04b", "05", "28")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
     ("Konuşma kipi", ("08",)),
     ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15")),
+    ("Kişisel hafıza", ("24", "24r")),
     ("Geri al ve yenileme", ("11",)),
 )
 _OTHER_KIND = "Diğer"
