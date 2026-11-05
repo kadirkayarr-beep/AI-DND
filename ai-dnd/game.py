@@ -8389,7 +8389,7 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     return gate
 
 
-def _thread_gate(player_input, target_id, interaction_mode):
+def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """A line about someone's work is decided here, before any phrase owner reads it.
 
     Python reads the player's own words and writes the state; the model only voices the
@@ -8411,6 +8411,11 @@ def _thread_gate(player_input, target_id, interaction_mode):
             # Money asked of someone with no job to their name is still said to them, and they answer it.
             spoken_to = isinstance(person, dict) and world_threads.asks_for_pay(player_input) and not _physical_line(player_input)
             return {"decision": None, "npc_id": person["id"]} if spoken_to else None
+        # A validated payment utterance is not a work action. Explicit front work has its own writer.
+        coin = getattr(session, "_front_coin", 0)
+        if (gate["decision"] == "work" and isinstance(front, dict) and front.get("kind") == "speak_to"
+                and type(coin) is int and coin > 0):
+            return None
         if (gate["decision"] is None and not gate.get("yes_heard") and interaction_mode != "say"
                 and _physical_line(player_input)):
             return None
@@ -18806,7 +18811,7 @@ def _dispatch_player_turn(
             gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
-                    else _thread_gate(player_input, target_id, interaction_mode))
+                    else _thread_gate(player_input, target_id, interaction_mode, front=front))
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):
