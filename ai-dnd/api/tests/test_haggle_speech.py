@@ -164,3 +164,34 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, record, *_ = manager.resume_campaign(self.record.campaign_id, principal=TEST_PLAYER)
         self.assertEqual(record.game_session.world_state, self.world)
+    async def test_statement_negotiation_uses_one_engine_roll_and_one_rng_draw(self):
+        import random
+        await self.ready()
+        text = "Bu odanın fiyatını düşürmeye ikna etmeye çalışıyorum"
+        traces = []
+        original = game.perform_skill_check
+
+        def traced(*args, **kwargs):
+            rng = self.record.game_session.rng
+            before = rng.getstate()
+            result = original(*args, **kwargs)
+            traces.append((before, rng.getstate(), copy.deepcopy(result)))
+            return result
+
+        with patch.object(game, "perform_skill_check", side_effect=traced):
+            response, client, checks, _ = await self.say(text)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(checks.call_count, 1)
+        self.assertEqual(len(traces), 1)
+        before, after, resolved = traces[0]
+        expected_rng = random.Random()
+        expected_rng.setstate(before)
+        expected_die = expected_rng.randint(1, 20)
+        self.assertEqual(resolved["dice"], expected_die)
+        self.assertEqual(after, expected_rng.getstate())
+        self.assertEqual(self.record.game_session.rng.getstate(), after)
+        self.assertEqual(resolved["result"], "BAŞARILI")
+        self.assertEqual(self.open_total(), 45)
+        self.assertEqual(self.purse(), 100)
+        self.assertIn("45 bakır", response.json()["narration"])

@@ -22040,10 +22040,20 @@ def _run_player_turn_internal(
                                     not invalid_or_empty and not unverified_history_echo and text == raw_narration)
             if (price_reply_accepted and negotiation is not None
                     and negotiation["npc_id"] == npc_target.get("id")):
-                price_result = resolve_intent({"intent": "persuasion", "price_negotiation": negotiation},
-                                              player_input, npc_target=npc_target, target_id=target_id)
-                if price_result.get("action") == "skill_check":
-                    action_result.update(price_result)
+                if action_result.get("action") == "skill_check":
+                    # A statement may already have rolled through deterministic social routing.
+                    # Reuse that authoritative outcome; never reroll or reapply its world effects.
+                    check = {"skill": action_result.get("skill"),
+                             "result": "BAŞARILI" if action_result.get("outcome") == "success" else "BAŞARISIZ"}
+                    note = money_owner.haggle(_session(), npc_target, check,
+                                               negotiation=negotiation, player_input=player_input)
+                    if note:
+                        action_result["haggle_note"] = note
+                else:
+                    price_result = resolve_intent({"intent": "persuasion", "price_negotiation": negotiation},
+                                                  player_input, npc_target=npc_target, target_id=target_id)
+                    if price_result.get("action") == "skill_check":
+                        action_result.update(price_result)
             if experimental_npc_dialogue:
                 spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
