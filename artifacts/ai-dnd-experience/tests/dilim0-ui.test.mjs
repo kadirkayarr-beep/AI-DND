@@ -247,3 +247,93 @@ test('the play screen draws the counter through showsCounter and folds the offer
   assert.match(source, /!state\.combat\.active && <details className="economic-prepare-drawer"/);
   assert.doesNotMatch(source, /<details[^>]*economic-prepare-drawer[^>]*\sopen/);
 });
+
+const stripCombat = { active: true, round: 2, participant_records: [
+  { id: 'npc1', kind: 'npc', name: 'Haydut', current_hp: 7, max_hp: 11, armor_class: 12, status: 'active', primary_action_available: true, is_current_actor: true },
+  { id: 'player', kind: 'player', name: 'Kadir', current_hp: 6, max_hp: 9, armor_class: 16, status: 'active', primary_action_available: true, is_current_actor: false }] };
+test('the strip shows the round and every side hit points, player first', async () => {
+  const strip = await vite.ssrLoadModule('/src/components/combat-status-strip.tsx');
+  const html = render(strip.CombatStatusStrip, { combat: stripCombat });
+  assert.match(html, /Çatışma · Tur 2/);
+  assert.ok(html.indexOf('Kadir') < html.indexOf('Haydut'));
+  assert.match(html, /Haydut · Can 7\/11 · Ayakta/); assert.match(html, /sırada/);
+  assert.equal(render(strip.CombatStatusStrip, { combat: { ...stripCombat, active: false } }), '');
+});
+test('the start notice comes from combat_started and the generic end is said once', async () => {
+  const strip = await vite.ssrLoadModule('/src/components/combat-status-strip.tsx');
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(source, /combat_started === true/);
+  assert.match(source, /<CombatTransitionBanner kind="start"/);
+  assert.match(source, /<CombatTransitionBanner kind="end"/);
+  const start = render(strip.CombatTransitionBanner, { kind: 'start', text: 'Sıra: Haydut' });
+  assert.match(start, /data-testid="status-combat-started"/); assert.match(start, /role="status"/);
+  assert.match(start, /<strong>ÇATIŞMA BAŞLADI<\/strong><span>Sıra: Haydut<\/span>/);
+  const generic = render(strip.CombatTransitionBanner, { kind: 'end', text: 'Çatışma sona erdi.' });
+  assert.match(generic, /data-testid="status-combat-ended"/); assert.match(generic, /<strong>ÇATIŞMA SONA ERDİ<\/strong>/);
+  assert.doesNotMatch(generic, /Çatışma sona erdi\./);
+  const won = render(strip.CombatTransitionBanner, { kind: 'end', text: 'Rakip etkisiz hale getirildi.' });
+  assert.match(won, /<span>Rakip etkisiz hale getirildi\.<\/span>/);
+});
+test('the strip reuses the combat panel status words', async () => {
+  const strip = await vite.ssrLoadModule('/src/components/combat-status-strip.tsx');
+  const source = await readFile('src/components/combat-panel.tsx', 'utf8');
+  assert.match(source, /export function combatStatusLabel/);
+  const html = render(strip.CombatStatusStrip, { combat: { ...stripCombat, participant_records: [
+    { ...stripCombat.participant_records[0], status: 'unconscious', current_hp: 0 }, stripCombat.participant_records[1]] } });
+  assert.match(html, /Haydut · Can 0\/11 · Bilinçsiz/);
+});
+
+test('combat start notices clear on later turns and context changes, and ignore stale results', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
+  const reset = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
+    && n.expression.arguments[0].getText(ast).trim() === '() => {\n    setCombatStartNotice(null);\n  }');
+  assert.ok(reset, 'transient combat notice has its own context reset');
+  assert.equal(reset.expression.arguments[1].getText(ast), '[sessionId, campaignId]');
+  const resets = [];
+  vm.runInNewContext(ts.transpileModule('(' + reset.expression.arguments[0].getText(ast) + ')();', {}).outputText,
+    { setCombatStartNotice: value => resets.push(value) });
+  assert.deepEqual(resets, [null]);
+  let resultBranch;
+  function visit(node) {
+    if (ts.isIfStatement(node) && node.expression.getText(ast) === 'stillVisible'
+      && node.thenStatement.getText(ast).includes('combatResult?.combat_started === true')) resultBranch = node;
+    ts.forEachChild(node, visit);
+  }
+  visit(browser);
+  assert.ok(resultBranch, 'notice update is guarded against stale responses');
+  const js = ts.transpileModule(resultBranch.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const [visible, combatResult, expected] of [[true, { combat_started: true }, ['Sıra: Haydut']],
+    [true, { combat_started: false }, [null]], [true, undefined, [null]], [false, { combat_started: true }, []]]) {
+    const shown = [];
+    vm.runInNewContext(js, { stillVisible: visible, combatResult, result: { state: { combat: stripCombat } },
+      setCombatStartNotice: value => shown.push(value) });
+    assert.deepEqual(shown, expected);
+  }
+});
+
+test('accepted current server recovery clears an old combat start banner without replaying it', async () => {
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let reconcile;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(ast) === 'reconcileFromServer') reconcile = node.initializer;
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  assert.ok(reconcile);
+  const js = ts.transpileModule('globalThis.recover = ' + reconcile.getText(ast) + ';',
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const [current, accepted] of [[true, true], [false, true], [true, false]]) {
+    const shown = [];
+    const ctx = { sessionId: 'synthetic', campaignId: '', getGetGameSessionStateQueryKey: () => [], nextRevision: () => 1,
+      reconcileState: async () => ({ state: { combat: stripCombat }, history: null, combat_history: null }),
+      queryClient: { invalidateQueries() {} }, operation: { isCurrent: () => current },
+      ReconciliationError: Error, applyGameState: () => accepted, getGetCampaignsQueryKey: () => [],
+      setCombatStartNotice: value => shown.push(value) };
+    vm.runInNewContext(js, ctx);
+    if (current && accepted) await ctx.recover(); else await assert.rejects(ctx.recover());
+    assert.deepEqual(shown, current && accepted ? [null] : []);
+  }
+});

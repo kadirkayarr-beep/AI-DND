@@ -1,3 +1,4 @@
+import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
 import { showsCounter } from '@/lib/play-panels';
 import { runningQuestCount } from '@/lib/quest-counter';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
@@ -680,6 +681,7 @@ function StoryColumn({
   newResponseEntryIndex,
   onJumpToNewResponse,
   combatEndNotice,
+  combatStartNotice,
   combatTargetId,
   setCombatTargetId,
   ambientActionResult,
@@ -722,6 +724,7 @@ function StoryColumn({
   newResponseEntryIndex: number | null;
   onJumpToNewResponse: (focusTarget?: boolean) => void;
   combatEndNotice: string | null;
+  combatStartNotice: string | null;
   combatTargetId: string;
   setCombatTargetId: (value: string) => void;
   ambientActionResult: AmbientEventResult | null;
@@ -791,6 +794,7 @@ function StoryColumn({
           <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
           <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
         </div>
+        <CombatStatusStrip combat={state.combat} />
         <ActionEconomyPanel decisionScope={decisionScope} state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
         <AmbientEventActionPanel
           event={ambientEvent}
@@ -802,12 +806,8 @@ function StoryColumn({
           onAction={onAmbientAction}
           onRetry={onRetryAmbientAction}
         />
-        {combatEndNotice && (
-          <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
-            <Swords size={14} aria-hidden="true" />
-            <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
-          </div>
-        )}
+        {combatStartNotice && <CombatTransitionBanner kind="start" text={combatStartNotice} />}
+        {combatEndNotice && <CombatTransitionBanner kind="end" text={combatEndNotice} />}
         {state.combat.active && currentActor && currentActor.id !== 'player' && (
           <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
             Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
@@ -1144,6 +1144,7 @@ export default function GameBrowser() {
   }, [readingPreferences]);
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
+  const [combatStartNotice, setCombatStartNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
   const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
@@ -1486,6 +1487,10 @@ export default function GameBrowser() {
   }, [sessionId, state?.scene?.ambient_event?.instance_id]);
 
   useEffect(() => {
+    setCombatStartNotice(null);
+  }, [sessionId, campaignId]);
+
+  useEffect(() => {
     setCombatEndNotice(null);
     setCombatTargetId('');
     if (!sessionId) { setEntries([]); return; }
@@ -1628,6 +1633,7 @@ export default function GameBrowser() {
     setEntries([]);
     setCombatEntries([]);
     setCombatEndNotice(null);
+    setCombatStartNotice(null);
     setConversationTargetId('');
     setInteractionMode('do');
     setUndoneJustNow(false);
@@ -1664,6 +1670,7 @@ export default function GameBrowser() {
         setEntries([]);
         setCombatEntries([]);
         setCombatEndNotice(null);
+        setCombatStartNotice(null);
         setInteractionMode('do');
         setConversationTargetId('');
         setUndoneJustNow(false);
@@ -1723,6 +1730,7 @@ export default function GameBrowser() {
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
+        setCombatStartNotice(null);
         // An open conversation (the engine's projection) stays in "Söyle" with that person; otherwise "Yap".
         const resumedMode = resumeComposerMode(resumed.state);
         setInteractionMode(resumedMode.mode);
@@ -1963,6 +1971,10 @@ export default function GameBrowser() {
         } else if (stillVisible) {
           setCombatEndNotice(null);
         }
+        if (stillVisible) {
+          const actor = result.state.combat.participant_records?.find((participant) => participant.is_current_actor);
+          setCombatStartNotice(combatResult?.combat_started === true ? `Sıra: ${actor?.name ?? result.state.combat.current_actor_id ?? ''}` : null);
+        }
         applyGameState(queryClient, sessionId, result.state, { revision: readRevision, isCurrent: operation.isCurrent });
         if (stillVisible && !stored) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
@@ -2131,6 +2143,7 @@ export default function GameBrowser() {
       if (!operation.isCurrent()) throw new ReconciliationError();
       const accepted = applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
       if (!accepted) throw new ReconciliationError();
+      setCombatStartNotice(null);
       if (snapshot.history) {
         const next: TranscriptEntry[] = historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening });
         setEntries(next);
@@ -2340,6 +2353,7 @@ export default function GameBrowser() {
                 newResponseEntryIndex={newResponseEntryIndex}
                 onJumpToNewResponse={jumpToNewResponse}
                 combatEndNotice={combatEndNotice}
+                combatStartNotice={combatStartNotice}
                 combatTargetId={combatTargetId}
                 setCombatTargetId={setCombatTargetId}
                 ambientActionResult={ambientActionResult}

@@ -514,3 +514,8 @@
   display: block;
   margin-top: 12px;
 }
+
+.combat-status-strip { border: 1px solid var(--preview-border, #51534c); padding: 10px 12px; min-width: 0; }
+.combat-status-strip h3 { margin: 0 0 6px; }
+.combat-status-strip > div { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.combat-status-strip span { min-width: 0; overflow-wrap: anywhere; }

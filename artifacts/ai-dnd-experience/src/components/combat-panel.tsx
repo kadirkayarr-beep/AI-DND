@@ -20,7 +20,7 @@ function percentage(current: number, maximum: number): number {
   return Math.max(0, Math.min(100, (current / maximum) * 100));
 }
 
-function combatStatusLabel(value: string | null | undefined): string | undefined {
+export function combatStatusLabel(value: string | null | undefined): string | undefined {
   if (value === 'active') return 'Ayakta';
   if (value === 'unconscious') return 'Bilinçsiz';
   if (value === 'dead') return 'Ölü';
