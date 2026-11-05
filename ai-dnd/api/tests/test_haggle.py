@@ -115,3 +115,20 @@ class HaggleJourney(JourneyCase):
         self.assertFalse(any(step.known_broken for step in scenario.steps))
         results = await self.run_scenario(scenario)
         self.assertEqual([r.status for r in results], ["pass"] * 6, results)
+class UnrelatedSocialCheck(JourneyCase):
+    async def test_successful_reassurance_does_not_discount_the_open_room(self):
+        scenario = load_scenario(SCENARIO_DIR / "03_room_sleep.json")
+        unrelated = replace(scenario.steps[1], say="ikna etmeye çalışıyorum, köprüden geçmek güvenli usta",
+                            expect={"kart": {"max_total_cp": 50}, "kese": 100})
+        scenario = replace(scenario, steps=(scenario.steps[0], unrelated))
+        with patch.object(game, "apply_check_outcome_to_world_state",
+                          wraps=game.apply_check_outcome_to_world_state) as checks:
+            results = await self.run_scenario(scenario)
+        self.assertTrue(checks.call_args_list)
+        check = checks.call_args_list[-1].args[1]
+        self.assertEqual((check["skill"], check["result"]), ("Persuasion", "BAŞARILI"))
+        world = self.manager.get(self.last_session_id).game_session.world_state
+        vendor = next(n for n in world["npcs"] if n["id"] == "barman")
+        self.assertNotIn("price_cut_day_v1", vendor)
+        self.assertNotIn("price_cut_cp_v1", vendor)
+        self.assertEqual([r.status for r in results], ["pass", "pass"], results)
