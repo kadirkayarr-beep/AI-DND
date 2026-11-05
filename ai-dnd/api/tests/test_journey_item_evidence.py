@@ -1,15 +1,9 @@
-"""Evidence behind the item, weapon and starting-purse journeys (04_consume, 05_greatsword, 14_start_purse),
-kept as tests so it can be re-checked.
+"""Journey evidence for item, weapon and starting-purse behavior.
 
-The scenario files say what each step must leave behind. These tests replay the files themselves and pin
-why each marked step breaks today and what the setup really puts in the world:
-
-- a step whose turn is refused with HTTP 400 is a failure of that step (the runner records the status),
-  not a trivial pass of its ``yasak_metin`` check on an empty narration (05 steps 2-3, 04 step 3);
-- setup ``inventory`` and ``ammunition`` replace what character creation gave, they are not merged;
-- 04 step 3 breaks only because the arrow counter is never seeded from the pack (item 56): with the
-  counter given in setup the same step passes;
-- 14: the creation response shows 6000 cp (the written "10 Altın" counted), the live purse holds 5000.
+HTTP refusals fail a scenario step rather than trivially passing empty-text checks.
+Task15 now materializes an unseeded arrow pack once; a separate loose-arrow setup
+and a genuinely empty bow pin both positive and negative accounting paths.
+Existing eating/drinking, Greatsword and initial-purse known breaks stay explicit.
 """
 
 from __future__ import annotations
@@ -82,25 +76,28 @@ class ItemJourneyEvidence(JourneyCase):
         self.assertTrue(self.last_observations[3]["savas"])
         self.assertNotIn("no_weapon", json.dumps(turns[3][1], ensure_ascii=False))
 
-    async def test_the_bow_shot_is_refused_for_want_of_arrows(self):
-        """04 (items 54, 56): eating and drinking change nothing; the bow shot is refused with
-        no_ammunition, because the pack's '20 Ok' never reaches the arrow counter."""
+    async def test_the_bow_shot_materializes_the_pack_once(self):
+        """Task15: the pack supplies 20 arrows once, the shot leaves 19; old consume breaks remain."""
         results, turns = await self.play(CONSUME)
-        self.assertEqual([result.status for result in results], ["known_broken"] * 3, results)
-        self.assertEqual([status for status, _ in turns], [200, 200, 400])
+        self.assertEqual([result.status for result in results], ["known_broken", "known_broken", "pass"], results)
+        self.assertEqual([status for status, _ in turns], [200, 200, 200])
         unchanged = {"Greatsword": 1, "Uzun Yay & 20 Ok": 1, "Macera Çantası": 1, "Tabak yemek": 1, "Bira": 2}
         self.assertEqual(self.last_observations[0]["envanter"], unchanged)
         self.assertEqual(self.last_observations[1]["envanter"], unchanged)
-        self.assert_refused(results[2], "no_ammunition")
-        self.assertEqual(results[2].failures[1:],
-                         ("savas: beklenen True, gözlenen False", "cephane: beklenen {'arrow': 19}, gözlenen {}"))
-        self.assertEqual(self.last_observations[2]["cephane"], {})
+        self.assertEqual(results[2].failures, ())
+        self.assertEqual(self.last_observations[2]["cephane"], {"arrow": 19})
+        world = self.manager.get(self.last_session_id).game_session.world_state
+        pack = next(item for item in world["inventory"] if item.get("name") == "Uzun Yay & 20 Ok")
+        self.assertTrue(pack["ammo_seeded_v1"])
+        import item_use
+        self.assertEqual(item_use.ensure_ammunition(world), {"arrow": 19})
+        self.assertEqual(item_use.ensure_ammunition(world), {"arrow": 19})
 
     async def test_the_bow_shot_hits_once_the_counter_holds_arrows(self):
-        """04 step 3 breaks only for item 56: given ``ammunition {"arrow": 20}`` in setup, the same shot is
-        made and spends one arrow (the step's own expectation, so it passes)."""
+        """A bare bow with 20 loose arrows spends one, independently of pack materialization."""
         def seeded(data):
             data["setup"]["ammunition"] = {"arrow": 20}
+            data["setup"]["inventory"] = ["Uzun Yay"]  # loose arrows; no second unseeded pack
             data["steps"] = [{key: value for key, value in data["steps"][2].items()
                               if key not in {"known_broken", "broken_because"}}]
             data["steps"][0].pop("independent", None)
@@ -110,6 +107,16 @@ class ItemJourneyEvidence(JourneyCase):
         self.assertEqual(turns[0][0], 200)
         self.assertEqual(self.last_observations[0]["cephane"], {"arrow": 19})
 
+    async def test_a_bare_bow_without_counter_or_pack_is_still_refused(self):
+        def empty(data):
+            data["setup"]["inventory"] = ["Uzun Yay"]
+            data["setup"]["ammunition"] = {}
+            data["steps"] = [data["steps"][2]]
+        results, turns = await self.play(scenario_variant(CONSUME, empty))
+        self.assertEqual(turns[0][0], 400)
+        self.assert_refused(results[0], "no_ammunition")
+        self.assertEqual(self.last_observations[0]["cephane"], {})
+        self.assertEqual(self.last_observations[0]["envanter"], {"Uzun Yay": 1})
     async def test_setup_inventory_and_ammunition_replace_what_creation_gave(self):
         """apply_setup puts the scenario's items and counter in place of the created character's: the pack's
         own items are gone, nothing is merged."""
