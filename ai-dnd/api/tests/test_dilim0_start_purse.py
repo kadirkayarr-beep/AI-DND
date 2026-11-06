@@ -98,6 +98,14 @@ class StartPurse(unittest.TestCase):
         self.assertNotIn("Zırsız", text)
         self.assertIn("Zırhsız", text)
 
+    def test_human_bonus_feat_description_is_turkish_and_keeps_rule_identifiers(self):
+        human = get_character_creation_catalog()['races']['Human']
+        versatile = next(trait for trait in human['traits'] if trait['name'] == 'Çok Yönlü (Versatile)')
+        self.assertEqual(versatile['desc'], 'Fazladan 1 adet 1. seviye Başlangıç Hüneri kazanırsın.')
+        self.assertEqual(versatile['name_tr'], 'Çok Yönlü')
+        self.assertEqual(human['origin_feat_bonus_count'], 1)
+        self.assertEqual(human['skill_bonus_count'], 1)
+
     def assert_conserved(self, before, after, expected, label):
         """Decision 35: the total moves into the purse unchanged; non-coin items stay as they were; settling again is a no-op."""
         b, a = before.world_state, after.world_state

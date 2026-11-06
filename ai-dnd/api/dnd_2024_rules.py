@@ -389,7 +389,7 @@ SPECIES_DEFINITIONS = {
         "origin_feat_bonus_count": 1,
         "traits": [
             {"name": "Becerikli (Skillful)", "desc": "Seçtiğin fazladan bir beceride ustalık kazanırsın.", "name_tr": "Becerikli"},
-            {"name": "Çok Yönlü (Versatile)", "desc": "Fazladan 1 adet 1. seviye Başlangıç Hüneri (Origin Feat) kazanırsın.", "name_tr": "Çok Yönlü"},
+            {"name": "Çok Yönlü (Versatile)", "desc": "Fazladan 1 adet 1. seviye Başlangıç Hüneri kazanırsın.", "name_tr": "Çok Yönlü"},
             {"name": "Azimli (Resourceful)", "desc": "Uzun dinlenmeyi her tamamladığında Kahramanca İlham kazanırsın.", "name_tr": "Azimli"},
         ],
     },
