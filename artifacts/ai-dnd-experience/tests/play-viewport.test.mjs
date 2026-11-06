@@ -192,3 +192,94 @@ test('transcript follow-bottom ends at the answer rather than a decorative tail'
     'a trailing note must not push a short answer above the small transcript viewport');
   assert.match(html, /Son cevap tamamen okunmalı\.<\/p><\/div><\/div><\/div><button/);
 });
+
+
+// Execute the production callbacks with a deterministic layout-event queue.
+// Regression trigger: only the scrolling viewport shrinks, before content RO.
+async function storyFollowHarness({ following = true } = {}) {
+  const { runInNewContext } = await import('node:vm');
+  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const declarations = new Map(); let resizeEffect, windowEffect;
+  const visit = node => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) declarations.set(node.name.text, node.initializer?.getText(ast));
+    if (ts.isCallExpression(node) && node.expression.getText(ast) === 'useEffect') {
+      const body = node.arguments[0]?.getText(ast) ?? '';
+      if (body.includes('new ResizeObserver')) resizeEffect = body;
+      if (body.includes("window.addEventListener('scroll', handleStoryScroll")) windowEffect = body;
+    }
+    ts.forEachChild(node, visit);
+  }; visit(ast);
+  assert.ok(resizeEffect && windowEffect);
+  const trace = []; const observed = new Set(); let resizeCallback;
+  const content = {}; let top = 200;
+  const node = { clientHeight: 220, clientWidth: 375, scrollHeight: 420,
+    get scrollTop() { return top; },
+    set scrollTop(value) { top = Math.max(0, Math.min(value, this.scrollHeight - this.clientHeight)); trace.push(['follow', top]); },
+    querySelector() { return content; }, getBoundingClientRect() { return { bottom: 420 }; } };
+  const window = { innerHeight: 812, addEventListener(_, callback) { this.scroll = callback; }, removeEventListener() {} };
+  const context = { storyScrollRef: { current: node }, wasAtBottom: { current: following }, storyLayoutRef: { current: null }, storyLayoutScrollTopRef: { current: null },
+    window, getComputedStyle: () => ({ overflowY: 'auto' }), transcriptFollowsBottom,
+    setNewResponseEntryIndex() {}, setResultCue() {},
+    ResizeObserver: class { constructor(callback) { resizeCallback = callback; } observe(target) { observed.add(target); } disconnect() { observed.clear(); } } };
+  const names = ['readStoryLayout', 'isStoryNearBottom', 'scrollStoryToBottom', 'handleStoryScroll'];
+  const code = names.filter(name => declarations.has(name)).map(name => `const ${name} = ${declarations.get(name)};`).join('\n')
+    + `\n(${resizeEffect})(); (${windowEffect})(); globalThis.scroll = handleStoryScroll;`;
+  runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context);
+  return { node, context, trace,
+    resize(height, width = node.clientWidth, contentHeight = node.scrollHeight, scrollFirst = false) {
+      node.clientHeight = height; node.clientWidth = width; node.scrollHeight = contentHeight;
+      trace.push(['resize', height, width, contentHeight]);
+      if (node.scrollTop > Math.max(0, contentHeight - height)) node.scrollTop = Math.max(0, contentHeight - height);
+      if (scrollFirst) { trace.push(['layout-scroll']); context.scroll({ currentTarget: node }); }
+      if (observed.has(node) || (contentHeight !== 420 && observed.has(content))) { trace.push(['observer']); resizeCallback([]); }
+    },
+    userScroll(top) { node.scrollTop = top; context.scroll({ currentTarget: node }); },
+    documentScroll() { window.scroll({ currentTarget: window }); },
+  };
+}
+
+test('height-only transcript resize keeps the previously followed last line visible', async (t) => {
+  const h = await storyFollowHarness(); h.resize(59);
+  t.diagnostic(`FOLLOW_TRACE height-only ${JSON.stringify(h.trace)}`);
+  assert.equal(h.node.scrollHeight - h.node.scrollTop - h.node.clientHeight, 0);
+});
+test('layout scroll arriving before ResizeObserver cannot turn following into history reading', async (t) => {
+  const h = await storyFollowHarness(); h.resize(59, 375, 420, true);
+  t.diagnostic(`FOLLOW_TRACE scroll-before-observer ${JSON.stringify(h.trace)}`);
+  assert.equal(h.context.wasAtBottom.current, true);
+  assert.equal(h.node.scrollHeight - h.node.scrollTop - h.node.clientHeight, 0);
+});
+test('document movement cannot revoke following inside an independently scrolling transcript', async () => {
+  const h = await storyFollowHarness(); h.node.clientHeight = 59; h.documentScroll();
+  assert.equal(h.context.wasAtBottom.current, true);
+});
+test('wrapping growth keeps following but never drags a history reader to the bottom', async () => {
+  for (const following of [true, false]) {
+    const h = await storyFollowHarness({ following }); h.resize(220, 320, 700, true);
+    assert.equal(h.context.wasAtBottom.current, following);
+    assert.equal(h.node.scrollTop, following ? 480 : 200);
+  }
+});
+test('height-only resize preserves the explicit history-reading position', async () => {
+  const h = await storyFollowHarness({ following: false }); h.resize(59, 375, 420, true);
+  assert.equal(h.context.wasAtBottom.current, false); assert.equal(h.node.scrollTop, 200);
+});
+test('actual transcript scroll still opts out and back into following', async () => {
+  const h = await storyFollowHarness(); h.userScroll(0);
+  assert.equal(h.context.wasAtBottom.current, false);
+  h.resize(59); assert.equal(h.node.scrollTop, 0);
+  h.userScroll(361); assert.equal(h.context.wasAtBottom.current, true);
+  h.resize(100); assert.equal(h.node.scrollTop, 320);
+});
+
+test('browser scroll clamping after ResizeObserver preserves history intent until a real user scroll', async () => {
+  const h = await storyFollowHarness({ following: false }); h.resize(375);
+  // Browser clamps scrollTop when the scrolling box grows, then delivers scroll.
+  h.context.scroll({ currentTarget: h.node });
+  assert.equal(h.node.scrollTop, 45);
+  assert.equal(h.context.wasAtBottom.current, false);
+  h.resize(220); h.userScroll(0);
+  assert.equal(h.context.wasAtBottom.current, false);
+  h.userScroll(200); assert.equal(h.context.wasAtBottom.current, true);
+});

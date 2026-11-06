@@ -1472,6 +1472,11 @@ export default function GameBrowser() {
   const pendingAmbientActionRef = useRef<AmbientEventActionRequest | null>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
+  const storyLayoutRef = useRef<{ width: number; height: number; contentHeight: number; top: number } | null>(null);
+  const storyLayoutScrollTopRef = useRef<number | null>(null);
+  const readStoryLayout = (node: HTMLDivElement) => ({
+    width: node.clientWidth, height: node.clientHeight, contentHeight: node.scrollHeight, top: node.scrollTop,
+  });
   const seenEntryCount = useRef(0);
   const isStoryNearBottom = (node: HTMLDivElement) => {
     const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
@@ -1565,9 +1570,20 @@ export default function GameBrowser() {
     const node = storyScrollRef.current;
     const content = node?.querySelector('[data-testid="transcript-local"]');
     if (!node || !content || typeof ResizeObserver === 'undefined') return;
+    storyLayoutRef.current = readStoryLayout(node);
     const observer = new ResizeObserver(() => {
+      const previous = storyLayoutRef.current;
+      const current = readStoryLayout(node);
+      if (previous && (previous.width !== current.width || previous.height !== current.height
+        || previous.contentHeight !== current.contentHeight)) {
+        // A resize can clamp scrollTop and queue scroll after this callback.
+        if (previous.top !== current.top) storyLayoutScrollTopRef.current = current.top;
+      }
+      storyLayoutRef.current = current;
       if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
     });
+    // The reader can shrink without changing the transcript content box.
+    observer.observe(node);
     observer.observe(content);
     return () => observer.disconnect();
   }, [entries.length]);
@@ -1604,9 +1620,24 @@ export default function GameBrowser() {
     };
   }, [phase, sessionId]);
 
-  const handleStoryScroll = () => {
+  const handleStoryScroll = (event?: { currentTarget: EventTarget | null }) => {
     const node = storyScrollRef.current;
     if (!node) return;
+    // Moving the document does not express reading intent in this own scroller.
+    if (event?.currentTarget === window && node.scrollHeight > node.clientHeight + 2
+      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) return;
+    const previous = storyLayoutRef.current;
+    const current = readStoryLayout(node);
+    storyLayoutRef.current = current;
+    const layoutScrollTop = storyLayoutScrollTopRef.current;
+    storyLayoutScrollTopRef.current = null;
+    // Layout can dispatch scroll before ResizeObserver. Keep the preference
+    // from before that resize; genuine same-layout scrolling still updates it.
+    if ((previous && (previous.width !== current.width || previous.height !== current.height
+      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop) {
+      if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
+      return;
+    }
     wasAtBottom.current = isStoryNearBottom(node);
     if (wasAtBottom.current) {
       setNewResponseEntryIndex(null);
