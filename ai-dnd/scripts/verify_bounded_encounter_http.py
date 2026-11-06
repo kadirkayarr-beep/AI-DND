@@ -6,13 +6,15 @@ Leaves the disposable campaign available for inspection. Existing owner
 campaigns are never listed, selected, modified or deleted.
 """
 import argparse
-from datetime import datetime, timezone
+from contextvars import ContextVar
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
 import shlex
 import signal
 import sys
+import time
 import traceback
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -28,8 +30,45 @@ SUITE_ARCHIVE = ROOT / "docs/evidence/suite-runs"
 HISTORICAL = ROOT / "docs/evidence/bounded-encounter-http.json"
 
 
+class EvidenceClock:
+    """Logical UTC ordering from monotonic elapsed; retain every observed UTC."""
+
+    def __init__(self):
+        self.anchor = None
+        self.origin_ns = None
+        self.previous_utc = None
+        self.samples = []
+        self.regressed = False
+
+    def now(self):
+        observed = datetime.now(timezone.utc)
+        tick = time.monotonic_ns()
+        if self.anchor is None:
+            self.anchor, self.origin_ns = observed, tick
+        elapsed = tick - self.origin_ns
+        if elapsed < 0 or (self.samples and elapsed < self.samples[-1]["elapsed_ns"]):
+            raise RuntimeError("Evidence monotonic clock regressed")
+        logical = (self.anchor + timedelta(microseconds=elapsed // 1000)).isoformat()
+        if self.previous_utc is not None and observed < self.previous_utc:
+            self.regressed = True
+        self.previous_utc = observed
+        self.samples.append({"observed_at": observed.isoformat(),
+                             "logical_at": logical, "elapsed_ns": elapsed})
+        return logical
+
+    def snapshot(self):
+        return {"clock": "utc_anchor_plus_monotonic_ns",
+                "wall_clock_regressed": self.regressed,
+                "elapsed_seconds": self.samples[-1]["elapsed_ns"] / 1_000_000_000,
+                "samples": [dict(sample) for sample in self.samples]}
+
+
+_run_clock = ContextVar("http_evidence_clock", default=None)
+
+
 def now():
-    return datetime.now(timezone.utc).isoformat()
+    clock = _run_clock.get()
+    return clock.now() if clock is not None else datetime.now(timezone.utc).isoformat()
 
 
 def capture_verifier_source(archive_root, output):
@@ -61,11 +100,19 @@ class Terminated(BaseException):
 
 
 def run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
+    token = _run_clock.set(EvidenceClock())
+    try:
+        return _run(base, resume_base, output=output, archive_root=archive_root)
+    finally:
+        _run_clock.reset(token)
+
+
+def _run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
     """Retain every attempt before HTTP; an optional output is an exclusive export."""
     root = require_http_path(archive_root)
     root.mkdir(parents=True, exist_ok=True)
     started = now()
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex
+    run_id = datetime.fromisoformat(started).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex
     directory = root / run_id
     directory.mkdir()  # Exclusive, even if the generated ID collides.
     record_path = directory / "run.json"
@@ -96,6 +143,7 @@ def run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
     }
 
     def checkpoint():
+        evidence["timing"] = _run_clock.get().snapshot()
         temporary = directory / "run.json.tmp"
         with temporary.open("w", encoding="utf-8") as stream:
             json.dump(evidence, stream, ensure_ascii=False, indent=2)

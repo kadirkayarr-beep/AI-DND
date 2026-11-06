@@ -370,5 +370,81 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertFalse(after_failure["source_change_detection"]["unchanged_verifier_source"])
 
 
+    @contextlib.contextmanager
+    def controlled_evidence_clock(self, direction=-1):
+        from datetime import datetime, timedelta, timezone
+        from itertools import count
+        from types import SimpleNamespace
+        observations = []
+        reads = count()
+        ticks = count(5_000_000_000, 1_000_000_000)
+        anchor = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+
+        class ControlledDatetime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                value = anchor + timedelta(seconds=direction * next(reads))
+                observations.append(value.isoformat())
+                return value
+
+        with patch.object(owner, "datetime", ControlledDatetime), patch.object(
+            owner, "time", SimpleNamespace(monotonic_ns=lambda: next(ticks)), create=True,
+        ):
+            yield observations
+
+    def assert_evidence_clock(self, record, observations, regressed):
+        from datetime import datetime, timedelta
+        timing = record["timing"]
+        self.assertEqual(timing["clock"], "utc_anchor_plus_monotonic_ns")
+        self.assertEqual(timing["wall_clock_regressed"], regressed)
+        self.assertEqual([sample["observed_at"] for sample in timing["samples"]], observations)
+        anchor = datetime.fromisoformat(record["started_at"])
+        for index, sample in enumerate(timing["samples"]):
+            self.assertEqual(sample["elapsed_ns"], index * 1_000_000_000)
+            self.assertEqual(datetime.fromisoformat(sample["logical_at"]),
+                             anchor + timedelta(seconds=index))
+        self.assertEqual(record["ended_at"], timing["samples"][-1]["logical_at"])
+        self.assertEqual(timing["elapsed_seconds"], len(observations) - 1)
+
+    def test_backward_clock_keeps_existing_output_and_raw_utc_evidence(self):
+        with self.controlled_evidence_clock() as observations:
+            self.test_existing_output_refused_before_network_and_preserved()
+            record = self.records()[0]
+            self.assert_evidence_clock(record, observations, True)
+        self.assertGreater(observations[0], observations[-1])
+        self.urlopen.assert_not_called()
+
+    def test_backward_clock_orders_real_scenario_requests_and_source_captures(self):
+        with self.controlled_evidence_clock() as observations:
+            self.test_complete_scenario_success_preserves_acceptance_details()
+            record = self.records()[0]
+            self.assert_evidence_clock(record, observations, True)
+        for event in record["requests"]:
+            self.assertLessEqual(event["started_at"], event["ended_at"])
+        self.assertLessEqual(record["verifier_source"]["before"]["captured_at"],
+                             record["verifier_source"]["after"]["captured_at"])
+
+    def test_forward_clock_jump_does_not_inflate_monotonic_elapsed(self):
+        with self.controlled_evidence_clock(direction=86400) as observations:
+            with patch.object(owner, "execute"):
+                self.assertEqual(self.run_attempt(), 0)
+            record = self.records()[0]
+            self.assert_record(record, "PASS", 0)
+            self.assert_evidence_clock(record, observations, False)
+
+    def test_backward_clock_failure_and_interrupt_reset_run_clock(self):
+        for failure, code in ((RuntimeError("offline failure"), 2), (KeyboardInterrupt(), 130)):
+            with self.controlled_evidence_clock() as observations:
+                prior = {record["run_id"] for record in self.records()}
+                with patch.object(owner, "execute", side_effect=failure):
+                    self.assertEqual(self.run_attempt(), code)
+                record = next(record for record in self.records() if record["run_id"] not in prior)
+                self.assert_record(record, "INTERRUPTED" if code == 130 else "FAIL", code)
+                self.assert_evidence_clock(record, list(observations), True)
+                # now() outside a run must remain a fresh observed UTC read.
+                self.assertEqual(owner.now(), observations[-1])
+
+
+
 if __name__ == "__main__":
     unittest.main()
