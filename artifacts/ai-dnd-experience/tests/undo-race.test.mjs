@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { ReconciliationError } from '../src/lib/action-reconciliation.ts';
+import { ReconciliationError, createActionLifetime } from '../src/lib/action-reconciliation.ts';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 import { historyToEntries } from '../src/lib/transcript-history.ts';
 
@@ -89,6 +89,8 @@ function harness() {
     },
     getGetGameSessionStateQueryKey: id => ['state', id], ...gateInjection(), ...primalKnowledgeInjection(),
     getGetCampaignsQueryKey: () => ['campaigns'],
+    panelEpoch: 0, panelResetSnapshots: [],
+    setPanelEpoch(update) { env.panelEpoch = typeof update === 'function' ? update(env.panelEpoch) : update; env.panelResetSnapshots.push(env.queryClient.getQueryData(['state', env.sessionId])); },
     setUndoPendingSessions() {},
     setLastTurn(value) { env.visibleLastTurn = value; env.lastTurnRef.current = value; },
     setUndoneJustNow(value) { env.undoneJustNow = value; }, historyToEntries,
@@ -418,3 +420,76 @@ for (const [reason,consumed] of [['stale',false],['digest_mismatch',false],['off
   assert.deepEqual(Array.from(h.env.entries,e=>[e.kind,e.undone===true,e.undoNote===true]),[['player',!consumed,false],['narration',!consumed,false],['player',consumed,false],['narration',consumed,false],['player',false,true],['narration',false,true]]);
  });
 }
+
+
+// Run the actual ShopControls read closure. The transport deliberately ignores
+// abort so the lifetime guard, rather than a cooperative fake fetch, is tested.
+const shopSource = await readFile(new URL('../src/components/shop-panel.tsx', import.meta.url), 'utf8');
+const shopAst = ts.createSourceFile('shop-panel.tsx', shopSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const shopComponent = shopAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'ShopControls');
+const shopRead = shopComponent.body.statements.find(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(d => d.name.getText(shopAst) === 'read'));
+assert.ok(shopRead);
+const shopReadCode = ts.transpileModule(shopRead.getText(shopAst) + '\nglobalThis.readQuote = read;', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+const settle = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
+function restoredCampaign(h) {
+  const canonical = { revision: 'undo-authoritative', combat: { active: false }, quests: [], wallet: { total_cp: 6000 } };
+  h.env.getCampaign = async () => ({ state: canonical, history: [], combat_history: [] });
+  return canonical;
+}
+
+test('confirmed normal undo retires the counter once, after authoritative state is applied', async () => {
+  const h = harness(); restoredCampaign(h);
+  h.env.undo(); await settle();
+  assert.equal(h.env.panelEpoch, 0, 'an in-flight undo must not retire a quote as confirmed');
+  h.undoResponse.resolve({ narration: 'confirmed' }); await settle();
+  assert.equal(h.env.panelEpoch, 1);
+  assert.equal(h.env.panelResetSnapshots.length, 1);
+  assert.equal(h.env.panelResetSnapshots[0].wallet.total_cp, 6000);
+  assert.equal(h.env.lastTurnRef.current, null);
+  assert.equal(h.undoRequests.length, 1);
+});
+
+test('a quote GET begun before confirmed undo cannot publish its old purse after undo', async () => {
+  const h = harness(); restoredCampaign(h);
+  const response = deferred(), lifetime = createActionLifetime(), published = [];
+  let signal;
+  const env = { sessionId: 'session-a', campaignId: 'campaign-a', lifetime, latest: { current: 0 },
+    getGameSessionShop: (_id, options) => { signal = options.signal; return response.promise; },
+    setCounter: quote => published.push(quote), setAvailable() {}, setLoading() {}, setError() {}, setCounts() {}, setNotice() {},
+  };
+  vm.runInNewContext(shopReadCode, env);
+  const pendingRead = env.readQuote(true);
+  const reset = h.env.setPanelEpoch;
+  // The production ShopControls key includes panelEpoch (covered by its AST
+  // mount contract); React unmount runs the real lifetime's dispose cleanup.
+  h.env.setPanelEpoch = update => { reset(update); lifetime.dispose(); };
+  h.env.undo(); h.undoResponse.resolve({ narration: 'confirmed' }); await settle();
+  response.resolve({ session_id: 'session-a', campaign_id: 'campaign-a', revision: 3,
+    status: 'ready', reason: null, seq: 7, vendor: { npc_id: 'barman', name: 'Barmen' },
+    purse: { total_cp: 5996, gp: 59, sp: 9, cp: 6 },
+    lines: [{ key: 'bira', label: 'bira', unit_cp: 4, stock: 11, discount_cp: 0 }],
+  });
+  await pendingRead;
+  assert.equal(published.length, 0, 'old quote must not reappear after normal undo');
+  assert.equal(signal.aborted, true);
+});
+
+test('an unaccepted authoritative undo snapshot neither retires the counter nor declares undo complete', async () => {
+  const h = harness(); restoredCampaign(h);
+  h.env.applyGameState = () => false; // fault injection: the freshness gate refused the snapshot
+  h.env.getGameSessionState = async () => { throw new Error('status read unavailable'); };
+  h.env.undo(); h.undoResponse.resolve({ narration: 'receipt only' }); await settle();
+  assert.equal(h.env.panelEpoch, 0);
+  assert.equal(h.env.lastTurnRef.current?.actionId, 'old-action');
+  assert.equal(h.env.undoRequestsRef.current.has('session-a'), true);
+  h.env.submit('must remain blocked');
+  assert.equal(h.turnRequests.length, 0);
+});
+
+test('a rejected or uncertain undo cannot retire a quote as a confirmed undo', async () => {
+  for (const error of [new ApiError(409), new TypeError('lost response')]) {
+    const h = harness(); h.env.undo(); h.undoResponse.reject(error); await settle();
+    assert.equal(h.env.panelEpoch, 0);
+    assert.equal(h.env.lastTurnRef.current?.actionId, 'old-action');
+  }
+});

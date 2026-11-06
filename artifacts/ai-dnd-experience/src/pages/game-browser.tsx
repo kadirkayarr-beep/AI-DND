@@ -1296,11 +1296,13 @@ export default function GameBrowser() {
           return;
         }
         if (!isCurrent()) return;
-        applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent });
+        if (!applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent })) throw new ReconciliationError();
         if (snapshot.history) {
           setEntries(historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening }));
         }
         if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+        // Undo invalidates an open quote even when the same vendor remains here.
+        setPanelEpoch((epoch) => epoch + 1);
         if (lastTurnRef.current?.sessionId === sessionId && lastTurnRef.current.actionId === target) setLastTurn(null);
         // One step only (the engine's rule): until a new turn lands the bar says why there is no second undo.
         setUndoneJustNow(true);
