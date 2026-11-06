@@ -171,6 +171,13 @@ def _at_hand(listed: Mapping[str, Any]) -> str:
 def guidance(listed: Mapping[str, Any]) -> str:
     return (
         "\nfront alanında cümlenin anlamını da söyle; kimlikleri yalnız aşağıdaki listelerden seç, yoksa none yaz. "
+        "Önce aynı satırdaki alışveriş ve para üstü niyetini birlikte oku. Mal alırken para üstünü satıcıya "
+        "bırakıyorsa deal=goods, deal_goods listedeki mal, keep_change=true; bunu ayrı deal=tip olarak ayırma. "
+        "deal=tip yalnız mal alımı olmadan verilen bahşiştir. keep_change: yalnız satıcının para üstünü "
+        "tutmasına açıkça izin veriyorsa true; sırf fazla para uzatması izin değildir. Para üstünü geri "
+        "istiyorsa veya bırakma niyeti olumsuz, alıntı, koşul ya da belirsiz ise keep_change=false. "
+        "Niyeti cümlenin bütününden anla, belirli bir söz arama. Fiyatı, bahşiş tutarını veya toplamı "
+        "hesaplama ve ödeme kararı verme: bunlar Python'a aittir. "
         "consume = oyuncu şimdi çantasındaki bir yiyeceği yiyor veya içeceği içiyor; item_id bag listesindeki eşya. Soru, koşul veya ileride yapma sözü tüketim değildir. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         f"inside=true; şehrin dışına, surlardan öteye, şehirden çıkan bir yola ya da başka bir şehre gidiyorsa place_id {WAY_OUT}; "
