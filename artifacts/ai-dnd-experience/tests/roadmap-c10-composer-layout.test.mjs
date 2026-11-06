@@ -42,3 +42,13 @@ test('short desktop keeps one full-height reading row; only mobile splits auxili
  assert.equal(style('.design-preview.play-shell .transcript-region',375,476)['min-height'],'48px');
  assert.equal(style('.design-preview.play-shell .transcript-region',375,812)['min-height'],'220px');
 });
+
+// Browser R1: desktop Send min-width96 exceeded its 70px grid track;
+// mobile's 88px minimum overlapped the input by12px. Reserve the full track.
+test('composer reserves the Send width without clipping or overlapping the input',()=>{
+ for(const width of [1280,375]) {
+  assert.equal(style('.design-preview.play-shell .command-box',width)['grid-template-columns'],'minmax(0,1fr) 96px');
+  const send=style('.design-preview.play-shell .command-form > button[type="submit"]',width);
+  assert.equal(send['min-width'],'0'); assert.equal(send.width,'100%');
+ }
+});
