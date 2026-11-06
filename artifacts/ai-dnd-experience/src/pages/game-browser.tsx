@@ -650,6 +650,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
 }
 
 function StoryColumn({
+  topControls,
   state,
   entries,
   readingPreferences,
@@ -693,6 +694,7 @@ function StoryColumn({
   onAmbientAction,
   onRetryAmbientAction,
 }: {
+  topControls?: ReactNode;
   state: GameState;
   decisionScope: string;
   entries: TranscriptEntry[];
@@ -796,6 +798,7 @@ function StoryColumn({
           <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
           <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
         </div>
+        {topControls}
         <CombatStatusStrip combat={state.combat} />
         <ActionEconomyPanel decisionScope={decisionScope} state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
         <AmbientEventActionPanel
@@ -815,8 +818,6 @@ function StoryColumn({
             Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
           </div>
         )}
-      </div>
-      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       {state.conversation.active && state.conversation.interlocutor && (
           <div className="active-interlocutor" role="status" data-testid="active-interlocutor">
@@ -835,6 +836,9 @@ function StoryColumn({
         setComposerOpen(true);
         messageInputRef.current?.focus();
       }} />
+      </div>
+      <div className="story-reading-column">
+      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
       {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
       {composerOpen && <div className="command-box" data-testid="command-box">
         <div className="composer-heading">
@@ -894,6 +898,7 @@ function StoryColumn({
         </div>}
         <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span>{desktopEnterSupported && <span className="desktop-enter-hint" data-testid="desktop-enter-hint"><kbd>Enter</kbd> gönder · <kbd>Shift+Enter</kbd> yeni satır</span>}<span data-testid="text-message-count">{message.length} / 4000</span></div>
       </div>}
+      </div>
     </section>
   );
 }
@@ -2309,6 +2314,8 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
+      <StoryColumn
+                topControls={<>
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
       {state.economic_offer && <EconomicOfferCard key={state.economic_offer.offer_id} offer={state.economic_offer}
@@ -2325,7 +2332,7 @@ export default function GameBrowser() {
       {showsCounter(state, campaignId) && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
         probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}
-      <StoryColumn
+                </>}
                 decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])}
                 state={state}
                 entries={entries}

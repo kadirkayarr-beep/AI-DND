@@ -519,3 +519,67 @@
 .combat-status-strip h3 { margin: 0 0 6px; }
 .combat-status-strip > div { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .combat-status-strip span { min-width: 0; overflow-wrap: anywhere; }
+
+/* C024 visible-area correction: auxiliary controls scroll independently of the
+   narrative and native composer. No overlay can cover the composer opener. */
+.design-preview.dnd-app.play-shell {
+  position:fixed; inset:0; height:calc(100dvh - var(--keyboard-inset,0px));
+  min-height:0; max-height:calc(100dvh - var(--keyboard-inset,0px));
+  overflow:hidden; container-type:size; container-name:play-viewport;
+}
+.design-preview.play-shell .preview-background { display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
+.design-preview.play-shell .preview-layout { flex:1 1 0; height:auto; min-height:0; padding:12px 0; overflow:hidden; }
+.design-preview.play-shell .preview-play { flex:1 1 0; height:auto; min-height:0; overflow:hidden; }
+.design-preview.play-shell .app-main.workspace-grid { flex:1 1 0; height:auto; min-height:0; gap:6px; overflow-y:auto; }
+.design-preview.play-shell .story-column { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,30%); grid-template-rows:minmax(0,1fr); flex:1 1 0; height:100%; min-height:0; gap:12px; overflow:hidden; }
+.design-preview.play-shell .story-scene-context { grid-column:2; grid-row:1; height:100%; min-height:0; max-height:none; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding-right:4px; }
+.design-preview.play-shell .story-reading-column { grid-column:1; grid-row:1; display:flex; flex-direction:column; min-width:0; min-height:0; gap:8px; overflow:hidden; }
+.design-preview.play-shell .transcript-region { height:auto; min-height:max(220px,38dvh); flex:1 1 0; overflow:hidden; }
+.design-preview.play-shell .transcript-region > .transcript-scroll { height:auto; min-height:0; flex:1 1 0; max-height:none; overflow-y:auto; }
+.design-preview.play-shell .command-box { flex:0 0 auto; display:grid; grid-template-columns:minmax(0,1fr) 70px; gap:6px; margin:0; padding:8px; }
+.design-preview.play-shell .composer-heading,
+.design-preview.play-shell .command-form { display:contents; }
+.design-preview.play-shell .composer-heading > span { display:none; }
+.design-preview.play-shell .composer-close { grid-column:2; grid-row:1; min-height:44px; }
+.design-preview.play-shell .command-toolbar { grid-column:1; grid-row:1; min-width:0; display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.design-preview.play-shell .command-target-label { flex:1 1 100px; min-width:0; gap:2px; }
+.design-preview.play-shell .command-target-label > span { font-size:10px; }
+.design-preview.play-shell .command-target-select { width:100%; min-width:0; }
+.design-preview.play-shell .command-input { grid-column:1; grid-row:2; width:100%; min-width:0; height:64px; min-height:44px; max-height:96px; margin:0; }
+.design-preview.play-shell .command-form > button[type="submit"] { grid-column:2; grid-row:2; min-height:44px; padding:4px; }
+.design-preview.play-shell .command-help { grid-column:1 / -1; margin:0; font-size:9px; gap:4px; }
+.design-preview.play-shell .pending-turn-status { grid-column:1 / -1; }
+.design-preview.play-shell .last-turn-bar { flex:0 0 auto; max-height:76px; overflow:auto; margin:0; font-size:11px; }
+@media (max-width:760px) {
+ .design-preview.play-shell .preview-banner { min-height:24px; padding:4px 12px; }
+ .design-preview.play-shell .preview-banner > span:last-child { display:none; }
+ .design-preview.play-shell .preview-header { min-height:0; padding:4px 12px; flex:0 0 auto; }
+ .design-preview.play-shell .preview-header-inner { gap:4px 8px; }
+ .design-preview.play-shell .preview-brand { min-width:0; }
+ .design-preview.play-shell .preview-brand small { display:none; }
+ .design-preview.play-shell .header-actions { flex-wrap:nowrap; gap:4px; }
+ .design-preview.play-shell .header-actions > button { min-width:0; padding:0 5px; font-size:10px; flex:1 1 auto; }
+ .design-preview.play-shell .preview-layout { display:flex; flex-direction:column; width:calc(100% - 20px); gap:6px; padding:6px 0; }
+ .design-preview.play-shell .preview-rail { flex:0 0 44px; display:flex; flex-direction:row; gap:2px; padding:0; overflow-x:auto; border:0; }
+ .design-preview.play-shell .preview-rail > button { flex:1 0 auto; min-height:44px; gap:4px; padding:0 5px; font-size:10px; }
+ .design-preview.play-shell .preview-rail-label,
+ .design-preview.play-shell .preview-rail-note { display:none; }
+ .design-preview.play-shell .story-column { grid-template-columns:minmax(0,1fr); grid-template-rows:90px minmax(0,1fr); gap:6px; }
+ .design-preview.play-shell .story-scene-context { grid-column:1; grid-row:1; }
+ .design-preview.play-shell .story-reading-column { grid-column:1; grid-row:2; }
+ .design-preview.play-shell .transcript-region { min-height:220px; }
+ .design-preview.play-shell .command-input { height:52px; }
+ .design-preview.play-shell .desktop-enter-hint { display:none; }
+}
+/* Size follows the existing keyboard inset, including browsers whose layout
+   viewport does not resize when the visual viewport shrinks. */
+@container play-viewport (max-height:620px) {
+ .design-preview.play-shell .preview-banner { display:none; }
+ .design-preview.play-shell .preview-header { max-height:44px; overflow:auto; }
+ @media (max-width:760px) {
+ .design-preview.play-shell .story-column { grid-template-rows:48px minmax(0,1fr); }
+ }
+ .design-preview.play-shell .transcript-region { min-height:48px; }
+ .design-preview.play-shell .last-turn-bar { max-height:44px; }
+ .design-preview.play-shell .command-input { height:44px; }
+}
