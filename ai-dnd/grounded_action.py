@@ -2136,7 +2136,7 @@ def _do_move(run: _Run, step, verb: str) -> dict[str, Any]:
     place = _place_target(run, target)
     if place is None:
         return _receipt(verb, "blocked", target, reason="no_target", text="Oraya nasıl gideceğini çıkaramadım.")
-    run.game._clear_active_interlocutor()
+    run.game._clear_active_interlocutor("walking")
     stopped = _walked(run, place, verb)
     if stopped:
         return stopped

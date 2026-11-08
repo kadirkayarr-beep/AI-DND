@@ -14,6 +14,7 @@ import local_places
 import npc_speech_boundary
 import npc_statements
 import scheduled_events
+import talk_mode
 
 KEY = 'dialogue_runtime_v1'
 MODE = 'free_v1'
@@ -203,7 +204,7 @@ def prepare_turn(session, npc_id: str, player_text: str, raw_reply: dict, action
                     npc_statements.resolve_reference(world,reference['id'],place['location_id'])
     flags=world.setdefault('flags', {})
     flags['turn_index']=flags.get('turn_index',0)+1
-    flags.update(active_npc_id=npc_id,last_npc_id=npc_id,active_npc_until_turn=flags['turn_index']+6)
+    talk_mode.open(world,npc_id,turn=flags['turn_index'])
     if not local_dialogue.name_withheld_reason(world,npc) and npc_speech_boundary.claims_own_name(reply['spoken_text'],npc.get('name')):
         npc['name_known_to_player']=True
     import game

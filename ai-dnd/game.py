@@ -43,6 +43,7 @@ import event_order
 import interaction_adventure
 import money_owner
 import npc_statements
+import talk_mode
 from weapon_catalog import WEAPONS
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
@@ -1798,11 +1799,7 @@ world_state = {
     "features": [],
     "scene_state": living_world.initial_scene_state(),
     "events": [],
-    "flags": {
-        "last_npc_id": None, "active_npc_id": None,
-        "active_npc_until_turn": -1, "turn_index": 0,
-        "pending_destination": None,
-    },
+    "flags": {**talk_mode.fresh(), "turn_index": 0, "pending_destination": None},
     "next_npc_number": 1,
     "combat": {
         "schema_version": 3,
@@ -5366,7 +5363,7 @@ def _start_combat_with_initiative(player_target_npc):
         "target_id": target_id,
         "end_reason": None,
     })
-    _clear_active_interlocutor()
+    _clear_active_interlocutor("combat")
     for npc in enemies:
         # People in one room see the one who just hit them; no scenario has to say so.
         facts = world_state.setdefault("monster_perception", {}).setdefault(npc["id"], {})
@@ -6170,35 +6167,11 @@ def _conversation_npcs():
 
 def _active_interlocutor():
     """Return the current valid Python-owned conversation target without mutating state."""
-    world_state = _session().world_state
-    if world_state.get("combat", {}).get("active"):
-        return None
-    flags = world_state.get("flags", {})
-    if not isinstance(flags, dict):
-        return None
-    active_id = flags.get("active_npc_id")
-    if not isinstance(active_id, str) or not active_id:
-        return None
-    turn_index = flags.get("turn_index", 0)
-    active_until = flags.get("active_npc_until_turn", -1)
-    if type(turn_index) is not int or type(active_until) is not int or turn_index > active_until:
-        return None
-    current = world_state.get("location")
-    return next(
-        (
-            npc for npc in _conversation_npcs()
-            if isinstance(npc, dict)
-            and npc.get("id") == active_id
-            and npc.get("location") == current
-        ),
-        None,
-    )
+    return talk_mode.current(_session().world_state)
 
 
-def _clear_active_interlocutor():
-    flags = _session().world_state.setdefault("flags", {})
-    flags["active_npc_id"] = None
-    flags["active_npc_until_turn"] = -1
+def _clear_active_interlocutor(reason):
+    return talk_mode.close(_session().world_state, reason)
 
 
 def _is_end_conversation_request(player_input):
@@ -6382,10 +6355,8 @@ def _settle_address(resolution, player_input):
     npc = most_plausible_addressee(resolution.get("npcs", []), player_input)
     if npc is None:
         return resolution
-    flags = _session().world_state.setdefault("flags", {})
-    flags["last_npc_id"] = npc["id"]
-    flags["active_npc_id"] = npc["id"]
-    flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+    world_state = _session().world_state
+    talk_mode.open(world_state, npc["id"], turn=world_state.setdefault("flags", {}).get("turn_index", 0))
     return {"status": "found", "npc": npc}
 
 
@@ -6494,10 +6465,7 @@ def resolve_npc_reference(
         elif len(available) > 1:
             matches = available[:]
     if len(matches) == 1:
-        flags = world_state.setdefault("flags", {})
-        flags["last_npc_id"] = matches[0].get("id")
-        flags["active_npc_id"] = matches[0].get("id")
-        flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+        talk_mode.open(world_state, matches[0].get("id"), turn=world_state.setdefault("flags", {}).get("turn_index", 0))
         return {"status": "found", "npc": matches[0]}
     if len(matches) > 1:
         return {"status": "ambiguous", "npcs": matches}
@@ -7704,10 +7672,7 @@ def commit_location_change(location_id, turn_index=None):
         _session().recent_dm_narrations.clear()
         if ensure_combat_state()["active"]:
             end_combat("location_changed")
-        flags = world_state.setdefault("flags", {})
-        flags["active_npc_id"] = None
-        flags["last_npc_id"] = None
-        flags["active_npc_until_turn"] = -1
+        talk_mode.close(world_state, "moved")
         scheduled_events.arm_table_absence(world_state, previous_location)
         now = world_state["campaign_time"]["elapsed_seconds"]
         scheduled_events.process_events(
@@ -13905,10 +13870,8 @@ def ask_dungeon_master(
     if not is_assertion and data:
         created_npcs = merge_world_updates(validated)
         if len(created_npcs) == 1:
-            flags = world_state.setdefault("flags", {})
-            flags["last_npc_id"] = created_npcs[0].get("id")
-            flags["active_npc_id"] = created_npcs[0].get("id")
-            flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+            talk_mode.open(world_state, created_npcs[0].get("id"),
+                           turn=world_state.setdefault("flags", {}).get("turn_index", 0))
 
     return finalize_narration(
         narration,
@@ -16837,10 +16800,7 @@ def _keep_people_in_look(narration, action_result):
 def _set_scene_active_npc(npc, turn_index):
     if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
         return
-    flags = _session().world_state.setdefault("flags", {})
-    flags["last_npc_id"] = npc["id"]
-    flags["active_npc_id"] = npc["id"]
-    flags["active_npc_until_turn"] = turn_index + 6
+    talk_mode.open(_session().world_state, npc["id"], turn=turn_index)
 
 
 def _promote_scene_referent(referent, location_id):
@@ -18424,12 +18384,11 @@ def _reads_as_address(player_input):
 
 def _addressed_in(player_input):
     """Who the line names, or else who the talk is with. Finding them here starts no conversation."""
-    flags = _session().world_state.setdefault("flags", {})
-    kept = {key: flags.get(key) for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn") if key in flags}
+    world_state = _session().world_state
+    world_state.setdefault("flags", {})
+    saved = talk_mode.snapshot(world_state)
     found = resolve_npc_reference(player_input, force_dialogue=True, allow_active_fallback=False)
-    for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn"):
-        flags.pop(key, None)
-    flags.update(kept)
+    talk_mode.restore(world_state, saved)
     return found.get("npc") or _active_interlocutor()
 
 
@@ -19131,7 +19090,7 @@ def _dispatch_player_turn(
     ):
         require_player_can_act()
         active = _active_interlocutor()
-        _clear_active_interlocutor()
+        _clear_active_interlocutor("ended")
         interaction_adventure.retire_conversation_focus(_session().world_state)
         if active is None:
             narration = "Şu anda sürdürdüğün bir konuşma yok."
@@ -19844,9 +19803,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 packet["lore_claims"] = []
             flags = _session().world_state.setdefault("flags", {})
             if len(created_npcs) == 1:
-                flags["last_npc_id"] = created_npcs[0].get("id")
-                flags["active_npc_id"] = created_npcs[0].get("id")
-                flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+                talk_mode.open(_session().world_state, created_npcs[0].get("id"), turn=flags.get("turn_index", 0))
 
             accepted_proposal_keys, rejected_proposal_names = _bind_world_update_mentions(
                 raw_updates,
@@ -20155,10 +20112,7 @@ def _run_player_turn_internal(
     conversation_state_before = copy.deepcopy(
         interaction_adventure.get(world_state)
     )
-    active_conversation_before = {
-        key: copy.deepcopy(flags.get(key))
-        for key in ("active_npc_id", "active_npc_until_turn", "last_npc_id")
-    }
+    active_conversation_before = talk_mode.snapshot(world_state)
 
     def procedural_entity_ids():
         ids = {
@@ -20213,11 +20167,8 @@ def _run_player_turn_internal(
             world_state[interaction_adventure.KEY] = copy.deepcopy(
                 conversation_state_before
             )
-            for key, value in active_conversation_before.items():
-                if value is None:
-                    flags.pop(key, None)
-                else:
-                    flags[key] = copy.deepcopy(value)
+            talk_mode.restore(world_state, {key: value for key, value in active_conversation_before.items()
+                                            if value is not None})
         is_experimental = (
             isinstance(action_result, dict)
             and (
@@ -20855,11 +20806,7 @@ def _run_player_turn_internal(
         ):
             npc_target = selected_npc_target
             if npc_target is not None:
-                flags["last_npc_id"] = npc_target["id"]
-                flags["active_npc_id"] = npc_target["id"]
-                flags["active_npc_until_turn"] = (
-                    flags.get("turn_index", 0) + 6
-                )
+                talk_mode.open(world_state, npc_target["id"], turn=flags.get("turn_index", 0))
     else:
         planned_npc_id = (
             scene_plan.get("npc_target_id")
@@ -20878,9 +20825,7 @@ def _run_player_turn_internal(
             else None
         )
         if npc_target is not None:
-            flags["last_npc_id"] = npc_target["id"]
-            flags["active_npc_id"] = npc_target["id"]
-            flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+            talk_mode.open(world_state, npc_target["id"], turn=flags.get("turn_index", 0))
         explicit_dialogue_resolution = (
             resolve_npc_reference(
                 player_input,
@@ -20999,9 +20944,7 @@ def _run_player_turn_internal(
                 if canonical_npc is None:
                     selected_npc = None
             if selected_npc is not None:
-                flags["last_npc_id"] = selected_npc["id"]
-                flags["active_npc_id"] = selected_npc["id"]
-                flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+                talk_mode.open(world_state, selected_npc["id"], turn=flags.get("turn_index", 0))
         if (
             dialogue_fallback_deferred
             and npc_resolution.get("status") == "none"
@@ -21113,9 +21056,7 @@ def _run_player_turn_internal(
                 )
             if accepted_npc is not None:
                 created_now = accepted_npc.get("id") not in existing_ids
-                flags["last_npc_id"] = accepted_npc["id"]
-                flags["active_npc_id"] = accepted_npc["id"]
-                flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+                talk_mode.open(world_state, accepted_npc["id"], turn=flags.get("turn_index", 0))
                 status = "created_local_person" if created_now else "reused_local_person"
                 text = (
                     f"{local_proposal['appearance']} {local_proposal['role']} "

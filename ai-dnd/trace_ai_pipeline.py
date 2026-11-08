@@ -15,6 +15,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
 import game
+import talk_mode
 session = game.create_session()
 
 # Override ollama to capture calls
@@ -104,11 +105,7 @@ world_state.update({
     "containers": [],
     "features": [],
     "events": [],
-    "flags": {
-        "last_npc_id": None, "active_npc_id": None,
-        "active_npc_until_turn": -1, "turn_index": 0,
-        "pending_destination": None,
-    },
+    "flags": {**talk_mode.fresh(), "turn_index": 0, "pending_destination": None},
     "next_npc_number": 1,
     "next_location_number": 1,
     "combat": {

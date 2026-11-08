@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import local_places
+import talk_mode
 import world_threads
 
 KEY = "happenings"
@@ -531,7 +532,7 @@ def callers_leave(session: Any, now: int) -> list[str]:
         npc["location"] = npc.pop("came_from")
         npc.pop("back_at", None)
         if flags.get("active_npc_id") == npc.get("id"):
-            flags.pop("active_npc_id", None)
+            talk_mode.close(world, "target_gone")
         words = world_threads.job_lines("link", "caller") or {}
         leaving = words.get("leaves") or ()
         who = world_threads.living_world.turkish_initial_upper(world_threads.living_world.public_npc_name(npc))
